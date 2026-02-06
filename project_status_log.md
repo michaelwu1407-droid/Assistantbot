@@ -105,7 +105,6 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 **Feature**: Pocket Estimator
 *   **Estimator UI**: Built `app/dashboard/estimator` for quick quote generation.
 *   **Logic**: wired to `generateQuote` action. Clientside line-item math.
-*   **Logic**: wired to `generateQuote` action. Clientside line-item math.
 *   **Note**: PDF download button is disabled (waiting on backend).
 
 ### 2026-02-07 [Frontend - Antigravity] - Core Hub Polish
@@ -260,11 +259,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | API Routes | 1 (extension import) — DONE |
 | Browser Extension | Chrome MV3 scaffold — DONE |
 | Frontend Shell | Dashboard, Kanban, Cards, Feed, Chat, Auth, Landing — DONE |
-<<<<<<< HEAD
-| **Frontend ↔ Backend Wiring** | **PHASE 1 & 2 COMPLETE** |
-=======
-| **Frontend ↔ Backend Wiring** | **DONE — Wired to root actions** |
->>>>>>> 97e8154 (feat(agent): Kiosk, Matchmaker & DealDetail UI)
+| **Frontend ↔ Backend Wiring** | **PHASE 1 & 2 COMPLETE — Wired to root actions** |
 
 ---
 
@@ -302,13 +297,8 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
-<<<<<<< HEAD
 | 3.1 | PDF quote/invoice generation | **Backend** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
-| 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ⬜ |
-=======
-| 3.1 | PDF quote/invoice generation | **Claude Code** | Use `@react-pdf/renderer` or `pdfmake`. New `generateQuotePDF(dealId)` action returning downloadable blob/URL. | ⬜ |
 | 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ✅ |
->>>>>>> 97e8154 (feat(agent): Kiosk, Matchmaker & DealDetail UI)
 | 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | ⬜ |
 | 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
 | 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ⬜ |
@@ -376,4 +366,4 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **7 ✅** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **8 ✅** |

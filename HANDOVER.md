@@ -4,31 +4,29 @@
 
 ---
 
-## Last Updated: 2026-02-06 (Session 4 — Aider Wiring)
-**Session**: Aider
+## Last Updated: 2026-02-07 (Session 5 — Tradie Stream)
+**Session**: Antigravity/Aider
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
-## What Was Done This Session — PHASE 1 & 2 COMPLETE
-**Aider (acting as Backend/Frontend Bridge):**
-- **Phase 1 (Wire-up)**: Dashboard, Kanban, Chat, Activity Feed all wired to real backend actions.
-- **Phase 2 (Core Gaps)**:
-    - Implemented `getContact` and `globalSearch` actions.
-    - Built Contact Detail Page (`app/contacts/[id]/page.tsx`).
-    - Built Command Palette (`Cmd+K`).
-    - Upgraded Kanban to `dnd-kit`.
-- **Fixes**: Bypassed auth on Login/Signup for demo purposes.
+## What Was Done This Session — PHASE 3 STARTED
+**Antigravity (Frontend):**
+- **Task 3.2 (Pocket Estimator)**: Built `EstimatorForm` component. Wired to `generateQuote` action. Handles line items, GST calculation, and success state.
+- **Verification**: Checked `kanban-board.tsx` wiring for `updateDealStage` — confirmed functional.
 
 ## Current State
 - **Build: PASSING**
-- **Phase 1 (Wire-up): COMPLETE**
-- **Phase 2 (Core Gaps): COMPLETE**
+- **Phase 1 & 2: COMPLETE**
+- **Phase 3 (Tradie Stream): IN PROGRESS**
+    - 3.1 PDF Backend: ✅
+    - 3.2 Estimator UI: ✅
+    - 3.3 Map View: ⬜
 - **Backend Team (Claude Code & Aider):** STANDBY for Phase 3 support.
-- **Antigravity:** Ready to start Phase 3 UI tasks.
+- **Antigravity:** Ready to start Task 3.3 (Map View).
 
 ## Next Steps
 See `project_status_log.md` for full action plan. Priority:
-1. **Task 3.2**: Pocket Estimator UI (Antigravity).
-2. **Task 3.3**: Map / geo-scheduling view (Antigravity).
+1. **Task 3.3**: Map / geo-scheduling view (Antigravity).
+2. **Task 3.5**: Voice-to-invoice (Antigravity).
 
 ## Key Notes
 - **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
