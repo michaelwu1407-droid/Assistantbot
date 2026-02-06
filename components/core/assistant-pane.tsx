@@ -24,6 +24,7 @@ export function AssistantPane() {
     const [isListening, setIsListening] = useState(false)
     const [workspaceId, setWorkspaceId] = useState<string | null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null)
 
     useEffect(() => {
@@ -41,18 +42,20 @@ export function AssistantPane() {
     // Initialize Speech Recognition
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+            if (SR) {
+                const recognition = new SR()
                 recognition.continuous = false
                 recognition.interimResults = false
                 recognition.lang = "en-AU"
 
                 recognition.onstart = () => setIsListening(true)
                 recognition.onend = () => setIsListening(false)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 recognition.onresult = (event: any) => {
                     const transcript = event.results[0][0].transcript
-                    setInput(prev => prev ? `${prev} ${transcript}` : transcript)
+                    setInput((prev: string) => prev ? `${prev} ${transcript}` : transcript)
                 }
 
                 recognitionRef.current = recognition
@@ -141,7 +144,7 @@ export function AssistantPane() {
                             <div className="text-slate-500 text-sm">
                                 I am ready to help you manage your jobs and leads.
                                 <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Try asking: "Show me deals in negotiation" or "Email John about the invoice".
+                                    Try asking: &quot;Show me deals in negotiation&quot; or &quot;Email John about the invoice&quot;.
                                 </div>
                             </div>
                         )}

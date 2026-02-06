@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+// leaflet-map is a client-only component
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"

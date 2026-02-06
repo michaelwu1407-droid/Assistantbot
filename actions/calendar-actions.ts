@@ -35,7 +35,7 @@ export interface CalendarSyncResult {
  * Requires: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET + per-workspace OAuth token
  */
 export async function syncGoogleCalendar(
-  workspaceId: string,
+  _workspaceId: string,
   _accessToken?: string
 ): Promise<CalendarSyncResult> {
   // TODO: Replace with actual Google Calendar API call
@@ -62,7 +62,7 @@ export async function syncGoogleCalendar(
  * STUB: Uses Microsoft Graph API.
  */
 export async function syncOutlookCalendar(
-  workspaceId: string,
+  _workspaceId: string,
   _accessToken?: string
 ): Promise<CalendarSyncResult> {
   // TODO: Replace with actual Microsoft Graph API call
@@ -85,7 +85,7 @@ export async function syncOutlookCalendar(
  */
 export async function createCalendarEvent(
   taskId: string,
-  provider: "google" | "outlook" = "google"
+  _provider: "google" | "outlook" = "google"
 ): Promise<{
   success: boolean;
   event?: CalendarEvent;

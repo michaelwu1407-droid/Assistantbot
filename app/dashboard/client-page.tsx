@@ -14,7 +14,7 @@ interface DashboardClientPageProps {
     workspaceId: string
 }
 
-export default function DashboardClientPage({ deals, activities, workspaceId }: DashboardClientPageProps) {
+export default function DashboardClientPage({ deals, activities, workspaceId: _workspaceId }: DashboardClientPageProps) {
     const { mode } = useDashboard()
 
     if (mode === "chat") {

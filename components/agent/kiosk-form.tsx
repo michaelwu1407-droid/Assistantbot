@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { CheckCircle2, User, Mail, Phone, Home } from "lucide-react"
+import { CheckCircle2, User, Mail, Phone } from "lucide-react"
 import { logOpenHouseAttendee } from "@/actions/agent-actions"
 
 interface KioskFormProps {

@@ -8,7 +8,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateQuote, type LineItem } from "@/actions/tradie-actions"
 import { DealView } from "@/actions/deal-actions"
-import { cn } from "@/lib/utils"
 
 interface EstimatorFormProps {
     deals: DealView[]

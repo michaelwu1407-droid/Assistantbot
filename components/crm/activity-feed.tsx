@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lucide-react"
 import { getActivities, ActivityView } from "@/actions/activity-actions"
@@ -14,7 +14,7 @@ interface ActivityFeedProps {
     activities?: ActivityView[]
 }
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
     email: Mail,
     call: Phone,
     meeting: Calendar,

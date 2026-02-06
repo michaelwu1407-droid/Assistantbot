@@ -15,7 +15,7 @@ export interface WorkspaceView {
 
 // ─── Validation ─────────────────────────────────────────────────────
 
-const CreateWorkspaceSchema = z.object({
+const _CreateWorkspaceSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["TRADIE", "AGENT"]),
   ownerId: z.string().optional(),
