@@ -57,7 +57,7 @@ export async function getTemplates(
     category: t.category,
     subject: t.subject,
     body: t.body,
-    variables: t.variables,
+    variables: JSON.parse(t.variables || "[]"),
   }));
 }
 
@@ -74,7 +74,7 @@ export async function getTemplate(templateId: string): Promise<TemplateView | nu
     category: t.category,
     subject: t.subject,
     body: t.body,
-    variables: t.variables,
+    variables: JSON.parse(t.variables || "[]"),
   };
 }
 
@@ -93,7 +93,7 @@ export async function createTemplate(input: z.infer<typeof CreateTemplateSchema>
       category: parsed.data.category,
       subject: parsed.data.subject,
       body: parsed.data.body,
-      variables: parsed.data.variables,
+      variables: JSON.stringify(parsed.data.variables),
       workspaceId: parsed.data.workspaceId,
     },
   });
@@ -110,11 +110,14 @@ export async function updateTemplate(input: z.infer<typeof UpdateTemplateSchema>
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { templateId, ...data } = parsed.data;
+  const { templateId, variables, ...rest } = parsed.data;
 
   await db.messageTemplate.update({
     where: { id: templateId },
-    data,
+    data: {
+      ...rest,
+      ...(variables ? { variables: JSON.stringify(variables) } : {}),
+    },
   });
 
   return { success: true };
@@ -213,7 +216,7 @@ export async function seedPresetTemplates(workspaceId: string) {
   const results = await Promise.all(
     presets.map((p) =>
       db.messageTemplate.create({
-        data: { ...p, workspaceId },
+        data: { ...p, variables: JSON.stringify(p.variables), workspaceId },
       })
     )
   );

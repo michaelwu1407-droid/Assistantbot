@@ -11,6 +11,7 @@ interface ActivityFeedProps {
     dealId?: string
     limit?: number
     className?: string
+    activities?: ActivityView[]
 }
 
 const ICON_MAP: Record<string, any> = {
@@ -29,21 +30,19 @@ const COLOR_MAP: Record<string, string> = {
     note: "text-slate-500 bg-slate-50"
 }
 
-export function ActivityFeed({ contactId, dealId, limit = 20, className }: ActivityFeedProps) {
-    const [activities, setActivities] = useState<ActivityView[]>([])
-    const [loading, setLoading] = useState(true)
+export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialActivities }: ActivityFeedProps) {
+    const [activities, setActivities] = useState<ActivityView[]>(initialActivities || [])
+    const [loading, setLoading] = useState(!initialActivities)
 
     useEffect(() => {
         let mounted = true
         async function fetchActivities() {
             try {
-                // Determine workspace context if available, or just rely on backend implied context
-                // For now, we fetch globally or filtered
                 const data = await getActivities({
                     contactId,
                     dealId,
                     limit,
-                    workspaceId: "demo-workspace" // Generic for now until auth context
+                    workspaceId: "demo-workspace"
                 })
                 if (mounted) {
                     setActivities(data)

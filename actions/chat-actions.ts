@@ -22,21 +22,21 @@ export interface ChatResponse {
 
 interface ParsedCommand {
   intent:
-    | "show_deals"
-    | "show_stale"
-    | "create_deal"
-    | "move_deal"
-    | "log_activity"
-    | "search_contacts"
-    | "add_contact"
-    | "create_task"
-    | "morning_digest"
-    | "use_template"
-    | "show_templates"
-    | "find_duplicates"
-    | "create_invoice"
-    | "help"
-    | "unknown";
+  | "show_deals"
+  | "show_stale"
+  | "create_deal"
+  | "move_deal"
+  | "log_activity"
+  | "search_contacts"
+  | "add_contact"
+  | "create_task"
+  | "morning_digest"
+  | "use_template"
+  | "show_templates"
+  | "find_duplicates"
+  | "create_invoice"
+  | "help"
+  | "unknown";
   params: Record<string, string>;
 }
 
@@ -186,7 +186,11 @@ export async function processChat(
 ): Promise<ChatResponse> {
   // Persist user message
   await db.chatMessage.create({
-    data: { role: "user", content: message, workspaceId },
+    data: {
+      role: "user",
+      content: message,
+      workspace: { connect: { id: workspaceId } }
+    },
   });
 
   const { intent, params } = parseCommand(message);
@@ -309,7 +313,7 @@ export async function processChat(
 
       // Determine amount: override from command, or use deal value
       const amount = params.amount ? Number(params.amount) : deal.value;
-      
+
       if (amount <= 0) {
         response = { message: `Deal "${deal.title}" has no value. Please specify an amount: "invoice ${deal.title} for 5000"` };
         break;
