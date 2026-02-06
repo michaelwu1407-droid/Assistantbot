@@ -175,7 +175,7 @@ export async function importFromPortal(
 /**
  * Detect which portal a URL belongs to.
  */
-export function detectPortal(url: string): "rea" | "domain" | null {
+export async function detectPortal(url: string): Promise<"rea" | "domain" | null> {
   if (url.includes("realestate.com.au")) return "rea";
   if (url.includes("domain.com.au")) return "domain";
   return null;
