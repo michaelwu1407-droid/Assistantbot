@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Bot, Maximize2, Minimize2, Send } from "lucide-react"
+import { Bot, Maximize2, Minimize2, Send, Mic, MicOff } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,8 +21,10 @@ export function AssistantPane() {
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [isListening, setIsListening] = useState(false)
     const [workspaceId, setWorkspaceId] = useState<string | null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const recognitionRef = useRef<any>(null)
 
     useEffect(() => {
         // Initialize workspace
@@ -35,6 +37,41 @@ export function AssistantPane() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
         }
     }, [messages])
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition()
+                recognition.continuous = false
+                recognition.interimResults = false
+                recognition.lang = "en-AU"
+
+                recognition.onstart = () => setIsListening(true)
+                recognition.onend = () => setIsListening(false)
+                recognition.onresult = (event: any) => {
+                    const transcript = event.results[0][0].transcript
+                    setInput(prev => prev ? `${prev} ${transcript}` : transcript)
+                }
+
+                recognitionRef.current = recognition
+            }
+        }
+    }, [])
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            alert("Speech recognition is not supported in this browser.")
+            return
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop()
+        } else {
+            recognitionRef.current.start()
+        }
+    }
 
     const handleSend = async () => {
         if (!input.trim() || !workspaceId || isLoading) return
@@ -143,6 +180,15 @@ export function AssistantPane() {
 
             <div className="p-4 border-t border-slate-200 bg-white">
                 <div className="flex gap-2">
+                    <Button
+                        size="icon"
+                        variant={isListening ? "destructive" : "outline"}
+                        onClick={toggleListening}
+                        className={cn("shrink-0", isListening && "animate-pulse")}
+                        title="Voice Input"
+                    >
+                        {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
                     <Input 
                         placeholder="Type a command..." 
                         className="bg-slate-50 border-slate-200 focus-visible:ring-purple-500"
