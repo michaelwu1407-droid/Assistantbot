@@ -4,49 +4,37 @@
 
 ---
 
-## Last Updated: 2026-02-06
+## Last Updated: 2026-02-06 (Session 2)
 **Session**: Claude Code Web
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
 ## What Was Done This Session
 
-### 1. Prisma Schema (COMPLETE)
-- Aligned `DealStage` with frontend kanban: NEW, CONTACTED, NEGOTIATION, WON, LOST (+ INVOICED for Tradie)
-- Added `ActivityType`: MEETING, TASK (frontend uses these beyond CALL/EMAIL/NOTE)
-- Added `company`, `avatarUrl` to Contact; `company` to Deal
-- Added `title`, `description` to Activity
-- New models: **Task** (reminders/follow-ups), **Automation** (IFTTT triggers), **ChatMessage** (chatbot CRM)
+### 1. Removed `src/` legacy directory (DONE)
+- All legacy files consolidated into root (`lib/`, `actions/`)
+- Deleted: `src/lib/db.ts`, `src/lib/utils/pipeline.ts`, `src/actions/tradie-actions.ts`, `src/app/`, `src/components/`
 
-### 2. Lib Utilities (COMPLETE)
-- `lib/db.ts` — PrismaClient singleton (exports `db`)
-- `lib/pipeline.ts` — `getDealHealth()` (HEALTHY/STALE/ROTTING thresholds)
-- `lib/enrichment.ts` — Email domain → company data enrichment (known domains + Clearbit logo URL fallback)
-- `lib/search.ts` — Fuzzy search with Levenshtein distance (finds "Jhon" for "John")
-- `lib/digest.ts` — "Morning Coffee" digest generator (rotting deals, overdue tasks, today's priorities)
+### 2. Added Vertical-Specific Actions (DONE)
+- `actions/tradie-actions.ts` — `generateQuote()` (line items → total with 10% GST, creates Invoice record, moves deal to INVOICED), `getDealInvoices()`, `issueInvoice()`, `markInvoicePaid()` (auto-moves to WON)
+- `actions/agent-actions.ts` — `findMatches()` (buyer matchmaker: budget + bedrooms filter), `logOpenHouseAttendee()` (auto-creates contacts), `getOpenHouseLog()`
 
-### 3. Server Actions (COMPLETE)
-All at root `actions/` directory (where Gemini expects them):
-- `actions/deal-actions.ts` — `getDeals()`, `createDeal()`, `updateDealStage()`, `updateDealMetadata()`, `deleteDeal()`
-- `actions/activity-actions.ts` — `getActivities()`, `logActivity()`, `autoLogActivity()` (invisible data entry)
-- `actions/contact-actions.ts` — `getContacts()`, `createContact()`, `updateContact()`, `enrichContact()`, `searchContacts()` (fuzzy), `deleteContact()`
-- `actions/task-actions.ts` — `getTasks()`, `createTask()`, `completeTask()`, `getOverdueCount()`, `deleteTask()`
-- `actions/automation-actions.ts` — `getAutomations()`, `createAutomation()`, `toggleAutomation()`, `evaluateAutomations()`, `deleteAutomation()`, `PRESET_AUTOMATIONS`
-- `actions/chat-actions.ts` — `processChat()` (NLP command parser → CRM actions), `getChatHistory()`
+### 3. Fixed Build (DONE)
+- Removed Google Fonts import (Geist) from `app/layout.tsx` — fails in offline build env. Uses system fonts.
+- Fixed all Prisma `InputJsonValue` type errors across actions — `JSON.parse(JSON.stringify(...))` wrapper for all Json field writes.
+- **Build passes cleanly**: all 9 routes compile.
 
-### 4. Seed Script (COMPLETE)
-- `prisma/seed.ts` — Populates DB with exact frontend MOCK_DEALS scenarios
-- Includes stale (8d) and rotting (15d) deals for visual alerts
-- Creates 5 contacts, 5 deals, 5 activities, 3 tasks, 2 automations
+## Current State
+- **All backend code complete**: Schema, 8 server action files, 5 lib utilities, seed script
+- **Build: PASSING** (`npm run build` succeeds)
+- **No `src/` directory** — everything in root
 
 ## What Needs To Be Done Next
-- Update `project_status_log.md` with all backend changes (for Gemini sync)
-- Update `package.json` to add seed script configuration
-- Clean up `src/` legacy files (consolidate into root)
-- Frontend integration: wire server actions into Gemini's components
-- Test build passes with all new files
+- Frontend integration: wire server actions into Gemini's CRM components
+- Set up Supabase DB + run `npx prisma db push` + `npm run db:seed`
+- Wire `AssistantPane` chat input to `processChat()`
+- Add real drag-and-drop persistence (call `updateDealStage()` on drop)
 
 ## Key Notes for Next Session
-- Frontend expects Deal type: `{ id, title, company, value, stage (lowercase), lastActivityDate, contactName, contactAvatar? }`
-- `getDeals()` returns `DealView[]` which matches this shape exactly
-- Chat parser handles: show deals, show stale, create deal, move deal, log activity, search contacts, add contact, create task, morning digest
-- Automations use JSON columns for trigger/action configs — flexible IFTTT-style
+- All Json fields use `JSON.parse(JSON.stringify(...))` to satisfy Prisma's `InputJsonValue` type
+- `app/layout.tsx` uses system fonts (no Google Fonts) — Gemini can add them back if they have internet access
+- `getDeals()` returns `DealView[]` matching frontend `Deal` type exactly
