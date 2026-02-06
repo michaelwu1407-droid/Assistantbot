@@ -21,20 +21,20 @@ export interface ChatResponse {
 
 interface ParsedCommand {
   intent:
-    | "show_deals"
-    | "show_stale"
-    | "create_deal"
-    | "move_deal"
-    | "log_activity"
-    | "search_contacts"
-    | "add_contact"
-    | "create_task"
-    | "morning_digest"
-    | "use_template"
-    | "show_templates"
-    | "find_duplicates"
-    | "help"
-    | "unknown";
+  | "show_deals"
+  | "show_stale"
+  | "create_deal"
+  | "move_deal"
+  | "log_activity"
+  | "search_contacts"
+  | "add_contact"
+  | "create_task"
+  | "morning_digest"
+  | "use_template"
+  | "show_templates"
+  | "find_duplicates"
+  | "help"
+  | "unknown";
   params: Record<string, string>;
 }
 
@@ -172,7 +172,11 @@ export async function processChat(
 ): Promise<ChatResponse> {
   // Persist user message
   await db.chatMessage.create({
-    data: { role: "user", content: message, workspaceId },
+    data: {
+      role: "user",
+      content: message,
+      workspace: { connect: { id: workspaceId } }
+    },
   });
 
   const { intent, params } = parseCommand(message);
