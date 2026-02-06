@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CommandPalette } from "@/components/core/command-palette";
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -15,6 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased font-sans">
         {children}
+        <CommandPalette />
       </body>
     </html>
   );

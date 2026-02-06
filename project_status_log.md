@@ -77,6 +77,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 *   **Search**: Created `actions/search-actions.ts` with `globalSearch()` to aggregate contacts, deals, and tasks using fuzzy matching.
 *   **Purpose**: Unblocking Task 2.4 (Command Palette).
 
+### 2026-02-06 [Backend - Aider] - Phase 2 Command Palette
+**Feature**: CMD+K Command Palette
+*   **UI**: Created `components/core/command-palette.tsx` with custom modal UI (no external deps).
+*   **Integration**: Mounted in `app/layout.tsx`. Wired to `globalSearch` action.
+*   **Status**: Task 2.4 Complete.
+
 ### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
 **Feature**: Visual Pipeline & Chat Mode
 *   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.
@@ -250,7 +256,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | 2.1 | Real drag-and-drop (dnd-kit) | **Antigravity** | Install `@dnd-kit/core` + `@dnd-kit/sortable`. Replace framer-motion drag with real reorder/drop persistence. On drop, call `updateDealStage()`. | ⬜ |
 | 2.2 | Contact detail page + timeline | **Antigravity/Aider** | New route `app/contacts/[id]/page.tsx`. Show contact info, all deals, all activities in a unified timeline. Backend already has `getActivities({ contactId })`. | ✅ |
 | 2.3 | `days_in_stage` tracking | **Backend** | `stageChangedAt` field on Deal. `updateDealStage()` sets it. `getDeals()` returns computed `daysInStage`. | ✅ |
-| 2.4 | CMD+K command palette | **Aider** | Install `cmdk`. Wire to `searchContacts()` + `fuzzySearch()`. Show deals, contacts, commands in palette. | 🔄 |
+| 2.4 | CMD+K command palette | **Aider** | Install `cmdk`. Wire to `searchContacts()` + `fuzzySearch()`. Show deals, contacts, commands in palette. | ✅ |
 | 2.5 | Smart contact deduplication | **Backend** | `actions/dedup-actions.ts`: `findDuplicateContacts()` + `mergeContacts()`. Matches email, phone, fuzzy name (>85%). Chat: "find duplicates". | ✅ |
 | 2.6 | Template library | **Backend** | `MessageTemplate` model + `actions/template-actions.ts`: CRUD + `renderTemplate()` with `{{var}}` syntax. 7 presets seeded. Chat: "show templates", "use template X for Y". | ✅ |
 
@@ -330,4 +336,4 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **5 ✅** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **6 ✅** |
