@@ -12,6 +12,19 @@ export interface MessageResult {
   error?: string;
 }
 
+export interface InboxThread {
+  contactId: string;
+  contactName: string;
+  contactAvatar: string | null;
+  contactCompany: string | null;
+  lastMessage: {
+    content: string;
+    createdAt: Date;
+    type: string;
+  } | null;
+  unreadCount: number;
+}
+
 // ─── Validation ─────────────────────────────────────────────────────
 
 const SendMessageSchema = z.object({
@@ -88,6 +101,65 @@ async function sendViaTwilio(
 }
 
 // ─── Server Actions ─────────────────────────────────────────────────
+
+/**
+ * Get inbox threads (contacts with recent activity).
+ * Groups activities by contact to create a "chat list" view.
+ */
+export async function getInboxThreads(workspaceId: string): Promise<InboxThread[]> {
+  // Fetch contacts who have relevant activities
+  const contacts = await db.contact.findMany({
+    where: {
+      workspaceId,
+      activities: {
+        some: {
+          type: { in: ["EMAIL", "CALL", "NOTE"] }
+        }
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      company: true,
+      activities: {
+        where: {
+          type: { in: ["EMAIL", "CALL", "NOTE"] }
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          content: true,
+          createdAt: true,
+          type: true,
+          title: true
+        }
+      }
+    }
+  });
+
+  // Transform and sort by most recent message
+  const threads = contacts
+    .map(c => {
+      const last = c.activities[0];
+      return {
+        contactId: c.id,
+        contactName: c.name,
+        contactAvatar: c.avatarUrl,
+        contactCompany: c.company,
+        lastMessage: last ? {
+          content: last.content || last.title,
+          createdAt: last.createdAt,
+          type: last.type
+        } : null,
+        unreadCount: 0 // In future, track read status
+      };
+    })
+    .filter(t => t.lastMessage !== null)
+    .sort((a, b) => b.lastMessage!.createdAt.getTime() - a.lastMessage!.createdAt.getTime());
+
+  return threads;
+}
 
 /**
  * Send an SMS to a contact.

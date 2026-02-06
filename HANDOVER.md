@@ -8,12 +8,20 @@
 **Session**: Antigravity/Aider
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
-## What Was Done This Session — PHASE 3 CONTINUES
+## What Was Done This Session — PHASE 3, 4 & 5
 **Antigravity (Frontend):**
 - **Task 3.3 (Map View)**: STARTED.
 - **Created**: `app/dashboard/map/page.tsx` and `components/crm/job-map-view.tsx`.
 - **Task 3.5 (Voice-to-Invoice)**: COMPLETE.
 - **Feature**: Added microphone to chat, wired `create_invoice` intent to `generateQuote`.
+- **Task 4.1 (Open House Kiosk)**: COMPLETE.
+- **Feature**: Created tablet-friendly sign-in page at `app/kiosk/[id]/page.tsx`.
+- **Task 4.3 (Buyer Matchmaker)**: COMPLETE.
+- **Feature**: Created `BuyerMatchmaker` component and `app/dashboard/deals/[id]/page.tsx`.
+- **Task 4.5 (Rotting Deal Widget)**: COMPLETE.
+- **Feature**: Created `DealHealthWidget` to visualize pipeline risk.
+- **Task 5.2 (Unified Inbox)**: COMPLETE.
+- **Feature**: Created `app/inbox/page.tsx` and `InboxView`. Updated `messaging-actions.ts` to fetch threads.
 
 **Backend (Claude Code):**
 - **Fix**: Populated `.env` with Supabase credentials (URL-encoded password).
@@ -28,6 +36,12 @@
     - 3.2 Estimator UI: ✅
     - 3.3 Map View: 🚧 (List View Ready)
     - 3.5 Voice-to-Invoice: ✅
+- **Phase 4 (Agent Stream): IN PROGRESS**
+    - 4.1 Kiosk UI: ✅
+    - 4.3 Buyer Matchmaker: ✅
+    - 4.5 Rotting Deal Widget: ✅
+- **Phase 5 (Communications): IN PROGRESS**
+    - 5.2 Unified Inbox: ✅
 - **Backend Team (Claude Code & Aider):** STANDBY for Phase 3 support.
 
 ## Next Steps

@@ -52,6 +52,30 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Communications
+**Feature**: Unified Inbox
+*   **UI**: Created `app/inbox/page.tsx` and `InboxView`.
+*   **Logic**: Added `getInboxThreads` to `messaging-actions.ts`.
+*   **Status**: Task 5.2 Complete.
+
+### 2026-02-07 [Frontend - Antigravity] - Core Hub Polish
+**Feature**: Rotting Deal Widget
+*   **UI**: Created `components/crm/deal-health-widget.tsx`.
+*   **Logic**: Calculates pipeline value and counts stale/rotting deals.
+*   **Status**: Task 4.5 Complete.
+
+### 2026-02-07 [Frontend - Antigravity] - Agent Stream
+**Feature**: Buyer Matchmaker & Deal Page
+*   **UI**: Created `app/dashboard/deals/[id]/page.tsx` and `BuyerMatchmaker` component.
+*   **Logic**: Wires to `findMatches` action. Shows contacts matching budget/bedrooms.
+*   **Status**: Task 4.3 Complete.
+
+### 2026-02-07 [Frontend - Antigravity] - Agent Stream
+**Feature**: Open House Kiosk
+*   **Kiosk UI**: Built `app/kiosk/[id]/page.tsx` tablet-first view.
+*   **Logic**: Wires to `logOpenHouseAttendee` + auto-creates contacts.
+*   **Status**: Task 4.1 Complete.
+
 ### 2026-02-07 [Backend - Claude Code] - Database Connected
 **Update**: Populated `.env` with Supabase credentials.
 *   **Fix**: URL-encoded special characters in password to prevent connection errors.
@@ -124,13 +148,6 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Logic**: Counts Stale (>7d) and Rotting (>14d) deals.
 *   **UI**: Red/Amber alert cards.
 
-### 2026-02-07 [Frontend - Antigravity] - Agent Stream
-**Feature**: Open House Kiosk
-*   **Kiosk UI**: Built `app/kiosk/open-house` tablet-first view.
-*   **Logic**: Wires to `logOpenHouseAttendee` + auto-creates contacts.
-*   **Buyer Matchmaker**: Added `BuyerMatchmaker` component to Deal Detail page.
-*   **Logic**: Matches contacts to listings based on budget/bedrooms.
-
 ### 2026-02-06 [Frontend - Antigravity] - Design Pivot
 **Feature**: Neutral Light Theme & SaaS Landing Page
 *   **Design System**: Refactored `globals.css` and all UI components to **Neutral Light** (White Bg, Slate-900 Text, Borders/Shadows). Removed Dark Mode/Glassmorphism.
@@ -195,7 +212,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
 2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
 3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
+4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
 
 ### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
@@ -323,11 +340,11 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
-| 4.1 | Open House Kiosk UI | **Antigravity** | Tablet-optimized form: name, email, phone, buyer status. Calls `logOpenHouseAttendee()`. Show QR to self-register. | ⬜ |
+| 4.1 | Open House Kiosk UI | **Antigravity** | Tablet-optimized form: name, email, phone, buyer status. Calls `logOpenHouseAttendee()`. Show QR to self-register. | ✅ |
 | 4.2 | QR code generation | **Backend** | `lib/qrcode.ts`: pure SVG QR generator (no deps). `generateOpenHouseQR(dealId)` in agent-actions returns SVG + data URL. | ✅ |
-| 4.3 | Buyer matchmaker UI | **Antigravity** | When viewing listing deal, show "Matched Buyers" panel. Call `findMatches(listingId)`. Display match score, budget fit, bedroom fit. | ⬜ |
+| 4.3 | Buyer matchmaker UI | **Antigravity** | When viewing listing deal, show "Matched Buyers" panel. Call `findMatches(listingId)`. Display match score, budget fit, bedroom fit. | ✅ |
 | 4.4 | Portal integration stubs | **Backend** | `actions/portal-actions.ts`: `importFromPortal(url, workspaceId)`. Detects REA/Domain, creates Deal + Contact, stores portal metadata. | ✅ |
-| 4.5 | Rotting deal alerts widget | **Antigravity** | Dashboard widget showing stale + rotting counts. Click through to filtered Kanban. Backend `getDeals()` already returns health. | ⬜ |
+| 4.5 | Rotting deal alerts widget | **Antigravity** | Dashboard widget showing stale + rotting counts. Click through to filtered Kanban. Backend `getDeals()` already returns health. | ✅ |
 
 ---
 
@@ -337,7 +354,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
 | 5.1 | SMS/WhatsApp via Twilio | **Backend** | `actions/messaging-actions.ts`: `sendSMS()`, `sendWhatsApp()`, `sendBulkSMS()`. Uses Twilio REST API. Auto-logs activities. | ✅ |
-| 5.2 | Unified messaging inbox UI | **Antigravity** | New `app/inbox/page.tsx`. SMS/WhatsApp/email threads grouped by contact. Chat bubble format. | ⬜ |
+| 5.2 | Unified messaging inbox UI | **Antigravity** | New `app/inbox/page.tsx`. SMS/WhatsApp/email threads grouped by contact. Chat bubble format. | ✅ |
 | 5.3 | Email sync (Gmail/Outlook) | **Backend** | `actions/email-actions.ts`: `syncGmail()`, `syncOutlook()`, `getGmailAuthUrl()`, `getOutlookAuthUrl()`, `processEmailWebhook()`. Stub — ready for OAuth. | ✅ |
 | 5.4 | Calendar integration | **Backend** | `actions/calendar-actions.ts`: `syncGoogleCalendar()`, `syncOutlookCalendar()`, `createCalendarEvent()`, `processCalendarWebhook()`. Stub — ready for OAuth. | ✅ |
 | 5.5 | Bulk SMS/blast | **Backend** | Included in `messaging-actions.ts`: `sendBulkSMS(contactIds[], message)`. Rate-limited (1/sec). Template `{{var}}` substitution. | ✅ |
@@ -377,4 +394,4 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **9 ✅** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **14 ✅** |
