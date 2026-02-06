@@ -7,7 +7,7 @@
 
 // Default config — user sets these in the popup
 const DEFAULT_CONFIG = {
-  apiBaseUrl: "http://localhost:3000",
+  apiBaseUrl: "",
   workspaceId: "",
 };
 
@@ -35,6 +35,10 @@ async function pushToCRM(data) {
   const config = await new Promise((resolve) => {
     chrome.storage.local.get(DEFAULT_CONFIG, resolve);
   });
+
+  if (!config.apiBaseUrl) {
+    return { success: false, error: "API URL not configured. Open the extension popup to set your deployment URL." };
+  }
 
   if (!config.workspaceId) {
     return { success: false, error: "Workspace ID not configured. Open the extension popup to set it up." };

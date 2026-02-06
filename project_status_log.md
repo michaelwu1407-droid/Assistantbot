@@ -9,8 +9,32 @@
     *   *Tradie Mode*: Map-based, Quick Invoicing.
     *   *Agent Mode*: Speed-to-lead, Open House Kiosk.
 *   **Tech Stack**:
-    *   **Frontend**: Next.js 15, Tailwind CSS (v4), Shadcn UI, Framer Motion.
-    *   **Backend**: Supabase, Prisma ORM, Server Actions.
+    *   **Frontend**: Next.js 16, Tailwind CSS (v4), Shadcn UI, Framer Motion.
+    *   **Backend**: Supabase (PostgreSQL), Prisma 6 ORM, Server Actions.
+    *   **Dev DB**: SQLite (`file:./dev.db`) — switch to PostgreSQL for production.
+
+---
+
+## CONTRIBUTOR REQUIREMENTS — ALL AI AGENTS MUST FOLLOW
+
+> [!IMPORTANT]
+> **Every AI contributor** (Antigravity/Gemini, Claude Code, Aider) **MUST** update this status log when making changes.
+
+### How to Log Your Changes
+1. Add a new entry under **Change Log** with the format:
+   ```
+   ### YYYY-MM-DD [Role - Agent Name] - Category
+   **Feature/Fix**: Short description
+   *   **Detail 1**: What was done
+   *   **Status**: Which task(s) this completes
+   ```
+2. Update the **task table** status (change `⬜`→`🚧`→`✅`) when starting/finishing tasks.
+3. If you create new files, list them so other agents know they exist.
+4. If you change existing APIs or component props, note the breaking change.
+
+### Why This Matters
+- We have 3 AI agents working in parallel. Without status updates, agents duplicate work or break each other's code.
+- This file is the **single source of truth** for project state.
 
 ---
 
