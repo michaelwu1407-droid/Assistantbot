@@ -27,9 +27,6 @@ const CreateWorkspaceSchema = z.object({
  * Get or create a workspace for the current user.
  * This is the main entry point — frontend calls this on load
  * to get a workspaceId for all subsequent actions.
- *
- * If ownerId is provided and a workspace exists for that owner, returns it.
- * Otherwise creates a new workspace.
  */
 export async function getOrCreateWorkspace(
   ownerId?: string,
@@ -72,11 +69,15 @@ export async function getOrCreateWorkspace(
     };
   } catch (error) {
     console.error("Database Error in getOrCreateWorkspace:", error);
-    // Fallback for when DB is not connected yet (e.g. during build or initial setup)
-    // This prevents the entire app from crashing if the DB isn't ready
-    if ((error as Error).message.includes("DATABASE_URL")) {
-      throw new Error("Database connection failed: DATABASE_URL is missing. Please check your .env file.");
+    
+    // Check for specific Prisma initialization error related to env vars
+    const errorMessage = (error as Error).message || "";
+    if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("Environment variable not found")) {
+      throw new Error(
+        "CRITICAL: Database connection failed. Please check your internet connection and firewall settings."
+      );
     }
+    
     throw error;
   }
 }
