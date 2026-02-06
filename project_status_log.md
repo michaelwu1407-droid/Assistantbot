@@ -53,6 +53,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 *   **Role**: Aider will work interchangeably with Claude Code on backend tasks, bug fixes, and wiring support.
 *   **Context**: Aider has ingested the project status and handover logs and is aware of the completed Phase 1-5 backend work.
 
+### 2026-02-06 [Backend - Aider] - Phase 1 Wiring Complete
+**Feature**: Connected Frontend Shell to Backend Actions
+*   **Dashboard**: Refactored `app/dashboard/page.tsx` to Server Component fetching real `getDeals()` and `getActivities()`.
+*   **Kanban**: Wired `KanbanBoard` to `updateDealStage()` server action using HTML5 Drag & Drop.
+*   **Chat**: Wired `AssistantPane` to `processChat()` server action.
+*   **Activity Feed**: Connected to real data props.
+
 ### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
 **Feature**: Visual Pipeline & Chat Mode
 *   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.
@@ -199,7 +206,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | API Routes | 1 (extension import) — DONE |
 | Browser Extension | Chrome MV3 scaffold — DONE |
 | Frontend Shell | Dashboard, Kanban, Cards, Feed, Chat, Auth, Landing — DONE |
-| **Frontend ↔ Backend Wiring** | **NOT STARTED — Antigravity's turn** |
+| **Frontend ↔ Backend Wiring** | **PHASE 1 COMPLETE** |
 
 ---
 
@@ -209,10 +216,10 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
-| 1.1 | Replace `MOCK_DEALS` with `getDeals()` | **Antigravity** | In `app/dashboard/page.tsx`, call `getDeals(workspaceId)`. Returns `DealView[]` matching existing `Deal` type exactly (id, title, company, value, stage as lowercase, lastActivityDate, contactName, contactAvatar). | ⬜ |
-| 1.2 | Replace mock activities with `getActivities()` | **Antigravity** | In `components/crm/activity-feed.tsx`, replace hardcoded array with `getActivities({ workspaceId })`. Already returns relative time strings. | ⬜ |
-| 1.3 | Wire chat input to `processChat()` | **Antigravity** | In `components/core/assistant-pane.tsx`, call `processChat(message, workspaceId)`. Returns `{ response: string, data?: any }`. Display `response` as assistant message. | ⬜ |
-| 1.4 | Wire Kanban drag-drop to `updateDealStage()` | **Antigravity** | On drop, call `updateDealStage(dealId, newStage)` where newStage is lowercase (`"new"`, `"contacted"`, `"negotiation"`, `"won"`, `"lost"`). Backend maps to Prisma enum. | ⬜ |
+| 1.1 | Replace `MOCK_DEALS` with `getDeals()` | **Antigravity/Aider** | In `app/dashboard/page.tsx`, call `getDeals(workspaceId)`. Returns `DealView[]` matching existing `Deal` type exactly (id, title, company, value, stage as lowercase, lastActivityDate, contactName, contactAvatar). | ✅ |
+| 1.2 | Replace mock activities with `getActivities()` | **Antigravity/Aider** | In `components/crm/activity-feed.tsx`, replace hardcoded array with `getActivities({ workspaceId })`. Already returns relative time strings. | ✅ |
+| 1.3 | Wire chat input to `processChat()` | **Antigravity/Aider** | In `components/core/assistant-pane.tsx`, call `processChat(message, workspaceId)`. Returns `{ response: string, data?: any }`. Display `response` as assistant message. | ✅ |
+| 1.4 | Wire Kanban drag-drop to `updateDealStage()` | **Antigravity/Aider** | On drop, call `updateDealStage(dealId, newStage)` where newStage is lowercase (`"new"`, `"contacted"`, `"negotiation"`, `"won"`, `"lost"`). Backend maps to Prisma enum. | ✅ |
 | 1.5 | Supabase setup + schema push | **Backend** | `.env.example` with `DATABASE_URL` + `DIRECT_URL`. Prisma configured with `directUrl` for Supabase pooling. | ✅ |
 | 1.6 | Workspace/auth context | **Backend** | `actions/workspace-actions.ts`: `getOrCreateWorkspace()`, `getWorkspace()`, `updateWorkspace()`, `listWorkspaces()`. Workspace model has `ownerId` for auth binding. | ✅ |
 
@@ -306,4 +313,4 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **0 ⬜** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **4 ✅** |
