@@ -98,7 +98,7 @@ export function CommandPalette() {
         <div className="max-h-[300px] overflow-y-auto p-2">
           {results.length === 0 && query && !loading && (
             <div className="py-8 text-center text-sm text-slate-500">
-              No results found for "{query}"
+              No results found for &quot;{query}&quot;
             </div>
           )}
 

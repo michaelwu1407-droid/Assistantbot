@@ -36,7 +36,7 @@ export default function JobMap({ deals }: JobMapProps) {
     useEffect(() => {
         // Fix for default markers - MUST run on client only
         // This prevents SSR crashes because L.Icon.Default.prototype accesses window/document
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 
         L.Icon.Default.mergeOptions({
             iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -44,6 +44,7 @@ export default function JobMap({ deals }: JobMapProps) {
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
         });
 
+        // eslint-disable-next-line -- SSR hydration guard, intentional setState in effect
         setMounted(true)
     }, [])
 

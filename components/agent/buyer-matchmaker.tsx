@@ -5,7 +5,7 @@ import { findMatches, type MatchResult } from "@/actions/agent-actions"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, DollarSign, Bed, Phone, Mail, Loader2, AlertCircle } from "lucide-react"
+import { User, DollarSign, Bed, Phone, Mail, Loader2 } from "lucide-react"
 
 interface BuyerMatchmakerProps {
     dealId: string

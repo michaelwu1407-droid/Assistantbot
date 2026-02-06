@@ -38,7 +38,7 @@ export interface EmailSyncResult {
  * - Per-workspace OAuth2 refresh token (from OAuth flow)
  */
 export async function syncGmail(
-  workspaceId: string,
+  _workspaceId: string,
   _accessToken?: string
 ): Promise<EmailSyncResult> {
   // TODO: Replace with actual Gmail API call
@@ -46,8 +46,8 @@ export async function syncGmail(
   // const messages = await gmail.users.messages.list({ userId: 'me', maxResults: 50, q: 'newer_than:1d' });
 
   // For now, return a stub indicating the integration point
-  const contacts = await db.contact.findMany({
-    where: { workspaceId, email: { not: null } },
+  const _contacts = await db.contact.findMany({
+    where: { workspaceId: _workspaceId, email: { not: null } },
     select: { id: true, email: true, name: true },
   });
 
@@ -75,7 +75,7 @@ export async function syncGmail(
  * - Per-workspace OAuth2 refresh token
  */
 export async function syncOutlook(
-  workspaceId: string,
+  _workspaceId: string,
   _accessToken?: string
 ): Promise<EmailSyncResult> {
   // TODO: Replace with actual Microsoft Graph API call

@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Check, ArrowRight, Zap, Hammer, Smartphone } from "lucide-react"
+import { Check, ArrowRight, Hammer, Smartphone } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {
@@ -18,8 +18,8 @@ export default function Home() {
             <span className="text-blue-600">as hard as you do.</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Pj Buddy is the high-velocity "Hub and Spoke" platform for SMEs.
-            Whether you're a Tradie on the road or an Agent at an open house, we've got you covered.
+            Pj Buddy is the high-velocity &quot;Hub and Spoke&quot; platform for SMEs.
+            Whether you&apos;re a Tradie on the road or an Agent at an open house, we&apos;ve got you covered.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link href="/login">

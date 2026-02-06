@@ -1,11 +1,7 @@
-import { db } from "@/lib/db"
-import { DealView } from "@/actions/deal-actions"
 import { getDeals } from "@/actions/deal-actions"
-// import JobMap from "@/components/tradie/job-map" // Remove static import
 import { Button } from "@/components/ui/button"
-import { Calendar, List, Map as MapIcon } from "lucide-react"
+import { List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
-import nextDynamic from "next/dynamic"
 
 // Dynamically import Leaflet map to avoid window is not defined during build/SSR
 // const JobMap = nextDynamic(() => import("@/components/tradie/job-map"), {
@@ -16,7 +12,7 @@ import nextDynamic from "next/dynamic"
 export const dynamic = 'force-dynamic'
 
 export default async function TradieMapPage() {
-    const deals = await getDeals("demo-workspace")
+    const _deals = await getDeals("demo-workspace")
 
     return (
         <div className="h-full flex flex-col p-6 gap-6">

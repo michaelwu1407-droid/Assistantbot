@@ -51,6 +51,7 @@ export async function syncInvoiceToXero(
   const lineItems = (invoice.lineItems as { desc: string; price: number }[]) ?? [];
 
   // Map to Xero invoice format
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _xeroPayload: XeroInvoice = {
     Type: "ACCREC",
     Contact: {
