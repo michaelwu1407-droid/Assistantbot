@@ -146,10 +146,10 @@ export async function generateMorningDigest(
 
   const greeting =
     now.getHours() < 12
-      ? "Good morning"
+      ? "Morning"
       : now.getHours() < 17
-        ? "Good afternoon"
-        : "Good evening";
+        ? "Afternoon"
+        : "Evening";
 
   return {
     greeting,
