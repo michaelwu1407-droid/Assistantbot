@@ -61,7 +61,63 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 *   **Landing Page**: Replaced placeholder with full SaaS page (Hero, Product, Pricing, Contact). Added `Navbar` with "Get Started" CTA.
 *   **Auth**: Updated Login/Signup pages to Light Mode. Added mock feedback to Google Sign-in button.
 
-### 2026-02-06 [Backend - Claude Code]
-**Feature**: Core Hub Database Schema, Server Actions & UI Shell
-*   **Status**: Initial branch `claude/build-crm-core-hub-dkt` was attempted to be merged but failed. Antigravity proceeded with Frontend-only build.
-*   **Action**: Claude should Pull `main` first to get the new `app/dashboard` structure before reapplying backend logic.
+### 2026-02-06 [Backend - Claude Code] - Full Backend Implementation
+**Feature**: Complete CRM Backend — Schema, Server Actions, Utilities, Seed Data
+
+**Prisma Schema** (`prisma/schema.prisma`):
+*   Aligned `DealStage` enum with frontend kanban: `NEW`, `CONTACTED`, `NEGOTIATION`, `WON`, `LOST` (+ `INVOICED` for Tradie).
+*   Added `MEETING` and `TASK` to `ActivityType` enum (frontend uses these).
+*   Added `company`, `avatarUrl` to Contact model; `company` to Deal model.
+*   Added `title`, `description` fields to Activity model.
+*   New models: `Task` (reminders/follow-ups), `Automation` (IFTTT triggers), `ChatMessage` (chatbot CRM interface).
+*   All models properly indexed with cascade deletes.
+
+**Server Actions** (all in `actions/` directory — import via `@/actions/...`):
+*   `actions/deal-actions.ts`:
+    *   `getDeals(workspaceId)` → Returns `DealView[]` matching frontend `Deal` type exactly (includes computed `lastActivityDate`, `health` status, `contactName`).
+    *   `createDeal(input)` → Creates deal + auto-logs creation activity.
+    *   `updateDealStage(dealId, stage)` → Persists Kanban drag-and-drop. Maps lowercase frontend stages to Prisma enum.
+    *   `updateDealMetadata(dealId, metadata)` → Merges polymorphic JSON data.
+    *   `deleteDeal(dealId)` → Cascade delete.
+*   `actions/activity-actions.ts`:
+    *   `getActivities(options)` → Fetch with optional deal/contact/workspace filter, returns relative time strings.
+    *   `logActivity(input)` → Polymorphic: CALL, EMAIL, NOTE, MEETING, TASK.
+    *   `autoLogActivity(payload)` → **"Invisible Data Entry"**: auto-creates contacts from email, auto-logs meetings/emails, attaches to most active deal.
+*   `actions/contact-actions.ts`:
+    *   `getContacts(workspaceId)` → With deal count and last activity date.
+    *   `createContact(input)` → **Auto-enriches** from email domain (company logo, industry, size, LinkedIn).
+    *   `enrichContact(contactId)` → On-demand enrichment.
+    *   `searchContacts(workspaceId, query, filters?)` → **Fuzzy search** (Levenshtein distance) — finds "Jhon" for "John". Supports filters: `hasDeals`, `lastContactedWithin`.
+    *   `updateContact()`, `deleteContact()`.
+*   `actions/task-actions.ts`:
+    *   `getTasks(options)` → With overdue flag, deal title, contact name.
+    *   `createTask(input)` → "Remind me to call John next Tuesday".
+    *   `completeTask(taskId)`, `getOverdueCount(workspaceId)`, `deleteTask()`.
+*   `actions/automation-actions.ts`:
+    *   `getAutomations()`, `createAutomation()`, `toggleAutomation()`.
+    *   `evaluateAutomations(workspaceId, event)` → Evaluates IFTTT rules: deal_stale, deal_stage_change, new_lead, task_overdue.
+    *   `PRESET_AUTOMATIONS` — 4 ready-made recipes (stale deal alert, auto-welcome, follow-up task, overdue escalation).
+*   `actions/chat-actions.ts`:
+    *   `processChat(message, workspaceId)` → **Primary CRM interface**. Natural language parser handles: "show deals", "show stale deals", "new deal X for Y worth Z", "move X to negotiation", "log call with John", "find Jhon", "add contact X email", "remind me to ...", "morning digest", "help".
+    *   `getChatHistory(limit)` → Retrieves persisted chat messages.
+
+**Lib Utilities** (all in `lib/` directory):
+*   `lib/db.ts` — PrismaClient singleton (exports `db`).
+*   `lib/pipeline.ts` — `getDealHealth(lastActivity)`: HEALTHY (<=7d, green), STALE (8-14d, amber), ROTTING (>14d, red).
+*   `lib/enrichment.ts` — `enrichFromEmail(email)`: domain → company name, logo (Clearbit URL), industry, size, LinkedIn. Known domain lookup table + fallback.
+*   `lib/search.ts` — `fuzzySearch(items, query)`: Levenshtein distance-based fuzzy matching across multiple searchable fields.
+*   `lib/digest.ts` — `generateMorningDigest(workspaceId)`: "Here are the 3 people you need to call today to make money." Prioritizes rotting deals, overdue tasks, today's follow-ups.
+
+**Seed Script** (`prisma/seed.ts`):
+*   Matches frontend `MOCK_DEALS` exactly: 5 deals, 5 contacts, 5 activities with correct stale/rotting dates.
+*   "Consulting Retainer" (Wayne Ent) = 8 days ago → Stale/Amber.
+*   "Legacy Migration" (Cyberdyne) = 15 days ago → Rotting/Red.
+*   3 tasks (1 tomorrow, 2 overdue), 2 preset automations.
+*   Run: `npm run db:seed`.
+
+**How Antigravity Should Wire Up**:
+1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
+2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
+3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
+4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
+5.  Add enrichment on contact creation: already built into `createContact()`.
