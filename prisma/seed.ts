@@ -154,7 +154,26 @@ async function main() {
     },
   });
 
-  console.log("  Deals: 5 created");
+  // Agent Stream: Property Listing
+  const deal6 = await prisma.deal.create({
+    data: {
+      title: "123 Fake St, Sydney",
+      company: "Private Seller",
+      value: 1500000,
+      stage: "NEW",
+      stageChangedAt: daysAgo(2),
+      contactId: bruce.id, // Bruce is selling
+      workspaceId: workspace.id,
+      metadata: {
+        bedrooms: 3,
+        bathrooms: 2,
+        price: 1500000,
+        property_type: "House",
+      },
+    },
+  });
+
+  console.log("  Deals: 6 created");
 
   // ─── Activities (matching frontend mock + creating stale scenarios) ─
 
@@ -258,6 +277,54 @@ async function main() {
   });
 
   console.log("  Tasks: 3 created");
+
+  // ─── Invoices (Tradie Stream) ─────────────────────────────────────
+
+  await prisma.invoice.create({
+    data: {
+      number: "INV-1023",
+      status: "PAID",
+      subtotal: 8500,
+      tax: 850,
+      total: 9350,
+      lineItems: [
+        { desc: "Q1 Campaign Strategy", price: 5000 },
+        { desc: "Creative Assets", price: 3500 },
+      ],
+      dealId: deal5.id,
+      issuedAt: daysAgo(5),
+      paidAt: daysAgo(2),
+    },
+  });
+
+  console.log("  Invoices: 1 created");
+
+  // ─── Open House Logs (Agent Stream) ───────────────────────────────
+
+  await prisma.openHouseLog.create({
+    data: {
+      dealId: deal6.id,
+      attendeeName: "Clark Kent",
+      attendeeEmail: "clark@dailyplanet.com",
+      attendeePhone: "0400 999 888",
+      interestedLevel: 4,
+      notes: "Loved the kitchen, concerned about commute.",
+      visitedAt: daysAgo(1),
+    },
+  });
+
+  await prisma.openHouseLog.create({
+    data: {
+      dealId: deal6.id,
+      attendeeName: "Lois Lane",
+      attendeeEmail: "lois@dailyplanet.com",
+      interestedLevel: 5,
+      notes: "Ready to make an offer.",
+      visitedAt: daysAgo(1),
+    },
+  });
+
+  console.log("  Open House Logs: 2 created");
 
   // ─── Automations (preset recipes) ────────────────────────────────
 
