@@ -1,6 +1,6 @@
 # Project Status Log
 
-**Purpose**: Usage by Google Antigravity (Frontend) and Claude Code (Backend) to stay synchronized on the "Pj Buddy" project.
+**Purpose**: Usage by Google Antigravity (Frontend), Claude Code (Backend), and Aider (Backend) to stay synchronized on the "Pj Buddy" project.
 
 ## Project Summary
 **Pj Buddy** is a high-velocity CRM platform for SMEs featuring a "Hub and Spoke" architecture.
@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 HANDOVER: REQUIREMENTS FOR CLAUDE CODE (BACKEND)
+## 🚀 HANDOVER: REQUIREMENTS FOR BACKEND TEAM (CLAUDE CODE & AIDER)
 
 ### 1. What We Need to Add / What Is Flagged
 The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but it currently runs on **Mock Data**. To make this "Real", we need the backend to support:
@@ -29,7 +29,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 *   ✅ **Interaction**: Added `framer-motion` physics for drag-and-drop and hover effects.
 *   **Next**: I am ready to wire up `actions/deal-actions.ts` and `actions/activity-actions.ts` once the Schema exists.
 
-### 3. What Claude Code (Backend) Is Required To Do
+### 3. What Claude Code & Aider (Backend) Are Required To Do
 *   **Database Schema**: Create the Prisma Schema for `Contact`, `Deal`, `Activity`, and `PipelineStage`.
 *   **Server Actions**:
     *   `getDeals()`: Fetch deals with their status and computed `daysSinceActivity`.
@@ -39,7 +39,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
     *   Implement the logic to "watch" a mock email inbox or calendar (webhooks or polling) to auto-create Activities.
     *   Implement a mock `enrichContact(email)` function that returns company logo/domain.
 
-### 4. How Claude Should Do It
+### 4. How The Backend Team Should Do It
 *   **Schema First**: Define `schema.prisma` with a focus on valid relations (One Deal has Many Activities).
 *   **Seed Script**: Please write a `seed.ts` that populates the DB with the *exact* mock scenarios I used (e.g., "Legacy Migration" deal in "Negotiation" stage with a date 15 days ago so I can see the "Rotting" alert).
 *   **Server Actions**: Expose these in `@/actions/...` so I can import them directly into my client components.
@@ -47,6 +47,11 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 ---
 
 ## Change Log
+
+### 2026-02-06 [Backend - Aider] - Team Expansion
+**Update**: Added Aider to the backend team.
+*   **Role**: Aider will work interchangeably with Claude Code on backend tasks, bug fixes, and wiring support.
+*   **Context**: Aider has ingested the project status and handover logs and is aware of the completed Phase 1-5 backend work.
 
 ### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
 **Feature**: Visual Pipeline & Chat Mode
@@ -179,7 +184,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 ---
 
-## 🗺️ ACTION PLAN — Claude Code (Backend) + Antigravity (Frontend)
+## 🗺️ ACTION PLAN — Backend Team (Claude Code & Aider) + Antigravity (Frontend)
 
 **Created**: 2026-02-06 | **Status**: BACKEND COMPLETE — awaiting frontend wiring
 
@@ -208,8 +213,8 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | 1.2 | Replace mock activities with `getActivities()` | **Antigravity** | In `components/crm/activity-feed.tsx`, replace hardcoded array with `getActivities({ workspaceId })`. Already returns relative time strings. | ⬜ |
 | 1.3 | Wire chat input to `processChat()` | **Antigravity** | In `components/core/assistant-pane.tsx`, call `processChat(message, workspaceId)`. Returns `{ response: string, data?: any }`. Display `response` as assistant message. | ⬜ |
 | 1.4 | Wire Kanban drag-drop to `updateDealStage()` | **Antigravity** | On drop, call `updateDealStage(dealId, newStage)` where newStage is lowercase (`"new"`, `"contacted"`, `"negotiation"`, `"won"`, `"lost"`). Backend maps to Prisma enum. | ⬜ |
-| 1.5 | Supabase setup + schema push | **Claude Code** | `.env.example` with `DATABASE_URL` + `DIRECT_URL`. Prisma configured with `directUrl` for Supabase pooling. | ✅ |
-| 1.6 | Workspace/auth context | **Claude Code** | `actions/workspace-actions.ts`: `getOrCreateWorkspace()`, `getWorkspace()`, `updateWorkspace()`, `listWorkspaces()`. Workspace model has `ownerId` for auth binding. | ✅ |
+| 1.5 | Supabase setup + schema push | **Backend** | `.env.example` with `DATABASE_URL` + `DIRECT_URL`. Prisma configured with `directUrl` for Supabase pooling. | ✅ |
+| 1.6 | Workspace/auth context | **Backend** | `actions/workspace-actions.ts`: `getOrCreateWorkspace()`, `getWorkspace()`, `updateWorkspace()`, `listWorkspaces()`. Workspace model has `ownerId` for auth binding. | ✅ |
 
 ---
 
@@ -220,10 +225,10 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 |---|------|-------|---------|--------|
 | 2.1 | Real drag-and-drop (dnd-kit) | **Antigravity** | Install `@dnd-kit/core` + `@dnd-kit/sortable`. Replace framer-motion drag with real reorder/drop persistence. On drop, call `updateDealStage()`. | ⬜ |
 | 2.2 | Contact detail page + timeline | **Antigravity** | New route `app/contacts/[id]/page.tsx`. Show contact info, all deals, all activities in a unified timeline. Backend already has `getActivities({ contactId })`. | ⬜ |
-| 2.3 | `days_in_stage` tracking | **Claude Code** | `stageChangedAt` field on Deal. `updateDealStage()` sets it. `getDeals()` returns computed `daysInStage`. | ✅ |
+| 2.3 | `days_in_stage` tracking | **Backend** | `stageChangedAt` field on Deal. `updateDealStage()` sets it. `getDeals()` returns computed `daysInStage`. | ✅ |
 | 2.4 | CMD+K command palette | **Antigravity** | Install `cmdk`. Wire to `searchContacts()` + `fuzzySearch()`. Show deals, contacts, commands in palette. | ⬜ |
-| 2.5 | Smart contact deduplication | **Claude Code** | `actions/dedup-actions.ts`: `findDuplicateContacts()` + `mergeContacts()`. Matches email, phone, fuzzy name (>85%). Chat: "find duplicates". | ✅ |
-| 2.6 | Template library | **Claude Code** | `MessageTemplate` model + `actions/template-actions.ts`: CRUD + `renderTemplate()` with `{{var}}` syntax. 7 presets seeded. Chat: "show templates", "use template X for Y". | ✅ |
+| 2.5 | Smart contact deduplication | **Backend** | `actions/dedup-actions.ts`: `findDuplicateContacts()` + `mergeContacts()`. Matches email, phone, fuzzy name (>85%). Chat: "find duplicates". | ✅ |
+| 2.6 | Template library | **Backend** | `MessageTemplate` model + `actions/template-actions.ts`: CRUD + `renderTemplate()` with `{{var}}` syntax. 7 presets seeded. Chat: "show templates", "use template X for Y". | ✅ |
 
 ---
 
@@ -232,13 +237,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
-| 3.1 | PDF quote/invoice generation | **Claude Code** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
+| 3.1 | PDF quote/invoice generation | **Backend** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
 | 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ⬜ |
 | 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | ⬜ |
-| 3.4 | Map geocoding backend | **Claude Code** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
+| 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
 | 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ⬜ |
 | 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | ⬜ |
-| 3.7 | Xero/MYOB accounting sync | **Claude Code** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
+| 3.7 | Xero/MYOB accounting sync | **Backend** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
 
 ---
 
@@ -248,9 +253,9 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
 | 4.1 | Open House Kiosk UI | **Antigravity** | Tablet-optimized form: name, email, phone, buyer status. Calls `logOpenHouseAttendee()`. Show QR to self-register. | ⬜ |
-| 4.2 | QR code generation | **Claude Code** | `lib/qrcode.ts`: pure SVG QR generator (no deps). `generateOpenHouseQR(dealId)` in agent-actions returns SVG + data URL. | ✅ |
+| 4.2 | QR code generation | **Backend** | `lib/qrcode.ts`: pure SVG QR generator (no deps). `generateOpenHouseQR(dealId)` in agent-actions returns SVG + data URL. | ✅ |
 | 4.3 | Buyer matchmaker UI | **Antigravity** | When viewing listing deal, show "Matched Buyers" panel. Call `findMatches(listingId)`. Display match score, budget fit, bedroom fit. | ⬜ |
-| 4.4 | Portal integration stubs | **Claude Code** | `actions/portal-actions.ts`: `importFromPortal(url, workspaceId)`. Detects REA/Domain, creates Deal + Contact, stores portal metadata. | ✅ |
+| 4.4 | Portal integration stubs | **Backend** | `actions/portal-actions.ts`: `importFromPortal(url, workspaceId)`. Detects REA/Domain, creates Deal + Contact, stores portal metadata. | ✅ |
 | 4.5 | Rotting deal alerts widget | **Antigravity** | Dashboard widget showing stale + rotting counts. Click through to filtered Kanban. Backend `getDeals()` already returns health. | ⬜ |
 
 ---
@@ -260,12 +265,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 | # | Task | Owner | Details | Status |
 |---|------|-------|---------|--------|
-| 5.1 | SMS/WhatsApp via Twilio | **Claude Code** | `actions/messaging-actions.ts`: `sendSMS()`, `sendWhatsApp()`, `sendBulkSMS()`. Uses Twilio REST API. Auto-logs activities. | ✅ |
+| 5.1 | SMS/WhatsApp via Twilio | **Backend** | `actions/messaging-actions.ts`: `sendSMS()`, `sendWhatsApp()`, `sendBulkSMS()`. Uses Twilio REST API. Auto-logs activities. | ✅ |
 | 5.2 | Unified messaging inbox UI | **Antigravity** | New `app/inbox/page.tsx`. SMS/WhatsApp/email threads grouped by contact. Chat bubble format. | ⬜ |
-| 5.3 | Email sync (Gmail/Outlook) | **Claude Code** | `actions/email-actions.ts`: `syncGmail()`, `syncOutlook()`, `getGmailAuthUrl()`, `getOutlookAuthUrl()`, `processEmailWebhook()`. Stub — ready for OAuth. | ✅ |
-| 5.4 | Calendar integration | **Claude Code** | `actions/calendar-actions.ts`: `syncGoogleCalendar()`, `syncOutlookCalendar()`, `createCalendarEvent()`, `processCalendarWebhook()`. Stub — ready for OAuth. | ✅ |
-| 5.5 | Bulk SMS/blast | **Claude Code** | Included in `messaging-actions.ts`: `sendBulkSMS(contactIds[], message)`. Rate-limited (1/sec). Template `{{var}}` substitution. | ✅ |
-| 5.6 | Browser extension | **Claude Code** | Chrome MV3 extension in `extension/`: manifest, background worker, LinkedIn + portal content scripts, popup UI, API route at `/api/extension/import`. | ✅ |
+| 5.3 | Email sync (Gmail/Outlook) | **Backend** | `actions/email-actions.ts`: `syncGmail()`, `syncOutlook()`, `getGmailAuthUrl()`, `getOutlookAuthUrl()`, `processEmailWebhook()`. Stub — ready for OAuth. | ✅ |
+| 5.4 | Calendar integration | **Backend** | `actions/calendar-actions.ts`: `syncGoogleCalendar()`, `syncOutlookCalendar()`, `createCalendarEvent()`, `processCalendarWebhook()`. Stub — ready for OAuth. | ✅ |
+| 5.5 | Bulk SMS/blast | **Backend** | Included in `messaging-actions.ts`: `sendBulkSMS(contactIds[], message)`. Rate-limited (1/sec). Template `{{var}}` substitution. | ✅ |
+| 5.6 | Browser extension | **Backend** | Chrome MV3 extension in `extension/`: manifest, background worker, LinkedIn + portal content scripts, popup UI, API route at `/api/extension/import`. | ✅ |
 
 ---
 
@@ -273,19 +278,19 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 
 ```
 PHASE 1 (Wire-up) ← BOTH START HERE IN PARALLEL
-  Claude Code: 1.5, 1.6
+  Backend (Claude/Aider): 1.5, 1.6
   Antigravity: 1.1, 1.2, 1.3, 1.4
 
 PHASE 2 (Core gaps) ← THEN THIS
-  Claude Code: 2.3, 2.5, 2.6
+  Backend (Claude/Aider): 2.3, 2.5, 2.6
   Antigravity: 2.1, 2.2, 2.4
 
 PHASE 3 + 4 (Verticals) ← IN PARALLEL
-  Claude Code: 3.1, 3.4, 3.7, 4.2, 4.4
+  Backend (Claude/Aider): 3.1, 3.4, 3.7, 4.2, 4.4
   Antigravity: 3.2, 3.3, 3.5, 3.6, 4.1, 4.3, 4.5
 
 PHASE 5 (Comms) ← LAST
-  Claude Code: 5.1, 5.3, 5.4, 5.5, 5.6
+  Backend (Claude/Aider): 5.1, 5.3, 5.4, 5.5, 5.6
   Antigravity: 5.2
 ```
 
@@ -300,5 +305,5 @@ PHASE 5 (Comms) ← LAST
 ### Task Count Summary
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
-| Claude Code | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
+| Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
 | Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **0 ⬜** |

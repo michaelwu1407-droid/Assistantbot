@@ -1,11 +1,11 @@
 # Claude Code Handover Log
 
-**Purpose**: Sync state between Claude Code **web** and Claude Code **terminal** sessions. Read this first on session start. Update before session end.
+**Purpose**: Sync state between Claude Code, Aider, and Terminal sessions. Read this first on session start. Update before session end.
 
 ---
 
 ## Last Updated: 2026-02-06 (Session 3 — ALL BACKEND COMPLETE)
-**Session**: Claude Code Terminal
+**Session**: Claude Code Terminal / Aider
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
 ## What Was Done This Session — ALL 14 BACKEND TASKS COMPLETE
@@ -19,7 +19,7 @@
 ## Current State
 - **Build: PASSING** — 10 routes
 - **14 action files, 6 lib utilities, 10 Prisma models, 1 API route, 1 browser extension**
-- **Claude Code: 14/14 tasks DONE**
+- **Backend Team (Claude Code & Aider): 14/14 tasks DONE**
 - **Antigravity: 15 tasks remaining**
 
 ## Antigravity's Next Steps
@@ -30,6 +30,7 @@ See `project_status_log.md` for full action plan. Priority:
 4. Call `getOrCreateWorkspace(userId)` on load
 
 ## Key Notes
+- **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
 - All Json fields use `JSON.parse(JSON.stringify(...))` for Prisma InputJsonValue
 - `lib/db.ts` exports `db` (not `prisma`)
 - DealStage mapping: NEW→"new", CONTACTED→"contacted", etc.
