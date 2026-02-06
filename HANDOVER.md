@@ -16,18 +16,19 @@
 - Wired Activity Feed to real data.
 - **Phase 2 Support**: Added `getContact(id)` and updated `getDeals` to support filtering by contact.
 - **Phase 2 UI**: Implemented Contact Detail Page (`app/contacts/[id]/page.tsx`) and components.
+- **Phase 2 Search**: Implemented `globalSearch` server action for Command Palette.
 
 ## Current State
 - **Build: PASSING**
 - **Phase 1 (Wire-up): COMPLETE**
-- **Phase 2 (Core Gaps): IN PROGRESS** (Task 2.2 Done)
+- **Phase 2 (Core Gaps): IN PROGRESS** (Task 2.2 Done, Task 2.4 In Progress)
 - **Backend Team (Claude Code & Aider):** Ready for Phase 2 support.
 - **Antigravity:** Ready to start Phase 2 UI tasks.
 
 ## Next Steps
 See `project_status_log.md` for full action plan. Priority:
-1. **Task 2.4**: CMD+K command palette.
-2. **Task 2.1**: Upgrade Kanban to `dnd-kit` (optional, current HTML5 DnD works).
+1. **Task 2.4**: CMD+K command palette (Aider building UI).
+2. **Task 3.2**: Pocket Estimator UI (Antigravity).
 
 ## Key Notes
 - **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
