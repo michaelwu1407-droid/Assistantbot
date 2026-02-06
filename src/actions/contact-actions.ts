@@ -14,8 +14,6 @@ export interface ContactView {
   phone: string | null;
   company: string | null;
   avatarUrl: string | null;
-  address: string | null;
-  metadata?: Record<string, unknown>;
   dealCount: number;
   lastActivityDate: Date | null;
 }
@@ -70,43 +68,9 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
     phone: c.phone,
     company: c.company,
     avatarUrl: c.avatarUrl,
-    address: c.address,
-    metadata: (c.metadata as Record<string, unknown>) ?? undefined,
     dealCount: c.deals.length,
     lastActivityDate: c.activities[0]?.createdAt ?? null,
   }));
-}
-
-/**
- * Fetch a single contact by ID.
- */
-export async function getContact(contactId: string): Promise<ContactView | null> {
-  const contact = await db.contact.findUnique({
-    where: { id: contactId },
-    include: {
-      deals: { select: { id: true } },
-      activities: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { createdAt: true },
-      },
-    },
-  });
-
-  if (!contact) return null;
-
-  return {
-    id: contact.id,
-    name: contact.name,
-    email: contact.email,
-    phone: contact.phone,
-    company: contact.company,
-    avatarUrl: contact.avatarUrl,
-    address: contact.address,
-    metadata: (contact.metadata as Record<string, unknown>) ?? undefined,
-    dealCount: contact.deals.length,
-    lastActivityDate: contact.activities[0]?.createdAt ?? null,
-  };
 }
 
 /**
@@ -133,13 +97,13 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
       avatarUrl: enriched?.logoUrl ?? null,
       workspaceId: parsed.data.workspaceId,
       metadata: enriched
-        ? JSON.parse(JSON.stringify({
-          enriched: true,
-          domain: enriched.domain,
-          industry: enriched.industry,
-          size: enriched.size,
-          linkedinUrl: enriched.linkedinUrl,
-        }))
+        ? {
+            enriched: true,
+            domain: enriched.domain,
+            industry: enriched.industry,
+            size: enriched.size,
+            linkedinUrl: enriched.linkedinUrl,
+          }
         : undefined,
     },
   });
@@ -185,14 +149,14 @@ export async function enrichContact(contactId: string) {
     data: {
       company: contact.company ?? enriched.name,
       avatarUrl: contact.avatarUrl ?? enriched.logoUrl,
-      metadata: JSON.parse(JSON.stringify({
+      metadata: {
         ...existingMetadata,
         enriched: true,
         domain: enriched.domain,
         industry: enriched.industry,
         size: enriched.size,
         linkedinUrl: enriched.linkedinUrl,
-      })),
+      },
     },
   });
 

@@ -1,54 +1,56 @@
-import { notFound } from "next/navigation"
 import { getContact } from "@/actions/contact-actions"
-import { getDeals } from "@/actions/deal-actions"
-import { getActivities } from "@/actions/activity-actions"
-import { ContactHeader } from "@/components/crm/contact-header"
-import { ContactTimeline } from "@/components/crm/contact-timeline"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { ContactProfile } from "@/components/crm/contact-profile"
+import { ActivityFeed } from "@/components/crm/activity-feed"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
+import { notFound } from "next/navigation"
 
-interface ContactPageProps {
-  params: Promise<{
-    id: string
-  }>
+interface PageProps {
+  params: Promise<{ id: string }>
 }
 
-export default async function ContactPage({ params }: ContactPageProps) {
+export default async function ContactPage({ params }: PageProps) {
   const { id } = await params
-  const workspace = await getOrCreateWorkspace("demo-user")
-  
+
   const contact = await getContact(id)
-  
+
   if (!contact) {
-    return notFound()
+    notFound()
   }
 
-  // Fetch related data in parallel
-  const [deals, activities] = await Promise.all([
-    getDeals(workspace.id, id),
-    getActivities({ contactId: id, workspaceId: workspace.id })
-  ])
-
   return (
-    <div className="flex flex-col h-full space-y-6 p-6 overflow-y-auto">
-      <ContactHeader contact={contact} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-           <ContactTimeline activities={activities} deals={deals} />
-        </div>
-        
-        <div className="space-y-6">
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">About</h3>
-            <div className="space-y-2 text-sm text-slate-600">
-              <p><span className="font-medium">Email:</span> {contact.email || "N/A"}</p>
-              <p><span className="font-medium">Phone:</span> {contact.phone || "N/A"}</p>
-              <p><span className="font-medium">Company:</span> {contact.company || "N/A"}</p>
-              <p><span className="font-medium">Address:</span> {contact.address || "N/A"}</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-slate-50 pb-20">
+      {/* Simple Navbar substitute or Back button */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4 mb-6">
+        <div className="max-w-4xl mx-auto flex items-center">
+          <Link href="/dashboard" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2 text-sm font-medium">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Link>
         </div>
       </div>
+
+      <main className="px-6">
+        <ContactProfile contact={contact} />
+
+        <div className="max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="hidden md:block" />
+
+          <div className="md:col-span-2 -mt-12 h-[600px] overflow-visible">
+            <h3 className="font-semibold text-slate-900 mb-4 px-1">Activity & History</h3>
+            <ActivityFeedWrapper contactId={contact.id} />
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function ActivityFeedWrapper({ contactId }: { contactId: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full min-h-[500px]">
+      <ActivityFeed contactId={contactId} />
     </div>
   )
 }
