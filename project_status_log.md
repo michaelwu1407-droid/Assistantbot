@@ -46,6 +46,12 @@
 *   **Routes**: Moved `app/(dashboard)` to `app/dashboard` to explicitely use the URL path.
 *   **Backend Sync**: ATTEMPTED to merge `claude/build-crm-core-hub-dkt`. FAILED (Remote branch not found/checkout failed). Proceeded with Frontend-only build.
 
+### 2026-02-06 [Frontend - Antigravity] - Design Pivot
+**Feature**: Neutral Light Theme & SaaS Landing Page
+*   **Design System**: Refactored `globals.css` and all UI components to **Neutral Light** (White Bg, Slate-900 Text, Borders/Shadows). Removed Dark Mode/Glassmorphism.
+*   **Landing Page**: Replaced placeholder with full SaaS page (Hero, Product, Pricing, Contact). Added `Navbar` with "Get Started" CTA.
+*   **Auth**: Updated Login/Signup pages to Light Mode. Added mock feedback to Google Sign-in button.
+
 ### 2026-02-06 [Backend - Claude Code]
 **Feature**: Core Hub Database Schema, Server Actions & UI Shell
 

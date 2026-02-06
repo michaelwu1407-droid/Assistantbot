@@ -22,8 +22,8 @@ export function Sidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="flex h-full w-16 flex-col items-center border-r border-slate-800 bg-slate-950 py-4 z-20">
-            <div className="mb-8 font-bold text-slate-50 italic">Pj</div>
+        <div className="flex h-full w-16 flex-col items-center border-r border-slate-200 bg-slate-50 py-4 z-20">
+            <div className="mb-8 font-bold text-slate-900 italic">Pj</div>
 
             <nav className="flex flex-1 flex-col gap-4">
                 {navItems.map((item) => {
@@ -37,8 +37,8 @@ export function Sidebar() {
                                 className={cn(
                                     "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
                                     isActive
-                                        ? "bg-slate-50 text-slate-950 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-                                        : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                                        : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
                                 )}
                             >
                                 <item.icon className="h-5 w-5" />
@@ -49,10 +49,10 @@ export function Sidebar() {
             </nav>
 
             <div className="mt-auto flex flex-col gap-4">
-                <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200">
+                <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
                     <Settings className="h-5 w-5" />
                 </button>
-                <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200">
+                <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
                     <LogOut className="h-5 w-5" />
                 </button>
             </div>
