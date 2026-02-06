@@ -1,5 +1,3 @@
-"use server"
-
 import { getDeals } from "@/actions/deal-actions"
 import { EstimatorForm } from "@/components/tradie/estimator-form"
 
