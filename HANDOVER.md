@@ -15,18 +15,19 @@
 - Wired Assistant Pane to `processChat`.
 - Wired Activity Feed to real data.
 - **Phase 2 Support**: Added `getContact(id)` and updated `getDeals` to support filtering by contact.
+- **Phase 2 UI**: Implemented Contact Detail Page (`app/contacts/[id]/page.tsx`) and components.
 
 ## Current State
 - **Build: PASSING**
 - **Phase 1 (Wire-up): COMPLETE**
+- **Phase 2 (Core Gaps): IN PROGRESS** (Task 2.2 Done)
 - **Backend Team (Claude Code & Aider):** Ready for Phase 2 support.
 - **Antigravity:** Ready to start Phase 2 UI tasks.
 
 ## Next Steps
 See `project_status_log.md` for full action plan. Priority:
-1. **Task 2.2**: Contact detail page + timeline (`app/contacts/[id]/page.tsx`).
-2. **Task 2.4**: CMD+K command palette.
-3. **Task 2.1**: Upgrade Kanban to `dnd-kit` (optional, current HTML5 DnD works).
+1. **Task 2.4**: CMD+K command palette.
+2. **Task 2.1**: Upgrade Kanban to `dnd-kit` (optional, current HTML5 DnD works).
 
 ## Key Notes
 - **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
