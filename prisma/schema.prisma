@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────
+
+enum WorkspaceType {
+  TRADIE
+  AGENT
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  IN_PROGRESS
+  INVOICED
+  WON
+  LOST
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  NOTE
+}
+
+// ─── Core Models ────────────────────────────────────────────────────
+
+model Workspace {
+  id            String        @id @default(cuid())
+  name          String
+  type          WorkspaceType
+  brandingColor String        @default("#6366f1")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  contacts Contact[]
+  deals    Deal[]
+
+  @@map("workspaces")
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  deals      Deal[]
+  activities Activity[]
+
+  @@index([workspaceId])
+  @@map("contacts")
+}
+
+// ─── Polymorphic Deal ───────────────────────────────────────────────
+// The `metadata` JSON column stores vertical-specific data:
+//   Tradie → { "site_access": "Gate code 1234", "materials_cost": 500 }
+//   Agent  → { "buyer_budget_max": 1500000, "bedrooms_req": 3 }
+
+model Deal {
+  id        String    @id @default(cuid())
+  title     String
+  value     Float     @default(0)
+  stage     DealStage @default(NEW)
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  activities   Activity[]
+  invoices     Invoice[]
+  openHouseLogs OpenHouseLog[]
+
+  @@index([workspaceId])
+  @@index([contactId])
+  @@index([stage])
+  @@map("deals")
+}
+
+// ─── Activity Feed ──────────────────────────────────────────────────
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  content   String
+  createdAt DateTime     @default(now())
+
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@index([contactId])
+  @@map("activities")
+}
+
+// ─── Vertical-Specific Tables ───────────────────────────────────────
+
+// Tradie: Invoice linked to a Deal
+model Invoice {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  lineItems   Json
+  subtotal    Float
+  tax         Float    @default(0)
+  total       Float
+  status      String   @default("DRAFT")
+  issuedAt    DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@map("invoices")
+}
+
+// Agent: Open House attendance log linked to a Deal (listing)
+model OpenHouseLog {
+  id            String   @id @default(cuid())
+  attendeeName  String
+  attendeeEmail String?
+  attendeePhone String?
+  notes         String?
+  interestedLevel Int    @default(0)
+  visitedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@map("open_house_logs")
+}

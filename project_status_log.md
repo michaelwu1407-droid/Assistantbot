@@ -45,3 +45,38 @@
 *   **Modules**: Implemented `Tradie` (Map placeholder) and `Agent` (Kiosk placeholder).
 *   **Routes**: Moved `app/(dashboard)` to `app/dashboard` to explicitely use the URL path.
 *   **Backend Sync**: ATTEMPTED to merge `claude/build-crm-core-hub-dkt`. FAILED (Remote branch not found/checkout failed). Proceeded with Frontend-only build.
+
+### 2026-02-06 [Backend - Claude Code]
+**Feature**: Core Hub Database Schema, Server Actions & UI Shell
+
+*   **Prisma Schema** (`prisma/schema.prisma`):
+    *   Enums: `WorkspaceType` (TRADIE/AGENT), `DealStage` (NEW → LOST), `ActivityType` (CALL/EMAIL/NOTE).
+    *   Core Models: `Workspace`, `Contact`, `Deal` (polymorphic `metadata Json?`), `Activity`.
+    *   Vertical Tables: `Invoice` (Tradie), `OpenHouseLog` (Agent) — both linked to Deal.
+    *   All models indexed, cascade deletes, `@@map` for clean table names.
+*   **Database Client** (`src/lib/db.ts`):
+    *   Singleton PrismaClient with global caching for dev hot-reload.
+*   **Server Actions** (Zod-validated):
+    *   `src/actions/tradie-actions.ts` — `generateQuote(dealId, items[])`: sums line items, updates Deal value + metadata, sets stage to INVOICED.
+    *   `src/actions/agent-actions.ts` — `findMatches(listingId)`: reads listing metadata (price/bedrooms), queries contacts by `buyer_budget_max`, returns top 5 matches.
+*   **Pipeline Utility** (`src/lib/utils/pipeline.ts`):
+    *   `getDealHealth(lastActivity)`: HEALTHY (<7 days, green), STALE (7–14 days, yellow), ROTTING (>14 days, red).
+*   **UI Components** (for Antigravity to integrate):
+    *   `src/components/layout/SplitShell.tsx` — Bifurcated layout: NavRail (64px) + Canvas (65%) + Assistant pane (35%). Spring transitions via `AnimatePresence`.
+    *   `src/components/layout/NavRail.tsx` — Vertical sidebar (Home/Pipeline/Contacts/Invoices). Icons scale 1.1x on hover (Framer Motion spring, stiffness: 300).
+    *   `src/components/widgets/BentoCard.tsx` — Base card with spring-physics hover lift.
+    *   `src/components/widgets/QuickQuoteCard.tsx` — Tradie widget: 3 recent jobs with status badges.
+    *   `src/components/widgets/SpeedLeadCard.tsx` — Agent widget: live countdown timer with color-coded urgency bar.
+*   **Styling** (`src/app/globals.css`):
+    *   Glassmorphism utilities: `.glass`, `.glass-heavy`, `.glass-light`.
+    *   Layout classes: `.split-shell`, `.nav-rail`, `.canvas-pane`, `.assistant-pane`.
+    *   Radial gradient background accents, custom scrollbar, focus rings.
+*   **Config**: `package.json`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `.gitignore`.
+*   **Branch**: `claude/build-crm-core-hub-dktUf`.
+*   **Status**: All files committed and pushed. Ready for Antigravity frontend integration.
+
+#### Notes for Antigravity Sync
+*   The SplitShell and NavRail components use Framer Motion — ensure `framer-motion` is installed.
+*   The Prisma schema uses `Json?` for Deal.metadata — this is the polymorphic "magic column" for vertical-specific data.
+*   Tailwind config uses v4 `@import "tailwindcss"` directive in `globals.css`, consistent with Antigravity's frontend setup.
+*   Server actions expect `@prisma/client` generated — run `npx prisma generate` after pulling.
