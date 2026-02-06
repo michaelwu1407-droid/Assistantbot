@@ -373,7 +373,7 @@ export async function processChat(
     data: {
       role: "assistant",
       content: response.message,
-      metadata: response.data ? (response.data as Record<string, unknown>) : undefined,
+      metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
     },
   });
 

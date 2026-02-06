@@ -106,8 +106,8 @@ export async function createAutomation(input: z.infer<typeof CreateAutomationSch
     data: {
       name: parsed.data.name,
       workspaceId: parsed.data.workspaceId,
-      trigger: parsed.data.trigger as Record<string, unknown>,
-      action: parsed.data.action as Record<string, unknown>,
+      trigger: JSON.parse(JSON.stringify(parsed.data.trigger)),
+      action: JSON.parse(JSON.stringify(parsed.data.action)),
     },
   });
 

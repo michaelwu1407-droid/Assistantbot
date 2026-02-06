@@ -121,3 +121,18 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
 4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
+
+### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
+**Feature**: Tradie/Agent Actions + Build Passing + Legacy Cleanup
+
+*   **Removed `src/` legacy directory**: All code consolidated into root `lib/`, `actions/`. No more duplicate files.
+*   **New Vertical Actions**:
+    *   `actions/tradie-actions.ts` — `generateQuote()` (line items → subtotal + 10% GST, creates Invoice, moves deal to INVOICED), `getDealInvoices()`, `issueInvoice()`, `markInvoicePaid()` (auto-moves deal to WON).
+    *   `actions/agent-actions.ts` — `findMatches()` (buyer matchmaker: filters contacts by budget + bedrooms), `logOpenHouseAttendee()` (auto-creates contacts from open house visitors), `getOpenHouseLog()`.
+*   **Build Fixes**:
+    *   Replaced Google Fonts (Geist) in `app/layout.tsx` with system fonts (build fails without internet).
+    *   Fixed Prisma `InputJsonValue` type errors in all action files — wrapped Json field writes with `JSON.parse(JSON.stringify(...))`.
+*   **Build Status**: **PASSING** — all 9 routes compile cleanly with `npm run build`.
+*   **Server Action Summary (8 files, all at `actions/`)**:
+    *   `deal-actions.ts`, `activity-actions.ts`, `contact-actions.ts`, `task-actions.ts`
+    *   `automation-actions.ts`, `chat-actions.ts`, `tradie-actions.ts`, `agent-actions.ts`

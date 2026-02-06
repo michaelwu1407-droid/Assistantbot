@@ -47,7 +47,7 @@ const CreateDealSchema = z.object({
   stage: z.string().default("new"),
   contactId: z.string(),
   workspaceId: z.string(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const UpdateStageSchema = z.object({
@@ -113,7 +113,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
       contactId,
       workspaceId,
-      metadata: metadata ?? undefined,
+      metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
     },
   });
 
@@ -179,7 +179,7 @@ export async function updateDealMetadata(
 
   await db.deal.update({
     where: { id: dealId },
-    data: { metadata: { ...existing, ...metadata } },
+    data: { metadata: JSON.parse(JSON.stringify({ ...existing, ...metadata })) },
   });
 
   return { success: true };

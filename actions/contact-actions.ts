@@ -97,13 +97,13 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
       avatarUrl: enriched?.logoUrl ?? null,
       workspaceId: parsed.data.workspaceId,
       metadata: enriched
-        ? {
+        ? JSON.parse(JSON.stringify({
             enriched: true,
             domain: enriched.domain,
             industry: enriched.industry,
             size: enriched.size,
             linkedinUrl: enriched.linkedinUrl,
-          }
+          }))
         : undefined,
     },
   });
@@ -149,14 +149,14 @@ export async function enrichContact(contactId: string) {
     data: {
       company: contact.company ?? enriched.name,
       avatarUrl: contact.avatarUrl ?? enriched.logoUrl,
-      metadata: {
+      metadata: JSON.parse(JSON.stringify({
         ...existingMetadata,
         enriched: true,
         domain: enriched.domain,
         industry: enriched.industry,
         size: enriched.size,
         linkedinUrl: enriched.linkedinUrl,
-      },
+      })),
     },
   });
 
