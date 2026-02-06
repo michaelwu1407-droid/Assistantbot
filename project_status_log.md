@@ -16,13 +16,12 @@
 
 ## 🚀 HANDOVER: REQUIREMENTS FOR BACKEND TEAM (CLAUDE CODE & AIDER)
 
-> [!IMPORTANT]
-> **CRITICAL BLOCKER**: The `.env` file is missing the `DATABASE_URL`.
-> Claude Code **MUST** provision the Supabase database (or local Postgres) and populate the `DATABASE_URL` in the project root's `.env` file.
-> Once done, Claude Code should run `npx prisma db push` and `npm run db:seed`.
+> [!NOTE]
+> **DATABASE CONNECTED**: Credentials have been added to `.env`.
+> **NEXT ACTION**: Run `npx prisma db push` and `npm run db:seed` to initialize the database.
 
 ### 1. What We Need to Add / What Is Flagged
-The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but it currently runs on **Mock Data**. To make this "Real", we need the backend to support:
+The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We are now connecting it to the real Supabase backend.
 *   **The "Invisible" Data Entry**: Automatic capture of emails/meetings into the CRM.
 *   **Kanban Logic**: Persisting deal stages and drag-and-drop state.
 *   **Enrichment**: The "Magic" lookup of company data.
@@ -52,6 +51,18 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 ---
 
 ## Change Log
+
+### 2026-02-07 [Backend - Claude Code] - Database Connected
+**Update**: Populated `.env` with Supabase credentials.
+*   **Fix**: URL-encoded special characters in password to prevent connection errors.
+*   **Status**: Database connection ready.
+*   **Next**: Schema push and seed.
+
+### 2026-02-07 [Frontend - Antigravity] - Voice-to-Invoice
+**Feature**: Voice command integration
+*   **UI**: Added microphone button to `AssistantPane`.
+*   **Logic**: Integrated Web Speech API.
+*   **Backend**: Added `create_invoice` intent to `processChat` action.
 
 ### 2026-02-06 [Backend - Aider] - Team Expansion
 **Update**: Added Aider to the backend team.
@@ -184,7 +195,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
 2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
 3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
+4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
 
 ### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
@@ -299,9 +310,9 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 |---|------|-------|---------|--------|
 | 3.1 | PDF quote/invoice generation | **Backend** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
 | 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ✅ |
-| 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | ⬜ |
+| 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | 🚧 |
 | 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
-| 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ⬜ |
+| 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ✅ |
 | 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | ⬜ |
 | 3.7 | Xero/MYOB accounting sync | **Backend** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
 
@@ -366,4 +377,4 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **8 ✅** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **9 ✅** |
