@@ -8,23 +8,21 @@
 **Session**: Aider
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
-## What Was Done This Session — PHASE 1 WIRING COMPLETE
+## What Was Done This Session — PHASE 1 & 2 COMPLETE
 **Aider (acting as Backend/Frontend Bridge):**
-- Refactored Dashboard to Server Component.
-- Wired Kanban Board to `updateDealStage`.
-- Wired Assistant Pane to `processChat`.
-- Wired Activity Feed to real data.
-- **Phase 2 Support**: Added `getContact(id)` and updated `getDeals` to support filtering by contact.
-- **Phase 2 UI**: Implemented Contact Detail Page (`app/contacts/[id]/page.tsx`) and components.
-- **Phase 2 Search**: Implemented `globalSearch` server action for Command Palette.
-- **Phase 2 UI**: Implemented `CommandPalette` component and mounted it in `app/layout.tsx`.
-- **Phase 2 UI**: Upgraded `KanbanBoard` to use `@dnd-kit` for robust drag-and-drop.
+- **Phase 1 (Wire-up)**: Dashboard, Kanban, Chat, Activity Feed all wired to real backend actions.
+- **Phase 2 (Core Gaps)**:
+    - Implemented `getContact` and `globalSearch` actions.
+    - Built Contact Detail Page (`app/contacts/[id]/page.tsx`).
+    - Built Command Palette (`Cmd+K`).
+    - Upgraded Kanban to `dnd-kit`.
+- **Fixes**: Bypassed auth on Login/Signup for demo purposes.
 
 ## Current State
 - **Build: PASSING**
 - **Phase 1 (Wire-up): COMPLETE**
-- **Phase 2 (Core Gaps): COMPLETE** (Tasks 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 all done)
-- **Backend Team (Claude Code & Aider):** Ready for Phase 3 support.
+- **Phase 2 (Core Gaps): COMPLETE**
+- **Backend Team (Claude Code & Aider):** STANDBY for Phase 3 support.
 - **Antigravity:** Ready to start Phase 3 UI tasks.
 
 ## Next Steps

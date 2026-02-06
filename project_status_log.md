@@ -235,7 +235,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 | API Routes | 1 (extension import) — DONE |
 | Browser Extension | Chrome MV3 scaffold — DONE |
 | Frontend Shell | Dashboard, Kanban, Cards, Feed, Chat, Auth, Landing — DONE |
-| **Frontend ↔ Backend Wiring** | **PHASE 1 COMPLETE** |
+| **Frontend ↔ Backend Wiring** | **PHASE 1 & 2 COMPLETE** |
 
 ---
 
