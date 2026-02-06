@@ -14,10 +14,12 @@ enum WorkspaceType {
   AGENT
 }
 
+// Aligned with frontend kanban columns: new, contacted, negotiation, won, lost
+// Plus INVOICED for Tradie-specific workflow
 enum DealStage {
   NEW
-  QUALIFIED
-  IN_PROGRESS
+  CONTACTED
+  NEGOTIATION
   INVOICED
   WON
   LOST
@@ -27,6 +29,8 @@ enum ActivityType {
   CALL
   EMAIL
   NOTE
+  MEETING
+  TASK
 }
 
 // ─── Core Models ────────────────────────────────────────────────────
@@ -39,8 +43,9 @@ model Workspace {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  contacts Contact[]
-  deals    Deal[]
+  contacts    Contact[]
+  deals       Deal[]
+  automations Automation[]
 
   @@map("workspaces")
 }
@@ -51,6 +56,8 @@ model Contact {
   email       String?
   phone       String?
   address     String?
+  company     String?
+  avatarUrl   String?
   metadata    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -60,8 +67,10 @@ model Contact {
 
   deals      Deal[]
   activities Activity[]
+  tasks      Task[]
 
   @@index([workspaceId])
+  @@index([email])
   @@map("contacts")
 }
 
@@ -73,6 +82,7 @@ model Contact {
 model Deal {
   id        String    @id @default(cuid())
   title     String
+  company   String?
   value     Float     @default(0)
   stage     DealStage @default(NEW)
   metadata  Json?
@@ -85,9 +95,10 @@ model Deal {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  activities   Activity[]
-  invoices     Invoice[]
+  activities    Activity[]
+  invoices      Invoice[]
   openHouseLogs OpenHouseLog[]
+  tasks         Task[]
 
   @@index([workspaceId])
   @@index([contactId])
@@ -98,10 +109,12 @@ model Deal {
 // ─── Activity Feed ──────────────────────────────────────────────────
 
 model Activity {
-  id        String       @id @default(cuid())
-  type      ActivityType
-  content   String
-  createdAt DateTime     @default(now())
+  id          String       @id @default(cuid())
+  type        ActivityType
+  title       String       @default("")
+  content     String
+  description String?
+  createdAt   DateTime     @default(now())
 
   dealId    String?
   deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
@@ -111,12 +124,70 @@ model Activity {
 
   @@index([dealId])
   @@index([contactId])
+  @@index([createdAt])
   @@map("activities")
+}
+
+// ─── Task Management (Follow-ups & Reminders) ──────────────────────
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueAt       DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([dueAt])
+  @@index([completed])
+  @@index([dealId])
+  @@index([contactId])
+  @@map("tasks")
+}
+
+// ─── Automation Engine (IFTTT-style Triggers) ──────────────────────
+
+model Automation {
+  id          String   @id @default(cuid())
+  name        String
+  enabled     Boolean  @default(true)
+  trigger     Json     // { "event": "deal_stale", "threshold_days": 5, "stage": "NEGOTIATION" }
+  action      Json     // { "type": "notify", "channel": "email", "template": "stale_deal" }
+  lastFiredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([enabled])
+  @@map("automations")
+}
+
+// ─── Chat Messages (Chatbot CRM Interface) ─────────────────────────
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // "user" | "assistant"
+  content   String
+  metadata  Json?    // { "action": "create_deal", "dealId": "..." }
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("chat_messages")
 }
 
 // ─── Vertical-Specific Tables ───────────────────────────────────────
 
-// Tradie: Invoice linked to a Deal
 model Invoice {
   id          String   @id @default(cuid())
   number      String   @unique
@@ -137,7 +208,6 @@ model Invoice {
   @@map("invoices")
 }
 
-// Agent: Open House attendance log linked to a Deal (listing)
 model OpenHouseLog {
   id            String   @id @default(cuid())
   attendeeName  String
