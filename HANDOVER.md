@@ -18,18 +18,19 @@
 - **Phase 2 UI**: Implemented Contact Detail Page (`app/contacts/[id]/page.tsx`) and components.
 - **Phase 2 Search**: Implemented `globalSearch` server action for Command Palette.
 - **Phase 2 UI**: Implemented `CommandPalette` component and mounted it in `app/layout.tsx`.
+- **Phase 2 UI**: Upgraded `KanbanBoard` to use `@dnd-kit` for robust drag-and-drop.
 
 ## Current State
 - **Build: PASSING**
 - **Phase 1 (Wire-up): COMPLETE**
-- **Phase 2 (Core Gaps): IN PROGRESS** (Task 2.2 Done, Task 2.4 Done)
-- **Backend Team (Claude Code & Aider):** Ready for Phase 2 support.
-- **Antigravity:** Ready to start Phase 2 UI tasks.
+- **Phase 2 (Core Gaps): COMPLETE** (Tasks 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 all done)
+- **Backend Team (Claude Code & Aider):** Ready for Phase 3 support.
+- **Antigravity:** Ready to start Phase 3 UI tasks.
 
 ## Next Steps
 See `project_status_log.md` for full action plan. Priority:
 1. **Task 3.2**: Pocket Estimator UI (Antigravity).
-2. **Task 2.1**: Upgrade Kanban to `dnd-kit` (optional).
+2. **Task 3.3**: Map / geo-scheduling view (Antigravity).
 
 ## Key Notes
 - **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
