@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Phone, Calendar, CheckCircle2, MessageSquare } from "lucide-react"
+import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lucide-react"
 import { getActivities, ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +18,7 @@ const ICON_MAP: Record<string, any> = {
     call: Phone,
     meeting: Calendar,
     task: CheckCircle2,
-    note: MessageSquare
+    note: FileText
 }
 
 const COLOR_MAP: Record<string, string> = {

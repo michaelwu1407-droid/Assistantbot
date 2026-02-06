@@ -8,6 +8,7 @@ import { createTask } from "./task-actions";
 import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
+import { generateQuote } from "./tradie-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface ParsedCommand {
   | "use_template"
   | "show_templates"
   | "find_duplicates"
+  | "create_invoice"
   | "help"
   | "unknown";
   params: Record<string, string>;
@@ -74,6 +76,18 @@ function parseCommand(message: string): ParsedCommand {
     return {
       intent: "move_deal",
       params: { title: moveMatch[1].trim(), stage: moveMatch[2].trim() },
+    };
+  }
+
+  // Invoice deal: "invoice Website Redesign" or "invoice Website Redesign for 5000"
+  const invoiceMatch = msg.match(/invoice\s+(.+?)(?:\s+for\s+\$?([\d,]+))?$/);
+  if (invoiceMatch) {
+    return {
+      intent: "create_invoice",
+      params: {
+        title: invoiceMatch[1].trim(),
+        amount: invoiceMatch[2]?.replace(/,/g, "") ?? "",
+      },
     };
   }
 
@@ -286,6 +300,42 @@ export async function processChat(
       break;
     }
 
+    case "create_invoice": {
+      const deals = await getDeals(workspaceId);
+      const deal = deals.find((d) =>
+        d.title.toLowerCase().includes(params.title.toLowerCase())
+      );
+
+      if (!deal) {
+        response = { message: `Couldn't find a deal matching "${params.title}".` };
+        break;
+      }
+
+      // Determine amount: override from command, or use deal value
+      const amount = params.amount ? Number(params.amount) : deal.value;
+
+      if (amount <= 0) {
+        response = { message: `Deal "${deal.title}" has no value. Please specify an amount: "invoice ${deal.title} for 5000"` };
+        break;
+      }
+
+      // Generate quote/invoice
+      const result = await generateQuote(deal.id, [
+        { desc: "Services Rendered", price: amount }
+      ]);
+
+      if (result.success) {
+        response = {
+          message: `Invoice ${result.invoiceNumber} generated for $${result.total?.toLocaleString()}. Deal moved to Invoiced.`,
+          action: "create_invoice",
+          data: { invoiceNumber: result.invoiceNumber, total: result.total }
+        };
+      } else {
+        response = { message: `Failed to generate invoice: ${result.error}` };
+      }
+      break;
+    }
+
     case "log_activity": {
       const result = await logActivity({
         type: params.type as "CALL" | "EMAIL" | "NOTE" | "MEETING" | "TASK",
@@ -457,6 +507,7 @@ export async function processChat(
   "Show stale deals" — Find neglected deals
   "New deal [title] for [company] worth [amount]" — Create a deal
   "Move [deal] to [stage]" — Update pipeline
+  "Invoice [deal] for [amount]" — Generate invoice
   "Log call/email/note [details]" — Record activity
   "Find [name]" — Search contacts (fuzzy)
   "Add contact [name] [email]" — Create contact (auto-enriches)
