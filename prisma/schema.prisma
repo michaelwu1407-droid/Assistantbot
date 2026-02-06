@@ -91,6 +91,9 @@ model Deal {
   value          Float     @default(0)
   stage          DealStage @default(NEW)
   stageChangedAt DateTime  @default(now())
+  address        String?
+  latitude       Float?
+  longitude      Float?
   metadata       Json?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
