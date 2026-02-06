@@ -4,17 +4,16 @@
 
 ---
 
-## Last Updated: 2026-02-07 (Session 5 — Tradie Stream)
+## Last Updated: 2026-02-07 (Session 6 — Map View)
 **Session**: Antigravity/Aider
 **Branch**: `claude/build-crm-core-hub-dktUf`
 
-## What Was Done This Session — PHASE 3 STARTED
+## What Was Done This Session — PHASE 3 CONTINUES
 **Antigravity (Frontend):**
-- **Task 3.2 (Pocket Estimator)**: Built `EstimatorForm` component. Wired to `generateQuote` action. Handles line items, GST calculation, and success state.
-- **Verification**: Checked `kanban-board.tsx` wiring for `updateDealStage` — confirmed functional.
-
-**Aider (Backend):**
-- **Fix**: Resolved merge conflict in `components/crm/activity-feed.tsx`. Ensured it uses the real data fetching logic.
+- **Task 3.3 (Map View)**: STARTED.
+- **Created**: `app/dashboard/map/page.tsx` and `components/crm/job-map-view.tsx`.
+- **Features**: Lists geocoded deals, supports "Batch Geocode" via server action, links to Google Maps.
+- **Note**: Interactive map (Leaflet) is pending package installation.
 
 ## Current State
 - **Build: PASSING**
@@ -22,16 +21,16 @@
 - **Phase 3 (Tradie Stream): IN PROGRESS**
     - 3.1 PDF Backend: ✅
     - 3.2 Estimator UI: ✅
-    - 3.3 Map View: ⬜ (Next)
+    - 3.3 Map View: 🚧 (List View Ready)
 - **Backend Team (Claude Code & Aider):** STANDBY for Phase 3 support.
-- **Antigravity:** Ready to start Task 3.3 (Map View).
+- **Antigravity:** Ready to start Task 3.5 (Voice-to-invoice).
 
 ## Next Steps
 See `project_status_log.md` for full action plan. Priority:
-1. **Task 3.3**: Map / geo-scheduling view (Antigravity).
-   - Create `app/dashboard/map/page.tsx`.
-   - Use `getDealsWithLocation` from `actions/geo-actions.ts`.
-2. **Task 3.5**: Voice-to-invoice (Antigravity).
+1. **Task 3.5**: Voice-to-invoice (Antigravity).
+   - Use Web Speech API.
+   - Wire to `processChat`.
+2. **Task 3.6**: Offline support.
 
 ## Key Notes
 - **Team Update**: Aider and Claude Code are now working interchangeably on the backend.
