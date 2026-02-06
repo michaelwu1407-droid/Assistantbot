@@ -35,6 +35,8 @@ export interface DealView {
   contactName: string;
   contactAvatar?: string;
   health: DealHealth;
+  daysInStage: number;
+  stageChangedAt: Date;
   metadata?: Record<string, unknown>;
 }
 
@@ -78,6 +80,10 @@ export async function getDeals(workspaceId: string): Promise<DealView[]> {
     const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
     const health = getDealHealth(lastActivityDate);
 
+    const daysInStage = Math.floor(
+      (Date.now() - new Date(deal.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     return {
       id: deal.id,
       title: deal.title,
@@ -88,6 +94,8 @@ export async function getDeals(workspaceId: string): Promise<DealView[]> {
       contactName: deal.contact.name,
       contactAvatar: deal.contact.avatarUrl ?? undefined,
       health,
+      daysInStage,
+      stageChangedAt: deal.stageChangedAt,
       metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
     };
   });
@@ -149,6 +157,7 @@ export async function updateDealStage(dealId: string, stage: string) {
     where: { id: parsed.data.dealId },
     data: {
       stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
+      stageChangedAt: new Date(),
     },
   });
 

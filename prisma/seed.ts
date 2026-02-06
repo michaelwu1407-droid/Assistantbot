@@ -12,6 +12,7 @@ async function main() {
   console.log("Seeding Pj Buddy database...");
 
   // Clean existing data
+  await prisma.messageTemplate.deleteMany();
   await prisma.chatMessage.deleteMany();
   await prisma.automation.deleteMany();
   await prisma.task.deleteMany();
@@ -99,6 +100,7 @@ async function main() {
       company: "Acme Corp",
       value: 5000,
       stage: "NEW",
+      stageChangedAt: daysAgo(1),
       contactId: john.id,
       workspaceId: workspace.id,
     },
@@ -110,6 +112,7 @@ async function main() {
       company: "Stark Ind",
       value: 12000,
       stage: "CONTACTED",
+      stageChangedAt: daysAgo(3),
       contactId: tony.id,
       workspaceId: workspace.id,
     },
@@ -121,6 +124,7 @@ async function main() {
       company: "Wayne Ent",
       value: 2000,
       stage: "NEGOTIATION",
+      stageChangedAt: daysAgo(8),
       contactId: bruce.id,
       workspaceId: workspace.id,
     },
@@ -132,6 +136,7 @@ async function main() {
       company: "Cyberdyne",
       value: 45000,
       stage: "NEGOTIATION",
+      stageChangedAt: daysAgo(15),
       contactId: sarah.id,
       workspaceId: workspace.id,
     },
@@ -143,6 +148,7 @@ async function main() {
       company: "Massive Dynamic",
       value: 8500,
       stage: "WON",
+      stageChangedAt: daysAgo(5),
       contactId: nina.id,
       workspaceId: workspace.id,
     },
@@ -274,6 +280,68 @@ async function main() {
   });
 
   console.log("  Automations: 2 created");
+
+  // ─── Message Templates (presets) ────────────────────────────────
+
+  const templatePresets = [
+    {
+      name: "Follow-up after meeting",
+      category: "follow-up",
+      subject: "Great meeting, {{contactName}}!",
+      body: "Hi {{contactName}},\n\nThanks for taking the time to meet today. As discussed, I'll be sending through the {{dealTitle}} proposal by end of week.\n\nLet me know if you have any questions in the meantime.\n\nCheers",
+      variables: ["contactName", "dealTitle"],
+    },
+    {
+      name: "Quote sent",
+      category: "quote",
+      subject: "Your quote for {{dealTitle}}",
+      body: "Hi {{contactName}},\n\nPlease find attached your quote for {{dealTitle}} totalling {{amount}}.\n\nThis quote is valid for 30 days. Happy to walk through any line items if needed.\n\nCheers",
+      variables: ["contactName", "dealTitle", "amount"],
+    },
+    {
+      name: "Welcome new lead",
+      category: "welcome",
+      subject: "Welcome to {{companyName}}!",
+      body: "Hi {{contactName}},\n\nThanks for reaching out! I'd love to learn more about what you're looking for.\n\nAre you free for a quick 15-minute call this week?\n\nCheers",
+      variables: ["contactName", "companyName"],
+    },
+    {
+      name: "Stale deal nudge",
+      category: "follow-up",
+      subject: "Checking in on {{dealTitle}}",
+      body: "Hi {{contactName}},\n\nJust checking in on {{dealTitle}}. It's been a little while since we last spoke.\n\nAre you still interested in moving forward? Happy to answer any questions or adjust the proposal.\n\nCheers",
+      variables: ["contactName", "dealTitle"],
+    },
+    {
+      name: "Invoice reminder",
+      category: "reminder",
+      subject: "Invoice reminder: {{invoiceNumber}}",
+      body: "Hi {{contactName}},\n\nFriendly reminder that invoice {{invoiceNumber}} for {{amount}} is due.\n\nPlease let me know if you have any questions about the invoice.\n\nCheers",
+      variables: ["contactName", "invoiceNumber", "amount"],
+    },
+    {
+      name: "Job completed",
+      category: "general",
+      subject: "Job completed: {{dealTitle}}",
+      body: "Hi {{contactName}},\n\nJust letting you know that the work on {{dealTitle}} has been completed.\n\nIf you're happy with everything, I'll send through the final invoice. Would really appreciate a review if you have a moment!\n\nCheers",
+      variables: ["contactName", "dealTitle"],
+    },
+    {
+      name: "Meeting booked",
+      category: "meeting",
+      subject: "Meeting confirmed: {{dealTitle}}",
+      body: "Hi {{contactName}},\n\nJust confirming our meeting for {{dealTitle}}.\n\nLooking forward to it.\n\nCheers",
+      variables: ["contactName", "dealTitle"],
+    },
+  ];
+
+  for (const t of templatePresets) {
+    await prisma.messageTemplate.create({
+      data: { ...t, workspaceId: workspace.id },
+    });
+  }
+
+  console.log(`  Templates: ${templatePresets.length} created`);
 
   console.log("\nSeed complete!");
 }

@@ -6,6 +6,8 @@ import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { createTask } from "./task-actions";
 import { generateMorningDigest } from "@/lib/digest";
+import { getTemplates, renderTemplate } from "./template-actions";
+import { findDuplicateContacts } from "./dedup-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -28,6 +30,9 @@ interface ParsedCommand {
     | "add_contact"
     | "create_task"
     | "morning_digest"
+    | "use_template"
+    | "show_templates"
+    | "find_duplicates"
     | "help"
     | "unknown";
   params: Record<string, string>;
@@ -117,6 +122,30 @@ function parseCommand(message: string): ParsedCommand {
     };
   }
 
+  // Use template: "use template follow-up for John"
+  const templateMatch = msg.match(
+    /(?:use|send)\s+template\s+(.+?)(?:\s+(?:for|to)\s+(.+))?$/
+  );
+  if (templateMatch) {
+    return {
+      intent: "use_template",
+      params: {
+        templateName: templateMatch[1].trim(),
+        contactQuery: templateMatch[2]?.trim() ?? "",
+      },
+    };
+  }
+
+  // Show templates
+  if (msg.match(/(?:show|list)\s+templates?/)) {
+    return { intent: "show_templates", params: {} };
+  }
+
+  // Find duplicates
+  if (msg.match(/(?:find|show|check)\s+(?:duplicate|dupe|dup)s?/)) {
+    return { intent: "find_duplicates", params: {} };
+  }
+
   // Morning digest
   if (msg.match(/(morning|digest|summary|briefing|today)/)) {
     return { intent: "morning_digest", params: {} };
@@ -143,7 +172,7 @@ export async function processChat(
 ): Promise<ChatResponse> {
   // Persist user message
   await db.chatMessage.create({
-    data: { role: "user", content: message },
+    data: { role: "user", content: message, workspaceId },
   });
 
   const { intent, params } = parseCommand(message);
@@ -347,6 +376,76 @@ export async function processChat(
       break;
     }
 
+    case "use_template": {
+      const templates = await getTemplates(workspaceId);
+      const match = templates.find((t) =>
+        t.name.toLowerCase().includes(params.templateName.toLowerCase())
+      );
+
+      if (!match) {
+        response = {
+          message: `No template found matching "${params.templateName}". Try "show templates" to see available options.`,
+        };
+        break;
+      }
+
+      // If a contact was specified, look them up for variable substitution
+      const values: Record<string, string> = {};
+      if (params.contactQuery) {
+        const contacts = await searchContacts(workspaceId, params.contactQuery);
+        if (contacts[0]) {
+          values.contactName = contacts[0].name;
+          values.companyName = contacts[0].company ?? "";
+        }
+      }
+
+      const rendered = await renderTemplate(match.id, values);
+      if (!rendered) {
+        response = { message: "Failed to render template." };
+        break;
+      }
+
+      response = {
+        message: `Template "${match.name}":\n${rendered.subject ? `Subject: ${rendered.subject}\n\n` : ""}${rendered.body}`,
+        action: "use_template",
+        data: { templateId: match.id, rendered },
+      };
+      break;
+    }
+
+    case "show_templates": {
+      const templates = await getTemplates(workspaceId);
+      if (templates.length === 0) {
+        response = { message: "No templates yet. Templates will be created when your workspace is set up." };
+      } else {
+        const lines = templates.map((t) => `  ${t.name} (${t.category})`);
+        response = {
+          message: `You have ${templates.length} template(s):\n\n${lines.join("\n")}\n\nUse: "use template [name] for [contact]"`,
+          action: "show_templates",
+          data: { templates },
+        };
+      }
+      break;
+    }
+
+    case "find_duplicates": {
+      const dupes = await findDuplicateContacts(workspaceId);
+      if (dupes.length === 0) {
+        response = { message: "No duplicate contacts found. Your contact list is clean!" };
+      } else {
+        const lines = dupes.map(
+          (g) =>
+            `  ${g.contacts.map((c) => c.name).join(" & ")} — matched by ${g.reason} (${Math.round(g.confidence * 100)}%)`
+        );
+        response = {
+          message: `Found ${dupes.length} potential duplicate group(s):\n\n${lines.join("\n")}`,
+          action: "find_duplicates",
+          data: { duplicates: dupes },
+        };
+      }
+      break;
+    }
+
     case "help":
       response = {
         message: `Here's what I can do:\n
@@ -358,7 +457,10 @@ export async function processChat(
   "Find [name]" — Search contacts (fuzzy)
   "Add contact [name] [email]" — Create contact (auto-enriches)
   "Remind me to [task]" — Create a follow-up
-  "Morning digest" — Today's priority briefing`,
+  "Morning digest" — Today's priority briefing
+  "Show templates" — List message templates
+  "Use template [name] for [contact]" — Render a template
+  "Find duplicates" — Check for duplicate contacts`,
       };
       break;
 
@@ -373,6 +475,7 @@ export async function processChat(
     data: {
       role: "assistant",
       content: response.message,
+      workspaceId,
       metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
     },
   });
@@ -381,10 +484,11 @@ export async function processChat(
 }
 
 /**
- * Get chat history.
+ * Get chat history for a workspace.
  */
-export async function getChatHistory(limit = 50) {
+export async function getChatHistory(workspaceId: string, limit = 50) {
   return db.chatMessage.findMany({
+    where: { workspaceId },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
