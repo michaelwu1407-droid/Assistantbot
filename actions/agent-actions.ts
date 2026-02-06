@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { generateQRSVG, generateQRDataURL } from "@/lib/qrcode";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -175,4 +176,44 @@ export async function getOpenHouseLog(dealId: string) {
     where: { dealId },
     orderBy: { visitedAt: "desc" },
   });
+}
+
+// ─── QR Code Generation ─────────────────────────────────────────────
+
+/**
+ * Generate a QR code for an open house kiosk registration page.
+ * Returns SVG string and data URL that can be displayed or printed.
+ *
+ * @param dealId - The listing/deal ID
+ * @param baseUrl - The app's base URL (e.g., "https://app.pjbuddy.com")
+ */
+export async function generateOpenHouseQR(
+  dealId: string,
+  baseUrl: string = "https://app.pjbuddy.com"
+): Promise<{
+  success: boolean;
+  svg?: string;
+  dataUrl?: string;
+  registrationUrl?: string;
+  error?: string;
+}> {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: { contact: true },
+  });
+
+  if (!deal) {
+    return { success: false, error: "Deal not found" };
+  }
+
+  const registrationUrl = `${baseUrl}/kiosk/${dealId}`;
+  const svg = generateQRSVG(registrationUrl);
+  const dataUrl = generateQRDataURL(registrationUrl);
+
+  return {
+    success: true,
+    svg,
+    dataUrl,
+    registrationUrl,
+  };
 }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: system-ui, sans-serif; width: 320px; padding: 16px; margin: 0; color: #1e293b; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p.subtitle { color: #64748b; font-size: 12px; margin: 0 0 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #475569; }
+    input { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; box-sizing: border-box; margin-bottom: 12px; }
+    input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+    button { width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #4f46e5; }
+    .status { font-size: 12px; text-align: center; margin-top: 8px; color: #16a34a; }
+    .status.error { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>Pj Buddy CRM</h1>
+  <p class="subtitle">Browser Extension — Save contacts & listings to your CRM</p>
+
+  <label for="apiUrl">API Base URL</label>
+  <input type="url" id="apiUrl" placeholder="http://localhost:3000">
+
+  <label for="workspaceId">Workspace ID</label>
+  <input type="text" id="workspaceId" placeholder="Your workspace ID">
+
+  <button id="save">Save Settings</button>
+  <div id="status" class="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

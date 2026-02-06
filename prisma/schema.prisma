@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ──────────────────────────────────────────────────────────
@@ -39,14 +40,18 @@ model Workspace {
   id            String        @id @default(cuid())
   name          String
   type          WorkspaceType
+  ownerId       String?
   brandingColor String        @default("#6366f1")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  contacts    Contact[]
-  deals       Deal[]
-  automations Automation[]
+  contacts         Contact[]
+  deals            Deal[]
+  automations      Automation[]
+  chatMessages     ChatMessage[]
+  messageTemplates MessageTemplate[]
 
+  @@index([ownerId])
   @@map("workspaces")
 }
 
@@ -80,14 +85,18 @@ model Contact {
 //   Agent  → { "buyer_budget_max": 1500000, "bedrooms_req": 3 }
 
 model Deal {
-  id        String    @id @default(cuid())
-  title     String
-  company   String?
-  value     Float     @default(0)
-  stage     DealStage @default(NEW)
-  metadata  Json?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  company        String?
+  value          Float     @default(0)
+  stage          DealStage @default(NEW)
+  stageChangedAt DateTime  @default(now())
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   contactId   String
   contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -182,6 +191,10 @@ model ChatMessage {
   metadata  Json?    // { "action": "create_deal", "dealId": "..." }
   createdAt DateTime @default(now())
 
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
   @@index([createdAt])
   @@map("chat_messages")
 }
@@ -223,4 +236,24 @@ model OpenHouseLog {
 
   @@index([dealId])
   @@map("open_house_logs")
+}
+
+// ─── Message Templates ───────────────────────────────────────────────
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  category  String   @default("general") // "follow-up", "quote", "welcome", "reminder", "general"
+  subject   String?
+  body      String
+  variables String[] // e.g. ["contactName", "dealTitle", "amount"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([category])
+  @@map("message_templates")
 }
