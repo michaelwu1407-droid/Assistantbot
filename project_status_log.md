@@ -52,6 +52,15 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-06 [Backend - Claude Code] - Code Quality & Build Cleanup
+**Fix**: Full codebase audit and quality pass
+*   **Security**: Removed hardcoded Supabase credentials from `lib/db.ts`. DB connection now requires `.env` to be configured.
+*   **Prisma**: Regenerated Prisma client from current schema, resolving all ~47 TypeScript compiler errors caused by stale generated types.
+*   **Tailwind**: Fixed `tailwind.config.ts` content paths (was scanning `./src/` which doesn't exist; now correctly scans `./app/` and `./components/`). Removed dead `darkMode: "class"` config and stale dark theme colors.
+*   **ESLint**: Resolved all 27 ESLint errors across 25 files (unused imports, unescaped JSX entities, missing displayNames, empty interfaces, no-explicit-any).
+*   **Stale Files**: Removed outdated `tsc_log.txt` and `lint_log.txt`.
+*   **Build Status**: **0 TypeScript errors, 0 ESLint errors** (13 warnings remain — all `_`-prefixed stub params).
+
 ### 2026-02-07 [Frontend - Antigravity] - Communications
 **Feature**: Unified Inbox
 *   **UI**: Created `app/inbox/page.tsx` and `InboxView`.
