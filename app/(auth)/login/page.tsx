@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,8 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft } from "lucide-react"
 
 export default function LoginPage() {
+    const router = useRouter()
+
     const handleSocialLogin = (provider: string) => {
-        alert(`${provider} Login is not yet connected to the backend. This is a frontend demo.`)
+        // For demo purposes, bypass auth and go straight to dashboard
+        console.log(`Logging in with ${provider}`)
+        router.push("/dashboard")
     }
 
     return (

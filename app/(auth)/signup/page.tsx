@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +9,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft } from "lucide-react"
 
 export default function SignupPage() {
+    const router = useRouter()
+
+    const handleSignup = () => {
+        // For demo purposes, bypass auth and go straight to dashboard
+        router.push("/dashboard")
+    }
+
     return (
         <Card className="border-slate-200 bg-white shadow-xl">
             <CardHeader className="space-y-1">
@@ -40,7 +48,7 @@ export default function SignupPage() {
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button className="w-full">Create Account</Button>
+                <Button className="w-full" onClick={handleSignup}>Create Account</Button>
                 <p className="text-center text-sm text-slate-500">
                     Already have an account?{" "}
                     <Link href="/login" className="underline underline-offset-4 hover:text-slate-900">
