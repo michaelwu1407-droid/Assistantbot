@@ -62,10 +62,14 @@ const UpdateStageSchema = z.object({
 /**
  * Fetch all deals for a workspace, transformed for the frontend.
  * Includes computed lastActivityDate and health status.
+ * Optionally filter by contactId.
  */
-export async function getDeals(workspaceId: string): Promise<DealView[]> {
+export async function getDeals(workspaceId: string, contactId?: string): Promise<DealView[]> {
+  const where: Record<string, unknown> = { workspaceId };
+  if (contactId) where.contactId = contactId;
+
   const deals = await db.deal.findMany({
-    where: { workspaceId },
+    where,
     include: {
       contact: true,
       activities: {

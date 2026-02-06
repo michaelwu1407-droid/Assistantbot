@@ -60,6 +60,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM, but 
 *   **Chat**: Wired `AssistantPane` to `processChat()` server action.
 *   **Activity Feed**: Connected to real data props.
 
+### 2026-02-06 [Backend - Aider] - Phase 2 Backend Support
+**Feature**: Contact Details & Filtering
+*   **Contact Actions**: Added `getContact(id)` to fetch single contact details. Updated `ContactView` to include `address` and `metadata`.
+*   **Deal Actions**: Updated `getDeals()` to support filtering by `contactId`.
+*   **Purpose**: Unblocking Frontend Task 2.2 (Contact Detail Page).
+
 ### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
 **Feature**: Visual Pipeline & Chat Mode
 *   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.

@@ -14,6 +14,7 @@
 - Wired Kanban Board to `updateDealStage`.
 - Wired Assistant Pane to `processChat`.
 - Wired Activity Feed to real data.
+- **Phase 2 Support**: Added `getContact(id)` and updated `getDeals` to support filtering by contact.
 
 ## Current State
 - **Build: PASSING**
