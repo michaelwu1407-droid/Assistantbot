@@ -4,6 +4,8 @@ import { InboxView } from "@/components/crm/inbox-view";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic';
+
 export default async function InboxPage() {
   const workspace = await getOrCreateWorkspace("demo-user");
   const threads = await getInboxThreads(workspace.id);

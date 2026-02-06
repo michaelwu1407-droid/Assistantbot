@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load saved settings
   chrome.storage.local.get(
-    { apiBaseUrl: "http://localhost:3000", workspaceId: "" },
+    { apiBaseUrl: "", workspaceId: "" },
     (config) => {
       apiUrlInput.value = config.apiBaseUrl;
       workspaceIdInput.value = config.workspaceId;

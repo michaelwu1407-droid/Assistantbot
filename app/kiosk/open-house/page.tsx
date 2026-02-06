@@ -1,6 +1,8 @@
 import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 
+export const dynamic = 'force-dynamic'
+
 // In a real app, this ID would come from a query param ?dealId=...
 // or the agent would select the "Active Open House" deal from a dashboard.
 // For now, we'll try to find a relevant deal or mock it.
