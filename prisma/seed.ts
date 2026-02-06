@@ -404,7 +404,7 @@ async function main() {
 
   for (const t of templatePresets) {
     await prisma.messageTemplate.create({
-      data: { ...t, workspaceId: workspace.id },
+      data: { ...t, variables: JSON.stringify(t.variables), workspaceId: workspace.id },
     });
   }
 

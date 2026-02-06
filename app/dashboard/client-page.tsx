@@ -43,7 +43,6 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
             <div className="flex-1 w-full flex gap-6 overflow-hidden min-h-0">
                 {/* Left: Kanban Board (70% approx) */}
                 <div className="flex-1 min-w-[300px] h-full overflow-hidden">
-                    {/* @ts-expect-error DealView is compatible with Deal but types might mismatch slightly on strict check */}
                     <KanbanBoard deals={deals} />
                 </div>
 

@@ -6,22 +6,10 @@ import "leaflet/dist/leaflet.css"
 // import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"
 // import "leaflet-defaulticon-compatibility"
 import { DealView } from "@/actions/deal-actions"
-import { ContactView } from "@/actions/contact-actions"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "lucide-react"
 import L from "leaflet"
-
-// Fix for default markers
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
 
 interface JobMapProps {
     deals: DealView[]
@@ -46,6 +34,16 @@ export default function JobMap({ deals }: JobMapProps) {
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
+        // Fix for default markers - MUST run on client only
+        // This prevents SSR crashes because L.Icon.Default.prototype accesses window/document
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+
         setMounted(true)
     }, [])
 

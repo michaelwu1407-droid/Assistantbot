@@ -46,7 +46,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                         <p className="text-slate-500 flex items-center gap-2 text-sm mt-1">
                             {deal.company || deal.contact.company} •
                             <span className="text-emerald-600 font-medium">${deal.value.toLocaleString()}</span>
-                            {isRealEstate && metadata.address && ` • ${metadata.address}`}
+                            {isRealEstate && typeof metadata.address === 'string' && ` • ${metadata.address}`}
                         </p>
                     </div>
                 </div>

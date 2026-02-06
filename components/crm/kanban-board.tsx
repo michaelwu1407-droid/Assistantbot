@@ -128,12 +128,13 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     const activeId = active.id as string
-    const overId = over.id as string
 
     if (!over) {
       setActiveId(null)
       return
     }
+
+    const overId = over.id as string
 
     const activeDeal = deals.find(d => d.id === activeId)
     // const overDeal = deals.find(d => d.id === overId)

@@ -5,13 +5,15 @@ import { getDeals } from "@/actions/deal-actions"
 import { Button } from "@/components/ui/button"
 import { Calendar, List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
-import dynamic from "next/dynamic"
+import nextDynamic from "next/dynamic"
 
 // Dynamically import Leaflet map to avoid window is not defined during build/SSR
-// const JobMap = dynamic(() => import("@/components/tradie/job-map"), {
+// const JobMap = nextDynamic(() => import("@/components/tradie/job-map"), {
 //     ssr: false,
 //     loading: () => <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400">Loading Map...</div>
 // })
+
+export const dynamic = 'force-dynamic'
 
 export default async function TradieMapPage() {
     const deals = await getDeals("demo-workspace")
@@ -37,12 +39,9 @@ export default async function TradieMapPage() {
                 </div>
             </header>
 
-            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* JobMap Component temporarily disabled due to build issues with Leaflet */}
+            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex items-center justify-center">
                 {/* <JobMap deals={deals} /> */}
-                <div className="flex items-center justify-center h-full text-slate-400">
-                    <p>Map View is currently being optimized. Switch to List view.</p>
-                </div>
+                <p className="text-slate-400">Map unavailable during build maintenance.</p>
             </div>
         </div>
     )

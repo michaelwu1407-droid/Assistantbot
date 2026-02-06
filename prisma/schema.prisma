@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "sqlite"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ──────────────────────────────────────────────────────────
@@ -246,7 +245,7 @@ model MessageTemplate {
   category  String   @default("general") // "follow-up", "quote", "welcome", "reminder", "general"
   subject   String?
   body      String
-  variables String[] // e.g. ["contactName", "dealTitle", "amount"]
+  variables String   @default("[]") // SQLite doesn't support String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

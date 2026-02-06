@@ -11,6 +11,7 @@ interface ActivityFeedProps {
     dealId?: string
     limit?: number
     className?: string
+    activities?: ActivityView[]
 }
 
 const ICON_MAP: Record<string, any> = {
@@ -29,9 +30,9 @@ const COLOR_MAP: Record<string, string> = {
     note: "text-slate-500 bg-slate-50"
 }
 
-export function ActivityFeed({ contactId, dealId, limit = 20, className }: ActivityFeedProps) {
-    const [activities, setActivities] = useState<ActivityView[]>([])
-    const [loading, setLoading] = useState(true)
+export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialActivities }: ActivityFeedProps) {
+    const [activities, setActivities] = useState<ActivityView[]>(initialActivities || [])
+    const [loading, setLoading] = useState(!initialActivities)
 
     useEffect(() => {
         let mounted = true
