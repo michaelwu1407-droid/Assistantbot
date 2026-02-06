@@ -3,6 +3,8 @@
 import { getDeals } from "@/actions/deal-actions"
 import { EstimatorForm } from "@/components/tradie/estimator-form"
 
+export const dynamic = 'force-dynamic'
+
 // Mock Workspace ID for now - in production this comes from auth context
 const WORKSPACE_ID = "demo-workspace"
 

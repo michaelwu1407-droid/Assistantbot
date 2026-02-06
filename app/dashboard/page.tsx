@@ -6,6 +6,8 @@ import { DealHealthWidget } from "@/components/crm/deal-health-widget"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
     // In a real app, we'd get the user ID from the session
     const workspace = await getOrCreateWorkspace("demo-user")
