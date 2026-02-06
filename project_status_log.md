@@ -52,6 +52,13 @@
 *   **Landing Page**: Replaced placeholder with full SaaS page (Hero, Product, Pricing, Contact). Added `Navbar` with "Get Started" CTA.
 *   **Auth**: Updated Login/Signup pages to Light Mode. Added mock feedback to Google Sign-in button.
 
+### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
+**Feature**: Visual Pipeline & Chat Mode
+*   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.
+*   **Kanban Board**: Created visual pipeline with 5 stages (New, Contacted, Negotiation, Won, Lost) and `framer-motion` drag physics.
+*   **Deal Logic**: Added "Stale" (Amber > 7d) and "Rotting" (Red > 14d) visual alerts to Deal Cards.
+*   **Activity Feed**: Created `ActivityFeed` component to visualize the "Magic Data Entry" events (e.g., "Email logged from tesla.com").
+
 ### 2026-02-06 [Backend - Claude Code]
 **Feature**: Core Hub Database Schema, Server Actions & UI Shell
 
