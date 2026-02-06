@@ -30,3 +30,18 @@
     *   Effect: Added noise texture overlay.
 *   **Fix**: Resolved Tailwind CSS v4 build error (migrated from `@tailwind` directives to `@import "tailwindcss";`).
 *   **Status**: Development server verified running at `http://localhost:3000`.
+*   **Repo**: Connected to `https://github.com/michaelwu1407-droid/Assistantbot` and pushed initial scaffolding.
+*   **Sync Limit**: Checked for remote changes on `main`. Result: Up to date (Commit `64a41a6`). No external backend changes detected yet.
+
+### 2026-02-06 [Frontend - Antigravity]
+**Feature**: Authentication UI & Core Components
+*   **Components**: Created `Button` (with spring physics), `Input`, `Card`, `Label`, and `cn` utility.
+*   **Pages**: Implemented `(auth)/login` and `(auth)/signup` with glassmorphism layout.
+*   **Routing**: Updated Landing Page with links to Auth flow.
+*   **Status**: Routes verified. UI ready for backend integration (Supabase Auth).
+
+**Feature**: Dashboard Shell & Modules
+*   **Layout**: Created bifurcated Dashboard Layout (Sidebar + Main Canvas + Assistant Pane).
+*   **Modules**: Implemented `Tradie` (Map placeholder) and `Agent` (Kiosk placeholder).
+*   **Routes**: Moved `app/(dashboard)` to `app/dashboard` to explicitely use the URL path.
+*   **Backend Sync**: ATTEMPTED to merge `claude/build-crm-core-hub-dkt`. FAILED (Remote branch not found/checkout failed). Proceeded with Frontend-only build.
