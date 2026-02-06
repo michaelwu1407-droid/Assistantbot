@@ -1,0 +1,67 @@
+# Project Status Log
+
+**Purpose**: Usage by Google Antigravity (Frontend) and Claude Code (Backend) to stay synchronized on the "Pj Buddy" project.
+
+## Project Summary
+**Pj Buddy** is a high-velocity CRM platform for SMEs featuring a "Hub and Spoke" architecture.
+*   **The Core (Hub)**: Universal CRM (Contacts, Pipeline, Activity Feed).
+*   **The Modules (Spokes)**:
+    *   *Tradie Mode*: Map-based, Quick Invoicing.
+    *   *Agent Mode*: Speed-to-lead, Open House Kiosk.
+*   **Tech Stack**:
+    *   **Frontend**: Next.js 15, Tailwind CSS (v4), Shadcn UI, Framer Motion.
+    *   **Backend**: Supabase, Prisma ORM, Server Actions.
+
+---
+
+## Change Log
+
+### 2026-02-06 [Frontend - Antigravity]
+**Feature**: Initial Scaffolding & Design System
+*   **Scaffold**: Initialized Next.js 15 App Router project with TypeScript and ESLint.
+*   **Dependencies**: Installed `lucide-react`, `framer-motion`, `clsx`, `tailwind-merge`, `date-fns`, `zod`.
+*   **Architecture**: Created "Hub and Spoke" folder structure:
+    *   `/app/(auth)`
+    *   `/app/(dashboard)` (with layouts for `tradie` and `agent`)
+    *   `/components/modules`
+*   **Design**: Implemented global styles in `globals.css`:
+    *   Background: Slate-950 (`#020617`).
+    *   Text: Slate-50 (`#f8fafc`).
+    *   Effect: Added noise texture overlay.
+*   **Fix**: Resolved Tailwind CSS v4 build error (migrated from `@tailwind` directives to `@import "tailwindcss";`).
+*   **Status**: Development server verified running at `http://localhost:3000`.
+
+### 2026-02-06 [Backend - Claude Code]
+**Feature**: Core Hub Database Schema, Server Actions & UI Shell
+
+*   **Prisma Schema** (`prisma/schema.prisma`):
+    *   Enums: `WorkspaceType` (TRADIE/AGENT), `DealStage` (NEW → LOST), `ActivityType` (CALL/EMAIL/NOTE).
+    *   Core Models: `Workspace`, `Contact`, `Deal` (polymorphic `metadata Json?`), `Activity`.
+    *   Vertical Tables: `Invoice` (Tradie), `OpenHouseLog` (Agent) — both linked to Deal.
+    *   All models indexed, cascade deletes, `@@map` for clean table names.
+*   **Database Client** (`src/lib/db.ts`):
+    *   Singleton PrismaClient with global caching for dev hot-reload.
+*   **Server Actions** (Zod-validated):
+    *   `src/actions/tradie-actions.ts` — `generateQuote(dealId, items[])`: sums line items, updates Deal value + metadata, sets stage to INVOICED.
+    *   `src/actions/agent-actions.ts` — `findMatches(listingId)`: reads listing metadata (price/bedrooms), queries contacts by `buyer_budget_max`, returns top 5 matches.
+*   **Pipeline Utility** (`src/lib/utils/pipeline.ts`):
+    *   `getDealHealth(lastActivity)`: HEALTHY (<7 days, green), STALE (7–14 days, yellow), ROTTING (>14 days, red).
+*   **UI Components** (for Antigravity to integrate):
+    *   `src/components/layout/SplitShell.tsx` — Bifurcated layout: NavRail (64px) + Canvas (65%) + Assistant pane (35%). Spring transitions via `AnimatePresence`.
+    *   `src/components/layout/NavRail.tsx` — Vertical sidebar (Home/Pipeline/Contacts/Invoices). Icons scale 1.1x on hover (Framer Motion spring, stiffness: 300).
+    *   `src/components/widgets/BentoCard.tsx` — Base card with spring-physics hover lift.
+    *   `src/components/widgets/QuickQuoteCard.tsx` — Tradie widget: 3 recent jobs with status badges.
+    *   `src/components/widgets/SpeedLeadCard.tsx` — Agent widget: live countdown timer with color-coded urgency bar.
+*   **Styling** (`src/app/globals.css`):
+    *   Glassmorphism utilities: `.glass`, `.glass-heavy`, `.glass-light`.
+    *   Layout classes: `.split-shell`, `.nav-rail`, `.canvas-pane`, `.assistant-pane`.
+    *   Radial gradient background accents, custom scrollbar, focus rings.
+*   **Config**: `package.json`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `.gitignore`.
+*   **Branch**: `claude/build-crm-core-hub-dktUf`.
+*   **Status**: All files committed and pushed. Ready for Antigravity frontend integration.
+
+#### Notes for Antigravity Sync
+*   The SplitShell and NavRail components use Framer Motion — ensure `framer-motion` is installed.
+*   The Prisma schema uses `Json?` for Deal.metadata — this is the polymorphic "magic column" for vertical-specific data.
+*   Tailwind config uses v3 `@tailwind` directives in `globals.css`. If Antigravity uses Tailwind v4, the CSS import style will need reconciliation.
+*   Server actions expect `@prisma/client` generated — run `npx prisma generate` after pulling.
