@@ -66,10 +66,9 @@ export async function updateJobStatus(jobId: string, status: 'TRAVELING' | 'ARRI
 /**
  * Create a quote variation (add items to a job).
  */
-export async function createQuoteVariation(jobId: string, items: Array<{ name: string; price: number }>) {
+export async function createQuoteVariation(jobId: string, items: Array<{ desc: string; price: number }>) {
   const total = items.reduce((sum, item) => sum + item.price, 0);
 
-  // Update Deal Metadata with new items
   const deal = await db.deal.findUnique({ where: { id: jobId } });
   if (!deal) return { success: false, error: "Job not found" };
 
@@ -81,16 +80,28 @@ export async function createQuoteVariation(jobId: string, items: Array<{ name: s
     data: {
       value: Number(deal.value) + total, // Update total value
       lastActivityAt: new Date(),
-      metadata: { 
+      metadata: JSON.parse(JSON.stringify({ 
         ...existingMeta,
         variations: [...existingVariations, ...items] 
-      } 
+      }))
+    }
+  });
+
+  // Log activity
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Variation added",
+      content: `Added variation: ${items.map(i => i.desc).join(", ")} ($${total})`,
+      dealId: jobId,
+      contactId: deal.contactId
     }
   });
 
   return { 
     success: true, 
-    pdfUrl: `https://api.pjbuddy.com/quotes/${jobId}.pdf` // Mock PDF generation
+    // In a real app this would be a real URL
+    pdfUrl: `/api/quotes/${jobId}/variation`
   };
 }
 

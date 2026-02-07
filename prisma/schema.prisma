@@ -65,13 +65,15 @@ model Workspace {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  name        String?
-  workspaceId String
-  viewMode    ViewMode  @default(BASIC)
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  activities  Activity[]
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  workspaceId   String
+  viewMode      ViewMode      @default(BASIC)
+  industryType  IndustryType?
+  setupComplete Boolean       @default(false)
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  activities    Activity[]
 }
 
 model Deal {
