@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, MapPin, Briefcase, Building } from "lucide-react"
+import { Send, Briefcase, Building } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 
 type Message = {
@@ -44,7 +44,7 @@ export function SetupChat() {
         if (!inputValue.trim()) return
 
         const userMsg: Message = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             role: "user",
             content: inputValue,
         }
@@ -60,7 +60,7 @@ export function SetupChat() {
 
     const handleChoice = (choice: { label: string; value: string }) => {
         const userMsg: Message = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             role: "user",
             content: choice.label,
         }
@@ -80,7 +80,7 @@ export function SetupChat() {
                 setMessages(prev => [
                     ...prev,
                     {
-                        id: Date.now().toString(),
+                        id: crypto.randomUUID(),
                         role: "assistant",
                         content: `Nice to meet you! To customize your experience, tell me: are you in Trades or Real Estate?`,
                         type: "choice",
@@ -105,7 +105,7 @@ export function SetupChat() {
                 setMessages(prev => [
                     ...prev,
                     {
-                        id: Date.now().toString(),
+                        id: crypto.randomUUID(),
                         role: "assistant",
                         content: "Got it. I've adjusted your workspace for that. One last thing: Where are you located? (e.g., Sydney, NSW)",
                         type: "text"
@@ -121,7 +121,7 @@ export function SetupChat() {
                 setMessages(prev => [
                     ...prev,
                     {
-                        id: Date.now().toString(),
+                        id: crypto.randomUUID(),
                         role: "assistant",
                         content: "Perfect! I'm ready to roll. Taking you to the tutorial now...",
                         type: "text"

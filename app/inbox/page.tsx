@@ -7,27 +7,10 @@ import Link from "next/link";
 export const dynamic = 'force-dynamic';
 
 export default async function InboxPage() {
+  let workspace, threads;
   try {
-    const workspace = await getOrCreateWorkspace("demo-user");
-    const threads = await getInboxThreads(workspace.id);
-
-    return (
-      <div className="h-screen flex flex-col bg-white">
-        <div className="h-16 border-b border-slate-200 flex items-center px-4 shrink-0">
-          <Link
-            href="/dashboard"
-            className="mr-4 p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-lg font-semibold text-slate-900">Inbox</h1>
-        </div>
-
-        <div className="flex-1 overflow-hidden">
-          <InboxView initialThreads={threads} />
-        </div>
-      </div>
-    );
+    workspace = await getOrCreateWorkspace("demo-user");
+    threads = await getInboxThreads(workspace.id);
   } catch {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -35,4 +18,22 @@ export default async function InboxPage() {
       </div>
     );
   }
+
+  return (
+    <div className="h-screen flex flex-col bg-white">
+      <div className="h-16 border-b border-slate-200 flex items-center px-4 shrink-0">
+        <Link
+          href="/dashboard"
+          className="mr-4 p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-lg font-semibold text-slate-900">Inbox</h1>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        <InboxView initialThreads={threads} />
+      </div>
+    </div>
+  );
 }

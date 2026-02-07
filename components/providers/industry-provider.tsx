@@ -20,6 +20,7 @@ export function IndustryProvider({ children }: { children: React.ReactNode }) {
         // Hydrate from localStorage on client mount
         const stored = localStorage.getItem("pj_industry_type") as IndustryType
         if (stored) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIndustryState(stored)
         }
         setIsLoading(false)
