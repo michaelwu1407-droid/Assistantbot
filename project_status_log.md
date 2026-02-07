@@ -76,6 +76,17 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Claude Code] - Tutorial Redesign (Split-Screen)
+**Feature**: Full tutorial redesign with platform preview + chatbot side-by-side
+
+*   **Layout**: 3/4 left pane shows mock "Advanced Mode" platform (kanban pipeline, deal cards, health stats), 1/4 right pane shows chatbot with equivalent commands.
+*   **Mock UI**: Built `MockPipelinePreview` (kanban columns, deal health widget, stats row) and `MockDealCard` (matching real `DealCard` visuals — stale/rotting badges, dollar values, initials, day counters).
+*   **Interactive highlights**: "Stale" step highlights rotting/stale cards with blue ring + amber/red stat badges. "Add" step highlights the "+ New Deal" button.
+*   **Industry-aware**: 3 variants (TRADES: 4 steps with job pipeline + quoting; REAL_ESTATE: 4 steps with listings + buyer search; Default: 3 steps with generic deals).
+*   **Chat pane**: Animated message bubbles show exact user→assistant conversations for each feature.
+*   **Routing**: Every sign-in now triggers tutorial (setup page redirects onboarded users to /tutorial instead of /dashboard, for troubleshooting).
+*   **Status**: Tutorial completely rebuilt from scratch.
+
 ### 2026-02-07 [Backend - Claude Code] - Onboarding Flow Wiring
 **Feature**: End-to-end onboarding: signup → setup → tutorial → dashboard
 
