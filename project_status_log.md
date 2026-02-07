@@ -96,6 +96,27 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Stale Files**: Removed outdated `tsc_log.txt` and `lint_log.txt`.
 *   **Build Status**: **0 TypeScript errors, 0 ESLint errors** (13 warnings remain — all `_`-prefixed stub params).
 
+### 2026-02-07 [Backend - Claude Code] - Assistant-Pivot Backend Support
+**Feature**: Industry-context-aware schema & chat intelligence
+
+*   **Package**: Installed missing `@radix-ui/react-dropdown-menu` (required by Antigravity's new dropdown-menu component).
+*   **ESLint**: Fixed 63 new ESLint errors introduced by assistant-pivot merge (JSX in try/catch, Date.now() purity, unescaped entities, unused imports, setState in useEffect). Result: **0 errors, 13 warnings**.
+*   **Schema** (`prisma/schema.prisma`):
+    *   Added `IndustryType` enum (`TRADES`, `REAL_ESTATE`).
+    *   Added `industryType` and `location` fields to `Workspace` model.
+*   **Workspace Actions** (`actions/workspace-actions.ts`):
+    *   Updated `WorkspaceView` interface with `industryType` and `location`.
+    *   Added `toWorkspaceView()` helper to DRY up mapping across all functions.
+    *   `getOrCreateWorkspace()` and `updateWorkspace()` now accept `industryType` and `location`.
+*   **Chat Intelligence** (`actions/chat-actions.ts`):
+    *   Added `getIndustryContext()` — returns industry-specific labels based on workspace.industryType.
+    *   **TRADES**: "jobs"/"clients", stage labels (New Lead → Quoted → In Progress → Invoiced → Paid → Lost), G'day greeting.
+    *   **REAL_ESTATE**: "listings"/"buyers", stage labels (New Listing → Appraised → Under Offer → Exchanged → Settled → Withdrawn).
+    *   **Default**: "deals"/"contacts" with generic labels.
+    *   All case handlers (`show_deals`, `show_stale`, `create_deal`, `help`, `default`) now use context-specific terminology.
+*   **Status**: Completes backend tasks 3.A (Schema Updates) and 3.B (Assistant Logic Engine — context awareness) from the Master Specification.
+*   **Next**: Run `npx prisma@6 db push` against Supabase to apply schema changes.
+
 ### 2026-02-07 [Frontend - Antigravity] - Communications
 **Feature**: Unified Inbox
 *   **UI**: Created `app/inbox/page.tsx` and `InboxView`.
