@@ -488,6 +488,11 @@ The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the ba
   - Add column: `setup_complete` (BOOLEAN, default `false`).
   - Add column: `mode_preference` (ENUM: 'SIMPLE', 'ADVANCED', default 'SIMPLE').
 
+### D. View Restriction (Flagged for Post-MVP)
+- **Requirement:** Users selecting "TRADES" should *only* see Tradie features. Users selecting "REAL_ESTATE" should *only* see Agent features.
+- **Current State:** Allow switching for testing purposes (single account can see both).
+- **Future State:** Enforce strict view isolation based on `industry_type`.
+
 ### B. "Assistant" Logic Engine
 - **Input Processing:** The chatbot must accept natural language (e.g., "Add a job for 123 Main St tomorrow") and map it to database inserts (`INSERT INTO jobs...`).
 - **Context Awareness:**

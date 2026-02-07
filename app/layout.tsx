@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
+import { IndustryProvider } from "@/components/providers/industry-provider";
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased font-sans">
-        {children}
-        <CommandPalette />
+        <IndustryProvider>
+          {children}
+          <CommandPalette />
+        </IndustryProvider>
       </body>
     </html>
   );

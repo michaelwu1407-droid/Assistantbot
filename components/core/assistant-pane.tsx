@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDashboard } from "@/components/providers/dashboard-provider"
+import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { cn } from "@/lib/utils"
@@ -18,6 +19,7 @@ interface Message {
 
 export function AssistantPane() {
     const { mode, toggleMode } = useDashboard()
+    const { industry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -91,7 +93,7 @@ export function AssistantPane() {
 
         try {
             const response = await processChat(userMsg.content, workspaceId)
-            
+
             const botMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
@@ -141,14 +143,20 @@ export function AssistantPane() {
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
                         {messages.length === 0 && (
-                            <div className="text-slate-500 text-sm">
-                                I am ready to help you manage your jobs and leads.
-                                <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Try asking: &quot;Show me deals in negotiation&quot; or &quot;Email John about the invoice&quot;.
+                            <div className="text-slate-500 text-sm space-y-2">
+                                <p>
+                                    {industry === "TRADES"
+                                        ? "G'day! Ready to quote some jobs or chase invoices?"
+                                        : industry === "REAL_ESTATE"
+                                            ? "Hello! Ready for the open house or need to find a buyer?"
+                                            : "I am ready to help you manage your jobs and leads."}
+                                </p>
+                                <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
+                                    Try asking: "{industry === "TRADES" ? "Create a quote for 123 Main St" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}"
                                 </div>
                             </div>
                         )}
-                        
+
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
@@ -169,7 +177,7 @@ export function AssistantPane() {
                                 </div>
                             </div>
                         ))}
-                        
+
                         {isLoading && (
                             <div className="flex justify-start">
                                 <div className="bg-slate-100 rounded-lg px-4 py-2 text-sm text-slate-500">
@@ -192,17 +200,17 @@ export function AssistantPane() {
                     >
                         {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
-                    <Input 
-                        placeholder="Type a command..." 
+                    <Input
+                        placeholder="Type a command..."
                         className="bg-slate-50 border-slate-200 focus-visible:ring-purple-500"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={isLoading || !workspaceId}
                     />
-                    <Button 
-                        size="icon" 
-                        variant="default" 
+                    <Button
+                        size="icon"
+                        variant="default"
                         className="bg-slate-900 hover:bg-slate-800"
                         onClick={handleSend}
                         disabled={isLoading || !workspaceId}
