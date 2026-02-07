@@ -1,9 +1,8 @@
 import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 
 export const dynamic = 'force-dynamic'
-
-const WORKSPACE_ID = "demo-workspace"
 
 interface PageProps {
     searchParams: Promise<{ dealId?: string }>
@@ -17,7 +16,8 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         dealId = params.dealId
 
         if (!dealId) {
-            const deals = await getDeals(WORKSPACE_ID)
+            const workspace = await getOrCreateWorkspace("demo-user")
+            const deals = await getDeals(workspace.id)
             const firstDeal = deals[0]
             if (firstDeal) {
                 dealId = firstDeal.id

@@ -43,19 +43,22 @@ interface ParsedCommand {
 function parseCommand(message: string): ParsedCommand {
   const msg = message.toLowerCase().trim();
 
-  // Show pipeline / deals
-  if (msg.match(/show.*(deal|pipeline|board|kanban)/)) {
+  // Industry-agnostic noun: "deal", "job", "listing", "lead", "property"
+  const NOUN = "(?:deal|job|listing|lead|property|gig|project)";
+
+  // Show pipeline / deals / jobs / listings
+  if (msg.match(new RegExp(`show.*(?:${NOUN.slice(3, -1)}|pipeline|board|kanban|my\\s+(?:deals|jobs|listings))`))) {
     return { intent: "show_deals", params: {} };
   }
 
-  // Show stale / rotting deals
-  if (msg.match(/(stale|rotting|neglected|forgotten|old)\s*(deal|lead)?s?/)) {
+  // Show stale / rotting
+  if (msg.match(new RegExp(`(stale|rotting|neglected|forgotten|old)\\s*${NOUN}?s?`))) {
     return { intent: "show_stale", params: {} };
   }
 
-  // Create deal: "new deal Website Redesign for Acme worth 5000"
+  // Create: "new deal/job/listing Title for Company worth 5000"
   const createMatch = msg.match(
-    /(?:new|create|add)\s+deal\s+(.+?)(?:\s+for\s+(.+?))?(?:\s+worth\s+\$?([\d,]+))?$/
+    new RegExp(`(?:new|create|add)\\s+${NOUN}\\s+(.+?)(?:\\s+for\\s+(.+?))?(?:\\s+worth\\s+\\$?([\\d,]+))?$`)
   );
   if (createMatch) {
     return {
@@ -68,9 +71,9 @@ function parseCommand(message: string): ParsedCommand {
     };
   }
 
-  // Move deal: "move Website Redesign to negotiation"
+  // Move deal/job/listing: "move Kitchen Reno to negotiation"
   const moveMatch = msg.match(
-    /move\s+(.+?)\s+to\s+(new|contacted|negotiation|won|lost)/
+    /move\s+(.+?)\s+to\s+(new|contacted|negotiation|quoted|in\s*progress|invoiced|won|lost|paid|settled|appraised|under\s*offer|exchanged)/
   );
   if (moveMatch) {
     return {
@@ -79,8 +82,8 @@ function parseCommand(message: string): ParsedCommand {
     };
   }
 
-  // Invoice deal: "invoice Website Redesign" or "invoice Website Redesign for 5000"
-  const invoiceMatch = msg.match(/invoice\s+(.+?)(?:\s+for\s+\$?([\d,]+))?$/);
+  // Invoice / quote: "invoice Kitchen Reno" or "invoice Kitchen Reno for 5000" or "quote Kitchen Reno for 5000"
+  const invoiceMatch = msg.match(/(?:invoice|quote)\s+(.+?)(?:\s+for\s+\$?([\d,]+))?$/);
   if (invoiceMatch) {
     return {
       intent: "create_invoice",
@@ -102,8 +105,8 @@ function parseCommand(message: string): ParsedCommand {
     };
   }
 
-  // Search contacts
-  const searchMatch = msg.match(/(?:search|find|look\s*up)\s+(?:contact\s+)?(.+)/);
+  // Search contacts / clients / buyers
+  const searchMatch = msg.match(/(?:search|find|look\s*up)\s+(?:(?:contact|client|buyer|vendor|customer)\s+)?(.+)/);
   if (searchMatch) {
     return {
       intent: "search_contacts",
@@ -111,9 +114,9 @@ function parseCommand(message: string): ParsedCommand {
     };
   }
 
-  // Add contact: "add contact John Doe john@tesla.com"
+  // Add contact/client/buyer: "add client John Doe john@tesla.com"
   const addContactMatch = msg.match(
-    /(?:add|new)\s+contact\s+([A-Za-z\s]+?)(?:\s+([\w.+-]+@[\w.-]+))?$/
+    /(?:add|new)\s+(?:contact|client|buyer|vendor|customer)\s+([A-Za-z\s]+?)(?:\s+([\w.+-]+@[\w.-]+))?$/
   );
   if (addContactMatch) {
     return {

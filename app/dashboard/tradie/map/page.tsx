@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { Button } from "@/components/ui/button"
 import { List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
@@ -6,10 +8,20 @@ import Link from "next/link"
 export const dynamic = 'force-dynamic'
 
 export default async function TradieMapPage() {
-    let _deals;
+    let workspace;
+    let dbError = false;
     try {
-        _deals = await getDeals("demo-workspace")
+        workspace = await getOrCreateWorkspace("demo-user")
+        await getDeals(workspace.id)
     } catch {
+        dbError = true;
+    }
+
+    if (!dbError && workspace && !workspace.onboardingComplete) {
+        redirect("/setup")
+    }
+
+    if (dbError || !workspace) {
         return (
             <div className="h-full flex items-center justify-center">
                 <p className="text-slate-500">Database not initialized. Please push the schema first.</p>

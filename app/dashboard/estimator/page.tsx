@@ -1,15 +1,25 @@
+import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { EstimatorForm } from "@/components/tradie/estimator-form"
 
 export const dynamic = 'force-dynamic'
 
-const WORKSPACE_ID = "demo-workspace"
-
 export default async function EstimatorPage() {
-    let deals;
+    let workspace, deals;
+    let dbError = false;
     try {
-        deals = await getDeals(WORKSPACE_ID)
+        workspace = await getOrCreateWorkspace("demo-user")
+        deals = await getDeals(workspace.id)
     } catch {
+        dbError = true;
+    }
+
+    if (!dbError && workspace && !workspace.onboardingComplete) {
+        redirect("/setup")
+    }
+
+    if (dbError || !workspace || !deals) {
         return (
             <div className="flex-1 flex items-center justify-center p-8">
                 <p className="text-slate-500">Database not initialized. Please push the schema first.</p>
