@@ -80,6 +80,11 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Offline Polish
+**Feature**: Offline Fallback Page
+*   **UI**: Created `app/offline/page.tsx` to serve as the fallback route when the Service Worker cannot fetch a page and it's not in the cache.
+*   **Status**: Task 3.6 (Offline Support) Fully Complete.
+
 ### 2026-02-07 [Frontend - Antigravity] - Offline Sync
 **Feature**: IndexedDB Sync Queue
 *   **Sync Logic**: Created `lib/sync-queue.ts` using `idb` to queue mutations when offline.
