@@ -17,9 +17,11 @@ enum WorkspaceType {
 
 enum DealStage {
   NEW
+  CONTACTED
   NEGOTIATION
-  CONTRACT
-  CLOSED
+  WON
+  LOST
+  INVOICED
   ARCHIVED
 }
 
