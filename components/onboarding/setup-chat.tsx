@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { Send, MapPin, Briefcase, Building } from "lucide-react"
+import { useIndustry } from "@/components/providers/industry-provider"
 
 type Message = {
     id: string
@@ -17,6 +18,7 @@ type Message = {
 
 export function SetupChat() {
     const router = useRouter()
+    const { setIndustry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "1",
@@ -71,49 +73,64 @@ export function SetupChat() {
     }
 
     const processStep = (validInput: string) => {
-        setIsTyping(false)
+        // Step 0: Business Name -> Ask Industry
         if (step === 0) {
-            // Business Name received
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: `Nice to meet you! Are you in Trades or Real Estate?`,
-                    type: "choice",
-                    choices: [
-                        { label: "Trades", value: "TRADES", icon: Briefcase },
-                        { label: "Real Estate", value: "REAL_ESTATE", icon: Building }
-                    ]
-                }
-            ])
-            setStep(1)
-        } else if (step === 1) {
-            // Industry received
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: "Got it. Last question: Where are you located? (e.g., Sydney, NSW)",
-                    type: "text"
-                }
-            ])
-            setStep(2)
-        } else if (step === 2) {
-            // Location received
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: "Perfect! I'm setting up your workspace now...",
-                    type: "text"
-                }
-            ])
             setTimeout(() => {
-                router.push("/tutorial")
-            }, 2000)
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: Date.now().toString(),
+                        role: "assistant",
+                        content: `Nice to meet you! To customize your experience, tell me: are you in Trades or Real Estate?`,
+                        type: "choice",
+                        choices: [
+                            { label: "Trades", value: "TRADES", icon: Briefcase },
+                            { label: "Real Estate", value: "REAL_ESTATE", icon: Building }
+                        ]
+                    }
+                ])
+                setStep(1)
+            }, 1500) // 1.5s delay for natural feel
+        }
+        // Step 1: Industry -> Ask Location
+        else if (step === 1) {
+            // SAVE CONTEXT HERE
+            if (validInput === "TRADES" || validInput === "REAL_ESTATE") {
+                setIndustry(validInput as "TRADES" | "REAL_ESTATE")
+            }
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: Date.now().toString(),
+                        role: "assistant",
+                        content: "Got it. I've adjusted your workspace for that. One last thing: Where are you located? (e.g., Sydney, NSW)",
+                        type: "text"
+                    }
+                ])
+                setStep(2)
+            }, 1500)
+        }
+        // Step 2: Location -> Finish
+        else if (step === 2) {
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: Date.now().toString(),
+                        role: "assistant",
+                        content: "Perfect! I'm ready to roll. Taking you to the tutorial now...",
+                        type: "text"
+                    }
+                ])
+                setTimeout(() => {
+                    router.push("/tutorial")
+                }, 2500)
+            }, 1000)
         }
     }
 
@@ -131,8 +148,8 @@ export function SetupChat() {
                         >
                             <div
                                 className={`max-w-[80%] rounded-2xl px-5 py-3 ${msg.role === "user"
-                                        ? "bg-slate-900 text-white"
-                                        : "bg-white border border-slate-200 text-slate-800 shadow-sm"
+                                    ? "bg-slate-900 text-white"
+                                    : "bg-white border border-slate-200 text-slate-800 shadow-sm"
                                     }`}
                             >
                                 <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>

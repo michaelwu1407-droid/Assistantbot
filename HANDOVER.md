@@ -1,39 +1,32 @@
-# Claude Code Handover Log
-
-**Purpose**: Sync state between Claude Code, Aider, and Terminal sessions. Read this first on session start. Update before session end.
-
----
-
 ## Last Updated: 2026-02-07 (Session 7 — Assistant-First Pivot)
 **Session**: Antigravity (Frontend)
-**Branch**: `claude/build-crm-core-hub-dktUf`
+**Branch**: `feat/assistant-pivot`
 
 ## What Was Done This Session — ASSISTANT-FIRST PIVOT
 **Antigravity (Frontend):**
 - **Refactored Navigation**:
-    - Replaced `Pricing` link with `Industries` Dropdown (Trades / Real Estate).
-    - Updated `Hero` section copy to focus on "Assistant-First" strategy.
+    - Replaced `Pricing` link with `Industries` Dropdown.
+    - Updated `Hero` copy for "Assistant-First" strategy.
 - **Refactored Auth**:
-    - Removed GitHub login from `Login` page.
-    - Improved styling for Google login button.
-- **New Onboarding Flow**:
-    - Created `/setup` page with `SetupChat` component (Simulated Chatbot Interview).
-    - Created `/tutorial` page with `TutorialView` (Split-screen prompt guide).
-- **Verified**:
-    - `npm run build` PASSING.
+    - Cleaned up `Login` page (No GitHub).
+- **Onboarding Flow**:
+    - Created `/setup` (Chatbot) and `/tutorial` (Split-screen).
+- **Client-Side Polish**:
+    - Implemented `IndustryProvider` to persist "TRADES" vs "REAL_ESTATE" in `localStorage`.
+    - Updated `AssistantPane` to show industry-specific welcome messages.
+    - Added typing simulation to `SetupChat`.
 
 ## Current State
 - **Build: PASSING**
-- **Frontend**: Ready for new Assistant Logic.
+- **Frontend**: Fully pivoted. Smart context awareness is active on client.
 - **Backend**: Needs Schema updates and Assistant Logic implementation.
 
 ## Next Steps for Backend Team (Claude Code / Aider)
 See `project_status_log.md` for full details.
-1.  **Schema Updates**: Add `industry_type`, `setup_complete`, `mode_preference` to User/Profile.
-2.  **Assistant Logic**: Implement `processChat` context awareness for Trades vs Real Estate.
-3.  **Auth Hardening**: Disable GitHub strategy in backend.
+1.  **Schema**: Add `industry_type` to User/Profile.
+2.  **Logic**: Implement `processChat` context awareness.
+3.  **View Restriction**: Notes added to Project Log (Post-MVP).
 
 ## Key Notes
-- `/setup` currently uses local state mock. Needs wiring to `updateUserProfile` action once created.
-- `/tutorial` is static.
-
+- `AssistantPane` now reads `industry` from context to greet users appropriately.
+- `SetupChat` saves selection to `localStorage`.
