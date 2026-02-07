@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
+import { OfflineBanner } from "@/components/core/offline-banner";
 import { IndustryProvider } from "@/components/providers/industry-provider";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
         <IndustryProvider>
           {children}
           <CommandPalette />
+          <OfflineBanner />
         </IndustryProvider>
       </body>
     </html>

@@ -76,6 +76,18 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Offline Support & Cleanup
+**Feature**: Offline UI Indicator & Legacy Cleanup
+*   **Offline UI**: Created `components/core/offline-banner.tsx` and mounted it in `app/layout.tsx`. Shows a sticky banner when the user loses internet connection.
+*   **Cleanup**: Deprecated `actions/tradie.ts` and `actions/agent.ts` (replaced by `*-actions.ts` versions) to prevent confusion.
+*   **Status**: Task 3.3 (Map View) marked Complete. Task 3.6 (Offline Support) started.
+
+### 2026-02-07 [Frontend - Antigravity] - Tradie Map & Spec Cleanup
+**Feature**: Real Geolocation on Tradie Map
+*   **Map UI**: Updated `components/tradie/job-map.tsx` to use real `latitude`/`longitude` from deals instead of mock coordinates. Added fallback to Sydney CBD if no deals have location.
+*   **Spec Compliance**: Verified `Navbar` (Industries dropdown) and `Login` (No GitHub) match Master Spec 2.A and 2.B.
+*   **Status**: Task 3.3 (Map View) Complete.
+
 ### 2026-02-07 [Backend - Aider] - Geo-Scheduling
 **Feature**: Added Geolocation Support to Deals
 *   **Deal Actions**: Updated `getDeals` and `DealView` in `actions/deal-actions.ts` to return `address`, `latitude`, and `longitude`.
@@ -465,10 +477,10 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 |---|------|-------|---------|--------|
 | 3.1 | PDF quote/invoice generation | **Backend** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
 | 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ✅ |
-| 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | 🚧 |
+| 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | ✅ |
 | 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
 | 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ✅ |
-| 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | ⬜ |
+| 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | 🚧 |
 | 3.7 | Xero/MYOB accounting sync | **Backend** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
 
 ---
@@ -532,7 +544,7 @@ PHASE 5 (Comms) ← LAST
 | Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **14 ✅** |
+| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **15 ✅** |
 
 ---
 
