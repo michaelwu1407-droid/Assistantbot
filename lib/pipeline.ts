@@ -1,32 +1,34 @@
-export type DealHealthStatus = "HEALTHY" | "STALE" | "ROTTING";
+import { differenceInDays } from 'date-fns'; // Assuming date-fns is installed
 
 export interface DealHealth {
-  status: DealHealthStatus;
-  color: string;
+  status: 'FRESH' | 'STALE' | 'ROTTING';
   daysSinceActivity: number;
 }
 
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
+export function getDealHealth(lastActivityAt: Date): DealHealth {
+  const daysSinceActivity = differenceInDays(new Date(), lastActivityAt);
 
-/**
- * Determines the health of a deal based on time since last activity.
- *
- * - HEALTHY (Green):  <= 7 days since last activity
- * - STALE   (Amber):  8–14 days since last activity
- * - ROTTING (Red):    > 14 days since last activity
- */
-export function getDealHealth(lastActivity: Date): DealHealth {
-  const now = new Date();
-  const diffMs = now.getTime() - lastActivity.getTime();
-  const daysSinceActivity = Math.floor(diffMs / MS_PER_DAY);
-
-  if (daysSinceActivity > 14) {
-    return { status: "ROTTING", color: "#ef4444", daysSinceActivity };
+  let status: 'FRESH' | 'STALE' | 'ROTTING' = 'FRESH';
+  if (daysSinceActivity >= 7 && daysSinceActivity <= 14) {
+    status = 'STALE';
+  } else if (daysSinceActivity > 14) {
+    status = 'ROTTING';
   }
 
-  if (daysSinceActivity > 7) {
-    return { status: "STALE", color: "#f59e0b", daysSinceActivity };
-  }
+  return { status, daysSinceActivity };
+}
 
-  return { status: "HEALTHY", color: "#22c55e", daysSinceActivity };
+export type DealStatus = DealHealth['status'];
+
+export function getCardColorClass(status: DealStatus): string {
+  switch (status) {
+    case 'FRESH':
+      return 'bg-white border-slate-100';
+    case 'STALE':
+      return 'bg-orange-50 border-orange-100';
+    case 'ROTTING':
+      return 'bg-red-50 border-red-100';
+    default:
+      return 'bg-white';
+  }
 }

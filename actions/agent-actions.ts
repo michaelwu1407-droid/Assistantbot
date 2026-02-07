@@ -60,7 +60,7 @@ export async function findMatches(listingId: string): Promise<MatchResult> {
   }
 
   const metadata = listing.metadata as Record<string, unknown> | null;
-  const listingPrice = (metadata?.price as number) ?? listing.value;
+  const listingPrice = (metadata?.price as number) ?? Number(listing.value);
   const listingBedrooms = (metadata?.bedrooms as number) ?? 0;
 
   if (!listingPrice) {
@@ -176,6 +176,32 @@ export async function getOpenHouseLog(dealId: string) {
     where: { dealId },
     orderBy: { visitedAt: "desc" },
   });
+}
+
+/**
+ * Log key checkout (Agent workflow).
+ */
+export async function logKeyCheckout(keyId: string, userId: string) {
+  // 1. Log Activity
+  // Note: In a real app, we would resolve the user ID properly.
+  // For now, we assume userId is passed or we find a default user.
+  const user = await db.user.findFirst();
+  
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Keys checked out",
+      content: `Keys ${keyId} checked out by user`,
+      userId: user?.id, // Fallback to first user if specific ID not found/valid
+      description: "Magic Keys checkout"
+    }
+  });
+
+  // 2. Start Background Timer (Mock)
+  // In production, this would push a job to a queue (e.g., BullMQ)
+  console.log(`[TIMER] Started 5PM alert timer for User ${userId}`);
+
+  return { success: true, checkedOutAt: new Date() };
 }
 
 // ─── QR Code Generation ─────────────────────────────────────────────

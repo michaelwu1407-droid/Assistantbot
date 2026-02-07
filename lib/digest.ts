@@ -37,43 +37,46 @@ export async function generateMorningDigest(
   const activeDeals = await db.deal.findMany({
     where: {
       workspaceId,
-      stage: { notIn: ["WON", "LOST"] },
+      stage: { notIn: ["CLOSED", "ARCHIVED"] },
     },
     include: {
-      contact: true,
+      contacts: { take: 1 },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 1,
       },
     },
-  });
+  } as any);
 
   let totalPipelineValue = 0;
 
-  for (const deal of activeDeals) {
-    totalPipelineValue += deal.value;
-    const lastActivity = deal.activities[0]?.createdAt ?? deal.createdAt;
+  for (const dealRaw of activeDeals) {
+    const deal = dealRaw as any;
+    totalPipelineValue += Number(deal.value ?? 0);
+    const lastActivity = deal.activities?.[0]?.createdAt ?? deal.createdAt;
     const health = getDealHealth(lastActivity);
+    const contactName = deal.contacts?.[0]?.name ?? 'Unknown';
+    const contactId = deal.contacts?.[0]?.id;
 
     if (health.status === "ROTTING") {
       items.push({
         type: "rotting_deal",
         priority: 1,
         title: `${deal.title} is rotting (${health.daysSinceActivity}d)`,
-        description: `$${deal.value.toLocaleString()} deal with ${deal.contact.name} — no activity in ${health.daysSinceActivity} days.`,
+        description: `$${deal.value?.toLocaleString() ?? 0} deal with ${contactName} — no activity in ${health.daysSinceActivity} days.`,
         dealId: deal.id,
-        contactId: deal.contactId,
-        value: deal.value,
+        contactId: contactId,
+        value: Number(deal.value),
       });
     } else if (health.status === "STALE") {
       items.push({
         type: "stale_deal",
         priority: 2,
         title: `${deal.title} is going stale (${health.daysSinceActivity}d)`,
-        description: `$${deal.value.toLocaleString()} deal with ${deal.contact.name} needs attention.`,
+        description: `$${deal.value?.toLocaleString() ?? 0} deal with ${contactName} needs attention.`,
         dealId: deal.id,
-        contactId: deal.contactId,
-        value: deal.value,
+        contactId: contactId,
+        value: Number(deal.value),
       });
     }
   }

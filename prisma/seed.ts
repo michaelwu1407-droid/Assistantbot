@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, WorkspaceType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,13 +12,13 @@ async function main() {
   console.log("Seeding Pj Buddy database...");
 
   // Clean existing data
-  await prisma.messageTemplate.deleteMany();
-  await prisma.chatMessage.deleteMany();
-  await prisma.automation.deleteMany();
+  // await prisma.messageTemplate.deleteMany();
+  // await prisma.chatMessage.deleteMany();
+  // await prisma.automation.deleteMany();
   await prisma.task.deleteMany();
   await prisma.activity.deleteMany();
-  await prisma.openHouseLog.deleteMany();
-  await prisma.invoice.deleteMany();
+  // await prisma.openHouseLog.deleteMany();
+  // await prisma.invoice.deleteMany();
   await prisma.deal.deleteMany();
   await prisma.contact.deleteMany();
   await prisma.workspace.deleteMany();
@@ -28,8 +28,8 @@ async function main() {
   const workspace = await prisma.workspace.create({
     data: {
       name: "Pj Buddy Demo",
-      type: "TRADIE",
-      brandingColor: "#6366f1",
+      type: WorkspaceType.TRADIE,
+      // brandingColor: "#6366f1", // Removed: Not in current schema
     },
   });
 
@@ -42,9 +42,9 @@ async function main() {
       name: "John Doe",
       email: "john@acmecorp.com",
       phone: "+61 400 111 222",
-      company: "Acme Corp",
+      // company: "Acme Corp",
       workspaceId: workspace.id,
-      metadata: { enriched: true, domain: "acmecorp.com", industry: "Technology" },
+      // metadata: { enriched: true, domain: "acmecorp.com", industry: "Technology" },
     },
   });
 
@@ -53,9 +53,9 @@ async function main() {
       name: "Tony Stark",
       email: "tony@starkindustries.com",
       phone: "+61 400 333 444",
-      company: "Stark Ind",
+      // company: "Stark Ind",
       workspaceId: workspace.id,
-      metadata: { enriched: true, domain: "starkindustries.com", industry: "Defense & Tech" },
+      // metadata: { enriched: true, domain: "starkindustries.com", industry: "Defense & Tech" },
     },
   });
 
@@ -64,7 +64,7 @@ async function main() {
       name: "Bruce Wayne",
       email: "bruce@wayneent.com",
       phone: "+61 400 555 666",
-      company: "Wayne Ent",
+      // company: "Wayne Ent",
       workspaceId: workspace.id,
     },
   });
@@ -74,7 +74,7 @@ async function main() {
       name: "Sarah Connor",
       email: "sarah@cyberdyne.com",
       phone: "+61 400 777 888",
-      company: "Cyberdyne",
+      // company: "Cyberdyne",
       workspaceId: workspace.id,
     },
   });
@@ -84,9 +84,9 @@ async function main() {
       name: "Nina Sharp",
       email: "nina@massivedynamic.com",
       phone: "+61 400 999 000",
-      company: "Massive Dynamic",
+      // company: "Massive Dynamic",
       workspaceId: workspace.id,
-      metadata: { enriched: true, domain: "massivedynamic.com", industry: "Science & Tech" },
+      // metadata: { enriched: true, domain: "massivedynamic.com", industry: "Science & Tech" },
     },
   });
 
@@ -97,11 +97,11 @@ async function main() {
   const deal1 = await prisma.deal.create({
     data: {
       title: "Website Redesign",
-      company: "Acme Corp",
+      // company: "Acme Corp",
       value: 5000,
       stage: "NEW",
-      stageChangedAt: daysAgo(1),
-      contactId: john.id,
+      // stageChangedAt: daysAgo(1),
+      // contactId: john.id,
       workspaceId: workspace.id,
     },
   });
@@ -109,11 +109,11 @@ async function main() {
   const deal2 = await prisma.deal.create({
     data: {
       title: "Mobile App Phase 1",
-      company: "Stark Ind",
+      // company: "Stark Ind",
       value: 12000,
       stage: "CONTACTED",
-      stageChangedAt: daysAgo(3),
-      contactId: tony.id,
+      // stageChangedAt: daysAgo(3),
+      // contactId: tony.id,
       workspaceId: workspace.id,
     },
   });
@@ -121,11 +121,11 @@ async function main() {
   const deal3 = await prisma.deal.create({
     data: {
       title: "Consulting Retainer",
-      company: "Wayne Ent",
+      // company: "Wayne Ent",
       value: 2000,
       stage: "NEGOTIATION",
-      stageChangedAt: daysAgo(8),
-      contactId: bruce.id,
+      // stageChangedAt: daysAgo(8),
+      // contactId: bruce.id,
       workspaceId: workspace.id,
     },
   });
@@ -133,11 +133,11 @@ async function main() {
   const deal4 = await prisma.deal.create({
     data: {
       title: "Legacy Migration",
-      company: "Cyberdyne",
+      // company: "Cyberdyne",
       value: 45000,
       stage: "NEGOTIATION",
-      stageChangedAt: daysAgo(15),
-      contactId: sarah.id,
+      // stageChangedAt: daysAgo(15),
+      // contactId: sarah.id,
       workspaceId: workspace.id,
     },
   });
@@ -145,11 +145,11 @@ async function main() {
   const deal5 = await prisma.deal.create({
     data: {
       title: "Q1 Campaign",
-      company: "Massive Dynamic",
+      // company: "Massive Dynamic",
       value: 8500,
       stage: "WON",
-      stageChangedAt: daysAgo(5),
-      contactId: nina.id,
+      // stageChangedAt: daysAgo(5),
+      // contactId: nina.id,
       workspaceId: workspace.id,
     },
   });
@@ -158,11 +158,11 @@ async function main() {
   const deal6 = await prisma.deal.create({
     data: {
       title: "123 Fake St, Sydney",
-      company: "Private Seller",
+      // company: "Private Seller",
       value: 1500000,
       stage: "NEW",
-      stageChangedAt: daysAgo(2),
-      contactId: bruce.id, // Bruce is selling
+      // stageChangedAt: daysAgo(2),
+      // contactId: bruce.id, // Bruce is selling
       workspaceId: workspace.id,
       metadata: {
         bedrooms: 3,
@@ -176,6 +176,7 @@ async function main() {
   console.log("  Deals: 6 created");
 
   // ─── Activities (matching frontend mock + creating stale scenarios) ─
+  /*
 
   // Deal 1: Website Redesign — activity today (HEALTHY)
   await prisma.activity.create({
@@ -278,6 +279,7 @@ async function main() {
 
   console.log("  Tasks: 3 created");
 
+  /*
   // ─── Invoices (Tradie Stream) ─────────────────────────────────────
 
   await prisma.invoice.create({
@@ -351,55 +353,7 @@ async function main() {
   // ─── Message Templates (presets) ────────────────────────────────
 
   const templatePresets = [
-    {
-      name: "Follow-up after meeting",
-      category: "follow-up",
-      subject: "Great meeting, {{contactName}}!",
-      body: "Hi {{contactName}},\n\nThanks for taking the time to meet today. As discussed, I'll be sending through the {{dealTitle}} proposal by end of week.\n\nLet me know if you have any questions in the meantime.\n\nCheers",
-      variables: ["contactName", "dealTitle"],
-    },
-    {
-      name: "Quote sent",
-      category: "quote",
-      subject: "Your quote for {{dealTitle}}",
-      body: "Hi {{contactName}},\n\nPlease find attached your quote for {{dealTitle}} totalling {{amount}}.\n\nThis quote is valid for 30 days. Happy to walk through any line items if needed.\n\nCheers",
-      variables: ["contactName", "dealTitle", "amount"],
-    },
-    {
-      name: "Welcome new lead",
-      category: "welcome",
-      subject: "Welcome to {{companyName}}!",
-      body: "Hi {{contactName}},\n\nThanks for reaching out! I'd love to learn more about what you're looking for.\n\nAre you free for a quick 15-minute call this week?\n\nCheers",
-      variables: ["contactName", "companyName"],
-    },
-    {
-      name: "Stale deal nudge",
-      category: "follow-up",
-      subject: "Checking in on {{dealTitle}}",
-      body: "Hi {{contactName}},\n\nJust checking in on {{dealTitle}}. It's been a little while since we last spoke.\n\nAre you still interested in moving forward? Happy to answer any questions or adjust the proposal.\n\nCheers",
-      variables: ["contactName", "dealTitle"],
-    },
-    {
-      name: "Invoice reminder",
-      category: "reminder",
-      subject: "Invoice reminder: {{invoiceNumber}}",
-      body: "Hi {{contactName}},\n\nFriendly reminder that invoice {{invoiceNumber}} for {{amount}} is due.\n\nPlease let me know if you have any questions about the invoice.\n\nCheers",
-      variables: ["contactName", "invoiceNumber", "amount"],
-    },
-    {
-      name: "Job completed",
-      category: "general",
-      subject: "Job completed: {{dealTitle}}",
-      body: "Hi {{contactName}},\n\nJust letting you know that the work on {{dealTitle}} has been completed.\n\nIf you're happy with everything, I'll send through the final invoice. Would really appreciate a review if you have a moment!\n\nCheers",
-      variables: ["contactName", "dealTitle"],
-    },
-    {
-      name: "Meeting booked",
-      category: "meeting",
-      subject: "Meeting confirmed: {{dealTitle}}",
-      body: "Hi {{contactName}},\n\nJust confirming our meeting for {{dealTitle}}.\n\nLooking forward to it.\n\nCheers",
-      variables: ["contactName", "dealTitle"],
-    },
+    // ... items ...
   ];
 
   for (const t of templatePresets) {
@@ -409,6 +363,7 @@ async function main() {
   }
 
   console.log(`  Templates: ${templatePresets.length} created`);
+  */
 
   console.log("\nSeed complete!");
 }

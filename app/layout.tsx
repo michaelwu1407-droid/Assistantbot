@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
+import { OfflineBanner } from "@/components/core/offline-banner";
 import { IndustryProvider } from "@/components/providers/industry-provider";
+import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -19,6 +21,8 @@ export default function RootLayout({
         <IndustryProvider>
           {children}
           <CommandPalette />
+          <OfflineBanner />
+          <ServiceWorkerProvider />
         </IndustryProvider>
       </body>
     </html>

@@ -31,6 +31,8 @@ interface ParsedCommand {
   | "add_contact"
   | "create_task"
   | "morning_digest"
+  | "start_day"
+  | "start_open_house"
   | "use_template"
   | "show_templates"
   | "find_duplicates"
@@ -188,9 +190,9 @@ function getIndustryContext(industryType: string | null) {
       dealsLabel: "jobs",
       contactLabel: "client",
       stageLabels: { NEW: "New Lead", CONTACTED: "Quoted", NEGOTIATION: "In Progress", INVOICED: "Invoiced", WON: "Paid", LOST: "Lost" },
-      helpExtras: `  "Invoice [job] for [amount]" — Generate an invoice\n  "Show stale jobs" — Find jobs that need follow-up`,
+      helpExtras: `  "Start day" — Open map and route\n  "Invoice [job] for [amount]" — Generate an invoice\n  "Show stale jobs" — Find jobs that need follow-up`,
       greeting: "G'day! Here's your job summary",
-      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale jobs" or "new job Kitchen Reno for Smith worth 8000".`,
+      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "start day" or "new job Kitchen Reno for Smith worth 8000".`,
     };
   }
   if (industryType === "REAL_ESTATE") {
@@ -199,9 +201,9 @@ function getIndustryContext(industryType: string | null) {
       dealsLabel: "listings",
       contactLabel: "buyer",
       stageLabels: { NEW: "New Listing", CONTACTED: "Appraised", NEGOTIATION: "Under Offer", INVOICED: "Exchanged", WON: "Settled", LOST: "Withdrawn" },
-      helpExtras: `  "Find matches for [listing]" — Run buyer matchmaker\n  "Show stale listings" — Find listings that need attention`,
+      helpExtras: `  "Start open house" — Launch kiosk mode\n  "Find matches for [listing]" — Run buyer matchmaker\n  "Show stale listings" — Find listings that need attention`,
       greeting: "Good morning! Here's your pipeline summary",
-      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale listings" or "new listing 42 Ocean Dr for $1,200,000".`,
+      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "start open house" or "new listing 42 Ocean Dr for $1,200,000".`,
     };
   }
   // Default/generic
@@ -249,6 +251,26 @@ export async function processChat(
   let response: ChatResponse;
 
   switch (intent) {
+    case "start_day": {
+      // Trigger "Advanced Mode" (Map/Canvas)
+      const digest = await generateMorningDigest(workspaceId);
+      response = {
+        message: `Good morning! I've switched you to map view. You have ${digest.items.length} items on your agenda today.`,
+        action: "start_day",
+        data: { digest }
+      };
+      break;
+    }
+
+    case "start_open_house": {
+      // Trigger "Kiosk Mode"
+      response = {
+        message: "Starting Open House mode. Good luck with the inspection!",
+        action: "start_open_house"
+      };
+      break;
+    }
+
     case "show_deals": {
       const deals = await getDeals(workspaceId);
       const byStage = deals.reduce<Record<string, number>>((acc, d) => {
@@ -557,7 +579,7 @@ export async function processChat(
         message: `Here's what I can do:\n
   "Show me ${ctx.dealsLabel}" — View your pipeline
   "Show stale ${ctx.dealsLabel}" — Find neglected ${ctx.dealsLabel}
-  "New deal [title] for [${ctx.contactLabel}] worth [amount]" — Create a ${ctx.dealLabel}
+  "New ${ctx.dealLabel} [title] for [${ctx.contactLabel}] worth [amount]" — Create a ${ctx.dealLabel}
   "Move [${ctx.dealLabel}] to [stage]" — Update pipeline
   "Log call/email/note [details]" — Record activity
   "Find [name]" — Search ${ctx.contactLabel}s (fuzzy)

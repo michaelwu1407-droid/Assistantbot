@@ -6,7 +6,7 @@ import { BuyerMatchmaker } from "@/components/agent/buyer-matchmaker"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Edit, ExternalLink } from "lucide-react"
+import { ChevronLeft, Edit, ExternalLink, Send, BarChart3 } from "lucide-react"
 import Link from "next/link"
 
 interface PageProps {
@@ -18,8 +18,8 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const deal = await db.deal.findUnique({
         where: { id },
-        include: { contact: true }
-    })
+        include: { contacts: { take: 1 } }
+    } as any) as any
 
     if (!deal) {
         notFound()
@@ -27,6 +27,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const metadata = deal.metadata as Record<string, unknown> || {}
     const isRealEstate = !!metadata.bedrooms || !!metadata.address
+    const contact = deal.contacts[0]
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-8 space-y-6 overflow-hidden">
@@ -44,8 +45,8 @@ export default async function DealDetailPage({ params }: PageProps) {
                             </Badge>
                         </div>
                         <p className="text-slate-500 flex items-center gap-2 text-sm mt-1">
-                            {deal.company || deal.contact.company} •
-                            <span className="text-emerald-600 font-medium">${deal.value.toLocaleString()}</span>
+                            {deal.company || contact?.company} •
+                            <span className="text-emerald-600 font-medium">${Number(deal.value).toLocaleString()}</span>
                             {isRealEstate && typeof metadata.address === 'string' && ` • ${metadata.address}`}
                         </p>
                     </div>
@@ -71,6 +72,33 @@ export default async function DealDetailPage({ params }: PageProps) {
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
                 {/* Left Column: Matchmaker & Details */}
                 <div className="space-y-6 overflow-y-auto pr-2">
+                    {/* Vendor Report Widget (Agent Only) */}
+                    {isRealEstate && (
+                        <div className="p-6 border border-slate-200 rounded-xl bg-white shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4 text-slate-500" />
+                                    Price Feedback Meter
+                                </h3>
+                                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Gap: $200k</Badge>
+                            </div>
+                            
+                            <div className="relative h-4 bg-slate-100 rounded-full mb-2 overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-[70%] bg-slate-300 rounded-full" />
+                                <div className="absolute left-0 top-0 bottom-0 w-[60%] bg-emerald-500 rounded-full" />
+                            </div>
+                            <div className="flex justify-between text-xs font-medium text-slate-600 mb-6">
+                                <span>Buyer Avg: $1.1m</span>
+                                <span>Vendor Goal: $1.3m</span>
+                            </div>
+
+                            <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">
+                                <Send className="w-4 h-4 mr-2" />
+                                Send Vendor Report (WhatsApp)
+                            </Button>
+                        </div>
+                    )}
+
                     {/* Only show Matchmaker for "Real Estate" deals (or if they have price/beds) */}
                     {isRealEstate ? (
                         <div className="h-[400px]">
