@@ -91,7 +91,10 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
         <div className="text-slate-700 flex flex-col items-center">
           <MapPin className="w-16 h-16 mb-4 opacity-20" />
           <p>Map View</p>
-          <p className="text-xs mt-2 opacity-50">{initialJob.company || "No Address"}</p>
+          <p className="text-xs mt-2 opacity-50">{initialJob.address || initialJob.company || "No Address"}</p>
+          {initialJob.latitude && initialJob.longitude && (
+             <p className="text-[10px] mt-1 opacity-30 font-mono">{initialJob.latitude.toFixed(4)}, {initialJob.longitude.toFixed(4)}</p>
+          )}
         </div>
         {/* Mock Route Line */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
