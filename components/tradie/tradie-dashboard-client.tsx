@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MessageSquare, Wrench, Camera, Navigation, AlertTriangle, CreditCard, CheckCircle2, Plus } from 'lucide-react';
+import { Phone, MessageSquare, Wrench, Camera, Navigation, AlertTriangle, CreditCard, CheckCircle2, Plus, Video, PenTool } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,10 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
   // Variation State
   const [variationDesc, setVariationDesc] = useState("");
   const [variationPrice, setVariationPrice] = useState("");
+  
+  // Media & Signature State
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
 
   const handleMainAction = async () => {
     if (!initialJob) return;
@@ -71,6 +75,20 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
         setSheetExpanded(false);
       }
     }, 1500);
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      alert("Video saved to job diary.");
+    } else {
+      setIsRecording(true);
+      // Mock recording duration
+      setTimeout(() => {
+        setIsRecording(false);
+        alert("Video saved to job diary.");
+      }, 3000);
+    }
   };
 
   if (!initialJob) {
@@ -319,9 +337,38 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
                           </Button>
                         </div>
                       </div>
-                      <Button variant="outline" className="w-full border-slate-700 text-slate-300">
-                        Add Video Explanation
+                      
+                      <Button 
+                        variant="outline" 
+                        className={cn(
+                          "w-full border-slate-700 text-slate-300 transition-all",
+                          isRecording && "bg-red-900/20 text-red-400 border-red-900 animate-pulse"
+                        )}
+                        onClick={toggleRecording}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        {isRecording ? "Recording... (Tap to stop)" : "Add Video Explanation"}
                       </Button>
+
+                      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                        <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <PenTool className="w-3 h-3" />
+                          Client Signature
+                        </h4>
+                        <div 
+                          className={cn(
+                            "h-24 bg-slate-900 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors",
+                            hasSignature ? "border-emerald-500/50" : "border-slate-700 hover:border-slate-500"
+                          )}
+                          onClick={() => setHasSignature(true)}
+                        >
+                          {hasSignature ? (
+                            <span className="font-serif italic text-2xl text-emerald-400 -rotate-2">Mrs. Jones</span>
+                          ) : (
+                            <span className="text-slate-500 text-sm">Tap to sign on glass</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

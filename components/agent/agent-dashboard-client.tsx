@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DollarSign, Clock, Users, Key } from 'lucide-react';
+import { DollarSign, Clock, Users, Key, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logKeyCheckout } from '@/actions/agent-actions';
 import { DealView } from '@/actions/deal-actions';
@@ -42,11 +42,22 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
             </div>
           </div>
 
-          {/* Commission Calc */}
-          <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
-            <DollarSign className="w-4 h-4 mr-2" />
-            Est. ${totalCommission.toLocaleString()}
-          </Button>
+          {/* Actions & Commission */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-slate-600 border-slate-200"
+              onClick={() => window.open('/kiosk/open-house', '_blank')}
+            >
+              <Monitor className="w-4 h-4 mr-2" />
+              Kiosk Mode
+            </Button>
+            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Est. ${totalCommission.toLocaleString()}
+            </Button>
+          </div>
         </header>
 
         {/* Rotting Pipeline (Kanban Placeholder) */}

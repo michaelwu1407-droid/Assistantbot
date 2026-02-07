@@ -76,6 +76,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Scenario Polish
+**Feature**: Tradie & Agent Workflow Enhancements
+*   **Tradie UI**: Added "Sign-on-Glass" mock and "Video Explanation" recording button to `components/tradie/tradie-dashboard-client.tsx` to match Scenario A.
+*   **Agent UI**: Added "Kiosk Mode" launcher button to the header in `components/agent/agent-dashboard-client.tsx` to match Scenario B.
+*   **Status**: Polishing "Extreme Granular Walkthrough" scenarios.
+
 ### 2026-02-07 [Frontend - Antigravity] - Offline Support & Cleanup
 **Feature**: Offline UI Indicator & Legacy Cleanup
 *   **Offline UI**: Created `components/core/offline-banner.tsx` and mounted it in `app/layout.tsx`. Shows a sticky banner when the user loses internet connection.
