@@ -12,6 +12,7 @@ export interface WorkspaceView {
   industryType: "TRADES" | "REAL_ESTATE" | null;
   ownerId: string | null;
   location: string | null;
+  onboardingComplete: boolean;
   brandingColor: string;
 }
 
@@ -32,6 +33,7 @@ function toWorkspaceView(w: {
   industryType: string | null;
   ownerId: string | null;
   location: string | null;
+  onboardingComplete: boolean;
   brandingColor: string;
 }): WorkspaceView {
   return {
@@ -41,6 +43,7 @@ function toWorkspaceView(w: {
     industryType: w.industryType as "TRADES" | "REAL_ESTATE" | null,
     ownerId: w.ownerId,
     location: w.location,
+    onboardingComplete: w.onboardingComplete,
     brandingColor: w.brandingColor,
   };
 }
@@ -142,4 +145,34 @@ export async function listWorkspaces(ownerId: string): Promise<WorkspaceView[]> 
   });
 
   return workspaces.map(toWorkspaceView);
+}
+
+/**
+ * Complete onboarding for a workspace.
+ * Called at the end of the setup chat flow to persist
+ * business name, industry type, and location.
+ */
+export async function completeOnboarding(data: {
+  businessName: string;
+  industryType: "TRADES" | "REAL_ESTATE";
+  location: string;
+}) {
+  // Get or create the workspace for demo-user
+  const workspace = await getOrCreateWorkspace("demo-user");
+
+  // Map industry to workspace type
+  const type = data.industryType === "REAL_ESTATE" ? "AGENT" : "TRADIE";
+
+  await db.workspace.update({
+    where: { id: workspace.id },
+    data: {
+      name: data.businessName,
+      type,
+      industryType: data.industryType,
+      location: data.location,
+      onboardingComplete: true,
+    },
+  });
+
+  return { success: true, workspaceId: workspace.id };
 }

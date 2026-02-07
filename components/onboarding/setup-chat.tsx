@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { Send, Briefcase, Building } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
+import { completeOnboarding } from "@/actions/workspace-actions"
 
 type Message = {
     id: string
@@ -31,6 +32,8 @@ export function SetupChat() {
     const [step, setStep] = useState(0)
     const [isTyping, setIsTyping] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [businessName, setBusinessName] = useState("")
+    const [industryType, setIndustryType] = useState<"TRADES" | "REAL_ESTATE">("TRADES")
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -75,6 +78,7 @@ export function SetupChat() {
     const processStep = (validInput: string) => {
         // Step 0: Business Name -> Ask Industry
         if (step === 0) {
+            setBusinessName(validInput)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -95,9 +99,10 @@ export function SetupChat() {
         }
         // Step 1: Industry -> Ask Location
         else if (step === 1) {
-            // SAVE CONTEXT HERE
+            // Save to localStorage context + local state
             if (validInput === "TRADES" || validInput === "REAL_ESTATE") {
-                setIndustry(validInput as "TRADES" | "REAL_ESTATE")
+                setIndustry(validInput)
+                setIndustryType(validInput)
             }
 
             setTimeout(() => {
@@ -114,23 +119,44 @@ export function SetupChat() {
                 setStep(2)
             }, 1500)
         }
-        // Step 2: Location -> Finish
+        // Step 2: Location -> Persist to DB & Finish
         else if (step === 2) {
-            setTimeout(() => {
+            const location = validInput
+
+            // Persist all onboarding data to the database
+            completeOnboarding({
+                businessName,
+                industryType,
+                location,
+            }).then(() => {
                 setIsTyping(false)
                 setMessages(prev => [
                     ...prev,
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "Perfect! I'm ready to roll. Taking you to the tutorial now...",
+                        content: "Perfect! Your workspace is all set up. Taking you to the tutorial now...",
                         type: "text"
                     }
                 ])
                 setTimeout(() => {
                     router.push("/tutorial")
                 }, 2500)
-            }, 1000)
+            }).catch(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "I've saved your preferences locally. Taking you to the tutorial now...",
+                        type: "text"
+                    }
+                ])
+                setTimeout(() => {
+                    router.push("/tutorial")
+                }, 2500)
+            })
         }
     }
 
