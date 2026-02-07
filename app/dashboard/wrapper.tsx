@@ -12,7 +12,7 @@ import { DealView } from "@/actions/deal-actions"
 // DealView has: id, title, company, value, stage, lastActivityDate, health, contactName
 // Our mock Deal had: id, title, company, value, stage, lastActivityDate, contactName (Health was computed inside DealCard in mock, but server provides it now)
 
-export function ClientDashboardWrapper({ deals }: { deals: any[] }) {
+export function ClientDashboardWrapper({ deals }: { deals: DealView[] }) {
     const { mode } = useDashboard()
 
     if (mode === "chat") {

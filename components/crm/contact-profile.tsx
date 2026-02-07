@@ -3,7 +3,7 @@
 import { ContactView } from "@/actions/contact-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, Linkedin, MapPin, Building2, Calendar, Edit } from "lucide-react"
+import { Mail, Phone, Building2, Calendar, Edit } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 

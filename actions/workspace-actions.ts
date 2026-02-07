@@ -15,7 +15,7 @@ export interface WorkspaceView {
 
 // ─── Validation ─────────────────────────────────────────────────────
 
-const CreateWorkspaceSchema = z.object({
+const _CreateWorkspaceSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["TRADIE", "AGENT"]),
   ownerId: z.string().optional(),
@@ -27,67 +27,83 @@ const CreateWorkspaceSchema = z.object({
  * Get or create a workspace for the current user.
  * This is the main entry point — frontend calls this on load
  * to get a workspaceId for all subsequent actions.
- *
- * If ownerId is provided and a workspace exists for that owner, returns it.
- * Otherwise creates a new workspace.
  */
 export async function getOrCreateWorkspace(
   ownerId?: string,
   defaults?: { name?: string; type?: "TRADIE" | "AGENT" }
 ): Promise<WorkspaceView> {
-  // Try to find existing workspace for this owner
-  if (ownerId) {
-    const existing = await db.workspace.findFirst({
-      where: { ownerId },
-      orderBy: { createdAt: "desc" },
+  try {
+    // Try to find existing workspace for this owner
+    if (ownerId) {
+      const existing = await db.workspace.findFirst({
+        where: { ownerId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existing) {
+        return {
+          id: existing.id,
+          name: existing.name,
+          type: existing.type as "TRADIE" | "AGENT",
+          ownerId: existing.ownerId,
+          brandingColor: existing.brandingColor,
+        };
+      }
+    }
+
+    // Create new workspace
+    const workspace = await db.workspace.create({
+      data: {
+        name: defaults?.name ?? "My Workspace",
+        type: defaults?.type ?? "TRADIE",
+        ownerId: ownerId ?? null,
+      },
     });
 
-    if (existing) {
-      return {
-        id: existing.id,
-        name: existing.name,
-        type: existing.type as "TRADIE" | "AGENT",
-        ownerId: existing.ownerId,
-        brandingColor: existing.brandingColor,
-      };
+    return {
+      id: workspace.id,
+      name: workspace.name,
+      type: workspace.type as "TRADIE" | "AGENT",
+      ownerId: workspace.ownerId,
+      brandingColor: workspace.brandingColor,
+    };
+  } catch (error) {
+    console.error("Database Error in getOrCreateWorkspace:", error);
+    
+    // Check for specific Prisma initialization error related to env vars
+    const errorMessage = (error as Error).message || "";
+    if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("Environment variable not found")) {
+      throw new Error(
+        "CRITICAL: Database connection failed. Please check your internet connection and firewall settings."
+      );
     }
+    
+    throw error;
   }
-
-  // Create new workspace
-  const workspace = await db.workspace.create({
-    data: {
-      name: defaults?.name ?? "My Workspace",
-      type: defaults?.type ?? "TRADIE",
-      ownerId: ownerId ?? null,
-    },
-  });
-
-  return {
-    id: workspace.id,
-    name: workspace.name,
-    type: workspace.type as "TRADIE" | "AGENT",
-    ownerId: workspace.ownerId,
-    brandingColor: workspace.brandingColor,
-  };
 }
 
 /**
  * Get a workspace by ID.
  */
 export async function getWorkspace(workspaceId: string): Promise<WorkspaceView | null> {
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-  });
+  try {
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+    });
 
-  if (!workspace) return null;
+    if (!workspace) return null;
 
-  return {
-    id: workspace.id,
-    name: workspace.name,
-    type: workspace.type as "TRADIE" | "AGENT",
-    ownerId: workspace.ownerId,
-    brandingColor: workspace.brandingColor,
-  };
+    return {
+      id: workspace.id,
+      name: workspace.name,
+      type: workspace.type as "TRADIE" | "AGENT",
+      ownerId: workspace.ownerId,
+      brandingColor: workspace.brandingColor,
+    };
+  } catch (error) {
+    console.error("Database Error in getWorkspace:", error);
+    return null;
+  }
 }
 
 /**

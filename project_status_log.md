@@ -9,8 +9,32 @@
     *   *Tradie Mode*: Map-based, Quick Invoicing.
     *   *Agent Mode*: Speed-to-lead, Open House Kiosk.
 *   **Tech Stack**:
-    *   **Frontend**: Next.js 15, Tailwind CSS (v4), Shadcn UI, Framer Motion.
-    *   **Backend**: Supabase, Prisma ORM, Server Actions.
+    *   **Frontend**: Next.js 16, Tailwind CSS (v4), Shadcn UI, Framer Motion.
+    *   **Backend**: Supabase (PostgreSQL), Prisma 6 ORM, Server Actions.
+    *   **Dev DB**: SQLite (`file:./dev.db`) — switch to PostgreSQL for production.
+
+---
+
+## CONTRIBUTOR REQUIREMENTS — ALL AI AGENTS MUST FOLLOW
+
+> [!IMPORTANT]
+> **Every AI contributor** (Antigravity/Gemini, Claude Code, Aider) **MUST** update this status log when making changes.
+
+### How to Log Your Changes
+1. Add a new entry under **Change Log** with the format:
+   ```
+   ### YYYY-MM-DD [Role - Agent Name] - Category
+   **Feature/Fix**: Short description
+   *   **Detail 1**: What was done
+   *   **Status**: Which task(s) this completes
+   ```
+2. Update the **task table** status (change `⬜`→`🚧`→`✅`) when starting/finishing tasks.
+3. If you create new files, list them so other agents know they exist.
+4. If you change existing APIs or component props, note the breaking change.
+
+### Why This Matters
+- We have 3 AI agents working in parallel. Without status updates, agents duplicate work or break each other's code.
+- This file is the **single source of truth** for project state.
 
 ---
 
@@ -51,6 +75,26 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 ---
 
 ## Change Log
+
+### 2026-02-06 [Backend - Claude Code] - Vercel Deployment
+**Fix**: Production deployment to Vercel
+*   **URL**: https://assistantbot-zeta.vercel.app
+*   **Schema**: Switched Prisma from SQLite to PostgreSQL for Vercel/Supabase compatibility.
+*   **Build**: Added `prisma generate` to build script and `postinstall` hook so Prisma client regenerates on each Vercel deploy.
+*   **Dynamic pages**: Marked all DB-dependent pages (`dashboard`, `estimator`, `inbox`, `kiosk`, `tradie/map`) as `force-dynamic` to prevent build-time DB queries.
+*   **Error handling**: Wrapped all server-rendered pages in try/catch so they show a helpful "Database Not Initialized" message instead of crashing when Supabase tables don't exist.
+*   **Fix**: Removed invalid `"use server"` directive from estimator page (pages are Server Components by default, `"use server"` only allows async function exports).
+*   **Extension**: Removed hardcoded `localhost:3000` — users must configure their deployment URL.
+*   **Status**: App deploys and builds on Vercel. DB tables need `prisma db push` + `prisma db seed` against Supabase.
+
+### 2026-02-06 [Backend - Claude Code] - Code Quality & Build Cleanup
+**Fix**: Full codebase audit and quality pass
+*   **Security**: Removed hardcoded Supabase credentials from `lib/db.ts`. DB connection now requires `.env` to be configured.
+*   **Prisma**: Regenerated Prisma client from current schema, resolving all ~47 TypeScript compiler errors caused by stale generated types.
+*   **Tailwind**: Fixed `tailwind.config.ts` content paths (was scanning `./src/` which doesn't exist; now correctly scans `./app/` and `./components/`). Removed dead `darkMode: "class"` config and stale dark theme colors.
+*   **ESLint**: Resolved all 27 ESLint errors across 25 files (unused imports, unescaped JSX entities, missing displayNames, empty interfaces, no-explicit-any).
+*   **Stale Files**: Removed outdated `tsc_log.txt` and `lint_log.txt`.
+*   **Build Status**: **0 TypeScript errors, 0 ESLint errors** (13 warnings remain — all `_`-prefixed stub params).
 
 ### 2026-02-07 [Frontend - Antigravity] - Communications
 **Feature**: Unified Inbox

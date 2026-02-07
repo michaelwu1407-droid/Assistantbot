@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Check, ArrowRight, Zap, Hammer, Smartphone } from "lucide-react"
+import { Check, ArrowRight, Hammer, Smartphone } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {

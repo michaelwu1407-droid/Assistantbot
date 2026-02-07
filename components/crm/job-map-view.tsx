@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { GeocodedDeal, batchGeocode } from "@/actions/geo-actions";
-import { MapPin, Navigation, RefreshCw, CheckCircle } from "lucide-react";
+import { MapPin, Navigation, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 

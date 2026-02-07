@@ -1,7 +1,6 @@
 import { getContact } from "@/actions/contact-actions"
 import { ContactProfile } from "@/components/crm/contact-profile"
 import { ActivityFeed } from "@/components/crm/activity-feed"
-import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
