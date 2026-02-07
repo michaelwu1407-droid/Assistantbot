@@ -80,6 +80,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Offline Sync
+**Feature**: IndexedDB Sync Queue
+*   **Sync Logic**: Created `lib/sync-queue.ts` using `idb` to queue mutations when offline.
+*   **Integration**: Updated `ServiceWorkerProvider` to listen for `online` events and replay queued actions (`updateJobStatus`, `createQuoteVariation`, `logActivity`).
+*   **Status**: Task 3.6 (Offline Support) Complete.
+
 ### 2026-02-07 [Frontend - Antigravity] - Protocol Update
 **Update**: Updated Contributor Requirements
 *   **Docs**: Added mandatory summary requirement to `project_status_log.md`.
@@ -501,7 +507,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 | 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | ✅ |
 | 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
 | 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ✅ |
-| 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | 🚧 |
+| 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | ✅ |
 | 3.7 | Xero/MYOB accounting sync | **Backend** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
 
 ---
