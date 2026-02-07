@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspaceType {
@@ -15,23 +16,52 @@ enum WorkspaceType {
   AGENT
 }
 
+enum IndustryType {
+  TRADES
+  REAL_ESTATE
+}
+
 enum DealStage {
   NEW
+  CONTACTED
   NEGOTIATION
+  INVOICED
+  WON
+  LOST
   CONTRACT
   CLOSED
   ARCHIVED
 }
 
+enum ActivityType {
+  CALL
+  EMAIL
+  NOTE
+  MEETING
+  TASK
+}
+
+enum ViewMode {
+  BASIC
+  ADVANCED
+}
+
 model Workspace {
-  id        String        @id @default(cuid())
-  name      String
-  type      WorkspaceType
-  users     User[]
-  deals     Deal[]
-  contacts  Contact[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  type               WorkspaceType
+  industryType       IndustryType?
+  location           String?
+  onboardingComplete Boolean       @default(false)
+  brandingColor      String?
+  users              User[]
+  deals              Deal[]
+  contacts           Contact[]
+  automations        Automation[]
+  messageTemplates   MessageTemplate[]
+  chatMessages       ChatMessage[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 }
 
 model User {
@@ -39,6 +69,7 @@ model User {
   email       String    @unique
   name        String?
   workspaceId String
+  viewMode    ViewMode  @default(BASIC)
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   activities  Activity[]
 }
@@ -47,19 +78,31 @@ model Deal {
   id             String    @id @default(cuid())
   title          String
   stage          DealStage @default(NEW)
-  value          Decimal?
+  value          Decimal   @default(0)
   
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
   metadata       Json?     
   
   lastActivityAt DateTime  @default(now())
+  stageChangedAt DateTime  @default(now())
+  
+  address        String?
+  latitude       Float?
+  longitude      Float?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   
   workspaceId    String
   workspace      Workspace @relation(fields: [workspaceId], references: [id])
   
-  contacts       Contact[]
+  contactId      String
+  contact        Contact   @relation(fields: [contactId], references: [id])
+  
+  activities     Activity[]
+  tasks          Task[]
+  invoices       Invoice[]
+  openHouseLogs  OpenHouseLog[]
 }
 
 model Contact {
@@ -67,19 +110,128 @@ model Contact {
   name        String
   email       String?
   phone       String?
+  company     String?
+  avatarUrl   String?
+  address     String?
   
   // Preferences for Matchmaker (e.g., { "budget": 1200000, "bedrooms": 3 })
   preferences Json?
+  metadata    Json?
   
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   deals       Deal[]
+  activities  Activity[]
+  tasks       Task[]
 }
 
 model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  title       String
+  content     String?
+  description String?
+  
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+  
+  dealId      String?
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime     @default(now())
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueAt       DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  
+  dealId      String?
+  deal        Deal?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Invoice {
+  id          String    @id @default(cuid())
+  number      String    @unique
+  status      String    // DRAFT, ISSUED, PAID
+  subtotal    Decimal
+  tax         Decimal
+  total       Decimal
+  lineItems   Json
+  
+  dealId      String
+  deal        Deal      @relation(fields: [dealId], references: [id])
+  
+  issuedAt    DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model OpenHouseLog {
+  id              String   @id @default(cuid())
+  dealId          String
+  deal            Deal     @relation(fields: [dealId], references: [id])
+  
+  attendeeName    String
+  attendeeEmail   String?
+  attendeePhone   String?
+  interestedLevel Int      @default(0)
+  notes           String?
+  
+  visitedAt       DateTime @default(now())
+}
+
+model Automation {
   id          String   @id @default(cuid())
-  description String
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  enabled     Boolean  @default(true)
+  trigger     Json
+  action      Json
+  lastFiredAt DateTime?
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MessageTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   @default("general")
+  subject     String?
+  body        String
+  variables   String?  // JSON array of strings
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  role        String   // user, assistant
+  content     String
+  metadata    Json?
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
   createdAt   DateTime @default(now())
 }
