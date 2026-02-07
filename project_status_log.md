@@ -76,6 +76,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Aider] - Dashboard Wiring
+**Feature**: Wired Tradie and Agent Dashboards to Real Data
+*   **Tradie Dashboard**: Refactored `app/dashboard/tradie/page.tsx` to fetch active jobs via `getDeals`. Created `components/tradie/tradie-dashboard-client.tsx` for map/status UI.
+*   **Agent Dashboard**: Refactored `app/dashboard/agent/page.tsx` to fetch listings and matches via `findMatches`. Created `components/agent/agent-dashboard-client.tsx`.
+*   **Status**: Tasks 3.3 (Map View - Partial) and 4.3 (Buyer Matchmaker) are now wired to backend.
+
 ### 2026-02-07 [Backend - Aider] - Schema Restoration
 **Fix**: Restored full Prisma Schema
 *   **Schema**: Re-applied the full schema definition (Tasks, Invoices, Automations, ViewMode, IndustryType) which appeared to be missing/reverted in the latest file sync.
