@@ -76,6 +76,48 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Aider] - Dashboard Wiring
+**Feature**: Wired Tradie and Agent Dashboards to Real Data
+*   **Tradie Dashboard**: Refactored `app/dashboard/tradie/page.tsx` to fetch active jobs via `getDeals`. Created `components/tradie/tradie-dashboard-client.tsx` for map/status UI.
+*   **Agent Dashboard**: Refactored `app/dashboard/agent/page.tsx` to fetch listings and matches via `findMatches`. Created `components/agent/agent-dashboard-client.tsx`.
+*   **Status**: Tasks 3.3 (Map View - Partial) and 4.3 (Buyer Matchmaker) are now wired to backend.
+
+### 2026-02-07 [Backend - Aider] - Schema Restoration
+**Fix**: Restored full Prisma Schema
+*   **Schema**: Re-applied the full schema definition (Tasks, Invoices, Automations, ViewMode, IndustryType) which appeared to be missing/reverted in the latest file sync.
+*   **Status**: Schema now matches the codebase expectations.
+
+### 2026-02-07 [Backend - Aider] - Assistant Logic Refinement
+**Feature**: Enhanced Chat Parser for Industry Context
+*   **Chat Actions**: Updated `actions/chat-actions.ts` to support synonyms for "deal" (job, listing, lead) in commands.
+*   **Status**: Assistant now understands "New job..." and "Show listings..." natively.
+
+### 2026-02-07 [Backend - Aider] - Assistant-First Logic & Schema
+**Feature**: Implemented backend support for "Start Day" and View Modes
+*   **Schema**: Added `ViewMode` enum and `viewMode` field to `User` model in `prisma/schema.prisma`.
+*   **Chat Logic**: Updated `actions/chat-actions.ts` to handle `start_day` (Tradie) and `start_open_house` (Agent) commands.
+*   **Status**: Backend is ready to support the frontend view switching logic.
+
+### 2026-02-07 [Backend - Aider] - Assistant-First Pivot Implementation
+**Feature**: Implemented the "Extreme Granular Walkthrough" UI and Logic
+*   **Store**: Updated `lib/store.ts` to handle `viewMode` (BASIC/ADVANCED) and `isTutorialActive`.
+*   **Shell**: Updated `components/layout/Shell.tsx` to implement the Split Pane logic (Canvas vs Chatbot) with transitions.
+*   **Tradie UI**: Updated `app/dashboard/tradie/page.tsx` with Dark Mode, Pulse Widget, Bottom Sheet, Sticky Footer, and Safety Check modal.
+*   **Agent UI**: Updated `app/dashboard/agent/page.tsx` with Light Mode, Speed-to-Lead widget, Rotting Pipeline placeholder, and Magic Keys footer.
+*   **Actions**: Updated `actions/tradie-actions.ts` and `actions/agent-actions.ts` to include specific logic for job status updates, quoting, and key logging.
+*   **Status**: Core UI and Logic for the Assistant-First Pivot is now implemented.
+
+### 2026-02-07 [Backend - Aider] - Assistant-First Pivot
+**Feature**: Implemented Core Architecture for Assistant-First UX
+*   **Schema**: Updated `prisma/schema.prisma` with `WorkspaceType` enum and polymorphic `metadata` for Deals.
+*   **Store**: Created `lib/store.ts` with Zustand for `viewMode` (Basic/Advanced) and `isTutorialActive`.
+*   **Shell**: Created `components/layout/Shell.tsx` implementing the Split Pane logic (Canvas vs Chatbot).
+*   **Actions**:
+    *   Created `actions/tradie.ts` for Job Status and Quoting.
+    *   Created `actions/agent.ts` for Buyer Matching and Key Logging.
+*   **Logic**: Created `lib/pipeline.ts` for "Rotting" status calculation.
+*   **Status**: Core plumbing for the "Extreme Granular Walkthrough" is in place.
+
 ### 2026-02-07 [Backend - Claude Code] - Tutorial Redesign (Split-Screen)
 **Feature**: Full tutorial redesign with platform preview + chatbot side-by-side
 
@@ -302,7 +344,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
 2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
 3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
+4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
 
 ### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
