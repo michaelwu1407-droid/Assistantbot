@@ -76,6 +76,17 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-06 [Backend - Claude Code] - Vercel Deployment
+**Fix**: Production deployment to Vercel
+*   **URL**: https://assistantbot-zeta.vercel.app
+*   **Schema**: Switched Prisma from SQLite to PostgreSQL for Vercel/Supabase compatibility.
+*   **Build**: Added `prisma generate` to build script and `postinstall` hook so Prisma client regenerates on each Vercel deploy.
+*   **Dynamic pages**: Marked all DB-dependent pages (`dashboard`, `estimator`, `inbox`, `kiosk`, `tradie/map`) as `force-dynamic` to prevent build-time DB queries.
+*   **Error handling**: Wrapped all server-rendered pages in try/catch so they show a helpful "Database Not Initialized" message instead of crashing when Supabase tables don't exist.
+*   **Fix**: Removed invalid `"use server"` directive from estimator page (pages are Server Components by default, `"use server"` only allows async function exports).
+*   **Extension**: Removed hardcoded `localhost:3000` — users must configure their deployment URL.
+*   **Status**: App deploys and builds on Vercel. DB tables need `prisma db push` + `prisma db seed` against Supabase.
+
 ### 2026-02-06 [Backend - Claude Code] - Code Quality & Build Cleanup
 **Fix**: Full codebase audit and quality pass
 *   **Security**: Removed hardcoded Supabase credentials from `lib/db.ts`. DB connection now requires `.env` to be configured.
