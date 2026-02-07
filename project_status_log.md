@@ -76,6 +76,20 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Claude Code] - Onboarding Flow Wiring
+**Feature**: End-to-end onboarding: signup → setup → tutorial → dashboard
+
+*   **Schema**: Added `onboardingComplete` Boolean field to Workspace model.
+*   **Server Action**: Added `completeOnboarding()` in `workspace-actions.ts` — persists business name, industry type, and location to workspace, sets `onboardingComplete = true`.
+*   **Setup Chat** (`components/onboarding/setup-chat.tsx`): Now calls `completeOnboarding` server action at final step. Previously only saved industry to localStorage — now persists all 3 fields to DB.
+*   **Routing**:
+    *   Signup and Login now route to `/setup` (not `/dashboard`).
+    *   `/setup` checks `onboardingComplete` — redirects to `/dashboard` if already done.
+    *   `/dashboard` checks `onboardingComplete` — redirects to `/setup` if not done.
+*   **Critical Fix**: Moved `redirect()` calls outside try/catch blocks. Next.js `redirect()` throws internally and was being swallowed by catch blocks, causing "Database Not Initialized" to show instead of redirecting.
+*   **Tutorial** (`components/onboarding/tutorial-view.tsx`): Now industry-aware — trades users see "Add a new client" / "Create a quote" / "Show stale jobs"; real estate users see "Add a new buyer" / "Manage listings" / "Show stale listings". Added 3rd tutorial step for both verticals.
+*   **Status**: Completes onboarding wiring from Master Specification section 2.C (Zero-Dashboard Onboarding Flow).
+
 ### 2026-02-06 [Backend - Claude Code] - Vercel Deployment
 **Fix**: Production deployment to Vercel
 *   **URL**: https://assistantbot-zeta.vercel.app
