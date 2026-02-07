@@ -1,0 +1,15 @@
+import React from 'react';
+import { Shell } from '@/components/layout/Shell';
+import { ChatInterface } from '@/components/chatbot/ChatInterface';
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Shell chatbot={<ChatInterface />}>
+      {children}
+    </Shell>
+  );
+}

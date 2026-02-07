@@ -3,8 +3,15 @@
 import React from 'react';
 import { DollarSign, Clock, Key, Home, Users, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getRottingStatus, getCardColorClass } from '@/lib/pipeline';
 
 export default function AgentPage() {
+  // Mock Data simulating DB response
+  const deals = [
+    { id: '1', address: '12 Smith St', client: 'Tom Wilson', lastActivity: new Date(), stage: 'NEW' },
+    { id: '2', address: '44 Oak Lane', client: 'Vendor Update', lastActivity: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), stage: 'NEW' }, // 8 days ago
+  ];
+
   return (
     <div className="flex h-full w-full bg-slate-50 text-slate-900 font-sans">
       {/* Main Canvas: Rotting Pipeline */}
@@ -38,32 +45,48 @@ export default function AgentPage() {
             {/* Column: New Leads */}
             <div className="w-80 flex-shrink-0 flex flex-col gap-4">
               <h3 className="font-bold text-slate-700 flex justify-between">
-                New Leads <span className="bg-slate-200 px-2 rounded-full text-xs py-0.5">4</span>
+                New Leads <span className="bg-slate-200 px-2 rounded-full text-xs py-0.5">{deals.length}</span>
               </h3>
               
-              {/* Fresh Deal */}
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex justify-between mb-2">
-                  <span className="font-bold">12 Smith St</span>
-                  <span className="text-xs text-slate-400">Just now</span>
-                </div>
-                <p className="text-sm text-slate-600">Buyer Inquiry: Tom Wilson</p>
-                <div className="mt-3 flex gap-2">
-                  <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded">Hot</span>
-                </div>
-              </div>
-
-              {/* Rotting Deal */}
-              <div className="bg-red-50 p-4 rounded-xl shadow-sm border border-red-100 cursor-pointer relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-red-400" />
-                <div className="flex justify-between mb-2">
-                  <span className="font-bold text-slate-800">44 Oak Lane</span>
-                  <span className="text-xs text-red-500 font-bold flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 8d
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600">Vendor Update Required</p>
-              </div>
+              {deals.map((deal) => {
+                const status = getRottingStatus(deal.lastActivity);
+                const colorClass = getCardColorClass(status);
+                
+                return (
+                  <div 
+                    key={deal.id} 
+                    className={cn(
+                      "p-4 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden",
+                      colorClass
+                    )}
+                  >
+                    {status === 'ROTTING' && (
+                      <div className="absolute top-0 left-0 w-1 h-full bg-red-400" />
+                    )}
+                    
+                    <div className="flex justify-between mb-2">
+                      <span className="font-bold text-slate-800">{deal.address}</span>
+                      <span className={cn(
+                        "text-xs font-bold flex items-center gap-1",
+                        status === 'ROTTING' ? "text-red-500" : "text-slate-400"
+                      )}>
+                        {status === 'ROTTING' && <Clock className="w-3 h-3" />}
+                        {status === 'FRESH' ? 'Just now' : '8d'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600">{deal.client}</p>
+                    
+                    {status === 'FRESH' && (
+                      <div className="mt-3 flex gap-2">
+                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded">Hot</span>
+                      </div>
+                    )}
+                    {status === 'ROTTING' && (
+                      <p className="text-xs text-red-500 mt-2 font-medium">Vendor Update Required</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Column: Negotiations */}
