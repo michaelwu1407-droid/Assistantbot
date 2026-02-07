@@ -152,7 +152,7 @@ export function AssistantPane() {
                                             : "I am ready to help you manage your jobs and leads."}
                                 </p>
                                 <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Try asking: "{industry === "TRADES" ? "Create a quote for 123 Main St" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}"
+                                    Try asking: &quot;{industry === "TRADES" ? "Create a quote for 123 Main St" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}&quot;
                                 </div>
                             </div>
                         )}

@@ -176,9 +176,50 @@ function parseCommand(message: string): ParsedCommand {
 // ─── Main Chat Action ───────────────────────────────────────────────
 
 /**
+ * Get industry-specific context for chat responses.
+ */
+function getIndustryContext(industryType: string | null) {
+  if (industryType === "TRADES") {
+    return {
+      dealLabel: "job",
+      dealsLabel: "jobs",
+      contactLabel: "client",
+      stageLabels: { NEW: "New Lead", CONTACTED: "Quoted", NEGOTIATION: "In Progress", INVOICED: "Invoiced", WON: "Paid", LOST: "Lost" },
+      helpExtras: `  "Invoice [job] for [amount]" — Generate an invoice\n  "Show stale jobs" — Find jobs that need follow-up`,
+      greeting: "G'day! Here's your job summary",
+      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale jobs" or "new job Kitchen Reno for Smith worth 8000".`,
+    };
+  }
+  if (industryType === "REAL_ESTATE") {
+    return {
+      dealLabel: "listing",
+      dealsLabel: "listings",
+      contactLabel: "buyer",
+      stageLabels: { NEW: "New Listing", CONTACTED: "Appraised", NEGOTIATION: "Under Offer", INVOICED: "Exchanged", WON: "Settled", LOST: "Withdrawn" },
+      helpExtras: `  "Find matches for [listing]" — Run buyer matchmaker\n  "Show stale listings" — Find listings that need attention`,
+      greeting: "Good morning! Here's your pipeline summary",
+      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale listings" or "new listing 42 Ocean Dr for $1,200,000".`,
+    };
+  }
+  // Default/generic
+  return {
+    dealLabel: "deal",
+    dealsLabel: "deals",
+    contactLabel: "contact",
+    stageLabels: { NEW: "New", CONTACTED: "Contacted", NEGOTIATION: "Negotiation", INVOICED: "Invoiced", WON: "Won", LOST: "Lost" },
+    helpExtras: `  "Invoice [deal] for [amount]" — Generate invoice\n  "Show templates" — List message templates`,
+    greeting: "Good morning! Here's your briefing",
+    unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale deals" or "new deal Website Redesign for Acme worth 5000".`,
+  };
+}
+
+/**
  * Process a chat message and execute CRM actions.
  * This is the primary interface — users message the chatbot
  * and the system updates the CRM automatically.
+ *
+ * Responses are industry-context-aware: trades users see "jobs",
+ * real estate users see "listings", etc.
  */
 export async function processChat(
   message: string,
@@ -193,6 +234,13 @@ export async function processChat(
     },
   });
 
+  // Fetch workspace to get industry context
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { industryType: true },
+  });
+  const ctx = getIndustryContext(workspace?.industryType ?? null);
+
   const { intent, params } = parseCommand(message);
 
   let response: ChatResponse;
@@ -201,13 +249,14 @@ export async function processChat(
     case "show_deals": {
       const deals = await getDeals(workspaceId);
       const byStage = deals.reduce<Record<string, number>>((acc, d) => {
-        acc[d.stage] = (acc[d.stage] ?? 0) + 1;
+        const label = ctx.stageLabels[d.stage.toUpperCase() as keyof typeof ctx.stageLabels] ?? d.stage;
+        acc[label] = (acc[label] ?? 0) + 1;
         return acc;
       }, {});
       const totalValue = deals.reduce((sum, d) => sum + d.value, 0);
 
       response = {
-        message: `You have ${deals.length} deals worth $${totalValue.toLocaleString()} total.\n\n${Object.entries(byStage)
+        message: `You have ${deals.length} ${ctx.dealsLabel} worth $${totalValue.toLocaleString()} total.\n\n${Object.entries(byStage)
           .map(([stage, count]) => `  ${stage}: ${count}`)
           .join("\n")}`,
         action: "show_deals",
@@ -223,14 +272,14 @@ export async function processChat(
       );
 
       if (stale.length === 0) {
-        response = { message: "All deals are healthy. No stale or rotting deals." };
+        response = { message: `All ${ctx.dealsLabel} are healthy. No stale or rotting ${ctx.dealsLabel}.` };
       } else {
         const lines = stale.map(
           (d) =>
             `  ${d.health.status === "ROTTING" ? "!!" : "!"} ${d.title} ($${d.value.toLocaleString()}) — ${d.health.daysSinceActivity}d without activity`
         );
         response = {
-          message: `${stale.length} deal(s) need attention:\n\n${lines.join("\n")}`,
+          message: `${stale.length} ${ctx.dealLabel}(s) need attention:\n\n${lines.join("\n")}`,
           action: "show_stale",
           data: { deals: stale },
         };
@@ -271,7 +320,7 @@ export async function processChat(
 
       response = {
         message: result.success
-          ? `Deal "${params.title}" created${params.value !== "0" ? ` worth $${Number(params.value).toLocaleString()}` : ""}. Added to New Lead column.`
+          ? `${ctx.dealLabel.charAt(0).toUpperCase() + ctx.dealLabel.slice(1)} "${params.title}" created${params.value !== "0" ? ` worth $${Number(params.value).toLocaleString()}` : ""}. Added to ${ctx.stageLabels.NEW} column.`
           : `Failed: ${result.error}`,
         action: "create_deal",
         data: result.success ? { dealId: result.dealId } : undefined,
@@ -503,25 +552,25 @@ export async function processChat(
     case "help":
       response = {
         message: `Here's what I can do:\n
-  "Show me deals" — View your pipeline
-  "Show stale deals" — Find neglected deals
-  "New deal [title] for [company] worth [amount]" — Create a deal
-  "Move [deal] to [stage]" — Update pipeline
-  "Invoice [deal] for [amount]" — Generate invoice
+  "Show me ${ctx.dealsLabel}" — View your pipeline
+  "Show stale ${ctx.dealsLabel}" — Find neglected ${ctx.dealsLabel}
+  "New deal [title] for [${ctx.contactLabel}] worth [amount]" — Create a ${ctx.dealLabel}
+  "Move [${ctx.dealLabel}] to [stage]" — Update pipeline
   "Log call/email/note [details]" — Record activity
-  "Find [name]" — Search contacts (fuzzy)
-  "Add contact [name] [email]" — Create contact (auto-enriches)
+  "Find [name]" — Search ${ctx.contactLabel}s (fuzzy)
+  "Add contact [name] [email]" — Create ${ctx.contactLabel} (auto-enriches)
   "Remind me to [task]" — Create a follow-up
   "Morning digest" — Today's priority briefing
   "Show templates" — List message templates
-  "Use template [name] for [contact]" — Render a template
-  "Find duplicates" — Check for duplicate contacts`,
+  "Use template [name] for [${ctx.contactLabel}]" — Render a template
+  "Find duplicates" — Check for duplicate ${ctx.contactLabel}s
+${ctx.helpExtras}`,
       };
       break;
 
     default:
       response = {
-        message: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale deals" or "new deal Website Redesign for Acme worth 5000".`,
+        message: ctx.unknownFallback,
       };
   }
 

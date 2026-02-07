@@ -9,7 +9,9 @@ export interface WorkspaceView {
   id: string;
   name: string;
   type: "TRADIE" | "AGENT";
+  industryType: "TRADES" | "REAL_ESTATE" | null;
   ownerId: string | null;
+  location: string | null;
   brandingColor: string;
 }
 
@@ -21,6 +23,28 @@ const _CreateWorkspaceSchema = z.object({
   ownerId: z.string().optional(),
 });
 
+// ─── Helpers ────────────────────────────────────────────────────────
+
+function toWorkspaceView(w: {
+  id: string;
+  name: string;
+  type: string;
+  industryType: string | null;
+  ownerId: string | null;
+  location: string | null;
+  brandingColor: string;
+}): WorkspaceView {
+  return {
+    id: w.id,
+    name: w.name,
+    type: w.type as "TRADIE" | "AGENT",
+    industryType: w.industryType as "TRADES" | "REAL_ESTATE" | null,
+    ownerId: w.ownerId,
+    location: w.location,
+    brandingColor: w.brandingColor,
+  };
+}
+
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
@@ -30,10 +54,9 @@ const _CreateWorkspaceSchema = z.object({
  */
 export async function getOrCreateWorkspace(
   ownerId?: string,
-  defaults?: { name?: string; type?: "TRADIE" | "AGENT" }
+  defaults?: { name?: string; type?: "TRADIE" | "AGENT"; industryType?: "TRADES" | "REAL_ESTATE"; location?: string }
 ): Promise<WorkspaceView> {
   try {
-    // Try to find existing workspace for this owner
     if (ownerId) {
       const existing = await db.workspace.findFirst({
         where: { ownerId },
@@ -41,43 +64,31 @@ export async function getOrCreateWorkspace(
       });
 
       if (existing) {
-        return {
-          id: existing.id,
-          name: existing.name,
-          type: existing.type as "TRADIE" | "AGENT",
-          ownerId: existing.ownerId,
-          brandingColor: existing.brandingColor,
-        };
+        return toWorkspaceView(existing);
       }
     }
 
-    // Create new workspace
     const workspace = await db.workspace.create({
       data: {
         name: defaults?.name ?? "My Workspace",
         type: defaults?.type ?? "TRADIE",
+        industryType: defaults?.industryType ?? null,
+        location: defaults?.location ?? null,
         ownerId: ownerId ?? null,
       },
     });
 
-    return {
-      id: workspace.id,
-      name: workspace.name,
-      type: workspace.type as "TRADIE" | "AGENT",
-      ownerId: workspace.ownerId,
-      brandingColor: workspace.brandingColor,
-    };
+    return toWorkspaceView(workspace);
   } catch (error) {
     console.error("Database Error in getOrCreateWorkspace:", error);
-    
-    // Check for specific Prisma initialization error related to env vars
+
     const errorMessage = (error as Error).message || "";
     if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("Environment variable not found")) {
       throw new Error(
         "CRITICAL: Database connection failed. Please check your internet connection and firewall settings."
       );
     }
-    
+
     throw error;
   }
 }
@@ -93,13 +104,7 @@ export async function getWorkspace(workspaceId: string): Promise<WorkspaceView |
 
     if (!workspace) return null;
 
-    return {
-      id: workspace.id,
-      name: workspace.name,
-      type: workspace.type as "TRADIE" | "AGENT",
-      ownerId: workspace.ownerId,
-      brandingColor: workspace.brandingColor,
-    };
+    return toWorkspaceView(workspace);
   } catch (error) {
     console.error("Database Error in getWorkspace:", error);
     return null;
@@ -107,11 +112,17 @@ export async function getWorkspace(workspaceId: string): Promise<WorkspaceView |
 }
 
 /**
- * Update workspace settings.
+ * Update workspace settings (including industry and location from onboarding).
  */
 export async function updateWorkspace(
   workspaceId: string,
-  data: { name?: string; type?: "TRADIE" | "AGENT"; brandingColor?: string }
+  data: {
+    name?: string;
+    type?: "TRADIE" | "AGENT";
+    industryType?: "TRADES" | "REAL_ESTATE";
+    location?: string;
+    brandingColor?: string;
+  }
 ) {
   await db.workspace.update({
     where: { id: workspaceId },
@@ -130,11 +141,5 @@ export async function listWorkspaces(ownerId: string): Promise<WorkspaceView[]> 
     orderBy: { createdAt: "desc" },
   });
 
-  return workspaces.map((w) => ({
-    id: w.id,
-    name: w.name,
-    type: w.type as "TRADIE" | "AGENT",
-    ownerId: w.ownerId,
-    brandingColor: w.brandingColor,
-  }));
+  return workspaces.map(toWorkspaceView);
 }

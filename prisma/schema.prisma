@@ -15,6 +15,11 @@ enum WorkspaceType {
   AGENT
 }
 
+enum IndustryType {
+  TRADES
+  REAL_ESTATE
+}
+
 // Aligned with frontend kanban columns: new, contacted, negotiation, won, lost
 // Plus INVOICED for Tradie-specific workflow
 enum DealStage {
@@ -37,13 +42,15 @@ enum ActivityType {
 // ─── Core Models ────────────────────────────────────────────────────
 
 model Workspace {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
   type          WorkspaceType
+  industryType  IndustryType?
   ownerId       String?
-  brandingColor String        @default("#6366f1")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  location      String?
+  brandingColor String         @default("#6366f1")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   contacts         Contact[]
   deals            Deal[]

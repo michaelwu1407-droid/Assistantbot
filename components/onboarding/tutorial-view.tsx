@@ -89,7 +89,7 @@ export function TutorialView() {
                             EXAMPLE PROMPT
                         </div>
                         <p className="font-mono text-lg text-slate-700">
-                            "{tutorials[step].prompt}"
+                            &quot;{tutorials[step].prompt}&quot;
                         </p>
                     </div>
 

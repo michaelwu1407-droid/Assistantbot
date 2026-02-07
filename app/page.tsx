@@ -18,7 +18,7 @@ export default function Home() {
             <span className="text-blue-600">runs your business.</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Pj Buddy isn't just a CRM. It's a chatbot-first assistant that manages your trades or real estate business while you work.
+            Pj Buddy isn&apos;t just a CRM. It&apos;s a chatbot-first assistant that manages your trades or real estate business while you work.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link href="/login">
