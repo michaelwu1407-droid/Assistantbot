@@ -395,3 +395,60 @@ PHASE 5 (Comms) ← LAST
 |-------|-----|-----|-----|-----|-----|-------|------|
 | Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
 | Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **14 ✅** |
+
+---
+
+# NEW MASTER SPECIFICATION: ASSISTANTBOT PIVOT
+
+## 1. CORE PHILOSOPHY
+The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the background.
+- **Default View ("Simple Mode"):** User interacts *only* with the Chatbot (Natural Language -> DB Actions).
+- **Optional View ("Advanced Mode"):** User toggles a switch to reveal standard CRM tables/dashboards.
+
+## 2. FRONTEND TASKS (For Antigravity)
+
+### A. Navigation & Landing Page Refactor
+- **Target File:** `Header.tsx` / `Navbar.js`
+- **Action:** Replace the "Pricing" link with an "Industries" Dropdown.
+- **Dropdown Items:**
+  1. **Trades:** Links to `/industries/trades` (Features: Job scheduling, quoting, invoicing).
+  2. **Real Estate:** Links to `/industries/real-estate` (Features: Property listings, tenant management, open house scheduling).
+- **Content:** Update the Hero section to emphasize "The Assistant that runs your business," not just "A CRM."
+
+### B. Authentication UI
+- **Target File:** `Login.tsx` / `Auth.js`
+- **Action:**
+  - **REMOVE:** GitHub Login button (Dev-only feature).
+  - **KEEP:** Google Sign-In and Email/Password.
+  - **style:** Ensure the login form is clean and professional, targeting non-tech users (Tradies/Agents).
+
+### C. The "Zero-Dashboard" Onboarding Flow
+**Current Flow:** Signup -> Dashboard (Stop this).
+**New Flow:**
+1. **Signup:** User creates account.
+2. **Setup Interview (Chatbot):**
+   - Redirect new users to `/setup`.
+   - **UI:** A simple chat interface.
+   - **Bot Logic:** Ask "What is your business name?", "Are you in Trades or Real Estate?", "Where are you located?".
+   - **Action:** Save these responses to the `UserProfile` table.
+3. **Tutorial (Split-Screen):**
+   - Redirect to `/tutorial` after setup.
+   - **Left Pane:** Highlights specific app features (e.g., "Create a Quote").
+   - **Right Pane:** Shows the *exact prompt* to type into the Assistant to trigger that feature.
+
+## 3. BACKEND TASKS (For Aider/Claude Code)
+
+### A. Database Schema Updates
+- **Table:** `users` or `profiles`
+  - Add column: `industry_type` (ENUM: 'TRADES', 'REAL_ESTATE', 'OTHER').
+  - Add column: `setup_complete` (BOOLEAN, default `false`).
+  - Add column: `mode_preference` (ENUM: 'SIMPLE', 'ADVANCED', default 'SIMPLE').
+
+### B. "Assistant" Logic Engine
+- **Input Processing:** The chatbot must accept natural language (e.g., "Add a job for 123 Main St tomorrow") and map it to database inserts (`INSERT INTO jobs...`).
+- **Context Awareness:**
+  - If `industry_type` = 'REAL_ESTATE', "Add listing" maps to the *Properties* module.
+  - If `industry_type` = 'TRADES', "Add job" maps to the *Jobs/WorkOrders* module.
+
+### C. Auth Security
+- **Hardening:** Ensure removing the GitHub frontend button is matched by disabling the GitHub OAuth strategy in the backend config to prevent direct API access.
