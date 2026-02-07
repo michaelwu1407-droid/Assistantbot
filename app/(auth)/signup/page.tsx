@@ -12,8 +12,8 @@ export default function SignupPage() {
     const router = useRouter()
 
     const handleSignup = () => {
-        // For demo purposes, bypass auth and go straight to dashboard
-        router.push("/dashboard")
+        // For demo purposes, bypass auth and go to onboarding setup
+        router.push("/setup")
     }
 
     return (

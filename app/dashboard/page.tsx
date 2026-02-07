@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { KanbanBoard } from "@/components/crm/kanban-board"
@@ -12,6 +13,9 @@ export default async function DashboardPage() {
     let workspace, deals;
     try {
         workspace = await getOrCreateWorkspace("demo-user")
+        if (!workspace.onboardingComplete) {
+            redirect("/setup")
+        }
         deals = await getDeals(workspace.id)
     } catch {
         return (

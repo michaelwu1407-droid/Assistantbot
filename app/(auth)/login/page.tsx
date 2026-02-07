@@ -12,9 +12,9 @@ export default function LoginPage() {
     const router = useRouter()
 
     const handleSocialLogin = (provider: string) => {
-        // For demo purposes, bypass auth and go straight to dashboard
+        // For demo purposes, bypass auth and go to setup (redirects to dashboard if already onboarded)
         console.log(`Logging in with ${provider}`)
-        router.push("/dashboard")
+        router.push("/setup")
     }
 
     return (
@@ -59,7 +59,7 @@ export default function LoginPage() {
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Link href="/dashboard" className="w-full">
+                <Link href="/setup" className="w-full">
                     <Button className="w-full">Sign In</Button>
                 </Link>
                 <p className="text-center text-sm text-slate-500">
