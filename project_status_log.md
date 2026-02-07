@@ -88,6 +88,38 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 11:00 AEST [Backend - Claude Code] - Real Authentication (Phase 1)
+**Feature**: Implemented Supabase Auth and Middleware protection.
+*   **Middleware**: Created `middleware.ts` and `lib/supabase/middleware.ts` to protect routes and refresh sessions.
+*   **Auth Actions**: Created `actions/auth-actions.ts` with `login`, `signup`, `logout`, and `loginWithGoogle`.
+*   **UI**: Updated `app/(auth)/login/page.tsx` to use real server actions instead of mock routing.
+*   **Status**: Completes Tasks X-1 (Real Auth) and X-2 (Middleware).
+*   **Files created**: `lib/supabase/server.ts`, `lib/supabase/middleware.ts`, `middleware.ts`, `actions/auth-actions.ts`.
+*   **Files modified**: `app/(auth)/login/page.tsx`.
+
+### 2026-02-08 10:30 AEST [Backend - Claude Code] - Schema Updates for Assistant Pivot
+**Feature**: Schema updates to support new onboarding and user preferences.
+*   **Schema**:
+    *   Added `ViewMode` enum (`SIMPLE`, `ADVANCED`).
+    *   Updated `IndustryType` enum (Added `OTHER`).
+    *   Updated `User` model:
+        *   Added `industryType` (IndustryType).
+        *   Added `setupComplete` (Boolean).
+        *   Added `modePreference` (ViewMode, default SIMPLE).
+        *   Added `avatarUrl` (String).
+        *   Removed legacy `viewMode` string field.
+*   **Status**: Completes Backend Task 3.A from Handover.
+*   **Files modified**: `prisma/schema.prisma`
+
+### 2026-02-08 10:00 AEST [Frontend - Antigravity] - Phase 2 Shell & Personas
+**Feature**: Implemented Shell, Tradie & Agent Personas
+*   **Layout Shell**: Implemented `lib/store.ts` (Zustand) and `components/layout/Shell.tsx` (Split Pane).
+*   **Tradie Persona**: Built `/app/(dashboard)/tradie/page.tsx` with Dark Mode, Pulse Widget, Map Placeholder using `drawer` (Vaul).
+*   **Agent Persona**: Built `/app/(dashboard)/agent/page.tsx` with Light Mode, Speed-to-Lead, Rotting Kanban using `deal.metadata`.
+*   **Schema**: Added `Task` model and fixed `Deal <-> Activity` relations in `schema.prisma`. Verified `WorkspaceType` and `DealStage`.
+*   **Build Status**: Passing (with pragmatic type fixes in `lib/digest.ts`).
+*   **Status**: Phase 2 Frontend Complete.
+
 ### 2026-02-07 18:00 AEST [Backend - Claude Code] - Gap Analysis & Action Plan
 **Deliverable**: Full codebase audit against the Extreme Granular Walkthrough spec
 
@@ -649,5 +681,3 @@ The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the ba
 4.  **Vendor Reporting**
     - *Widget*: "Price Feedback Meter" (Gauge).
     - *Action*: "Send Vendor Report" -> WhatsApp Preview -> Send.
-
-
