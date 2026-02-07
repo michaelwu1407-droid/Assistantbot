@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 11:15 AEST [Backend - Claude Code] - Signup & Schema (Phase 1)
+**Feature**: Implemented Signup page and updated Schema for onboarding.
+*   **Schema**: Updated `User` model with `industryType`, `setupComplete`, `modePreference` and added `ViewMode` enum.
+*   **Signup**: Created `app/(auth)/signup/page.tsx` wired to `signup` server action.
+*   **Status**: Completes Signup UI wiring.
+*   **Files modified**: `prisma/schema.prisma`, `app/(auth)/signup/page.tsx`.
+
 ### 2026-02-08 11:00 AEST [Backend - Claude Code] - Real Authentication (Phase 1)
 **Feature**: Implemented Supabase Auth and Middleware protection.
 *   **Middleware**: Created `middleware.ts` and `lib/supabase/middleware.ts` to protect routes and refresh sessions.
@@ -119,6 +126,21 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Schema**: Added `Task` model and fixed `Deal <-> Activity` relations in `schema.prisma`. Verified `WorkspaceType` and `DealStage`.
 *   **Build Status**: Passing (with pragmatic type fixes in `lib/digest.ts`).
 *   **Status**: Phase 2 Frontend Complete.
+
+### 2026-02-08 03:00 AEST [Frontend - Antigravity] - Sprint 2 Complete (Real Data)
+**Feature**: Integrated Real Data for Tradie & Agent Dashboards
+*   **Tradie Page** (`app/(dashboard)/tradie/page.tsx`): Fetches `activeJobs` from DB. Displays Map View with pins.
+*   **Job Detail Page** (`app/(dashboard)/jobs/[id]/page.tsx`): Full job view with Status, Diary, and Billing tabs. Linked from Tradie Drawer.
+*   **Agent Page** (`app/(dashboard)/agent/page.tsx`): Fetches `freshLeads` and `pipeline`.
+*   **Speed-to-Lead Widget** (`components/agent/speed-to-lead.tsx`): Displays new leads for immediate action.
+*   **Status**: Sprint 2 Complete. Tasks X-7, D-5, J-1, AG-1, AG-5 Complete.
+
+### 2026-02-08 02:30 AEST [Frontend - Antigravity] - Planning
+**Update**: Received GAP Analysis & Roadmap
+*   **Sync**: Pulled latest changes from `main`.
+*   **Analysis**: Reviewed `GAP_ANALYSIS.md` and identified 37 frontend tasks.
+*   **Plan**: Updated `task.md` to reflect the 4-Sprint structure defined in the analysis.
+*   **Next**: Starting **Sprint 1: Foundation**, focusing on UI Polish (X-17) and Tutorial Fixes (T-1).
 
 ### 2026-02-07 18:00 AEST [Backend - Claude Code] - Gap Analysis & Action Plan
 **Deliverable**: Full codebase audit against the Extreme Granular Walkthrough spec
@@ -522,42 +544,6 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 | 5.4 | Calendar integration | **Backend** | `actions/calendar-actions.ts`: `syncGoogleCalendar()`, `syncOutlookCalendar()`, `createCalendarEvent()`, `processCalendarWebhook()`. Stub — ready for OAuth. | ✅ |
 | 5.5 | Bulk SMS/blast | **Backend** | Included in `messaging-actions.ts`: `sendBulkSMS(contactIds[], message)`. Rate-limited (1/sec). Template `{{var}}` substitution. | ✅ |
 | 5.6 | Browser extension | **Backend** | Chrome MV3 extension in `extension/`: manifest, background worker, LinkedIn + portal content scripts, popup UI, API route at `/api/extension/import`. | ✅ |
-
----
-
-### Execution Order
-
-```
-PHASE 1 (Wire-up) ← BOTH START HERE IN PARALLEL
-  Backend (Claude/Aider): 1.5, 1.6
-  Antigravity: 1.1, 1.2, 1.3, 1.4
-
-PHASE 2 (Core gaps) ← THEN THIS
-  Backend (Claude/Aider): 2.3, 2.5, 2.6
-  Antigravity: 2.1, 2.2, 2.4
-
-PHASE 3 + 4 (Verticals) ← IN PARALLEL
-  Backend (Claude/Aider): 3.1, 3.4, 3.7, 4.2, 4.4
-  Antigravity: 3.2, 3.3, 3.5, 3.6, 4.1, 4.3, 4.5
-
-PHASE 5 (Comms) ← LAST
-  Backend (Claude/Aider): 5.1, 5.3, 5.4, 5.5, 5.6
-  Antigravity: 5.2
-```
-
-### Key Dependencies
-- **Everything** depends on Phase 1 (Supabase setup + wiring)
-- **3.2** (Estimator UI) depends on **3.1** (PDF backend)
-- **3.3** (Map view) depends on **3.4** (Geocoding backend)
-- **4.1** (Kiosk UI) depends on **4.2** (QR generation)
-- **5.2** (Inbox UI) depends on **5.1** (Twilio) + **5.3** (Email sync)
-- **5.5** (Bulk SMS) depends on **5.1** (Twilio) + **2.6** (Templates)
-
-### Task Count Summary
-| Owner | Ph1 | Ph2 | Ph3 | Ph4 | Ph5 | Total | Done |
-|-------|-----|-----|-----|-----|-----|-------|------|
-| Backend (Claude/Aider) | 2 | 3 | 3 | 2 | 4 | **14** | **14 ✅** |
-| Antigravity | 4 | 3 | 4 | 3 | 1 | **15** | **15 ✅** |
 
 ---
 

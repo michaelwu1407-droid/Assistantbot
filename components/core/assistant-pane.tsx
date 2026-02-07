@@ -142,6 +142,7 @@ export function AssistantPane() {
 
                 {/* Layout Toggle */}
                 <Button
+                    id="mode-toggle"
                     variant="ghost"
                     size="icon"
                     onClick={() => setViewMode(viewMode === "BASIC" ? "ADVANCED" : "BASIC")}
