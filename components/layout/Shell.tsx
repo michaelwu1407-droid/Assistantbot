@@ -14,7 +14,7 @@ export function Shell({ children, chatbot }: ShellProps) {
   const { viewMode, isTutorialActive, setTutorialActive } = useAppStore();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background transition-all duration-500 relative">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 transition-all duration-500 relative">
       {/* Tutorial Layer */}
       <TutorialOverlay 
         isActive={isTutorialActive}
@@ -25,8 +25,8 @@ export function Shell({ children, chatbot }: ShellProps) {
       {/* Left Pane: The Canvas */}
       <main
         className={cn(
-          "transition-all duration-500 ease-in-out h-full",
-          viewMode === 'BASIC' ? "w-0 opacity-0 overflow-hidden" : "w-[70%] opacity-100"
+          "transition-all duration-500 ease-in-out h-full overflow-hidden relative",
+          viewMode === 'BASIC' ? "w-0 opacity-0" : "w-[70%] opacity-100"
         )}
       >
         {children}
@@ -35,7 +35,7 @@ export function Shell({ children, chatbot }: ShellProps) {
       {/* Right Pane: The Chatbot */}
       <aside
         className={cn(
-          "h-full border-l border-border bg-card transition-all duration-500 ease-in-out flex flex-col",
+          "h-full border-l border-slate-200 bg-white transition-all duration-500 ease-in-out flex flex-col shadow-xl z-10",
           viewMode === 'BASIC' ? "w-full" : "w-[30%]"
         )}
       >

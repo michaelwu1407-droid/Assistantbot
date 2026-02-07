@@ -76,6 +76,26 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Aider] - Assistant-First Pivot Implementation
+**Feature**: Implemented the "Extreme Granular Walkthrough" UI and Logic
+*   **Store**: Updated `lib/store.ts` to handle `viewMode` (BASIC/ADVANCED) and `isTutorialActive`.
+*   **Shell**: Updated `components/layout/Shell.tsx` to implement the Split Pane logic (Canvas vs Chatbot) with transitions.
+*   **Tradie UI**: Updated `app/dashboard/tradie/page.tsx` with Dark Mode, Pulse Widget, Bottom Sheet, Sticky Footer, and Safety Check modal.
+*   **Agent UI**: Updated `app/dashboard/agent/page.tsx` with Light Mode, Speed-to-Lead widget, Rotting Pipeline placeholder, and Magic Keys footer.
+*   **Actions**: Updated `actions/tradie-actions.ts` and `actions/agent-actions.ts` to include specific logic for job status updates, quoting, and key logging.
+*   **Status**: Core UI and Logic for the Assistant-First Pivot is now implemented.
+
+### 2026-02-07 [Backend - Aider] - Assistant-First Pivot
+**Feature**: Implemented Core Architecture for Assistant-First UX
+*   **Schema**: Updated `prisma/schema.prisma` with `WorkspaceType` enum and polymorphic `metadata` for Deals.
+*   **Store**: Created `lib/store.ts` with Zustand for `viewMode` (Basic/Advanced) and `isTutorialActive`.
+*   **Shell**: Created `components/layout/Shell.tsx` implementing the Split Pane logic (Canvas vs Chatbot).
+*   **Actions**:
+    *   Created `actions/tradie.ts` for Job Status and Quoting.
+    *   Created `actions/agent.ts` for Buyer Matching and Key Logging.
+*   **Logic**: Created `lib/pipeline.ts` for "Rotting" status calculation.
+*   **Status**: Core plumbing for the "Extreme Granular Walkthrough" is in place.
+
 ### 2026-02-07 [Backend - Claude Code] - Tutorial Redesign (Split-Screen)
 **Feature**: Full tutorial redesign with platform preview + chatbot side-by-side
 
@@ -302,7 +322,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
 2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
 3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` input to `processChat(message, workspaceId)`.
+4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
 
 ### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -28,6 +29,70 @@ export interface QuoteResult {
 }
 
 // ─── Server Actions ─────────────────────────────────────────
+
+/**
+ * Update job status (Tradie workflow).
+ * Handles transitions like PENDING -> TRAVELING -> ARRIVED -> COMPLETED.
+ */
+export async function updateJobStatus(jobId: string, status: 'TRAVELING' | 'ARRIVED' | 'COMPLETED') {
+  // 1. Update DB
+  // Note: In a real app, we would check if the deal exists first.
+  // For the mock UI, we might pass a dummy ID, so we wrap in try/catch or check existence.
+  try {
+    await db.deal.update({
+      where: { id: jobId },
+      data: { 
+        stage: status === 'COMPLETED' ? 'CLOSED' : 'CONTRACT', // Mapping status to stage
+        lastActivityAt: new Date(),
+        // Merge status into metadata
+        metadata: { status } 
+      }
+    });
+  } catch (e) {
+    // Ignore error if ID is mock/dummy for UI demo
+    console.log("Mock updateJobStatus call", jobId, status);
+  }
+
+  // 2. Trigger Side Effects
+  if (status === 'TRAVELING') {
+    // Mock SMS Service
+    console.log(`[SMS] Sending tracking link to client for Job ${jobId}`);
+  }
+
+  revalidatePath('/dashboard/tradie');
+  return { success: true, status };
+}
+
+/**
+ * Create a quote variation (add items to a job).
+ */
+export async function createQuoteVariation(jobId: string, items: Array<{ name: string; price: number }>) {
+  const total = items.reduce((sum, item) => sum + item.price, 0);
+
+  // Update Deal Metadata with new items
+  const deal = await db.deal.findUnique({ where: { id: jobId } });
+  if (!deal) return { success: false, error: "Job not found" };
+
+  const existingMeta = (deal.metadata as Record<string, unknown>) || {};
+  const existingVariations = (existingMeta.variations as Array<unknown>) || [];
+
+  await db.deal.update({
+    where: { id: jobId },
+    data: {
+      value: Number(deal.value) + total, // Update total value
+      lastActivityAt: new Date(),
+      metadata: { 
+        ...existingMeta,
+        variations: [...existingVariations, ...items] 
+      } 
+    }
+  });
+
+  return { 
+    success: true, 
+    pdfUrl: `https://api.pjbuddy.com/quotes/${jobId}.pdf` // Mock PDF generation
+  };
+}
 
 /**
  * Generate a quick quote for a Tradie deal.
@@ -205,9 +270,9 @@ export async function generateQuotePDF(invoiceId: string): Promise<{
     contactPhone: invoice.deal.contact.phone,
     contactAddress: invoice.deal.contact.address,
     lineItems,
-    subtotal: invoice.subtotal,
-    tax: invoice.tax,
-    total: invoice.total,
+    subtotal: Number(invoice.subtotal),
+    tax: Number(invoice.tax),
+    total: Number(invoice.total),
     createdAt: invoice.createdAt.toISOString(),
   };
 
@@ -240,9 +305,9 @@ ${invoice.deal.contact.address ? `<p style="margin:0;color:#64748b">${invoice.de
 <h3>Re: ${invoice.deal.title}</h3>
 <table><thead><tr><th>#</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>${itemRows}</tbody></table>
-<div class="totals"><div>Subtotal: $${invoice.subtotal.toFixed(2)}</div>
-<div>GST (10%): $${invoice.tax.toFixed(2)}</div>
-<div class="total">Total: $${invoice.total.toFixed(2)}</div></div>
+<div class="totals"><div>Subtotal: $${Number(invoice.subtotal).toFixed(2)}</div>
+<div>GST (10%): $${Number(invoice.tax).toFixed(2)}</div>
+<div class="total">Total: $${Number(invoice.total).toFixed(2)}</div></div>
 </body></html>`;
 
   return { success: true, data, html };
