@@ -76,6 +76,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Frontend - Antigravity] - Offline Support
+**Feature**: Service Worker Implementation
+*   **Service Worker**: Created `public/sw.js` with Stale-While-Revalidate caching strategy for assets and pages.
+*   **Registration**: Created `components/providers/service-worker-provider.tsx` and added it to `app/layout.tsx`.
+*   **Status**: Task 3.6 (Offline Support) - Caching layer implemented. Next: IndexedDB sync.
+
 ### 2026-02-07 [Frontend - Antigravity] - Scenario Polish
 **Feature**: Tradie & Agent Workflow Enhancements
 *   **Tradie UI**: Added "Sign-on-Glass" mock and "Video Explanation" recording button to `components/tradie/tradie-dashboard-client.tsx` to match Scenario A.
