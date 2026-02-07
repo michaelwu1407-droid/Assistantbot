@@ -1,5 +1,4 @@
-"use client"
-
+import { useState } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { useDashboard } from "@/components/providers/dashboard-provider"
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import type { DealView } from "@/actions/deal-actions"
 import type { ActivityView } from "@/actions/activity-actions"
+import { NewDealModal } from "@/components/modals/new-deal-modal"
 
 interface DashboardClientPageProps {
     deals: DealView[]
@@ -14,8 +14,9 @@ interface DashboardClientPageProps {
     workspaceId: string
 }
 
-export default function DashboardClientPage({ deals, activities, workspaceId: _workspaceId }: DashboardClientPageProps) {
+export default function DashboardClientPage({ deals, activities, workspaceId }: DashboardClientPageProps) {
     const { mode } = useDashboard()
+    const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
 
     if (mode === "chat") {
         return (
@@ -30,10 +31,10 @@ export default function DashboardClientPage({ deals, activities, workspaceId: _w
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Pipeline</h1>
-                    <p className="text-sm text-slate-500">Manage your deals and activity</p>
+                    <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
+                    <p className="text-sm text-muted-foreground">Manage your deals and activity</p>
                 </div>
-                <Button>
+                <Button onClick={() => setIsNewDealModalOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     New Deal
                 </Button>
@@ -51,6 +52,12 @@ export default function DashboardClientPage({ deals, activities, workspaceId: _w
                     <ActivityFeed activities={activities} />
                 </div>
             </div>
+
+            <NewDealModal
+                isOpen={isNewDealModalOpen}
+                onClose={() => setIsNewDealModalOpen(false)}
+                workspaceId={workspaceId}
+            />
         </div>
     )
 }

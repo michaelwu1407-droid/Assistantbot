@@ -22,18 +22,18 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
   // Fetch all potential matches (in a real app, we might use database full-text search)
   // For this scale, fetching lightweight lists and fuzzy searching in memory is fast enough
   const [contacts, deals, tasks] = await Promise.all([
-    db.contact.findMany({ 
+    db.contact.findMany({
       where: { workspaceId },
       select: { id: true, name: true, email: true, company: true }
     }),
-    db.deal.findMany({ 
+    db.deal.findMany({
       where: { workspaceId },
       select: { id: true, title: true, company: true, value: true, stage: true }
     }),
-    db.task.findMany({ 
-      where: { 
+    db.task.findMany({
+      where: {
         OR: [{ deal: { workspaceId } }, { contact: { workspaceId } }],
-        completed: false 
+        completed: false
       },
       select: { id: true, title: true }
     })
@@ -43,13 +43,13 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
 
   // 1. Search Contacts
   const contactMatches = fuzzySearch(
-    contacts.map(c => ({ 
-      id: c.id, 
-      searchableFields: [c.name, c.email || "", c.company || ""] 
+    contacts.map(c => ({
+      id: c.id,
+      searchableFields: [c.name ?? "", c.email ?? "", c.company ?? ""]
     })),
     query
   )
-  
+
   contactMatches.forEach(({ item, score }) => {
     const c = contacts.find(x => x.id === item.id)!
     results.push({
@@ -64,9 +64,9 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
 
   // 2. Search Deals
   const dealMatches = fuzzySearch(
-    deals.map(d => ({ 
-      id: d.id, 
-      searchableFields: [d.title, d.company || ""] 
+    deals.map(d => ({
+      id: d.id,
+      searchableFields: [d.title, d.company || ""]
     })),
     query
   )
@@ -85,9 +85,9 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
 
   // 3. Search Tasks
   const taskMatches = fuzzySearch(
-    tasks.map(t => ({ 
-      id: t.id, 
-      searchableFields: [t.title] 
+    tasks.map(t => ({
+      id: t.id,
+      searchableFields: [t.title]
     })),
     query
   )

@@ -31,21 +31,95 @@ export interface QuoteResult {
 // ─── Server Actions ─────────────────────────────────────────
 
 /**
+ * Fetch active jobs for the Tradie view.
+ * "Jobs" are typically Deals in 'WON' (Scheduled) or 'INVOICED' (Completed/Billing) state,
+ * or any active state depending on workflow. 
+ * For this demo, we'll fetch all deals that aren't LOST or ARCHIVED.
+ */
+export async function getTradieJobs(workspaceId: string) {
+  const deals = await db.deal.findMany({
+    where: {
+      workspaceId,
+      stage: { in: ["WON", "INVOICED", "NEGOTIATION", "CONTACTED", "NEW"] }, // Broad filter for demo
+      // In a real app, we'd filter by assigned user or specific "Job" status field
+    },
+    include: {
+      contact: true,
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
+    },
+    orderBy: { updatedAt: "desc" }
+  });
+
+  return deals.map(deal => ({
+    id: deal.id,
+    title: deal.title,
+    clientName: deal.contact.name,
+    address: deal.contact.address || "No Address", // Fallback
+    status: deal.stage,
+    value: deal.value ? Number(deal.value) : 0,
+    scheduledAt: deal.updatedAt, // Proxy for schedule time
+    description: (deal.metadata as any)?.description || "No description provided."
+  }));
+}
+
+/**
+ * Fetch full details for a specific job (Deal).
+ */
+export async function getJobDetails(jobId: string) {
+  const deal = await db.deal.findUnique({
+    where: { id: jobId },
+    include: {
+      contact: true,
+      activities: {
+        orderBy: { createdAt: "desc" }
+      },
+      invoices: {
+        orderBy: { createdAt: "desc" }
+      }
+    }
+  });
+
+  if (!deal) return null;
+
+  return {
+    id: deal.id,
+    title: deal.title,
+    client: {
+      name: deal.contact.name,
+      phone: deal.contact.phone,
+      email: deal.contact.email,
+      address: deal.contact.address,
+    },
+    status: deal.stage,
+    value: deal.value ? Number(deal.value) : 0,
+    description: (deal.metadata as any)?.description || "No description provided.",
+    activities: deal.activities,
+    invoices: deal.invoices.map(inv => ({
+      ...inv,
+      total: Number(inv.total),
+      subtotal: Number(inv.subtotal),
+      tax: Number(inv.tax)
+    }))
+  };
+}
+
+/**
  * Update job status (Tradie workflow).
  * Handles transitions like PENDING -> TRAVELING -> ARRIVED -> COMPLETED.
  */
 export async function updateJobStatus(jobId: string, status: 'TRAVELING' | 'ARRIVED' | 'COMPLETED') {
   // 1. Update DB
-  // Note: In a real app, we would check if the deal exists first.
-  // For the mock UI, we might pass a dummy ID, so we wrap in try/catch or check existence.
   try {
     await db.deal.update({
       where: { id: jobId },
-      data: { 
-        stage: status === 'COMPLETED' ? 'CLOSED' : 'CONTRACT', // Mapping status to stage
-        lastActivityAt: new Date(),
+      data: {
+        stage: status === 'COMPLETED' ? 'WON' : 'WON', // Map internal status to WON for now, active is WON
+        // lastActivityAt: new Date(),
         // Merge status into metadata
-        metadata: { status } 
+        metadata: { status }
       }
     });
   } catch (e) {
@@ -79,10 +153,10 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
     where: { id: jobId },
     data: {
       value: Number(deal.value) + total, // Update total value
-      lastActivityAt: new Date(),
-      metadata: JSON.parse(JSON.stringify({ 
+      // lastActivityAt: new Date(),
+      metadata: JSON.parse(JSON.stringify({
         ...existingMeta,
-        variations: [...existingVariations, ...items] 
+        variations: [...existingVariations, ...items]
       }))
     }
   });
@@ -98,8 +172,8 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
     }
   });
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     // In a real app this would be a real URL
     pdfUrl: `/api/quotes/${jobId}/variation`
   };

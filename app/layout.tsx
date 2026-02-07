@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
 import { OfflineBanner } from "@/components/core/offline-banner";
 import { IndustryProvider } from "@/components/providers/industry-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
+import { Toaster } from "@/components/ui/sonner";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -17,12 +22,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased font-sans">
+      <body className={`${inter.variable} ${outfit.variable} antialiased font-sans bg-background text-foreground`}>
         <IndustryProvider>
           {children}
           <CommandPalette />
           <OfflineBanner />
           <ServiceWorkerProvider />
+          <Toaster />
         </IndustryProvider>
       </body>
     </html>

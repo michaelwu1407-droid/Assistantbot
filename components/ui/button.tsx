@@ -12,18 +12,18 @@ interface ButtonProps extends HTMLMotionProps<"button"> {
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = "default", size = "default", children, ...props }, ref) => {
         const variants = {
-            default: "bg-slate-900 text-slate-50 hover:bg-slate-900/90 shadow-sm",
-            secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200/80",
-            destructive: "bg-red-500 text-slate-50 hover:bg-red-500/90 shadow-sm",
-            outline: "border border-slate-200 bg-white hover:bg-slate-100 text-slate-900",
-            ghost: "hover:bg-slate-100 text-slate-900",
-            link: "text-slate-900 underline-offset-4 hover:underline",
+            default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg",
+            secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+            destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
+            outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+            ghost: "hover:bg-accent hover:text-accent-foreground",
+            link: "text-primary underline-offset-4 hover:underline",
         }
 
         const sizes = {
-            default: "h-10 px-4 py-2",
+            default: "h-11 px-5 py-2", // Slightly larger touch target
             sm: "h-9 rounded-md px-3",
-            lg: "h-11 rounded-md px-8",
+            lg: "h-12 rounded-lg px-8 text-base",
             icon: "h-10 w-10",
         }
 
@@ -31,10 +31,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <motion.button
                 ref={ref}
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 className={cn(
-                    "inline-flex items-center justify-center rounded-lg text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                    "inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                     variants[variant],
                     sizes[size],
                     className
