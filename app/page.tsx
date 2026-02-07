@@ -14,12 +14,11 @@ export default function Home() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-white to-white" />
         <div className="container mx-auto max-w-5xl text-center space-y-8">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900">
-            The CRM that works <br />
-            <span className="text-blue-600">as hard as you do.</span>
+            The Assistant that <br />
+            <span className="text-blue-600">runs your business.</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Pj Buddy is the high-velocity &quot;Hub and Spoke&quot; platform for SMEs.
-            Whether you&apos;re a Tradie on the road or an Agent at an open house, we&apos;ve got you covered.
+            Pj Buddy isn't just a CRM. It's a chatbot-first assistant that manages your trades or real estate business while you work.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link href="/login">

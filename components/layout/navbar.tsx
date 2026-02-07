@@ -2,6 +2,13 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronDown } from "lucide-react"
 
 export function Navbar() {
     return (
@@ -16,9 +23,19 @@ export function Navbar() {
                 <Link href="#product" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
                     Product
                 </Link>
-                <Link href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
-                    Pricing
-                </Link>
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors bg-transparent border-none p-0 flex items-center gap-1 focus:outline-none">
+                        Industries <ChevronDown className="h-4 w-4 opacity-50" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuItem asChild>
+                            <Link href="/industries/trades" className="cursor-pointer">Trades</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="/industries/real-estate" className="cursor-pointer">Real Estate</Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <Link href="#contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
                     Contact
                 </Link>
