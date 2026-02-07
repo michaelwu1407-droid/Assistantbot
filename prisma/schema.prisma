@@ -1,267 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-
-// ─── Enums ──────────────────────────────────────────────────────────
 
 enum WorkspaceType {
   TRADIE
   AGENT
 }
 
-enum IndustryType {
-  TRADES
-  REAL_ESTATE
-}
-
-// Aligned with frontend kanban columns: new, contacted, negotiation, won, lost
-// Plus INVOICED for Tradie-specific workflow
 enum DealStage {
   NEW
-  CONTACTED
   NEGOTIATION
-  INVOICED
-  WON
-  LOST
+  CONTRACT
+  CLOSED
+  ARCHIVED
 }
-
-enum ActivityType {
-  CALL
-  EMAIL
-  NOTE
-  MEETING
-  TASK
-}
-
-// ─── Core Models ────────────────────────────────────────────────────
 
 model Workspace {
-  id            String         @id @default(cuid())
-  name          String
-  type          WorkspaceType
-  industryType        IndustryType?
-  ownerId             String?
-  location            String?
-  onboardingComplete  Boolean        @default(false)
-  brandingColor       String         @default("#6366f1")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  contacts         Contact[]
-  deals            Deal[]
-  automations      Automation[]
-  chatMessages     ChatMessage[]
-  messageTemplates MessageTemplate[]
-
-  @@index([ownerId])
-  @@map("workspaces")
+  id        String        @id @default(cuid())
+  name      String
+  type      WorkspaceType
+  users     User[]
+  deals     Deal[]
+  contacts  Contact[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
-model Contact {
-  id          String   @id @default(cuid())
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  company     String?
-  avatarUrl   String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  deals      Deal[]
-  activities Activity[]
-  tasks      Task[]
-
-  @@index([workspaceId])
-  @@index([email])
-  @@map("contacts")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  activities  Activity[]
 }
-
-// ─── Polymorphic Deal ───────────────────────────────────────────────
-// The `metadata` JSON column stores vertical-specific data:
-//   Tradie → { "site_access": "Gate code 1234", "materials_cost": 500 }
-//   Agent  → { "buyer_budget_max": 1500000, "bedrooms_req": 3 }
 
 model Deal {
   id             String    @id @default(cuid())
   title          String
-  company        String?
-  value          Float     @default(0)
   stage          DealStage @default(NEW)
-  stageChangedAt DateTime  @default(now())
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  metadata       Json?
+  value          Decimal?
+  
+  // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
+  metadata       Json?     
+  
+  lastActivityAt DateTime  @default(now())
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
-  contactId   String
-  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  activities    Activity[]
-  invoices      Invoice[]
-  openHouseLogs OpenHouseLog[]
-  tasks         Task[]
-
-  @@index([workspaceId])
-  @@index([contactId])
-  @@index([stage])
-  @@map("deals")
+  
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  
+  contacts       Contact[]
 }
 
-// ─── Activity Feed ──────────────────────────────────────────────────
+model Contact {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  
+  // Preferences for Matchmaker (e.g., { "budget": 1200000, "bedrooms": 3 })
+  preferences Json?
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  deals       Deal[]
+}
 
 model Activity {
-  id          String       @id @default(cuid())
-  type        ActivityType
-  title       String       @default("")
-  content     String
-  description String?
-  createdAt   DateTime     @default(now())
-
-  dealId    String?
-  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@index([dealId])
-  @@index([contactId])
-  @@index([createdAt])
-  @@map("activities")
-}
-
-// ─── Task Management (Follow-ups & Reminders) ──────────────────────
-
-model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  dueAt       DateTime
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  dealId    String?
-  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@index([dueAt])
-  @@index([completed])
-  @@index([dealId])
-  @@index([contactId])
-  @@map("tasks")
-}
-
-// ─── Automation Engine (IFTTT-style Triggers) ──────────────────────
-
-model Automation {
   id          String   @id @default(cuid())
-  name        String
-  enabled     Boolean  @default(true)
-  trigger     Json     // { "event": "deal_stale", "threshold_days": 5, "stage": "NEGOTIATION" }
-  action      Json     // { "type": "notify", "channel": "email", "template": "stale_deal" }
-  lastFiredAt DateTime?
+  description String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([enabled])
-  @@map("automations")
-}
-
-// ─── Chat Messages (Chatbot CRM Interface) ─────────────────────────
-
-model ChatMessage {
-  id        String   @id @default(cuid())
-  role      String   // "user" | "assistant"
-  content   String
-  metadata  Json?    // { "action": "create_deal", "dealId": "..." }
-  createdAt DateTime @default(now())
-
-  workspaceId String?
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([createdAt])
-  @@map("chat_messages")
-}
-
-// ─── Vertical-Specific Tables ───────────────────────────────────────
-
-model Invoice {
-  id          String   @id @default(cuid())
-  number      String   @unique
-  lineItems   Json
-  subtotal    Float
-  tax         Float    @default(0)
-  total       Float
-  status      String   @default("DRAFT")
-  issuedAt    DateTime?
-  paidAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  dealId String
-  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  @@index([dealId])
-  @@map("invoices")
-}
-
-model OpenHouseLog {
-  id            String   @id @default(cuid())
-  attendeeName  String
-  attendeeEmail String?
-  attendeePhone String?
-  notes         String?
-  interestedLevel Int    @default(0)
-  visitedAt     DateTime @default(now())
-  createdAt     DateTime @default(now())
-
-  dealId String
-  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  @@index([dealId])
-  @@map("open_house_logs")
-}
-
-// ─── Message Templates ───────────────────────────────────────────────
-
-model MessageTemplate {
-  id        String   @id @default(cuid())
-  name      String
-  category  String   @default("general") // "follow-up", "quote", "welcome", "reminder", "general"
-  subject   String?
-  body      String
-  variables String   @default("[]") // SQLite doesn't support String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([category])
-  @@map("message_templates")
 }
