@@ -60,6 +60,8 @@ model Deal {
   workspace      Workspace @relation(fields: [workspaceId], references: [id])
   
   contacts       Contact[]
+  activities     Activity[]
+  tasks          Task[]
 }
 
 model Contact {
@@ -74,6 +76,8 @@ model Contact {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   deals       Deal[]
+  activities  Activity[]
+  tasks       Task[]
 }
 
 model Activity {
@@ -81,5 +85,28 @@ model Activity {
   description String
   userId      String
   user        User     @relation(fields: [userId], references: [id])
+  
+  dealId      String?
+  deal        Deal?    @relation(fields: [dealId], references: [id])
+  
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  
   createdAt   DateTime @default(now())
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  completed   Boolean  @default(false)
+  dueAt       DateTime?
+  
+  dealId      String?
+  deal        Deal?    @relation(fields: [dealId], references: [id])
+  
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

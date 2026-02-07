@@ -5,7 +5,7 @@ import { Bot, Maximize2, Minimize2, Send, Mic, MicOff } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useDashboard } from "@/components/providers/dashboard-provider"
+import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
@@ -18,7 +18,7 @@ interface Message {
 }
 
 export function AssistantPane() {
-    const { mode, toggleMode } = useDashboard()
+    const { viewMode, setViewMode } = useShellStore()
     const { industry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
@@ -131,8 +131,13 @@ export function AssistantPane() {
                 </div>
 
                 {/* Layout Toggle */}
-                <Button variant="ghost" size="icon" onClick={toggleMode} title={mode === "chat" ? "Show CRM" : "Focus Chat"}>
-                    {mode === "chat" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode(viewMode === "BASIC" ? "ADVANCED" : "BASIC")}
+                    title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}
+                >
+                    {viewMode === "BASIC" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
             </div>
 

@@ -1,18 +1,18 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 
-type ViewMode = 'BASIC' | 'ADVANCED';
+export type ViewMode = 'BASIC' | 'ADVANCED' | 'TUTORIAL'
+export type Persona = 'TRADIE' | 'AGENT'
 
-interface AppState {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  toggleViewMode: () => void;
+interface ShellState {
+  viewMode: ViewMode
+  persona: Persona
+  setViewMode: (mode: ViewMode) => void
+  setPersona: (persona: Persona) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  viewMode: 'BASIC', // Default to Chatbot First
+export const useShellStore = create<ShellState>((set) => ({
+  viewMode: 'BASIC',
+  persona: 'TRADIE', // Default to Tradie for now, real app would set this on login
   setViewMode: (mode) => set({ viewMode: mode }),
-  toggleViewMode: () =>
-    set((state) => ({
-      viewMode: state.viewMode === 'BASIC' ? 'ADVANCED' : 'BASIC',
-    })),
-}));
+  setPersona: (persona) => set({ persona }),
+}))

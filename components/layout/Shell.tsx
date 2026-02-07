@@ -1,38 +1,50 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { useAppStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
+import { useShellStore } from "@/lib/store"
+import { AssistantPane } from "@/components/core/assistant-pane"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { motion, AnimatePresence } from "framer-motion"
 
-interface ShellProps {
-  children: React.ReactNode; // The "Canvas" (Main App)
-  chatbot: React.ReactNode; // The "Chatbot" (Assistant)
-}
+export function Shell({ children }: { children: React.ReactNode }) {
+  const { viewMode } = useShellStore()
 
-export function Shell({ children, chatbot }: ShellProps) {
-  const { viewMode } = useAppStore();
+  if (viewMode === "BASIC") {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50 p-4 relative">
+        <AnimatePresence>
+          {/* Canvas hidden or sliding in background layer */}
+        </AnimatePresence>
+
+        {/* Central Chatbot */}
+        <motion.div
+          layoutId="assistant-pane"
+          className="w-full max-w-2xl h-[80vh] shadow-2xl rounded-2xl overflow-hidden border border-slate-200 bg-white"
+        >
+          <AssistantPane />
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background transition-all duration-500">
-      {/* Left Pane: The Canvas */}
-      <main
-        className={cn(
-          "transition-all duration-500 ease-in-out h-full",
-          viewMode === 'BASIC' ? "w-0 opacity-0 overflow-hidden" : "w-[70%] opacity-100"
-        )}
-      >
-        {children}
-      </main>
+    <div className="h-screen w-full bg-slate-50">
+      <ResizablePanelGroup direction="horizontal">
+        {/* Left Canvas - 70% */}
+        <ResizablePanel defaultSize={70} minSize={30}>
+          <div className="h-full w-full overflow-hidden relative">
+            {children}
+          </div>
+        </ResizablePanel>
 
-      {/* Right Pane: The Chatbot */}
-      <aside
-        className={cn(
-          "h-full border-l border-border bg-card transition-all duration-500 ease-in-out flex flex-col",
-          viewMode === 'BASIC' ? "w-full" : "w-[30%]"
-        )}
-      >
-        {chatbot}
-      </aside>
+        <ResizableHandle />
+
+        {/* Right Chatbot - 30% */}
+        <ResizablePanel defaultSize={30} minSize={20}>
+          <motion.div layoutId="assistant-pane" className="h-full w-full border-l border-slate-200">
+            <AssistantPane />
+          </motion.div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
-  );
+  )
 }

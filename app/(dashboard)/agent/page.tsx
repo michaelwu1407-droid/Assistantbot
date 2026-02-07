@@ -1,146 +1,137 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { DollarSign, Clock, Key, Home, Users, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { getRottingStatus, getCardColorClass } from '@/lib/pipeline';
+import { useEffect, useState } from "react"
+import { useShellStore } from "@/lib/store"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Bell, Key, DollarSign, Home, User, Settings, QrCode } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-export default function AgentPage() {
-  // Mock Data simulating DB response
-  const deals = [
-    { id: '1', address: '12 Smith St', client: 'Tom Wilson', lastActivity: new Date(), stage: 'NEW' },
-    { id: '2', address: '44 Oak Lane', client: 'Vendor Update', lastActivity: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), stage: 'NEW' }, // 8 days ago
-  ];
+// Mock Deal Card
+function DealCard({ deal }: { deal: any }) {
+  const isRotting = deal.daysInactive > 7
+  return (
+    <div className={cn(
+      "p-3 rounded-lg border shadow-sm text-sm mb-3 cursor-pointer hover:shadow-md transition-shadow",
+      isRotting ? "bg-red-50 border-red-200" : "bg-white border-slate-200"
+    )}>
+      <div className="flex justify-between items-start mb-2">
+        <span className="font-semibold text-slate-900">{deal.address}</span>
+        {isRotting && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">ROTTING</span>}
+      </div>
+      <div className="flex justify-between text-slate-500 text-xs">
+        <span>{deal.client}</span>
+        <span>{deal.price}</span>
+      </div>
+      <div className="mt-2 text-xs text-slate-400">In stage: {deal.daysInactive}d</div>
+    </div>
+  )
+}
+
+export default function AgentDashboard() {
+  const { setViewMode, setPersona } = useShellStore()
+
+  // Force Agent Persona on mount
+  useEffect(() => {
+    setPersona("AGENT")
+    setViewMode("ADVANCED")
+  }, [])
 
   return (
-    <div className="flex h-full w-full bg-slate-50 text-slate-900 font-sans">
-      {/* Main Canvas: Rotting Pipeline */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* 1. Header */}
-        <header className="h-16 border-b bg-white flex items-center justify-between px-6">
-          {/* Speed-to-Lead Widget */}
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Speed to Lead</span>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-1 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-green-700">Mike (Smith St) - 2m</span>
-              </div>
-              <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-3 py-1 rounded-full">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-red-700">Jane (High St) - 2h</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Commission Calc */}
-          <button className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
-            <DollarSign className="w-5 h-5" />
+    <div className="h-full w-full bg-slate-50 text-slate-900 flex overflow-hidden">
+      {/* 1. Sidebar Rail */}
+      <div className="w-16 bg-slate-900 flex flex-col items-center py-6 gap-6 text-slate-400 border-r border-slate-800">
+        <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold mb-4">Pj</div>
+        <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-white"><Home className="h-5 w-5" /></button>
+        <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><User className="h-5 w-5" /></button>
+        <div className="mt-auto flex flex-col gap-4">
+          {/* Magic Keys */}
+          <button className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-lg hover:brightness-110 shadow-lg" title="Magic Keys">
+            <Key className="h-5 w-5" />
           </button>
-        </header>
-
-        {/* 2. Kanban Board */}
-        <div className="flex-1 p-6 overflow-x-auto">
-          <div className="flex gap-6 h-full">
-            {/* Column: New Leads */}
-            <div className="w-80 flex-shrink-0 flex flex-col gap-4">
-              <h3 className="font-bold text-slate-700 flex justify-between">
-                New Leads <span className="bg-slate-200 px-2 rounded-full text-xs py-0.5">{deals.length}</span>
-              </h3>
-              
-              {deals.map((deal) => {
-                const status = getRottingStatus(deal.lastActivity);
-                const colorClass = getCardColorClass(status);
-                
-                return (
-                  <div 
-                    key={deal.id} 
-                    className={cn(
-                      "p-4 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden",
-                      colorClass
-                    )}
-                  >
-                    {status === 'ROTTING' && (
-                      <div className="absolute top-0 left-0 w-1 h-full bg-red-400" />
-                    )}
-                    
-                    <div className="flex justify-between mb-2">
-                      <span className="font-bold text-slate-800">{deal.address}</span>
-                      <span className={cn(
-                        "text-xs font-bold flex items-center gap-1",
-                        status === 'ROTTING' ? "text-red-500" : "text-slate-400"
-                      )}>
-                        {status === 'ROTTING' && <Clock className="w-3 h-3" />}
-                        {status === 'FRESH' ? 'Just now' : '8d'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600">{deal.client}</p>
-                    
-                    {status === 'FRESH' && (
-                      <div className="mt-3 flex gap-2">
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded">Hot</span>
-                      </div>
-                    )}
-                    {status === 'ROTTING' && (
-                      <p className="text-xs text-red-500 mt-2 font-medium">Vendor Update Required</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Column: Negotiations */}
-            <div className="w-80 flex-shrink-0 flex flex-col gap-4">
-              <h3 className="font-bold text-slate-700">Negotiations</h3>
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <span className="font-bold">Penthouse 4</span>
-                <p className="text-sm text-slate-600 mt-1">Offer: $1.2m (Pending)</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Magic Keys Rail */}
-        <div className="h-16 bg-white border-t flex items-center justify-around px-4">
-          <button className="flex flex-col items-center gap-1 text-slate-400 hover:text-navy-600">
-            <Home className="w-5 h-5" />
-            <span className="text-[10px]">Listings</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-navy-600">
-            <div className="bg-navy-50 p-2 rounded-full -mt-6 border-4 border-slate-50">
-              <Key className="w-6 h-6 text-navy-700" />
-            </div>
-            <span className="text-[10px] font-bold text-navy-700">Keys</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-slate-400 hover:text-navy-600">
-            <Users className="w-5 h-5" />
-            <span className="text-[10px]">Contacts</span>
-          </button>
+          <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><Settings className="h-5 w-5" /></button>
         </div>
       </div>
 
-      {/* 3. Sidebar: Matchmaker Feed */}
-      <aside className="w-80 border-l bg-white flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg text-navy-900">Matchmaker</h2>
-          <p className="text-xs text-slate-500">3 Buyers found for 12 Smith St</p>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0" />
-              <div>
-                <h4 className="font-bold text-sm">Sarah Jenkins</h4>
-                <p className="text-xs text-slate-500">Budget: $1.1m - $1.3m</p>
-                <p className="text-xs text-green-600 mt-1 font-medium">95% Match</p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* 2. Header */}
+        <header className="h-16 border-b border-slate-200 bg-white px-6 flex items-center justify-between shrink-0">
+          {/* Speed-to-Lead Widget */}
+          <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+              <div className="h-6 w-6 rounded-full bg-green-200 text-green-700 flex items-center justify-center text-xs font-bold">MJ</div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-slate-700">Mike (Smith St)</span>
+                <span className="text-[10px] text-green-600">2m ago</span>
               </div>
-              <button className="ml-auto text-slate-400 hover:text-navy-600">
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
-          ))}
+            <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-full border border-red-100 animate-pulse">
+              <div className="h-6 w-6 rounded-full bg-red-200 text-red-700 flex items-center justify-center text-xs font-bold">JS</div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-slate-700">Jane (High St)</span>
+                <span className="text-[10px] text-red-600">2h ago</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100">
+              <DollarSign className="h-4 w-4" />
+              <span>Commission</span>
+            </Button>
+            <Button size="icon" variant="ghost">
+              <Bell className="h-5 w-5 text-slate-400" />
+            </Button>
+          </div>
+        </header>
+
+        {/* 3. Rotting Pipeline (Kanban) */}
+        <main className="flex-1 overflow-x-auto p-6 bg-slate-50/50">
+          <div className="flex gap-4 h-full min-w-[1000px]">
+            {["New Appraisal", "Listed", "Under Offer", "Settled"].map((stage) => (
+              <div key={stage} className="w-72 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">{stage}</h3>
+                  <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">3</span>
+                </div>
+                <div className="flex-1 bg-slate-100/50 rounded-xl p-2 border border-slate-200/60 overflow-y-auto">
+                  {/* Mock Deals */}
+                  <DealCard deal={{ address: "12 Smith St", client: "John Doe", price: "$1.2m", daysInactive: 2 }} />
+                  <DealCard deal={{ address: "88High St", client: "Jane Smith", price: "$950k", daysInactive: 12 }} /> {/* Rotting */}
+                  <DealCard deal={{ address: "44 Park Rd", client: "Bob Brown", price: "$1.8m", daysInactive: 5 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+
+      {/* 4. Matchmaker Sidebar (Collapsible) */}
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col">
+        <div className="p-4 border-b border-slate-100">
+          <h3 className="font-semibold text-sm text-slate-800">Matchmaker Feed</h3>
         </div>
-      </aside>
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <span className="text-xs font-bold text-blue-700">New Match Found</span>
+              </div>
+              <p className="text-sm text-slate-700 mb-2">3 Buyers found for <strong>12 Smith St</strong></p>
+              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-7 text-xs">Review Matches</Button>
+            </div>
+          </div>
+        </ScrollArea>
+        <div className="p-4 border-t border-slate-100">
+          <Button variant="outline" className="w-full gap-2">
+            <QrCode className="h-4 w-4" />
+            <span>Kiosk Mode</span>
+          </Button>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
