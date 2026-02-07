@@ -76,6 +76,17 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Aider] - Assistant Logic Refinement
+**Feature**: Enhanced Chat Parser for Industry Context
+*   **Chat Actions**: Updated `actions/chat-actions.ts` to support synonyms for "deal" (job, listing, lead) in commands.
+*   **Status**: Assistant now understands "New job..." and "Show listings..." natively.
+
+### 2026-02-07 [Backend - Aider] - Assistant-First Logic & Schema
+**Feature**: Implemented backend support for "Start Day" and View Modes
+*   **Schema**: Added `ViewMode` enum and `viewMode` field to `User` model in `prisma/schema.prisma`.
+*   **Chat Logic**: Updated `actions/chat-actions.ts` to handle `start_day` (Tradie) and `start_open_house` (Agent) commands.
+*   **Status**: Backend is ready to support the frontend view switching logic.
+
 ### 2026-02-07 [Backend - Aider] - Assistant-First Pivot Implementation
 **Feature**: Implemented the "Extreme Granular Walkthrough" UI and Logic
 *   **Store**: Updated `lib/store.ts` to handle `viewMode` (BASIC/ADVANCED) and `isTutorialActive`.
@@ -438,7 +449,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 | 3.1 | PDF quote/invoice generation | **Backend** | `generateQuotePDF(invoiceId)` returns `QuotePDFData` + printable HTML with GST, line items, contact details. Frontend uses `window.print()` or any PDF lib. | ✅ |
 | 3.2 | Pocket Estimator UI | **Antigravity** | Form: material + quantity + rate → line items. "Generate Quote" button calls `generateQuote()`. Preview total with GST. | ✅ |
 | 3.3 | Map / geo-scheduling view | **Antigravity** | Integrate Mapbox or Google Maps. Plot deals by address. Route optimization for today's jobs. | 🚧 |
-| 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()`. Uses Nominatim free API. | ✅ |
+| 3.4 | Map geocoding backend | **Backend** | `address`, `latitude`, `longitude` on Deal. `actions/geo-actions.ts`: `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()` (Nominatim API) | ✅ |
 | 3.5 | Voice-to-invoice | **Antigravity** | Web Speech API (`SpeechRecognition`). Transcribe → feed to `processChat()` which handles "new deal" and "generate quote" commands. | ✅ |
 | 3.6 | Offline support | **Antigravity** | Service worker for offline cache. Queue mutations in IndexedDB. Sync when online. | ⬜ |
 | 3.7 | Xero/MYOB accounting sync | **Backend** | `actions/accounting-actions.ts`: `syncInvoiceToXero()`, `syncInvoiceToMYOB()`, `getInvoiceSyncStatus()`. Stub — ready for OAuth integration. | ✅ |
