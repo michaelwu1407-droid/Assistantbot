@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getInboxThreads } from "@/actions/messaging-actions";
 import { InboxView } from "@/components/crm/inbox-view";
@@ -8,10 +9,19 @@ export const dynamic = 'force-dynamic';
 
 export default async function InboxPage() {
   let workspace, threads;
+  let dbError = false;
   try {
     workspace = await getOrCreateWorkspace("demo-user");
     threads = await getInboxThreads(workspace.id);
   } catch {
+    dbError = true;
+  }
+
+  if (!dbError && workspace && !workspace.onboardingComplete) {
+    redirect("/setup");
+  }
+
+  if (dbError || !workspace || !threads) {
     return (
       <div className="h-screen flex items-center justify-center">
         <p className="text-slate-500">Database not initialized. Please push the schema first.</p>

@@ -23,11 +23,13 @@
 ### How to Log Your Changes
 1. Add a new entry under **Change Log** with the format:
    ```
-   ### YYYY-MM-DD [Role - Agent Name] - Category
+   ### YYYY-MM-DD HH:MM AEST [Role - Agent Name] - Category
    **Feature/Fix**: Short description
    *   **Detail 1**: What was done
-   *   **Status**: Which task(s) this completes
+   *   **Files created/modified**: List specific files
+   *   **Status**: Which task(s) this completes (reference GAP_ANALYSIS.md IDs where applicable)
    ```
+   **IMPORTANT**: Always include the time in AEST and list files touched.
 2. Update the **task table** status (change `⬜`→`🚧`→`✅`) when starting/finishing tasks.
 3. If you create new files, list them so other agents know they exist.
 4. If you change existing APIs or component props, note the breaking change.
@@ -80,106 +82,44 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
-### 2026-02-07 [Frontend - Antigravity] - Offline Polish
-**Feature**: Offline Fallback Page
-*   **UI**: Created `app/offline/page.tsx` to serve as the fallback route when the Service Worker cannot fetch a page and it's not in the cache.
-*   **Status**: Task 3.6 (Offline Support) Fully Complete.
+> **FORMAT**: `### YYYY-MM-DD HH:MM AEST [Role - Agent] - Category`
+> All timestamps are in Australian Eastern Standard Time (AEST/UTC+11).
+> **Reference doc**: See `GAP_ANALYSIS.md` for full walkthrough gap analysis with 48 action items.
 
-### 2026-02-07 [Frontend - Antigravity] - Offline Sync
-**Feature**: IndexedDB Sync Queue
-*   **Sync Logic**: Created `lib/sync-queue.ts` using `idb` to queue mutations when offline.
-*   **Integration**: Updated `ServiceWorkerProvider` to listen for `online` events and replay queued actions (`updateJobStatus`, `createQuoteVariation`, `logActivity`).
-*   **Status**: Task 3.6 (Offline Support) Complete.
+---
 
-### 2026-02-07 [Frontend - Antigravity] - Protocol Update
-**Update**: Updated Contributor Requirements
-*   **Docs**: Added mandatory summary requirement to `project_status_log.md`.
-*   **Status**: Protocol updated.
+### 2026-02-07 18:00 AEST [Backend - Claude Code] - Gap Analysis & Action Plan
+**Deliverable**: Full codebase audit against the Extreme Granular Walkthrough spec
 
-### 2026-02-07 [Frontend - Antigravity] - Offline Support
-**Feature**: Service Worker Implementation
-*   **Service Worker**: Created `public/sw.js` with Stale-While-Revalidate caching strategy for assets and pages.
-*   **Registration**: Created `components/providers/service-worker-provider.tsx` and added it to `app/layout.tsx`.
-*   **Status**: Task 3.6 (Offline Support) - Caching layer implemented. Next: IndexedDB sync.
+*   **Document**: Created `GAP_ANALYSIS.md` — 48 action items across 8 sections.
+*   **Summary**:
+    *   **P0 Critical (7)**: Real auth, middleware, industry-aware kanban, new deal form, chat-first default, agent/tradie real data
+    *   **P1 High (13)**: Working map, bottom sheet, interactive tutorial, job detail, travel workflow, speed-to-lead, toast system, chat→UI bridge, file storage
+    *   **P2 Medium (19)**: Notifications, pulse widget, dark theme, job scheduling, material DB, commission calc, vendor reports, etc.
+    *   **P3 Low (9)**: Weather, photo annotation, video, NFC payments, magic keys
+*   **Ownership**: Antigravity (Frontend) ~37 items, Backend ~27 items, 16 shared
+*   **Sprint plan**: 4-week execution order in `GAP_ANALYSIS.md` Section 7
+*   **Files created**: `GAP_ANALYSIS.md`
 
-### 2026-02-07 [Frontend - Antigravity] - Scenario Polish
-**Feature**: Tradie & Agent Workflow Enhancements
-*   **Tradie UI**: Added "Sign-on-Glass" mock and "Video Explanation" recording button to `components/tradie/tradie-dashboard-client.tsx` to match Scenario A.
-*   **Agent UI**: Added "Kiosk Mode" launcher button to the header in `components/agent/agent-dashboard-client.tsx` to match Scenario B.
-*   **Status**: Polishing "Extreme Granular Walkthrough" scenarios.
+### 2026-02-07 17:30 AEST [Backend - Claude Code] - Command Parser Fix + Page Guards
+**Fix**: Industry-aware command parser + onboarding guards
 
-### 2026-02-07 [Frontend - Antigravity] - Offline Support & Cleanup
-**Feature**: Offline UI Indicator & Legacy Cleanup
-*   **Offline UI**: Created `components/core/offline-banner.tsx` and mounted it in `app/layout.tsx`. Shows a sticky banner when the user loses internet connection.
-*   **Cleanup**: Deprecated `actions/tradie.ts` and `actions/agent.ts` (replaced by `*-actions.ts` versions) to prevent confusion.
-*   **Status**: Task 3.3 (Map View) marked Complete. Task 3.6 (Offline Support) started.
+*   **Chat parser** (`actions/chat-actions.ts`): Accepts "job/listing/property/client/buyer/vendor/quote" alongside "deal/contact"
+*   **Pages fixed**: Estimator, Map, Kiosk now use `getOrCreateWorkspace()` instead of hardcoded `"demo-workspace"`. Inbox, Estimator, Map have onboarding redirect guards.
+*   **Files modified**: `actions/chat-actions.ts`, `app/dashboard/estimator/page.tsx`, `app/dashboard/tradie/map/page.tsx`, `app/inbox/page.tsx`, `app/kiosk/open-house/page.tsx`
 
-### 2026-02-07 [Frontend - Antigravity] - Tradie Map & Spec Cleanup
-**Feature**: Real Geolocation on Tradie Map
-*   **Map UI**: Updated `components/tradie/job-map.tsx` to use real `latitude`/`longitude` from deals instead of mock coordinates. Added fallback to Sydney CBD if no deals have location.
-*   **Spec Compliance**: Verified `Navbar` (Industries dropdown) and `Login` (No GitHub) match Master Spec 2.A and 2.B.
-*   **Status**: Task 3.3 (Map View) Complete.
+---
 
-### 2026-02-07 [Backend - Aider] - Geo-Scheduling
-**Feature**: Added Geolocation Support to Deals
-*   **Deal Actions**: Updated `getDeals` and `DealView` in `actions/deal-actions.ts` to return `address`, `latitude`, and `longitude`.
-*   **Tradie UI**: Updated `components/tradie/tradie-dashboard-client.tsx` to display real address and coordinates instead of placeholders.
-*   **Status**: Progress on Task 3.3 (Map View).
-
-### 2026-02-07 [Backend - Aider] - Dashboard Wiring
-**Feature**: Wired Tradie and Agent Dashboards to Real Data
-*   **Tradie Dashboard**: Refactored `app/dashboard/tradie/page.tsx` to fetch active jobs via `getDeals`. Created `components/tradie/tradie-dashboard-client.tsx` for map/status UI.
-*   **Agent Dashboard**: Refactored `app/dashboard/agent/page.tsx` to fetch listings and matches via `findMatches`. Created `components/agent/agent-dashboard-client.tsx`.
-*   **Status**: Tasks 3.3 (Map View - Partial) and 4.3 (Buyer Matchmaker) are now wired to backend.
-
-### 2026-02-07 [Backend - Aider] - Schema Restoration
-**Fix**: Restored full Prisma Schema
-*   **Schema**: Re-applied the full schema definition (Tasks, Invoices, Automations, ViewMode, IndustryType) which appeared to be missing/reverted in the latest file sync.
-*   **Status**: Schema now matches the codebase expectations.
-
-### 2026-02-07 [Backend - Aider] - Assistant Logic Refinement
-**Feature**: Enhanced Chat Parser for Industry Context
-*   **Chat Actions**: Updated `actions/chat-actions.ts` to support synonyms for "deal" (job, listing, lead) in commands.
-*   **Status**: Assistant now understands "New job..." and "Show listings..." natively.
-
-### 2026-02-07 [Backend - Aider] - Assistant-First Logic & Schema
-**Feature**: Implemented backend support for "Start Day" and View Modes
-*   **Schema**: Added `ViewMode` enum and `viewMode` field to `User` model in `prisma/schema.prisma`.
-*   **Chat Logic**: Updated `actions/chat-actions.ts` to handle `start_day` (Tradie) and `start_open_house` (Agent) commands.
-*   **Status**: Backend is ready to support the frontend view switching logic.
-
-### 2026-02-07 [Backend - Aider] - Assistant-First Pivot Implementation
-**Feature**: Implemented the "Extreme Granular Walkthrough" UI and Logic
-*   **Store**: Updated `lib/store.ts` to handle `viewMode` (BASIC/ADVANCED) and `isTutorialActive`.
-*   **Shell**: Updated `components/layout/Shell.tsx` to implement the Split Pane logic (Canvas vs Chatbot) with transitions.
-*   **Tradie UI**: Updated `app/dashboard/tradie/page.tsx` with Dark Mode, Pulse Widget, Bottom Sheet, Sticky Footer, and Safety Check modal.
-*   **Agent UI**: Updated `app/dashboard/agent/page.tsx` with Light Mode, Speed-to-Lead widget, Rotting Pipeline placeholder, and Magic Keys footer.
-*   **Actions**: Updated `actions/tradie-actions.ts` and `actions/agent-actions.ts` to include specific logic for job status updates, quoting, and key logging.
-*   **Status**: Core UI and Logic for the Assistant-First Pivot is now implemented.
-
-### 2026-02-07 [Backend - Aider] - Assistant-First Pivot
-**Feature**: Implemented Core Architecture for Assistant-First UX
-*   **Schema**: Updated `prisma/schema.prisma` with `WorkspaceType` enum and polymorphic `metadata` for Deals.
-*   **Store**: Created `lib/store.ts` with Zustand for `viewMode` (Basic/Advanced) and `isTutorialActive`.
-*   **Shell**: Created `components/layout/Shell.tsx` implementing the Split Pane logic (Canvas vs Chatbot).
-*   **Actions**:
-    *   Created `actions/tradie.ts` for Job Status and Quoting.
-    *   Created `actions/agent.ts` for Buyer Matching and Key Logging.
-*   **Logic**: Created `lib/pipeline.ts` for "Rotting" status calculation.
-*   **Status**: Core plumbing for the "Extreme Granular Walkthrough" is in place.
-
-### 2026-02-07 [Backend - Claude Code] - Tutorial Redesign (Split-Screen)
+### 2026-02-07 16:00 AEST [Backend - Claude Code] - Tutorial Redesign (Split-Screen)
 **Feature**: Full tutorial redesign with platform preview + chatbot side-by-side
 
-*   **Layout**: 3/4 left pane shows mock "Advanced Mode" platform (kanban pipeline, deal cards, health stats), 1/4 right pane shows chatbot with equivalent commands.
-*   **Mock UI**: Built `MockPipelinePreview` (kanban columns, deal health widget, stats row) and `MockDealCard` (matching real `DealCard` visuals — stale/rotting badges, dollar values, initials, day counters).
-*   **Interactive highlights**: "Stale" step highlights rotting/stale cards with blue ring + amber/red stat badges. "Add" step highlights the "+ New Deal" button.
-*   **Industry-aware**: 3 variants (TRADES: 4 steps with job pipeline + quoting; REAL_ESTATE: 4 steps with listings + buyer search; Default: 3 steps with generic deals).
-*   **Chat pane**: Animated message bubbles show exact user→assistant conversations for each feature.
-*   **Routing**: Every sign-in now triggers tutorial (setup page redirects onboarded users to /tutorial instead of /dashboard, for troubleshooting).
+*   **Layout**: 3/4 left pane shows mock "Advanced Mode" platform, 1/4 right pane shows chatbot with equivalent commands.
+*   **Components**: `MockPipelinePreview`, `MockDealCard`, `MockChatPane` in `components/onboarding/tutorial-view.tsx`
+*   **Industry-aware**: 3 variants (TRADES: 4 steps, REAL_ESTATE: 4 steps, Default: 3 steps).
+*   **Routing**: Every sign-in triggers tutorial (for troubleshooting).
 *   **Status**: Tutorial completely rebuilt from scratch.
 
-### 2026-02-07 [Backend - Claude Code] - Onboarding Flow Wiring
+### 2026-02-07 14:00 AEST [Backend - Claude Code] - Onboarding Flow Wiring
 **Feature**: End-to-end onboarding: signup → setup → tutorial → dashboard
 
 *   **Schema**: Added `onboardingComplete` Boolean field to Workspace model.
@@ -193,7 +133,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Tutorial** (`components/onboarding/tutorial-view.tsx`): Now industry-aware — trades users see "Add a new client" / "Create a quote" / "Show stale jobs"; real estate users see "Add a new buyer" / "Manage listings" / "Show stale listings". Added 3rd tutorial step for both verticals.
 *   **Status**: Completes onboarding wiring from Master Specification section 2.C (Zero-Dashboard Onboarding Flow).
 
-### 2026-02-06 [Backend - Claude Code] - Vercel Deployment
+### 2026-02-06 22:00 AEST [Backend - Claude Code] - Vercel Deployment
 **Fix**: Production deployment to Vercel
 *   **URL**: https://assistantbot-zeta.vercel.app
 *   **Schema**: Switched Prisma from SQLite to PostgreSQL for Vercel/Supabase compatibility.
@@ -204,7 +144,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Extension**: Removed hardcoded `localhost:3000` — users must configure their deployment URL.
 *   **Status**: App deploys and builds on Vercel. DB tables need `prisma db push` + `prisma db seed` against Supabase.
 
-### 2026-02-06 [Backend - Claude Code] - Code Quality & Build Cleanup
+### 2026-02-06 20:00 AEST [Backend - Claude Code] - Code Quality & Build Cleanup
 **Fix**: Full codebase audit and quality pass
 *   **Security**: Removed hardcoded Supabase credentials from `lib/db.ts`. DB connection now requires `.env` to be configured.
 *   **Prisma**: Regenerated Prisma client from current schema, resolving all ~47 TypeScript compiler errors caused by stale generated types.
@@ -213,7 +153,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Stale Files**: Removed outdated `tsc_log.txt` and `lint_log.txt`.
 *   **Build Status**: **0 TypeScript errors, 0 ESLint errors** (13 warnings remain — all `_`-prefixed stub params).
 
-### 2026-02-07 [Backend - Claude Code] - Assistant-Pivot Backend Support
+### 2026-02-07 10:00 AEST [Backend - Claude Code] - Assistant-Pivot Backend Support
 **Feature**: Industry-context-aware schema & chat intelligence
 
 *   **Package**: Installed missing `@radix-ui/react-dropdown-menu` (required by Antigravity's new dropdown-menu component).
@@ -234,109 +174,109 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **Status**: Completes backend tasks 3.A (Schema Updates) and 3.B (Assistant Logic Engine — context awareness) from the Master Specification.
 *   **Next**: Run `npx prisma@6 db push` against Supabase to apply schema changes.
 
-### 2026-02-07 [Frontend - Antigravity] - Communications
+### 2026-02-07 09:00 AEST [Frontend - Antigravity] - Communications
 **Feature**: Unified Inbox
 *   **UI**: Created `app/inbox/page.tsx` and `InboxView`.
 *   **Logic**: Added `getInboxThreads` to `messaging-actions.ts`.
 *   **Status**: Task 5.2 Complete.
 
-### 2026-02-07 [Frontend - Antigravity] - Core Hub Polish
+### 2026-02-07 08:30 AEST [Frontend - Antigravity] - Core Hub Polish
 **Feature**: Rotting Deal Widget
 *   **UI**: Created `components/crm/deal-health-widget.tsx`.
 *   **Logic**: Calculates pipeline value and counts stale/rotting deals.
 *   **Status**: Task 4.5 Complete.
 
-### 2026-02-07 [Frontend - Antigravity] - Agent Stream
+### 2026-02-07 08:00 AEST [Frontend - Antigravity] - Agent Stream
 **Feature**: Buyer Matchmaker & Deal Page
 *   **UI**: Created `app/dashboard/deals/[id]/page.tsx` and `BuyerMatchmaker` component.
 *   **Logic**: Wires to `findMatches` action. Shows contacts matching budget/bedrooms.
 *   **Status**: Task 4.3 Complete.
 
-### 2026-02-07 [Frontend - Antigravity] - Agent Stream
+### 2026-02-07 07:30 AEST [Frontend - Antigravity] - Agent Stream
 **Feature**: Open House Kiosk
 *   **Kiosk UI**: Built `app/kiosk/[id]/page.tsx` tablet-first view.
 *   **Logic**: Wires to `logOpenHouseAttendee` + auto-creates contacts.
 *   **Status**: Task 4.1 Complete.
 
-### 2026-02-07 [Backend - Claude Code] - Database Connected
+### 2026-02-07 07:00 AEST [Backend - Claude Code] - Database Connected
 **Update**: Populated `.env` with Supabase credentials.
 *   **Fix**: URL-encoded special characters in password to prevent connection errors.
 *   **Status**: Database connection ready.
 *   **Next**: Schema push and seed.
 
-### 2026-02-07 [Frontend - Antigravity] - Voice-to-Invoice
+### 2026-02-07 06:30 AEST [Frontend - Antigravity] - Voice-to-Invoice
 **Feature**: Voice command integration
 *   **UI**: Added microphone button to `AssistantPane`.
 *   **Logic**: Integrated Web Speech API.
 *   **Backend**: Added `create_invoice` intent to `processChat` action.
 
-### 2026-02-06 [Backend - Aider] - Team Expansion
+### 2026-02-06 18:00 AEST [Backend - Aider] - Team Expansion
 **Update**: Added Aider to the backend team.
 *   **Role**: Aider will work interchangeably with Claude Code on backend tasks, bug fixes, and wiring support.
 *   **Context**: Aider has ingested the project status and handover logs and is aware of the completed Phase 1-5 backend work.
 
-### 2026-02-06 [Backend - Aider] - Phase 1 Wiring Complete
+### 2026-02-06 17:00 AEST [Backend - Aider] - Phase 1 Wiring Complete
 **Feature**: Connected Frontend Shell to Backend Actions
 *   **Dashboard**: Refactored `app/dashboard/page.tsx` to Server Component fetching real `getDeals()` and `getActivities()`.
 *   **Kanban**: Wired `KanbanBoard` to `updateDealStage()` server action using HTML5 Drag & Drop.
 *   **Chat**: Wired `AssistantPane` to `processChat()` server action.
 *   **Activity Feed**: Connected to real data props.
 
-### 2026-02-06 [Backend - Aider] - Phase 2 Backend Support
+### 2026-02-06 16:00 AEST [Backend - Aider] - Phase 2 Backend Support
 **Feature**: Contact Details & Filtering
 *   **Contact Actions**: Added `getContact(id)` to fetch single contact details. Updated `ContactView` to include `address` and `metadata`.
 *   **Deal Actions**: Updated `getDeals()` to support filtering by `contactId`.
 *   **Purpose**: Unblocking Frontend Task 2.2 (Contact Detail Page).
 
-### 2026-02-06 [Backend - Aider] - Phase 2 UI Implementation
+### 2026-02-06 15:30 AEST [Backend - Aider] - Phase 2 UI Implementation
 **Feature**: Contact Detail Page
 *   **Page**: Created `app/contacts/[id]/page.tsx` fetching contact, deals, and activities.
 *   **Components**: Created `ContactHeader` and `ContactTimeline` for visualizing contact history.
 *   **Status**: Task 2.2 Complete.
 
-### 2026-02-06 [Backend - Aider] - Phase 2 Search Support
+### 2026-02-06 15:00 AEST [Backend - Aider] - Phase 2 Search Support
 **Feature**: Global Search Action
 *   **Search**: Created `actions/search-actions.ts` with `globalSearch()` to aggregate contacts, deals, and tasks using fuzzy matching.
 *   **Purpose**: Unblocking Task 2.4 (Command Palette).
 
-### 2026-02-06 [Backend - Aider] - Phase 2 Command Palette
+### 2026-02-06 14:30 AEST [Backend - Aider] - Phase 2 Command Palette
 **Feature**: CMD+K Command Palette
 *   **UI**: Created `components/core/command-palette.tsx` with custom modal UI (no external deps).
 *   **Integration**: Mounted in `app/layout.tsx`. Wired to `globalSearch` action.
 *   **Status**: Task 2.4 Complete.
 
-### 2026-02-06 [Backend - Aider] - Phase 2 Kanban Upgrade
+### 2026-02-06 14:00 AEST [Backend - Aider] - Phase 2 Kanban Upgrade
 **Feature**: dnd-kit Kanban Board
 *   **UI**: Upgraded `components/crm/kanban-board.tsx` to use `@dnd-kit/core` and `@dnd-kit/sortable`.
 *   **UX**: Added drag overlay, touch support, and smooth animations.
 *   **Status**: Task 2.1 Complete.
 
-### 2026-02-06 [Frontend - Antigravity] - Core CRM Hub
+### 2026-02-06 12:00 AEST [Frontend - Antigravity] - Core CRM Hub
 **Feature**: Visual Pipeline & Chat Mode
 *   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.
 *   **Kanban Board**: Created visual pipeline with 5 stages (New, Contacted, Negotiation, Won, Lost) and `framer-motion` drag physics.
 *   **Deal Logic**: Added "Stale" (Amber > 7d) and "Rotting" (Red > 14d) visual alerts to Deal Cards.
 *   **Activity Feed**: Created `ActivityFeed` component to visualize the "Magic Data Entry" events.
 
-### 2026-02-07 [Frontend - Antigravity] - Tradie Stream
+### 2026-02-07 06:00 AEST [Frontend - Antigravity] - Tradie Stream
 **Feature**: Pocket Estimator
 *   **Estimator UI**: Built `app/dashboard/estimator` for quick quote generation.
 *   **Logic**: wired to `generateQuote` action. Clientside line-item math.
 *   **Note**: PDF download button is disabled (waiting on backend).
 
-### 2026-02-07 [Frontend - Antigravity] - Core Hub Polish
+### 2026-02-07 05:30 AEST [Frontend - Antigravity] - Core Hub Polish
 **Feature**: Rotting Deal Widget
 *   **DealHealthWidget**: Dashboard summary of Total Value vs Risk.
 *   **Logic**: Counts Stale (>7d) and Rotting (>14d) deals.
 *   **UI**: Red/Amber alert cards.
 
-### 2026-02-06 [Frontend - Antigravity] - Design Pivot
+### 2026-02-06 10:00 AEST [Frontend - Antigravity] - Design Pivot
 **Feature**: Neutral Light Theme & SaaS Landing Page
 *   **Design System**: Refactored `globals.css` and all UI components to **Neutral Light** (White Bg, Slate-900 Text, Borders/Shadows). Removed Dark Mode/Glassmorphism.
 *   **Landing Page**: Replaced placeholder with full SaaS page (Hero, Product, Pricing, Contact). Added `Navbar` with "Get Started" CTA.
 *   **Auth**: Updated Login/Signup pages to Light Mode. Added mock feedback to Google Sign-in button.
 
-### 2026-02-06 [Backend - Claude Code] - Full Backend Implementation
+### 2026-02-06 08:00 AEST [Backend - Claude Code] - Full Backend Implementation
 **Feature**: Complete CRM Backend — Schema, Server Actions, Utilities, Seed Data
 
 **Prisma Schema** (`prisma/schema.prisma`):
@@ -397,7 +337,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
 5.  Add enrichment on contact creation: already built into `createContact()`.
 
-### 2026-02-06 [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
+### 2026-02-06 06:00 AEST [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
 **Feature**: Tradie/Agent Actions + Build Passing + Legacy Cleanup
 
 *   **Removed `src/` legacy directory**: All code consolidated into root `lib/`, `actions/`. No more duplicate files.
@@ -412,7 +352,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
     *   `deal-actions.ts`, `activity-actions.ts`, `contact-actions.ts`, `task-actions.ts`
     *   `automation-actions.ts`, `chat-actions.ts`, `tradie-actions.ts`, `agent-actions.ts`
 
-### 2026-02-06 [Backend - Claude Code] - All 14 Backend Tasks Complete
+### 2026-02-06 04:00 AEST [Backend - Claude Code] - All 14 Backend Tasks Complete
 **Feature**: Full backend implementation across all 5 phases
 
 **Phase 1 — Wire-up**:
