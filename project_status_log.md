@@ -76,6 +76,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ## Change Log
 
+### 2026-02-07 [Backend - Aider] - Geo-Scheduling
+**Feature**: Added Geolocation Support to Deals
+*   **Deal Actions**: Updated `getDeals` and `DealView` in `actions/deal-actions.ts` to return `address`, `latitude`, and `longitude`.
+*   **Tradie UI**: Updated `components/tradie/tradie-dashboard-client.tsx` to display real address and coordinates instead of placeholders.
+*   **Status**: Progress on Task 3.3 (Map View).
+
 ### 2026-02-07 [Backend - Aider] - Dashboard Wiring
 **Feature**: Wired Tradie and Agent Dashboards to Real Data
 *   **Tradie Dashboard**: Refactored `app/dashboard/tradie/page.tsx` to fetch active jobs via `getDeals`. Created `components/tradie/tradie-dashboard-client.tsx` for map/status UI.

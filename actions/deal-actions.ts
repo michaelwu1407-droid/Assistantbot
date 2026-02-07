@@ -38,6 +38,9 @@ export interface DealView {
   daysInStage: number;
   stageChangedAt: Date;
   metadata?: Record<string, unknown>;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -101,6 +104,9 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
       daysInStage,
       stageChangedAt: deal.stageChangedAt,
       metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
+      address: deal.address ?? undefined,
+      latitude: deal.latitude ?? undefined,
+      longitude: deal.longitude ?? undefined,
     };
   });
 }
