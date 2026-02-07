@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, MessageSquare, Wrench, Camera, Navigation, AlertTriangle } from 'lucide-react';
+import { Phone, MessageSquare, Wrench, Camera, Navigation, AlertTriangle, CreditCard, CheckCircle2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { updateJobStatus } from '@/actions/tradie-actions';
+import { updateJobStatus, createQuoteVariation, markInvoicePaid } from '@/actions/tradie-actions';
 import { DealView } from '@/actions/deal-actions';
+import JobMap from './job-map'; // Import the real map component
 
 interface TradieDashboardClientProps {
   initialJob?: DealView;
@@ -15,11 +17,18 @@ interface TradieDashboardClientProps {
 
 export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieDashboardClientProps) {
   const [isSheetExpanded, setSheetExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'DETAILS' | 'PHOTOS' | 'BILLING'>('DETAILS');
   
   // Parse initial status from metadata or default to PENDING
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initialStatus = (initialJob?.metadata as any)?.status || 'PENDING';
-  const [jobStatus, setJobStatus] = useState<'PENDING' | 'TRAVELING' | 'ARRIVED' | 'WORKING'>(initialStatus);
+  const [jobStatus, setJobStatus] = useState<'PENDING' | 'TRAVELING' | 'ARRIVED' | 'WORKING' | 'COMPLETED'>(initialStatus);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Variation State
+  const [variationDesc, setVariationDesc] = useState("");
+  const [variationPrice, setVariationPrice] = useState("");
 
   const handleMainAction = async () => {
     if (!initialJob) return;
@@ -31,12 +40,37 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
       setJobStatus('ARRIVED');
       setShowSafetyCheck(true);
       await updateJobStatus(initialJob.id, 'ARRIVED');
+    } else if (jobStatus === 'WORKING') {
+      setShowPaymentModal(true);
     }
   };
 
   const completeSafetyCheck = () => {
     setShowSafetyCheck(false);
     setJobStatus('WORKING');
+  };
+
+  const handleAddVariation = async () => {
+    if (!initialJob || !variationDesc || !variationPrice) return;
+    await createQuoteVariation(initialJob.id, [{ desc: variationDesc, price: Number(variationPrice) }]);
+    setVariationDesc("");
+    setVariationPrice("");
+    alert("Variation added!");
+  };
+
+  const handlePayment = async () => {
+    // In a real app, this would integrate with Stripe Terminal / Square
+    // For now, we simulate a successful card tap
+    setTimeout(async () => {
+      if (initialJob) {
+        // We assume an invoice exists or we create one on the fly. 
+        // For this demo, we'll just mark the job status as completed.
+        await updateJobStatus(initialJob.id, 'COMPLETED');
+        setJobStatus('COMPLETED');
+        setShowPaymentModal(false);
+        setSheetExpanded(false);
+      }
+    }, 1500);
   };
 
   if (!initialJob) {
@@ -86,22 +120,9 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
         </div>
       </div>
 
-      {/* Map Placeholder */}
-      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-700 flex flex-col items-center">
-          <MapPin className="w-16 h-16 mb-4 opacity-20" />
-          <p>Map View</p>
-          <p className="text-xs mt-2 opacity-50">{initialJob.address || initialJob.company || "No Address"}</p>
-          {initialJob.latitude && initialJob.longitude && (
-             <p className="text-[10px] mt-1 opacity-30 font-mono">{initialJob.latitude.toFixed(4)}, {initialJob.longitude.toFixed(4)}</p>
-          )}
-        </div>
-        {/* Mock Route Line */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
-          <path d="M100,100 Q200,300 400,200 T600,400" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="8 4" />
-          <circle cx="100" cy="100" r="8" fill="#10b981" />
-          <circle cx="600" cy="400" r="8" fill="#ef4444" />
-        </svg>
+      {/* Map Layer */}
+      <div className="absolute inset-0 bg-slate-900">
+        <JobMap deals={[initialJob]} />
       </div>
 
       {/* Safety Check Modal */}
@@ -145,20 +166,50 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
         )}
       </AnimatePresence>
 
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="absolute inset-0 z-50 bg-emerald-600 flex flex-col items-center justify-center p-6 text-white">
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-center space-y-8"
+            >
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                <CreditCard className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Tap to Pay</h2>
+                <p className="text-emerald-100">Total Due</p>
+                <p className="text-5xl font-black mt-2">${initialJob.value.toLocaleString()}</p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="border-white text-white hover:bg-white hover:text-emerald-600 mt-8"
+                onClick={handlePayment}
+              >
+                Simulate Tap
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom Sheet */}
       <motion.div 
-        className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 rounded-t-3xl shadow-2xl z-30"
+        className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 rounded-t-3xl shadow-2xl z-30 flex flex-col"
         initial={{ height: "15%" }}
-        animate={{ height: isSheetExpanded ? "50%" : "15%" }}
+        animate={{ height: isSheetExpanded ? "85%" : "15%" }}
         transition={{ type: "spring", damping: 20 }}
-        onClick={() => setSheetExpanded(!isSheetExpanded)}
+        onClick={() => !isSheetExpanded && setSheetExpanded(true)}
       >
-        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mt-3 mb-4" />
+        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mt-3 mb-4 shrink-0" />
         
-        <div className="px-6">
-          <div className="flex justify-between items-center mb-6">
+        <div className="px-6 flex-1 flex flex-col overflow-hidden">
+          {/* Collapsed Header */}
+          <div className="flex justify-between items-center mb-6 shrink-0" onClick={() => setSheetExpanded(!isSheetExpanded)}>
             <div>
-              <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Next Job</h3>
+              <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Current Job</h3>
               <h2 className="text-xl font-bold text-white mt-1">{initialJob.title}</h2>
               <p className="text-slate-400 text-sm">8:00 AM • {initialJob.company}</p>
             </div>
@@ -167,30 +218,113 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
             </div>
           </div>
 
+          {/* Expanded Content */}
           <AnimatePresence>
             {isSheetExpanded && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-4 gap-4 mt-8"
+                className="flex-1 flex flex-col overflow-hidden"
               >
-                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-emerald-500/50 transition-all">
-                  <Navigation className="w-6 h-6 text-emerald-400" />
-                  <span className="text-xs">Navigate</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-blue-500/50 transition-all">
-                  <Phone className="w-6 h-6 text-blue-400" />
-                  <span className="text-xs">Call</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-purple-500/50 transition-all">
-                  <MessageSquare className="w-6 h-6 text-purple-400" />
-                  <span className="text-xs">Text</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-orange-500/50 transition-all">
-                  <Wrench className="w-6 h-6 text-orange-400" />
-                  <span className="text-xs">Parts</span>
-                </Button>
+                {/* Tabs */}
+                <div className="flex border-b border-slate-800 mb-4 shrink-0">
+                  <button 
+                    onClick={() => setActiveTab('DETAILS')}
+                    className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'DETAILS' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                  >
+                    Details
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('PHOTOS')}
+                    className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'PHOTOS' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                  >
+                    Photos
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('BILLING')}
+                    className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'BILLING' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                  >
+                    Billing
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-y-auto pb-24">
+                  {activeTab === 'DETAILS' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-4 gap-4">
+                        <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-emerald-500/50 transition-all">
+                          <Navigation className="w-6 h-6 text-emerald-400" />
+                          <span className="text-xs">Navigate</span>
+                        </Button>
+                        <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-blue-500/50 transition-all">
+                          <Phone className="w-6 h-6 text-blue-400" />
+                          <span className="text-xs">Call</span>
+                        </Button>
+                        <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-purple-500/50 transition-all">
+                          <MessageSquare className="w-6 h-6 text-purple-400" />
+                          <span className="text-xs">Text</span>
+                        </Button>
+                        <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-orange-500/50 transition-all">
+                          <Wrench className="w-6 h-6 text-orange-400" />
+                          <span className="text-xs">Parts</span>
+                        </Button>
+                      </div>
+                      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                        <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-2">Job Description</h4>
+                        <p className="text-slate-200 text-sm leading-relaxed">
+                          Client reports blocked drain in main bathroom. Potential tree root intrusion. Access via side gate.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'PHOTOS' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="aspect-square bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center">
+                        <Camera className="w-8 h-8 text-slate-600" />
+                      </div>
+                      <div className="aspect-square bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center">
+                        <span className="text-xs text-slate-500">No photos yet</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'BILLING' && (
+                    <div className="space-y-6">
+                      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="text-slate-400 text-xs uppercase tracking-wider">Current Total</h4>
+                          <span className="text-xl font-bold text-emerald-400">${initialJob.value.toLocaleString()}</span>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <Input 
+                              placeholder="Item (e.g. 100mm PVC)" 
+                              className="bg-slate-900 border-slate-700 text-white"
+                              value={variationDesc}
+                              onChange={(e) => setVariationDesc(e.target.value)}
+                            />
+                            <Input 
+                              placeholder="$" 
+                              type="number" 
+                              className="w-24 bg-slate-900 border-slate-700 text-white"
+                              value={variationPrice}
+                              onChange={(e) => setVariationPrice(e.target.value)}
+                            />
+                          </div>
+                          <Button className="w-full bg-slate-700 hover:bg-slate-600" onClick={handleAddVariation}>
+                            <Plus className="w-4 h-4 mr-2" /> Add Variation
+                          </Button>
+                        </div>
+                      </div>
+                      <Button variant="outline" className="w-full border-slate-700 text-slate-300">
+                        Add Video Explanation
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -199,7 +333,7 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
 
       {/* Sticky Footer Button (Only visible when expanded) */}
       <AnimatePresence>
-        {isSheetExpanded && jobStatus !== 'WORKING' && (
+        {isSheetExpanded && jobStatus !== 'COMPLETED' && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
@@ -209,14 +343,19 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
             <Button 
               className={cn(
                 "w-full h-14 text-lg font-bold uppercase tracking-widest transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]",
-                jobStatus === 'PENDING' ? "bg-emerald-500 hover:bg-emerald-600 text-black" : "bg-blue-600 hover:bg-blue-700 text-white"
+                jobStatus === 'PENDING' ? "bg-emerald-500 hover:bg-emerald-600 text-black" : 
+                jobStatus === 'WORKING' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
+                "bg-blue-600 hover:bg-blue-700 text-white"
               )}
               onClick={(e) => {
                 e.stopPropagation();
                 handleMainAction();
               }}
             >
-              {jobStatus === 'PENDING' ? 'Start Travel' : 'Arrived'}
+              {jobStatus === 'PENDING' ? 'Start Travel' : 
+               jobStatus === 'TRAVELING' ? 'Arrived' :
+               jobStatus === 'ARRIVED' ? 'Start Work' :
+               'Complete Job & Pay'}
             </Button>
           </motion.div>
         )}

@@ -5,7 +5,7 @@ import { Bot, Maximize2, Minimize2, Send, Mic, MicOff } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useDashboard } from "@/components/providers/dashboard-provider"
+import { useAppStore } from "@/lib/store" // Updated to use global store
 import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
@@ -18,7 +18,8 @@ interface Message {
 }
 
 export function AssistantPane() {
-    const { mode, toggleMode } = useDashboard()
+    // Use the global AppStore for view modes to sync with Shell
+    const { viewMode, setViewMode, toggleViewMode } = useAppStore()
     const { industry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
@@ -100,6 +101,16 @@ export function AssistantPane() {
                 content: response.message
             }
             setMessages(prev => [...prev, botMsg])
+
+            // Handle UI Actions triggered by the bot
+            if (response.action === "start_day") {
+                setViewMode("ADVANCED")
+            }
+            if (response.action === "start_open_house") {
+                // Could trigger a specific kiosk mode state here
+                console.log("Starting Open House Mode")
+            }
+
         } catch (error) {
             console.error("Chat error:", error)
             const errorMsg: Message = {
@@ -131,8 +142,8 @@ export function AssistantPane() {
                 </div>
 
                 {/* Layout Toggle */}
-                <Button variant="ghost" size="icon" onClick={toggleMode} title={mode === "chat" ? "Show CRM" : "Focus Chat"}>
-                    {mode === "chat" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                <Button variant="ghost" size="icon" onClick={toggleViewMode} title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}>
+                    {viewMode === "BASIC" ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                 </Button>
             </div>
 
@@ -152,7 +163,7 @@ export function AssistantPane() {
                                             : "I am ready to help you manage your jobs and leads."}
                                 </p>
                                 <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Try asking: &quot;{industry === "TRADES" ? "Create a quote for 123 Main St" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}&quot;
+                                    Try asking: &quot;{industry === "TRADES" ? "Start my day" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}&quot;
                                 </div>
                             </div>
                         )}
