@@ -6,13 +6,17 @@ export const dynamic = 'force-dynamic'
 
 export default async function SetupPage() {
     // Check if the user has already completed onboarding
+    let alreadyOnboarded = false
     try {
         const workspace = await getOrCreateWorkspace("demo-user")
-        if (workspace.onboardingComplete) {
-            redirect("/dashboard")
-        }
+        alreadyOnboarded = workspace.onboardingComplete
     } catch {
         // DB not ready — show setup anyway, it will save when DB is available
+    }
+
+    if (alreadyOnboarded) {
+        // Always show tutorial on sign-in (for troubleshooting)
+        redirect("/tutorial")
     }
 
     return (
