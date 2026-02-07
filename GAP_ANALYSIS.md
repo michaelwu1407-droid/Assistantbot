@@ -1,8 +1,14 @@
 # PJ BUDDY — GAP ANALYSIS vs. EXTREME GRANULAR WALKTHROUGH
 
-**Date**: 2026-02-07
+**Date**: 2026-02-07 (Updated with owner feedback)
 **Prepared by**: Claude Code (Backend)
 **Purpose**: Compare current codebase state against the target UX walkthrough, identify all gaps, and assign fixes.
+
+> **OWNER FEEDBACK (2026-02-07)**:
+> 1. Split screen should be **75/25** (not 50/50 or 70/30). Chat pane is always 25% on the right.
+> 2. Tutorial must be **interactive** (not passive). Currently it shows poorly formatted screens (buttons overlapping, etc.). Should walk through **ALL features** of the app (at least for troubleshooting).
+> 3. **Basic Mode (Chat First)**: Chatbot interface is the primary thing on screen. Chatbot only gets pushed to the side when Advanced Mode is toggled on, and the actual app becomes the main focus.
+> 4. **Overall formatting and colour scheme**: Looks barebones and unpolished. Needs significant design improvement.
 
 ---
 
@@ -21,60 +27,65 @@
 
 ## SECTION 1: THE 3 MODES
 
-### 1.1 Tutorial Mode (First Login) — 50/50 Split Screen
+### 1.1 Tutorial Mode (First Login) — 75/25 Split Screen
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Split-screen layout | ⚠️ | Currently 75/25 split. Spec says **50/50** |
-| Left: The App Canvas (dimmed) | ❌ | Currently shows a **mock** pipeline, not the real app canvas. Should show the actual app UI (dimmed/greyed out) |
-| Right: The Chatbot | ⚠️ | Currently shows a mock chat pane with static messages, not the real chatbot |
+| Split-screen layout (75/25) | ⚠️ | Currently 75/25 split exists but **poorly formatted** — buttons overlap, layout breaks. Needs polish |
+| Left (75%): The App Canvas (dimmed) | ❌ | Currently shows a **mock** pipeline, not the real app canvas. Should show the actual app UI (dimmed/greyed out) |
+| Right (25%): The Chatbot | ⚠️ | Currently shows a mock chat pane with static messages, not the real chatbot |
 | Interactive: Bot says "Click the Map", Map button highlights, user clicks | ❌ | Tutorial is **passive** (Next button only). Spec requires **interactive guided clicks** on real UI elements |
+| Walk through ALL features (for troubleshooting) | ❌ | Currently only covers pipeline + stale alerts. Should walk through every feature: map, inbox, estimator, kiosk, etc. |
 | Tutorial triggers on every sign-in (troubleshooting) | ✅ | Setup page redirects to /tutorial for onboarded users |
 
 **Action Items:**
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| T-1 | Redesign tutorial as interactive overlay on real dashboard (not a separate mock page). Bot gives instructions, real UI elements highlight, user clicks them to advance | 🎨 Antigravity | HIGH |
-| T-2 | Change split to 50/50 (or make it an overlay with dimmed background + spotlight) | 🎨 Antigravity | HIGH |
-| T-3 | Wire tutorial chatbot to real AssistantPane (right side shows actual chat that responds) | 🎨 Antigravity | MEDIUM |
+| T-1 | Redesign tutorial as interactive overlay on real dashboard (not a separate mock page). Bot gives instructions, real UI elements highlight, user clicks them to advance. Must cover ALL features (map, inbox, estimator, kiosk, contacts, etc.) | 🎨 Antigravity | **CRITICAL** |
+| T-2 | Fix layout issues: buttons overlapping, broken formatting. Keep 75/25 split but make it clean | 🎨 Antigravity | **CRITICAL** |
+| T-3 | Wire tutorial chatbot to real AssistantPane (right side shows actual chat that responds) | 🎨 Antigravity | HIGH |
 
 ---
 
 ### 1.2 Basic Mode (Default — "Chatbot First")
 
+> **OWNER CLARIFICATION**: In Basic Mode, the chatbot IS the primary thing on screen (full width, centered, like ChatGPT). The chatbot only gets pushed to the 25% right side when the user toggles to Advanced Mode, at which point the actual app canvas takes the 75% left.
+
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Default view is clean central chat (like ChatGPT/Gemini) | ❌ | DashboardProvider defaults to `"advanced"`. Chat mode exists but shows a sidebar-style card, not a full-page clean chat |
+| Default view is clean central chat (like ChatGPT/Gemini) — chatbot is PRIMARY | ❌ | DashboardProvider defaults to `"advanced"`. Chat mode exists but shows a sidebar-style card, not a full-page clean chat |
 | User types "Start my day" | ⚠️ | "Start day" triggers morning digest text, but does NOT switch UI mode |
-| App Canvas slides in from the left to show relevant info | ❌ | No mechanism for chat responses to trigger UI mode changes. Canvas just shows/hides with toggle button |
+| Toggle to Advanced Mode → chatbot shrinks to 25% right, app canvas takes 75% left | ⚠️ | Currently uses `w-[400px]` fixed width for chat, not 25%. Main canvas doesn't fill 75% |
+| Canvas slides in from the left to show relevant info | ❌ | No mechanism for chat responses to trigger UI mode changes. Canvas just shows/hides with toggle button |
 | Canvas retreats after showing info | ❌ | No auto-retreat behavior |
 
 **Action Items:**
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| M-1 | Change DashboardProvider default mode to `"chat"` for new users (store preference in workspace `mode_preference` field) | 🔧🎨 Both | HIGH |
-| M-2 | Redesign chat mode to be full-page centered chat (like ChatGPT), not a sidebar card | 🎨 Antigravity | HIGH |
+| M-1 | Change DashboardProvider default mode to `"chat"` for new users (store preference in workspace `mode_preference` field) | 🔧🎨 Both | **CRITICAL** |
+| M-2 | Redesign chat mode to be full-page centered chat (like ChatGPT), not a sidebar card. Chatbot is the PRIMARY interface | 🎨 Antigravity | **CRITICAL** |
 | M-3 | Add `mode_preference` column to Workspace schema (ENUM: SIMPLE/ADVANCED, default SIMPLE) | 🔧 Backend | MEDIUM |
 | M-4 | Chat response "action" field should trigger UI mode changes (e.g., "start day" → switch to advanced + show map/pipeline) | 🔧🎨 Both | HIGH |
-| M-5 | Add auto-retreat behavior: canvas slides out after N seconds or when user returns to chat | 🎨 Antigravity | LOW |
+| M-5 | When toggling to Advanced Mode: app canvas = 75% left, chatbot = 25% right (not fixed 400px) | 🎨 Antigravity | HIGH |
+| M-6 | Add auto-retreat behavior: canvas slides out after N seconds or when user returns to chat | 🎨 Antigravity | LOW |
 
 ---
 
-### 1.3 Advanced Mode (Power User)
+### 1.3 Advanced Mode (Power User) — 75/25 Split
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | Split pane layout | ✅ | Dashboard layout has main + aside |
-| Left (70%): App Canvas always visible | ⚠️ | Currently `flex-1` (dynamic) not fixed 70%. Close enough, but chatbot is `w-[400px]` fixed, not 30% |
-| Right (30%): Chatbot co-pilot | ⚠️ | Fixed 400px width, not 30%. On small screens this may not work well |
+| Left (75%): App Canvas always visible | ⚠️ | Currently `flex-1` (dynamic) not fixed 75%. Chatbot is `w-[400px]` fixed, not 25% |
+| Right (25%): Chatbot co-pilot | ⚠️ | Fixed 400px width, not 25%. On small screens this may not work well |
 
 **Action Items:**
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| A-1 | Change aside width from `w-[400px]` to `w-[30%]` and main from `flex-1` to `w-[70%]` (with min-width guards) | 🎨 Antigravity | LOW |
+| A-1 | Change aside width from `w-[400px]` to `w-1/4` (25%) and main from `flex-1` to `w-3/4` (75%) with min-width guards | 🎨 Antigravity | HIGH |
 
 ---
 
@@ -270,6 +281,8 @@ These are issues that affect the entire app regardless of scenario.
 | X-14 | **"New Deal" button text should be industry-aware** — "New Job" for trades, "New Listing" for agents | ⚠️ | 🎨 Antigravity | LOW |
 | X-15 | **File/photo storage** — no file upload or storage system (needed for photos, documents, PDFs) | ❌ | 🔧 Backend | HIGH |
 | X-16 | **Estimator typo** — "Generatiing" (double i) in estimator-form.tsx line 202 | ⚠️ | 🎨 Antigravity | LOW |
+| X-17 | **Overall UI looks barebones/unpolished** — colour scheme is bland, components lack visual depth, spacing inconsistent, no gradients/micro-interactions, no loading skeletons. Needs a comprehensive design pass | ⚠️ | 🎨 Antigravity | **CRITICAL** |
+| X-18 | **Tutorial layout is broken** — buttons overlap, poor formatting, not all features covered | ⚠️ | 🎨 Antigravity | **CRITICAL** |
 
 ---
 
@@ -279,11 +292,14 @@ These are issues that affect the entire app regardless of scenario.
 
 | # | Task | Owner | Description |
 |---|------|-------|-------------|
+| X-17 | **UI Polish** | 🎨 Antigravity | Comprehensive design pass — colour scheme, spacing, gradients, micro-interactions, loading states |
+| X-18/T-1/T-2 | **Tutorial fix** | 🎨 Antigravity | Fix broken layout, make interactive, cover ALL features |
+| M-1/M-2 | **Chat-first default** | 🔧🎨 Both | Default to chat mode, full-page centered chat UI (chatbot is PRIMARY) |
+| M-5/A-1 | **75/25 split** | 🎨 Antigravity | Advanced mode = 75% app canvas + 25% chatbot (not fixed 400px) |
 | X-1 | Auth | 🔧 Backend | Implement real authentication (NextAuth.js or Supabase Auth) |
 | X-2 | Middleware | 🔧 Backend | Auth guards for protected routes |
 | X-4/X-5 | Industry stages | 🔧🎨 Both | Kanban columns match industry, flexible DealStage |
 | X-8 | New Deal form | 🎨 Antigravity | Modal/form to create deals from dashboard |
-| M-1/M-2 | Chat-first default | 🔧🎨 Both | Default to chat mode, full-page chat UI |
 | X-6 | Agent page real data | 🔧🎨 Both | Replace hardcoded agent page with DB data |
 | X-7 | Tradie page real data | 🎨 Antigravity | Replace placeholder with real job cards from DB |
 
@@ -338,8 +354,7 @@ These are issues that affect the entire app regardless of scenario.
 | J-10 | Video recording | 🔧🎨 Both | Record explanation videos |
 | J-12 | NFC payments | 🔧🎨 Both | Stripe Terminal / Square |
 | MK-1–3,5 | Magic Keys | 🔧🎨 Both | Full key management system |
-| A-1 | Width ratios | 🎨 Antigravity | 70/30 split percentages |
-| M-5 | Canvas auto-retreat | 🎨 Antigravity | Auto-hide canvas |
+| M-6 | Canvas auto-retreat | 🎨 Antigravity | Auto-hide canvas |
 | X-11 | Remove GitHub btn | 🎨 Antigravity | Clean up login page |
 | X-14 | Industry-aware labels | 🎨 Antigravity | "New Job" / "New Listing" |
 | X-16 | Estimator typo | 🎨 Antigravity | Fix "Generatiing" |
@@ -365,12 +380,15 @@ These are issues that affect the entire app regardless of scenario.
 ## SECTION 7: RECOMMENDED EXECUTION ORDER
 
 ### Sprint 1 — Foundation (Week 1)
-1. **X-1**: Real auth (Backend) — Supabase Auth or NextAuth
-2. **X-2**: Middleware auth guards (Backend)
-3. **X-4/X-5**: Industry-aware kanban stages (Both)
-4. **X-8**: New Deal modal/form (Frontend)
-5. **M-1/M-2**: Chat-first default mode + full-page chat UI (Both)
-6. **X-3**: Toast notification system (Frontend)
+1. **X-17**: UI Polish pass — colour scheme, spacing, gradients, visual depth (Frontend)
+2. **X-18/T-1/T-2**: Tutorial fix — broken layout, interactive, cover all features (Frontend)
+3. **M-1/M-2**: Chat-first default mode + full-page centered chat UI (Both)
+4. **M-5/A-1**: 75/25 split in Advanced Mode (Frontend)
+5. **X-1**: Real auth (Backend) — Supabase Auth or NextAuth
+6. **X-2**: Middleware auth guards (Backend)
+7. **X-4/X-5**: Industry-aware kanban stages (Both)
+8. **X-8**: New Deal modal/form (Frontend)
+9. **X-3**: Toast notification system (Frontend)
 
 ### Sprint 2 — Core Scenarios (Week 2)
 1. **X-6/AG-5**: Agent page real data (Both)
