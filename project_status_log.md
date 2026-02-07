@@ -452,6 +452,15 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 4.  Wire Kanban drag-drop to `updateDealStage(dealId, newStage)` — now also sets `stageChangedAt`
 5.  Call `getOrCreateWorkspace(userId)` on app load to get `workspaceId`
 
+### 2026-02-08 [Frontend - Antigravity] - Phase 2 Shell & Personas
+**Feature**: Implemented Shell, Tradie & Agent Personas
+*   **Layout Shell**: Implemented `lib/store.ts` (Zustand) and `components/layout/Shell.tsx` (Split Pane).
+*   **Tradie Persona**: Built `/app/(dashboard)/tradie/page.tsx` with Dark Mode, Pulse Widget, Map Placeholder using `drawer` (Vaul).
+*   **Agent Persona**: Built `/app/(dashboard)/agent/page.tsx` with Light Mode, Speed-to-Lead, Rotting Kanban using `deal.metadata`.
+*   **Schema**: Added `Task` model and fixed `Deal <-> Activity` relations in `schema.prisma`. Verified `WorkspaceType` and `DealStage`.
+*   **Build Status**: Passing (with pragmatic type fixes in `lib/digest.ts`).
+*   **Status**: Phase 2 Frontend Complete.
+
 ---
 
 ## 🗺️ ACTION PLAN — Backend Team (Claude Code & Aider) + Antigravity (Frontend)
@@ -639,3 +648,66 @@ The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the ba
 
 ### C. Auth Security
 - **Hardening:** Ensure removing the GitHub frontend button is matched by disabling the GitHub OAuth strategy in the backend config to prevent direct API access.
+
+---
+
+# PHASE 2 MASTER SPECIFICATION: THE EXTREME GRANULAR WALKTHROUGH
+
+## THE CORE UX: THE 3 MODES
+1. **Tutorial Mode (First Login)**: 50/50 Split Screen.
+   - **Left**: The App Canvas (dimmed).
+   - **Right**: The Chatbot.
+   - **Interaction**: Bot says "Click the Map." The Map button highlights. User clicks.
+
+2. **Basic Mode (Default - "Chatbot First")**:
+   - **Screen**: Clean, central chat interface (like ChatGPT or Google Gemini).
+   - **Action**: User types/speaks: "Start my day."
+   - **Result**: The App Canvas slides in from the left to show relevant info, then retreats.
+
+3. **Advanced Mode (Power User)**:
+   - **Screen**: Split Pane.
+   - **Left (70%)**: The App Canvas (Map, Pipeline, Forms) is always visible.
+   - **Right (30%)**: The Chatbot ("Travis" or "Pj") sits on the side as a co-pilot.
+
+## SCENARIO A: THE TRADIE (Scott & "Travis")
+**Theme**: High Contrast Dark Mode (Slate-950 bg, Neon Green accents).
+**Device**: iPhone 16 Pro.
+
+1.  **The Morning Routine (Basic Mode)**
+    - *Action*: Scott types "Start Day."
+    - *System*: Map Canvas slides in (Advanced Mode).
+
+2.  **The Dashboard (Map View)**
+    - *Header*: "Good Morning", Weather, Search, Notification Bell.
+    - *Overlay*: "The Pulse" Widget (Wk: $4.2k | Owe: $850).
+    - *Canvas*: Dark Mode Map with numbered pins + blue route line.
+    - *Bottom Sheet*: Collapsed ("Next: Mrs. Jones"). Expandable to show Job Details + Quick Actions.
+
+3.  **Job Execution**
+    - *Travel*: "START TRAVEL" Footer Button (Neon Green). Triggers SMS.
+    - *Arrival*: "ARRIVED" -> Safety Check Modal (Power Off? Site Clear?).
+    - *Work*: Camera FAB. Photo annotation (Red line). Voice transcription ("Found hairline fracture").
+    - *Quoting*: "Add Video Explanation" (15s). Sign-on-Glass.
+    - *Payment*: "Complete Job" -> Full screen Payment Terminal ($450.00). Tap to Pay.
+
+## SCENARIO B: THE AGENT (Sarah & "Pj")
+**Theme**: Elegant Light Mode (White bg, Gold/Navy accents).
+**Device**: iPad Pro.
+
+1.  **The Dashboard (Advanced Mode)**
+    - *Header*: "Speed-to-Lead" Widget (Bubbles with timers). Commission Calculator.
+    - *Canvas*: "Rotting" Pipeline (Kanban). Red cards if > 7 days inactive.
+    - *Sidebar*: Matchmaker Feed ("3 Buyers found").
+
+2.  **Killer Feature: Magic Keys**
+    - *Action*: Tap "Key" icon (Bottom Rail). Scan QR.
+    - *Feedback*: Toast "Keys checked out to Sarah."
+
+3.  **Open House (Kiosk Mode)**
+    - *Screen*: Full screen image + QR Code ("Scan to Check In").
+
+4.  **Vendor Reporting**
+    - *Widget*: "Price Feedback Meter" (Gauge).
+    - *Action*: "Send Vendor Report" -> WhatsApp Preview -> Send.
+
+

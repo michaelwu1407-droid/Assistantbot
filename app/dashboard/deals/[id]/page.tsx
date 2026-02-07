@@ -18,8 +18,8 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const deal = await db.deal.findUnique({
         where: { id },
-        include: { contact: true }
-    })
+        include: { contacts: { take: 1 } }
+    } as any) as any
 
     if (!deal) {
         notFound()
@@ -27,6 +27,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const metadata = deal.metadata as Record<string, unknown> || {}
     const isRealEstate = !!metadata.bedrooms || !!metadata.address
+    const contact = deal.contacts[0]
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-8 space-y-6 overflow-hidden">
@@ -44,8 +45,8 @@ export default async function DealDetailPage({ params }: PageProps) {
                             </Badge>
                         </div>
                         <p className="text-slate-500 flex items-center gap-2 text-sm mt-1">
-                            {deal.company || deal.contact.company} •
-                            <span className="text-emerald-600 font-medium">${deal.value.toLocaleString()}</span>
+                            {deal.company || contact?.company} •
+                            <span className="text-emerald-600 font-medium">${Number(deal.value).toLocaleString()}</span>
                             {isRealEstate && typeof metadata.address === 'string' && ` • ${metadata.address}`}
                         </p>
                     </div>

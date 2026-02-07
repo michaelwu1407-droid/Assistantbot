@@ -5,7 +5,7 @@ import { Bot, Maximize2, Minimize2, Send, Mic, MicOff } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useAppStore } from "@/lib/store" // Updated to use global store
+import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
@@ -18,8 +18,7 @@ interface Message {
 }
 
 export function AssistantPane() {
-    // Use the global AppStore for view modes to sync with Shell
-    const { viewMode, setViewMode, toggleViewMode } = useAppStore()
+    const { viewMode, setViewMode } = useShellStore()
     const { industry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
@@ -142,8 +141,13 @@ export function AssistantPane() {
                 </div>
 
                 {/* Layout Toggle */}
-                <Button variant="ghost" size="icon" onClick={toggleViewMode} title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}>
-                    {viewMode === "BASIC" ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode(viewMode === "BASIC" ? "ADVANCED" : "BASIC")}
+                    title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}
+                >
+                    {viewMode === "BASIC" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
             </div>
 

@@ -1,17 +1,18 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 
-interface AppState {
-  viewMode: 'BASIC' | 'ADVANCED';
-  setViewMode: (mode: 'BASIC' | 'ADVANCED') => void;
-  toggleViewMode: () => void;
-  isTutorialActive: boolean;
-  setTutorialActive: (active: boolean) => void;
+export type ViewMode = 'BASIC' | 'ADVANCED' | 'TUTORIAL'
+export type Persona = 'TRADIE' | 'AGENT'
+
+interface ShellState {
+  viewMode: ViewMode
+  persona: Persona
+  setViewMode: (mode: ViewMode) => void
+  setPersona: (persona: Persona) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useShellStore = create<ShellState>((set) => ({
   viewMode: 'BASIC',
+  persona: 'TRADIE', // Default to Tradie for now, real app would set this on login
   setViewMode: (mode) => set({ viewMode: mode }),
-  toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'BASIC' ? 'ADVANCED' : 'BASIC' })),
-  isTutorialActive: false,
-  setTutorialActive: (active) => set({ isTutorialActive: active }),
-}));
+  setPersona: (persona) => set({ persona }),
+}))

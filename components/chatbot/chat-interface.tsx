@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Bot, User } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
+import { useShellStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -12,7 +12,7 @@ interface Message {
 }
 
 export function ChatInterface() {
-  const { viewMode, setViewMode } = useAppStore();
+  const { viewMode, setViewMode } = useShellStore();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'bot', text: 'Hey! I\'m Pj. How can I help you today?' }
@@ -35,7 +35,7 @@ export function ChatInterface() {
     // Mock AI Logic for the Demo
     setTimeout(() => {
       let botResponse = "I'm not sure how to help with that yet.";
-      
+
       if (input.toLowerCase().includes('start day') || input.toLowerCase().includes('start my day')) {
         botResponse = "Good morning! I've pulled up your route. You have 4 jobs today.";
         setViewMode('ADVANCED'); // Trigger the UI slide-in
@@ -82,8 +82,8 @@ export function ChatInterface() {
             </div>
             <div className={cn(
               "p-3 rounded-2xl text-sm",
-              msg.role === 'user' 
-                ? "bg-slate-900 text-white rounded-tr-none" 
+              msg.role === 'user'
+                ? "bg-slate-900 text-white rounded-tr-none"
                 : "bg-slate-100 text-slate-800 rounded-tl-none"
             )}>
               {msg.text}
@@ -107,7 +107,7 @@ export function ChatInterface() {
             <button className="p-2 text-slate-400 hover:text-slate-600">
               <Mic className="w-5 h-5" />
             </button>
-            <button 
+            <button
               onClick={handleSend}
               className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors"
             >

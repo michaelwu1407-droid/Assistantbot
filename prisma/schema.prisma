@@ -25,25 +25,18 @@ enum DealStage {
   NEW
   CONTACTED
   NEGOTIATION
-  INVOICED
   WON
   LOST
-  CONTRACT
-  CLOSED
+  INVOICED
   ARCHIVED
 }
 
 enum ActivityType {
   CALL
   EMAIL
-  NOTE
   MEETING
+  NOTE
   TASK
-}
-
-enum ViewMode {
-  BASIC
-  ADVANCED
 }
 
 model Workspace {
@@ -51,47 +44,50 @@ model Workspace {
   name               String
   type               WorkspaceType
   industryType       IndustryType?
+  ownerId            String?
   location           String?
   onboardingComplete Boolean       @default(false)
   brandingColor      String?
+  
   users              User[]
   deals              Deal[]
   contacts           Contact[]
-  automations        Automation[]
   messageTemplates   MessageTemplate[]
+  automations        Automation[]
   chatMessages       ChatMessage[]
+  
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  name          String?
-  workspaceId   String
-  viewMode      ViewMode      @default(BASIC)
-  industryType  IndustryType?
-  setupComplete Boolean       @default(false)
-  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
-  activities    Activity[]
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  activities  Activity[]
+  
+  // View preference
+  viewMode    String?   @default("BASIC") // BASIC, ADVANCED
 }
 
 model Deal {
   id             String    @id @default(cuid())
   title          String
   stage          DealStage @default(NEW)
-  value          Decimal   @default(0)
+  value          Decimal?
   
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
   metadata       Json?     
   
-  lastActivityAt DateTime  @default(now())
-  stageChangedAt DateTime  @default(now())
-  
+  // Geo-scheduling
   address        String?
   latitude       Float?
   longitude      Float?
-
+  
+  lastActivityAt DateTime  @default(now())
+  stageChangedAt DateTime  @default(now())
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   
@@ -131,109 +127,110 @@ model Activity {
   id          String       @id @default(cuid())
   type        ActivityType
   title       String
-  content     String?
   description String?
+  content     String?
   
   userId      String?
   user        User?        @relation(fields: [userId], references: [id])
   
   dealId      String?
-  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal        Deal?        @relation(fields: [dealId], references: [id])
   
   contactId   String?
-  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id])
   
   createdAt   DateTime     @default(now())
 }
 
 model Task {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
-  dueAt       DateTime
-  completed   Boolean   @default(false)
+  completed   Boolean  @default(false)
   completedAt DateTime?
+  dueAt       DateTime?
   
   dealId      String?
-  deal        Deal?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal        Deal?    @relation(fields: [dealId], references: [id])
   
   contactId   String?
-  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact     Contact? @relation(fields: [contactId], references: [id])
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Invoice {
   id          String    @id @default(cuid())
   number      String    @unique
-  status      String    // DRAFT, ISSUED, PAID
+  status      String    // DRAFT, ISSUED, PAID, VOID
   subtotal    Decimal
   tax         Decimal
   total       Decimal
   lineItems   Json
   
+  issuedAt    DateTime?
+  paidAt      DateTime?
+  
   dealId      String
   deal        Deal      @relation(fields: [dealId], references: [id])
   
-  issuedAt    DateTime?
-  paidAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
-model OpenHouseLog {
-  id              String   @id @default(cuid())
-  dealId          String
-  deal            Deal     @relation(fields: [dealId], references: [id])
+model MessageTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  category    String    // follow-up, quote, meeting, etc
+  subject     String?
+  body        String
+  variables   String?   // JSON array of variable names
   
-  attendeeName    String
-  attendeeEmail   String?
-  attendeePhone   String?
-  interestedLevel Int      @default(0)
-  notes           String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
   
-  visitedAt       DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Automation {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  enabled     Boolean  @default(true)
-  trigger     Json
-  action      Json
+  enabled     Boolean   @default(true)
+  trigger     Json      // { event: "deal_stale", threshold: 7 }
+  action      Json      // { type: "notify", message: "..." }
   lastFiredAt DateTime?
   
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model MessageTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  category    String   @default("general")
-  subject     String?
-  body        String
-  variables   String?  // JSON array of strings
-  
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model ChatMessage {
-  id          String   @id @default(cuid())
-  role        String   // user, assistant
+  id          String    @id @default(cuid())
+  role        String    // user, assistant
   content     String
   metadata    Json?
   
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+model OpenHouseLog {
+  id              String   @id @default(cuid())
+  attendeeName    String
+  attendeeEmail   String?
+  attendeePhone   String?
+  interestedLevel Int      @default(0) // 0-5
+  notes           String?
+  
+  dealId          String
+  deal            Deal     @relation(fields: [dealId], references: [id])
+  
+  visitedAt       DateTime @default(now())
 }
