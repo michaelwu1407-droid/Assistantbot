@@ -31,6 +31,10 @@
 2. Update the **task table** status (change `⬜`→`🚧`→`✅`) when starting/finishing tasks.
 3. If you create new files, list them so other agents know they exist.
 4. If you change existing APIs or component props, note the breaking change.
+5. **Mandatory Summary**: At the end of every response, provide a structured summary:
+   1. **What I did**: Specific files edited and logic changed.
+   2. **Current Status**: The state of the feature/bug.
+   3. **Next Steps**: What needs to happen next.
 
 ### Why This Matters
 - We have 3 AI agents working in parallel. Without status updates, agents duplicate work or break each other's code.
@@ -75,6 +79,11 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 ---
 
 ## Change Log
+
+### 2026-02-07 [Frontend - Antigravity] - Protocol Update
+**Update**: Updated Contributor Requirements
+*   **Docs**: Added mandatory summary requirement to `project_status_log.md`.
+*   **Status**: Protocol updated.
 
 ### 2026-02-07 [Frontend - Antigravity] - Offline Support
 **Feature**: Service Worker Implementation
