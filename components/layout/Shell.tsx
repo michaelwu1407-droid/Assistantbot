@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 
 interface ShellProps {
   children: React.ReactNode; // The "Canvas" (Main App)
@@ -10,10 +11,17 @@ interface ShellProps {
 }
 
 export function Shell({ children, chatbot }: ShellProps) {
-  const { viewMode } = useAppStore();
+  const { viewMode, isTutorialActive, setTutorialActive } = useAppStore();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background transition-all duration-500">
+    <div className="flex h-screen w-full overflow-hidden bg-background transition-all duration-500 relative">
+      {/* Tutorial Layer */}
+      <TutorialOverlay 
+        isActive={isTutorialActive}
+        message="Click the map to expand your view and see your route."
+        onComplete={() => setTutorialActive(false)}
+      />
+
       {/* Left Pane: The Canvas */}
       <main
         className={cn(

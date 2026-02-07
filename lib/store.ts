@@ -6,6 +6,10 @@ interface AppState {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
+  
+  // Tutorial State
+  isTutorialActive: boolean;
+  setTutorialActive: (active: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -15,4 +19,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       viewMode: state.viewMode === 'BASIC' ? 'ADVANCED' : 'BASIC',
     })),
+    
+  isTutorialActive: false,
+  setTutorialActive: (active) => set({ isTutorialActive: active }),
 }));
