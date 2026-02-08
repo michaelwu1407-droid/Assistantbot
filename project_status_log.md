@@ -124,6 +124,31 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 
 ---
 
+### 2026-02-09 13:45 AEST [Backend - Aider] - Agent Dashboard Integration
+**Feature**: Agent Dashboard Wiring
+*   **Feed**: Created `components/agent/matchmaker-feed.tsx` (Task FE-16).
+*   **Dashboard**: Updated `app/dashboard/agent/page.tsx` to fetch `freshLeads` and pass `workspaceId`.
+*   **Client**: Rebuilt `components/agent/agent-dashboard-client.tsx` to include Speed-to-Lead, Commission Calculator, and Matchmaker Feed.
+*   **Status**: Agent Dashboard is now fully featured and wired to backend data.
+*   **Files created**: `components/agent/matchmaker-feed.tsx`.
+*   **Files modified**: `app/dashboard/agent/page.tsx`, `components/agent/agent-dashboard-client.tsx`.
+
+### 2026-02-09 13:30 AEST [Backend - Aider] - Agent Matchmaker
+**Feature**: Matchmaker Feed & Agent Widgets
+*   **Matchmaker**: Created `components/agent/matchmaker-feed.tsx` to display aggregated buyer matches (Task FE-16).
+*   **Widgets**: Re-supplied `vendor-report-widget.tsx` and `whatsapp-preview-modal.tsx` to ensure availability.
+*   **Status**: Agent components are ready. Need `app/dashboard/agent/page.tsx` to integrate.
+*   **Files created**: `components/agent/matchmaker-feed.tsx`, `components/modals/whatsapp-preview-modal.tsx`, `components/agent/vendor-report-widget.tsx`.
+
+### 2026-02-09 13:15 AEST [Frontend - Antigravity] - Agent Features
+**Feature**: Vendor Reports & Commission Calculator
+*   **Vendor Report**: Created `components/agent/vendor-report-widget.tsx` and `components/modals/whatsapp-preview-modal.tsx`. Allows agents to preview and send reports via WhatsApp (Task VR-3, VR-5).
+*   **Commission Calc**: Created `components/agent/commission-calculator.tsx` (Task AG-2).
+*   **Deal Page**: Updated `app/dashboard/deals/[id]/page.tsx` to include these new widgets for Real Estate deals.
+*   **Status**: Agent workflow significantly enhanced with reporting and calculation tools.
+*   **Files created**: `components/agent/vendor-report-widget.tsx`, `components/modals/whatsapp-preview-modal.tsx`, `components/agent/commission-calculator.tsx`.
+*   **Files modified**: `app/dashboard/deals/[id]/page.tsx`.
+
 ### 2026-02-09 13:00 AEST [Backend - Aider] - Weather & Kiosk QR
 **Feature**: Weather Integration & Kiosk QR Code
 *   **Weather**: Updated `components/dashboard/header.tsx` to fetch and display weather using `getWeather` action (Task D-2).

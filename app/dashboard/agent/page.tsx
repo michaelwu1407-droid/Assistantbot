@@ -1,20 +1,20 @@
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getDeals } from "@/actions/deal-actions";
-import { findMatches, MatchedContact } from "@/actions/agent-actions";
+import { findMatches, getFreshLeads, MatchedContact } from "@/actions/agent-actions";
 import { AgentDashboardClient } from "@/components/agent/agent-dashboard-client";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AgentPage() {
-  let workspace, listings;
+  let workspace, listings, leads;
   const matches: Record<string, MatchedContact[]> = {};
 
   try {
     workspace = await getOrCreateWorkspace("demo-user");
     listings = await getDeals(workspace.id);
+    leads = await getFreshLeads(workspace.id);
 
     // Pre-fetch matches for active listings
-    // In a real app, we might only do this for the top 3 or on demand
     const activeListings = listings.filter(l => l.stage === 'new' || l.stage === 'contacted');
     
     for (const listing of activeListings) {
@@ -38,9 +38,13 @@ export default async function AgentPage() {
 
   return (
     <AgentDashboardClient 
+      workspaceId={workspace.id}
       listings={listings} 
+      leads={leads}
       matches={matches}
       totalCommission={totalCommission}
+      userName={workspace.name.split(' ')[0] || "Agent"}
+      userId="demo-user" // In real app, get from session
     />
   );
 }
