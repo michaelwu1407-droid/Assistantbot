@@ -131,13 +131,13 @@ export function AssistantPane() {
     }
 
     return (
-        <div className="flex h-full flex-col h-full">
-            <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4 bg-white">
+        <div className="flex h-full flex-col bg-background">
+            <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-purple-600 border border-purple-100">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Bot className="h-5 w-5" />
                     </div>
-                    <span className="font-semibold text-slate-900">Pj Assistant</span>
+                    <span className="font-semibold text-foreground">Pj Assistant</span>
                 </div>
 
                 {/* Layout Toggle */}
@@ -152,14 +152,12 @@ export function AssistantPane() {
                 </Button>
             </div>
 
-            <div className="flex-1 p-4 bg-slate-50/50 overflow-hidden">
-                <Card className="h-full border-slate-200 shadow-none bg-white flex flex-col">
-                    <CardHeader className="shrink-0">
-                        <CardTitle className="text-lg">Chat</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+            <div className="flex-1 overflow-hidden bg-muted/30">
+                <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={scrollRef}>
                         {messages.length === 0 && (
-                            <div className="text-slate-500 text-sm space-y-2">
+                            <div className="text-muted-foreground text-sm space-y-4 max-w-sm mx-auto mt-10 text-center">
+                                <Bot className="h-12 w-12 mx-auto text-muted-foreground/50" />
                                 <p>
                                     {industry === "TRADES"
                                         ? "G'day! Ready to quote some jobs or chase invoices?"
@@ -167,8 +165,10 @@ export function AssistantPane() {
                                             ? "Hey! Ready for the open house or need to find a buyer?"
                                             : "Hey! I'm ready to help you manage your jobs and leads."}
                                 </p>
-                                <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Try asking: &quot;{industry === "TRADES" ? "Start my day" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}&quot;
+                                <div className="grid gap-2">
+                                    <Button variant="outline" size="sm" className="justify-start h-auto py-2 px-3 text-left font-normal" onClick={() => setInput(industry === "TRADES" ? "Start my day" : "Who is matching 123 Main St?")}>
+                                        "{industry === "TRADES" ? "Start my day" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}"
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -183,10 +183,10 @@ export function AssistantPane() {
                             >
                                 <div
                                     className={cn(
-                                        "rounded-lg px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap",
+                                        "rounded-2xl px-4 py-3 max-w-[85%] text-sm whitespace-pre-wrap shadow-sm",
                                         msg.role === "user"
-                                            ? "bg-slate-900 text-white"
-                                            : "bg-slate-100 text-slate-900"
+                                            ? "bg-primary text-primary-foreground rounded-br-none"
+                                            : "bg-card text-card-foreground border border-border/50 rounded-bl-none"
                                     )}
                                 >
                                     {msg.content}
@@ -196,29 +196,29 @@ export function AssistantPane() {
 
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-slate-100 rounded-lg px-4 py-2 text-sm text-slate-500">
+                                <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">
                                     Thinking...
                                 </div>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
 
-            <div className="p-4 border-t border-slate-200 bg-white">
-                <div className="flex gap-2">
+            <div className="p-4 border-t bg-background">
+                <div className="flex gap-2 relative">
                     <Button
                         size="icon"
                         variant={isListening ? "destructive" : "outline"}
                         onClick={toggleListening}
-                        className={cn("shrink-0", isListening && "animate-pulse")}
+                        className={cn("shrink-0 transition-all", isListening && "animate-pulse ring-2 ring-destructive/50")}
                         title="Voice Input"
                     >
                         {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
                     <Input
                         placeholder="Type a command..."
-                        className="bg-slate-50 border-slate-200 focus-visible:ring-purple-500"
+                        className="bg-muted/50 border-input focus-visible:ring-primary pr-12"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -226,10 +226,9 @@ export function AssistantPane() {
                     />
                     <Button
                         size="icon"
-                        variant="default"
-                        className="bg-slate-900 hover:bg-slate-800"
+                        className="absolute right-0 top-0 h-full rounded-l-none"
                         onClick={handleSend}
-                        disabled={isLoading || !workspaceId}
+                        disabled={isLoading || !workspaceId || !input.trim()}
                     >
                         <Send className="h-4 w-4" />
                     </Button>

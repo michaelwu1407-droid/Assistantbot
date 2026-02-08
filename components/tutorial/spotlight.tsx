@@ -13,6 +13,7 @@ interface SpotlightProps {
 
 export function Spotlight({ targetId, className, children, onBackgroundClick }: SpotlightProps) {
     const [position, setPosition] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 })
 
     useEffect(() => {
         if (!targetId) {
@@ -43,6 +44,31 @@ export function Spotlight({ targetId, className, children, onBackgroundClick }: 
         }
     }, [targetId])
 
+    useEffect(() => {
+        if (!position) return
+
+        // Simple boundary detection
+        const tooltipHeight = 150 // Approx
+        const tooltipWidth = 300
+        const gap = 16
+        const viewportHeight = window.innerHeight
+        const viewportWidth = window.innerWidth
+
+        let top = position.top + position.height + gap
+        let left = position.left + (position.width / 2) - (tooltipWidth / 2)
+
+        // Vertical flip
+        if (top + tooltipHeight > viewportHeight) {
+            top = position.top - tooltipHeight - gap
+        }
+
+        // Horizontal clamp
+        if (left < gap) left = gap
+        if (left + tooltipWidth > viewportWidth - gap) left = viewportWidth - tooltipWidth - gap
+
+        setTooltipPosition({ top, left })
+    }, [position])
+
     if (!targetId || !position) return null
 
     return (
@@ -53,25 +79,14 @@ export function Spotlight({ targetId, className, children, onBackgroundClick }: 
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 overflow-hidden pointer-events-none"
             >
-                {/* Dark overlay with hole punch */}
-                <div
-                    className="absolute inset-0 bg-black/60 transition-colors duration-500"
-                    style={{
-                        maskImage: `radial-gradient(circle at ${position.left + position.width / 2}px ${position.top + position.height / 2}px, transparent ${Math.max(position.width, position.height) / 1.5}px, black ${Math.max(position.width, position.height) / 1.2}px)`,
-                        WebkitMaskImage: `radial-gradient(circle at ${position.left + position.width / 2}px ${position.top + position.height / 2}px, transparent ${Math.max(position.width, position.height) / 1.5}px, black ${Math.max(position.width, position.height) / 1.2}px)`
-                    }}
-                    onClick={onBackgroundClick} // Need pointer-events-auto on this layer?
-                />
-
-                {/* Solid overlay parts if CSS mask is too complex, but mask is better for seamless circle */}
-                {/* Actually, let's use a simpler approach: SVG Overlay */}
-
+                {/* Dark overlay with hole punch using box-shadow strategy for better performance/compatibility than mask-image */}
+                {/* Actually, box-shadow on the ring is the cleanest way to do the "dim everything else" effect */}
             </motion.div>
 
-            {/* Spotlight Ring */}
+            {/* Spotlight Ring with massive shadow to dim background */}
             <motion.div
                 layoutId="spotlight-ring"
-                className="fixed z-50 border-2 border-white rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] pointer-events-none"
+                className="fixed z-50 border-2 border-primary/50 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)] pointer-events-none"
                 initial={false}
                 animate={{
                     top: position.top - 4,
@@ -82,12 +97,12 @@ export function Spotlight({ targetId, className, children, onBackgroundClick }: 
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
 
-            {/* Instruction Tooltip Positioned Relative to Spotlight */}
+            {/* Instruction Tooltip */}
             <div
                 className="fixed z-50 pointer-events-auto"
                 style={{
-                    top: position.top + position.height + 16,
-                    left: position.left + (position.width / 2) - 150 // Center align roughly
+                    top: tooltipPosition.top,
+                    left: tooltipPosition.left
                 }}
             >
                 {children}
