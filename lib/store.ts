@@ -13,6 +13,6 @@ interface ShellState {
 export const useShellStore = create<ShellState>((set) => ({
   viewMode: 'BASIC',
   persona: 'TRADIE', // Default to Tradie for now, real app would set this on login
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setPersona: (persona) => set({ persona }),
+  setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
+  setPersona: (persona: Persona) => set({ persona }),
 }))

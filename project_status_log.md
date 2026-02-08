@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 17:00 AEST [Backend - Claude Code] - Fix TypeScript Errors
+**Fix**: Resolved implicit 'any' errors in store and sync-queue.
+*   **Store**: Added explicit types to `setViewMode` and `setPersona` in `lib/store.ts`.
+*   **Sync Queue**: Added `IDBPDatabase` type for `upgrade` callback and suppressed explicit any warnings for payload in `lib/sync-queue.ts`.
+*   **Status**: TypeScript compilation should be cleaner.
+*   **Files modified**: `lib/store.ts`, `lib/sync-queue.ts`.
+
 ### 2026-02-08 16:45 AEST [Backend - Claude Code] - Fix Middleware 500
 **Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
 *   **Middleware**: Updated `middleware.ts` with correct matcher and `lib/supabase/middleware.ts` with robust env var checking and error handling.
