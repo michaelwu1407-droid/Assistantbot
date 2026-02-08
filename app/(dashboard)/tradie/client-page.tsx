@@ -151,7 +151,7 @@ export default function TradieDashboard({ initialJobs }: TradieDashboardProps) {
               <Button
                 variant="outline"
                 className="w-full h-12 text-slate-700 border-slate-300"
-                onClick={() => router.push(`/dashboard/jobs/${currentJob.id}`)}
+                onClick={() => router.push(`/dashboard/tradie/jobs/${currentJob.id}`)}
               >
                 View Full Details
               </Button>

@@ -107,6 +107,7 @@ model Deal {
   // Job / Event Scheduling
   scheduledAt    DateTime?
   jobStatus      JobStatus? // For Tradie workflow
+  safetyCheckCompleted Boolean   @default(false)
   
   lastActivityAt DateTime  @default(now())
   stageChangedAt DateTime  @default(now())
@@ -124,6 +125,7 @@ model Deal {
   invoices       Invoice[]
   openHouseLogs  OpenHouseLog[]
   buyerFeedback  BuyerFeedback[]
+  jobPhotos      JobPhoto[]
 }
 
 model Contact {
@@ -321,4 +323,15 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id])
   
   createdAt DateTime         @default(now())
+}
+
+model JobPhoto {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }
