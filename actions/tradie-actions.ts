@@ -172,7 +172,8 @@ export async function getJobDetails(jobId: string) {
       subtotal: Number(inv.subtotal),
       tax: Number(inv.tax)
     })),
-    photos: deal.jobPhotos
+    photos: deal.jobPhotos,
+    safetyCheckCompleted: deal.safetyCheckCompleted
   };
 }
 
@@ -239,6 +240,28 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
   revalidatePath('/dashboard/tradie');
   revalidatePath(`/dashboard/jobs/${jobId}`);
   return { success: true, status };
+}
+
+/**
+ * Mark safety check as completed.
+ */
+export async function completeSafetyCheck(jobId: string) {
+  await db.deal.update({
+    where: { id: jobId },
+    data: { safetyCheckCompleted: true }
+  });
+  
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Safety Check Completed",
+      content: "Site safety check passed.",
+      dealId: jobId
+    }
+  });
+  
+  revalidatePath(`/dashboard/jobs/${jobId}`);
+  return { success: true };
 }
 
 /**

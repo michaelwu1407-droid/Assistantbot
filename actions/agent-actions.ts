@@ -308,8 +308,11 @@ export async function generateVendorReport(dealId: string) {
   const feedbackCount = deal.buyerFeedback.length;
   const avgPriceOpinion = deal.buyerFeedback.reduce((sum, f) => sum + (Number(f.priceOpinion) || 0), 0) / (feedbackCount || 1);
 
+  const meta = (deal.metadata as Record<string, any>) || {};
+
   return {
     listingTitle: deal.title,
+    vendorGoalPrice: Number(meta.vendorGoalPrice) || null,
     totalVisitors,
     interestedVisitors,
     feedbackCount,
