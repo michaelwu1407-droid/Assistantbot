@@ -33,6 +33,14 @@ const AttendeeSchema = z.object({
   notes: z.string().optional(),
 });
 
+const FeedbackSchema = z.object({
+  dealId: z.string(),
+  contactId: z.string(),
+  interestLevel: z.enum(["HOT", "WARM", "COLD"]),
+  priceOpinion: z.number().optional(),
+  notes: z.string().optional(),
+});
+
 /**
  * Fetch "Fresh" leads for the Speed-to-Lead widget.
  * Definition: Created within the last 24 hours (for demo visibility, usually it's < 30 mins)
@@ -228,4 +236,70 @@ export async function logOpenHouseAttendee(input: z.infer<typeof AttendeeSchema>
 
   revalidatePath(`/kiosk/open-house`);
   return { success: true };
+}
+
+/**
+ * Collect buyer feedback on a listing.
+ */
+export async function collectFeedback(input: z.infer<typeof FeedbackSchema>) {
+  const parsed = FeedbackSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  await db.buyerFeedback.create({
+    data: {
+      dealId: parsed.data.dealId,
+      contactId: parsed.data.contactId,
+      interestLevel: parsed.data.interestLevel,
+      priceOpinion: parsed.data.priceOpinion,
+      notes: parsed.data.notes
+    }
+  });
+
+  // Log activity
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Buyer Feedback",
+      content: `Feedback: ${parsed.data.interestLevel}. ${parsed.data.notes || ""}`,
+      dealId: parsed.data.dealId,
+      contactId: parsed.data.contactId
+    }
+  });
+
+  return { success: true };
+}
+
+/**
+ * Generate a Vendor Report (aggregated stats).
+ */
+export async function generateVendorReport(dealId: string) {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: {
+      openHouseLogs: true,
+      buyerFeedback: true
+    }
+  });
+
+  if (!deal) return null;
+
+  const totalVisitors = deal.openHouseLogs.length;
+  const interestedVisitors = deal.openHouseLogs.filter(l => l.interestedLevel >= 4).length;
+  
+  const feedbackCount = deal.buyerFeedback.length;
+  const avgPriceOpinion = deal.buyerFeedback.reduce((sum, f) => sum + (Number(f.priceOpinion) || 0), 0) / (feedbackCount || 1);
+
+  return {
+    listingTitle: deal.title,
+    totalVisitors,
+    interestedVisitors,
+    feedbackCount,
+    avgPriceOpinion: avgPriceOpinion > 0 ? avgPriceOpinion : null,
+    recentFeedback: deal.buyerFeedback.slice(0, 5).map(f => ({
+      interest: f.interestLevel,
+      note: f.notes
+    }))
+  };
 }

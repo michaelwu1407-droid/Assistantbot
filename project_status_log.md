@@ -88,6 +88,21 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 13:05 AEST [Backend - Claude Code] - Weather, Schedule & Reports
+**Feature**: Added Weather API, Today's Schedule, and Vendor Reporting backend.
+*   **Weather**: Created `actions/weather-actions.ts` using Open-Meteo API.
+*   **Tradie**: Added `getTodaySchedule` to `actions/tradie-actions.ts`.
+*   **Agent**: Added `collectFeedback` and `generateVendorReport` to `actions/agent-actions.ts`.
+*   **Status**: Completes backend for D-2 (Weather), D-8/D-9 (Schedule), VR-4 (Vendor Report).
+*   **Files created**: `actions/weather-actions.ts`.
+*   **Files modified**: `actions/tradie-actions.ts`, `actions/agent-actions.ts`.
+
+### 2026-02-08 12:55 AEST [Backend - Claude Code] - Fix Missing UI Component
+**Fix**: Created missing `ScrollArea` component.
+*   **UI**: Added `components/ui/scroll-area.tsx` to resolve build error in Agent page.
+*   **Status**: Addressing build errors from `tsc_log.txt`.
+*   **Files created**: `components/ui/scroll-area.tsx`.
+
 ### 2026-02-08 12:45 AEST [Backend - Claude Code] - Fix Digest Logic
 **Fix**: Corrected invalid enum usage in Morning Digest.
 *   **Digest**: Updated `lib/digest.ts` to filter `notIn: ["WON", "LOST", "ARCHIVED"]` instead of invalid "CLOSED".

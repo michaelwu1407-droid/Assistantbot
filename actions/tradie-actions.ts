@@ -67,6 +67,44 @@ export async function getTradieJobs(workspaceId: string) {
 }
 
 /**
+ * Get specifically today's schedule.
+ * Filters jobs scheduled for the current day.
+ */
+export async function getTodaySchedule(workspaceId: string) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const jobs = await db.deal.findMany({
+    where: {
+      workspaceId,
+      scheduledAt: {
+        gte: startOfDay,
+        lte: endOfDay
+      },
+      jobStatus: { not: "CANCELLED" }
+    },
+    include: {
+      contact: true
+    },
+    orderBy: { scheduledAt: "asc" }
+  });
+
+  return jobs.map(job => ({
+    id: job.id,
+    title: job.title,
+    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    client: job.contact.name,
+    address: job.address || job.contact.address || "No address",
+    status: job.jobStatus || "SCHEDULED",
+    lat: job.latitude,
+    lng: job.longitude
+  }));
+}
+
+/**
  * Fetch full details for a specific job (Deal).
  */
 export async function getJobDetails(jobId: string) {
