@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 14:00 AEST [Backend - Claude Code] - Build & Env Issues Flagged
+**Issue**: Build failing due to Prisma sync and missing env vars.
+*   **Prisma**: `tsc` reports errors because the Prisma Client is out of sync with the schema (missing `jobStatus`, `scheduledAt`, `user` relation). Needs `npx prisma generate`.
+*   **Environment**: `.env` is missing `DIRECT_URL`, which is required for Prisma migrations/push in Supabase.
+*   **Status**: **FAILING**. Backend team must fix env and regenerate client before proceeding.
+*   **Files modified**: `project_status_log.md`.
+
 ### 2026-02-08 13:45 AEST [Backend - Claude Code] - Fix Layout Build Error
 **Fix**: Removed invalid `chatbot` prop and import from Dashboard Layout.
 *   **Layout**: Updated `app/(dashboard)/layout.tsx` to use `Shell` correctly (it manages `AssistantPane` internally).
@@ -741,22 +748,3 @@ The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the ba
 4.  **Vendor Reporting**
     - *Widget*: "Price Feedback Meter" (Gauge).
     - *Action*: "Send Vendor Report" -> WhatsApp Preview -> Send.
-### 2026-02-08 12:00 AEST [Frontend - Antigravity] - Sprint 3 & 4 Complete (Job Execution & Scheduler)
-**Feature**: Job Execution Workflow & Smart Scheduler
-*   **Job Execution**:
-    *   **Travel Workflow**: Implemented `JobStatusBar` with status transitions and simulated SMS.
-    *   **Safety Check**: Implemented `SafetyModal` with mandatory checklist.
-    *   **Job Evidence**: Built `JobPhotosTab` (Camera/Gallery) and `JobBillingTab` (Signature Pad).
-*   **Scheduler**:
-    *   **UI**: Implemented `SchedulerView` with drag-and-drop support (`@dnd-kit`).
-    *   **Components**: `CalendarGrid` (Week View) and `JobSidebar` (Unscheduled Jobs).
-*   **Files created**: `actions/job-actions.ts`, `components/tradie/*`, `components/scheduler/*`.
-*   **Status**: Sprint 3 & 4 Complete. Tasks J-1, J-2, J-3, J-4, J-5, J-6, Scheduler Complete.
-
-### 2026-02-08 12:30 AEST [Frontend - Antigravity] - Sprint 5 Complete (Vertical Polish)
-**Feature**: Agent Widgets, Tradie Bottom Sheet, Pulse Widget
-*   **Agent**: Created `CommissionCalculator` (slider math) and `VendorReportCard` (visual gauge).
-*   **Tradie**: Created mobile-first `JobBottomSheet` using `vaul`.
-*   **Global**: Created `PulseWidget` for financial stats.
-*   **Fixes**: Added `components/ui/slider.tsx` shim. Fixed imports and types.
-*   **Status**: Sprint 5 Complete. Tasks AG-2, VR-3, D-6, D-4 Complete.
