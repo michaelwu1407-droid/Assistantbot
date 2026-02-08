@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export interface AgentLead {
   id: string;
@@ -258,6 +259,18 @@ export async function logOpenHouseAttendee(input: z.infer<typeof AttendeeSchema>
     }
   });
 
+  // 4. Create OpenHouseLog record
+  await db.openHouseLog.create({
+    data: {
+      attendeeName: name,
+      attendeeEmail: email,
+      attendeePhone: phone,
+      interestedLevel: interestedLevel,
+      notes: notes,
+      dealId: dealId
+    }
+  });
+
   revalidatePath(`/kiosk/open-house`);
   return { success: true };
 }
@@ -272,8 +285,16 @@ export async function collectFeedback(input: z.infer<typeof FeedbackSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  // TODO: Uncomment when BuyerFeedback model is added to schema
-  // await db.buyerFeedback.create({...});
+  // Create BuyerFeedback record
+  await db.buyerFeedback.create({
+    data: {
+      dealId: parsed.data.dealId,
+      contactId: parsed.data.contactId,
+      interestLevel: parsed.data.interestLevel,
+      priceOpinion: parsed.data.priceOpinion ? new Prisma.Decimal(parsed.data.priceOpinion) : null,
+      notes: parsed.data.notes
+    }
+  });
 
   // Log activity instead
   await db.activity.create({
@@ -296,21 +317,45 @@ export async function collectFeedback(input: z.infer<typeof FeedbackSchema>) {
 export async function generateVendorReport(dealId: string) {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
+    include: {
+      openHouseLogs: true,
+      buyerFeedback: {
+        include: { contact: true },
+        orderBy: { createdAt: 'desc' }
+      }
+    }
   });
 
   if (!deal) return null;
 
   const meta = (deal.metadata as Record<string, any>) || {};
 
-  // Return stubbed data until models are created
+  // Calculate stats
+  const totalVisitors = deal.openHouseLogs.length;
+  const interestedVisitors = deal.openHouseLogs.filter(l => l.interestedLevel >= 4).length;
+  const feedbackCount = deal.buyerFeedback.length;
+
+  const priceOpinions = deal.buyerFeedback
+    .filter(f => f.priceOpinion !== null)
+    .map(f => Number(f.priceOpinion));
+
+  const avgPriceOpinion = priceOpinions.length > 0
+    ? priceOpinions.reduce((a, b) => a + b, 0) / priceOpinions.length
+    : null;
+
   return {
     listingTitle: deal.title,
     vendorGoalPrice: Number(meta.vendorGoalPrice) || null,
-    totalVisitors: 0,
-    interestedVisitors: 0,
-    feedbackCount: 0,
-    avgPriceOpinion: null as number | null,
-    recentFeedback: [] as { interest: string; note: string | null }[]
+    totalVisitors,
+    interestedVisitors,
+    feedbackCount,
+    avgPriceOpinion,
+    recentFeedback: deal.buyerFeedback.slice(0, 5).map(f => ({
+      interest: f.interestLevel,
+      note: f.notes,
+      contactName: f.contact.name,
+      money: f.priceOpinion ? Number(f.priceOpinion) : null
+    }))
   };
 }
 
@@ -351,10 +396,23 @@ table{width:100%;border-collapse:collapse;margin:20px 0}th{text-align:left;paddi
  * Log a key checkout event.
  * NOTE: Stubbed - requires Key model to be added to Prisma schema.
  */
-export async function logKeyCheckout(keyCode: string, _holderId: string) {
-  // TODO: Implement when Key model is added to schema
-  console.warn("logKeyCheckout is stubbed - Key model not in schema");
-  return { success: false, error: `Key management not yet configured. Code: ${keyCode}` };
+export async function logKeyCheckout(keyCode: string, holderId: string, status: "CHECKED_OUT" | "AVAILABLE" | "LOST") {
+  const key = await db.key.findFirst({
+    where: { code: keyCode }
+  });
+
+  if (!key) return { success: false, error: "Key not found" };
+
+  await db.key.update({
+    where: { id: key.id },
+    data: {
+      status,
+      holderId: status === "CHECKED_OUT" ? holderId : null,
+      checkedOutAt: status === "CHECKED_OUT" ? new Date() : null
+    }
+  });
+
+  return { success: true };
 }
 
 /**
@@ -401,3 +459,5 @@ export async function getMatchFeed(workspaceId: string): Promise<MatchFeedItem[]
     return [];
   }
 }
+
+
