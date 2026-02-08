@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 17:15 AEST [Backend - Claude Code] - Fix Middleware 500
+**Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
+*   **Middleware**: Updated `middleware.ts` with correct matcher and `lib/supabase/middleware.ts` with robust env var checking and error handling.
+*   **DB**: Updated `lib/db.ts` to prevent Prisma instantiation in Edge Runtime (which causes crashes if imported in middleware).
+*   **Status**: Middleware should now fail gracefully or pass through if config is missing.
+*   **Files modified**: `middleware.ts`, `lib/supabase/middleware.ts`, `lib/db.ts`.
+
 ### 2026-02-08 17:00 AEST [Backend - Claude Code] - Fix TypeScript Errors
 **Fix**: Resolved implicit 'any' errors in store and sync-queue.
 *   **Store**: Added explicit types to `setViewMode` and `setPersona` in `lib/store.ts`.
