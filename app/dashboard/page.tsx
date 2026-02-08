@@ -7,16 +7,24 @@ import { createClient } from "@/lib/supabase/server"
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-    let workspace, deals, user;
+    let workspace, deals;
+    let userId = "demo-user"
+    let userName = "Mate"
     let dbError = false;
 
-    // 1. Get User
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    
-    // Fallback for demo mode if no auth
-    const userId = authUser?.id || "demo-user"
-    const userName = authUser?.user_metadata?.full_name || "Mate"
+    // 1. Get User (Safely)
+    try {
+        const supabase = await createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        
+        if (authUser) {
+            userId = authUser.id
+            userName = authUser.user_metadata?.full_name || "Mate"
+        }
+    } catch (error) {
+        // Supabase not configured or auth failed - fall back to demo user
+        console.warn("Supabase auth failed (using demo user):", error)
+    }
 
     try {
         workspace = await getOrCreateWorkspace(userId)
