@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { sendSMS } from "./messaging-actions";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export async function getTradieJobs(workspaceId: string) {
         take: 1
       }
     },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { scheduledAt: "asc" } // Sort by schedule time
   });
 
   return deals.map(deal => ({
@@ -58,9 +59,9 @@ export async function getTradieJobs(workspaceId: string) {
     title: deal.title,
     clientName: deal.contact.name,
     address: deal.contact.address || "No Address", // Fallback
-    status: deal.stage,
+    status: deal.jobStatus || deal.stage, // Use jobStatus if available, else stage
     value: deal.value ? Number(deal.value) : 0,
-    scheduledAt: deal.updatedAt, // Proxy for schedule time
+    scheduledAt: deal.scheduledAt || deal.updatedAt, // Use scheduledAt if available
     description: (deal.metadata as any)?.description || "No description provided."
   }));
 }
@@ -93,7 +94,7 @@ export async function getJobDetails(jobId: string) {
       email: deal.contact.email,
       address: deal.contact.address,
     },
-    status: deal.stage,
+    status: deal.jobStatus || deal.stage,
     value: deal.value ? Number(deal.value) : 0,
     description: (deal.metadata as any)?.description || "No description provided.",
     activities: deal.activities,
@@ -107,30 +108,63 @@ export async function getJobDetails(jobId: string) {
 }
 
 /**
+ * Send "On My Way" SMS to the client.
+ */
+export async function sendOnMyWaySMS(jobId: string) {
+  const deal = await db.deal.findUnique({
+    where: { id: jobId },
+    include: { contact: true }
+  });
+
+  if (!deal || !deal.contact.phone) {
+    return { success: false, error: "No contact phone number found." };
+  }
+
+  const message = `Hi ${deal.contact.name}, I'm on my way to ${deal.title}. See you soon!`;
+  
+  // Use the messaging action
+  const result = await sendSMS(deal.contactId, message);
+  
+  if (result.success) {
+    // Log specific activity
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Travel Started",
+        content: "Sent 'On My Way' SMS to client.",
+        dealId: jobId,
+        contactId: deal.contactId
+      }
+    });
+  }
+
+  return result;
+}
+
+/**
  * Update job status (Tradie workflow).
  * Handles transitions like PENDING -> TRAVELING -> ARRIVED -> COMPLETED.
  */
-export async function updateJobStatus(jobId: string, status: 'TRAVELING' | 'ARRIVED' | 'COMPLETED') {
+export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAVELING' | 'ON_SITE' | 'COMPLETED' | 'CANCELLED') {
   // 1. Update DB
   try {
     await db.deal.update({
       where: { id: jobId },
       data: {
-        stage: status === 'COMPLETED' ? 'WON' : 'WON', // Map internal status to WON for now, active is WON
-        // lastActivityAt: new Date(),
-        // Merge status into metadata
-        metadata: { status }
+        jobStatus: status,
+        // If completed, also update stage to WON (or INVOICED if we want to trigger billing)
+        ...(status === 'COMPLETED' ? { stage: 'WON' } : {}),
+        lastActivityAt: new Date(),
       }
     });
   } catch (e) {
-    // Ignore error if ID is mock/dummy for UI demo
-    console.log("Mock updateJobStatus call", jobId, status);
+    console.error("Error updating job status", e);
+    return { success: false, error: "Failed to update status" };
   }
 
   // 2. Trigger Side Effects
   if (status === 'TRAVELING') {
-    // Mock SMS Service
-    console.log(`[SMS] Sending tracking link to client for Job ${jobId}`);
+    await sendOnMyWaySMS(jobId);
   }
 
   revalidatePath('/dashboard/tradie');
@@ -153,7 +187,7 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
     where: { id: jobId },
     data: {
       value: Number(deal.value) + total, // Update total value
-      // lastActivityAt: new Date(),
+      lastActivityAt: new Date(),
       metadata: JSON.parse(JSON.stringify({
         ...existingMeta,
         variations: [...existingVariations, ...items]

@@ -8,6 +8,12 @@ function daysAgo(days: number): Date {
   return d;
 }
 
+function hoursFromNow(hours: number): Date {
+  const d = new Date();
+  d.setHours(d.getHours() + hours);
+  return d;
+}
+
 async function main() {
   console.log("Seeding Pj Buddy database...");
 
@@ -101,7 +107,7 @@ async function main() {
       value: 5000,
       stage: "NEW",
       // stageChangedAt: daysAgo(1),
-      // contactId: john.id,
+      contactId: john.id,
       workspaceId: workspace.id,
     },
   });
@@ -113,7 +119,7 @@ async function main() {
       value: 12000,
       stage: "CONTACTED",
       // stageChangedAt: daysAgo(3),
-      // contactId: tony.id,
+      contactId: tony.id,
       workspaceId: workspace.id,
     },
   });
@@ -125,7 +131,7 @@ async function main() {
       value: 2000,
       stage: "NEGOTIATION",
       // stageChangedAt: daysAgo(8),
-      // contactId: bruce.id,
+      contactId: bruce.id,
       workspaceId: workspace.id,
     },
   });
@@ -137,7 +143,7 @@ async function main() {
       value: 45000,
       stage: "NEGOTIATION",
       // stageChangedAt: daysAgo(15),
-      // contactId: sarah.id,
+      contactId: sarah.id,
       workspaceId: workspace.id,
     },
   });
@@ -149,7 +155,7 @@ async function main() {
       value: 8500,
       stage: "WON",
       // stageChangedAt: daysAgo(5),
-      // contactId: nina.id,
+      contactId: nina.id,
       workspaceId: workspace.id,
     },
   });
@@ -162,7 +168,7 @@ async function main() {
       value: 1500000,
       stage: "NEW",
       // stageChangedAt: daysAgo(2),
-      // contactId: bruce.id, // Bruce is selling
+      contactId: bruce.id, // Bruce is selling
       workspaceId: workspace.id,
       metadata: {
         bedrooms: 3,
@@ -173,11 +179,43 @@ async function main() {
     },
   });
 
-  console.log("  Deals: 6 created");
+  // Tradie Stream: Scheduled Jobs
+  const job1 = await prisma.deal.create({
+    data: {
+      title: "Emergency Plumbing Fix",
+      value: 450,
+      stage: "WON",
+      jobStatus: "SCHEDULED",
+      scheduledAt: hoursFromNow(2), // 2 hours from now
+      contactId: sarah.id,
+      workspaceId: workspace.id,
+      address: "123 Cyberdyne Ave, Tech City",
+      metadata: {
+        description: "Leaking pipe in server room. Urgent.",
+      }
+    }
+  });
+
+  const job2 = await prisma.deal.create({
+    data: {
+      title: "Switchboard Upgrade",
+      value: 2500,
+      stage: "WON",
+      jobStatus: "SCHEDULED",
+      scheduledAt: hoursFromNow(5), // 5 hours from now
+      contactId: tony.id,
+      workspaceId: workspace.id,
+      address: "1 Stark Tower, NYC",
+      metadata: {
+        description: "Upgrade main switchboard to support new arc reactor.",
+      }
+    }
+  });
+
+  console.log("  Deals: 8 created (including 2 scheduled jobs)");
 
   // ─── Activities (matching frontend mock + creating stale scenarios) ─
-  /*
-
+  
   // Deal 1: Website Redesign — activity today (HEALTHY)
   await prisma.activity.create({
     data: {
@@ -278,92 +316,6 @@ async function main() {
   });
 
   console.log("  Tasks: 3 created");
-
-  /*
-  // ─── Invoices (Tradie Stream) ─────────────────────────────────────
-
-  await prisma.invoice.create({
-    data: {
-      number: "INV-1023",
-      status: "PAID",
-      subtotal: 8500,
-      tax: 850,
-      total: 9350,
-      lineItems: [
-        { desc: "Q1 Campaign Strategy", price: 5000 },
-        { desc: "Creative Assets", price: 3500 },
-      ],
-      dealId: deal5.id,
-      issuedAt: daysAgo(5),
-      paidAt: daysAgo(2),
-    },
-  });
-
-  console.log("  Invoices: 1 created");
-
-  // ─── Open House Logs (Agent Stream) ───────────────────────────────
-
-  await prisma.openHouseLog.create({
-    data: {
-      dealId: deal6.id,
-      attendeeName: "Clark Kent",
-      attendeeEmail: "clark@dailyplanet.com",
-      attendeePhone: "0400 999 888",
-      interestedLevel: 4,
-      notes: "Loved the kitchen, concerned about commute.",
-      visitedAt: daysAgo(1),
-    },
-  });
-
-  await prisma.openHouseLog.create({
-    data: {
-      dealId: deal6.id,
-      attendeeName: "Lois Lane",
-      attendeeEmail: "lois@dailyplanet.com",
-      interestedLevel: 5,
-      notes: "Ready to make an offer.",
-      visitedAt: daysAgo(1),
-    },
-  });
-
-  console.log("  Open House Logs: 2 created");
-
-  // ─── Automations (preset recipes) ────────────────────────────────
-
-  await prisma.automation.create({
-    data: {
-      name: "Stale deal alert (5 days in Negotiation)",
-      workspaceId: workspace.id,
-      trigger: { event: "deal_stale", threshold_days: 5, stage: "NEGOTIATION" },
-      action: { type: "notify", channel: "in_app", message: "Deal has been in Negotiation for 5+ days" },
-    },
-  });
-
-  await prisma.automation.create({
-    data: {
-      name: "Auto-welcome new leads",
-      workspaceId: workspace.id,
-      trigger: { event: "new_lead" },
-      action: { type: "email", template: "welcome_lead", message: "Thanks for your interest!" },
-    },
-  });
-
-  console.log("  Automations: 2 created");
-
-  // ─── Message Templates (presets) ────────────────────────────────
-
-  const templatePresets = [
-    // ... items ...
-  ];
-
-  for (const t of templatePresets) {
-    await prisma.messageTemplate.create({
-      data: { ...t, variables: JSON.stringify(t.variables), workspaceId: workspace.id },
-    });
-  }
-
-  console.log(`  Templates: ${templatePresets.length} created`);
-  */
 
   console.log("\nSeed complete!");
 }

@@ -88,17 +88,26 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
-### 2026-02-08 12:00 AEST [Manager - Claude Code] - Documentation Sync
-**Feature**: Synced GAP_ANALYSIS.md with completed tasks from Sprint 1/2.
-*   **Sync**: Marked X-1, X-2, X-6, X-7, D-5, J-1, AG-1, AG-5, M-3 as ✅ based on previous logs.
-*   **Files modified**: `GAP_ANALYSIS.md`.
-*   **Status**: Documentation is now current.
+### 2026-02-08 12:15 AEST [Backend - Claude Code] - Job Status & Travel Workflow
+**Feature**: Implemented Job Status model and Travel Workflow backend.
+*   **Schema**: Added `JobStatus` enum (`SCHEDULED`, `TRAVELING`, `ON_SITE`, `COMPLETED`, `CANCELLED`) and `scheduledAt` field to `Deal` model.
+*   **Tradie Actions**: Updated `getTradieJobs` to use `scheduledAt` and `jobStatus`. Implemented `sendOnMyWaySMS` and `updateJobStatus` (triggers SMS on TRAVELING).
+*   **Deal Actions**: Updated `DealView` and `getDeals` to include new fields.
+*   **Seed**: Added 2 scheduled jobs to seed data for testing.
+*   **Status**: Completes Tasks J-2 (Job Status Model) and J-4 (On My Way SMS).
+*   **Files modified**: `prisma/schema.prisma`, `actions/deal-actions.ts`, `actions/tradie-actions.ts`, `prisma/seed.ts`.
 
 ### 2026-02-08 12:05 AEST [Backend - Claude Code] - Chat First Default
 **Feature**: Changed DashboardProvider default to "chat".
 *   **Detail**: Updated `components/providers/dashboard-provider.tsx` to default to "chat" mode.
 *   **Files modified**: `components/providers/dashboard-provider.tsx`.
 *   **Status**: Completes Task M-1.
+
+### 2026-02-08 12:00 AEST [Manager - Claude Code] - Documentation Sync
+**Feature**: Synced GAP_ANALYSIS.md with completed tasks from Sprint 1/2.
+*   **Sync**: Marked X-1, X-2, X-6, X-7, D-5, J-1, AG-1, AG-5, M-3 as ✅ based on previous logs.
+*   **Files modified**: `GAP_ANALYSIS.md`.
+*   **Status**: Documentation is now current.
 
 ### 2026-02-08 11:15 AEST [Backend - Claude Code] - Signup & Schema (Phase 1)
 **Feature**: Implemented Signup page and updated Schema for onboarding.

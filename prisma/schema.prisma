@@ -39,6 +39,14 @@ enum ActivityType {
   TASK
 }
 
+enum JobStatus {
+  SCHEDULED
+  TRAVELING
+  ON_SITE
+  COMPLETED
+  CANCELLED
+}
+
 model Workspace {
   id                 String        @id @default(cuid())
   name               String
@@ -85,6 +93,10 @@ model Deal {
   address        String?
   latitude       Float?
   longitude      Float?
+  
+  // Job / Event Scheduling
+  scheduledAt    DateTime?
+  jobStatus      JobStatus? // For Tradie workflow
   
   lastActivityAt DateTime  @default(now())
   stageChangedAt DateTime  @default(now())
