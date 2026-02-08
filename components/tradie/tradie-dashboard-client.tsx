@@ -22,14 +22,16 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
   // Parse initial status from metadata or default to PENDING
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initialStatus = (initialJob?.metadata as any)?.status || 'PENDING';
-  const [jobStatus, setJobStatus] = useState<'PENDING' | 'TRAVELING' | 'ARRIVED' | 'WORKING' | 'COMPLETED'>(initialStatus);
+  const [jobStatus, setJobStatus] = useState<'SCHEDULED' | 'TRAVELING' | 'ON_SITE' | 'COMPLETED' | 'CANCELLED'>(
+    initialStatus === 'PENDING' ? 'SCHEDULED' : initialStatus
+  );
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Variation State
   const [variationDesc, setVariationDesc] = useState("");
   const [variationPrice, setVariationPrice] = useState("");
-  
+
   // Media & Signature State
   const [isRecording, setIsRecording] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
@@ -37,21 +39,21 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
   const handleMainAction = async () => {
     if (!initialJob) return;
 
-    if (jobStatus === 'PENDING') {
+    if (jobStatus === 'SCHEDULED') {
       setJobStatus('TRAVELING');
       await updateJobStatus(initialJob.id, 'TRAVELING');
     } else if (jobStatus === 'TRAVELING') {
-      setJobStatus('ARRIVED');
+      setJobStatus('ON_SITE');
       setShowSafetyCheck(true);
-      await updateJobStatus(initialJob.id, 'ARRIVED');
-    } else if (jobStatus === 'WORKING') {
+      await updateJobStatus(initialJob.id, 'ON_SITE');
+    } else if (jobStatus === 'ON_SITE') {
       setShowPaymentModal(true);
     }
   };
 
   const completeSafetyCheck = () => {
     setShowSafetyCheck(false);
-    setJobStatus('WORKING');
+    setJobStatus('ON_SITE');
   };
 
   const handleAddVariation = async () => {
@@ -390,8 +392,8 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
             <Button 
               className={cn(
                 "w-full h-14 text-lg font-bold uppercase tracking-widest transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]",
-                jobStatus === 'PENDING' ? "bg-emerald-500 hover:bg-emerald-600 text-black" : 
-                jobStatus === 'WORKING' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
+                jobStatus === 'SCHEDULED' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
+                jobStatus === 'ON_SITE' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
                 "bg-blue-600 hover:bg-blue-700 text-white"
               )}
               onClick={(e) => {
@@ -399,9 +401,9 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
                 handleMainAction();
               }}
             >
-              {jobStatus === 'PENDING' ? 'Start Travel' : 
+              {jobStatus === 'SCHEDULED' ? 'Start Travel' :
                jobStatus === 'TRAVELING' ? 'Arrived' :
-               jobStatus === 'ARRIVED' ? 'Start Work' :
+               jobStatus === 'ON_SITE' ? 'Start Work' :
                'Complete Job & Pay'}
             </Button>
           </motion.div>

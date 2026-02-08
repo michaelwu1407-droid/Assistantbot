@@ -22,6 +22,16 @@ export interface MatchedContact {
   phone: string | null;
   matchScore: number;
   matchReasons: string[];
+  budget?: number;
+  bedroomsReq?: number;
+}
+
+export interface MatchResult {
+  success: boolean;
+  matches: MatchedContact[];
+  listingPrice?: number;
+  listingBedrooms?: number;
+  error?: string;
 }
 
 const AttendeeSchema = z.object({
@@ -100,18 +110,18 @@ export async function getAgentPipeline(workspaceId: string) {
  * Find contacts that match a listing's criteria.
  * Matches based on budget (within 10%) and bedrooms (>= listing bedrooms).
  */
-export async function findMatches(dealId: string): Promise<MatchedContact[]> {
+export async function findMatches(dealId: string): Promise<MatchResult> {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
   });
 
-  if (!deal) return [];
+  if (!deal) return { success: false, matches: [], error: "Deal not found" };
 
   const meta = (deal.metadata as Record<string, any>) || {};
   const price = Number(deal.value) || Number(meta.price) || 0;
   const bedrooms = Number(meta.bedrooms) || 0;
 
-  if (price === 0 && bedrooms === 0) return [];
+  if (price === 0 && bedrooms === 0) return { success: true, matches: [], listingPrice: price, listingBedrooms: bedrooms };
 
   // Fetch all contacts in workspace
   const contacts = await db.contact.findMany({
@@ -163,11 +173,18 @@ export async function findMatches(dealId: string): Promise<MatchedContact[]> {
         phone: contact.phone,
         matchScore: score,
         matchReasons: reasons,
+        budget: budget > 0 ? budget : undefined,
+        bedroomsReq: minBedrooms > 0 ? minBedrooms : undefined,
       });
     }
   }
 
-  return matches.sort((a, b) => b.matchScore - a.matchScore);
+  return {
+    success: true,
+    matches: matches.sort((a, b) => b.matchScore - a.matchScore),
+    listingPrice: price > 0 ? price : undefined,
+    listingBedrooms: bedrooms > 0 ? bedrooms : undefined,
+  };
 }
 
 /**
@@ -302,4 +319,29 @@ export async function generateVendorReport(dealId: string) {
       note: f.notes
     }))
   };
+}
+
+/**
+ * Log a key checkout event.
+ * Records which key was checked out and by whom.
+ */
+export async function logKeyCheckout(keyCode: string, holderId: string) {
+  const key = await db.key.findFirst({
+    where: { code: keyCode },
+  });
+
+  if (!key) {
+    return { success: false, error: "Key not found" };
+  }
+
+  await db.key.update({
+    where: { id: key.id },
+    data: {
+      status: "CHECKED_OUT",
+      holderId,
+      checkedOutAt: new Date(),
+    },
+  });
+
+  return { success: true, keyId: key.id };
 }

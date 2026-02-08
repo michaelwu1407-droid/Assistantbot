@@ -1,6 +1,6 @@
 "use client"
 
-import { Shell } from "@/components/layout/shell"
+import { Shell } from "@/components/layout/Shell"
 import { DashboardProvider } from "@/components/providers/dashboard-provider"
 
 export default function DashboardLayout({

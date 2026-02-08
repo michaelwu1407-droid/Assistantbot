@@ -39,12 +39,12 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
     const [status, setStatus] = useState(job.status)
     const [isUpdating, setIsUpdating] = useState(false)
 
-    const handleStatusChange = async (newStatus: 'TRAVELING' | 'ARRIVED' | 'COMPLETED') => {
+    const handleStatusChange = async (newStatus: 'TRAVELING' | 'ON_SITE' | 'COMPLETED') => {
         setIsUpdating(true)
         try {
             const result = await updateJobStatus(job.id, newStatus)
             if (result.success) {
-                setStatus(result.status) // Optimistic update, though server likely returns mapped status
+                setStatus(result.status ?? newStatus)
                 toast.success(`Job updated to ${newStatus}`)
                 router.refresh()
             }
