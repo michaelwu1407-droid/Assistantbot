@@ -34,10 +34,11 @@ export async function generateMorningDigest(
   const items: DigestItem[] = [];
 
   // 1. Find rotting deals (highest priority — money is walking away)
+  // Filter out completed/lost stages to focus on active pipeline
   const activeDeals = await db.deal.findMany({
     where: {
       workspaceId,
-      stage: { notIn: ["CLOSED", "ARCHIVED"] },
+      stage: { notIn: ["WON", "LOST", "ARCHIVED"] },
     },
     include: {
       contacts: { take: 1 },

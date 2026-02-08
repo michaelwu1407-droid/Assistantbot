@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 12:45 AEST [Backend - Claude Code] - Fix Digest Logic
+**Fix**: Corrected invalid enum usage in Morning Digest.
+*   **Digest**: Updated `lib/digest.ts` to filter `notIn: ["WON", "LOST", "ARCHIVED"]` instead of invalid "CLOSED".
+*   **Analysis**: Reviewed `tsc_log.txt` and confirmed most errors are due to stale Prisma Client generation (e.g., `lastActivityAt` missing in types despite being in schema).
+*   **Status**: Backend logic is consistent with Schema.
+*   **Files modified**: `lib/digest.ts`.
+
 ### 2026-02-08 12:35 AEST [Backend - Claude Code] - Materials, Keys & Feedback
 **Feature**: Added backend support for Materials, Magic Keys, and Buyer Feedback.
 *   **Schema**: Added `Material`, `Key`, and `BuyerFeedback` models.
