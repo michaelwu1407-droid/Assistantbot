@@ -88,6 +88,14 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 13:15 AEST [Backend - Claude Code] - Notification System
+**Feature**: Implemented Notification system backend.
+*   **Schema**: Added `Notification` model and `NotificationType` enum.
+*   **Actions**: Created `actions/notification-actions.ts` with `getNotifications`, `markAsRead`, `createNotification`.
+*   **Status**: Completes backend for D-3 (Notifications).
+*   **Files modified**: `prisma/schema.prisma`.
+*   **Files created**: `actions/notification-actions.ts`.
+
 ### 2026-02-08 13:05 AEST [Backend - Claude Code] - Weather, Schedule & Reports
 **Feature**: Added Weather API, Today's Schedule, and Vendor Reporting backend.
 *   **Weather**: Created `actions/weather-actions.ts` using Open-Meteo API.
@@ -445,11 +453,11 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   Run: `npm run db:seed`.
 
 **How Antigravity Should Wire Up**:
-1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
-2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
-3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
-5.  Add enrichment on contact creation: already built into `createContact()`.
+1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)` — returns `DealView[]` (now includes `daysInStage`, `stageChangedAt`)
+2.  Replace mock activities in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`
+3.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)` — now supports templates + dedup commands
+4.  Wire Kanban drag-drop to `updateDealStage(dealId, newStage)` — now also sets `stageChangedAt`
+5.  Call `getOrCreateWorkspace(userId)` on app load to get `workspaceId`
 
 ### 2026-02-06 06:00 AEST [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
 **Feature**: Tradie/Agent Actions + Build Passing + Legacy Cleanup

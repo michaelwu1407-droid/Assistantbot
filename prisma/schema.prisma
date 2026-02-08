@@ -47,6 +47,13 @@ enum JobStatus {
   CANCELLED
 }
 
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
 model Workspace {
   id                 String        @id @default(cuid())
   name               String
@@ -77,6 +84,7 @@ model User {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   activities  Activity[]
+  notifications Notification[]
   
   // View preference
   viewMode    String?   @default("BASIC") // BASIC, ADVANCED
@@ -299,4 +307,18 @@ model Key {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  read      Boolean          @default(false)
+  link      String?
+  
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime         @default(now())
 }
