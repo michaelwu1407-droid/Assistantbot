@@ -63,6 +63,8 @@ model Workspace {
   messageTemplates   MessageTemplate[]
   automations        Automation[]
   chatMessages       ChatMessage[]
+  materials          Material[]
+  keys               Key[]
   
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -113,6 +115,7 @@ model Deal {
   tasks          Task[]
   invoices       Invoice[]
   openHouseLogs  OpenHouseLog[]
+  buyerFeedback  BuyerFeedback[]
 }
 
 model Contact {
@@ -133,6 +136,8 @@ model Contact {
   deals       Deal[]
   activities  Activity[]
   tasks       Task[]
+  keysHeld    Key[]
+  feedback    BuyerFeedback[]
 }
 
 model Activity {
@@ -245,4 +250,53 @@ model OpenHouseLog {
   deal            Deal     @relation(fields: [dealId], references: [id])
   
   visitedAt       DateTime @default(now())
+}
+
+model Material {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  unit        String    // e.g. "m", "hr", "each"
+  price       Decimal
+  category    String?   // "Plumbing", "Electrical"
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model BuyerFeedback {
+  id            String   @id @default(cuid())
+  interestLevel String   // HOT, WARM, COLD
+  priceOpinion  Decimal?
+  notes         String?
+  
+  dealId        String
+  deal          Deal     @relation(fields: [dealId], references: [id])
+  
+  contactId     String
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  
+  createdAt     DateTime @default(now())
+}
+
+model Key {
+  id          String   @id @default(cuid())
+  code        String   // e.g. "K-101"
+  description String?  // "Front door key"
+  status      String   // AVAILABLE, CHECKED_OUT, LOST
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
+  // If checked out
+  holderId    String?
+  holder      Contact? @relation(fields: [holderId], references: [id])
+  
+  checkedOutAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

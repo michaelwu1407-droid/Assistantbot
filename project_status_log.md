@@ -88,6 +88,15 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 12:35 AEST [Backend - Claude Code] - Materials, Keys & Feedback
+**Feature**: Added backend support for Materials, Magic Keys, and Buyer Feedback.
+*   **Schema**: Added `Material`, `Key`, and `BuyerFeedback` models.
+*   **Actions**: Created `actions/material-actions.ts` (search/create) and `actions/key-actions.ts` (check-in/out).
+*   **Seed**: Added sample materials (Plumbing/Electrical) and keys to seed data.
+*   **Status**: Completes backend for J-9 (Materials), MK-1/MK-2 (Keys), VR-2 (Feedback).
+*   **Files modified**: `prisma/schema.prisma`, `prisma/seed.ts`.
+*   **Files created**: `actions/material-actions.ts`, `actions/key-actions.ts`.
+
 ### 2026-02-08 12:25 AEST [Backend - Claude Code] - Agent Actions & Storage
 **Feature**: Restored Agent actions and added Storage support.
 *   **Agent Actions**: Added `findMatches` and `logOpenHouseAttendee` to `actions/agent-actions.ts`.
