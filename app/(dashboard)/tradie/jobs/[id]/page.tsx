@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
+
+export const dynamic = "force-dynamic";
 import { JobStatusBar } from "@/components/tradie/job-status-bar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -169,7 +171,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
 
 
                     <TabsContent value="photos">
-                        <JobPhotosTab />
+                        <JobPhotosTab dealId={deal.id} />
                     </TabsContent>
 
                     <TabsContent value="billing">

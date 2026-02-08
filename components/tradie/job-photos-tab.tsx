@@ -11,17 +11,12 @@ interface Photo {
     createdAt: Date;
 }
 
-export function JobPhotosTab() {
-    const [photos, setPhotos] = useState<Photo[]>([]);
+interface JobPhotosTabProps {
+    dealId: string;
+}
 
-    const handleCapture = (file: File) => {
-        const newPhoto: Photo = {
-            id: Math.random().toString(36).substring(7),
-            url: URL.createObjectURL(file), // Create local URL for preview
-            createdAt: new Date(),
-        };
-        setPhotos((prev) => [newPhoto, ...prev]);
-    };
+export function JobPhotosTab({ dealId }: JobPhotosTabProps) {
+    const [photos, setPhotos] = useState<Photo[]>([]);
 
     const handleRemove = (id: string) => {
         setPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -38,7 +33,7 @@ export function JobPhotosTab() {
                 </CardContent>
             </Card>
 
-            <CameraFAB onCapture={handleCapture} />
+            <CameraFAB dealId={dealId} />
         </div>
     );
 }
