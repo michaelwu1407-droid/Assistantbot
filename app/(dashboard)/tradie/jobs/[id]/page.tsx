@@ -10,6 +10,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { JobStatus } from "@prisma/client";
 import { ActivityFeed } from "@/components/crm/activity-feed";
+import { JobPhotosTab } from "@/components/tradie/job-photos-tab";
+import { JobBillingTab } from "@/components/tradie/job-billing-tab";
 
 // Mock data for types not fully fleshed out in prisma client yet
 // In a real scenario, these come from db.deal include
@@ -163,10 +165,8 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                         </Card>
                     </TabsContent>
 
-                    import {JobPhotosTab} from "@/components/tradie/job-photos-tab";
-                    import {JobBillingTab} from "@/components/tradie/job-billing-tab";
 
-                    // ... existing imports
+
 
                     <TabsContent value="photos">
                         <JobPhotosTab />

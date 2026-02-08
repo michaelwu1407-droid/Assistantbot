@@ -27,9 +27,9 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
     : [-33.8688, 151.2093]
 
   return (
-    <MapContainer 
-      center={center} 
-      zoom={11} 
+    <MapContainer
+      center={center}
+      zoom={11}
       style={{ height: "100%", width: "100%" }}
       scrollWheelZoom={true}
     >
@@ -37,23 +37,22 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      
+
       {deals.map((deal) => (
-        <Marker 
-          key={deal.id} 
+        <Marker
+          key={deal.id}
           position={[deal.latitude, deal.longitude]}
           icon={icon}
         >
           <Popup>
             <div className="min-w-[200px]">
-              <h3 className="font-semibold text-slate-900">{deal.title}</h3>
+              <div className="font-semibold">{deal.title}</div>
               <p className="text-sm text-slate-500 mb-2">{deal.address}</p>
               <div className="flex justify-between items-center">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
-                  deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
-                  deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
+                    deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-slate-100 text-slate-600 border-slate-200'
+                  }`}>
                   {deal.stage.toUpperCase()}
                 </span>
                 <span className="text-xs font-medium text-slate-900">

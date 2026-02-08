@@ -105,8 +105,8 @@ export async function importFromPortal(
   if (listing.agentName) {
     const existing = listing.agentEmail
       ? await db.contact.findFirst({
-          where: { email: listing.agentEmail, workspaceId },
-        })
+        where: { email: listing.agentEmail, workspaceId },
+      })
       : null;
 
     if (existing) {
@@ -140,7 +140,6 @@ export async function importFromPortal(
   const deal = await db.deal.create({
     data: {
       title: listing.title,
-      company: listing.address,
       value: listing.price,
       stage: "NEW",
       stageChangedAt: new Date(),

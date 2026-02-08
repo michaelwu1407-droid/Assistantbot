@@ -9,7 +9,7 @@ export interface TaskView {
   id: string;
   title: string;
   description: string | null;
-  dueAt: Date;
+  dueAt: Date | null;
   completed: boolean;
   overdue: boolean;
   dealTitle?: string;
@@ -62,9 +62,9 @@ export async function getTasks(options?: {
     id: t.id,
     title: t.title,
     description: t.description,
-    dueAt: t.dueAt,
+    dueAt: t.dueAt || null,
     completed: t.completed,
-    overdue: !t.completed && t.dueAt < now,
+    overdue: !t.completed && (t.dueAt ? t.dueAt < now : false),
     dealTitle: t.deal?.title,
     contactName: t.contact?.name,
   }));

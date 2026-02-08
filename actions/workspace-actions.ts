@@ -13,7 +13,7 @@ export interface WorkspaceView {
   ownerId: string | null;
   location: string | null;
   onboardingComplete: boolean;
-  brandingColor: string;
+  brandingColor: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ function toWorkspaceView(w: {
   ownerId: string | null;
   location: string | null;
   onboardingComplete: boolean;
-  brandingColor: string;
+  brandingColor: string | null;
 }): WorkspaceView {
   return {
     id: w.id,

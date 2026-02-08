@@ -67,9 +67,10 @@ export default function MapView({ jobs }: MapViewProps) {
             />
 
             {jobs.map((job, idx) => {
-                // Mock coordinates if missing (staggered for demo)
-                const lat = job.lat || -37.8136 + (Math.random() * 0.05 - 0.025)
-                const lng = job.lng || 144.9631 + (Math.random() * 0.05 - 0.025)
+                // Deterministic offset based on ID to avoid hydration mismatch
+                const offset = (job.id.charCodeAt(0) % 10 - 5) * 0.005;
+                const lat = job.lat || -37.8136 + offset
+                const lng = job.lng || 144.9631 + offset
 
                 return (
                     <Marker key={job.id} position={[lat, lng]}>

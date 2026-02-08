@@ -1,3 +1,5 @@
+"use client";
+
 import { WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,9 +11,7 @@ export default function OfflinePage() {
         <WifiOff className="h-12 w-12 text-slate-400" />
       </div>
       <h1 className="mb-2 text-2xl font-bold text-slate-900">You are offline</h1>
-      <p className="mb-8 max-w-md text-slate-500">
-        It looks like you've lost your internet connection. We've saved your recent changes locally and will sync them when you're back online.
-      </p>
+      <p className="mt-4 text-slate-600">You&apos;re currently offline. Please check your internet connection. We&apos;ve saved your recent changes locally and will sync them when you&apos;re back online.</p>
       <div className="flex gap-4">
         <Link href="/dashboard">
           <Button variant="default">Go to Dashboard</Button>

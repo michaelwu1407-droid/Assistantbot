@@ -28,7 +28,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
     }),
     db.deal.findMany({
       where: { workspaceId },
-      select: { id: true, title: true, company: true, value: true, stage: true }
+      select: { id: true, title: true, value: true, stage: true, contact: { select: { company: true } } }
     }),
     db.task.findMany({
       where: {
@@ -66,7 +66,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
   const dealMatches = fuzzySearch(
     deals.map(d => ({
       id: d.id,
-      searchableFields: [d.title, d.company || ""]
+      searchableFields: [d.title, d.contact.company || ""]
     })),
     query
   )
@@ -77,7 +77,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
       id: d.id,
       type: "deal",
       title: d.title,
-      subtitle: `${d.stage} • $${d.value.toLocaleString()}`,
+      subtitle: `${d.stage} • $${(d.value?.toNumber() ?? 0).toLocaleString()}`,
       url: `/dashboard?dealId=${d.id}`, // In future: /deals/${d.id}
       score
     })

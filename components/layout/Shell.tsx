@@ -6,7 +6,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { motion, AnimatePresence } from "framer-motion"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode } = useShellStore()
 
   // Import TutorialOverlay locally if needed or at top level
@@ -23,7 +23,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="z-10 w-full max-w-2xl h-[85vh] shadow-2xl rounded-2xl overflow-hidden border border-border bg-card/80 backdrop-blur-sm relative">
           {/* ID for Spotlight */}
           <div id="assistant-pane" className="h-full w-full">
-            <AssistantPane />
+            {chatbot || <AssistantPane />}
           </div>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {/* Right Chatbot - 25% */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={50} id="assistant-panel">
           <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
-            <AssistantPane />
+            {chatbot || <AssistantPane />}
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>

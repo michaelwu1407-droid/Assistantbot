@@ -75,7 +75,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
               Scheduled Jobs
             </h2>
           </div>
-          
+
           {initialDeals.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               <MapPin className="h-8 w-8 mx-auto mb-3 text-slate-300" />
@@ -88,24 +88,23 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                 <div key={deal.id} className="p-4 hover:bg-slate-50 transition-colors group">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-medium text-slate-900 truncate pr-2">{deal.title}</h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${
-                      deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
-                      deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
+                        deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
                       {deal.stage}
                     </span>
                   </div>
-                  
-                  <div className="text-sm text-slate-600 mb-2">{deal.company}</div>
-                  
+
+                  <p className="text-sm font-medium">{deal.contactName}</p>
+
                   <div className="flex items-start gap-2 text-xs text-slate-500 mb-3">
                     <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                     <span className="line-clamp-2">{deal.address}</span>
                   </div>
 
                   <div className="flex gap-2">
-                    <a 
+                    <a
                       href={`https://www.google.com/maps/search/?api=1&query=${deal.latitude},${deal.longitude}`}
                       target="_blank"
                       rel="noopener noreferrer"

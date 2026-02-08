@@ -60,7 +60,8 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
         select: { createdAt: true },
       },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
+
   });
 
   return contacts.map((c) => ({
@@ -84,12 +85,8 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   const contact = await db.contact.findUnique({
     where: { id: contactId },
     include: {
-      deals: { select: { id: true } },
-      activities: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { createdAt: true },
-      },
+      deals: { orderBy: { updatedAt: "desc" } },
+      activities: { orderBy: { createdAt: "desc" } }
     },
   });
 

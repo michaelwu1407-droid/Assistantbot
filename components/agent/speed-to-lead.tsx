@@ -12,7 +12,7 @@ interface SpeedToLeadProps {
     leads: AgentLead[]
 }
 
-export function SpeedToLead({ leads }: SpeedToLeadProps) {
+export function SpeedToLeadWidget({ leads }: SpeedToLeadProps) {
     // Auto-scroll or simulate live updates
     const [activeLeads, setActiveLeads] = useState(leads)
 

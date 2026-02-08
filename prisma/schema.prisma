@@ -148,6 +148,9 @@ model Contact {
   tasks       Task[]
   keysHeld    Key[]
   feedback    BuyerFeedback[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Activity {

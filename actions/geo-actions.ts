@@ -7,13 +7,12 @@ import { db } from "@/lib/db";
 export interface GeocodedDeal {
   id: string;
   title: string;
-  company: string;
+  contactName: string;
   value: number;
   stage: string;
   address: string;
   latitude: number;
   longitude: number;
-  contactName: string;
 }
 
 interface GeocodeResult {
@@ -112,8 +111,7 @@ export async function getDealsWithLocation(
   return deals.map((d) => ({
     id: d.id,
     title: d.title,
-    company: d.company ?? d.contact.company ?? "",
-    value: d.value,
+    value: d.value ? d.value.toNumber() : 0,
     stage: d.stage,
     address: d.address ?? "",
     latitude: d.latitude!,

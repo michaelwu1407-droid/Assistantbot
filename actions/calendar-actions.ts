@@ -103,6 +103,10 @@ export async function createCalendarEvent(
     return { success: false, error: "Task not found" };
   }
 
+  if (!task.dueAt) {
+    return { success: false, error: "Task has no due date" };
+  }
+
   const event: CalendarEvent = {
     id: `evt_${task.id}`,
     title: task.title,

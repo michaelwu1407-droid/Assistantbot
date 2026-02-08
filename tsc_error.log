@@ -1,0 +1,85 @@
+actions/calendar-actions.ts(109,5): error TS2322: Type 'Date | null' is not assignable to type 'Date'.
+  Type 'null' is not assignable to type 'Date'.
+actions/calendar-actions.ts(110,19): error TS18047: 'task.dueAt' is possibly 'null'.
+actions/contact-actions.ts(63,16): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type 'ContactOrderByWithRelationInput | ContactOrderByWithRelationInput[]'.
+actions/contact-actions.ts(75,18): error TS2339: Property 'deals' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; metadata: JsonValue; address: string | null; phone: string | null; company: string | null; avatarUrl: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(76,25): error TS2339: Property 'activities' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; metadata: JsonValue; address: string | null; phone: string | null; company: string | null; avatarUrl: string | null; preferences: JsonValue; }'.
+actions/deal-actions.ts(86,3): error TS2322: Type '{ id: string; title: string; company: any; value: Decimal | null; stage: string; lastActivityDate: Date; contactName: string; contactAvatar: string | undefined; health: DealHealth; ... 5 more ...; longitude: number | undefined; }[]' is not assignable to type 'DealView[]'.
+  Type '{ id: string; title: string; company: any; value: Decimal | null; stage: string; lastActivityDate: Date; contactName: string; contactAvatar: string | undefined; health: DealHealth; ... 5 more ...; longitude: number | undefined; }' is not assignable to type 'DealView'.
+    Types of property 'value' are incompatible.
+      Type 'Decimal | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+actions/deal-actions.ts(97,21): error TS2339: Property 'company' does not exist on type '{ contact: { name: string; id: string; email: string | null; workspaceId: string; metadata: JsonValue; address: string | null; phone: string | null; company: string | null; avatarUrl: string | null; preferences: JsonValue; }; activities: { ...; }[]; } & { ...; }'.
+actions/deal-actions.ts(129,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+actions/geo-actions.ts(112,3): error TS2322: Type '{ id: string; title: string; company: any; value: Decimal | null; stage: DealStage; address: string; latitude: number; longitude: number; contactName: string; }[]' is not assignable to type 'GeocodedDeal[]'.
+  Type '{ id: string; title: string; company: any; value: Decimal | null; stage: $Enums.DealStage; address: string; latitude: number; longitude: number; contactName: string; }' is not assignable to type 'GeocodedDeal'.
+    Types of property 'value' are incompatible.
+      Type 'Decimal | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+actions/geo-actions.ts(115,16): error TS2339: Property 'company' does not exist on type '{ contact: { name: string; id: string; email: string | null; workspaceId: string; metadata: JsonValue; address: string | null; phone: string | null; company: string | null; avatarUrl: string | null; preferences: JsonValue; }; } & { ...; }'.
+actions/portal-actions.ts(143,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+actions/search-actions.ts(31,40): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'DealSelect<DefaultArgs>'.
+actions/search-actions.ts(69,37): error TS2339: Property 'company' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; jobStatus: JobStatus; ... 8 more ...; contactId: string; }'.
+actions/search-actions.ts(80,34): error TS18047: 'd.value' is possibly 'null'.
+actions/task-actions.ts(61,3): error TS2322: Type '{ id: string; title: string; description: string | null; dueAt: Date | null; completed: boolean; overdue: boolean; dealTitle: string | undefined; contactName: string | undefined; }[]' is not assignable to type 'TaskView[]'.
+  Type '{ id: string; title: string; description: string | null; dueAt: Date | null; completed: boolean; overdue: boolean; dealTitle: string | undefined; contactName: string | undefined; }' is not assignable to type 'TaskView'.
+    Types of property 'dueAt' are incompatible.
+      Type 'Date | null' is not assignable to type 'Date'.
+        Type 'null' is not assignable to type 'Date'.
+actions/task-actions.ts(67,30): error TS18047: 't.dueAt' is possibly 'null'.
+actions/workspace-actions.ts(70,32): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; industryType: IndustryType | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string | null; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Types of property 'brandingColor' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+actions/workspace-actions.ts(84,28): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; industryType: IndustryType | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string | null; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Types of property 'brandingColor' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+actions/workspace-actions.ts(110,28): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; industryType: IndustryType | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string | null; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Types of property 'brandingColor' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+actions/workspace-actions.ts(147,25): error TS2345: Argument of type '(w: { id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }) => WorkspaceView' is not assignable to parameter of type '(value: { name: string; id: string; type: WorkspaceType; industryType: IndustryType | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string | null; createdAt: Date; updatedAt: Date; }, index: number, array: { ...; }[]) => WorkspaceView'.
+  Types of parameters 'w' and 'value' are incompatible.
+    Type '{ name: string; id: string; type: WorkspaceType; industryType: IndustryType | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string | null; createdAt: Date; updatedAt: Date; }' is not assignable to type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+      Types of property 'brandingColor' are incompatible.
+        Type 'string | null' is not assignable to type 'string'.
+          Type 'null' is not assignable to type 'string'.
+app/(dashboard)/agent/page.tsx(4,10): error TS2305: Module '"@/components/agent/speed-to-lead"' has no exported member 'SpeedToLeadWidget'.
+app/(dashboard)/layout.tsx(3,31): error TS2307: Cannot find module '@/components/chatbot/ChatInterface' or its corresponding type declarations.
+app/(dashboard)/layout.tsx(11,12): error TS2322: Type '{ children: ReactNode; chatbot: Element; }' is not assignable to type 'IntrinsicAttributes & { children: ReactNode; }'.
+  Property 'chatbot' does not exist on type 'IntrinsicAttributes & { children: ReactNode; }'.
+app/(dashboard)/tradie/jobs/[id]/page.tsx(166,29): error TS2304: Cannot find name 'JobPhotosTab'.
+app/(dashboard)/tradie/jobs/[id]/page.tsx(167,29): error TS2304: Cannot find name 'JobBillingTab'.
+app/(dashboard)/tradie/jobs/[id]/page.tsx(172,26): error TS2304: Cannot find name 'JobPhotosTab'.
+app/(dashboard)/tradie/jobs/[id]/page.tsx(176,26): error TS2304: Cannot find name 'JobBillingTab'.
+app/dashboard/agent/page.tsx(3,10): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'findMatches'.
+app/dashboard/agent/page.tsx(3,23): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'MatchedContact'.
+app/dashboard/layout.tsx(3,23): error TS1149: File name 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/components/layout/shell.tsx' differs from already included file name 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/components/layout/Shell.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/layout/Shell' from file 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/app/(dashboard)/layout.tsx'
+    Imported via "@/components/layout/shell" from file 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/app/dashboard/layout.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/tsconfig.json'
+components/agent/agent-dashboard-client.tsx(6,10): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'logKeyCheckout'.
+components/agent/agent-dashboard-client.tsx(8,10): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'MatchedContact'.
+components/agent/buyer-matchmaker.tsx(4,10): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'findMatches'.
+components/agent/buyer-matchmaker.tsx(4,28): error TS2305: Module '"@/actions/agent-actions"' has no exported member 'MatchResult'.
+components/agent/buyer-matchmaker.tsx(90,33): error TS7006: Parameter 'contact' implicitly has an 'any' type.
+components/ui/resizable.tsx(11,51): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(12,23): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(27,51): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(30,23): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(42,24): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+lib/supabase/middleware.ts(1,36): error TS2307: Cannot find module '@supabase/ssr' or its corresponding type declarations.
+lib/supabase/middleware.ts(19,16): error TS7006: Parameter 'cookiesToSet' implicitly has an 'any' type.
+lib/supabase/middleware.ts(20,35): error TS7031: Binding element 'name' implicitly has an 'any' type.
+lib/supabase/middleware.ts(20,41): error TS7031: Binding element 'value' implicitly has an 'any' type.
+lib/supabase/middleware.ts(20,48): error TS7031: Binding element 'options' implicitly has an 'any' type.
+lib/supabase/middleware.ts(28,35): error TS7031: Binding element 'name' implicitly has an 'any' type.
+lib/supabase/middleware.ts(28,41): error TS7031: Binding element 'value' implicitly has an 'any' type.
+lib/supabase/middleware.ts(28,48): error TS7031: Binding element 'options' implicitly has an 'any' type.
+lib/supabase/server.ts(1,36): error TS2307: Cannot find module '@supabase/ssr' or its corresponding type declarations.
+lib/supabase/server.ts(15,16): error TS7006: Parameter 'cookiesToSet' implicitly has an 'any' type.
+lib/supabase/server.ts(17,37): error TS7031: Binding element 'name' implicitly has an 'any' type.
+lib/supabase/server.ts(17,43): error TS7031: Binding element 'value' implicitly has an 'any' type.
+lib/supabase/server.ts(17,50): error TS7031: Binding element 'options' implicitly has an 'any' type.

@@ -44,9 +44,9 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
 
           {/* Actions & Commission */}
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="text-slate-600 border-slate-200"
               onClick={() => window.open('/kiosk/open-house', '_blank')}
             >
@@ -71,13 +71,13 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
                   {newListings.length}
                 </span>
               </div>
-              
+
               {newListings.map(listing => (
                 <div key={listing.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium text-slate-900 truncate">{listing.title}</h4>
                     <span className="text-xs text-slate-400">
-                      {Math.floor((Date.now() - new Date(listing.lastActivityDate).getTime()) / 3600000)}h ago
+                      {new Date(listing.lastActivityDate).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500 mb-3">
@@ -91,7 +91,7 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
                   </div>
                 </div>
               ))}
-              
+
               {newListings.length === 0 && (
                 <div className="text-center p-4 text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-lg">
                   No new listings
@@ -107,7 +107,7 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
                   {appraisedListings.length}
                 </span>
               </div>
-              
+
               {appraisedListings.map(listing => (
                 <div key={listing.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm opacity-90">
                   <div className="flex justify-between items-start mb-2">
@@ -125,8 +125,8 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
 
         {/* Magic Keys Footer */}
         <div className="h-16 border-t border-slate-200 bg-white px-6 flex items-center justify-center shrink-0">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="flex flex-col items-center gap-1 h-auto py-2 text-slate-500 hover:text-blue-600"
             onClick={handleKeyCheckout}
           >
@@ -174,7 +174,7 @@ export function AgentDashboardClient({ listings, matches, totalCommission }: Age
               </div>
             );
           })}
-          
+
           {Object.keys(matches).length === 0 && (
             <div className="text-center text-slate-400 text-sm py-8">
               No matches found

@@ -41,8 +41,6 @@ export interface DealView {
   address?: string;
   latitude?: number;
   longitude?: number;
-  scheduledAt?: Date;
-  jobStatus?: string;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -55,7 +53,6 @@ const CreateDealSchema = z.object({
   contactId: z.string(),
   workspaceId: z.string(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  scheduledAt: z.coerce.date().optional(),
 });
 
 const UpdateStageSchema = z.object({
@@ -97,8 +94,8 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
     return {
       id: deal.id,
       title: deal.title,
-      company: deal.company ?? deal.contact.company ?? "",
-      value: deal.value ? Number(deal.value) : 0,
+      company: deal.contact.company ?? "",
+      value: deal.value ? deal.value.toNumber() : 0,
       stage: STAGE_MAP[deal.stage] ?? "new",
       lastActivityDate,
       contactName: deal.contact.name,
@@ -110,8 +107,6 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
       address: deal.address ?? undefined,
       latitude: deal.latitude ?? undefined,
       longitude: deal.longitude ?? undefined,
-      scheduledAt: deal.scheduledAt ?? undefined,
-      jobStatus: deal.jobStatus ?? undefined,
     };
   });
 }
@@ -125,20 +120,17 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { title, company, value, stage, contactId, workspaceId, metadata, scheduledAt } = parsed.data;
+  const { title, company, value, stage, contactId, workspaceId, metadata } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
   const deal = await db.deal.create({
     data: {
       title,
-      company,
       value,
       stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
       contactId,
       workspaceId,
       metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
-      scheduledAt,
-      jobStatus: scheduledAt ? "SCHEDULED" : undefined,
     },
   });
 

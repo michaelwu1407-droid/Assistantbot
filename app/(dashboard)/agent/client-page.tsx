@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Bell, Key, DollarSign, Home, User, Settings, QrCode } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { SpeedToLead } from "@/components/agent/speed-to-lead" // Import locally to avoid circle if any, but standard is fine
-import { SpeedToLead } from "@/components/agent/speed-to-lead"
+import { SpeedToLeadWidget } from "@/components/agent/speed-to-lead"
 import { AgentLead } from "@/actions/agent-actions"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -78,7 +78,7 @@ export default function AgentDashboard({ freshLeads, initialPipeline }: AgentDas
         <header className="h-20 border-b border-slate-200 bg-white px-6 flex items-center justify-between shrink-0">
           {/* Speed-to-Lead Widget */}
           <div className="flex-1 max-w-3xl mr-8">
-            <SpeedToLead leads={freshLeads} />
+            <SpeedToLeadWidget leads={freshLeads} />
           </div>
 
           <div className="flex items-center gap-3">
