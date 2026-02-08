@@ -24,6 +24,7 @@ import { DealCard } from "./deal-card"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DealView, updateDealStage } from "@/actions/deal-actions"
+import { toast } from "sonner"
 
 // Define Column ID type to match Prisma enum / frontend map
 type ColumnId = "new" | "contacted" | "negotiation" | "won" | "lost"
@@ -125,7 +126,7 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
     }
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     const activeId = active.id as string
 
@@ -137,8 +138,7 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
     const overId = over.id as string
 
     const activeDeal = deals.find(d => d.id === activeId)
-    // const overDeal = deals.find(d => d.id === overId)
-
+    
     const activeStage = activeDeal?.stage.toLowerCase()
     // If dropping on a container ID directly (empty column) vs a card ID
     const overStage = COLUMNS.find(c => c.id === overId)?.id ||
@@ -146,15 +146,18 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
 
     if (activeDeal && overStage && activeStage !== overStage) {
       // It's already moved visually in handleDragOver, just persist here
-      // Optimistic update handled in dragOver mostly, but let's confirm logic
-      console.log(`Moved ${activeDeal.title} to ${overStage}`)
-
-      // Server Action
-      updateDealStage(activeId, overStage).catch(err => {
+      try {
+        const result = await updateDealStage(activeId, overStage)
+        if (result.success) {
+          toast.success(`Moved to ${overStage}`)
+        } else {
+          throw new Error(result.error)
+        }
+      } catch (err) {
         console.error("Failed to update stage:", err)
-        // Revert logic would go here (fetch fresh deals)
-        // toast.error("Failed to save")
-      })
+        toast.error("Failed to save changes")
+        // Ideally revert state here, but for now we rely on next refresh
+      }
     }
 
     setActiveId(null)

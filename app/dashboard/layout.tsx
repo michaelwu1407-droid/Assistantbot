@@ -2,6 +2,7 @@
 
 import { Shell } from "@/components/layout/Shell"
 import { DashboardProvider } from "@/components/providers/dashboard-provider"
+import { SyncProvider } from "@/components/providers/sync-provider"
 
 export default function DashboardLayout({
     children,
@@ -10,9 +11,11 @@ export default function DashboardLayout({
 }) {
     return (
         <DashboardProvider>
-            <Shell>
-                {children}
-            </Shell>
+            <SyncProvider>
+                <Shell>
+                    {children}
+                </Shell>
+            </SyncProvider>
         </DashboardProvider>
     )
 }

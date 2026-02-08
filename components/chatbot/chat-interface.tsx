@@ -1,19 +1,27 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Bot, User } from 'lucide-react';
+import { Send, Mic, Bot, User, Loader2 } from 'lucide-react';
 import { useShellStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { processChat } from '@/actions/chat-actions';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
   role: 'bot' | 'user';
   text: string;
+  data?: any;
 }
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  workspaceId: string;
+}
+
+export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const { viewMode, setViewMode } = useShellStore();
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'bot', text: 'Hey! I\'m Pj. How can I help you today?' }
   ]);
@@ -23,32 +31,59 @@ export function ChatInterface() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text: input };
-    setMessages(prev => [...prev, userMsg]);
+    const userText = input;
+    const tempId = Date.now().toString();
+    
+    // Optimistic UI update
+    setMessages(prev => [...prev, { id: tempId, role: 'user', text: userText }]);
     setInput('');
+    setIsLoading(true);
 
-    // Mock AI Logic for the Demo
-    setTimeout(() => {
-      let botResponse = "I'm not sure how to help with that yet.";
+    try {
+      // Call Server Action
+      const response = await processChat(userText, workspaceId);
 
-      if (input.toLowerCase().includes('start day') || input.toLowerCase().includes('start my day')) {
-        botResponse = "Good morning! I've pulled up your route. You have 4 jobs today.";
-        setViewMode('ADVANCED'); // Trigger the UI slide-in
-      } else if (input.toLowerCase().includes('keys')) {
-        botResponse = "Opening the key checkout scanner for you.";
+      setMessages(prev => [
+        ...prev, 
+        { 
+          id: (Date.now() + 1).toString(), 
+          role: 'bot', 
+          text: response.message,
+          data: response.data 
+        }
+      ]);
+
+      // Handle Client-side Effects based on Intent
+      if (response.action === 'start_day') {
+        setViewMode('ADVANCED');
+        toast.success("Switched to Map View");
+      } else if (response.action === 'start_open_house') {
+        // Logic to redirect to kiosk mode could go here
+        toast.success("Kiosk Mode Ready");
       }
 
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: botResponse }]);
-    }, 600);
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast.error("Failed to send message");
+      setMessages(prev => [
+        ...prev, 
+        { id: Date.now().toString(), role: 'bot', text: "Sorry, I'm having trouble connecting right now." }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSend();
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
@@ -81,7 +116,7 @@ export function ChatInterface() {
               {msg.role === 'user' ? <User className="w-4 h-4 text-slate-600" /> : <Bot className="w-4 h-4 text-indigo-600" />}
             </div>
             <div className={cn(
-              "p-3 rounded-2xl text-sm",
+              "p-3 rounded-2xl text-sm whitespace-pre-wrap",
               msg.role === 'user'
                 ? "bg-slate-900 text-white rounded-tr-none"
                 : "bg-slate-100 text-slate-800 rounded-tl-none"
@@ -90,6 +125,17 @@ export function ChatInterface() {
             </div>
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="flex gap-3 max-w-[85%]">
+             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+               <Bot className="w-4 h-4 text-indigo-600" />
+             </div>
+             <div className="bg-slate-100 p-3 rounded-2xl rounded-tl-none flex items-center">
+               <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Input Area */}
@@ -100,8 +146,9 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={isLoading}
             placeholder={viewMode === 'BASIC' ? "Type 'Start Day'..." : "Ask Pj..."}
-            className="w-full bg-slate-100 border-0 rounded-full py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 placeholder:text-slate-400"
+            className="w-full bg-slate-100 border-0 rounded-full py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 placeholder:text-slate-400 disabled:opacity-50"
           />
           <div className="absolute right-2 flex items-center gap-1">
             <button className="p-2 text-slate-400 hover:text-slate-600">
@@ -109,7 +156,8 @@ export function ChatInterface() {
             </button>
             <button
               onClick={handleSend}
-              className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors"
+              disabled={isLoading || !input.trim()}
+              className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:bg-slate-300"
             >
               <Send className="w-4 h-4" />
             </button>
