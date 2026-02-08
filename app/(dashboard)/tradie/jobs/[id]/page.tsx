@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Phone, MapPin, Mail, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { JobStatus } from "@prisma/client";
+// JobStatus enum not in schema yet - using string literal
 import { ActivityFeed } from "@/components/crm/activity-feed";
 import { JobPhotosTab } from "@/components/tradie/job-photos-tab";
 import { JobBillingTab } from "@/components/tradie/job-billing-tab";
@@ -43,12 +43,13 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
     // Fallback for contact
     const contact = deal.contact || { name: "Unknown", phone: "", email: "", address: "" };
 
-    // Parse Job Status (handle default if null, though schema says default SCHEDULED)
-    const jobStatus = (deal.jobStatus || "SCHEDULED") as JobStatus;
+    // Parse Job Status from metadata (jobStatus field not in schema yet)
+    const dealMeta = (deal.metadata as Record<string, any>) || {};
+    const jobStatus = (dealMeta.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
 
-    // Format Date
-    const scheduledDate = deal.scheduledAt
-        ? format(deal.scheduledAt, "EEE, d MMM h:mm a")
+    // Format Date from metadata (scheduledAt field not in schema yet)
+    const scheduledDate = dealMeta.scheduledAt
+        ? format(new Date(dealMeta.scheduledAt), "EEE, d MMM h:mm a")
         : "Unscheduled";
 
     return (
@@ -175,7 +176,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                     </TabsContent>
 
                     <TabsContent value="billing">
-                        <JobBillingTab />
+                        <JobBillingTab dealId={deal.id} />
                     </TabsContent>
                 </Tabs>
             </div>

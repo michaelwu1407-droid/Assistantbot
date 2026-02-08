@@ -84,3 +84,6 @@ export function SpeedToLeadWidget({ leads }: SpeedToLeadProps) {
         </div>
     )
 }
+
+// Alias for backward compatibility with existing imports
+export { SpeedToLeadWidget as SpeedToLead }
