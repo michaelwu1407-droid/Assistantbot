@@ -88,6 +88,22 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 18:15 AEST [Backend - Claude Code] - Travel Workflow
+**Feature**: Implemented "Start Travel" workflow.
+*   **Bottom Sheet**: Updated `components/tradie/job-bottom-sheet.tsx` to call `updateJobStatus('TRAVELING')`.
+*   **Logic**: Triggers backend SMS notification and redirects to job details.
+*   **Status**: Completes Task J-3 (Travel Workflow) and J-4 (On My Way SMS).
+*   **Files modified**: `components/tradie/job-bottom-sheet.tsx`.
+
+### 2026-02-08 18:00 AEST [Backend - Claude Code] - Toast & Bottom Sheet
+**Feature**: Implemented Toast System and Tradie Bottom Sheet.
+*   **Toast**: Added `components/ui/sonner.tsx` (Task X-3).
+*   **Bottom Sheet**: Created `components/ui/drawer.tsx` and `components/tradie/job-bottom-sheet.tsx` (Task D-6).
+*   **Tradie Page**: Updated `app/dashboard/tradie/page.tsx` to include the bottom sheet.
+*   **Status**: Completes high-priority frontend tasks for user feedback and mobile navigation.
+*   **Files modified**: `app/dashboard/tradie/page.tsx`.
+*   **Files created**: `components/ui/sonner.tsx`, `components/ui/drawer.tsx`, `components/tradie/job-bottom-sheet.tsx`.
+
 ### 2026-02-08 17:45 AEST [Backend - Claude Code] - New Deal Modal
 **Feature**: Implemented New Deal Modal (Task X-8).
 *   **UI**: Created `components/dashboard/dashboard-client.tsx` to manage modal state.
@@ -535,62 +551,6 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   Run: `npm run db:seed`.
 
 **How Antigravity Should Wire Up**:
-1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)`.
-2.  Replace mock `activities` in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`.
-3.  On Kanban drag-drop, call `updateDealStage(dealId, newStage)`.
-4.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)`.
-5.  Add enrichment on contact creation: already built into `createContact()`.
-
-### 2026-02-06 06:00 AEST [Backend - Claude Code] - Build Fixes, Vertical Actions, Cleanup
-**Feature**: Tradie/Agent Actions + Build Passing + Legacy Cleanup
-
-*   **Removed `src/` legacy directory**: All code consolidated into root `lib/`, `actions/`. No more duplicate files.
-*   **New Vertical Actions**:
-    *   `actions/tradie-actions.ts` — `generateQuote()` (line items → subtotal + 10% GST, creates Invoice, moves deal to INVOICED), `getDealInvoices()`, `issueInvoice()`, `markInvoicePaid()` (auto-moves deal to WON).
-    *   `actions/agent-actions.ts` — `findMatches()` (buyer matchmaker: filters contacts by budget + bedrooms), `logOpenHouseAttendee()` (auto-creates contacts from open house visitors), `getOpenHouseLog()`.
-*   **Build Fixes**:
-    *   Replaced Google Fonts (Geist) in `app/layout.tsx` with system fonts (build fails without internet).
-    *   Fixed Prisma `InputJsonValue` type errors in all action files — wrapped Json field writes with `JSON.parse(JSON.stringify(...))`.
-*   **Build Status**: **PASSING** — all 9 routes compile cleanly with `npm run build`.
-*   **Server Action Summary (8 files, all at `actions/`)**:
-    *   `deal-actions.ts`, `activity-actions.ts`, `contact-actions.ts`, `task-actions.ts`
-    *   `automation-actions.ts`, `chat-actions.ts`, `tradie-actions.ts`, `agent-actions.ts`
-
-### 2026-02-06 04:00 AEST [Backend - Claude Code] - All 14 Backend Tasks Complete
-**Feature**: Full backend implementation across all 5 phases
-
-**Phase 1 — Wire-up**:
-*   `.env.example` with Supabase, Twilio, Google, Azure, Xero configs
-*   `actions/workspace-actions.ts` — `getOrCreateWorkspace()`, `getWorkspace()`, `updateWorkspace()`, `listWorkspaces()`
-*   Prisma `directUrl` configured for Supabase connection pooling
-
-**Phase 2 — Core Gaps**:
-*   `stageChangedAt` field on Deal + computed `daysInStage` in `getDeals()`
-*   `actions/dedup-actions.ts` — `findDuplicateContacts()`, `mergeContacts()` (email, phone, fuzzy name matching)
-*   `MessageTemplate` model + `actions/template-actions.ts` — CRUD, `renderTemplate()` with `{{var}}`, 7 presets seeded
-*   Chat commands: "show templates", "use template X for Y", "find duplicates"
-
-**Phase 3 — Tradie Stream**:
-*   `generateQuotePDF(invoiceId)` — returns structured data + printable HTML
-*   `actions/geo-actions.ts` — `geocodeDeal()`, `getDealsWithLocation()`, `batchGeocode()` (Nominatim API)
-*   `actions/accounting-actions.ts` — Xero/MYOB sync stubs
-
-**Phase 4 — Agent Stream**:
-*   `lib/qrcode.ts` — pure SVG QR generator, `generateOpenHouseQR()` in agent-actions
-*   `actions/portal-actions.ts` — `importFromPortal()` for REA/Domain listings
-
-**Phase 5 — Communications**:
-*   `actions/messaging-actions.ts` — `sendSMS()`, `sendWhatsApp()`, `sendBulkSMS()` (Twilio API)
-*   `actions/email-actions.ts` — Gmail/Outlook sync stubs, OAuth URLs, webhook processor
-*   `actions/calendar-actions.ts` — Google/Outlook Calendar stubs, `createCalendarEvent()`
-*   `processCalendarWebhook()`. Stub — ready for OAuth.
-*   `extension/` — Chrome MV3 browser extension (manifest, content scripts for LinkedIn/REA/Domain, popup, background worker)
-*   `app/api/extension/import/route.ts` — API route for extension data push
-
-**Build Status**: **PASSING** — 10 routes (9 static + 1 dynamic API)
-**Server Actions**: 14 files | **Lib Utilities**: 6 files | **Models**: 10 | **API Routes**: 1
-
-**How Antigravity Should Wire Up** (Phase 1 frontend tasks):
 1.  Replace `MOCK_DEALS` in `app/dashboard/page.tsx` with `getDeals(workspaceId)` — returns `DealView[]` (now includes `daysInStage`, `stageChangedAt`)
 2.  Replace mock activities in `components/crm/activity-feed.tsx` with `getActivities({ workspaceId })`
 3.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)` — now supports templates + dedup commands

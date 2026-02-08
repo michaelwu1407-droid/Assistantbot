@@ -1,102 +1,114 @@
-"use client";
+"use client"
 
-import { Drawer } from "vaul";
-import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Clock, Phone } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useState, useEffect } from "react"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerTrigger } from "@/components/ui/drawer"
+import { Button } from "@/components/ui/button"
+import { MapPin, Phone, Navigation, Clock, ChevronUp, Loader2 } from "lucide-react"
+import { getNextJob, updateJobStatus } from "@/actions/tradie-actions"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
-export function JobBottomSheet() {
-    const [open, setOpen] = useState(true); // Always visible/peeking
-    const router = useRouter();
+interface JobBottomSheetProps {
+    workspaceId: string
+}
 
-    const handleStartTravel = () => {
-        toast.success("SMS Sent: On my way!");
-        router.push("/dashboard/tradie/jobs/job-123"); // Mock ID
-    };
+export function JobBottomSheet({ workspaceId }: JobBottomSheetProps) {
+    const [nextJob, setNextJob] = useState<{
+        id: string;
+        title: string;
+        client: string;
+        time: Date | null;
+        address: string | null;
+    } | null>(null)
+    const [isOpen, setIsOpen] = useState(false)
+    const [isStarting, setIsStarting] = useState(false)
+    const router = useRouter()
+
+    useEffect(() => {
+        getNextJob(workspaceId).then(setNextJob)
+    }, [workspaceId])
+
+    if (!nextJob) return null
+
+    const handleNavigate = () => {
+        if (nextJob.address) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextJob.address)}`, '_blank')
+        } else {
+            toast.error("No address available for this job")
+        }
+    }
+
+    const handleStartTravel = async () => {
+        setIsStarting(true)
+        try {
+            // 1. Update status to TRAVELING (triggers SMS on backend)
+            const result = await updateJobStatus(nextJob.id, 'TRAVELING')
+            
+            if (result.success) {
+                toast.success("Travel started! Client notified via SMS.")
+                setIsOpen(false)
+                // 2. Navigate to job details
+                router.push(`/dashboard/jobs/${nextJob.id}`)
+            } else {
+                toast.error("Failed to start travel: " + result.error)
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("An unexpected error occurred")
+        } finally {
+            setIsStarting(false)
+        }
+    }
 
     return (
-        <Drawer.Root shouldScaleBackground>
-            <Drawer.Trigger asChild>
-                {/* Floating Trigger if needed, but we used fixed UI */}
-                <Button className="hidden">Open</Button>
-            </Drawer.Trigger>
-
-            {/* 
-         We want a "Persistent" bottom sheet for the Tradie view.
-         for this demo, we'll just put a fixed trigger bar at the bottom 
-         that acts as the handle.
-      */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 pb-8 z-20 shadow-[0_-5px_10px_rgba(0,0,0,0.05)] md:hidden">
-                <Drawer.Trigger asChild>
-                    <div className="flex items-center justify-between cursor-pointer">
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Up Next</p>
-                            <h3 className="font-bold text-slate-900">Mrs. Jones - Leaky Tap</h3>
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+            <DrawerTrigger asChild>
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-lg cursor-pointer hover:bg-slate-50 transition-colors z-40 md:hidden">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-emerald-600 font-medium text-sm">
+                            <Clock className="w-4 h-4" />
+                            Up Next
                         </div>
-                        <Button size="sm" className="bg-slate-900 text-white rounded-full px-6">
-                            View
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <h3 className="font-bold text-slate-900">{nextJob.title}</h3>
+                    <p className="text-sm text-slate-500">{nextJob.client}</p>
+                </div>
+            </DrawerTrigger>
+            <DrawerContent>
+                <DrawerHeader>
+                    <DrawerTitle>{nextJob.title}</DrawerTitle>
+                    <DrawerDescription>
+                        Scheduled for {nextJob.time ? new Date(nextJob.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today'}
+                    </DrawerDescription>
+                </DrawerHeader>
+                <div className="p-4 space-y-4">
+                    <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                        <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-slate-900 text-sm">Location</p>
+                            <p className="text-sm text-slate-500">{nextJob.address || "No address provided"}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        <Button onClick={handleNavigate} className="w-full" variant="outline">
+                            <Navigation className="w-4 h-4 mr-2" />
+                            Navigate
+                        </Button>
+                        <Button 
+                            onClick={handleStartTravel} 
+                            disabled={isStarting}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                            {isStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Start Travel"}
                         </Button>
                     </div>
-                </Drawer.Trigger>
-            </div>
-
-            <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-                <Drawer.Content className="bg-white flex flex-col rounded-t-[10px] h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
-                    <div className="p-4 bg-white rounded-t-[10px] flex-1">
-                        <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-300 mb-8" />
-
-                        <div className="max-w-md mx-auto space-y-6">
-                            <Drawer.Title className="font-bold text-2xl mb-2">Mrs. Jones - Leaky Tap</Drawer.Title>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3">
-                                    <Clock className="text-slate-500 h-5 w-5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Time</p>
-                                        <p className="font-semibold">2:00 PM</p>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3">
-                                    <MapPin className="text-slate-500 h-5 w-5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Distance</p>
-                                        <p className="font-semibold">12 mins</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 p-4 rounded-xl space-y-3">
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="mt-1 h-5 w-5 text-blue-600" />
-                                    <div>
-                                        <p className="font-medium">123 Maple Avenue</p>
-                                        <p className="text-sm text-muted-foreground">Surry Hills, NSW 2010</p>
-                                    </div>
-                                </div>
-                                <hr className="border-slate-200" />
-                                <div className="flex items-start gap-3">
-                                    <Phone className="mt-1 h-5 w-5 text-green-600" />
-                                    <div>
-                                        <p className="font-medium">0400 123 456</p>
-                                        <p className="text-sm text-muted-foreground">Contact: Jenny</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button
-                                onClick={handleStartTravel}
-                                className="w-full h-14 text-lg font-bold bg-green-500 hover:bg-green-600 text-slate-900 rounded-xl shadow-lg shadow-green-200"
-                            >
-                                <Navigation className="mr-2 h-5 w-5" />
-                                Start Travel
-                            </Button>
-                        </div>
-                    </div>
-                </Drawer.Content>
-            </Drawer.Portal>
-        </Drawer.Root>
-    );
+                </div>
+                <DrawerFooter>
+                    <Button variant="ghost" onClick={() => setIsOpen(false)}>Close</Button>
+                </DrawerFooter>
+            </DrawerContent>
+        </Drawer>
+    )
 }
