@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { sendSMS } from "./messaging-actions";
+import { createNotification } from "./notification-actions";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -235,6 +236,26 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
   // 2. Trigger Side Effects
   if (status === 'TRAVELING') {
     await sendOnMyWaySMS(jobId);
+  }
+
+  if (status === 'COMPLETED') {
+    // Notify workspace users
+    const deal = await db.deal.findUnique({ 
+        where: { id: jobId },
+        include: { workspace: { include: { users: true } } }
+    });
+    
+    if (deal) {
+        for (const user of deal.workspace.users) {
+            await createNotification({
+                userId: user.id,
+                title: "Job Completed",
+                message: `Job "${deal.title}" has been marked as completed.`,
+                type: "SUCCESS",
+                link: `/dashboard/jobs/${jobId}`
+            });
+        }
+    }
   }
 
   revalidatePath('/dashboard/tradie');
