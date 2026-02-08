@@ -88,6 +88,15 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 18:30 AEST [Backend - Claude Code] - Job Detail & Camera
+**Feature**: Implemented Tradie Job Detail Page and Camera FAB.
+*   **Job Detail**: Created `app/dashboard/jobs/[id]/page.tsx` and `components/tradie/job-detail-view.tsx` with status workflow (Start Travel -> Arrived -> Complete).
+*   **Camera**: Created `components/tradie/camera-fab.tsx` for photo uploads.
+*   **Actions**: Added `saveJobPhoto` to `actions/tradie-actions.ts`.
+*   **Status**: Completes Task J-1 (Job Detail Page) and J-6 (Camera Integration).
+*   **Files modified**: `actions/tradie-actions.ts`.
+*   **Files created**: `app/dashboard/jobs/[id]/page.tsx`, `components/tradie/job-detail-view.tsx`, `components/tradie/camera-fab.tsx`.
+
 ### 2026-02-08 18:15 AEST [Backend - Claude Code] - Travel Workflow
 **Feature**: Implemented "Start Travel" workflow.
 *   **Bottom Sheet**: Updated `components/tradie/job-bottom-sheet.tsx` to call `updateJobStatus('TRAVELING')`.

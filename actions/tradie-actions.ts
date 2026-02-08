@@ -144,6 +144,9 @@ export async function getJobDetails(jobId: string) {
       },
       invoices: {
         orderBy: { createdAt: "desc" }
+      },
+      jobPhotos: {
+        orderBy: { createdAt: "desc" }
       }
     }
   });
@@ -168,7 +171,8 @@ export async function getJobDetails(jobId: string) {
       total: Number(inv.total),
       subtotal: Number(inv.subtotal),
       tax: Number(inv.tax)
-    }))
+    })),
+    photos: deal.jobPhotos
   };
 }
 
@@ -233,7 +237,39 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
   }
 
   revalidatePath('/dashboard/tradie');
+  revalidatePath(`/dashboard/jobs/${jobId}`);
   return { success: true, status };
+}
+
+/**
+ * Save a job photo.
+ */
+export async function saveJobPhoto(dealId: string, url: string, caption?: string) {
+  try {
+    await db.jobPhoto.create({
+      data: {
+        dealId,
+        url,
+        caption
+      }
+    });
+    
+    // Log activity
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Photo added",
+        content: "Added a new photo to the job diary.",
+        dealId
+      }
+    });
+
+    revalidatePath(`/dashboard/jobs/${dealId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save photo:", error);
+    return { success: false, error: "Failed to save photo record" };
+  }
 }
 
 /**
