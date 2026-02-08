@@ -88,6 +88,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 16:30 AEST [Backend - Claude Code] - Fix Middleware Crash
+**Fix**: Prevented 500 error when env vars are missing.
+*   **Middleware**: Updated `lib/supabase/middleware.ts` to check for `NEXT_PUBLIC_SUPABASE_URL` and wrap auth in try/catch. Returns `next()` instead of crashing if config is missing.
+*   **Status**: Fixes `MIDDLEWARE_INVOCATION_FAILED` error.
+*   **Files modified**: `lib/supabase/middleware.ts`.
+
 ### 2026-02-08 16:15 AEST [Backend - Claude Code] - Fix Layout Props
 **Fix**: Passed missing `workspaceId` to `ChatInterface` in Dashboard Layout.
 *   **Layout**: Updated `app/(dashboard)/layout.tsx` to fetch workspace server-side and pass ID to the client component.
