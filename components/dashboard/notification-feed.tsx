@@ -1,40 +1,59 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, Check, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Check, X, Loader2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+// import { getNotifications, markAsRead, markAllAsRead } from "@/actions/notification-actions"
 
-interface Notification {
-    id: string
-    title: string
-    message: string
-    type: "info" | "success" | "warning" | "error"
-    timestamp: string
-    read: boolean
-}
-
-// Mock Data
-const MOCK_NOTIFICATIONS: Notification[] = [
-    { id: "1", title: "Job Updated", message: "123 Main St changed to Traveling", type: "info", timestamp: "2m ago", read: false },
-    { id: "2", title: "Payment Received", message: "$450.00 from Mrs. Jones", type: "success", timestamp: "1h ago", read: false },
-    { id: "3", title: "Safety Warning", message: "High wind alert in your area", type: "warning", timestamp: "3h ago", read: true },
-]
+// For now, these imports would likely break on client-side if they use 'use server' inside without being wrapped or called correctly.
+// But Next.js handles server actions imported in client components just fine.
+import { getNotifications, markAsRead, markAllAsRead, NotificationView } from "@/actions/notification-actions"
 
 export function NotificationFeed() {
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
-    const unreadCount = notifications.filter(n => !n.read).length
+    const [notifications, setNotifications] = useState<NotificationView[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
 
-    const markAllRead = () => {
+    // TODO: Ideally pass userId or fetch from session context.
+    const userId = "demo-user"
+
+    useEffect(() => {
+        if (isOpen) {
+            loadNotifications()
+        }
+    }, [isOpen])
+
+    // Initial load on mount to show badge count
+    useEffect(() => {
+        loadNotifications()
+    }, [])
+
+    const loadNotifications = async () => {
+        try {
+            const data = await getNotifications(userId)
+            setNotifications(data)
+        } catch (error) {
+            console.error("Failed to load notifications", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const unreadCount = notifications.filter(n => !n.read).length
+
+    const handleMarkAllRead = async () => {
+        await markAllAsRead(userId)
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     }
 
-    const deleteNotification = (id: string, e: React.MouseEvent) => {
+    const dismissNotification = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
+        // Optimistic update
         setNotifications(prev => prev.filter(n => n.id !== id))
+        await markAsRead(id)
     }
 
     return (
@@ -52,13 +71,17 @@ export function NotificationFeed() {
                 <div className="flex items-center justify-between p-4 border-b border-slate-800">
                     <h4 className="font-semibold text-sm">Notifications</h4>
                     {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                        <button onClick={handleMarkAllRead} className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
                             Mark all read
                         </button>
                     )}
                 </div>
                 <ScrollArea className="h-[300px]">
-                    {notifications.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-full text-slate-500">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
+                    ) : notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
                             <Bell className="w-8 h-8 mb-2 opacity-20" />
                             <p className="text-sm">No new notifications</p>
@@ -82,7 +105,7 @@ export function NotificationFeed() {
                                                 {notification.message}
                                             </p>
                                             <p className="text-[10px] text-slate-600 mt-2 font-mono">
-                                                {notification.timestamp}
+                                                {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
                                         {!notification.read && (
@@ -90,7 +113,7 @@ export function NotificationFeed() {
                                         )}
                                     </div>
                                     <button
-                                        onClick={(e) => deleteNotification(notification.id, e)}
+                                        onClick={(e) => dismissNotification(notification.id, e)}
                                         className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                                     >
                                         <X className="w-3 h-3" />

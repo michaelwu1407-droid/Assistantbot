@@ -34,24 +34,47 @@ const workspaceFormSchema = z.object({
     location: z.string().optional(),
 })
 
+import { updateWorkspace } from "@/actions/workspace-actions"
+import { useRouter } from "next/navigation"
+
 type WorkspaceFormValues = z.infer<typeof workspaceFormSchema>
 
-const defaultValues: Partial<WorkspaceFormValues> = {
-    name: "My Awesome Business",
-    // industry: "TRADES", // Default
+// Accept initial data
+interface WorkspaceFormProps {
+    workspaceId: string
+    initialData?: Partial<WorkspaceFormValues>
 }
 
-export function WorkspaceForm() {
+// Default fallback
+const defaultValues: Partial<WorkspaceFormValues> = {
+    name: "My Awesome Business",
+    industry: "TRADES",
+}
+
+export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) {
+    const router = useRouter()
     const form = useForm<WorkspaceFormValues>({
         resolver: zodResolver(workspaceFormSchema),
-        defaultValues,
+        defaultValues: initialData || defaultValues,
     })
 
-    function onSubmit(data: WorkspaceFormValues) {
-        toast.success("Workspace updated", {
-            description: "Your workspace settings have been saved."
-        })
-        console.log(data)
+    async function onSubmit(data: WorkspaceFormValues) {
+        try {
+            await updateWorkspace(workspaceId, {
+                name: data.name,
+                industryType: data.industry as "TRADES" | "REAL_ESTATE",
+                location: data.location
+            })
+
+            toast.success("Workspace updated", {
+                description: "Your workspace settings have been saved."
+            })
+            router.refresh()
+        } catch (error) {
+            toast.error("Something went wrong", {
+                description: "Failed to update workspace. Please try again."
+            })
+        }
     }
 
     return (

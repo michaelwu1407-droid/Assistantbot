@@ -10,7 +10,7 @@ import {
     User,
     LayoutDashboard,
     Search,
-    MessageSquare
+    Loader2
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -25,8 +25,28 @@ import {
     CommandShortcut,
 } from "@/components/ui/command"
 
+import { globalSearch, SearchResultItem } from "@/actions/search-actions"
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = React.useState(value)
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value)
+        }, delay)
+        return () => clearTimeout(handler)
+    }, [value, delay])
+
+    return debouncedValue
+}
+
 export function SearchDialog({ children }: { children?: React.ReactNode }) {
     const [open, setOpen] = React.useState(false)
+    const [query, setQuery] = React.useState("")
+    const debouncedQuery = useDebounce(query, 300)
+    const [results, setResults] = React.useState<SearchResultItem[]>([])
+    const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
 
     React.useEffect(() => {
@@ -40,6 +60,31 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         document.addEventListener("keydown", down)
         return () => document.removeEventListener("keydown", down)
     }, [])
+
+    React.useEffect(() => {
+        if (!debouncedQuery || debouncedQuery.length < 2) {
+            setResults([])
+            return
+        }
+
+        const search = async () => {
+            setIsLoading(true)
+            try {
+                // TODO: Get real workspace ID. For now assuming "default" or handled by session context if we had it.
+                // Since this component is client-side, we ideally pass workspaceId as prop. 
+                // But actions can also infer from session. 
+                // Here we'll pass a placeholder standard ID or fetch dynamically if needed.
+                const items = await globalSearch("default", debouncedQuery)
+                setResults(items)
+            } catch (error) {
+                console.error("Search failed:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        search()
+    }, [debouncedQuery])
 
     const runCommand = React.useCallback((command: () => unknown) => {
         setOpen(false)
@@ -65,9 +110,39 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
             )}
 
             <CommandDialog open={open} onOpenChange={setOpen}>
-                <CommandInput placeholder="Type a command or search..." />
+                <CommandInput
+                    placeholder="Type a command or search..."
+                    value={query}
+                    onValueChange={setQuery}
+                />
                 <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandEmpty>
+                        {isLoading ? (
+                            <div className="flex items-center justify-center p-4">
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                Searching...
+                            </div>
+                        ) : "No results found."}
+                    </CommandEmpty>
+
+                    {results.length > 0 && (
+                        <CommandGroup heading="Search Results">
+                            {results.map((item) => (
+                                <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                    {item.type === 'contact' ? <User className="mr-2 h-4 w-4" /> :
+                                        item.type === 'deal' ? <CreditCard className="mr-2 h-4 w-4" /> :
+                                            <LayoutDashboard className="mr-2 h-4 w-4" />}
+                                    <div className="flex flex-col">
+                                        <span>{item.title}</span>
+                                        {item.subtitle && <span className="text-xs text-muted-foreground">{item.subtitle}</span>}
+                                    </div>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    )}
+
+                    <CommandSeparator />
+
                     <CommandGroup heading="Suggestions">
                         <CommandItem onSelect={() => runCommand(() => router.push("/dashboard"))}>
                             <LayoutDashboard className="mr-2 h-4 w-4" />
