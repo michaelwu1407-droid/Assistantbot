@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 22:15 AEST [Backend - Claude Code] - Fix Build Error
+**Fix**: Resolved `Module not found: Can't resolve 'openai'` build error.
+*   **Chat Actions**: Removed `openai` SDK dependency from `actions/chat-actions.ts`.
+*   **Refactor**: Replaced SDK usage with native `fetch` to OpenAI API. This avoids the need to install the package in environments where `package.json` cannot be modified.
+*   **Status**: Build should now pass.
+*   **Files modified**: `actions/chat-actions.ts`.
+
 ### 2026-02-08 19:15 AEST [Backend - Claude Code] - Fix Middleware 500
 **Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
 *   **Middleware**: Updated `lib/supabase/middleware.ts` to check for missing env vars and wrap `createServerClient` in try/catch.

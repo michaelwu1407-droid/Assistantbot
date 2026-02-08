@@ -9,7 +9,6 @@ import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
-import OpenAI from "openai";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -183,14 +182,14 @@ function parseCommandRegex(message: string): ParsedCommand {
 }
 
 /**
- * AI-based parser using OpenAI.
+ * AI-based parser using OpenAI via fetch (no SDK dependency).
  * Returns null if API key is missing or call fails.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function parseCommandAI(message: string, industryContext: any): Promise<ParsedCommand | null> {
   if (!process.env.OPENAI_API_KEY) return null;
 
   try {
-    const openai = new OpenAI();
     const systemPrompt = `
     You are an intent parser for a CRM system.
     The user is a ${industryContext.dealLabel} manager.
@@ -217,17 +216,31 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
     If unsure, return {"intent": "unknown", "params": {}}
     `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0,
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0,
+      })
     });
 
-    const content = completion.choices[0].message.content;
+    if (!response.ok) {
+      console.error("OpenAI API Error:", await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
     if (!content) return null;
 
     const parsed = JSON.parse(content) as ParsedCommand;
