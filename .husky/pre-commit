@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running TypeScript check before commit..."
+npx tsc --noEmit
+
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors found. Commit aborted."
+  echo "Fix the errors above and try again."
+  exit 1
+fi
+
+echo "✅ TypeScript check passed!"
