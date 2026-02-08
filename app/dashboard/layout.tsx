@@ -12,13 +12,21 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch workspace server-side to pass ID to client components
-  const workspace = await getOrCreateWorkspace("demo-user");
+  let workspaceId = "demo-workspace";
+
+  try {
+    // Fetch workspace server-side to pass ID to client components
+    const workspace = await getOrCreateWorkspace("demo-user");
+    workspaceId = workspace.id;
+  } catch (error) {
+    console.error("Layout failed to fetch workspace:", error);
+    // Continue rendering so the page can show the specific DB error
+  }
 
   return (
     <DashboardProvider>
       <SyncProvider>
-        <Shell chatbot={<ChatInterface workspaceId={workspace.id} />}>
+        <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
           {children}
         </Shell>
       </SyncProvider>

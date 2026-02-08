@@ -11,12 +11,19 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch workspace server-side to pass ID to client components
-  // Replace "demo-user" with proper auth if available, but for now stick to demo user
-  const workspace = await getOrCreateWorkspace("demo-user");
+  let workspaceId = "demo-workspace";
+
+  try {
+    // Fetch workspace server-side to pass ID to client components
+    // Replace "demo-user" with proper auth if available, but for now stick to demo user
+    const workspace = await getOrCreateWorkspace("demo-user");
+    workspaceId = workspace.id;
+  } catch (error) {
+    console.error("Layout failed to fetch workspace:", error);
+  }
 
   return (
-    <Shell chatbot={<ChatInterface workspaceId={workspace.id} />}>
+    <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
       <OnboardingModal />
       {children}
     </Shell>
