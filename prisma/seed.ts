@@ -195,16 +195,29 @@ async function main() {
 
   await prisma.material.createMany({
     data: [
+      // Plumbing
       { name: "Copper Pipe 15mm", unit: "m", price: 12.50, category: "Plumbing", workspaceId: workspace.id },
+      { name: "Copper Pipe 20mm", unit: "m", price: 18.00, category: "Plumbing", workspaceId: workspace.id },
       { name: "PVC Elbow 90deg", unit: "each", price: 4.20, category: "Plumbing", workspaceId: workspace.id },
-      { name: "Labor (Standard)", unit: "hr", price: 110.00, category: "Labor", workspaceId: workspace.id },
-      { name: "Labor (After Hours)", unit: "hr", price: 165.00, category: "Labor", workspaceId: workspace.id },
+      { name: "PVC Pipe 100mm", unit: "m", price: 15.00, category: "Plumbing", workspaceId: workspace.id },
+      { name: "Teflon Tape", unit: "roll", price: 2.50, category: "Plumbing", workspaceId: workspace.id },
+      { name: "Mixer Tap (Chrome)", unit: "each", price: 120.00, category: "Plumbing", workspaceId: workspace.id },
+      
+      // Electrical
       { name: "Power Point (Double)", unit: "each", price: 25.00, category: "Electrical", workspaceId: workspace.id },
       { name: "Cat6 Cable", unit: "m", price: 1.50, category: "Electrical", workspaceId: workspace.id },
+      { name: "LED Downlight", unit: "each", price: 18.00, category: "Electrical", workspaceId: workspace.id },
+      { name: "Switchboard Enclosure", unit: "each", price: 85.00, category: "Electrical", workspaceId: workspace.id },
+      { name: "Circuit Breaker 20A", unit: "each", price: 15.00, category: "Electrical", workspaceId: workspace.id },
+      
+      // Labor
+      { name: "Labor (Standard)", unit: "hr", price: 110.00, category: "Labor", workspaceId: workspace.id },
+      { name: "Labor (After Hours)", unit: "hr", price: 165.00, category: "Labor", workspaceId: workspace.id },
+      { name: "Call Out Fee", unit: "flat", price: 150.00, category: "Labor", workspaceId: workspace.id },
     ]
   });
 
-  console.log("  Materials: 6 created");
+  console.log("  Materials: 14 created");
 
   // ─── Keys (Agent) ─────────────────────────────────────────────────
 

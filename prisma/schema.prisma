@@ -83,6 +83,7 @@ model User {
   name        String?
   bio         String?
   urls        Json?     // Stores array of { value: string }
+  hasOnboarded Boolean  @default(false)
   
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])

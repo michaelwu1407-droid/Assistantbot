@@ -38,6 +38,7 @@ export async function getUserProfile(userId: string) {
     email: user.email,
     bio: user.bio || "",
     urls: (user.urls as { value: string }[]) || [],
+    hasOnboarded: user.hasOnboarded,
   };
 }
 
@@ -67,5 +68,22 @@ export async function updateUserProfile(userId: string, data: z.infer<typeof Upd
   } catch (error) {
     console.error("Failed to update profile:", error);
     return { success: false, error: "Failed to update profile" };
+  }
+}
+
+/**
+ * Mark user onboarding as complete.
+ */
+export async function completeUserOnboarding(userId: string) {
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { hasOnboarded: true },
+    });
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to complete onboarding:", error);
+    return { success: false, error: "Failed to update status" };
   }
 }
