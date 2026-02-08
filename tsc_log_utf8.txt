@@ -1,0 +1,227 @@
+﻿actions/accounting-actions.ts(40,28): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/accounting-actions.ts(83,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type '(Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput) | (Without<...> & ActivityCreateInput)'.
+actions/accounting-actions.ts(106,28): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/accounting-actions.ts(122,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type '(Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput) | (Without<...> & ActivityCreateInput)'.
+actions/accounting-actions.ts(142,28): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/activity-actions.ts(73,13): error TS2339: Property 'type' does not exist on type '{ id: string; createdAt: Date; description: string; userId: string; dealId: string | null; contactId: string | null; }'.
+actions/activity-actions.ts(74,14): error TS2339: Property 'title' does not exist on type '{ id: string; createdAt: Date; description: string; userId: string; dealId: string | null; contactId: string | null; }'.
+actions/activity-actions.ts(100,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+actions/activity-actions.ts(128,35): error TS2322: Type '"WON"' is not assignable to type 'DealStage'.
+actions/activity-actions.ts(128,42): error TS2322: Type '"LOST"' is not assignable to type 'DealStage'.
+actions/activity-actions.ts(147,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/activity-actions.ts(159,30): error TS2339: Property 'deals' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/activity-actions.ts(163,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/agent-actions.ts(78,29): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/agent-actions.ts(94,27): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/agent-actions.ts(100,24): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/agent-actions.ts(120,24): error TS2339: Property 'openHouseLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/agent-actions.ts(161,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/agent-actions.ts(175,13): error TS2339: Property 'openHouseLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/agent-actions.ts(192,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type '(Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput) | (Without<...> & ActivityCreateInput)'.
+actions/agent-actions.ts(228,16): error TS2561: Object literal may only specify known properties, but 'contact' does not exist in type 'DealInclude<DefaultArgs>'. Did you mean to write 'contacts'?
+actions/automation-actions.ts(81,32): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(86,27): error TS7006: Parameter 'a' implicitly has an 'any' type.
+actions/automation-actions.ts(105,31): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(121,31): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(124,12): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(141,32): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(198,16): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/automation-actions.ts(225,12): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/calendar-actions.ts(109,5): error TS2322: Type 'Date | null' is not assignable to type 'Date'.
+  Type 'null' is not assignable to type 'Date'.
+actions/calendar-actions.ts(110,19): error TS18047: 'task.dueAt' is possibly 'null'.
+actions/calendar-actions.ts(113,12): error TS2339: Property 'description' does not exist on type '{ deal: { id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; } | null; contact: { ...; } | null; } & { ...; }'.
+actions/calendar-actions.ts(154,26): error TS2322: Type '"WON"' is not assignable to type 'DealStage'.
+actions/calendar-actions.ts(154,33): error TS2322: Type '"LOST"' is not assignable to type 'DealStage'.
+actions/calendar-actions.ts(162,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/chat-actions.ts(241,12): error TS2339: Property 'chatMessage' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/chat-actions.ts(252,15): error TS2353: Object literal may only specify known properties, and 'industryType' does not exist in type 'WorkspaceSelect<DefaultArgs>'.
+actions/chat-actions.ts(254,45): error TS2339: Property 'industryType' does not exist on type '{ type: WorkspaceType; name: string; id: string; createdAt: Date; updatedAt: Date; }'.
+actions/chat-actions.ts(610,12): error TS2339: Property 'chatMessage' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/chat-actions.ts(626,13): error TS2339: Property 'chatMessage' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/contact-actions.ts(63,16): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type 'ContactOrderByWithRelationInput | ContactOrderByWithRelationInput[]'.
+actions/contact-actions.ts(71,16): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(72,18): error TS2339: Property 'avatarUrl' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(73,16): error TS2339: Property 'address' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(74,18): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(75,18): error TS2339: Property 'deals' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(76,25): error TS2339: Property 'activities' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(103,22): error TS2339: Property 'company' does not exist on type '{ activities: { createdAt: Date; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(104,24): error TS2339: Property 'avatarUrl' does not exist on type '{ activities: { createdAt: Date; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(105,22): error TS2339: Property 'address' does not exist on type '{ activities: { createdAt: Date; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(106,24): error TS2339: Property 'metadata' does not exist on type '{ activities: { createdAt: Date; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(131,7): error TS2353: Object literal may only specify known properties, and 'address' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+actions/contact-actions.ts(181,37): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(186,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type '(Without<ContactUpdateInput, ContactUncheckedUpdateInput> & ContactUncheckedUpdateInput) | (Without<...> & ContactUpdateInput)'.
+actions/contact-actions.ts(186,24): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/contact-actions.ts(187,26): error TS2339: Property 'avatarUrl' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/deal-actions.ts(77,7): error TS2561: Object literal may only specify known properties, but 'contact' does not exist in type 'DealInclude<DefaultArgs>'. Did you mean to write 'contacts'?
+actions/deal-actions.ts(86,3): error TS2322: Type '{ id: string; title: string; company: any; value: Decimal | null; stage: string; lastActivityDate: any; contactName: any; contactAvatar: any; health: DealHealth; daysInStage: number; ... 4 more ...; longitude: any; }[]' is not assignable to type 'DealView[]'.
+  Type '{ id: string; title: string; company: any; value: Decimal | null; stage: string; lastActivityDate: any; contactName: any; contactAvatar: any; health: DealHealth; daysInStage: number; ... 4 more ...; longitude: any; }' is not assignable to type 'DealView'.
+    Types of property 'value' are incompatible.
+      Type 'Decimal | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+actions/deal-actions.ts(87,35): error TS2339: Property 'activities' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(91,35): error TS2339: Property 'stageChangedAt' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(97,21): error TS2339: Property 'company' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(97,37): error TS2339: Property 'contact' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(101,25): error TS2339: Property 'contact' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(102,27): error TS2339: Property 'contact' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(105,28): error TS2339: Property 'stageChangedAt' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(107,21): error TS2339: Property 'address' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(108,22): error TS2339: Property 'latitude' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(109,23): error TS2339: Property 'longitude' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/deal-actions.ts(131,7): error TS2322: Type '"NEW" | "NEGOTIATION" | "CONTACTED" | "INVOICED" | "WON" | "LOST"' is not assignable to type 'DealStage | undefined'.
+  Type '"CONTACTED"' is not assignable to type 'DealStage | undefined'. Did you mean '"CONTRACT"'?
+actions/deal-actions.ts(141,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/deal-actions.ts(169,7): error TS2322: Type '"NEW" | "NEGOTIATION" | "CONTACTED" | "INVOICED" | "WON" | "LOST"' is not assignable to type 'DealStage | EnumDealStageFieldUpdateOperationsInput | undefined'.
+  Type '"CONTACTED"' is not assignable to type 'DealStage | EnumDealStageFieldUpdateOperationsInput | undefined'. Did you mean '"CONTRACT"'?
+actions/deal-actions.ts(177,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/dedup-actions.ts(92,24): error TS2339: Property 'company' does not exist on type '{ activities: { id: string; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(114,26): error TS2339: Property 'company' does not exist on type '{ activities: { id: string; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(135,24): error TS2339: Property 'company' does not exist on type '{ activities: { id: string; }[]; deals: { id: string; }[]; } & { name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(170,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type '(Without<ContactUpdateInput, ContactUncheckedUpdateInput> & ContactUncheckedUpdateInput) | (Without<...> & ContactUpdateInput)'.
+actions/dedup-actions.ts(170,21): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(170,38): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(171,21): error TS2339: Property 'address' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(171,38): error TS2339: Property 'address' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(172,23): error TS2339: Property 'avatarUrl' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(172,42): error TS2339: Property 'avatarUrl' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(173,23): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(173,41): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(174,42): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(174,60): error TS2339: Property 'metadata' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/dedup-actions.ts(182,16): error TS2561: Object literal may only specify known properties, but 'contactId' does not exist in type 'DealWhereInput'. Did you mean to write 'contacts'?
+actions/dedup-actions.ts(183,15): error TS2353: Object literal may only specify known properties, and 'contactId' does not exist in type '(Without<DealUpdateManyMutationInput, DealUncheckedUpdateManyInput> & DealUncheckedUpdateManyInput) | (Without<...> & DealUpdateManyMutationInput)'.
+actions/email-actions.ts(149,24): error TS2322: Type '"WON"' is not assignable to type 'DealStage'.
+actions/email-actions.ts(149,31): error TS2322: Type '"LOST"' is not assignable to type 'DealStage'.
+actions/email-actions.ts(157,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/geo-actions.ts(79,17): error TS2353: Object literal may only specify known properties, and 'address' does not exist in type '(Without<DealUpdateInput, DealUncheckedUpdateInput> & DealUncheckedUpdateInput) | (Without<...> & DealUpdateInput)'.
+actions/geo-actions.ts(90,13): error TS2353: Object literal may only specify known properties, and 'address' does not exist in type '(Without<DealUpdateInput, DealUncheckedUpdateInput> & DealUncheckedUpdateInput) | (Without<...> & DealUpdateInput)'.
+actions/geo-actions.ts(106,7): error TS2353: Object literal may only specify known properties, and 'latitude' does not exist in type 'DealWhereInput'.
+actions/geo-actions.ts(109,16): error TS2561: Object literal may only specify known properties, but 'contact' does not exist in type 'DealInclude<DefaultArgs>'. Did you mean to write 'contacts'?
+actions/geo-actions.ts(112,3): error TS2322: Type '{ id: string; title: string; company: any; value: Decimal | null; stage: DealStage; address: any; latitude: any; longitude: any; contactName: any; }[]' is not assignable to type 'GeocodedDeal[]'.
+  Type '{ id: string; title: string; company: any; value: Decimal | null; stage: $Enums.DealStage; address: any; latitude: any; longitude: any; contactName: any; }' is not assignable to type 'GeocodedDeal'.
+    Types of property 'value' are incompatible.
+      Type 'Decimal | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+actions/geo-actions.ts(115,16): error TS2339: Property 'company' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(115,29): error TS2339: Property 'contact' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(118,16): error TS2339: Property 'address' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(119,17): error TS2339: Property 'latitude' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(120,18): error TS2339: Property 'longitude' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(121,20): error TS2339: Property 'contact' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(137,7): error TS2353: Object literal may only specify known properties, and 'address' does not exist in type 'DealWhereInput'.
+actions/geo-actions.ts(146,15): error TS2339: Property 'address' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(148,46): error TS2339: Property 'address' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/geo-actions.ts(153,11): error TS2353: Object literal may only specify known properties, and 'latitude' does not exist in type '(Without<DealUpdateInput, DealUncheckedUpdateInput> & DealUncheckedUpdateInput) | (Without<...> & DealUpdateInput)'.
+actions/messaging-actions.ts(116,11): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ActivityWhereInput'.
+actions/messaging-actions.ts(127,11): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ActivityWhereInput'.
+actions/messaging-actions.ts(132,11): error TS2353: Object literal may only specify known properties, and 'content' does not exist in type 'ActivitySelect<DefaultArgs>'.
+actions/messaging-actions.ts(144,22): error TS2339: Property 'activities' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/messaging-actions.ts(148,26): error TS2339: Property 'avatarUrl' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/messaging-actions.ts(149,27): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/messaging-actions.ts(191,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/messaging-actions.ts(232,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/messaging-actions.ts(297,11): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/portal-actions.ts(132,9): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+actions/portal-actions.ts(143,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+actions/portal-actions.ts(164,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/search-actions.ts(27,52): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'ContactSelect<DefaultArgs>'.
+actions/search-actions.ts(31,40): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'DealSelect<DefaultArgs>'.
+actions/search-actions.ts(48,51): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/search-actions.ts(59,19): error TS2339: Property 'company' does not exist on type '{ name: string; id: string; email: string | null; workspaceId: string; phone: string | null; preferences: JsonValue; }'.
+actions/search-actions.ts(69,37): error TS2339: Property 'company' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; value: Decimal | null; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/search-actions.ts(80,34): error TS18047: 'd.value' is possibly 'null'.
+actions/task-actions.ts(61,3): error TS2322: Type '{ id: string; title: string; description: any; dueAt: Date | null; completed: boolean; overdue: boolean; dealTitle: string | undefined; contactName: string | undefined; }[]' is not assignable to type 'TaskView[]'.
+  Type '{ id: string; title: string; description: any; dueAt: Date | null; completed: boolean; overdue: boolean; dealTitle: string | undefined; contactName: string | undefined; }' is not assignable to type 'TaskView'.
+    Types of property 'dueAt' are incompatible.
+      Type 'Date | null' is not assignable to type 'Date'.
+        Type 'null' is not assignable to type 'Date'.
+actions/task-actions.ts(64,20): error TS2339: Property 'description' does not exist on type '{ deal: { title: string; } | null; contact: { name: string; } | null; } & { id: string; createdAt: Date; updatedAt: Date; title: string; dealId: string | null; contactId: string | null; completed: boolean; dueAt: Date | null; }'.
+actions/task-actions.ts(67,30): error TS18047: 't.dueAt' is possibly 'null'.
+actions/task-actions.ts(86,7): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type '(Without<TaskCreateInput, TaskUncheckedCreateInput> & TaskUncheckedCreateInput) | (Without<...> & TaskCreateInput)'.
+actions/task-actions.ts(102,30): error TS2561: Object literal may only specify known properties, but 'completedAt' does not exist in type '(Without<TaskUpdateInput, TaskUncheckedUpdateInput> & TaskUncheckedUpdateInput) | (Without<...> & TaskUpdateInput)'. Did you mean to write 'completed'?
+actions/template-actions.ts(46,30): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(54,25): error TS7006: Parameter 't' implicitly has an 'any' type.
+actions/template-actions.ts(68,22): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(90,29): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(115,12): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(130,12): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(142,29): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/template-actions.ts(218,10): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/tradie-actions.ts(93,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/tradie-actions.ts(97,23): error TS2339: Property 'contactId' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/tradie-actions.ts(141,7): error TS2322: Type '"INVOICED"' is not assignable to type 'DealStage | EnumDealStageFieldUpdateOperationsInput | undefined'.
+actions/tradie-actions.ts(154,12): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/tradie-actions.ts(169,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+actions/tradie-actions.ts(173,23): error TS2339: Property 'contactId' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+actions/tradie-actions.ts(184,13): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/tradie-actions.ts(194,12): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/tradie-actions.ts(205,28): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/tradie-actions.ts(214,13): error TS2322: Type '"WON"' is not assignable to type 'DealStage | EnumDealStageFieldUpdateOperationsInput | undefined'.
+actions/tradie-actions.ts(219,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type '(Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput) | (Without<...> & ActivityCreateInput)'.
+actions/tradie-actions.ts(259,28): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+actions/workspace-actions.ts(65,18): error TS2353: Object literal may only specify known properties, and 'ownerId' does not exist in type 'WorkspaceWhereInput'.
+actions/workspace-actions.ts(70,32): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }': industryType, ownerId, location, onboardingComplete, brandingColor
+actions/workspace-actions.ts(78,9): error TS2353: Object literal may only specify known properties, and 'industryType' does not exist in type '(Without<WorkspaceCreateInput, WorkspaceUncheckedCreateInput> & WorkspaceUncheckedCreateInput) | (Without<...> & WorkspaceCreateInput)'.
+actions/workspace-actions.ts(84,28): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }': industryType, ownerId, location, onboardingComplete, brandingColor
+actions/workspace-actions.ts(110,28): error TS2345: Argument of type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }'.
+  Type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }': industryType, ownerId, location, onboardingComplete, brandingColor
+actions/workspace-actions.ts(143,14): error TS2353: Object literal may only specify known properties, and 'ownerId' does not exist in type 'WorkspaceWhereInput'.
+actions/workspace-actions.ts(147,25): error TS2345: Argument of type '(w: { id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }) => WorkspaceView' is not assignable to parameter of type '(value: { name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }, index: number, array: { name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }[]) => WorkspaceView'.
+  Types of parameters 'w' and 'value' are incompatible.
+    Type '{ name: string; id: string; type: WorkspaceType; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ id: string; name: string; type: string; industryType: string | null; ownerId: string | null; location: string | null; onboardingComplete: boolean; brandingColor: string; }': industryType, ownerId, location, onboardingComplete, brandingColor
+actions/workspace-actions.ts(171,7): error TS2353: Object literal may only specify known properties, and 'industryType' does not exist in type '(Without<WorkspaceUpdateInput, WorkspaceUncheckedUpdateInput> & WorkspaceUncheckedUpdateInput) | (Without<...> & WorkspaceUpdateInput)'.
+app/(dashboard)/agent/page.tsx(7,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+app/(dashboard)/layout.tsx(3,31): error TS2307: Cannot find module '@/components/chatbot/ChatInterface' or its corresponding type declarations.
+app/(dashboard)/layout.tsx(11,12): error TS2322: Type '{ children: ReactNode; chatbot: Element; }' is not assignable to type 'IntrinsicAttributes & { children: ReactNode; }'.
+  Property 'chatbot' does not exist on type 'IntrinsicAttributes & { children: ReactNode; }'.
+app/dashboard/deals/[id]/page.tsx(21,20): error TS2561: Object literal may only specify known properties, but 'contact' does not exist in type 'DealInclude<DefaultArgs>'. Did you mean to write 'contacts'?
+app/dashboard/deals/[id]/page.tsx(47,35): error TS2339: Property 'company' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+app/dashboard/deals/[id]/page.tsx(47,51): error TS2339: Property 'contact' does not exist on type '{ value: Decimal | null; id: string; createdAt: Date; updatedAt: Date; workspaceId: string; title: string; stage: DealStage; metadata: JsonValue; lastActivityAt: Date; }'.
+app/dashboard/deals/[id]/page.tsx(48,78): error TS18047: 'deal.value' is possibly 'null'.
+app/dashboard/layout.tsx(3,23): error TS1149: File name 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/components/layout/shell.tsx' differs from already included file name 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/components/layout/Shell.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/layout/Shell' from file 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/app/(dashboard)/layout.tsx'
+    Imported via "@/components/layout/shell" from file 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/app/dashboard/layout.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/tsconfig.json'
+components/ui/resizable.tsx(11,51): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(12,23): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(27,51): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(30,23): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+components/ui/resizable.tsx(42,24): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/micha/.gemini/antigravity/scratch/pj-buddy/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+prisma/seed.ts(15,16): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(16,16): error TS2339: Property 'chatMessage' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(17,16): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(20,16): error TS2339: Property 'openHouseLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(21,16): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(32,7): error TS2353: Object literal may only specify known properties, and 'brandingColor' does not exist in type '(Without<WorkspaceCreateInput, WorkspaceUncheckedCreateInput> & WorkspaceUncheckedCreateInput) | (Without<...> & WorkspaceCreateInput)'.
+prisma/seed.ts(45,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+prisma/seed.ts(56,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+prisma/seed.ts(67,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+prisma/seed.ts(77,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+prisma/seed.ts(87,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<ContactCreateInput, ContactUncheckedCreateInput> & ContactUncheckedCreateInput'.
+prisma/seed.ts(100,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+prisma/seed.ts(114,7): error TS2820: Type '"CONTACTED"' is not assignable to type 'DealStage | undefined'. Did you mean '"CONTRACT"'?
+prisma/seed.ts(124,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+prisma/seed.ts(136,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+prisma/seed.ts(150,7): error TS2322: Type '"WON"' is not assignable to type 'DealStage | undefined'.
+prisma/seed.ts(161,7): error TS2353: Object literal may only specify known properties, and 'company' does not exist in type 'Without<DealCreateInput, DealUncheckedCreateInput> & DealUncheckedCreateInput'.
+prisma/seed.ts(183,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+prisma/seed.ts(196,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+prisma/seed.ts(209,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+prisma/seed.ts(222,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+prisma/seed.ts(235,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<ActivityCreateInput, ActivityUncheckedCreateInput> & ActivityUncheckedCreateInput'.
+prisma/seed.ts(252,7): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'Without<TaskCreateInput, TaskUncheckedCreateInput> & TaskUncheckedCreateInput'.
+prisma/seed.ts(262,7): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'Without<TaskCreateInput, TaskUncheckedCreateInput> & TaskUncheckedCreateInput'.
+prisma/seed.ts(272,7): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type 'Without<TaskCreateInput, TaskUncheckedCreateInput> & TaskUncheckedCreateInput'.
+prisma/seed.ts(283,16): error TS2339: Property 'invoice' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(304,16): error TS2339: Property 'openHouseLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(316,16): error TS2339: Property 'openHouseLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(331,16): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(340,16): error TS2339: Property 'automation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+prisma/seed.ts(406,18): error TS2339: Property 'messageTemplate' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.

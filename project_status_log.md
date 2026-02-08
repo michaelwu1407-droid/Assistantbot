@@ -67,6 +67,30 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 *   **AG-2 Commission Calculator**: Build the slider widget for the Agent dashboard.
 *   **X-17 UI Polish**: The app looks "barebones". Needs a design pass (gradients, spacing, micro-interactions).
 
+## 🚀 HANDOVER: PHASE 2 REQUIREMENTS (Sprint 8: Wiring & Persistence)
+
+> [!IMPORTANT]
+> **NEXT STEPS FOR BACKEND TEAM (AIDER/CLAUDE)**: The Frontend has finished Sprint 7 (Search, Settings, Onboarding). The following actions are needed to turn these "Visual-Only" features into "Persisted" features.
+
+### 1. Global Search (`actions/search-actions.ts`)
+*   **Current**: `globalSearch` action is wired but performs a simple fetch + in-memory fuzzy search.
+*   **Requirement**: Optimize for scale (e.g., `contains` queries) and ensure `url` property in results maps correctly to deep links (e.g., `/dashboard/deals/[id]`).
+
+### 2. Settings & Profile (`actions/auth-actions.ts`, `actions/workspace-actions.ts`)
+*   **Profile**: `profile-form.tsx` is built but has **NO** backend action. Create `updateUserProfile` to handle name/bio/urls updates.
+*   **Workspace**: `workspace-form.tsx` is wired to `updateWorkspace`, but needs to fetch initial data to populate form fields (they currently default to placeholders).
+
+### 3. Notifications (`actions/notification-actions.ts`)
+*   **Current**: `notification-feed.tsx` fetches from `getNotifications`.
+*   **Requirement**: Implement the **creation** logic. System events (e.g., "Job status changed to Traveling") should trigger `createNotification` for the Agent/Admin.
+
+### 4. Onboarding Persistence
+*   **Current**: `OnboardingModal` uses `localStorage` to check if a user is new.
+*   **Requirement**:
+    *   Add `hasOnboarded` boolean to the User/Profile schema.
+    *   Create `completeOnboarding(userId)` action.
+    *   Frontend will then switch from localStorage to this DB flag.
+
 ---
 
 ## Change Log
@@ -90,6 +114,16 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 *   **Triggers**: Updated `actions/deal-actions.ts` to trigger `deal_stage_change` and `actions/contact-actions.ts` to trigger `new_lead`.
 *   **Status**: Backend automation logic is complete. Moving a deal to "CONTACTED" will now auto-create a follow-up task (if the preset rule is enabled).
 *   **Files modified**: `actions/automation-actions.ts`, `actions/deal-actions.ts`, `actions/contact-actions.ts`.
+
+### 2026-02-08 22:45 AEST [Frontend - Antigravity] - Sprint 7 Complete
+**Feature**: Frontend Expansion (Search, Settings, Onboarding)
+*   **Global Search**: Implemented `SearchDialog` with `globalSearch` action wiring (Frontend).
+*   **Settings**: Created Profile and Workspace forms (Frontend) wired to `updateWorkspace`.
+*   **Onboarding**: Created Onboarding Modal (Frontend) - currently using localStorage.
+*   **Notifications**: Created Notification Feed (Frontend) wired to `getNotifications`.
+*   **Conflict Resolution**: Merged `main` branch and resolved conflicts in `layout.tsx` and `job-bottom-sheet.tsx`.
+*   **Status**: Sprint 7 Complete. Frontend is ready for backend persistence.
+*   **Files modified**: `components/layout/search-dialog.tsx`, `components/dashboard/notification-feed.tsx`, `app/dashboard/settings/...`, `app/(dashboard)/layout.tsx`.
 
 ### 2026-02-08 22:45 AEST [Backend - Claude Code] - Dashboard Header & Notifications
 **Feature**: Implemented Personalized Header and Notification System.

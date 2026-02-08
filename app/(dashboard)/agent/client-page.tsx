@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { useShellStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
-import { Bell, Key, DollarSign, Home, User, Settings, QrCode } from "lucide-react"
+import { Bell, Key, DollarSign, Home, User, Settings, QrCode, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { SpeedToLead } from "@/components/agent/speed-to-lead" // Import locally to avoid circle if any, but standard is fine
 import { SpeedToLeadWidget } from "@/components/agent/speed-to-lead"
 import { AgentLead } from "@/actions/agent-actions"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { SearchDialog } from "@/components/layout/search-dialog"
 
 // Mock Deal Card (Updated to accept any for now)
 function DealCard({ deal }: { deal: any }) {
@@ -86,6 +87,11 @@ export default function AgentDashboard({ freshLeads, initialPipeline }: AgentDas
               <DollarSign className="h-4 w-4" />
               <span>Commission</span>
             </Button>
+            <SearchDialog>
+              <Button size="icon" variant="ghost">
+                <Search className="h-5 w-5 text-slate-400" />
+              </Button>
+            </SearchDialog>
             <Button size="icon" variant="ghost">
               <Bell className="h-5 w-5 text-slate-400" />
             </Button>
