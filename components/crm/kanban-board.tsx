@@ -138,7 +138,7 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
     const overId = over.id as string
 
     const activeDeal = deals.find(d => d.id === activeId)
-    
+
     const activeStage = activeDeal?.stage.toLowerCase()
     // If dropping on a container ID directly (empty column) vs a card ID
     const overStage = COLUMNS.find(c => c.id === overId)?.id ||
@@ -171,7 +171,7 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full gap-4 overflow-x-auto pb-4 items-start no-scrollbar">
+      <div id="kanban-board" className="flex h-full gap-4 overflow-x-auto pb-4 items-start no-scrollbar">
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 

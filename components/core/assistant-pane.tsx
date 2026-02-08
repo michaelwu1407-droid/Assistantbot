@@ -208,6 +208,7 @@ export function AssistantPane() {
             <div className="p-4 border-t bg-background">
                 <div className="flex gap-2 relative">
                     <Button
+                        id="voice-btn"
                         size="icon"
                         variant={isListening ? "destructive" : "outline"}
                         onClick={toggleListening}
@@ -217,6 +218,7 @@ export function AssistantPane() {
                         {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
                     <Input
+                        id="chat-input"
                         placeholder="Type a command..."
                         className="bg-muted/50 border-input focus-visible:ring-primary pr-12"
                         value={input}

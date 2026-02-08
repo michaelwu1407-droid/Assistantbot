@@ -52,7 +52,7 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     const getGreeting = () => {
         const hour = new Date().getHours()
         const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
-        
+
         if (industry === "TRADES") {
             return `G'day, ${userName}`
         }
@@ -90,9 +90,10 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
 
             <div className="flex items-center gap-2">
                 {/* Mobile Search Trigger (Desktop uses CMD+K) */}
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    id="search-btn"
+                    variant="ghost"
+                    size="icon"
                     className="md:hidden text-slate-500 hover:bg-slate-100"
                     onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
                 >
@@ -101,7 +102,7 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
 
                 <NotificationsBtn userId={userId} />
 
-                <Button onClick={onNewDeal} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
+                <Button id="new-deal-btn" onClick={onNewDeal} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     <Plus className="mr-2 h-4 w-4" />
                     <span className="hidden sm:inline">
                         {industry === "TRADES" ? "New Job" : industry === "REAL_ESTATE" ? "New Listing" : "New Deal"}

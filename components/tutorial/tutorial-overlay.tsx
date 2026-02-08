@@ -5,88 +5,284 @@ import { useShellStore } from "@/lib/store"
 import { Spotlight } from "./spotlight"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronRight, ChevronLeft, SkipForward, X } from "lucide-react"
 
-// Tutorial Steps Definition
+// Complete Tutorial Steps - 18 comprehensive steps
 const STEPS = [
+    // === INTRO SECTION ===
     {
         id: "welcome",
-        targetId: null, // Center screen
-        title: "Welcome to Pj Buddy",
-        message: "I'm Pj, your AI business partner. I'm here to handle the admin so you can focus on the work. Let's get you set up.",
+        targetId: null,
+        title: "Welcome to Pj Buddy! 🎉",
+        message: "I'm Pj, your AI business partner. I handle the paperwork so you can focus on the work. Let me show you around!",
         actionLabel: "Let's Go",
     },
     {
-        id: "modes",
-        targetId: "mode-toggle", // Needs to exist in Shell header
-        title: "Dual Modes",
-        message: "Switch between 'Basic Mode' (just me & chat) and 'Advanced Mode' (full dashboard) anytime.",
-        actionLabel: "Got it",
+        id: "modes-intro",
+        targetId: null,
+        title: "Two Ways to Work",
+        message: "Pj Buddy has TWO modes:\n\n✨ **Basic Mode** — Just you and me chatting (like ChatGPT)\n\n🖥️ **Advanced Mode** — Full dashboard with all your tools\n\nYou can switch between them anytime!",
+        actionLabel: "Show Me",
     },
+
+    // === BASIC MODE SECTION ===
     {
-        id: "canvas",
-        targetId: "main-canvas", // Needs to exist in Shell
-        title: "The Canvas",
-        message: "This is your workspace. In 'Advanced Mode', it shows your Maps, Pipeline, or Job details.",
+        id: "basic-mode",
+        targetId: "assistant-pane",
+        title: "Basic Mode — Chat First",
+        message: "In Basic Mode, I'm front and center. Just type what you need: \"Schedule a job for tomorrow\" or \"Send a quote to John\"",
+        position: "left",
+        actionLabel: "Next",
+    },
+
+    // === ADVANCED MODE FEATURES ===
+    {
+        id: "mode-toggle",
+        targetId: "mode-toggle-btn",
+        title: "Switch Modes Anytime",
+        message: "Click this button to toggle between Basic (chat) and Advanced (dashboard) mode. Try it out!",
+        position: "bottom",
         actionLabel: "Next",
     },
     {
-        id: "chat",
-        targetId: "assistant-pane", // Needs to exist in Shell
-        title: "Your Co-Pilot",
-        message: "I live here. Ask me anything: 'Draft a quote', 'Find buyers', or 'Start my day'.",
-        actionLabel: "Finish",
+        id: "canvas-overview",
+        targetId: "main-canvas",
+        title: "The Dashboard Canvas",
+        message: "This is your workspace in Advanced Mode. It shows your jobs, pipeline, map, and more.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "sidebar",
+        targetId: "sidebar-nav",
+        title: "Navigation Sidebar",
+        message: "Jump between different views: Dashboard, Calendar, Contacts, Settings, and more.",
+        position: "right",
+        actionLabel: "Next",
+    },
+
+    // === DASHBOARD FEATURES ===
+    {
+        id: "kanban",
+        targetId: "kanban-board",
+        title: "Your Pipeline",
+        message: "Drag jobs between stages as they progress. Red borders mean a job needs attention (over 7 days old).",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "new-deal",
+        targetId: "new-deal-btn",
+        title: "Create New Jobs",
+        message: "Click here to add a new job, quote, or listing. I'll help you fill in the details!",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+    {
+        id: "search",
+        targetId: "search-btn",
+        title: "Quick Search",
+        message: "Press Cmd+K (or Ctrl+K) anytime to search for jobs, contacts, or actions.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+    {
+        id: "notifications",
+        targetId: "notifications-btn",
+        title: "Notifications",
+        message: "Stay on top of reminders, follow-ups, and important updates right here.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+
+    // === TRADIE FEATURES ===
+    {
+        id: "map-view",
+        targetId: "map-link",
+        title: "Map View",
+        message: "See all your jobs on a map with routes. Perfect for planning your day efficiently.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "calendar",
+        targetId: "schedule-link",
+        title: "Smart Scheduler",
+        message: "Drag and drop jobs onto your calendar. I'll help you optimize travel time.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "estimator",
+        targetId: "estimator-link",
+        title: "Quote Builder",
+        message: "Build professional quotes in seconds. Add line items and I'll handle the math.",
+        position: "right",
+        actionLabel: "Next",
+    },
+
+    // === AGENT FEATURES ===
+    {
+        id: "contacts",
+        targetId: "contacts-link",
+        title: "Contact Database",
+        message: "All your clients and leads in one place. Track preferences, notes, and history.",
+        position: "right",
+        actionLabel: "Next",
+    },
+
+    // === CHAT FEATURES ===
+    {
+        id: "voice-input",
+        targetId: "voice-btn",
+        title: "Voice Commands",
+        message: "Click the microphone to talk to me. Great for hands-free operation on the job site!",
+        position: "left",
+        actionLabel: "Next",
+    },
+    {
+        id: "chat-examples",
+        targetId: "chat-input",
+        title: "What You Can Say",
+        message: "Try commands like:\n• \"Show stale deals\"\n• \"Create a job for plumbing\"\n• \"Find buyers for 12 Smith St\"\n• \"Start my day\"",
+        position: "left",
+        actionLabel: "Next",
+    },
+
+    // === SETTINGS & WRAP UP ===
+    {
+        id: "settings",
+        targetId: "settings-link",
+        title: "Settings",
+        message: "Customize your workspace, update your profile, and configure preferences here.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "finish",
+        targetId: null,
+        title: "You're All Set! 🚀",
+        message: "That's the tour! Start by telling me about your business, or jump into Advanced Mode to explore.\n\nTip: You can replay this tutorial anytime from Settings.",
+        actionLabel: "Start Using Pj Buddy",
     },
 ]
 
-export function TutorialOverlay() {
+interface TutorialOverlayProps {
+    onComplete?: () => void
+}
+
+export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const { viewMode, setViewMode } = useShellStore()
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
+    const [isVisible, setIsVisible] = useState(true)
 
     // Only run if in TUTORIAL mode
-    if (viewMode !== "TUTORIAL") return null
+    if (viewMode !== "TUTORIAL" || !isVisible) return null
 
     const step = STEPS[currentStepIndex]
+    const isFirstStep = currentStepIndex === 0
+    const isLastStep = currentStepIndex === STEPS.length - 1
 
     const handleNext = () => {
         if (currentStepIndex < STEPS.length - 1) {
             setCurrentStepIndex(curr => curr + 1)
         } else {
-            // Finish
-            setViewMode("ADVANCED")
+            handleFinish()
         }
     }
+
+    const handlePrev = () => {
+        if (currentStepIndex > 0) {
+            setCurrentStepIndex(curr => curr - 1)
+        }
+    }
+
+    const handleSkip = () => {
+        handleFinish()
+    }
+
+    const handleFinish = () => {
+        setIsVisible(false)
+        setViewMode("BASIC") // Go to Basic mode after tutorial
+        onComplete?.()
+    }
+
+    const progressPercent = ((currentStepIndex + 1) / STEPS.length) * 100
 
     return (
         <>
             {/* Only show Spotlight if there is a target */}
             {step.targetId && (
                 <Spotlight targetId={step.targetId}>
-                    <Card className="w-[320px] p-5 bg-card text-card-foreground border-border shadow-2xl relative">
+                    <Card className="w-[360px] p-5 bg-card text-card-foreground border-border shadow-2xl relative">
+                        {/* Skip Button */}
+                        <button
+                            onClick={handleSkip}
+                            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+
                         {/* Bot Avatar */}
                         <div className="absolute -top-6 -left-6 h-12 w-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-lg ring-4 ring-background">
                             Pj
                         </div>
 
-                        <h3 className="font-heading font-bold text-lg mb-2 mt-2">{step.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{step.message}</p>
+                        <h3 className="font-heading font-bold text-lg mb-2 mt-2 pr-6">{step.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-4 leading-relaxed whitespace-pre-line">{step.message}</p>
+
+                        {/* Progress Bar */}
+                        <div className="h-1 bg-muted rounded-full mb-4 overflow-hidden">
+                            <motion.div
+                                className="h-full bg-primary"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progressPercent}%` }}
+                                transition={{ duration: 0.3 }}
+                            />
+                        </div>
+
                         <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground font-mono">
-                                Step {currentStepIndex + 1} of {STEPS.length}
-                            </span>
-                            <Button
-                                size="sm"
-                                onClick={handleNext}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                            >
-                                {step.actionLabel}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={handlePrev}
+                                    disabled={isFirstStep}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-xs text-muted-foreground font-mono">
+                                    {currentStepIndex + 1} / {STEPS.length}
+                                </span>
+                            </div>
+                            <div className="flex gap-2">
+                                {!isLastStep && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={handleSkip}
+                                        className="text-xs"
+                                    >
+                                        Skip Tour
+                                    </Button>
+                                )}
+                                <Button
+                                    size="sm"
+                                    onClick={handleNext}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                >
+                                    {step.actionLabel}
+                                    {!isLastStep && <ChevronRight className="h-4 w-4 ml-1" />}
+                                </Button>
+                            </div>
                         </div>
                     </Card>
                 </Spotlight>
             )}
 
-            {/* Center Modal for steps without target (Welcome) */}
+            {/* Center Modal for steps without target */}
             {!step.targetId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <motion.div
@@ -95,6 +291,16 @@ export function TutorialOverlay() {
                         className="max-w-md w-full"
                     >
                         <Card className="p-8 bg-card border-border shadow-2xl relative overflow-hidden">
+                            {/* Skip Button */}
+                            {!isLastStep && (
+                                <button
+                                    onClick={handleSkip}
+                                    className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            )}
+
                             {/* Decorative Gradient */}
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500"></div>
 
@@ -102,15 +308,44 @@ export function TutorialOverlay() {
                                 <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground text-2xl font-bold shadow-xl mb-2">
                                     Pj
                                 </div>
-                                <h2 className="font-heading text-3xl font-bold text-foreground">{step.title}</h2>
-                                <p className="text-muted-foreground text-lg leading-relaxed">{step.message}</p>
-                                <Button
-                                    size="lg"
-                                    onClick={handleNext}
-                                    className="w-full text-base font-semibold mt-4 shadow-lg shadow-primary/20"
-                                >
-                                    {step.actionLabel}
-                                </Button>
+                                <h2 className="font-heading text-2xl font-bold text-foreground">{step.title}</h2>
+                                <p className="text-muted-foreground text-base leading-relaxed whitespace-pre-line">{step.message}</p>
+
+                                {/* Progress Bar */}
+                                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-primary"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${progressPercent}%` }}
+                                        transition={{ duration: 0.3 }}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-4 w-full">
+                                    {!isFirstStep && (
+                                        <Button
+                                            size="lg"
+                                            variant="outline"
+                                            onClick={handlePrev}
+                                            className="flex-1"
+                                        >
+                                            <ChevronLeft className="h-4 w-4 mr-1" />
+                                            Back
+                                        </Button>
+                                    )}
+                                    <Button
+                                        size="lg"
+                                        onClick={handleNext}
+                                        className="flex-1 text-base font-semibold shadow-lg shadow-primary/20"
+                                    >
+                                        {step.actionLabel}
+                                        {!isLastStep && <ChevronRight className="h-4 w-4 ml-1" />}
+                                    </Button>
+                                </div>
+
+                                <span className="text-xs text-muted-foreground">
+                                    Step {currentStepIndex + 1} of {STEPS.length}
+                                </span>
                             </div>
                         </Card>
                     </motion.div>

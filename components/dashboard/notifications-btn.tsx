@@ -41,7 +41,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
         // Optimistic update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
         setUnreadCount(prev => Math.max(0, prev - 1))
-        
+
         await markAsRead(id)
     }
 
@@ -53,10 +53,10 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
     }
 
     return (
-        <div className="relative">
-            <Button 
-                variant="ghost" 
-                size="icon" 
+        <div id="notifications-btn" className="relative">
+            <Button
+                variant="ghost"
+                size="icon"
                 className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                 onClick={() => {
                     setIsOpen(!isOpen)
@@ -71,15 +71,15 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
 
             {isOpen && (
                 <>
-                    <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setIsOpen(false)} 
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsOpen(false)}
                     />
                     <div className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="font-semibold text-sm text-slate-900">Notifications</h3>
                             {unreadCount > 0 && (
-                                <button 
+                                <button
                                     onClick={handleMarkAllRead}
                                     className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                                 >
@@ -87,7 +87,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                 </button>
                             )}
                         </div>
-                        
+
                         <div className="max-h-[300px] overflow-y-auto">
                             {loading && notifications.length === 0 ? (
                                 <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
@@ -99,8 +99,8 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                             ) : (
                                 <div className="divide-y divide-slate-100">
                                     {notifications.map(n => (
-                                        <div 
-                                            key={n.id} 
+                                        <div
+                                            key={n.id}
                                             className={cn(
                                                 "p-3 flex gap-3 hover:bg-slate-50 transition-colors",
                                                 !n.read && "bg-blue-50/30"
@@ -109,9 +109,9 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                             <div className={cn(
                                                 "mt-1 h-2 w-2 rounded-full shrink-0",
                                                 n.type === 'ERROR' ? "bg-red-500" :
-                                                n.type === 'WARNING' ? "bg-amber-500" :
-                                                n.type === 'SUCCESS' ? "bg-emerald-500" :
-                                                "bg-blue-500",
+                                                    n.type === 'WARNING' ? "bg-amber-500" :
+                                                        n.type === 'SUCCESS' ? "bg-emerald-500" :
+                                                            "bg-blue-500",
                                                 n.read && "bg-slate-300"
                                             )} />
                                             <div className="flex-1 min-w-0">
@@ -126,7 +126,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                 </p>
                                             </div>
                                             {!n.read && (
-                                                <button 
+                                                <button
                                                     onClick={() => handleMarkRead(n.id)}
                                                     className="self-start text-slate-300 hover:text-blue-600 transition-colors"
                                                     title="Mark as read"
