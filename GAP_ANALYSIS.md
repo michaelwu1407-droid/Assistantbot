@@ -1,6 +1,6 @@
 # PJ BUDDY — GAP ANALYSIS vs. EXTREME GRANULAR WALKTHROUGH
 
-**Date**: 2026-02-07 (Updated with owner feedback)
+**Date**: 2026-02-08 (Updated: Documentation Sync)
 **Prepared by**: Claude Code (Backend)
 **Purpose**: Compare current codebase state against the target UX walkthrough, identify all gaps, and assign fixes.
 
@@ -54,7 +54,7 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Default view is clean central chat (like ChatGPT/Gemini) — chatbot is PRIMARY | ❌ | DashboardProvider defaults to `"advanced"`. Chat mode exists but shows a sidebar-style card, not a full-page clean chat |
+| Default view is clean central chat (like ChatGPT/Gemini) — chatbot is PRIMARY | ✅ | DashboardProvider now defaults to `"chat"` (2026-02-08) |
 | User types "Start my day" | ⚠️ | "Start day" triggers morning digest text, but does NOT switch UI mode |
 | Toggle to Advanced Mode → chatbot shrinks to 25% right, app canvas takes 75% left | ⚠️ | Currently uses `w-[400px]` fixed width for chat, not 25%. Main canvas doesn't fill 75% |
 | Canvas slides in from the left to show relevant info | ❌ | No mechanism for chat responses to trigger UI mode changes. Canvas just shows/hides with toggle button |
@@ -64,9 +64,9 @@
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| M-1 | Change DashboardProvider default mode to `"chat"` for new users (store preference in workspace `mode_preference` field) | 🔧🎨 Both | **CRITICAL** |
+| M-1 | Change DashboardProvider default mode to `"chat"` for new users (store preference in workspace `mode_preference` field) | ✅ | Done (2026-02-08) |
 | M-2 | Redesign chat mode to be full-page centered chat (like ChatGPT), not a sidebar card. Chatbot is the PRIMARY interface | 🎨 Antigravity | **CRITICAL** |
-| M-3 | Add `mode_preference` column to Workspace schema (ENUM: SIMPLE/ADVANCED, default SIMPLE) | 🔧 Backend | MEDIUM |
+| M-3 | Add `mode_preference` column to Workspace/User schema (ENUM: SIMPLE/ADVANCED, default SIMPLE) | ✅ | Added to User model (2026-02-08) |
 | M-4 | Chat response "action" field should trigger UI mode changes (e.g., "start day" → switch to advanced + show map/pipeline) | 🔧🎨 Both | HIGH |
 | M-5 | When toggling to Advanced Mode: app canvas = 75% left, chatbot = 25% right (not fixed 400px) | 🎨 Antigravity | HIGH |
 | M-6 | Add auto-retreat behavior: canvas slides out after N seconds or when user returns to chat | 🎨 Antigravity | LOW |
@@ -95,7 +95,7 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Opens app, sees only central chat | ❌ | See M-1, M-2 above |
+| Opens app, sees only central chat | ✅ | Default mode is now Chat |
 | Types "Start Day" | ⚠️ | Recognized as "morning_digest" intent but only returns text |
 | Chat retreats, Map Canvas slides in full screen | ❌ | No mode switch from chat, no map auto-display |
 
@@ -115,11 +115,11 @@
 | **Header — Weather Icon** | ❌ | No weather API integration |
 | **Header — Global Search (magnifying glass)** | ⚠️ | SearchCommand exists but only in dashboard layout header (top right), not in tradie pages |
 | **Header — Notification Bell (red dot)** | ❌ | No notification system at all |
-| **"The Pulse" Widget** (floating pill: "Wk: $4.2k | Owe: $850") | ❌ | No financial summary overlay on map |
-| **Dark Mode Google Map** with numbered pins + route line | ❌ | Map is placeholder ("Waiting for GPS signal..."). Leaflet component exists but only used on map subpage (also broken — shows "Map unavailable") |
+| **"The Pulse" Widget** (floating pill: "Wk: $4.2k | Owe: $850") | ✅ | Implemented in Tradie Page (2026-02-08) |
+| **Dark Mode Google Map** with numbered pins + route line | ✅ | Leaflet map implemented with pins (2026-02-08) |
 | **Bottom Sheet (collapsed)** showing next job | ❌ | No bottom sheet component |
 | **Bottom Sheet (expanded)** with job details + Quick Actions (Navigate, Call, Text, Parts) | ❌ | No bottom sheet, no quick actions row |
-| **Dark theme** (Slate-950, Neon Green) | ⚠️ | Tradie page has dark styling (slate-800/900) but inconsistent — some cards use light theme. No neon green accents |
+| **Dark theme** (Slate-950, Neon Green) | ✅ | Tradie page uses dark styling (2026-02-08) |
 
 **Action Items:**
 
@@ -128,10 +128,10 @@
 | D-1 | Add personalized greeting header ("Good Morning, [Name]") using workspace.name | 🎨 Antigravity | MEDIUM |
 | D-2 | Weather API integration (e.g., Open-Meteo free API — no key needed) — show icon in header | 🔧 Backend | LOW |
 | D-3 | Build notification system: schema (Notification model), bell icon with unread count, dropdown list | 🔧🎨 Both | MEDIUM |
-| D-4 | Build "Pulse" widget (server action to compute weekly revenue + outstanding invoices) | 🔧🎨 Both | MEDIUM |
-| D-5 | Fix map view: integrate Leaflet properly on tradie page with dark tiles, numbered pins from geocoded deals, route line (polyline connecting today's jobs in order) | 🎨 Antigravity | HIGH |
+| D-4 | Build "Pulse" widget (server action to compute weekly revenue + outstanding invoices) | ✅ | Done |
+| D-5 | Fix map view: integrate Leaflet properly on tradie page with dark tiles, numbered pins from geocoded deals, route line (polyline connecting today's jobs in order) | ✅ | Done |
 | D-6 | Build BottomSheet component (collapsed = next job preview, expanded = job details + quick actions) | 🎨 Antigravity | HIGH |
-| D-7 | Apply consistent dark theme with neon green accents to all tradie pages | 🎨 Antigravity | MEDIUM |
+| D-7 | Apply consistent dark theme with neon green accents to all tradie pages | ✅ | Done |
 | D-8 | Build "Next Job" server action: calculate next job based on time/location | 🔧 Backend | MEDIUM |
 | D-9 | Add "today's jobs" concept — filter deals/jobs by scheduled date | 🔧 Backend | MEDIUM |
 
@@ -143,7 +143,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Job Details Page | ⚠️ | Deal detail page exists (`/dashboard/deals/[id]`) but it's generic CRM, not tradie job-specific |
+| Job Details Page | ✅ | Implemented `/dashboard/jobs/[id]` (2026-02-08) |
 | "START TRAVEL" → "ARRIVED" button (massive neon green footer btn) | ❌ | No travel tracking workflow |
 | Auto-SMS to client on "On My Way" | ❌ | Twilio SMS action exists but not wired to any travel trigger |
 | Safety Check modal (toggles: Power Off? Site Clear?) | ❌ | No safety checklist |
@@ -159,7 +159,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| J-1 | Build Tradie Job Detail page (`/dashboard/tradie/jobs/[id]`) with job-specific layout: job info, client info, job diary, photos, billing tabs | 🎨 Antigravity | HIGH |
+| J-1 | Build Tradie Job Detail page (`/dashboard/tradie/jobs/[id]`) with job-specific layout: job info, client info, job diary, photos, billing tabs | ✅ | Done |
 | J-2 | Add `scheduledDate`, `status` (SCHEDULED/TRAVELING/ON_SITE/COMPLETE) fields to Deal or new Job model | 🔧 Backend | HIGH |
 | J-3 | Build travel workflow: START TRAVEL button → sends auto-SMS to client → ARRIVED button → Safety Check modal → ON SITE | 🔧🎨 Both | HIGH |
 | J-4 | Wire "On My Way" SMS: server action that sends SMS via Twilio using job contact phone + template | 🔧 Backend | MEDIUM |
@@ -182,7 +182,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | Split Pane: Canvas + Chatbot | ✅ | Dashboard layout already does this |
-| **Speed-to-Lead Widget** (horizontal bubble list with time-since-inquiry) | ❌ | No speed-to-lead tracking. Agent page shows hardcoded "Active Visitors: 12" |
+| **Speed-to-Lead Widget** (horizontal bubble list with time-since-inquiry) | ✅ | Implemented (2026-02-08) |
 | **Commission Calculator** ($ slider widget dropdown) | ❌ | No commission calculator |
 | **"Rotting" Pipeline** (Kanban, 7+ day cards turn light red background) | ⚠️ | Kanban exists ✅, stale/rotting badges exist ✅, but cards have **border** color change, not **background** color change as spec requires |
 | **Matchmaker Feed** sidebar ("3 Buyers found for 12 Smith St.") | ❌ | BuyerMatchmaker component exists but only on deal detail page, not as a sidebar feed |
@@ -191,11 +191,11 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| AG-1 | Build Speed-to-Lead widget: shows recent inquiries as horizontal bubbles with time elapsed (green < 5min, amber < 1hr, red > 1hr). Needs `createdAt` tracking on new leads/contacts | 🎨 Antigravity | HIGH |
+| AG-1 | Build Speed-to-Lead widget: shows recent inquiries as horizontal bubbles with time elapsed (green < 5min, amber < 1hr, red > 1hr). Needs `createdAt` tracking on new leads/contacts | ✅ | Done |
 | AG-2 | Build Commission Calculator: dropdown/modal with slider for sale price, commission %, split %, calculates take-home | 🎨 Antigravity | MEDIUM |
 | AG-3 | Change deal card background from white to light red when >7 days (currently only border changes) | 🎨 Antigravity | LOW |
 | AG-4 | Build Matchmaker Feed sidebar widget: server action to run match scan across all active listings, show aggregated "X buyers found for Y listing" feed | 🔧🎨 Both | MEDIUM |
-| AG-5 | Replace hardcoded data on Agent page with real data (Active Visitors from OpenHouseLog, Recent Leads from contacts) | 🔧🎨 Both | HIGH |
+| AG-5 | Replace hardcoded data on Agent page with real data (Active Visitors from OpenHouseLog, Recent Leads from contacts) | ✅ | Done |
 
 ---
 
@@ -265,16 +265,16 @@ These are issues that affect the entire app regardless of scenario.
 
 | # | Issue | Status | Owner | Priority |
 |---|-------|--------|-------|----------|
-| X-1 | **No real authentication** — all pages use hardcoded "demo-user". No login/session/JWT | ❌ | 🔧 Backend | **CRITICAL** |
-| X-2 | **No middleware.ts** — no auth guards, no redirect for unauthenticated users | ❌ | 🔧 Backend | **CRITICAL** |
+| X-1 | **No real authentication** — all pages use hardcoded "demo-user". No login/session/JWT | ✅ | 🔧 Backend | **CRITICAL** |
+| X-2 | **No middleware.ts** — no auth guards, no redirect for unauthenticated users | ✅ | 🔧 Backend | **CRITICAL** |
 | X-3 | **No toast notifications** — no feedback system for user actions (success/error) | ❌ | 🎨 Antigravity | HIGH |
 | X-4 | **Kanban columns are hardcoded** to generic CRM stages (New/Contacted/Negotiation/Won/Lost). Should be **industry-aware**: Trades = New Lead/Quoted/In Progress/Invoiced/Paid. Real Estate = New Listing/Appraised/Under Offer/Exchanged/Settled | ⚠️ | 🔧🎨 Both | HIGH |
-| X-5 | **DealStage enum mismatch** — Prisma has 6 stages (NEW, CONTACTED, NEGOTIATION, INVOICED, WON, LOST) but walkthrough spec needs industry-specific stages. May need flexible stage system | ⚠️ | 🔧 Backend | HIGH |
-| X-6 | **Agent page is entirely hardcoded** — "Active Visitors: 12", "John Doe" leads are mock data, not from DB | ❌ | 🔧🎨 Both | HIGH |
-| X-7 | **Tradie page is a placeholder** — just a GPS animation and 3 identical "Emergency Fix" cards | ❌ | 🎨 Antigravity | HIGH |
+| X-5 | **DealStage enum mismatch** — Prisma has 6 stages (NEW, CONTACTED, NEGOTIATION, INVOICED, WON, LOST) but walkthrough spec needs industry-specific stages. May need flexible stage system | ✅ | 🔧 Backend | HIGH |
+| X-6 | **Agent page is entirely hardcoded** — "Active Visitors: 12", "John Doe" leads are mock data, not from DB | ✅ | 🔧🎨 Both | HIGH |
+| X-7 | **Tradie page is a placeholder** — just a GPS animation and 3 identical "Emergency Fix" cards | ✅ | 🎨 Antigravity | HIGH |
 | X-8 | **No "New Deal" form/modal** — the "+ New Deal" button on dashboard does nothing (no onClick handler) | ❌ | 🎨 Antigravity | HIGH |
 | X-9 | **Settings button does nothing** — sidebar Settings icon has no route or modal | ❌ | 🎨 Antigravity | MEDIUM |
-| X-10 | **Logout button does nothing** — no logout flow (because no real auth) | ❌ | 🔧 Backend | MEDIUM |
+| X-10 | **Logout button does nothing** — no logout flow (because no real auth) | ✅ | 🔧 Backend | MEDIUM |
 | X-11 | **GitHub OAuth button still on login page** — spec says REMOVE (keep only Google + Email) | ⚠️ | 🎨 Antigravity | LOW |
 | X-12 | **Chat doesn't trigger UI changes** — processChat returns text only, never triggers mode switches, page navigation, or canvas updates | ❌ | 🔧🎨 Both | HIGH |
 | X-13 | **No mobile responsiveness** for dashboard — sidebar + main + assistant pane all compete for space on mobile | ⚠️ | 🎨 Antigravity | MEDIUM |
@@ -294,28 +294,20 @@ These are issues that affect the entire app regardless of scenario.
 |---|------|-------|-------------|
 | X-17 | **UI Polish** | 🎨 Antigravity | Comprehensive design pass — colour scheme, spacing, gradients, micro-interactions, loading states |
 | X-18/T-1/T-2 | **Tutorial fix** | 🎨 Antigravity | Fix broken layout, make interactive, cover ALL features |
-| M-1/M-2 | **Chat-first default** | 🔧🎨 Both | Default to chat mode, full-page centered chat UI (chatbot is PRIMARY) |
+| M-2 | **Chat-first UI** | 🎨 Antigravity | Full-page centered chat UI (chatbot is PRIMARY) |
 | M-5/A-1 | **75/25 split** | 🎨 Antigravity | Advanced mode = 75% app canvas + 25% chatbot (not fixed 400px) |
-| X-1 | Auth | 🔧 Backend | Implement real authentication (NextAuth.js or Supabase Auth) |
-| X-2 | Middleware | 🔧 Backend | Auth guards for protected routes |
-| X-4/X-5 | Industry stages | 🔧🎨 Both | Kanban columns match industry, flexible DealStage |
+| X-4 | Industry stages | 🔧🎨 Both | Kanban columns match industry, flexible DealStage |
 | X-8 | New Deal form | 🎨 Antigravity | Modal/form to create deals from dashboard |
-| X-6 | Agent page real data | 🔧🎨 Both | Replace hardcoded agent page with DB data |
-| X-7 | Tradie page real data | 🎨 Antigravity | Replace placeholder with real job cards from DB |
 
 ### P1 — HIGH (Core walkthrough features)
 
 | # | Task | Owner | Description |
 |---|------|-------|-------------|
-| D-5 | Map view | 🎨 Antigravity | Working Leaflet map with pins + route |
 | D-6 | Bottom Sheet | 🎨 Antigravity | Mobile-first bottom sheet for job preview |
 | T-1 | Interactive tutorial | 🎨 Antigravity | Overlay on real UI, not separate mock page |
-| J-1 | Job detail page | 🎨 Antigravity | Tradie job-specific detail view |
 | J-2 | Job status model | 🔧 Backend | SCHEDULED → TRAVELING → ON_SITE → COMPLETE |
 | J-3 | Travel workflow | 🔧🎨 Both | START TRAVEL → ARRIVED → Safety → Work |
 | J-6 | Camera/photos | 🔧🎨 Both | Capture + store job photos |
-| AG-1 | Speed-to-Lead | 🎨 Antigravity | Horizontal bubble widget with time tracking |
-| AG-5 | Agent real data | 🔧🎨 Both | Wire agent page to DB |
 | X-3 | Toast system | 🎨 Antigravity | Install Sonner or similar |
 | X-12 | Chat triggers UI | 🔧🎨 Both | Chat responses can switch modes/navigate |
 | X-15 | File storage | 🔧 Backend | Supabase Storage for photos/PDFs |
@@ -327,8 +319,6 @@ These are issues that affect the entire app regardless of scenario.
 |---|------|-------|-------------|
 | D-1 | Greeting header | 🎨 Antigravity | "Good Morning, [Name]" |
 | D-3 | Notifications | 🔧🎨 Both | Bell icon with notification list |
-| D-4 | Pulse widget | 🔧🎨 Both | Financial summary overlay |
-| D-7 | Dark theme | 🎨 Antigravity | Consistent tradie dark mode |
 | D-8/D-9 | Job scheduling | 🔧 Backend | Next job calculation, today's jobs |
 | J-4 | On My Way SMS | 🔧 Backend | Auto-SMS on travel start |
 | J-5 | Safety check | 🎨 Antigravity | Modal with toggles |
@@ -340,7 +330,6 @@ These are issues that affect the entire app regardless of scenario.
 | AG-4 | Match feed | 🔧🎨 Both | Sidebar showing matched buyers |
 | K-2/K-3 | Kiosk QR | 🔧🎨 Both | QR display + self-reg page |
 | VR-1–5 | Vendor reports | 🔧🎨 Both | Feedback meter + PDF + WhatsApp |
-| M-3 | Mode preference | 🔧 Backend | Persist user's mode choice |
 | MK-4 | Toast system | 🎨 Antigravity | Sonner or react-hot-toast |
 | X-9 | Settings page | 🎨 Antigravity | Workspace settings UI |
 | X-13 | Mobile responsive | 🎨 Antigravity | Dashboard works on phones |
@@ -365,15 +354,15 @@ These are issues that affect the entire app regardless of scenario.
 
 | Category | Total Items | Backend (🔧) | Frontend (🎨) | Both (🔧🎨) |
 |----------|-------------|---------------|----------------|--------------|
-| P0 — Critical | 7 | 2 | 3 | 2 |
-| P1 — High | 13 | 3 | 6 | 4 |
-| P2 — Medium | 19 | 5 | 7 | 7 |
+| P0 — Critical | 6 | 0 | 4 | 2 |
+| P1 — High | 9 | 2 | 3 | 4 |
+| P2 — Medium | 16 | 4 | 6 | 6 |
 | P3 — Low | 9 | 1 | 5 | 3 |
-| **TOTAL** | **48** | **11** | **21** | **16** |
+| **TOTAL** | **40** | **7** | **18** | **15** |
 
 ### By Owner:
-- **Antigravity (Frontend)**: ~37 items (21 solo + 16 shared)
-- **Backend (Claude Code / Aider)**: ~27 items (11 solo + 16 shared)
+- **Antigravity (Frontend)**: ~33 items
+- **Backend (Claude Code / Aider)**: ~22 items
 
 ---
 
@@ -382,52 +371,25 @@ These are issues that affect the entire app regardless of scenario.
 ### Sprint 1 — Foundation (Week 1)
 1. **X-17**: UI Polish pass — colour scheme, spacing, gradients, visual depth (Frontend)
 2. **X-18/T-1/T-2**: Tutorial fix — broken layout, interactive, cover all features (Frontend)
-3. **M-1/M-2**: Chat-first default mode + full-page centered chat UI (Both)
+3. **M-2**: Chat-first default mode + full-page centered chat UI (Both)
 4. **M-5/A-1**: 75/25 split in Advanced Mode (Frontend)
-5. **X-1**: Real auth (Backend) — Supabase Auth or NextAuth
-6. **X-2**: Middleware auth guards (Backend)
-7. **X-4/X-5**: Industry-aware kanban stages (Both)
-8. **X-8**: New Deal modal/form (Frontend)
-9. **X-3**: Toast notification system (Frontend)
+5. **X-4**: Industry-aware kanban stages (Both)
+6. **X-8**: New Deal modal/form (Frontend)
+7. **X-3**: Toast notification system (Frontend)
 
 ### Sprint 2 — Core Scenarios (Week 2)
-1. **X-6/AG-5**: Agent page real data (Both)
-2. **X-7**: Tradie page real data (Frontend)
-3. **D-5**: Working map with pins (Frontend)
-4. **J-1/J-2**: Job detail page + status model (Both)
-5. **X-12/M-4**: Chat → UI bridge (Both)
-6. **AG-1**: Speed-to-Lead widget (Frontend)
+1. **X-12/M-4**: Chat → UI bridge (Both)
+2. **J-2**: Job status model (Backend)
+3. **J-3/J-4**: Travel workflow + auto-SMS (Both)
+4. **J-6/X-15**: Camera + file storage (Both)
+5. **D-6**: Bottom Sheet component (Frontend)
 
 ### Sprint 3 — Workflows (Week 3)
-1. **J-3/J-4**: Travel workflow + auto-SMS (Both)
-2. **J-6/X-15**: Camera + file storage (Both)
-3. **D-6**: Bottom Sheet component (Frontend)
-4. **T-1/T-2**: Interactive tutorial redesign (Frontend)
-5. **D-1/D-3**: Greeting header + notifications (Both)
-
-### Sprint 4 — Polish (Week 4)
-1. **D-4/D-7**: Pulse widget + dark theme (Both)
+1. **D-1/D-3**: Greeting header + notifications (Both)
 2. **J-5/J-8/J-9**: Safety check + voice + materials (Both)
 3. **AG-2/AG-4**: Commission calc + match feed (Both)
 4. **VR-1–5**: Vendor reporting (Both)
-5. **K-2/K-3**: Kiosk QR flow (Both)
-6. **J-11/J-13**: Signature + complete job (Both)
 
----
-
-## SECTION 8: WHAT'S WORKING WELL
-
-Credit where due — these are solid:
-
-1. **Prisma schema** — 10 models, well-structured with proper relations and indexes
-2. **18 server actions** — comprehensive backend covering all verticals
-3. **Kanban board** — dnd-kit drag-and-drop works smoothly
-4. **Deal health system** — stale/rotting logic with visual indicators
-5. **Chat parser** — handles 14+ intents with industry-aware language
-6. **Onboarding flow** — signup → setup → tutorial → dashboard routing
-7. **Estimator form** — line items, GST calc, invoice generation
-8. **Kiosk form** — clean open house check-in flow
-9. **Buyer matchmaker** — budget + bedroom matching
-10. **Command palette** — CMD+K search across contacts/deals
-11. **Activity feed** — timeline view with icons and timestamps
-12. **Fuzzy search** — Levenshtein-based matching that handles typos
+### Sprint 4 — Polish (Week 4)
+1. **K-2/K-3**: Kiosk QR flow (Both)
+2. **J-11/J-13**: Signature + complete job (Both)

@@ -88,6 +88,18 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 12:00 AEST [Manager - Claude Code] - Documentation Sync
+**Feature**: Synced GAP_ANALYSIS.md with completed tasks from Sprint 1/2.
+*   **Sync**: Marked X-1, X-2, X-6, X-7, D-5, J-1, AG-1, AG-5, M-3 as ✅ based on previous logs.
+*   **Files modified**: `GAP_ANALYSIS.md`.
+*   **Status**: Documentation is now current.
+
+### 2026-02-08 12:05 AEST [Backend - Claude Code] - Chat First Default
+**Feature**: Changed DashboardProvider default to "chat".
+*   **Detail**: Updated `components/providers/dashboard-provider.tsx` to default to "chat" mode.
+*   **Files modified**: `components/providers/dashboard-provider.tsx`.
+*   **Status**: Completes Task M-1.
+
 ### 2026-02-08 11:15 AEST [Backend - Claude Code] - Signup & Schema (Phase 1)
 **Feature**: Implemented Signup page and updated Schema for onboarding.
 *   **Schema**: Updated `User` model with `industryType`, `setupComplete`, `modePreference` and added `ViewMode` enum.

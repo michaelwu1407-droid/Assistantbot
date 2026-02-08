@@ -13,7 +13,7 @@ interface DashboardContextType {
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-    const [mode, setMode] = useState<DashboardMode>("advanced") // Default to Advanced (CRM) for now as requested
+    const [mode, setMode] = useState<DashboardMode>("chat") // Default to Chat (Basic) as requested
 
     const toggleMode = () => {
         setMode((prev) => (prev === "chat" ? "advanced" : "chat"))
