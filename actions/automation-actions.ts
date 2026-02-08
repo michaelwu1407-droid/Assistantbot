@@ -51,7 +51,7 @@ const CreateAutomationSchema = z.object({
 
 // ─── Pre-built Recipes ──────────────────────────────────────────────
 
-export const PRESET_AUTOMATIONS = [
+const PRESET_AUTOMATIONS = [
   {
     name: "Stale deal alert (5 days in Negotiation)",
     trigger: { event: "deal_stale" as const, threshold_days: 5, stage: "NEGOTIATION" },

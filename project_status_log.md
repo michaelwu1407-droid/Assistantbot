@@ -101,6 +101,142 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 
 ---
 
+### 2026-02-09 11:00 AEST [Backend - Claude Code] - Build Fix & Status Report
+
+**Fix**: Resolved ALL build-breaking errors. Build now passes (0 TS errors, 25 routes compiled).
+
+**Issues Fixed:**
+1. **Middleware export** (`middleware.ts`): Changed `updateSession` → `middleware` named export. Next.js 16 requires `middleware` function export + `config.matcher`. Also added `cookiesToSet` type annotation.
+2. **"use server" violation** (`actions/automation-actions.ts`): Removed `export` from `PRESET_AUTOMATIONS` const. "use server" files can only export async functions.
+3. **"use server" on page** (`app/dashboard/deals/[id]/page.tsx`): Removed erroneous `"use server"` directive from a page component (pages are NOT server actions).
+4. **Missing prop** (`app/dashboard/settings/workspace/page.tsx`): Added `workspaceId` prop by fetching workspace server-side via `getOrCreateWorkspace`.
+5. **CameraFAB interface mismatch** (`components/tradie/job-photos-tab.tsx`): Updated to use new `CameraFAB` interface (`dealId` prop instead of `onCapture`). Also fixed caller in `app/(dashboard)/tradie/jobs/[id]/page.tsx`.
+6. **Prerender failures**: Added `export const dynamic = "force-dynamic"` to all DB-dependent pages/layouts (5 files) to prevent static generation from hitting the database at build time.
+
+**Files Modified:**
+- `middleware.ts` — Fixed export name + added config matcher
+- `actions/automation-actions.ts` — Removed const export
+- `app/dashboard/deals/[id]/page.tsx` — Removed "use server", added force-dynamic
+- `app/dashboard/settings/workspace/page.tsx` — Added workspaceId + force-dynamic
+- `app/(dashboard)/layout.tsx` — Added force-dynamic
+- `app/dashboard/layout.tsx` — Added force-dynamic
+- `app/(dashboard)/tradie/jobs/[id]/page.tsx` — Added force-dynamic + dealId prop
+- `components/tradie/job-photos-tab.tsx` — Fixed CameraFAB interface
+
+**Database Issue (CRITICAL for Vercel + Local Dev):**
+The Prisma schema was changed to `provider = "postgresql"` but:
+- Local `.env` still has `DATABASE_URL="file:./dev.db"` (SQLite) → Prisma crashes
+- Vercel deployment has no `DATABASE_URL` configured → build fails during prerender
+- **Resolution**: Team needs a Supabase project. Set `DATABASE_URL` and `DIRECT_URL` to Supabase connection strings (see `.env.example`).
+- `force-dynamic` on all pages prevents build-time DB calls, so **Vercel build will now pass** even without a DB — but the app will error at runtime until a real PostgreSQL connection string is configured.
+
+**Build Status:** ✅ Passing (0 TS errors, 0 ESLint errors, 25 routes)
+
+---
+
+### 2026-02-09 11:00 AEST [Backend - Claude Code] - Full Status Report & Next Steps
+
+**PURPOSE**: Comprehensive project status assessment and exhaustive next-steps list split by Frontend/Backend.
+
+See detailed report in the sections below:
+- **CURRENT STATUS**: Section at top of this file
+- **ISSUES**: See GAP_ANALYSIS.md (updated)
+- **NEXT STEPS**: See "NEXT STEPS TO 100%" section below
+
+---
+
+## 🔴 BLOCKING ISSUE: Database Configuration
+
+> [!CAUTION]
+> **The Prisma schema expects PostgreSQL but no PostgreSQL database is configured.**
+
+### The Problem
+The schema was changed from `provider = "sqlite"` to `provider = "postgresql"` with `directUrl` support for Supabase connection pooling. However:
+1. **Local `.env`** still has `DATABASE_URL="file:./dev.db"` (SQLite format)
+2. **Vercel** has no database environment variables configured
+3. The user's `debug_report.md` confirms: `P1001: Can't reach database server at localhost:5432`
+
+### The Fix
+**You need a Supabase project** (free tier works). Steps:
+1. Go to [supabase.com](https://supabase.com) → Create new project
+2. Go to **Settings → Database → Connection string**
+3. Copy the **Transaction pooler** URL (port 6543) → Set as `DATABASE_URL`
+4. Copy the **Session pooler** URL (port 5432) → Set as `DIRECT_URL`
+5. Go to **Settings → API** → Copy `URL` and `anon key`
+6. Update your `.env`:
+```
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://[ref].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+```
+7. Run `npx prisma db push` to create tables
+8. Run `npx prisma db seed` to seed demo data
+9. Add the same env vars in **Vercel → Project → Settings → Environment Variables**
+
+---
+
+## ✅ NEXT STEPS TO 100% COMPLETION
+
+### BACKEND (Claude Code / Aider) — 15 items
+
+| # | Task | Priority | GAP Ref | Description |
+|---|------|----------|---------|-------------|
+| BE-1 | **Database setup** | 🔴 BLOCKER | — | Create Supabase project, configure env vars, run `prisma db push` + seed |
+| BE-2 | **Prisma client regenerate** | 🔴 BLOCKER | — | After DB setup: `npx prisma generate` on Windows to fix 228 tsc errors visible locally |
+| BE-3 | **Profile update action** | HIGH | Backend-tasks #2 | Create `updateUserProfile` server action (name, email, bio, urls) |
+| BE-4 | **Onboarding persistence** | HIGH | Backend-tasks #5 | Add `hasOnboarded` to User model, create `completeOnboarding()` action |
+| BE-5 | **Chat → UI bridge** | HIGH | X-12, M-4 | Add `action` field to chat responses that triggers mode switches / navigation |
+| BE-6 | **Industry-aware kanban stages** | HIGH | X-4, X-5 | Make DealStage enum flexible per industry (Trades vs Real Estate column labels) |
+| BE-7 | **File storage (Supabase Storage)** | HIGH | X-15, J-6 | Wire `getUploadUrl`/`getPublicUrl` to real Supabase Storage bucket |
+| BE-8 | **Notification creation triggers** | MEDIUM | D-3 | Fire `createNotification` when job status changes, deals go stale, etc. |
+| BE-9 | **Material database seed** | MEDIUM | J-9 | Seed common trade materials (plumbing, electrical) with prices for estimator search |
+| BE-10 | **Global search optimization** | MEDIUM | Backend-tasks #1 | Replace in-memory fuzzy search with DB `contains` queries for scale |
+| BE-11 | **Vendor report PDF** | MEDIUM | VR-4 | Generate actual PDF (not just HTML data) for vendor reports |
+| BE-12 | **On My Way SMS wiring** | MEDIUM | J-4 | Wire Twilio SMS to travel status change (needs TWILIO env vars) |
+| BE-13 | **Matchmaker feed aggregation** | MEDIUM | AG-4 | Server action to scan all active listings and return aggregated match counts |
+| BE-14 | **Workspace initial data fetch** | LOW | Backend-tasks #3 | Pre-populate workspace settings form with current DB values |
+| BE-15 | **Weather API integration** | LOW | D-2 | Wire existing `getWeather()` action to tradie dashboard header |
+
+### FRONTEND (Antigravity) — 22 items
+
+| # | Task | Priority | GAP Ref | Description |
+|---|------|----------|---------|-------------|
+| FE-1 | **UI Polish pass** | 🔴 CRITICAL | X-17 | Comprehensive design overhaul — colour scheme, spacing, gradients, micro-interactions, loading skeletons. Currently looks "barebones" |
+| FE-2 | **Tutorial redesign** | 🔴 CRITICAL | T-1, T-2, X-18 | Fix broken layout (buttons overlap). Make interactive (guided clicks on real UI, not passive). Cover ALL features |
+| FE-3 | **Chat-first UI** | 🔴 CRITICAL | M-2 | Basic Mode = full-page centered chat (like ChatGPT). Currently not implemented correctly |
+| FE-4 | **75/25 split** | 🔴 CRITICAL | M-5, A-1 | Advanced Mode = `react-resizable-panels` 75% app + 25% chatbot. Shell.tsx partially done but needs polish |
+| FE-5 | **New Deal modal** | HIGH | X-8 | Create deal/job/listing form modal (partially done in dashboard-client.tsx but needs completion) |
+| FE-6 | **Toast system integration** | HIGH | X-3 | Sonner is installed but not wired to all user actions (success/error feedback) |
+| FE-7 | **Bottom sheet (tradie)** | HIGH | D-6 | Mobile bottom sheet for job preview (partially exists in job-bottom-sheet.tsx) |
+| FE-8 | **Travel workflow UI** | HIGH | J-3 | START TRAVEL → ARRIVED → Safety Check → ON SITE buttons + status transitions |
+| FE-9 | **Safety check modal** | MEDIUM | J-5 | Toggleable checklist modal (Power Off? Site Clear?) when tradie arrives |
+| FE-10 | **Commission calculator** | MEDIUM | AG-2 | Slider widget for sale price × commission % × split % |
+| FE-11 | **Greeting header** | MEDIUM | D-1 | "Good Morning, [Name]" with weather icon — partially exists in `header.tsx` |
+| FE-12 | **Notification bell UI** | MEDIUM | D-3 | Wire `notifications-btn.tsx` to real data from `getNotifications` |
+| FE-13 | **Voice-to-text on job page** | MEDIUM | J-8 | Mic icon that transcribes speech to job diary/notes |
+| FE-14 | **Signature pad** | MEDIUM | J-11 | HTML Canvas signature component for sign-on-glass |
+| FE-15 | **Complete job flow** | MEDIUM | J-13 | "Complete Job" button → payment → deal stage update |
+| FE-16 | **Matchmaker feed sidebar** | MEDIUM | AG-4 | Show "X buyers found for Y listing" aggregated feed on agent dashboard |
+| FE-17 | **Kiosk QR display** | MEDIUM | K-2 | Show QR code on kiosk page for visitor self-registration |
+| FE-18 | **Vendor report gauge** | MEDIUM | VR-3 | Price feedback meter (buyer avg vs vendor goal arc chart) |
+| FE-19 | **WhatsApp preview modal** | MEDIUM | VR-5 | Pre-composed message + PDF attachment preview before sending |
+| FE-20 | **Mobile responsive** | MEDIUM | X-13 | Dashboard works on phone screens (sidebar collapses, etc.) |
+| FE-21 | **Settings page wiring** | MEDIUM | X-9 | Wire sidebar Settings icon to `/dashboard/settings` route |
+| FE-22 | **Kanban card background** | LOW | AG-3 | Change deal card background (not just border) to light red when >7 days stale |
+
+### SHARED (Both teams) — 5 items
+
+| # | Task | Priority | GAP Ref | Description |
+|---|------|----------|---------|-------------|
+| SH-1 | **Vercel env vars** | 🔴 BLOCKER | — | Configure DATABASE_URL, DIRECT_URL, SUPABASE_URL, SUPABASE_ANON_KEY in Vercel project settings |
+| SH-2 | **Chat → UI action bridge** | HIGH | X-12, M-4 | Backend returns `action` in chat response, frontend handles mode switch/navigation |
+| SH-3 | **Industry-aware kanban** | HIGH | X-4 | Backend provides stage labels, frontend renders them dynamically |
+| SH-4 | **Camera + storage** | HIGH | J-6, X-15 | Backend: Supabase Storage bucket. Frontend: camera UI + upload flow |
+| SH-5 | **Kiosk self-registration** | MEDIUM | K-3 | Backend: visitor registration endpoint. Frontend: mobile-friendly form |
+
+---
+
 ### 2026-02-08 23:15 AEST [Backend - Claude Code] - Safety & Reports
 **Feature**: Final backend wiring for Safety Checks and Vendor Reports.
 *   **Tradie**: Added `completeSafetyCheck` to `actions/tradie-actions.ts`.

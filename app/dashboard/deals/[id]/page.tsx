@@ -1,7 +1,7 @@
-"use server"
-
 import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
+
+export const dynamic = "force-dynamic";
 import { BuyerMatchmaker } from "@/components/agent/buyer-matchmaker"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { Badge } from "@/components/ui/badge"

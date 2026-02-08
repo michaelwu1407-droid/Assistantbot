@@ -5,6 +5,8 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { DashboardProvider } from "@/components/providers/dashboard-provider";
 import { SyncProvider } from "@/components/providers/sync-provider";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

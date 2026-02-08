@@ -1,7 +1,12 @@
 import { Separator } from "@/components/ui/separator"
 import { WorkspaceForm } from "./workspace-form"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 
-export default function WorkspaceSettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function WorkspaceSettingsPage() {
+    const workspace = await getOrCreateWorkspace("demo-user");
+
     return (
         <div className="space-y-6">
             <div>
@@ -11,7 +16,14 @@ export default function WorkspaceSettingsPage() {
                 </p>
             </div>
             <Separator />
-            <WorkspaceForm />
+            <WorkspaceForm
+                workspaceId={workspace.id}
+                initialData={{
+                    name: workspace.name,
+                    industry: workspace.industryType ?? "TRADES",
+                    location: workspace.location ?? undefined,
+                }}
+            />
         </div>
     )
 }
