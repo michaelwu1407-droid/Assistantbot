@@ -102,12 +102,31 @@ export function AssistantPane() {
             setMessages(prev => [...prev, botMsg])
 
             // Handle UI Actions triggered by the bot
-            if (response.action === "start_day") {
-                setViewMode("ADVANCED")
-            }
-            if (response.action === "start_open_house") {
-                // Could trigger a specific kiosk mode state here
-                console.log("Starting Open House Mode")
+            if (response.action) {
+                switch (response.action) {
+                    case "start_day":
+                        setViewMode("ADVANCED")
+                        // Navigate to tradie map view
+                        window.location.href = "/dashboard/tradie/map"
+                        break
+                    case "start_open_house":
+                        // Navigate to kiosk mode
+                        window.location.href = "/kiosk/open-house"
+                        break
+                    case "show_deals":
+                        setViewMode("ADVANCED")
+                        // Shows kanban already visible in dashboard
+                        break
+                    case "show_stale":
+                        setViewMode("ADVANCED")
+                        break
+                    case "create_deal":
+                        setViewMode("ADVANCED")
+                        break
+                    case "create_invoice":
+                        setViewMode("ADVANCED")
+                        break
+                }
             }
 
         } catch (error) {
