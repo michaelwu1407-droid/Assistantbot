@@ -1,102 +1,255 @@
-"use client";
+"use client"
 
-import { Drawer } from "vaul";
-import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Clock, Phone } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { DealView } from "@/actions/deal-actions"
 
-export function JobBottomSheet() {
-    const [open, setOpen] = useState(true); // Always visible/peeking
-    const router = useRouter();
+interface JobBottomSheetProps {
+    job: DealView
+    isOpen: boolean
+    setIsOpen: (open: boolean) => void
+    onAction: () => void
+    status: 'SCHEDULED' | 'TRAVELING' | 'ON_SITE' | 'COMPLETED' | 'CANCELLED'
+    onAddVariation: (desc: string, price: number) => Promise<void>
+}
 
-    const handleStartTravel = () => {
-        toast.success("SMS Sent: On my way!");
-        router.push("/dashboard/tradie/jobs/job-123"); // Mock ID
-    };
+export function JobBottomSheet({ job, isOpen, setIsOpen, onAction, status, onAddVariation }: JobBottomSheetProps) {
+    const [activeTab, setActiveTab] = useState<'DETAILS' | 'PHOTOS' | 'BILLING'>('DETAILS')
+    const [variationDesc, setVariationDesc] = useState("")
+    const [variationPrice, setVariationPrice] = useState("")
+    const [isRecording, setIsRecording] = useState(false)
+    const [hasSignature, setHasSignature] = useState(false)
+
+    const handleAddVariation = async () => {
+        if (!variationDesc || !variationPrice) return
+        await onAddVariation(variationDesc, Number(variationPrice))
+        setVariationDesc("")
+        setVariationPrice("")
+    }
+
+    const toggleRecording = () => {
+        if (isRecording) {
+            setIsRecording(false)
+            // Logic for saving would happen here
+        } else {
+            setIsRecording(true)
+            setTimeout(() => setIsRecording(false), 3000)
+        }
+    }
 
     return (
-        <Drawer.Root shouldScaleBackground>
-            <Drawer.Trigger asChild>
-                {/* Floating Trigger if needed, but we used fixed UI */}
-                <Button className="hidden">Open</Button>
-            </Drawer.Trigger>
+        <>
+            <motion.div
+                className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 rounded-t-3xl shadow-2xl z-30 flex flex-col"
+                initial={{ height: "15%" }}
+                animate={{ height: isOpen ? "85%" : "15%" }}
+                transition={{ type: "spring", damping: 20 }}
+                onClick={() => !isOpen && setIsOpen(true)}
+            >
+                <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mt-3 mb-4 shrink-0" />
 
-            {/* 
-         We want a "Persistent" bottom sheet for the Tradie view.
-         for this demo, we'll just put a fixed trigger bar at the bottom 
-         that acts as the handle.
-      */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 pb-8 z-20 shadow-[0_-5px_10px_rgba(0,0,0,0.05)] md:hidden">
-                <Drawer.Trigger asChild>
-                    <div className="flex items-center justify-between cursor-pointer">
+                <div className="px-6 flex-1 flex flex-col overflow-hidden">
+                    {/* Collapsed Header */}
+                    <div className="flex justify-between items-center mb-6 shrink-0" onClick={() => setIsOpen(!isOpen)}>
                         <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Up Next</p>
-                            <h3 className="font-bold text-slate-900">Mrs. Jones - Leaky Tap</h3>
+                            <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Current Job</h3>
+                            <h2 className="text-xl font-bold text-white mt-1">{job.title}</h2>
+                            <p className="text-slate-400 text-sm">8:00 AM • {job.company}</p>
                         </div>
-                        <Button size="sm" className="bg-slate-900 text-white rounded-full px-6">
-                            View
-                        </Button>
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
+                            1
+                        </div>
                     </div>
-                </Drawer.Trigger>
-            </div>
 
-            <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-                <Drawer.Content className="bg-white flex flex-col rounded-t-[10px] h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
-                    <div className="p-4 bg-white rounded-t-[10px] flex-1">
-                        <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-300 mb-8" />
-
-                        <div className="max-w-md mx-auto space-y-6">
-                            <Drawer.Title className="font-bold text-2xl mb-2">Mrs. Jones - Leaky Tap</Drawer.Title>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3">
-                                    <Clock className="text-slate-500 h-5 w-5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Time</p>
-                                        <p className="font-semibold">2:00 PM</p>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3">
-                                    <MapPin className="text-slate-500 h-5 w-5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Distance</p>
-                                        <p className="font-semibold">12 mins</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 p-4 rounded-xl space-y-3">
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="mt-1 h-5 w-5 text-blue-600" />
-                                    <div>
-                                        <p className="font-medium">123 Maple Avenue</p>
-                                        <p className="text-sm text-muted-foreground">Surry Hills, NSW 2010</p>
-                                    </div>
-                                </div>
-                                <hr className="border-slate-200" />
-                                <div className="flex items-start gap-3">
-                                    <Phone className="mt-1 h-5 w-5 text-green-600" />
-                                    <div>
-                                        <p className="font-medium">0400 123 456</p>
-                                        <p className="text-sm text-muted-foreground">Contact: Jenny</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button
-                                onClick={handleStartTravel}
-                                className="w-full h-14 text-lg font-bold bg-green-500 hover:bg-green-600 text-slate-900 rounded-xl shadow-lg shadow-green-200"
+                    {/* Expanded Content */}
+                    <AnimatePresence>
+                        {isOpen && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex-1 flex flex-col overflow-hidden"
                             >
-                                <Navigation className="mr-2 h-5 w-5" />
-                                Start Travel
-                            </Button>
-                        </div>
-                    </div>
-                </Drawer.Content>
-            </Drawer.Portal>
-        </Drawer.Root>
-    );
+                                {/* Tabs */}
+                                <div className="flex border-b border-slate-800 mb-4 shrink-0">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveTab('DETAILS'); }}
+                                        className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'DETAILS' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                                    >
+                                        Details
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveTab('PHOTOS'); }}
+                                        className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'PHOTOS' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                                    >
+                                        Photos
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveTab('BILLING'); }}
+                                        className={cn("flex-1 pb-3 text-sm font-medium transition-colors", activeTab === 'BILLING' ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500")}
+                                    >
+                                        Billing
+                                    </button>
+                                </div>
+
+                                {/* Tab Content */}
+                                <div className="flex-1 overflow-y-auto pb-24">
+                                    {activeTab === 'DETAILS' && (
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-4 gap-4">
+                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-emerald-500/50 transition-all">
+                                                    <Navigation className="w-6 h-6 text-emerald-400" />
+                                                    <span className="text-xs">Navigate</span>
+                                                </Button>
+                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-blue-500/50 transition-all">
+                                                    <Phone className="w-6 h-6 text-blue-400" />
+                                                    <span className="text-xs">Call</span>
+                                                </Button>
+                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-purple-500/50 transition-all">
+                                                    <MessageSquare className="w-6 h-6 text-purple-400" />
+                                                    <span className="text-xs">Text</span>
+                                                </Button>
+                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-orange-500/50 transition-all">
+                                                    <Wrench className="w-6 h-6 text-orange-400" />
+                                                    <span className="text-xs">Parts</span>
+                                                </Button>
+                                            </div>
+                                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                                                <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-2">Job Description</h4>
+                                                <p className="text-slate-200 text-sm leading-relaxed">
+                                                    Client reports blocked drain in main bathroom. Potential tree root intrusion. Access via side gate.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'PHOTOS' && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="aspect-square bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center">
+                                                <Camera className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                            <div className="aspect-square bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center">
+                                                <span className="text-xs text-slate-500">No photos yet</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'BILLING' && (
+                                        <div className="space-y-6">
+                                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h4 className="text-slate-400 text-xs uppercase tracking-wider">Current Total</h4>
+                                                    <span className="text-xl font-bold text-emerald-400">${job.value.toLocaleString()}</span>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            placeholder="Item (e.g. 100mm PVC)"
+                                                            className="bg-slate-900 border-slate-700 text-white"
+                                                            value={variationDesc}
+                                                            onChange={(e) => setVariationDesc(e.target.value)}
+                                                        />
+                                                        <Input
+                                                            placeholder="$"
+                                                            type="number"
+                                                            className="w-24 bg-slate-900 border-slate-700 text-white"
+                                                            value={variationPrice}
+                                                            onChange={(e) => setVariationPrice(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <Button className="w-full bg-slate-700 hover:bg-slate-600" onClick={handleAddVariation}>
+                                                        <Plus className="w-4 h-4 mr-2" /> Add Variation
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                variant="outline"
+                                                className={cn(
+                                                    "w-full border-slate-700 text-slate-300 transition-all",
+                                                    isRecording && "bg-red-900/20 text-red-400 border-red-900 animate-pulse"
+                                                )}
+                                                onClick={toggleRecording}
+                                            >
+                                                <Video className="w-4 h-4 mr-2" />
+                                                {isRecording ? "Recording... (Tap to stop)" : "Add Video Explanation"}
+                                            </Button>
+
+                                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
+                                                <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                    <PenTool className="w-3 h-3" />
+                                                    Client Signature
+                                                </h4>
+                                                <div
+                                                    className={cn(
+                                                        "h-24 bg-slate-900 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors",
+                                                        hasSignature ? "border-emerald-500/50" : "border-slate-700 hover:border-slate-500"
+                                                    )}
+                                                    onClick={() => setHasSignature(true)}
+                                                >
+                                                    {hasSignature ? (
+                                                        <span className="font-serif italic text-2xl text-emerald-400 -rotate-2">Mrs. Jones</span>
+                                                    ) : (
+                                                        <span className="text-slate-500 text-sm">Tap to sign on glass</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </motion.div>
+
+            {/* Sticky Footer Button (Only visible when expanded) */}
+            <AnimatePresence>
+                {isOpen && status !== 'COMPLETED' && (
+                    <motion.div
+                        initial={{ y: 100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: 100 }}
+                        className="absolute bottom-0 left-0 right-0 p-4 bg-slate-900 z-40 border-t border-slate-800"
+                    >
+                        <Button
+                            className={cn(
+                                "w-full h-14 text-lg font-bold uppercase tracking-widest transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]",
+                                status === 'SCHEDULED' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
+                                    status === 'ON_SITE' ? "bg-emerald-500 hover:bg-emerald-600 text-black" :
+                                        "bg-blue-600 hover:bg-blue-700 text-white"
+                            )}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAction();
+                            }}
+                        >
+                            {status === 'SCHEDULED' ? 'Start Travel' :
+                                status === 'TRAVELING' ? 'Arrived' :
+                                    status === 'ON_SITE' ? 'Start Work' :
+                                        'Complete Job & Pay'}
+                        </Button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* FAB */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.button
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute bottom-24 right-6 w-14 h-14 bg-slate-800 rounded-full shadow-lg border border-slate-700 flex items-center justify-center z-40 text-white hover:bg-slate-700 hover:border-emerald-500 transition-colors"
+                    >
+                        <Camera className="w-6 h-6" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </>
+    )
 }
