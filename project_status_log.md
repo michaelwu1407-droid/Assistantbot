@@ -88,6 +88,14 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 17:45 AEST [Backend - Claude Code] - New Deal Modal
+**Feature**: Implemented New Deal Modal (Task X-8).
+*   **UI**: Created `components/dashboard/dashboard-client.tsx` to manage modal state.
+*   **Page**: Refactored `app/dashboard/page.tsx` to use the client wrapper.
+*   **Status**: Users can now create deals via the "+ New Deal" button.
+*   **Files modified**: `app/dashboard/page.tsx`.
+*   **Files created**: `components/dashboard/dashboard-client.tsx`.
+
 ### 2026-02-08 17:30 AEST [Backend - Claude Code] - Fix Middleware 500
 **Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
 *   **Middleware**: Updated `middleware.ts` with correct matcher and `lib/supabase/middleware.ts` with robust env var checking and error handling.
