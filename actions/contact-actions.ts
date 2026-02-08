@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { enrichFromEmail, type EnrichedCompany } from "@/lib/enrichment";
 import { fuzzySearch, type SearchableItem } from "@/lib/search";
+import { evaluateAutomations } from "./automation-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -139,6 +140,12 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
         }))
         : undefined,
     },
+  });
+
+  // Trigger Automation (New Lead)
+  await evaluateAutomations(parsed.data.workspaceId, {
+    type: "new_lead",
+    contactId: contact.id
   });
 
   return { success: true as const, contactId: contact.id, enriched };

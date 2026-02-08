@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { createNotification } from "./notification-actions";
+import { createTask } from "./task-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -136,7 +138,7 @@ export async function toggleAutomation(automationId: string) {
  */
 export async function evaluateAutomations(
   workspaceId: string,
-  event: { type: string; dealId?: string; stage?: string }
+  event: { type: string; dealId?: string; stage?: string; contactId?: string }
 ): Promise<{ triggered: string[] }> {
   const automations = await db.automation.findMany({
     where: { workspaceId, enabled: true },
@@ -200,17 +202,39 @@ export async function evaluateAutomations(
         data: { lastFiredAt: new Date() },
       });
 
-      // If action is create_task, actually create one
+      // ─── Execute Actions ───
+
+      // 1. Create Task
       if (action.type === "create_task" && event.dealId) {
         const dueAt = new Date();
         dueAt.setDate(dueAt.getDate() + 2);
-        await db.task.create({
-          data: {
-            title: action.message ?? "Follow up",
-            dueAt,
-            dealId: event.dealId,
-          },
+        await createTask({
+          title: action.message ?? "Follow up",
+          dueAt,
+          dealId: event.dealId,
+          contactId: event.contactId
         });
+      }
+
+      // 2. Notify Users
+      if (action.type === "notify") {
+        // Notify all users in workspace (SME team style)
+        const users = await db.user.findMany({ where: { workspaceId } });
+        for (const user of users) {
+          await createNotification({
+            userId: user.id,
+            title: automation.name,
+            message: action.message ?? "Automation triggered",
+            type: "INFO",
+            link: event.dealId ? `/dashboard?dealId=${event.dealId}` : undefined
+          });
+        }
+      }
+
+      // 3. Send Email (Stub)
+      if (action.type === "email") {
+        // In production: await sendEmail(...)
+        console.log(`[Automation] Would send email template '${action.template}' to contact`);
       }
     }
   }

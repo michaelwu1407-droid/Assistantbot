@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getDealHealth, type DealHealth } from "@/lib/pipeline";
+import { evaluateAutomations } from "./automation-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -162,7 +163,7 @@ export async function updateDealStage(dealId: string, stage: string) {
     return { success: false, error: `Invalid stage: ${stage}` };
   }
 
-  await db.deal.update({
+  const deal = await db.deal.update({
     where: { id: parsed.data.dealId },
     data: {
       stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
@@ -178,6 +179,14 @@ export async function updateDealStage(dealId: string, stage: string) {
       content: `Deal moved to ${parsed.data.stage}`,
       dealId: parsed.data.dealId,
     },
+  });
+
+  // Trigger Automation
+  // We pass the UPPERCASE stage because that's what is stored in the DB and Automation config
+  await evaluateAutomations(deal.workspaceId, {
+    type: "stage_change",
+    dealId: deal.id,
+    stage: prismaStage
   });
 
   return { success: true };

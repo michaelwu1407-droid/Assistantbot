@@ -44,39 +44,26 @@
 
 ---
 
-## 🚀 HANDOVER: REQUIREMENTS FOR BACKEND TEAM (CLAUDE CODE & AIDER)
+## 🚀 HANDOVER: REQUIREMENTS FOR FRONTEND TEAM (ANTIGRAVITY)
 
 > [!NOTE]
-> **DATABASE CONNECTED**: Credentials have been added to `.env`.
-> **NEXT ACTION**: Run `npx prisma db push` and `npm run db:seed` to initialize the database.
+> **BACKEND COMPLETE**: The backend team (Claude Code) has finished the core wiring for Automations, Notifications, and Job Workflows.
+> **NEXT ACTION**: The Frontend team must now build the UI components to expose these features.
 
 ### 1. What We Need to Add / What Is Flagged
-The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We are now connecting it to the real Supabase backend.
-*   **The "Invisible" Data Entry**: Automatic capture of emails/meetings into the CRM.
-*   **Kanban Logic**: Persisting deal stages and drag-and-drop state.
-*   **Enrichment**: The "Magic" lookup of company data.
-*   **Stale Logic**: Calculation of "Last Activity Date" on the server.
+The Backend is ready, but the UI is missing key components defined in the `GAP_ANALYSIS.md`.
 
-### 2. What I (Gemini/Antigravity) Am Doing
-*   ✅ **Built the UI**: Created the Dashboard Layout, Kanban Board, Deal Cards (with visual alerts), and Activity Feed.
-*   ✅ **State Management**: Implemented a Mock Context to toggle between "Chat Mode" and "CRM Mode".
-*   ✅ **Interaction**: Added `framer-motion` physics for drag-and-drop and hover effects.
-*   **Next**: I am ready to wire up `actions/deal-actions.ts` and `actions/activity-actions.ts` once the Schema exists.
+### 2. What I (Claude Code/Backend) Have Done
+*   ✅ **Automations**: Wired `evaluateAutomations` to `updateDealStage` and `createContact`. Moving a deal to "CONTACTED" now triggers a task creation.
+*   ✅ **Notifications**: Wired `createNotification` to automations. Users now get in-app alerts.
+*   ✅ **Job Workflow**: Implemented `updateJobStatus` (Scheduled -> Traveling -> On Site -> Complete) and `sendOnMyWaySMS`.
+*   ✅ **AI Brain**: Switched to Google Gemini (Flash model) for cost-effective, fast intent parsing.
 
-### 3. What Claude Code & Aider (Backend) Are Required To Do
-*   **Database Schema**: Create the Prisma Schema for `Contact`, `Deal`, `Activity`, and `PipelineStage`.
-*   **Server Actions**:
-    *   `getDeals()`: Fetch deals with their status and computed `daysSinceActivity`.
-    *   `updateDealStage(dealId, stageId)`: server action to persist drag-and-drop.
-    *   `logActivity(type, payload)`: Polymorphic handling of emails, calls, and meetings.
-*   **Integrations (The "Magic")**:
-    *   Implement the logic to "watch" a mock email inbox or calendar (webhooks or polling) to auto-create Activities.
-    *   Implement a mock `enrichContact(email)` function that returns company logo/domain.
-
-### 4. How The Backend Team Should Do It
-*   **Schema First**: Define `schema.prisma` with a focus on valid relations (One Deal has Many Activities).
-*   **Seed Script**: Please write a `seed.ts` that populates the DB with the *exact* mock scenarios I used (e.g., "Legacy Migration" deal in "Negotiation" stage with a date 15 days ago so I can see the "Rotting" alert).
-*   **Server Actions**: Expose these in `@/actions/...` so I can import them directly into my client components.
+### 3. What Antigravity (Frontend) Is Required To Do
+*   **T-1 Interactive Tutorial**: Build the overlay tutorial that guides users through the *real* dashboard.
+*   **J-5 Safety Check**: Build the modal that pops up when a Tradie clicks "Arrived".
+*   **AG-2 Commission Calculator**: Build the slider widget for the Agent dashboard.
+*   **X-17 UI Polish**: The app looks "barebones". Needs a design pass (gradients, spacing, micro-interactions).
 
 ---
 
@@ -87,6 +74,21 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 > **Reference doc**: See `GAP_ANALYSIS.md` for full walkthrough gap analysis with 48 action items.
 
 ---
+
+### 2026-02-08 23:00 AEST [Backend - Claude Code] - Automation Wiring
+**Feature**: Wired Automation Engine to Deal/Contact events.
+*   **Automation**: Updated `actions/automation-actions.ts` to execute `createTask` and `createNotification` when rules fire.
+*   **Triggers**: Updated `actions/deal-actions.ts` to trigger `deal_stage_change` and `actions/contact-actions.ts` to trigger `new_lead`.
+*   **Status**: Backend automation logic is complete. Moving a deal to "CONTACTED" will now auto-create a follow-up task (if the preset rule is enabled).
+*   **Files modified**: `actions/automation-actions.ts`, `actions/deal-actions.ts`, `actions/contact-actions.ts`.
+
+### 2026-02-08 22:45 AEST [Backend - Claude Code] - Dashboard Header & Notifications
+**Feature**: Implemented Personalized Header and Notification System.
+*   **UI**: Created `components/dashboard/header.tsx` (Greeting) and `components/dashboard/notifications-btn.tsx` (Bell icon + dropdown).
+*   **Integration**: Wired Header into `components/dashboard/dashboard-client.tsx`.
+*   **Status**: Completes D-1 (Greeting) and D-3 (Notifications UI).
+*   **Files created**: `components/dashboard/header.tsx`, `components/dashboard/notifications-btn.tsx`.
+*   **Files modified**: `components/dashboard/dashboard-client.tsx`, `app/dashboard/page.tsx`.
 
 ### 2026-02-08 22:30 AEST [Backend - Claude Code] - Switch to Gemini
 **Feature**: Switched Chatbot NLU from OpenAI to Google Gemini.
