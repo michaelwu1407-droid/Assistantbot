@@ -4,7 +4,6 @@ import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
 import { Plus, Search } from "lucide-react"
-import { useShellStore } from "@/lib/store"
 
 interface HeaderProps {
     userName: string
@@ -14,7 +13,6 @@ interface HeaderProps {
 
 export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
-    const { setViewMode } = useShellStore()
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -38,10 +36,10 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     return (
         <div className="flex items-center justify-between shrink-0 pb-2">
             <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
                     {getGreeting()}
                 </h1>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5 font-medium">
                     {getSubtitle()}
                 </p>
             </div>
@@ -51,7 +49,7 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="md:hidden text-slate-500"
+                    className="md:hidden text-slate-500 hover:bg-slate-100"
                     onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
                 >
                     <Search className="h-5 w-5" />

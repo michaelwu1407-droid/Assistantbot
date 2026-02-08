@@ -57,7 +57,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
             <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative text-slate-500 hover:text-slate-900"
+                className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                 onClick={() => {
                     setIsOpen(!isOpen)
                     if (!isOpen) fetchNotifications()
