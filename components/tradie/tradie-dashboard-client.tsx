@@ -8,6 +8,7 @@ import { updateJobStatus, createQuoteVariation } from '@/actions/tradie-actions'
 import { DealView } from '@/actions/deal-actions';
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
+import { PulseWidget } from '@/components/dashboard/pulse-widget';
 
 interface TradieDashboardClientProps {
   initialJob?: DealView;
@@ -93,11 +94,7 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
         </div>
 
         {/* The Pulse Widget */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 pointer-events-auto shadow-lg">
-          <span className="text-sm font-medium text-emerald-400">Wk: $4.2k</span>
-          <span className="mx-2 text-slate-600">|</span>
-          <span className="text-sm font-medium text-red-400">Owe: $850</span>
-        </div>
+        <PulseWidget className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto" mode="tradie" />
 
         <div className="flex gap-2 pointer-events-auto">
           <Button size="icon" variant="ghost" className="rounded-full bg-slate-900/50 hover:bg-slate-800 text-slate-200">
