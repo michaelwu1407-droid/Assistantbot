@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 19:00 AEST [Backend - Claude Code] - Casual Greetings
+**Feature**: Updated Assistant greetings to be more casual.
+*   **Chat**: Updated `actions/chat-actions.ts` greetings for Real Estate and Generic contexts.
+*   **UI**: Updated `components/core/assistant-pane.tsx` initial message.
+*   **Status**: Completes user request for casual greetings (Part of D-1).
+*   **Files modified**: `actions/chat-actions.ts`, `components/core/assistant-pane.tsx`.
+
 ### 2026-02-08 18:30 AEST [Backend - Claude Code] - Job Detail & Camera
 **Feature**: Implemented Tradie Job Detail Page and Camera FAB.
 *   **Job Detail**: Created `app/dashboard/jobs/[id]/page.tsx` and `components/tradie/job-detail-view.tsx` with status workflow (Start Travel -> Arrived -> Complete).
@@ -480,7 +487,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   **UX**: Added drag overlay, touch support, and smooth animations.
 *   **Status**: Task 2.1 Complete.
 
-### 2026-02-06 12:00 AEST [Frontend - Antigravity] - Core CRM Hub
+### 2026-02-06 12:00 AEST [Frontend - Antigravity] - Core Hub
 **Feature**: Visual Pipeline & Chat Mode
 *   **Layout Toggle**: Implemented Context-based toggle (`Chat` vs `Advanced/CRM` modes). `Chat` mode maximizes the Assistant pane. `Advanced` mode shows the Kanban board.
 *   **Kanban Board**: Created visual pipeline with 5 stages (New, Contacted, Negotiation, Won, Lost) and `framer-motion` drag physics.

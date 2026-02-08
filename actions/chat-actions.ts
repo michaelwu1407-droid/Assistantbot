@@ -262,7 +262,7 @@ function getIndustryContext(industryType: string | null) {
       contactLabel: "buyer",
       stageLabels: { NEW: "New Listing", CONTACTED: "Appraised", NEGOTIATION: "Under Offer", INVOICED: "Exchanged", WON: "Settled", LOST: "Withdrawn" },
       helpExtras: `  "Start open house" — Launch kiosk mode\n  "Find matches for [listing]" — Run buyer matchmaker\n  "Show stale listings" — Find listings that need attention`,
-      greeting: "Good morning! Here's your pipeline summary",
+      greeting: "Hey there! Here's your pipeline summary",
       unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "start open house" or "new listing 42 Ocean Dr for $1,200,000".`,
     };
   }
@@ -273,7 +273,7 @@ function getIndustryContext(industryType: string | null) {
     contactLabel: "contact",
     stageLabels: { NEW: "New", CONTACTED: "Contacted", NEGOTIATION: "Negotiation", INVOICED: "Invoiced", WON: "Won", LOST: "Lost" },
     helpExtras: `  "Invoice [deal] for [amount]" — Generate invoice\n  "Show templates" — List message templates`,
-    greeting: "Good morning! Here's your briefing",
+    greeting: "Hey! Here's your briefing",
     unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale deals" or "new deal Website Redesign for Acme worth 5000".`,
   };
 }
