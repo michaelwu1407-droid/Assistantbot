@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 22:30 AEST [Backend - Claude Code] - Switch to Gemini
+**Feature**: Switched Chatbot NLU from OpenAI to Google Gemini.
+*   **Chat Actions**: Updated `actions/chat-actions.ts` to use `GEMINI_API_KEY` and the Google Generative Language API (Flash model).
+*   **Config**: Updated `.env.example` to include `GEMINI_API_KEY`.
+*   **Status**: Chatbot now uses Gemini for intent parsing.
+*   **Files modified**: `actions/chat-actions.ts`, `.env.example`.
+
 ### 2026-02-08 22:15 AEST [Backend - Claude Code] - Fix Build Error
 **Fix**: Resolved `Module not found: Can't resolve 'openai'` build error.
 *   **Chat Actions**: Removed `openai` SDK dependency from `actions/chat-actions.ts`.

@@ -182,12 +182,18 @@ function parseCommandRegex(message: string): ParsedCommand {
 }
 
 /**
- * AI-based parser using OpenAI via fetch (no SDK dependency).
+ * AI-based parser using Google Gemini (via fetch).
  * Returns null if API key is missing or call fails.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function parseCommandAI(message: string, industryContext: any): Promise<ParsedCommand | null> {
-  if (!process.env.OPENAI_API_KEY) return null;
+  // Prefer Gemini, fallback to OpenAI if Gemini key missing (future proofing)
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    console.warn("Missing GEMINI_API_KEY");
+    return null;
+  }
 
   try {
     const systemPrompt = `
@@ -216,34 +222,42 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
     If unsure, return {"intent": "unknown", "params": {}}
     `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0,
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          contents: [{
+            role: "user",
+            parts: [{ text: message }]
+          }],
+          generationConfig: {
+            response_mime_type: "application/json"
+          }
+        })
+      }
+    );
 
     if (!response.ok) {
-      console.error("OpenAI API Error:", await response.text());
+      console.error("Gemini API Error:", await response.text());
       return null;
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!content) return null;
 
-    const parsed = JSON.parse(content) as ParsedCommand;
+    // Gemini usually returns clean JSON in JSON mode, but sometimes wraps in markdown
+    const cleanJson = content.replace(/```json\n?|```/g, "").trim();
+    const parsed = JSON.parse(cleanJson) as ParsedCommand;
+    
     return parsed;
   } catch (error) {
     console.error("AI Parse Error:", error);
