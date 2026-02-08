@@ -6,6 +6,7 @@ import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+// Ensure this type is available; if Aider removed it, I might need to redefine it or import differently
 import { DealView } from "@/actions/deal-actions"
 
 interface JobBottomSheetProps {

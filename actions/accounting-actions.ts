@@ -21,21 +21,33 @@ interface XeroInvoice {
   Status: "DRAFT" | "SUBMITTED" | "AUTHORISED";
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────
+
+/**
+ * Retrieve the stored Xero Access Token for a workspace.
+ * This is a placeholder. In a real app, you would query a 'Integration' or 'Token' table.
+ */
+async function getXeroToken(workspaceId: string): Promise<string | null> {
+  // TODO: Implement actual DB retrieval
+  // const integration = await db.integration.findFirst({ where: { workspaceId, provider: 'XERO' } });
+  // return integration?.accessToken ?? null;
+  
+  // For now, return null to trigger the "not connected" error, 
+  // or return a dummy string if testing with a mock server.
+  return null; 
+}
+
 // ─── Xero Sync ──────────────────────────────────────────────────────
 
 /**
  * Sync an invoice to Xero.
  *
- * STUB: In production, this would:
- * 1. Use OAuth2 token from workspace settings
- * 2. Map Invoice model → Xero invoice schema
- * 3. POST to Xero API
- * 4. Store the external Xero invoice ID in metadata
- *
- * Requires XERO_CLIENT_ID, XERO_CLIENT_SECRET, and per-workspace OAuth tokens.
+ * This function attempts to post the invoice to the Xero API.
+ * It requires a valid OAuth2 access token to be present for the workspace.
  */
 export async function syncInvoiceToXero(
-  invoiceId: string
+  invoiceId: string,
+  workspaceId: string // Added workspaceId param to fetch tokens
 ): Promise<AccountingSyncResult> {
   const invoice = await db.invoice.findUnique({
     where: { id: invoiceId },
@@ -48,11 +60,15 @@ export async function syncInvoiceToXero(
     return { success: false, error: "Invoice not found" };
   }
 
+  const token = await getXeroToken(workspaceId);
+  if (!token) {
+    return { success: false, error: "Xero not connected. Please connect Xero in Settings." };
+  }
+
   const lineItems = (invoice.lineItems as { desc: string; price: number }[]) ?? [];
 
   // Map to Xero invoice format
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _xeroPayload: XeroInvoice = {
+  const xeroPayload: XeroInvoice = {
     Type: "ACCREC",
     Contact: {
       Name: invoice.deal.contact.name,
@@ -69,30 +85,48 @@ export async function syncInvoiceToXero(
     Status: invoice.status === "DRAFT" ? "DRAFT" : "AUTHORISED",
   };
 
-  // TODO: Replace with actual Xero API call
-  // const xeroClient = await getXeroClient(workspaceId);
-  // const response = await xeroClient.accountingApi.createInvoices(tenantId, { Invoices: [xeroPayload] });
-  // const externalId = response.body.Invoices[0].InvoiceID;
+  try {
+    const response = await fetch("https://api.xero.com/api.xro/2.0/Invoices", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ Invoices: [xeroPayload] })
+    });
 
-  // For now, return a stub response
-  const stubExternalId = `xero_${Date.now().toString(36)}`;
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error("Xero API Error:", errBody);
+      return { success: false, error: `Xero API rejected request: ${response.statusText}` };
+    }
 
-  // Log the sync attempt
-  await db.activity.create({
-    data: {
-      type: "NOTE",
-      title: "Accounting sync",
-      content: `Invoice ${invoice.number} synced to Xero (stub: ${stubExternalId})`,
-      dealId: invoice.dealId,
-      contactId: invoice.deal.contactId,
-    },
-  });
+    const data = await response.json();
+    const createdInvoice = data.Invoices[0];
+    const externalId = createdInvoice.InvoiceID;
 
-  return {
-    success: true,
-    externalId: stubExternalId,
-    provider: "xero",
-  };
+    // Log the sync success
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Accounting sync",
+        content: `Invoice ${invoice.number} synced to Xero (ID: ${externalId})`,
+        dealId: invoice.dealId,
+        contactId: invoice.deal.contactId,
+      },
+    });
+
+    return {
+      success: true,
+      externalId,
+      provider: "xero",
+    };
+
+  } catch (error) {
+    console.error("Xero Sync Exception:", error);
+    return { success: false, error: "Network error connecting to Xero" };
+  }
 }
 
 /**
