@@ -15,12 +15,13 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
   if (viewMode === "BASIC") {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background p-4 relative overflow-hidden">
+      <div className="flex h-screen w-full items-center justify-center bg-background p-4 md:p-6 relative overflow-hidden">
 
         {/* Decorative Background for Basic Mode */}
-        <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-mesh opacity-10 pointer-events-none" />
 
-        <div className="z-10 w-full max-w-2xl h-[85vh] shadow-2xl rounded-2xl overflow-hidden border border-border bg-card/80 backdrop-blur-sm relative">
+        {/* Main Chat Container - Large & Immersive */}
+        <div className="z-10 w-full max-w-4xl h-full md:h-[92vh] shadow-2xl rounded-2xl overflow-hidden border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
           {/* ID for Spotlight */}
           <div id="assistant-pane" className="h-full w-full">
             {chatbot || <AssistantPane />}

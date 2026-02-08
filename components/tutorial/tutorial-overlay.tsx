@@ -62,19 +62,22 @@ export function TutorialOverlay() {
             {/* Only show Spotlight if there is a target */}
             {step.targetId && (
                 <Spotlight targetId={step.targetId}>
-                    <Card className="w-[300px] p-4 bg-white dark:bg-slate-900 border-primary/20 shadow-2xl relative">
+                    <Card className="w-[320px] p-5 bg-card text-card-foreground border-border shadow-2xl relative">
                         {/* Bot Avatar */}
-                        <div className="absolute -top-6 -left-6 h-12 w-12 bg-primary rounded-full flex items-center justify-center text-white font-bold shadow-lg border-2 border-white dark:border-slate-800">
+                        <div className="absolute -top-6 -left-6 h-12 w-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-lg ring-4 ring-background">
                             Pj
                         </div>
 
                         <h3 className="font-heading font-bold text-lg mb-2 mt-2">{step.title}</h3>
                         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{step.message}</p>
-                        <div className="flex justify-end">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground font-mono">
+                                Step {currentStepIndex + 1} of {STEPS.length}
+                            </span>
                             <Button
                                 size="sm"
                                 onClick={handleNext}
-                                className="bg-primary hover:bg-primary/90 text-white"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                             >
                                 {step.actionLabel}
                             </Button>
@@ -85,18 +88,18 @@ export function TutorialOverlay() {
 
             {/* Center Modal for steps without target (Welcome) */}
             {!step.targetId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         className="max-w-md w-full"
                     >
-                        <Card className="p-8 bg-white dark:bg-slate-900 border-primary/20 shadow-2xl relative overflow-hidden">
+                        <Card className="p-8 bg-card border-border shadow-2xl relative overflow-hidden">
                             {/* Decorative Gradient */}
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500"></div>
 
                             <div className="flex flex-col items-center text-center space-y-4">
-                                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-xl mb-2">
+                                <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground text-2xl font-bold shadow-xl mb-2">
                                     Pj
                                 </div>
                                 <h2 className="font-heading text-3xl font-bold text-foreground">{step.title}</h2>
