@@ -88,6 +88,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 16:15 AEST [Backend - Claude Code] - Fix Layout Props
+**Fix**: Passed missing `workspaceId` to `ChatInterface` in Dashboard Layout.
+*   **Layout**: Updated `app/(dashboard)/layout.tsx` to fetch workspace server-side and pass ID to the client component.
+*   **Status**: Resolves build error regarding missing required prop.
+*   **Files modified**: `app/(dashboard)/layout.tsx`.
+
 ### 2026-02-08 16:00 AEST [Backend - Claude Code] - Reports & Scheduling
 **Feature**: Vendor Report PDF & Next Job Logic
 *   **Agent**: Added `generateVendorReportPDF` to `actions/agent-actions.ts` (Task VR-4).
