@@ -1,6 +1,7 @@
 import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { generateQRDataURL } from "@/lib/qrcode"
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,12 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         )
     }
 
+    // Generate QR Code for self-registration
+    // Uses the current URL so visitors can open this page on their phone
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://pj-buddy.vercel.app"
+    const kioskUrl = `${baseUrl}/kiosk/open-house?dealId=${dealId}`
+    const qrDataUrl = generateQRDataURL(kioskUrl)
+
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col justify-center p-4 md:p-8 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2073&q=80')] bg-cover bg-center relative">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-0"></div>
@@ -56,7 +63,15 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
                         Sign in to get instant access to property details, floor plans, and upcoming inspection times.
                     </p>
 
-                    <div className="pt-8 flex items-center gap-4">
+                    <div className="pt-4">
+                        <div className="bg-white p-4 rounded-xl inline-block shadow-2xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={qrDataUrl} alt="Scan to check in" className="w-32 h-32" />
+                            <p className="text-slate-900 text-center text-xs font-bold mt-2 uppercase tracking-wider">Scan to Check In</p>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex items-center gap-4">
                         <div className="flex -space-x-3">
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900 bg-slate-200"></div>

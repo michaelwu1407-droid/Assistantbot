@@ -1,9 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react"
+import { getWeather } from "@/actions/weather-actions"
 
 interface HeaderProps {
     userName: string
@@ -13,6 +15,39 @@ interface HeaderProps {
 
 export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
+    const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
+
+    useEffect(() => {
+        const fetchWeather = async (lat: number, lng: number) => {
+            try {
+                const data = await getWeather(lat, lng)
+                if (data) {
+                    setWeather({ temp: data.temperature, condition: data.condition })
+                }
+            } catch (e) {
+                console.error("Weather fetch error", e)
+            }
+        }
+
+        // Try browser geo, fallback to Sydney
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                () => fetchWeather(-33.8688, 151.2093) // Sydney fallback
+            )
+        } else {
+            fetchWeather(-33.8688, 151.2093)
+        }
+    }, [])
+
+    const getWeatherIcon = (condition: string) => {
+        const c = condition.toLowerCase()
+        if (c.includes("rain") || c.includes("drizzle")) return <CloudRain className="h-5 w-5 text-blue-400" />
+        if (c.includes("snow")) return <CloudSnow className="h-5 w-5 text-slate-300" />
+        if (c.includes("thunder")) return <CloudLightning className="h-5 w-5 text-amber-400" />
+        if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-5 w-5 text-slate-400" />
+        return <Sun className="h-5 w-5 text-amber-500" />
+    }
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -35,13 +70,22 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
 
     return (
         <div className="flex items-center justify-between shrink-0 pb-2">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
-                    {getGreeting()}
-                </h1>
-                <p className="text-sm text-slate-500 mt-0.5 font-medium">
-                    {getSubtitle()}
-                </p>
+            <div className="flex items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
+                        {getGreeting()}
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5 font-medium">
+                        {getSubtitle()}
+                    </p>
+                </div>
+
+                {weather && (
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/50 backdrop-blur-sm border border-slate-200/60 rounded-full shadow-sm animate-in fade-in slide-in-from-left-2">
+                        {getWeatherIcon(weather.condition)}
+                        <span className="text-sm font-semibold text-slate-700">{weather.temp}°</span>
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-2">

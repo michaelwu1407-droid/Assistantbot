@@ -124,6 +124,13 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 
 ---
 
+### 2026-02-09 13:00 AEST [Backend - Aider] - Weather & Kiosk QR
+**Feature**: Weather Integration & Kiosk QR Code
+*   **Weather**: Updated `components/dashboard/header.tsx` to fetch and display weather using `getWeather` action (Task D-2).
+*   **Kiosk**: Updated `app/kiosk/open-house/page.tsx` to generate and display a QR code for visitor self-registration (Task K-2).
+*   **Status**: Header now shows live weather. Kiosk page has a scannable QR code.
+*   **Files modified**: `components/dashboard/header.tsx`, `app/kiosk/open-house/page.tsx`.
+
 ### 2026-02-09 12:45 AEST [Backend - Aider] - Job Billing Logic Fix
 **Fix**: Updated Job Billing Tab to create invoices correctly.
 *   **Billing**: Switched `JobBillingTab` to use `generateQuote` instead of `createQuoteVariation` so that an invoice is immediately created and visible in the list.
