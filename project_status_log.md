@@ -88,6 +88,13 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 16:45 AEST [Backend - Claude Code] - Fix Middleware 500
+**Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
+*   **Middleware**: Updated `middleware.ts` with correct matcher and `lib/supabase/middleware.ts` with robust env var checking and error handling.
+*   **DB**: Updated `lib/db.ts` to prevent Prisma instantiation in Edge Runtime (which causes crashes if imported in middleware).
+*   **Status**: Middleware should now fail gracefully or pass through if config is missing.
+*   **Files modified**: `middleware.ts`, `lib/supabase/middleware.ts`, `lib/db.ts`.
+
 ### 2026-02-08 16:30 AEST [Backend - Claude Code] - Fix Middleware Crash
 **Fix**: Prevented 500 error when env vars are missing.
 *   **Middleware**: Updated `lib/supabase/middleware.ts` to check for `NEXT_PUBLIC_SUPABASE_URL` and wrap auth in try/catch. Returns `next()` instead of crashing if config is missing.
@@ -659,126 +666,3 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 | 5.4 | Calendar integration | **Backend** | `actions/calendar-actions.ts`: `syncGoogleCalendar()`, `syncOutlookCalendar()`, `createCalendarEvent()`, `processCalendarWebhook()`. Stub — ready for OAuth. | ✅ |
 | 5.5 | Bulk SMS/blast | **Backend** | Included in `messaging-actions.ts`: `sendBulkSMS(contactIds[], message)`. Rate-limited (1/sec). Template `{{var}}` substitution. | ✅ |
 | 5.6 | Browser extension | **Backend** | Chrome MV3 extension in `extension/`: manifest, background worker, LinkedIn + portal content scripts, popup UI, API route at `/api/extension/import`. | ✅ |
-
----
-
-# NEW MASTER SPECIFICATION: ASSISTANTBOT PIVOT
-
-## 1. CORE PHILOSOPHY
-The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the background.
-- **Default View ("Simple Mode"):** User interacts *only* with the Chatbot (Natural Language -> DB Actions).
-- **Optional View ("Advanced Mode"):** User toggles a switch to reveal standard CRM tables/dashboards.
-
-## 2. FRONTEND TASKS (For Antigravity)
-
-### A. Navigation & Landing Page Refactor
-- **Target File:** `Header.tsx` / `Navbar.js`
-- **Action:** Replace the "Pricing" link with an "Industries" Dropdown.
-- **Dropdown Items:**
-  1. **Trades:** Links to `/industries/trades` (Features: Job scheduling, quoting, invoicing).
-  2. **Real Estate:** Links to `/industries/real-estate` (Features: Property listings, tenant management, open house scheduling).
-- **Content:** Update the Hero section to emphasize "The Assistant that runs your business," not just "A CRM."
-
-### B. Authentication UI
-- **Target File:** `Login.tsx` / `Auth.js`
-- **Action:**
-  - **REMOVE:** GitHub Login button (Dev-only feature).
-  - **KEEP:** Google Sign-In and Email/Password.
-  - **style:** Ensure the login form is clean and professional, targeting non-tech users (Tradies/Agents).
-
-### C. The "Zero-Dashboard" Onboarding Flow
-**Current Flow:** Signup -> Dashboard (Stop this).
-**New Flow:**
-1. **Signup:** User creates account.
-2. **Setup Interview (Chatbot):**
-   - Redirect new users to `/setup`.
-   - **UI:** A simple chat interface.
-   - **Bot Logic:** Ask "What is your business name?", "Are you in Trades or Real Estate?", "Where are you located?".
-   - **Action:** Save these responses to the `UserProfile` table.
-3. **Tutorial (Split-Screen):**
-   - Redirect to `/tutorial` after setup.
-   - **Left Pane:** Highlights specific app features (e.g., "Create a Quote").
-   - **Right Pane:** Shows the *exact prompt* to type into the Assistant to trigger that feature.
-
-## 3. BACKEND TASKS (For Aider/Claude Code)
-
-### A. Database Schema Updates
-- **Table:** `users` or `profiles`
-  - Add column: `industry_type` (ENUM: 'TRADES', 'REAL_ESTATE', 'OTHER').
-  - Add column: `setup_complete` (BOOLEAN, default `false`).
-  - Add column: `mode_preference` (ENUM: 'SIMPLE', 'ADVANCED', default 'SIMPLE').
-
-### D. View Restriction (Flagged for Post-MVP)
-- **Requirement:** Users selecting "TRADES" should *only* see Tradie features. Users selecting "REAL_ESTATE" should *only* see Agent features.
-- **Current State:** Allow switching for testing purposes (single account can see both).
-- **Future State:** Enforce strict view isolation based on `industry_type`.
-
-### B. "Assistant" Logic Engine
-- **Input Processing:** The chatbot must accept natural language (e.g., "Add a job for 123 Main St tomorrow") and map it to database inserts (`INSERT INTO jobs...`).
-- **Context Awareness:**
-  - If `industry_type` = 'REAL_ESTATE', "Add listing" maps to the *Properties* module.
-  - If `industry_type` = 'TRADES', "Add job" maps to the *Jobs/WorkOrders* module.
-
-### C. Auth Security
-- **Hardening:** Ensure removing the GitHub frontend button is matched by disabling the GitHub OAuth strategy in the backend config to prevent direct API access.
-
----
-
-# PHASE 2 MASTER SPECIFICATION: THE EXTREME GRANULAR WALKTHROUGH
-
-## THE CORE UX: THE 3 MODES
-1. **Tutorial Mode (First Login)**: 50/50 Split Screen.
-   - **Left**: The App Canvas (dimmed).
-   - **Right**: The Chatbot.
-   - **Interaction**: Bot says "Click the Map." The Map button highlights. User clicks.
-
-2. **Basic Mode (Default - "Chatbot First")**:
-   - **Screen**: Clean, central chat interface (like ChatGPT or Google Gemini).
-   - **Action**: User types/speaks: "Start my day."
-   - **Result**: The App Canvas slides in from the left to show relevant info, then retreats.
-
-3. **Advanced Mode (Power User)**:
-   - **Screen**: Split Pane.
-   - **Left (70%)**: The App Canvas (Map, Pipeline, Forms) is always visible.
-   - **Right (30%)**: The Chatbot ("Travis" or "Pj") sits on the side as a co-pilot.
-
-## SCENARIO A: THE TRADIE (Scott & "Travis")
-**Theme**: High Contrast Dark Mode (Slate-950 bg, Neon Green accents).
-**Device**: iPhone 16 Pro.
-
-1.  **The Morning Routine (Basic Mode)**
-    - *Action*: Scott types "Start Day."
-    - *System*: Map Canvas slides in (Advanced Mode).
-
-2.  **The Dashboard (Map View)**
-    - *Header*: "Good Morning", Weather, Search, Notification Bell.
-    - *Overlay*: "The Pulse" Widget (Wk: $4.2k | Owe: $850).
-    - *Canvas*: Dark Mode Map with numbered pins + blue route line.
-    - *Bottom Sheet*: Collapsed ("Next: Mrs. Jones"). Expandable to show Job Details + Quick Actions.
-
-3.  **Job Execution**
-    - *Travel*: "START TRAVEL" Footer Button (Neon Green). Triggers SMS.
-    - *Arrival*: "ARRIVED" -> Safety Check Modal (Power Off? Site Clear?).
-    - *Work*: Camera FAB. Photo annotation (Red line). Voice transcription ("Found hairline fracture").
-    - *Quoting*: "Add Video Explanation" (15s). Sign-on-Glass.
-    - *Payment*: "Complete Job" -> Full screen Payment Terminal ($450.00). Tap to Pay.
-
-## SCENARIO B: THE AGENT (Sarah & "Pj")
-**Theme**: Elegant Light Mode (White bg, Gold/Navy accents).
-**Device**: iPad Pro.
-
-1.  **The Dashboard (Advanced Mode)**
-    - *Header*: "Speed-to-Lead" Widget (Bubbles with timers). Commission Calculator.
-    - *Canvas*: "Rotting" Pipeline (Kanban). Red cards if > 7 days inactive.
-    - *Sidebar*: Matchmaker Feed ("3 Buyers found").
-
-2.  **Killer Feature: Magic Keys**
-    - *Action*: Tap "Key" icon (Bottom Rail). Scan QR.
-    - *Feedback*: Toast "Keys checked out to Sarah."
-
-3.  **Open House (Kiosk Mode)**
-    - *Screen*: Full screen image + QR Code ("Scan to Check In").
-
-4.  **Vendor Reporting**
-    - *Widget*: "Price Feedback Meter" (Gauge).
-    - *Action*: "Send Vendor Report" -> WhatsApp Preview -> Send.
