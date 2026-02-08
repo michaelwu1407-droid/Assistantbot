@@ -2,14 +2,24 @@ import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
+import { createClient } from "@/lib/supabase/server"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-    let workspace, deals;
+    let workspace, deals, user;
     let dbError = false;
+
+    // 1. Get User
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    
+    // Fallback for demo mode if no auth
+    const userId = authUser?.id || "demo-user"
+    const userName = authUser?.user_metadata?.full_name || "Mate"
+
     try {
-        workspace = await getOrCreateWorkspace("demo-user")
+        workspace = await getOrCreateWorkspace(userId)
         deals = await getDeals(workspace.id)
     } catch {
         dbError = true;
@@ -43,5 +53,12 @@ DATABASE_URL="your-direct-url" \\
         )
     }
 
-    return <DashboardClient workspace={workspace} deals={deals} />
+    return (
+        <DashboardClient 
+            workspace={workspace} 
+            deals={deals} 
+            userName={userName}
+            userId={userId}
+        />
+    )
 }

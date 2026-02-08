@@ -4,33 +4,28 @@ import { useState } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DealHealthWidget } from "@/components/crm/deal-health-widget"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 import { NewDealModal } from "@/components/modals/new-deal-modal"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
+import { Header } from "./header"
 
 interface DashboardClientProps {
     workspace: WorkspaceView
     deals: DealView[]
+    userName: string
+    userId: string
 }
 
-export function DashboardClient({ workspace, deals }: DashboardClientProps) {
+export function DashboardClient({ workspace, deals, userName, userId }: DashboardClientProps) {
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
 
     return (
-        <div className="h-full flex flex-col space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Pipeline</h1>
-                    <p className="text-sm text-slate-500">Manage your deals and activity</p>
-                </div>
-                <Button onClick={() => setIsNewDealModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Deal
-                </Button>
-            </div>
+        <div className="h-full flex flex-col space-y-4 p-6">
+            <Header 
+                userName={userName} 
+                userId={userId}
+                onNewDeal={() => setIsNewDealModalOpen(true)} 
+            />
 
             {/* Health Widget */}
             <DealHealthWidget deals={deals} />
@@ -44,7 +39,7 @@ export function DashboardClient({ workspace, deals }: DashboardClientProps) {
 
                 {/* Right: Activity Feed / Widgets */}
                 <div className="hidden xl:block w-[350px] shrink-0 h-full overflow-hidden">
-                    <ActivityFeed />
+                    <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>
 
