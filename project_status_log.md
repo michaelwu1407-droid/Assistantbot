@@ -679,3 +679,22 @@ The app is a **Chatbot-Driven interface/assistant** that manages a CRM in the ba
 4.  **Vendor Reporting**
     - *Widget*: "Price Feedback Meter" (Gauge).
     - *Action*: "Send Vendor Report" -> WhatsApp Preview -> Send.
+### 2026-02-08 12:00 AEST [Frontend - Antigravity] - Sprint 3 & 4 Complete (Job Execution & Scheduler)
+**Feature**: Job Execution Workflow & Smart Scheduler
+*   **Job Execution**:
+    *   **Travel Workflow**: Implemented `JobStatusBar` with status transitions and simulated SMS.
+    *   **Safety Check**: Implemented `SafetyModal` with mandatory checklist.
+    *   **Job Evidence**: Built `JobPhotosTab` (Camera/Gallery) and `JobBillingTab` (Signature Pad).
+*   **Scheduler**:
+    *   **UI**: Implemented `SchedulerView` with drag-and-drop support (`@dnd-kit`).
+    *   **Components**: `CalendarGrid` (Week View) and `JobSidebar` (Unscheduled Jobs).
+*   **Files created**: `actions/job-actions.ts`, `components/tradie/*`, `components/scheduler/*`.
+*   **Status**: Sprint 3 & 4 Complete. Tasks J-1, J-2, J-3, J-4, J-5, J-6, Scheduler Complete.
+
+### 2026-02-08 12:30 AEST [Frontend - Antigravity] - Sprint 5 Complete (Vertical Polish)
+**Feature**: Agent Widgets, Tradie Bottom Sheet, Pulse Widget
+*   **Agent**: Created `CommissionCalculator` (slider math) and `VendorReportCard` (visual gauge).
+*   **Tradie**: Created mobile-first `JobBottomSheet` using `vaul`.
+*   **Global**: Created `PulseWidget` for financial stats.
+*   **Fixes**: Added `components/ui/slider.tsx` shim. Fixed imports and types.
+*   **Status**: Sprint 5 Complete. Tasks AG-2, VR-3, D-6, D-4 Complete.

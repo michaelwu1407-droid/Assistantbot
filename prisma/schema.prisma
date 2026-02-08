@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspaceType {
@@ -78,6 +77,11 @@ model Deal {
   stage          DealStage @default(NEW)
   value          Decimal?
   
+  // Job Execution Fields
+  jobStatus            JobStatus @default(SCHEDULED)
+  scheduledAt          DateTime?
+  safetyCheckCompleted Boolean   @default(false)
+
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
   metadata       Json?     
   
@@ -101,6 +105,7 @@ model Deal {
   tasks          Task[]
   invoices       Invoice[]
   openHouseLogs  OpenHouseLog[]
+  jobPhotos      JobPhoto[]
 }
 
 model Contact {
@@ -233,4 +238,23 @@ model OpenHouseLog {
   deal            Deal     @relation(fields: [dealId], references: [id])
   
   visitedAt       DateTime @default(now())
+}
+
+enum JobStatus {
+  SCHEDULED
+  TRAVELING
+  ONSITE
+  COMPLETED
+  CANCELLED
+}
+
+model JobPhoto {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }

@@ -1,6 +1,8 @@
 import { getTradieJobs } from "@/actions/tradie-actions"
 import TradieDashboard from "./client-page"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { JobBottomSheet } from "@/components/tradie/job-bottom-sheet";
+import { PulseWidget } from "@/components/dashboard/pulse-widget";
 
 // Force dynamic since we fetch user-specific data
 export const dynamic = "force-dynamic"

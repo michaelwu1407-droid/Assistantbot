@@ -12,6 +12,7 @@ interface ActivityFeedProps {
     limit?: number
     className?: string
     activities?: ActivityView[]
+    workspaceId?: string
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,9 +31,9 @@ const COLOR_MAP: Record<string, string> = {
     note: "text-slate-500 bg-slate-50"
 }
 
-export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialActivities }: ActivityFeedProps) {
-    const [activities, setActivities] = useState<ActivityView[]>(initialActivities || [])
-    const [loading, setLoading] = useState(!initialActivities)
+export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId }: ActivityFeedProps) {
+    const [activities, setActivities] = useState<ActivityView[]>(initialData || [])
+    const [loading, setLoading] = useState(!initialData)
 
     useEffect(() => {
         let mounted = true
@@ -42,7 +43,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                     contactId,
                     dealId,
                     limit,
-                    workspaceId: "demo-workspace"
+                    workspaceId
                 })
                 if (mounted) {
                     setActivities(data)
