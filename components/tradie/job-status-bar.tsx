@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SafetyModal } from "./safety-modal";
 
-type JobStatus = "SCHEDULED" | "TRAVELING" | "ONSITE" | "COMPLETED" | "CANCELLED";
+type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED";
 
 interface JobStatusBarProps {
     dealId: string;
@@ -50,7 +50,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
 
     const onSafetyCheckComplete = () => {
         setSafetyModalOpen(false);
-        handleStatusChange("ONSITE");
+        handleStatusChange("ON_SITE");
     };
 
     if (status === "COMPLETED") {
@@ -71,7 +71,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                         <span className="font-bold text-lg flex items-center gap-2">
                             {status === "SCHEDULED" && <><MapPin className="h-4 w-4" /> Ready to Go</>}
                             {status === "TRAVELING" && <><Navigation className="h-4 w-4 animate-pulse" /> Traveling</>}
-                            {status === "ONSITE" && <><HardHat className="h-4 w-4" /> On Site</>}
+                            {status === "ON_SITE" && <><HardHat className="h-4 w-4" /> On Site</>}
                         </span>
                     </div>
 
@@ -100,7 +100,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                             </Button>
                         )}
 
-                        {status === "ONSITE" && (
+                        {status === "ON_SITE" && (
                             <Button
                                 variant="outline"
                                 className="text-black bg-white"

@@ -32,9 +32,9 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
         try {
             await logOpenHouseAttendee({
                 dealId,
-                attendeeName: formData.name,
-                attendeeEmail: formData.email,
-                attendeePhone: formData.phone,
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
                 notes: formData.notes,
                 interestedLevel: formData.interestedLevel
             })
