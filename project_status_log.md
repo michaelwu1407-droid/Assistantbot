@@ -88,6 +88,12 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 19:15 AEST [Backend - Claude Code] - Fix Middleware 500
+**Fix**: Resolved `MIDDLEWARE_INVOCATION_FAILED` error.
+*   **Middleware**: Updated `lib/supabase/middleware.ts` to check for missing env vars and wrap `createServerClient` in try/catch.
+*   **Status**: Middleware should now fail gracefully or pass through if config is missing, preventing 500 errors.
+*   **Files modified**: `lib/supabase/middleware.ts`.
+
 ### 2026-02-08 19:00 AEST [Backend - Claude Code] - Casual Greetings
 **Feature**: Updated Assistant greetings to be more casual.
 *   **Chat**: Updated `actions/chat-actions.ts` greetings for Real Estate and Generic contexts.
@@ -199,7 +205,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 ### 2026-02-08 13:45 AEST [Backend - Claude Code] - Fix Layout Build Error
 **Fix**: Removed invalid `chatbot` prop and import from Dashboard Layout.
 *   **Layout**: Updated `app/(dashboard)/layout.tsx` to use `Shell` correctly (it manages `AssistantPane` internally).
-*   **Status**: Resolving build errors.
+*   **Status**: Resolves build error regarding missing required prop.
 *   **Files modified**: `app/(dashboard)/layout.tsx`.
 
 ### 2026-02-08 13:15 AEST [Backend - Claude Code] - Notification System
