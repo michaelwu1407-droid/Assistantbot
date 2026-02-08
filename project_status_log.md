@@ -88,6 +88,27 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 16:00 AEST [Backend - Claude Code] - Reports & Scheduling
+**Feature**: Vendor Report PDF & Next Job Logic
+*   **Agent**: Added `generateVendorReportPDF` to `actions/agent-actions.ts` (Task VR-4).
+*   **Tradie**: Added `getNextJob` to `actions/tradie-actions.ts` (Task D-8).
+*   **Status**: Completes backend for Vendor Reports and Next Job logic.
+*   **Files modified**: `actions/agent-actions.ts`, `actions/tradie-actions.ts`.
+
+### 2026-02-08 15:30 AEST [Backend - Claude Code] - Deal Summaries
+**Feature**: Added 'summarize_deal' intent to Chatbot
+*   **Chat**: Added logic to fetch deal details and recent activity via chat command ("Status of [Deal]").
+*   **Status**: Enhances Assistant capabilities.
+*   **Files modified**: `actions/chat-actions.ts`.
+
+### 2026-02-08 15:00 AEST [Backend - Claude Code] - AI Chat & Sync
+**Feature**: Connected Chatbot to OpenAI and implemented Offline Sync
+*   **Chat**: Updated `actions/chat-actions.ts` to use OpenAI for intent parsing.
+*   **Sync**: Created `components/providers/sync-provider.tsx` and `lib/sync-queue.ts` for offline mutation replay.
+*   **Accounting**: Added real Xero sync logic to `actions/accounting-actions.ts`.
+*   **Status**: Completes Task 1.3 (Chat Wiring) and 3.6 (Offline Support).
+*   **Files modified**: `actions/chat-actions.ts`, `actions/accounting-actions.ts`, `components/chatbot/chat-interface.tsx`, `components/providers/sync-provider.tsx`, `lib/sync-queue.ts`.
+
 ### 2026-02-08 14:00 AEST [Backend - Claude Code] - Build & Env Issues Flagged
 **Issue**: Build failing due to Prisma sync and missing env vars.
 *   **Prisma**: `tsc` reports errors because the Prisma Client is out of sync with the schema (missing `jobStatus`, `scheduledAt`, `user` relation). Needs `npx prisma generate`.
@@ -514,6 +535,7 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 *   `actions/messaging-actions.ts` — `sendSMS()`, `sendWhatsApp()`, `sendBulkSMS()` (Twilio API)
 *   `actions/email-actions.ts` — Gmail/Outlook sync stubs, OAuth URLs, webhook processor
 *   `actions/calendar-actions.ts` — Google/Outlook Calendar stubs, `createCalendarEvent()`
+*   `processCalendarWebhook()`. Stub — ready for OAuth.
 *   `extension/` — Chrome MV3 browser extension (manifest, content scripts for LinkedIn/REA/Domain, popup, background worker)
 *   `app/api/extension/import/route.ts` — API route for extension data push
 

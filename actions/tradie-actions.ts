@@ -105,6 +105,33 @@ export async function getTodaySchedule(workspaceId: string) {
 }
 
 /**
+ * Get the immediate next job for the dashboard "Up Next" card.
+ * Finds the first job scheduled in the future.
+ */
+export async function getNextJob(workspaceId: string) {
+  const now = new Date();
+  const job = await db.deal.findFirst({
+    where: {
+      workspaceId,
+      scheduledAt: { gt: now },
+      jobStatus: { notIn: ["COMPLETED", "CANCELLED"] }
+    },
+    include: { contact: true },
+    orderBy: { scheduledAt: "asc" }
+  });
+
+  if (!job) return null;
+
+  return {
+    id: job.id,
+    title: job.title,
+    client: job.contact.name,
+    time: job.scheduledAt,
+    address: job.address || job.contact.address
+  };
+}
+
+/**
  * Fetch full details for a specific job (Deal).
  */
 export async function getJobDetails(jobId: string) {
