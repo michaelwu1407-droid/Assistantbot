@@ -2,6 +2,7 @@ import React from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { ChatInterface } from "@/components/chatbot/chat-interface";
 import { db } from "@/lib/db";
+import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
 
 export default async function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default async function DashboardLayout({
 
   return (
     <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
+      <OnboardingModal />
       {children}
     </Shell>
   );
