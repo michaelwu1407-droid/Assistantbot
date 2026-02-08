@@ -9,6 +9,7 @@ import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
+import OpenAI from "openai";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -42,7 +43,10 @@ interface ParsedCommand {
   params: Record<string, string>;
 }
 
-function parseCommand(message: string): ParsedCommand {
+/**
+ * Regex-based parser (Fallback/Fast-path)
+ */
+function parseCommandRegex(message: string): ParsedCommand {
   const msg = message.toLowerCase().trim();
 
   // Industry-agnostic noun: "deal", "job", "listing", "lead", "property"
@@ -178,6 +182,62 @@ function parseCommand(message: string): ParsedCommand {
   return { intent: "unknown", params: {} };
 }
 
+/**
+ * AI-based parser using OpenAI.
+ * Returns null if API key is missing or call fails.
+ */
+async function parseCommandAI(message: string, industryContext: any): Promise<ParsedCommand | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+
+  try {
+    const openai = new OpenAI();
+    const systemPrompt = `
+    You are an intent parser for a CRM system.
+    The user is a ${industryContext.dealLabel} manager.
+    
+    Available Intents:
+    - show_deals: List pipeline items
+    - show_stale: List items needing attention
+    - create_deal: Create new item. Params: title, company (optional), value (number string)
+    - move_deal: Update stage. Params: title, stage (new, contacted, negotiation, won, lost)
+    - create_invoice: Generate invoice. Params: title (of deal), amount (number string)
+    - log_activity: Log interaction. Params: type (CALL, EMAIL, MEETING, NOTE), content
+    - search_contacts: Find people. Params: query
+    - add_contact: Create person. Params: name, email
+    - create_task: Set reminder. Params: title
+    - morning_digest: Daily summary
+    - start_day: Open map/route view
+    - start_open_house: Open kiosk mode
+    - use_template: Render template. Params: templateName, contactQuery
+    - show_templates: List templates
+    - find_duplicates: Check for dupes
+    - help: User asks for help
+    
+    Output JSON only. Example: {"intent": "create_deal", "params": {"title": "Fix Roof", "value": "500"}}
+    If unsure, return {"intent": "unknown", "params": {}}
+    `;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0,
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) return null;
+
+    const parsed = JSON.parse(content) as ParsedCommand;
+    return parsed;
+  } catch (error) {
+    console.error("AI Parse Error:", error);
+    return null;
+  }
+}
+
 // ─── Main Chat Action ───────────────────────────────────────────────
 
 /**
@@ -246,8 +306,23 @@ export async function processChat(
   });
   const ctx = getIndustryContext(workspace?.industryType ?? null);
 
-  const { intent, params } = parseCommand(message);
+  // 1. Try AI Parser first
+  let parsed = await parseCommandAI(message, ctx);
 
+  // 2. Fallback to Regex if AI fails or returns unknown (and regex might catch it)
+  if (!parsed || parsed.intent === "unknown") {
+    const regexParsed = parseCommandRegex(message);
+    if (regexParsed.intent !== "unknown") {
+      parsed = regexParsed;
+    }
+  }
+
+  // 3. If still unknown, ensure we have a valid object
+  if (!parsed) {
+    parsed = { intent: "unknown", params: {} };
+  }
+
+  const { intent, params } = parsed;
   let response: ChatResponse;
 
   switch (intent) {
