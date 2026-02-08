@@ -88,6 +88,14 @@ The Frontend (Antigravity) has built the **Visual Shell** for the Core CRM. We a
 
 ---
 
+### 2026-02-08 12:25 AEST [Backend - Claude Code] - Agent Actions & Storage
+**Feature**: Restored Agent actions and added Storage support.
+*   **Agent Actions**: Added `findMatches` and `logOpenHouseAttendee` to `actions/agent-actions.ts`.
+*   **Storage**: Created `actions/storage-actions.ts` for handling file uploads (Task J-6).
+*   **Status**: Completes backend support for Agent Matchmaker (AG-4) and File Storage (X-15).
+*   **Files modified**: `actions/agent-actions.ts`.
+*   **Files created**: `actions/storage-actions.ts`.
+
 ### 2026-02-08 12:15 AEST [Backend - Claude Code] - Job Status & Travel Workflow
 **Feature**: Implemented Job Status model and Travel Workflow backend.
 *   **Schema**: Added `JobStatus` enum (`SCHEDULED`, `TRAVELING`, `ON_SITE`, `COMPLETED`, `CANCELLED`) and `scheduledAt` field to `Deal` model.
