@@ -2,55 +2,144 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, X } from 'lucide-react';
+import { ArrowRight, Check, X, MessageSquare, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
-// ─── Step Definitions ───────────────────────────────────────────────────
+// ─── Step Definitions with Chat Commands ────────────────────────────────
 export interface TutorialStep {
     id: string;
     targetId: string;
     title: string;
     description: string;
+    chatCommand?: string;  // What user can type in chatbot
+    chatResponse?: string; // What the assistant would respond
     position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-// All tutorial steps - granular coverage of every feature
 export const TUTORIAL_STEPS: TutorialStep[] = [
-    // Dashboard & Navigation
-    { id: 'welcome', targetId: 'sidebar-nav', title: 'Welcome to Pj Buddy', description: 'This is your command center. The sidebar gives you quick access to all features.', position: 'right' },
-    { id: 'nav-dashboard', targetId: 'hub-link', title: 'Dashboard Hub', description: 'Your home base. See your pipeline, stats, and quick actions at a glance.', position: 'right' },
-    { id: 'nav-tradie', targetId: 'tradie-link', title: 'Tradie Mode', description: 'Switch to Tradie view for jobs, maps, and field work tools.', position: 'right' },
-    { id: 'nav-agent', targetId: 'agent-link', title: 'Agent Mode', description: 'Switch to Real Estate Agent view for listings and buyer matching.', position: 'right' },
-    { id: 'nav-settings', targetId: 'settings-link', title: 'Settings', description: 'Customize your workspace, profile, and preferences.', position: 'right' },
-
-    // Pipeline & Deals
-    { id: 'pipeline-board', targetId: 'pipeline-board', title: 'Your Pipeline', description: 'Drag and drop deals between stages. This is your visual workflow.', position: 'bottom' },
-    { id: 'pipeline-stats', targetId: 'pipeline-stats', title: 'Pipeline Stats', description: 'Quick overview of your total value, healthy deals, and items needing attention.', position: 'bottom' },
-    { id: 'btn-new-deal', targetId: 'btn-new-deal', title: 'Create New Deal', description: 'Click here to add a new job, listing, or deal to your pipeline.', position: 'bottom' },
-    { id: 'deal-card', targetId: 'deal-card', title: 'Deal Cards', description: 'Each card represents a deal. Amber border = stale (>7 days). Red = rotting (>14 days).', position: 'bottom' },
-
-    // Tradie Features (visible when on /dashboard/tradie)
-    { id: 'nav-map', targetId: 'map-link', title: "Today's Map", description: 'See all your jobs plotted on a map with optimized routes.', position: 'right' },
-    { id: 'nav-schedule', targetId: 'schedule-link', title: 'Schedule', description: 'View your calendar and upcoming appointments.', position: 'right' },
-    { id: 'nav-estimator', targetId: 'estimator-link', title: 'Pocket Estimator', description: 'Generate quotes on the spot with material costs and labor.', position: 'right' },
-    { id: 'nav-contacts', targetId: 'contacts-link', title: 'Contacts', description: 'Manage all your clients, leads, and buyers in one place.', position: 'right' },
-    { id: 'pulse-widget', targetId: 'pulse-widget', title: 'The Pulse', description: 'Your financial snapshot: weekly earnings and outstanding invoices.', position: 'bottom' },
-
-    // Agent Features  
-    { id: 'speed-to-lead', targetId: 'speed-to-lead', title: 'Speed to Lead', description: 'New inquiries with time elapsed. Green = fresh, Red = old. Act fast!', position: 'bottom' },
-    { id: 'matchmaker', targetId: 'matchmaker-feed', title: 'Buyer Matchmaker', description: 'AI matches buyers to listings based on budget and preferences.', position: 'left' },
-    { id: 'commission-calc', targetId: 'commission-calc', title: 'Commission Calculator', description: 'Calculate your take-home based on sale price, commission %, and splits.', position: 'bottom' },
-    { id: 'camera-fab', targetId: 'camera-fab', title: 'Camera', description: 'Capture photos as evidence. They auto-attach to the current job.', position: 'top' },
-
+    // Navigation
+    {
+        id: 'welcome',
+        targetId: 'sidebar-nav',
+        title: 'Welcome to Pj Buddy',
+        description: 'The sidebar gives you quick access to all features.',
+        chatCommand: 'What can you do?',
+        chatResponse: 'I can help you manage deals, contacts, and more. Try saying "show my pipeline" or "new job for Smith".',
+        position: 'right'
+    },
+    {
+        id: 'nav-dashboard',
+        targetId: 'hub-link',
+        title: 'Dashboard Hub',
+        description: 'Your home base for pipeline overview and stats.',
+        chatCommand: 'Show my dashboard',
+        chatResponse: 'Opening your dashboard...',
+        position: 'right'
+    },
+    {
+        id: 'nav-tradie',
+        targetId: 'tradie-link',
+        title: 'Tradie Mode',
+        description: 'Switch to Tradie view for jobs and field work.',
+        chatCommand: 'Switch to tradie mode',
+        chatResponse: 'Switching to Tradie view with jobs, map, and estimator.',
+        position: 'right'
+    },
+    {
+        id: 'nav-agent',
+        targetId: 'agent-link',
+        title: 'Agent Mode',
+        description: 'Real estate agent tools for listings and buyers.',
+        chatCommand: 'Switch to agent mode',
+        chatResponse: 'Switching to Agent view with listings and buyer matching.',
+        position: 'right'
+    },
+    // Pipeline
+    {
+        id: 'pipeline-board',
+        targetId: 'kanban-board',
+        title: 'Your Pipeline',
+        description: 'Drag and drop deals between stages.',
+        chatCommand: 'Show stale deals',
+        chatResponse: 'Found 2 stale deals not updated in 7+ days.',
+        position: 'bottom'
+    },
+    {
+        id: 'pipeline-stats',
+        targetId: 'pipeline-stats',
+        title: 'Pipeline Stats',
+        description: 'Total value, active deals at a glance.',
+        chatCommand: "What's my pipeline value?",
+        chatResponse: 'Your pipeline value is $185,000 across 3 active deals.',
+        position: 'bottom'
+    },
+    {
+        id: 'btn-new-deal',
+        targetId: 'btn-new-deal',
+        title: 'Create New Deal',
+        description: 'Add a new job or listing to your pipeline.',
+        chatCommand: 'New job for Acme Corp, $15000',
+        chatResponse: 'Created new deal "Acme Corp" in New Lead stage.',
+        position: 'left'
+    },
     // Assistant
-    { id: 'assistant-pane', targetId: 'assistant-pane', title: 'Your AI Assistant', description: 'Type commands like "show stale deals" or "new job for Smith". The assistant does the rest.', position: 'left' },
-    { id: 'mode-toggle', targetId: 'mode-toggle', title: 'Mode Toggle', description: 'Switch between Chat Mode (assistant-first) and Advanced Mode (full dashboard).', position: 'left' },
-
-    // Search & Global
-    { id: 'global-search', targetId: 'global-search', title: 'Global Search', description: 'Press Cmd+K to search everything: deals, contacts, jobs, and more.', position: 'bottom' },
-    { id: 'notifications', targetId: 'notifications-btn', title: 'Notifications', description: 'Stay updated on deal changes, new leads, and system alerts.', position: 'bottom' },
+    {
+        id: 'assistant-pane',
+        targetId: 'assistant-pane',
+        title: 'Your AI Assistant',
+        description: 'Type natural language commands here.',
+        chatCommand: 'What can I ask you?',
+        chatResponse: 'Try: "new contact John Smith", "show today\'s jobs", "generate quote $500 labor"',
+        position: 'left'
+    },
+    {
+        id: 'mode-toggle',
+        targetId: 'mode-toggle',
+        title: 'Mode Toggle',
+        description: 'Switch between Chat Mode and Advanced Mode.',
+        chatCommand: 'Switch to basic mode',
+        chatResponse: 'Switching to Basic Mode - I\'ll be your primary interface.',
+        position: 'left'
+    },
+    // Global
+    {
+        id: 'global-search',
+        targetId: 'global-search',
+        title: 'Global Search',
+        description: 'Press ⌘K to search everything.',
+        chatCommand: 'Find contact Smith',
+        chatResponse: 'Found 2 contacts matching "Smith"...',
+        position: 'bottom'
+    },
 ];
+
+// ─── Chat Bubble Component ──────────────────────────────────────────────
+function ChatPreview({ command, response }: { command?: string; response?: string }) {
+    if (!command) return null;
+
+    return (
+        <div className="space-y-3">
+            {/* User message */}
+            <div className="flex justify-end">
+                <div className="bg-slate-900 text-white px-3 py-2 rounded-2xl rounded-br-md text-sm max-w-[80%]">
+                    {command}
+                </div>
+            </div>
+            {/* Assistant response */}
+            {response && (
+                <div className="flex justify-start gap-2">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-3 h-3 text-blue-600" />
+                    </div>
+                    <div className="bg-slate-100 text-slate-700 px-3 py-2 rounded-2xl rounded-bl-md text-sm max-w-[80%]">
+                        {response}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 // ─── Spotlight Overlay Component ────────────────────────────────────────
 interface SpotlightProps {
@@ -65,39 +154,50 @@ interface SpotlightProps {
 function SpotlightOverlay({ targetRect, step, onNext, onSkip, currentIndex, totalSteps }: SpotlightProps) {
     const isLastStep = currentIndex === totalSteps - 1;
 
-    // Calculate card position based on step preference
+    // Calculate card position - CLAMP to viewport
     const getCardStyle = (): React.CSSProperties => {
+        const cardWidth = 360;
+        const cardHeight = 280;
+        const padding = 16;
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
         if (!targetRect) {
-            return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+            return {
+                top: Math.max(padding, (viewportHeight - cardHeight) / 2),
+                left: Math.max(padding, (viewportWidth - cardWidth) / 2),
+            };
         }
 
-        const padding = 16;
-        const cardWidth = 320;
-        const cardHeight = 180;
+        let top = targetRect.top;
+        let left = targetRect.right + padding;
 
+        // Calculate based on position preference
         switch (step.position) {
             case 'bottom':
-                return {
-                    top: targetRect.bottom + padding,
-                    left: Math.max(padding, Math.min(targetRect.left, window.innerWidth - cardWidth - padding)),
-                };
+                top = targetRect.bottom + padding;
+                left = targetRect.left;
+                break;
             case 'top':
-                return {
-                    top: targetRect.top - cardHeight - padding,
-                    left: Math.max(padding, Math.min(targetRect.left, window.innerWidth - cardWidth - padding)),
-                };
+                top = targetRect.top - cardHeight - padding;
+                left = targetRect.left;
+                break;
             case 'left':
-                return {
-                    top: targetRect.top,
-                    left: targetRect.left - cardWidth - padding,
-                };
+                top = targetRect.top;
+                left = targetRect.left - cardWidth - padding;
+                break;
             case 'right':
             default:
-                return {
-                    top: targetRect.top,
-                    left: targetRect.right + padding,
-                };
+                top = targetRect.top;
+                left = targetRect.right + padding;
+                break;
         }
+
+        // CLAMP to viewport bounds
+        top = Math.max(padding, Math.min(top, viewportHeight - cardHeight - padding));
+        left = Math.max(padding, Math.min(left, viewportWidth - cardWidth - padding));
+
+        return { top, left };
     };
 
     return (
@@ -124,7 +224,7 @@ function SpotlightOverlay({ targetRect, step, onNext, onSkip, currentIndex, tota
                     y="0"
                     width="100%"
                     height="100%"
-                    fill="rgba(0, 0, 0, 0.75)"
+                    fill="rgba(0, 0, 0, 0.7)"
                     mask="url(#spotlight-mask)"
                 />
             </svg>
@@ -144,17 +244,17 @@ function SpotlightOverlay({ targetRect, step, onNext, onSkip, currentIndex, tota
                 />
             )}
 
-            {/* Explanation Card */}
+            {/* Explanation Card with Chat Preview */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="absolute bg-white rounded-2xl shadow-2xl p-5 w-80 pointer-events-auto"
-                style={getCardStyle()}
+                className="absolute bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
+                style={{ ...getCardStyle(), width: 360 }}
             >
-                {/* Step counter */}
-                <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-slate-400">
+                {/* Header */}
+                <div className="bg-slate-50 px-4 py-3 border-b flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-500">
                         Step {currentIndex + 1} of {totalSteps}
                     </span>
                     <button
@@ -165,40 +265,55 @@ function SpotlightOverlay({ targetRect, step, onNext, onSkip, currentIndex, tota
                     </button>
                 </div>
 
-                {/* Title & Description */}
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-600 mb-4 leading-relaxed">{step.description}</p>
+                {/* Content */}
+                <div className="p-4">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">{step.title}</h3>
+                    <p className="text-sm text-slate-600 mb-3">{step.description}</p>
 
-                {/* Progress bar */}
-                <div className="h-1 bg-slate-100 rounded-full mb-4 overflow-hidden">
-                    <motion.div
-                        className="h-full bg-blue-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${((currentIndex + 1) / totalSteps) * 100}%` }}
-                    />
-                </div>
+                    {/* Chat Command Preview */}
+                    {step.chatCommand && (
+                        <div className="mb-3">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 mb-2">
+                                <MessageSquare className="w-3 h-3" />
+                                <span>Or just say...</span>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl p-3 border">
+                                <ChatPreview command={step.chatCommand} response={step.chatResponse} />
+                            </div>
+                        </div>
+                    )}
 
-                {/* Navigation */}
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onSkip}
-                        className="flex-1 text-slate-500"
-                    >
-                        Skip Tutorial
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={onNext}
-                        className="flex-1 bg-slate-900 hover:bg-slate-800"
-                    >
-                        {isLastStep ? (
-                            <>Finish <Check className="ml-1 w-4 h-4" /></>
-                        ) : (
-                            <>Next <ArrowRight className="ml-1 w-4 h-4" /></>
-                        )}
-                    </Button>
+                    {/* Progress bar */}
+                    <div className="h-1 bg-slate-100 rounded-full mb-3 overflow-hidden">
+                        <motion.div
+                            className="h-full bg-blue-500 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((currentIndex + 1) / totalSteps) * 100}%` }}
+                        />
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onSkip}
+                            className="flex-1 text-slate-500"
+                        >
+                            Skip
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={onNext}
+                            className="flex-1 bg-slate-900 hover:bg-slate-800"
+                        >
+                            {isLastStep ? (
+                                <>Finish <Check className="ml-1 w-4 h-4" /></>
+                            ) : (
+                                <>Next <ArrowRight className="ml-1 w-4 h-4" /></>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </motion.div>
         </div>
@@ -243,7 +358,6 @@ export function TutorialController({ onComplete }: TutorialControllerProps) {
     useEffect(() => {
         updateTargetRect();
 
-        // Update on scroll/resize
         window.addEventListener('scroll', updateTargetRect, true);
         window.addEventListener('resize', updateTargetRect);
 
