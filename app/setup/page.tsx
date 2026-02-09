@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { SetupChat } from "@/components/onboarding/setup-chat"
+import { createClient } from "@/lib/supabase/server"
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,12 @@ export default async function SetupPage() {
     // Check if the user has already completed onboarding
     let alreadyOnboarded = false
     try {
-        const workspace = await getOrCreateWorkspace("demo-user")
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        // Use real user ID or fallback to demo-user if not authenticated (though middleware prevents this)
+        const userId = user?.id || "demo-user"
+
+        const workspace = await getOrCreateWorkspace(userId)
         alreadyOnboarded = workspace.onboardingComplete
     } catch {
         // DB not ready — show setup anyway, it will save when DB is available
