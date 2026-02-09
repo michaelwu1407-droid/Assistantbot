@@ -47,24 +47,31 @@ export function Spotlight({ targetId, className, children, onBackgroundClick }: 
     useEffect(() => {
         if (!position) return
 
-        // Simple boundary detection
-        const tooltipHeight = 150 // Approx
-        const tooltipWidth = 300
+        // Better boundary detection with larger card height
+        const tooltipHeight = 350  // Increased for larger cards
+        const tooltipWidth = 360
         const gap = 16
+        const minMargin = 20
         const viewportHeight = window.innerHeight
         const viewportWidth = window.innerWidth
 
         let top = position.top + position.height + gap
         let left = position.left + (position.width / 2) - (tooltipWidth / 2)
 
-        // Vertical flip
-        if (top + tooltipHeight > viewportHeight) {
+        // Vertical flip if going off bottom
+        if (top + tooltipHeight > viewportHeight - minMargin) {
             top = position.top - tooltipHeight - gap
         }
 
+        // Vertical clamp - ensure always on screen
+        if (top < minMargin) top = minMargin
+        if (top + tooltipHeight > viewportHeight - minMargin) {
+            top = viewportHeight - tooltipHeight - minMargin
+        }
+
         // Horizontal clamp
-        if (left < gap) left = gap
-        if (left + tooltipWidth > viewportWidth - gap) left = viewportWidth - tooltipWidth - gap
+        if (left < minMargin) left = minMargin
+        if (left + tooltipWidth > viewportWidth - minMargin) left = viewportWidth - tooltipWidth - minMargin
 
         setTooltipPosition({ top, left })
     }, [position])

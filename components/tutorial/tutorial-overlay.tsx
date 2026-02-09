@@ -8,21 +8,28 @@ import { Card } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronRight, ChevronLeft, SkipForward, X } from "lucide-react"
 
-// Complete Tutorial Steps - 18 comprehensive steps
+// Complete Tutorial Steps - emphasizing chat-first simplicity
 const STEPS = [
-    // === INTRO SECTION ===
+    // === INTRO SECTION - PROMOTING CHAT-FIRST ===
     {
         id: "welcome",
         targetId: null,
         title: "Welcome to Pj Buddy! 🎉",
-        message: "I'm Pj, your AI business partner. I handle the paperwork so you can focus on the work. Let me show you around!",
+        message: "I'm Pj, your AI business assistant. Unlike other CRM apps, you can just TALK to me — like texting a friend. No learning buttons or menus!",
         actionLabel: "Let's Go",
+    },
+    {
+        id: "chat-first-intro",
+        targetId: null,
+        title: "💬 Just Chat — That's It!",
+        message: "The EASIEST way to use Pj Buddy:\n\n📱 Type: \"New job for John Smith\"\n📱 Type: \"Show stale deals\"\n📱 Type: \"Send a quote for $500\"\n\nI'll do the rest! No buttons, no menus, no learning curve.",
+        actionLabel: "Cool!",
     },
     {
         id: "modes-intro",
         targetId: null,
         title: "Two Ways to Work",
-        message: "Pj Buddy has TWO modes:\n\n✨ **Basic Mode** — Just you and me chatting (like ChatGPT)\n\n🖥️ **Advanced Mode** — Full dashboard with all your tools\n\nYou can switch between them anytime!",
+        message: "✨ **Basic Mode** (Recommended)\nJust you and me chatting. Perfect for busy tradies!\n\n🖥️ **Advanced Mode**\nFull dashboard for power users who want extra control.\n\nMost users ONLY need Basic Mode!",
         actionLabel: "Show Me",
     },
 
@@ -30,8 +37,8 @@ const STEPS = [
     {
         id: "basic-mode",
         targetId: "assistant-pane",
-        title: "Basic Mode — Chat First",
-        message: "In Basic Mode, I'm front and center. Just type what you need: \"Schedule a job for tomorrow\" or \"Send a quote to John\"",
+        title: "Basic Mode — Just Chat!",
+        message: "This is where the magic happens. Just type what you need in plain English. I understand context and remember your conversation.",
         position: "left",
         actionLabel: "Next",
     },
