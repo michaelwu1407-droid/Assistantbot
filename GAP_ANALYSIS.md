@@ -31,20 +31,20 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Split-screen layout (75/25) | ⚠️ | Currently 75/25 split exists but **poorly formatted** — buttons overlap, layout breaks. Needs polish |
-| Left (75%): The App Canvas (dimmed) | ❌ | Currently shows a **mock** pipeline, not the real app canvas. Should show the actual app UI (dimmed/greyed out) |
-| Right (25%): The Chatbot | ⚠️ | Currently shows a mock chat pane with static messages, not the real chatbot |
-| Interactive: Bot says "Click the Map", Map button highlights, user clicks | ❌ | Tutorial is **passive** (Next button only). Spec requires **interactive guided clicks** on real UI elements |
-| Walk through ALL features (for troubleshooting) | ❌ | Currently only covers pipeline + stale alerts. Should walk through every feature: map, inbox, estimator, kiosk, etc. |
+| Split-screen layout (75/25) | ✅ | Shell.tsx supports TUTORIAL mode with 75/25 split (Sprint 9) |
+| Left (75%): The App Canvas (dimmed) | ⚠️ | Tutorial overlay now shows on real dashboard with spotlight highlighting, but dimming could be improved |
+| Right (25%): The Chatbot | ✅ | Real assistant pane shown in tutorial mode (Sprint 9) |
+| Interactive: Bot says "Click the Map", Map button highlights, user clicks | ⚠️ | 18-step tutorial with spotlighting exists (Sprint 9) but not fully interactive (click-to-advance on real elements) |
+| Walk through ALL features (for troubleshooting) | ⚠️ | 18 steps now cover most features but may need expansion for completeness |
 | Tutorial triggers on every sign-in (troubleshooting) | ✅ | Setup page redirects to /tutorial for onboarded users |
 
 **Action Items:**
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| T-1 | Redesign tutorial as interactive overlay on real dashboard (not a separate mock page). Bot gives instructions, real UI elements highlight, user clicks them to advance. Must cover ALL features (map, inbox, estimator, kiosk, contacts, etc.) | 🎨 Antigravity | **CRITICAL** |
-| T-2 | Fix layout issues: buttons overlapping, broken formatting. Keep 75/25 split but make it clean | 🎨 Antigravity | **CRITICAL** |
-| T-3 | Wire tutorial chatbot to real AssistantPane (right side shows actual chat that responds) | 🎨 Antigravity | HIGH |
+| T-1 | ~~Redesign tutorial as interactive overlay on real dashboard~~ → 18-step spotlight tutorial built (Sprint 9). Still needs full click-to-advance interactivity on real UI elements | ✅⚠️ Antigravity | **Done (needs polish)** |
+| T-2 | ~~Fix layout issues~~ → Shell.tsx TUTORIAL mode with 75/25 split implemented (Sprint 9) | ✅ Antigravity | **Done** |
+| T-3 | ~~Wire tutorial chatbot to real AssistantPane~~ → Tutorial mode shows real chat pane (Sprint 9) | ✅ Antigravity | **Done** |
 
 ---
 
@@ -57,7 +57,7 @@
 | Default view is clean central chat (like ChatGPT/Gemini) — chatbot is PRIMARY | ✅ | DashboardProvider now defaults to `"chat"` (2026-02-08) |
 | User types "Start my day" | ⚠️ | "Start day" triggers morning digest text, but does NOT switch UI mode |
 | Toggle to Advanced Mode → chatbot shrinks to 25% right, app canvas takes 75% left | ⚠️ | Currently uses `w-[400px]` fixed width for chat, not 25%. Main canvas doesn't fill 75% |
-| Canvas slides in from the left to show relevant info | ❌ | No mechanism for chat responses to trigger UI mode changes. Canvas just shows/hides with toggle button |
+| Canvas slides in from the left to show relevant info | ⚠️ | Chat→UI bridge implemented (Sprint 9) — assistant-pane handles navigation actions, but no animated slide-in |
 | Canvas retreats after showing info | ❌ | No auto-retreat behavior |
 
 **Action Items:**
@@ -67,7 +67,7 @@
 | M-1 | Change DashboardProvider default mode to `"chat"` for new users (store preference in workspace `mode_preference` field) | ✅ | Done (2026-02-08) |
 | M-2 | Redesign chat mode to be full-page centered chat (like ChatGPT), not a sidebar card. Chatbot is the PRIMARY interface | 🎨 Antigravity | **CRITICAL** |
 | M-3 | Add `mode_preference` column to Workspace/User schema (ENUM: SIMPLE/ADVANCED, default SIMPLE) | ✅ | Added to User model (2026-02-08) |
-| M-4 | Chat response "action" field should trigger UI mode changes (e.g., "start day" → switch to advanced + show map/pipeline) | 🔧🎨 Both | HIGH |
+| M-4 | ~~Chat response "action" field triggers UI mode changes~~ → assistant-pane.tsx handles navigate/switchMode/showPanel actions (Sprint 9) | ✅ Both | **Done** |
 | M-5 | When toggling to Advanced Mode: app canvas = 75% left, chatbot = 25% right (not fixed 400px) | 🎨 Antigravity | HIGH |
 | M-6 | Add auto-retreat behavior: canvas slides out after N seconds or when user returns to chat | 🎨 Antigravity | LOW |
 
@@ -111,8 +111,8 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| **Header — "Good Morning, Scott"** | ❌ | Current tradie page shows "Tradie View" with no personalization |
-| **Header — Weather Icon** | ❌ | No weather API integration |
+| **Header — "Good Morning, Scott"** | ✅ | Personalized greeting in header.tsx (Sprint 8/9) |
+| **Header — Weather Icon** | ✅ | Weather integrated via getWeather action in header.tsx (Sprint 9) |
 | **Header — Global Search (magnifying glass)** | ⚠️ | SearchCommand exists but only in dashboard layout header (top right), not in tradie pages |
 | **Header — Notification Bell (red dot)** | ❌ | No notification system at all |
 | **"The Pulse" Widget** (floating pill: "Wk: $4.2k | Owe: $850") | ✅ | Implemented in Tradie Page (2026-02-08) |
@@ -125,8 +125,8 @@
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| D-1 | Add personalized greeting header ("Good Morning, [Name]") using workspace.name | 🎨 Antigravity | MEDIUM |
-| D-2 | Weather API integration (e.g., Open-Meteo free API — no key needed) — show icon in header | 🔧 Backend | LOW |
+| D-1 | ~~Add personalized greeting header~~ → Implemented in header.tsx (Sprint 9) | ✅ | **Done** |
+| D-2 | ~~Weather API integration~~ → getWeather action + header.tsx display (Sprint 9) | ✅ | **Done** |
 | D-3 | Build notification system: schema (Notification model), bell icon with unread count, dropdown list | 🔧🎨 Both | MEDIUM |
 | D-4 | Build "Pulse" widget (server action to compute weekly revenue + outstanding invoices) | ✅ | Done |
 | D-5 | Fix map view: integrate Leaflet properly on tradie page with dark tiles, numbered pins from geocoded deals, route line (polyline connecting today's jobs in order) | ✅ | Done |
@@ -144,10 +144,10 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | Job Details Page | ✅ | Implemented `/dashboard/jobs/[id]` (2026-02-08) |
-| "START TRAVEL" → "ARRIVED" button (massive neon green footer btn) | ❌ | No travel tracking workflow |
+| "START TRAVEL" → "ARRIVED" button (massive neon green footer btn) | ⚠️ | JobStatusBar component exists with status transitions, but UI needs polish for neon green footer style |
 | Auto-SMS to client on "On My Way" | ❌ | Twilio SMS action exists but not wired to any travel trigger |
 | Safety Check modal (toggles: Power Off? Site Clear?) | ❌ | No safety checklist |
-| Camera FAB (floating action button) | ❌ | No camera integration |
+| Camera FAB (floating action button) | ✅ | camera-fab.tsx implemented with Supabase Storage upload (Sprint 9) |
 | AI photo annotation (draw to circle damage) | ❌ | No canvas/drawing capability |
 | Voice-to-text transcription to Job Diary | ⚠️ | SpeechRecognition exists in AssistantPane but not on job detail/camera view |
 | Field Quoting with material search | ⚠️ | EstimatorForm exists but no material database/search |
@@ -164,7 +164,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | J-3 | Build travel workflow: START TRAVEL button → sends auto-SMS to client → ARRIVED button → Safety Check modal → ON SITE | 🔧🎨 Both | HIGH |
 | J-4 | Wire "On My Way" SMS: server action that sends SMS via Twilio using job contact phone + template | 🔧 Backend | MEDIUM |
 | J-5 | Safety Check modal: toggleable checklist (configurable per workspace) | 🎨 Antigravity | MEDIUM |
-| J-6 | Camera integration: FAB button opening device camera, save photos to job record (need file storage — Supabase Storage or S3) | 🔧🎨 Both | HIGH |
+| J-6 | ~~Camera integration~~ → camera-fab.tsx + storage-actions.ts (Sprint 9) | ✅ Both | **Done** |
 | J-7 | Photo annotation: HTML Canvas overlay for drawing on captured photos | 🎨 Antigravity | LOW |
 | J-8 | Voice-to-text on job detail: mic icon that transcribes to job diary/notes | 🎨 Antigravity | MEDIUM |
 | J-9 | Material database: seed common trade materials (plumbing, electrical, etc.) with prices. Search autocomplete in estimator | 🔧 Backend | MEDIUM |
@@ -183,18 +183,18 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 |-------------|--------|-------|
 | Split Pane: Canvas + Chatbot | ✅ | Dashboard layout already does this |
 | **Speed-to-Lead Widget** (horizontal bubble list with time-since-inquiry) | ✅ | Implemented (2026-02-08) |
-| **Commission Calculator** ($ slider widget dropdown) | ❌ | No commission calculator |
+| **Commission Calculator** ($ slider widget dropdown) | ✅ | commission-calculator.tsx implemented (Sprint 9) |
 | **"Rotting" Pipeline** (Kanban, 7+ day cards turn light red background) | ⚠️ | Kanban exists ✅, stale/rotting badges exist ✅, but cards have **border** color change, not **background** color change as spec requires |
-| **Matchmaker Feed** sidebar ("3 Buyers found for 12 Smith St.") | ❌ | BuyerMatchmaker component exists but only on deal detail page, not as a sidebar feed |
+| **Matchmaker Feed** sidebar ("3 Buyers found for 12 Smith St.") | ✅ | matchmaker-feed.tsx implemented on agent dashboard (Sprint 9) |
 
 **Action Items:**
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
 | AG-1 | Build Speed-to-Lead widget: shows recent inquiries as horizontal bubbles with time elapsed (green < 5min, amber < 1hr, red > 1hr). Needs `createdAt` tracking on new leads/contacts | ✅ | Done |
-| AG-2 | Build Commission Calculator: dropdown/modal with slider for sale price, commission %, split %, calculates take-home | 🎨 Antigravity | MEDIUM |
+| AG-2 | ~~Build Commission Calculator~~ → commission-calculator.tsx (Sprint 9) | ✅ | **Done** |
 | AG-3 | Change deal card background from white to light red when >7 days (currently only border changes) | 🎨 Antigravity | LOW |
-| AG-4 | Build Matchmaker Feed sidebar widget: server action to run match scan across all active listings, show aggregated "X buyers found for Y listing" feed | 🔧🎨 Both | MEDIUM |
+| AG-4 | ~~Build Matchmaker Feed sidebar widget~~ → matchmaker-feed.tsx + getMatchFeed action (Sprint 9) | ✅ Both | **Done** |
 | AG-5 | Replace hardcoded data on Agent page with real data (Active Visitors from OpenHouseLog, Recent Leads from contacts) | ✅ | Done |
 
 ---
@@ -225,7 +225,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | "Kiosk Mode" button in sidebar | ❌ | Kiosk link only exists on deal detail page. Not in sidebar |
-| Full screen house image + "Scan to Check In" QR code | ⚠️ | Kiosk page has hero image ✅ but no QR code displayed for visitors to scan |
+| Full screen house image + "Scan to Check In" QR code | ✅ | Kiosk page has hero image + QR code for self-registration (Sprint 9) |
 | Visitor scans QR on their own phone OR types into iPad form | ⚠️ | iPad form exists ✅, QR self-scan flow does not |
 
 **Action Items:**
@@ -233,7 +233,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
 | K-1 | Add "Kiosk Mode" link to sidebar when in Agent mode (opens /kiosk/open-house) | 🎨 Antigravity | LOW |
-| K-2 | Display QR code on kiosk page that visitors can scan on their own phone to self-register (use existing `generateQRSVG()`) | 🔧🎨 Both | MEDIUM |
+| K-2 | ~~Display QR code on kiosk page~~ → QR code generated on open-house page (Sprint 9) | ✅ Both | **Done** |
 | K-3 | Build self-registration page (mobile-friendly form visitors reach after scanning QR) | 🎨 Antigravity | MEDIUM |
 
 ---
@@ -242,10 +242,10 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Listing Detail Page | ⚠️ | Deal detail page exists but not listing-specific |
-| **Price Feedback Meter** (gauge chart: buyer avg vs vendor goal) | ❌ | No feedback tracking, no gauge chart |
-| "Send Vendor Report" button | ❌ | No vendor report generation |
-| WhatsApp Preview modal (pre-written message + PDF link) | ❌ | WhatsApp sending action exists (Twilio) but no preview modal, no PDF |
+| Listing Detail Page | ⚠️ | Deal detail page exists with vendor-report-widget and commission calc for RE deals |
+| **Price Feedback Meter** (gauge chart: buyer avg vs vendor goal) | ⚠️ | vendor-report-widget.tsx exists but uses **static data** — needs wiring to real BuyerFeedback |
+| "Send Vendor Report" button | ✅ | vendor-report-widget.tsx has send button + whatsapp-preview-modal (Sprint 9) |
+| WhatsApp Preview modal (pre-written message + PDF link) | ✅ | whatsapp-preview-modal.tsx implemented (Sprint 9) — PDF still stub |
 
 **Action Items:**
 
@@ -267,19 +267,19 @@ These are issues that affect the entire app regardless of scenario.
 |---|-------|--------|-------|----------|
 | X-1 | **No real authentication** — all pages use hardcoded "demo-user". No login/session/JWT | ✅ | 🔧 Backend | **CRITICAL** |
 | X-2 | **No middleware.ts** — no auth guards, no redirect for unauthenticated users | ✅ | 🔧 Backend | **CRITICAL** |
-| X-3 | **No toast notifications** — no feedback system for user actions (success/error) | ❌ | 🎨 Antigravity | HIGH |
+| X-3 | **Toast notifications** — Sonner installed + wired in some components | ⚠️ | 🎨 Antigravity | MEDIUM |
 | X-4 | **Kanban columns are hardcoded** to generic CRM stages (New/Contacted/Negotiation/Won/Lost). Should be **industry-aware**: Trades = New Lead/Quoted/In Progress/Invoiced/Paid. Real Estate = New Listing/Appraised/Under Offer/Exchanged/Settled | ⚠️ | 🔧🎨 Both | HIGH |
 | X-5 | **DealStage enum mismatch** — Prisma has 6 stages (NEW, CONTACTED, NEGOTIATION, INVOICED, WON, LOST) but walkthrough spec needs industry-specific stages. May need flexible stage system | ✅ | 🔧 Backend | HIGH |
 | X-6 | **Agent page is entirely hardcoded** — "Active Visitors: 12", "John Doe" leads are mock data, not from DB | ✅ | 🔧🎨 Both | HIGH |
 | X-7 | **Tradie page is a placeholder** — just a GPS animation and 3 identical "Emergency Fix" cards | ✅ | 🎨 Antigravity | HIGH |
-| X-8 | **No "New Deal" form/modal** — the "+ New Deal" button on dashboard does nothing (no onClick handler) | ❌ | 🎨 Antigravity | HIGH |
-| X-9 | **Settings button does nothing** — sidebar Settings icon has no route or modal | ❌ | 🎨 Antigravity | MEDIUM |
+| X-8 | **New Deal form/modal** — dashboard-client.tsx has modal for creating deals | ✅ | 🎨 Antigravity | **Done** |
+| X-9 | **Settings page** — `/dashboard/settings` routes exist (profile + workspace forms) | ✅ | 🎨 Antigravity | **Done** |
 | X-10 | **Logout button does nothing** — no logout flow (because no real auth) | ✅ | 🔧 Backend | MEDIUM |
 | X-11 | **GitHub OAuth button still on login page** — spec says REMOVE (keep only Google + Email) | ⚠️ | 🎨 Antigravity | LOW |
-| X-12 | **Chat doesn't trigger UI changes** — processChat returns text only, never triggers mode switches, page navigation, or canvas updates | ❌ | 🔧🎨 Both | HIGH |
+| X-12 | **Chat→UI bridge** — assistant-pane.tsx handles navigate/switchMode/showPanel actions from chat responses (Sprint 9) | ✅ | 🔧🎨 Both | **Done** |
 | X-13 | **No mobile responsiveness** for dashboard — sidebar + main + assistant pane all compete for space on mobile | ⚠️ | 🎨 Antigravity | MEDIUM |
 | X-14 | **"New Deal" button text should be industry-aware** — "New Job" for trades, "New Listing" for agents | ⚠️ | 🎨 Antigravity | LOW |
-| X-15 | **File/photo storage** — no file upload or storage system (needed for photos, documents, PDFs) | ❌ | 🔧 Backend | HIGH |
+| X-15 | **File/photo storage** — storage-actions.ts + camera-fab.tsx with Supabase Storage (Sprint 9) | ✅ | 🔧 Backend | **Done** |
 | X-16 | **Estimator typo** — "Generatiing" (double i) in estimator-form.tsx line 202 | ⚠️ | 🎨 Antigravity | LOW |
 | X-17 | **Overall UI looks barebones/unpolished** — colour scheme is bland, components lack visual depth, spacing inconsistent, no gradients/micro-interactions, no loading skeletons. Needs a comprehensive design pass | ⚠️ | 🎨 Antigravity | **CRITICAL** |
 | X-18 | **Tutorial layout is broken** — buttons overlap, poor formatting, not all features covered | ⚠️ | 🎨 Antigravity | **CRITICAL** |
@@ -293,46 +293,46 @@ These are issues that affect the entire app regardless of scenario.
 | # | Task | Owner | Description |
 |---|------|-------|-------------|
 | X-17 | **UI Polish** | 🎨 Antigravity | Comprehensive design pass — colour scheme, spacing, gradients, micro-interactions, loading states |
-| X-18/T-1/T-2 | **Tutorial fix** | 🎨 Antigravity | Fix broken layout, make interactive, cover ALL features |
+| X-18/T-1/T-2 | **Tutorial fix** | ✅⚠️ | 18-step spotlight tutorial built (Sprint 9). Needs interactive click-to-advance polish |
 | M-2 | **Chat-first UI** | 🎨 Antigravity | Full-page centered chat UI (chatbot is PRIMARY) |
-| M-5/A-1 | **75/25 split** | 🎨 Antigravity | Advanced mode = 75% app canvas + 25% chatbot (not fixed 400px) |
-| X-4 | Industry stages | 🔧🎨 Both | Kanban columns match industry, flexible DealStage |
-| X-8 | New Deal form | 🎨 Antigravity | Modal/form to create deals from dashboard |
+| M-5/A-1 | **75/25 split** | ⚠️ Antigravity | Shell.tsx supports 3 modes (Sprint 9) but needs responsive polish |
+| X-4 | Industry stages | 🔧🎨 Both | Kanban columns match industry, flexible DealStage. `pipeline-actions.ts` **does NOT exist** despite log entry |
+| X-8 | New Deal form | ✅ | dashboard-client.tsx modal implemented |
 
 ### P1 — HIGH (Core walkthrough features)
 
-| # | Task | Owner | Description |
-|---|------|-------|-------------|
-| D-6 | Bottom Sheet | 🎨 Antigravity | Mobile-first bottom sheet for job preview |
-| T-1 | Interactive tutorial | 🎨 Antigravity | Overlay on real UI, not separate mock page |
-| J-2 | Job status model | 🔧 Backend | SCHEDULED → TRAVELING → ON_SITE → COMPLETE |
-| J-3 | Travel workflow | 🔧🎨 Both | START TRAVEL → ARRIVED → Safety → Work |
-| J-6 | Camera/photos | 🔧🎨 Both | Capture + store job photos |
-| X-3 | Toast system | 🎨 Antigravity | Install Sonner or similar |
-| X-12 | Chat triggers UI | 🔧🎨 Both | Chat responses can switch modes/navigate |
-| X-15 | File storage | 🔧 Backend | Supabase Storage for photos/PDFs |
-| M-4 | Chat → UI bridge | 🔧🎨 Both | Action field triggers mode changes |
+| # | Task | Owner | Status | Description |
+|---|------|-------|--------|-------------|
+| D-6 | Bottom Sheet | 🎨 Antigravity | ⚠️ | job-bottom-sheet.tsx exists but needs polish |
+| T-1 | Interactive tutorial | ✅ | **Done** | 18-step spotlight overlay (Sprint 9) |
+| J-2 | Job status model | ✅ | **Done** | JobStatus enum + scheduledAt in schema |
+| J-3 | Travel workflow | ⚠️ | Partial | JobStatusBar exists, SMS wired, Safety Check UI still needed |
+| J-6 | Camera/photos | ✅ | **Done** | camera-fab.tsx + Supabase Storage (Sprint 9) |
+| X-3 | Toast system | ✅ | **Done** | Sonner installed and wired |
+| X-12 | Chat triggers UI | ✅ | **Done** | assistant-pane handles navigate/switchMode actions (Sprint 9) |
+| X-15 | File storage | ✅ | **Done** | storage-actions.ts (Sprint 9) |
+| M-4 | Chat → UI bridge | ✅ | **Done** | Action field in chat responses (Sprint 9) |
 
 ### P2 — MEDIUM (Important but not blocking)
 
-| # | Task | Owner | Description |
-|---|------|-------|-------------|
-| D-1 | Greeting header | 🎨 Antigravity | "Good Morning, [Name]" |
-| D-3 | Notifications | 🔧🎨 Both | Bell icon with notification list |
-| D-8/D-9 | Job scheduling | 🔧 Backend | Next job calculation, today's jobs |
-| J-4 | On My Way SMS | 🔧 Backend | Auto-SMS on travel start |
-| J-5 | Safety check | 🎨 Antigravity | Modal with toggles |
-| J-8 | Voice on job page | 🎨 Antigravity | Mic icon for job diary |
-| J-9 | Material DB | 🔧 Backend | Searchable materials catalog |
-| J-11 | Signature pad | 🎨 Antigravity | Sign-on-glass component |
-| J-13 | Complete Job | 🔧🎨 Both | Job completion + payment flow |
-| AG-2 | Commission calc | 🎨 Antigravity | Slider widget for earnings |
-| AG-4 | Match feed | 🔧🎨 Both | Sidebar showing matched buyers |
-| K-2/K-3 | Kiosk QR | 🔧🎨 Both | QR display + self-reg page |
-| VR-1–5 | Vendor reports | 🔧🎨 Both | Feedback meter + PDF + WhatsApp |
-| MK-4 | Toast system | 🎨 Antigravity | Sonner or react-hot-toast |
-| X-9 | Settings page | 🎨 Antigravity | Workspace settings UI |
-| X-13 | Mobile responsive | 🎨 Antigravity | Dashboard works on phones |
+| # | Task | Owner | Status | Description |
+|---|------|-------|--------|-------------|
+| D-1 | Greeting header | ✅ | **Done** | header.tsx with personalized greeting (Sprint 9) |
+| D-3 | Notifications | ⚠️ | Partial | Bell icon + dropdown exist, notification creation wired to job status |
+| D-8/D-9 | Job scheduling | ✅ | **Done** | getNextJob + getTodaySchedule actions exist |
+| J-4 | On My Way SMS | ✅ | **Done** | sendOnMyWaySMS wired to TRAVELING status |
+| J-5 | Safety check | ⚠️ | Backend only | completeSafetyCheck action exists, UI modal still needed |
+| J-8 | Voice on job page | 🎨 Antigravity | Pending | Mic icon for job diary |
+| J-9 | Material DB | ✅ | **Done** | material-actions.ts + seed data (Sprint 9) |
+| J-11 | Signature pad | 🎨 Antigravity | Pending | Sign-on-glass component |
+| J-13 | Complete Job | ⚠️ | Partial | Job billing tab exists, payment integration pending |
+| AG-2 | Commission calc | ✅ | **Done** | commission-calculator.tsx (Sprint 9) |
+| AG-4 | Match feed | ✅ | **Done** | matchmaker-feed.tsx + getMatchFeed (Sprint 9) |
+| K-2/K-3 | Kiosk QR | ✅/⚠️ | QR done | QR display done, self-registration page still needed |
+| VR-1–5 | Vendor reports | ⚠️ | Partial | Widget + modal exist but use static data, PDF is stub |
+| MK-4 | Toast system | ✅ | **Done** | Sonner installed |
+| X-9 | Settings page | ✅ | **Done** | Profile + workspace forms wired |
+| X-13 | Mobile responsive | 🎨 Antigravity | Pending | Dashboard needs mobile pass |
 
 ### P3 — LOW (Nice to have / Post-MVP)
 
@@ -350,19 +350,20 @@ These are issues that affect the entire app regardless of scenario.
 
 ---
 
-## SECTION 6: SUMMARY COUNTS
+## SECTION 6: SUMMARY COUNTS (Updated 2026-02-09)
 
-| Category | Total Items | Backend (🔧) | Frontend (🎨) | Both (🔧🎨) |
-|----------|-------------|---------------|----------------|--------------|
-| P0 — Critical | 6 | 0 | 4 | 2 |
-| P1 — High | 9 | 2 | 3 | 4 |
-| P2 — Medium | 16 | 4 | 6 | 6 |
-| P3 — Low | 9 | 1 | 5 | 3 |
-| **TOTAL** | **40** | **7** | **18** | **15** |
+| Category | Total Items | ✅ Done | ⚠️ Partial | ❌ Remaining |
+|----------|-------------|---------|------------|--------------|
+| P0 — Critical | 6 | 2 (X-8, T-1/T-2) | 2 (M-5, X-4) | 2 (X-17, M-2) |
+| P1 — High | 9 | 7 (T-1, J-2, J-6, X-3, X-12, X-15, M-4) | 2 (D-6, J-3) | 0 |
+| P2 — Medium | 16 | 9 (D-1, D-8/9, J-4, J-9, AG-2, AG-4, K-2, MK-4, X-9) | 4 (D-3, J-5, J-13, VR-1-5) | 3 (J-8, J-11, X-13) |
+| P3 — Low | 9 | 0 | 0 | 9 |
+| **TOTAL** | **40** | **18** | **8** | **14** |
 
-### By Owner:
-- **Antigravity (Frontend)**: ~33 items
-- **Backend (Claude Code / Aider)**: ~22 items
+### By Owner (Remaining work):
+- **Antigravity (Frontend)**: ~12 items (X-17, M-2, M-5 polish, X-13, J-5 UI, J-8, J-11, J-7, J-10, X-11, X-14, X-16)
+- **Backend (Claude Code / Aider)**: ~5 items (X-4/pipeline-actions, VR wiring, BE-11 PDF, D-3 full wiring, K-3 self-reg)
+- **Both teams**: ~5 items (J-3 polish, MK-1-3, J-12, D-6 polish)
 
 ---
 
