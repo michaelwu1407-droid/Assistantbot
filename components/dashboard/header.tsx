@@ -4,8 +4,15 @@ import { useState, useEffect } from "react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Settings, Play } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useShellStore } from "@/lib/store"
 
 interface HeaderProps {
     userName: string
@@ -99,6 +106,20 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
                 >
                     <Search className="h-5 w-5" />
                 </Button>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100">
+                            <Settings className="h-5 w-5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => useShellStore.getState().setViewMode("TUTORIAL")}>
+                            <Play className="mr-2 h-4 w-4" />
+                            Replay Tutorial
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
                 <NotificationsBtn userId={userId} />
 

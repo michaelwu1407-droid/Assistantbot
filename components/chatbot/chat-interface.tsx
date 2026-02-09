@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Mic, Bot, User, Loader2, Settings, Play } from 'lucide-react';
 import { useShellStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { processChat } from '@/actions/chat-actions';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Message {
   id: string;
@@ -38,7 +44,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
 
     const userText = input;
     const tempId = Date.now().toString();
-    
+
     // Optimistic UI update
     setMessages(prev => [...prev, { id: tempId, role: 'user', text: userText }]);
     setInput('');
@@ -49,12 +55,12 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       const response = await processChat(userText, workspaceId);
 
       setMessages(prev => [
-        ...prev, 
-        { 
-          id: (Date.now() + 1).toString(), 
-          role: 'bot', 
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'bot',
           text: response.message,
-          data: response.data 
+          data: response.data
         }
       ]);
 
@@ -71,7 +77,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       console.error("Chat error:", error);
       toast.error("Failed to send message");
       setMessages(prev => [
-        ...prev, 
+        ...prev,
         { id: Date.now().toString(), role: 'bot', text: "Sorry, I'm having trouble connecting right now." }
       ]);
     } finally {
@@ -89,14 +95,29 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Chat Header */}
-      <div className="p-4 border-b flex items-center gap-2 bg-slate-50">
-        <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
-          <Bot className="w-5 h-5 text-white" />
+      <div className="p-4 border-b flex items-center justify-between bg-slate-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-slate-900">Pj Buddy</h3>
+            <p className="text-xs text-slate-500">AI Co-pilot</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-bold text-sm text-slate-900">Pj Buddy</h3>
-          <p className="text-xs text-slate-500">AI Co-pilot</p>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+              <Settings className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setViewMode("TUTORIAL")}>
+              <Play className="mr-2 h-4 w-4" />
+              Replay Tutorial
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Messages Area */}
@@ -125,15 +146,15 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
             </div>
           </div>
         ))}
-        
+
         {isLoading && (
           <div className="flex gap-3 max-w-[85%]">
-             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-               <Bot className="w-4 h-4 text-indigo-600" />
-             </div>
-             <div className="bg-slate-100 p-3 rounded-2xl rounded-tl-none flex items-center">
-               <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-             </div>
+            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="bg-slate-100 p-3 rounded-2xl rounded-tl-none flex items-center">
+              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            </div>
           </div>
         )}
       </div>
