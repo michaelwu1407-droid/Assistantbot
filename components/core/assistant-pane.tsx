@@ -150,7 +150,7 @@ export function AssistantPane() {
     }
 
     return (
-        <div className="flex h-full flex-col bg-background">
+        <div id="assistant-pane" className="flex h-full flex-col bg-background">
             <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
