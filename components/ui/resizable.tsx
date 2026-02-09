@@ -1,16 +1,9 @@
 "use client"
 
 import { GripVertical } from "lucide-react"
-import * as ResizablePrimitive from "react-resizable-panels"
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PanelGroup = (ResizablePrimitive as any).PanelGroup
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PanelResizeHandle = (ResizablePrimitive as any).PanelResizeHandle
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Panel = (ResizablePrimitive as any).Panel
 
 const ResizablePanelGroup = ({
   className,
