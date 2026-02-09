@@ -146,6 +146,25 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 **Build Status:** ✅ Passing (0 TS errors, 23 routes compiled)
 **Files Modified:** `Shell.tsx`, `tutorial-overlay.tsx`, `lib/store.ts`, `package.json`, `package-lock.json`
 
+### 2026-02-09 23:20 AEST [Frontend - Antigravity] - Deployment Investigation (React Error #310)
+
+**Issue**: Application crashes with `Minified React error #310` ("Rendered more hooks than during the previous render") on Vercel.
+**Status**: 🔴 ONGOING.
+
+**Attempted Fixes:**
+1.  **Refactored Shell**: Moved conditional rendering of `ResizablePanelGroup` to ensure consistent tree structure Maintained `TutorialOverlay` outside valid conditionals.
+2.  **Refactored TutorialOverlay**: Removed early return (`if (!shouldShow) return null`) which could theoretically cause hook count mismatches if hooks were hidden below (none were found, but safely refactored anyway).
+3.  **Refactored/Downgraded resizable-panels**: Pinned v2.1.7 to ensure `PanelGroup` is available (fixed previous #130 error).
+
+**Hypothesis**:
+The error persists, suggesting a deeper hydration mismatch or library conflict (possibly `framer-motion` + `Spotlight` portal interaction within `TutorialOverlay`).
+
+**Next Action**:
+-   **Diagnostic**: Temporarily DISABLE `TutorialOverlay` to confirm if it is the root cause.
+-   If app loads successfully, we know `TutorialOverlay` (or its dependencies) is the culprit.
+
+---
+
 ### 2026-02-09 22:30 AEST [Frontend - Antigravity] - Tutorial Persistence Fix & Replay Feature
 
 **Bugs Fixed:**

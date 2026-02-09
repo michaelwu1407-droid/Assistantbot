@@ -192,7 +192,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     // The previous error likely came from `AnimatePresence` getting cut off.
     // With Shell refactored, the parent `div` stays mounted. So returning `null` here IS safe now.
     // But let's be cleaner and use the condition below.
-    if (!shouldShow) return <></>
+    // if (!shouldShow) return <></>
 
     const step = STEPS[currentStepIndex]
     const isFirstStep = currentStepIndex === 0
@@ -224,6 +224,8 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     }
 
     const progressPercent = ((currentStepIndex + 1) / STEPS.length) * 100
+
+    if (!shouldShow) return null
 
     return (
         <>

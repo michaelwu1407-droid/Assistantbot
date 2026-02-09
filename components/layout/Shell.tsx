@@ -34,7 +34,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   return (
     <div className="h-screen w-full bg-background relative flex flex-col overflow-hidden">
       {/* Tutorial Overlay always mounted, handles its own visibility */}
-      <TutorialOverlay />
+      {/* <TutorialOverlay /> */}
 
       {isBasicView ? (
         <div className="flex-1 flex items-center justify-center p-4 md:p-6 relative">
