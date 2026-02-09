@@ -140,7 +140,7 @@ export function SetupChat() {
                     }
                 ])
                 setTimeout(() => {
-                    router.push("/tutorial")
+                    router.push("/dashboard?tutorial=true")
                 }, 2500)
             }).catch(() => {
                 setIsTyping(false)
@@ -154,7 +154,7 @@ export function SetupChat() {
                     }
                 ])
                 setTimeout(() => {
-                    router.push("/tutorial")
+                    router.push("/dashboard?tutorial=true")
                 }, 2500)
             })
         }

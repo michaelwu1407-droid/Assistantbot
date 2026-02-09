@@ -57,7 +57,7 @@ const STEPS = [
         targetId: "main-canvas",
         title: "The Dashboard Canvas",
         message: "This is your workspace in Advanced Mode. It shows your jobs, pipeline, map, and more.",
-        position: "right",
+        position: "bottom",
         actionLabel: "Next",
     },
     {
@@ -222,7 +222,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
             {/* Only show Spotlight if there is a target */}
             {step.targetId && (
                 <Spotlight targetId={step.targetId}>
-                    <Card className="w-[360px] p-5 bg-card text-card-foreground border-border shadow-2xl relative">
+                    <Card className="w-[320px] p-5 bg-card text-card-foreground border-border shadow-2xl relative">
                         {/* Skip Button */}
                         <button
                             onClick={handleSkip}

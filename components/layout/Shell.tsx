@@ -1,17 +1,22 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
+import { useEffect } from "react"
 import { useShellStore } from "@/lib/store"
 import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { motion, AnimatePresence } from "framer-motion"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
+  const searchParams = useSearchParams()
 
-  // Import TutorialOverlay locally if needed or at top level
-  // const TutorialOverlay = dynamic(() => import('@/components/tutorial/tutorial-overlay').then(mod => mod.TutorialOverlay))
-  // But standard import is fine for now.
+  // Activate tutorial if requested via URL
+  useEffect(() => {
+    if (searchParams.get("tutorial") === "true") {
+      setViewMode("TUTORIAL")
+    }
+  }, [searchParams, setViewMode])
 
   if (viewMode === "BASIC") {
     return (

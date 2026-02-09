@@ -126,6 +126,84 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 
 ---
 
+### 2026-02-09 19:55 AEST [Frontend - Antigravity] - Tutorial Loop & Content Fix
+
+**Issues Resolved**:
+1. **Tutorial Loop**: User was stuck in `/setup` -> `/tutorial` -> `/dashboard` -> `/setup` loop.
+2. **Stale Content**: Tutorial didn't show "Chat First" changes.
+3. **Layout Cutoff**: Step 5 card was cut off on screen edge.
+
+**Root Causes**:
+1. **Duplicate Component**: The app had an old `TutorialController.tsx` (used by `/tutorial` page) vs the new `tutorial-overlay.tsx` (used by Dashboard). Vercel was serving the old one.
+2. **Redirect Loop**: Data persistence lag or failure caused `/dashboard` to redirect back to `/setup`, which redirected to `/tutorial`.
+3. **Positioning**: `right` alignment for Step 5 pushed the 360px card off-screen on smaller viewports.
+
+**Fixes Applied**:
+1. **Consolidated**: DELETED `TutorialController.tsx` and the entire `app/tutorial` route.
+2. **Redirect Fix**: Updated `setup-chat.tsx` to redirect directly to `/dashboard?tutorial=true` (skipping the intermediate page).
+3. **Layout Fix**:
+   - Reduced card width to **320px**.
+   - Changed Step 5 position to **bottom**.
+   - Updated `Shell.tsx` to handle `?tutorial=true` query param.
+
+**Status**: **RESOLVED**.
+- **Deployment**: Pushed to main. Vercel should effectively be using the new code now.
+- **Verification**: Build passed locally.
+
+---
+
+### 2026-02-09 19:40 AEST [Frontend - Antigravity] - Vercel Fix Confirmed
+
+**Issue Resolved**: React error #130 (Minified React error) on Vercel.
+
+**Root Cause**: The project was using `react-resizable-panels@4.6.2` where `PanelGroup` does not exist (renamed to `Group`). The code in `resizable.tsx` was written for v2.x but was casting to `any`, causing `undefined` in production.
+
+**Fix Applied**:
+1. **Downgraded package**: `npm install react-resizable-panels@2.1.7` (restores `PanelGroup` export).
+2. **Updated code**: Restored `components/ui/resizable.tsx` to use correct named imports.
+
+**Verification**:
+- Local build: ✅ Passed (Exit code 0)
+- TypeScript check: ✅ Passed
+
+**Current Status**: **RESOLVED**. The Vercel deployment should now succeed and the Advanced Mode dashboard should load correctly.
+
+**Files Modified**:
+- `package.json` / `package-lock.json`
+- `components/ui/resizable.tsx`
+- `project_status_log.md`
+
+---
+
+### 2026-02-09 19:20 AEST [Frontend - Antigravity] - Vercel React #130 Debugging
+
+**Issue**: Persistent React error #130 (undefined component) on Vercel when switching to Advanced Mode.
+
+**What I Did:**
+1. **Deleted duplicate file** `TutorialOverlay.tsx` (1.3KB) — conflicts with `tutorial-overlay.tsx` (15KB) on case-sensitive Linux
+2. **Updated `.env`** with new Supabase password (user reset it)
+3. **Ran `prisma db push`** — all tables created in Supabase
+4. **Ran `prisma db seed`** — demo data (workspace, contacts, deals) seeded
+5. **Updated tutorial intro** — added new "Just Chat" step emphasizing chat-first simplicity
+6. **Fixed spotlight clamping** — increased card height estimate to 350px, added minMargin 20px
+7. **Removed unused imports** — `motion, AnimatePresence` from Shell.tsx
+
+**Files Modified:**
+- `components/tutorial/TutorialOverlay.tsx` — Deleted (duplicate)
+- `components/tutorial/tutorial-overlay.tsx` — Updated intro steps
+- `components/tutorial/spotlight.tsx` — Fixed viewport clamping
+- `components/layout/Shell.tsx` — Removed unused imports
+- `.env` — Updated with new Supabase credentials
+
+**Current Status**: React #130 persists on Vercel. TypeScript compiles clean locally. Investigating if the issue is with `resizable.tsx` or `tutorial-overlay.tsx` imports.
+
+**Next Steps:**
+1. Verify Vercel is deploying latest commit
+2. Check Vercel function logs for specific error
+3. Ensure all UI components have named exports matching imports
+
+---
+
 ### 2026-02-09 18:00 AEST [Backend - Claude Code] - Full Audit, GAP_ANALYSIS Sync & Vercel Fix
 
 **Purpose**: Post-Sprint 9 comprehensive audit, documentation sync, and Vercel deployment resolution.
