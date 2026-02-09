@@ -1,7 +1,7 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import { useEffect, useRef } from "react"
 import { useShellStore } from "@/lib/store"
 import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -10,13 +10,19 @@ import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const tutorialTriggered = useRef(false)
 
-  // Activate tutorial if requested via URL
+  // Activate tutorial if requested via URL — once only, then clear the param
   useEffect(() => {
-    if (searchParams.get("tutorial") === "true") {
+    if (searchParams.get("tutorial") === "true" && !tutorialTriggered.current) {
+      tutorialTriggered.current = true
       setViewMode("TUTORIAL")
+      // Clear the ?tutorial=true from URL so it doesn't re-trigger
+      router.replace(pathname, { scroll: false })
     }
-  }, [searchParams, setViewMode])
+  }, [searchParams, setViewMode, router, pathname])
 
   if (viewMode === "BASIC") {
     return (

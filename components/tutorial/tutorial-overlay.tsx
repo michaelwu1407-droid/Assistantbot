@@ -180,12 +180,12 @@ interface TutorialOverlayProps {
 }
 
 export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
-    const { viewMode, setViewMode } = useShellStore()
+    const { viewMode, setViewMode, tutorialComplete, setTutorialComplete } = useShellStore()
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [isVisible, setIsVisible] = useState(true)
 
-    // Only run if in TUTORIAL mode
-    if (viewMode !== "TUTORIAL" || !isVisible) return null
+    // Only run if in TUTORIAL mode and tutorial hasn't been completed this session
+    if (viewMode !== "TUTORIAL" || !isVisible || tutorialComplete) return null
 
     const step = STEPS[currentStepIndex]
     const isFirstStep = currentStepIndex === 0
@@ -211,6 +211,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
     const handleFinish = () => {
         setIsVisible(false)
+        setTutorialComplete()
         setViewMode("BASIC") // Go to Basic mode after tutorial
         onComplete?.()
     }
