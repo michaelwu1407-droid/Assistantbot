@@ -1,23 +1,12 @@
 import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { SetupChat } from "@/components/onboarding/setup-chat"
-import { createClient } from "@/lib/supabase/server"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function SetupPage() {
-    let userId = "demo-user"
-
-    // Check for real authenticated user
-    try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            userId = user.id
-        }
-    } catch (e) {
-        // Supabase client creation failed, fall back to demo-user
-    }
+    const userId = await getAuthUserId()
 
     // Check if the user has already completed onboarding
     let alreadyOnboarded = false

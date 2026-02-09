@@ -2,29 +2,18 @@ import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
-import { createClient } from "@/lib/supabase/server"
+import { getAuthUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
     let workspace, deals;
-    let userId = "demo-user"
-    let userName = "Mate"
     let dbError = false;
 
-    // 1. Get User (Safely)
-    try {
-        const supabase = await createClient()
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        
-        if (authUser) {
-            userId = authUser.id
-            userName = authUser.user_metadata?.full_name || "Mate"
-        }
-    } catch (error) {
-        // Supabase not configured or auth failed - fall back to demo user
-        console.warn("Supabase auth failed (using demo user):", error)
-    }
+    // 1. Get User
+    const authUser = await getAuthUser()
+    const userId = authUser.id
+    const userName = authUser.name
 
     try {
         workspace = await getOrCreateWorkspace(userId)
@@ -47,7 +36,7 @@ export default async function DashboardPage() {
                         The database tables have not been created yet. Run these commands with your Supabase DIRECT_URL:
                     </p>
                     <pre className="bg-slate-100 text-slate-800 p-4 rounded-lg text-left text-sm overflow-x-auto">
-{`DATABASE_URL="your-direct-url" \\
+                        {`DATABASE_URL="your-direct-url" \\
   npx prisma@6 db push
 
 DATABASE_URL="your-direct-url" \\
@@ -62,9 +51,9 @@ DATABASE_URL="your-direct-url" \\
     }
 
     return (
-        <DashboardClient 
-            workspace={workspace} 
-            deals={deals} 
+        <DashboardClient
+            workspace={workspace}
+            deals={deals}
             userName={userName}
             userId={userId}
         />

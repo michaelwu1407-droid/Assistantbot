@@ -157,8 +157,10 @@ export async function completeOnboarding(data: {
   industryType: "TRADES" | "REAL_ESTATE";
   location: string;
 }) {
-  // Get or create the workspace for demo-user
-  const workspace = await getOrCreateWorkspace("demo-user");
+  // Use the real authenticated user's workspace
+  const { getAuthUserId } = await import("@/lib/auth");
+  const userId = await getAuthUserId();
+  const workspace = await getOrCreateWorkspace(userId);
 
   // Map industry to workspace type
   const type = data.industryType === "REAL_ESTATE" ? "AGENT" : "TRADIE";

@@ -4,6 +4,7 @@ import { ChatInterface } from "@/components/chatbot/chat-interface";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { DashboardProvider } from "@/components/providers/dashboard-provider";
 import { SyncProvider } from "@/components/providers/sync-provider";
+import { getAuthUserId } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,8 @@ export default async function DashboardLayout({
   let workspaceId = "demo-workspace";
 
   try {
-    // Fetch workspace server-side to pass ID to client components
-    const workspace = await getOrCreateWorkspace("demo-user");
+    const userId = await getAuthUserId();
+    const workspace = await getOrCreateWorkspace(userId);
     workspaceId = workspace.id;
   } catch (error) {
     console.error("Layout failed to fetch workspace:", error);
