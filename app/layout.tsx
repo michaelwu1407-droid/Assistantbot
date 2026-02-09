@@ -5,6 +5,7 @@ import { OfflineBanner } from "@/components/core/offline-banner";
 import { IndustryProvider } from "@/components/providers/industry-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -17,16 +18,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased font-sans bg-background text-foreground">
-        <IndustryProvider>
-          {children}
-          <CommandPalette />
-          <OfflineBanner />
-          <ServiceWorkerProvider />
-          <Toaster />
-        </IndustryProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <IndustryProvider>
+            {children}
+            <CommandPalette />
+            <OfflineBanner />
+            <ServiceWorkerProvider />
+            <Toaster />
+          </IndustryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+

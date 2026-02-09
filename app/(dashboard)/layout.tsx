@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { ChatInterface } from "@/components/chatbot/chat-interface";
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
@@ -23,9 +23,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
-      <OnboardingModal />
-      {children}
-    </Shell>
+    <Suspense fallback={<div className="h-screen w-full bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
+      <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
+        <OnboardingModal />
+        {children}
+      </Shell>
+    </Suspense>
   );
 }
+
