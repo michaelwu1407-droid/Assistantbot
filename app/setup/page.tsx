@@ -29,8 +29,8 @@ export default async function SetupPage() {
     }
 
     if (alreadyOnboarded) {
-        // Always show tutorial on sign-in (for troubleshooting)
-        redirect("/dashboard?tutorial=true")
+        // Returning user — skip setup, go straight to dashboard (no tutorial)
+        redirect("/dashboard")
     }
 
     return (

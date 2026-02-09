@@ -12,11 +12,26 @@ interface ShellState {
   setTutorialComplete: () => void
 }
 
+// Check localStorage for persisted tutorial state (client-side only)
+const getPersistedTutorialComplete = (): boolean => {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem('pj_tutorial_complete') === 'true'
+  } catch {
+    return false
+  }
+}
+
 export const useShellStore = create<ShellState>((set) => ({
   viewMode: 'BASIC',
   persona: 'TRADIE',
-  tutorialComplete: false,
+  tutorialComplete: getPersistedTutorialComplete(),
   setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
   setPersona: (persona: Persona) => set({ persona }),
-  setTutorialComplete: () => set({ tutorialComplete: true }),
+  setTutorialComplete: () => {
+    // Persist to localStorage so it survives page reloads
+    try { localStorage.setItem('pj_tutorial_complete', 'true') } catch { }
+    set({ tutorialComplete: true })
+  },
 }))
+
