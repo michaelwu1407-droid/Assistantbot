@@ -184,8 +184,15 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [isVisible, setIsVisible] = useState(true)
 
-    // Only run if in TUTORIAL mode and tutorial hasn't been completed this session
-    if (viewMode !== "TUTORIAL" || !isVisible || tutorialComplete) return null
+    // Determined visibility
+    const shouldShow = viewMode === "TUTORIAL" && isVisible && !tutorialComplete
+
+    // If not showing, return null safely for now (since Spotlight handles null targetId, but we want to unmount logic)
+    // Actually, to prevent the `removeChild` error, we should return null here.
+    // The previous error likely came from `AnimatePresence` getting cut off.
+    // With Shell refactored, the parent `div` stays mounted. So returning `null` here IS safe now.
+    // But let's be cleaner and use the condition below.
+    if (!shouldShow) return <></>
 
     const step = STEPS[currentStepIndex]
     const isFirstStep = currentStepIndex === 0

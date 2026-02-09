@@ -146,6 +146,43 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 **Build Status:** ✅ Passing (0 TS errors, 23 routes compiled)
 **Files Modified:** `Shell.tsx`, `tutorial-overlay.tsx`, `lib/store.ts`, `package.json`, `package-lock.json`
 
+### 2026-02-09 22:30 AEST [Frontend - Antigravity] - Tutorial Persistence Fix & Replay Feature
+
+**Bugs Fixed:**
+1. **Persistent Tutorial Loop**:
+   - `app/setup/page.tsx` contained logic `redirect("/tutorial")` for onboarded users.
+   - Since `/tutorial` was deleted, this caused a 404 loop.
+   - **Fix**: Changed redirect to `/dashboard?tutorial=true`.
+
+**Features Added:**
+1. **Replay Tutorial**:
+   - Added "Replay Tutorial" option in **Settings Dropdown** for both Basic (Chat) and Advanced (Header) modes.
+   - Validated logic using `useShellStore` to switch view mode instantly.
+
+### 2026-02-09 23:00 AEST [Frontend - Antigravity] - Crash Fix & Login Polish
+
+**Bugs Fixed:**
+1. **Unresponsiveness / Crash (`removeChild`)**:
+   - Refactored `Shell.tsx` to maintain a consistent DOM structure instead of swapping entire trees based on `viewMode`.
+   - Updated `TutorialOverlay.tsx` to handle conditional rendering internally, preventing `AnimatePresence` from causing reconciliation errors.
+   - **Result**: Buttons and inputs should now be responsive; no more white screen of death.
+
+2. **Login Features**:
+   - Added **Forgot Password** page (`app/(auth)/forgot-password/page.tsx`).
+   - Added "Forgot password?" link to Login page.
+   - Fixed `Button` component usage (removed invalid `asChild` prop).
+
+**Navigation & Settings Updates:**
+   - **Shell Logic**: Fixed `BASIC` mode persisting on sub-pages (e.g. `/dashboard/settings`). Now correctly shows content view for non-root paths.
+   - **Settings Page**: Added "Replay Tutorial" button to `/dashboard/settings`.
+   - **Navigation**: "Settings" cog in Chat and Header now links to the Settings page.
+
+**Files Modified:**
+- `components/layout/Shell.tsx`
+- `components/chatbot/chat-interface.tsx`
+- `components/dashboard/header.tsx`
+- `app/dashboard/settings/page.tsx`
+
 ---
 
 ## 🔴 CURRENT STATUS — 2026-02-09 22:00 AEST

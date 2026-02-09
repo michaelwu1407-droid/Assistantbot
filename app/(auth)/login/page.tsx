@@ -16,9 +16,9 @@ export default function LoginPage() {
     const handleSubmit = async (formData: FormData) => {
         setIsLoading(true)
         setError(null)
-        
+
         const result = await login(formData)
-        
+
         if (result?.error) {
             setError(result.error)
             setIsLoading(false)
@@ -36,8 +36,8 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent className="grid gap-4">
                 <div className="grid grid-cols-1 gap-2">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="bg-white text-slate-900 border-slate-200 hover:bg-slate-50"
                         onClick={() => loginWithGoogle()}
                     >
@@ -62,7 +62,7 @@ export default function LoginPage() {
                         Google
                     </Button>
                 </div>
-                
+
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-slate-200" />
@@ -75,34 +75,42 @@ export default function LoginPage() {
                 <form action={handleSubmit} className="grid gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input 
-                            id="email" 
-                            name="email" 
-                            type="email" 
-                            placeholder="m@example.com" 
-                            required 
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="m@example.com"
+                            required
                             className="bg-white border-slate-200"
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input 
-                            id="password" 
-                            name="password" 
-                            type="password" 
-                            required 
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">Password</Label>
+                            <Link
+                                href="/forgot-password"
+                                className="text-xs text-slate-500 hover:text-slate-900 underline underline-offset-4"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
                             className="bg-white border-slate-200"
                         />
                     </div>
-                    
+
                     {error && (
                         <div className="text-sm text-red-500 bg-red-50 p-2 rounded border border-red-100">
                             {error}
                         </div>
                     )}
 
-                    <Button 
-                        type="submit" 
+                    <Button
+                        type="submit"
                         className="w-full bg-slate-900 hover:bg-slate-800 text-white"
                         disabled={isLoading}
                     >

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Send, Mic, Bot, User, Loader2, Settings, Play } from 'lucide-react';
 import { useShellStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const { viewMode, setViewMode } = useShellStore();
+  const router = useRouter();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -112,6 +114,10 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setViewMode("TUTORIAL")}>
               <Play className="mr-2 h-4 w-4" />
               Replay Tutorial

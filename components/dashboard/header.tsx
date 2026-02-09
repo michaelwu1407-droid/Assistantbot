@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
+    const router = useRouter()
     const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
 
     useEffect(() => {
@@ -114,6 +116,10 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => useShellStore.getState().setViewMode("TUTORIAL")}>
                             <Play className="mr-2 h-4 w-4" />
                             Replay Tutorial
