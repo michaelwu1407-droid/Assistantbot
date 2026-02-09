@@ -126,6 +126,186 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 
 ---
 
+### 2026-02-09 22:00 AEST [Backend - Claude Code] - Full Audit, Bug Fixes & Remaining Work
+
+**Purpose**: Post-Sprint 9 comprehensive audit after Antigravity's tutorial/resizable fixes. Fixed remaining bugs and documented all outstanding work.
+
+**Bugs Fixed (This Session):**
+
+1. **Tutorial → Advanced Mode → 404 loop** (ROOT CAUSE):
+   - `setup-chat.tsx` navigates to `/dashboard?tutorial=true`
+   - `Shell.tsx` had a `useEffect` watching `searchParams` — set `viewMode("TUTORIAL")` every time it saw `?tutorial=true`
+   - When tutorial finished → `setViewMode("BASIC")` → user clicked "Advanced Mode" → Shell re-rendered → `TutorialOverlay` re-mounted with fresh `isVisible=true` → `useEffect` fired again → infinite loop
+   - **Fix**: (a) `router.replace(pathname)` clears `?tutorial=true` from URL immediately, (b) `useRef` guard prevents re-trigger, (c) added `tutorialComplete` flag to Zustand store that persists across component unmount/remount
+
+2. **React #130 on Vercel** (STILL PRESENT despite Antigravity's fix):
+   - `package.json` says `2.1.7` but `node_modules` still had `4.6.2` (stale lockfile)
+   - v4.x exports `Group`/`Separator`, v2.x exports `PanelGroup`/`PanelResizeHandle`
+   - **Fix**: `npm install react-resizable-panels@2.1.7 --save-exact` (pinned exactly, no `^`)
+
+**Build Status:** ✅ Passing (0 TS errors, 23 routes compiled)
+**Files Modified:** `Shell.tsx`, `tutorial-overlay.tsx`, `lib/store.ts`, `package.json`, `package-lock.json`
+
+---
+
+## 🔴 CURRENT STATUS — 2026-02-09 22:00 AEST
+
+### Build & Deploy
+| Item | Status |
+|------|--------|
+| TypeScript | ✅ 0 errors |
+| ESLint | ✅ 0 errors (warnings only) |
+| Next.js Build | ✅ 23 routes compiled |
+| Database | ✅ Supabase connected, tables + seed data exist |
+| Vercel | ⚠️ Needs redeploy after merging this PR (env vars are configured) |
+
+### App Flow
+| Flow | Status |
+|------|--------|
+| Landing → Login → Signup | ✅ Works |
+| Login → Setup Chat (onboarding) | ✅ Works |
+| Setup → Tutorial (19 steps) | ✅ Works |
+| Tutorial → Basic Mode | ✅ Fixed (no more loop) |
+| Basic → Advanced Mode toggle | ✅ Fixed (no more 404/loop) |
+| Advanced Mode 75/25 split | ✅ Fixed (react-resizable-panels v2.1.7) |
+
+---
+
+## 📋 OUTSTANDING WORK — SPLIT BY TEAM
+
+### 🔧 BACKEND (Claude Code / Aider) — 6 items
+
+| # | Task | Priority | Description | File(s) to create/modify |
+|---|------|----------|-------------|--------------------------|
+| BE-1 | **Create `pipeline-actions.ts`** | HIGH | Industry-aware kanban stages. File was logged as created but **DOES NOT EXIST**. Must export `getIndustryStages(industryType)` returning stage labels for TRADES vs REAL_ESTATE. | `actions/pipeline-actions.ts` |
+| BE-2 | **Wire vendor-report-widget to real data** | MEDIUM | `components/agent/vendor-report-card.tsx` uses **hardcoded static data**. Must query `BuyerFeedback` table and compute real price averages. | `components/agent/vendor-report-card.tsx`, `actions/agent-actions.ts` |
+| BE-3 | **Vendor report PDF generation** | MEDIUM | `generateVendorReportPDF()` in `agent-actions.ts` returns HTML string, not actual PDF. Need `@react-pdf/renderer` or similar. | `actions/agent-actions.ts` |
+| BE-4 | **Connect AI model to chatbot** | HIGH | Chat currently uses regex intent parsing. User wants a real LLM (Gemini Flash) connected for natural language understanding. `GEMINI_API_KEY` env var exists. Wire `processChat()` to call Gemini API for intent classification + response generation. | `actions/chat-actions.ts` |
+| BE-5 | **Kiosk self-registration page** | LOW | QR code on kiosk page points to a self-reg URL, but no mobile-friendly registration page exists for visitors to fill in their details after scanning. | `app/kiosk/register/page.tsx` |
+| BE-6 | **Twilio SMS wiring** | LOW | `sendOnMyWaySMS()` and `sendSMS()` exist but are stubs without real Twilio credentials. Needs `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` env vars. | `actions/tradie-actions.ts`, `actions/messaging-actions.ts` |
+
+### 🎨 FRONTEND (Antigravity) — 10 items
+
+| # | Task | Priority | Description | File(s) to modify |
+|---|------|----------|-------------|--------------------|
+| FE-1 | **UI Polish pass** | CRITICAL | App looks barebones. Needs gradients, shadows, micro-interactions, consistent spacing, loading skeletons, colour scheme refinement. This is the #1 user complaint. | All components |
+| FE-2 | **Chat-first UI (Basic Mode)** | CRITICAL | Basic Mode should look like ChatGPT — full-page centered chat, not a card in the middle. Shell.tsx BASIC mode needs redesign. | `components/layout/Shell.tsx` |
+| FE-3 | **75/25 split polish** | HIGH | Advanced mode works but needs responsive polish — collapse to full-screen chat on mobile, min-width guards, smooth transitions. | `components/layout/Shell.tsx` |
+| FE-4 | **Mobile responsive pass** | HIGH | Dashboard, sidebar, and panels don't work well on mobile. Sidebar should collapse, panels should stack. | `components/core/sidebar.tsx`, `Shell.tsx` |
+| FE-5 | **Travel workflow UI** | MEDIUM | Safety Check modal (`safety-modal.tsx`) exists but isn't wired to the job status flow. Need: START TRAVEL → ARRIVED → Safety Modal → ON SITE buttons. | `components/tradie/tradie-dashboard-client.tsx`, `components/tradie/job-status-bar.tsx` |
+| FE-6 | **Voice-to-text on job page** | MEDIUM | Mic icon exists in AssistantPane but not on job detail page. Tradies need hands-free dictation for job diary. | `components/tradie/job-detail-view.tsx` |
+| FE-7 | **Signature pad wiring** | MEDIUM | `signature-pad.tsx` component exists but isn't integrated into the job completion flow. | `components/tradie/job-detail-view.tsx` |
+| FE-8 | **Bottom sheet polish** | MEDIUM | `job-bottom-sheet.tsx` exists but needs better mobile UX — swipe gestures, collapsed preview showing next job. | `components/tradie/job-bottom-sheet.tsx` |
+| FE-9 | **Kanban card background colour** | LOW | Deal cards turn red **border** when stale (>7 days) but spec says **background** should change. | `components/crm/deal-card.tsx` |
+| FE-10 | **Remove GitHub OAuth button** | LOW | Login page still shows GitHub sign-in button. Spec says keep only Google + Email. | `app/(auth)/login/page.tsx` |
+
+### 🔧🎨 BOTH TEAMS — 3 items
+
+| # | Task | Priority | Description |
+|---|------|----------|-------------|
+| SH-1 | **Industry-aware kanban** | HIGH | BE creates `pipeline-actions.ts` with stage labels, FE renders dynamic column headers. Currently kanban is hardcoded to generic stages (New/Contacted/Negotiation/Won/Lost). |
+| SH-2 | **Magic Keys system** | LOW | Schema has `Key` model but no UI. Need: QR scanner component, key checkout/checkin flow, key icon in agent sidebar. |
+| SH-3 | **Payment integration** | LOW (Post-MVP) | Stripe Terminal / Square Reader for NFC tap-to-pay. Both schema + UI needed. |
+
+---
+
+## 📝 TUTORIAL EXPANSION INSTRUCTIONS (For Antigravity)
+
+The current tutorial has 19 steps but only covers high-level features. It needs to be **very granular** — cover every single feature, button, and workflow. The user will cut it down later.
+
+### How to expand (`components/tutorial/tutorial-overlay.tsx`):
+
+The `STEPS` array drives the tutorial. Each step has:
+```typescript
+{
+    id: "unique-id",           // Unique string
+    targetId: "dom-element-id" | null,  // null = center modal, string = spotlight that element
+    title: "Step Title",
+    message: "Description text. Supports **markdown** and \\n for line breaks.",
+    position: "top" | "bottom" | "left" | "right",  // Where card appears relative to target
+    actionLabel: "Button text",
+}
+```
+
+### Existing element IDs available for spotlighting:
+| Element ID | Location | Description |
+|------------|----------|-------------|
+| `assistant-pane` | Chat panel | The AI chatbot area |
+| `mode-toggle-btn` | Top-right (Basic), Sidebar (Advanced) | BASIC ↔ ADVANCED toggle |
+| `main-canvas` | Left 75% of Advanced view | Main workspace area |
+| `sidebar-nav` | Left edge of Advanced view | Navigation sidebar |
+| `hub-link` | Sidebar | Dashboard/Hub nav link |
+| `tradie-link` | Sidebar | Tradie mode nav link |
+| `agent-link` | Sidebar | Agent mode nav link |
+| `map-link` | Sidebar (Tradie sub-nav) | Map view link |
+| `schedule-link` | Sidebar (Tradie sub-nav) | Schedule/calendar link |
+| `estimator-link` | Sidebar (Tradie sub-nav) | Quote builder link |
+| `contacts-link` | Sidebar (Tradie sub-nav) | Contacts link |
+| `settings-link` | Sidebar bottom | Settings link |
+| `search-btn` | Dashboard header | Search/Cmd+K button |
+| `notifications-btn` | Dashboard header | Notification bell |
+| `new-deal-btn` | Dashboard header | "+ New Deal" button |
+| `kanban-board` | Dashboard main area | Pipeline board |
+| `voice-btn` | Chat input area | Microphone button |
+| `chat-input` | Chat input area | Text input field |
+
+### Steps to add (in order — cover EVERY feature):
+
+**Section: Introduction (3 steps)** — Already exists (welcome, chat-first, modes-intro)
+
+**Section: Basic Mode (4 steps)** — Expand:
+1. Chat input spotlight — explain what to type
+2. Voice button spotlight — hands-free commands
+3. Chat examples — list ALL 16 supported commands with examples
+4. Mode toggle — how to switch
+
+**Section: Advanced Mode Overview (3 steps)** — Expand:
+1. Canvas overview
+2. Sidebar overview
+3. Mode toggle from advanced side
+
+**Section: Dashboard / Hub (6 steps)** — Add:
+1. Kanban board — drag & drop to move deals between stages
+2. Deal cards — colour coding (green = healthy, amber = stale >7d, red = rotting >14d)
+3. New Deal button — create jobs/listings
+4. Search (Cmd+K) — find anything instantly
+5. Notifications bell — alerts and reminders
+6. Activity feed — recent events (calls, emails, stage changes)
+
+**Section: Tradie Features (8 steps)** — Add:
+1. Tradie link in sidebar — switch to tradie view
+2. Map view — see all jobs on a map with pins
+3. Job bottom sheet — tap a pin to see job details
+4. Start Travel → On My Way SMS → Arrived flow
+5. Safety Check — required before starting work
+6. Camera FAB — take job photos
+7. Quote Builder / Estimator — create professional quotes
+8. Job Billing — create invoices, mark paid
+
+**Section: Agent Features (6 steps)** — Add:
+1. Agent link in sidebar — switch to agent view
+2. Speed-to-Lead widget — response time tracking
+3. Commission Calculator — earnings projection
+4. Matchmaker Feed — buyer-listing matching
+5. Open House Kiosk — visitor registration mode
+6. Vendor Report — price feedback + WhatsApp send
+
+**Section: Contacts & Search (3 steps)** — Add:
+1. Contacts page — all clients and leads
+2. Contact detail — activity history, deal associations
+3. Global search — Cmd+K to find contacts, deals, tasks
+
+**Section: Settings & Wrap-up (3 steps)** — Expand:
+1. Settings link — profile and workspace config
+2. Workspace settings — business name, industry type
+3. Finish — "You're all set!"
+
+**Total: ~36 steps** (currently 19). This covers every feature in the app.
+
+> **IMPORTANT**: Some `targetId` values reference elements that only exist on specific pages (e.g., `kanban-board` only exists on `/dashboard`). The tutorial runs on the dashboard page, so dashboard elements will be available. For tradie/agent specific elements, use `targetId: null` (center modal) and describe the feature with text instead of spotlighting.
+
+---
+
 ### 2026-02-09 19:55 AEST [Frontend - Antigravity] - Tutorial Loop & Content Fix
 
 **Issues Resolved**:
