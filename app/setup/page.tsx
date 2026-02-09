@@ -6,14 +6,22 @@ import { createClient } from "@/lib/supabase/server"
 export const dynamic = 'force-dynamic'
 
 export default async function SetupPage() {
-    // Check if the user has already completed onboarding
-    let alreadyOnboarded = false
+    let userId = "demo-user"
+
+    // Check for real authenticated user
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        // Use real user ID or fallback to demo-user if not authenticated (though middleware prevents this)
-        const userId = user?.id || "demo-user"
+        if (user) {
+            userId = user.id
+        }
+    } catch (e) {
+        // Supabase client creation failed, fall back to demo-user
+    }
 
+    // Check if the user has already completed onboarding
+    let alreadyOnboarded = false
+    try {
         const workspace = await getOrCreateWorkspace(userId)
         alreadyOnboarded = workspace.onboardingComplete
     } catch {

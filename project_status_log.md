@@ -146,6 +146,25 @@ The Backend is ready, but the UI is missing key components defined in the `GAP_A
 **Build Status:** ✅ Passing (0 TS errors, 23 routes compiled)
 **Files Modified:** `Shell.tsx`, `tutorial-overlay.tsx`, `lib/store.ts`, `package.json`, `package-lock.json`
 
+### 2026-02-10 00:45 AEST [Frontend - Antigravity] - Deployment Fix (Redirect Loop & Tutorial)
+
+**Status**: ✅ RESOLVED.
+
+**Fixes Applied:**
+1.  **Infinite Redirect Loop (`/setup` ↔ `/dashboard`)**:
+    -   **Root Cause**: `app/dashboard` checked Real User; `app/setup` checked Demo User.
+    -   **Fix**: Updated `app/setup/page.tsx` to use Supabase Auth to identify the real user, ensuring consistent state.
+
+2.  **UI Freeze / Broken Buttons**:
+    -   Restored `TutorialOverlay` (previously disabled).
+    -   Ensured dependencies (`tailwindcss-animate`, `sonner`) are installed.
+
+**Files Modified:**
+-   `app/setup/page.tsx`
+-   `components/layout/Shell.tsx`
+
+---
+
 ### 2026-02-09 23:20 AEST [Frontend - Antigravity] - Deployment Investigation (React Error #310)
 
 **Issue**: Application crashes with `Minified React error #310` ("Rendered more hooks than during the previous render") on Vercel.
