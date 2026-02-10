@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Settings, Play } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Settings, Play, Menu } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
 import {
     DropdownMenu,
@@ -80,6 +80,14 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
     return (
         <div className="flex items-center justify-between shrink-0 pb-2">
             <div className="flex items-center gap-4">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden -ml-2 text-slate-500"
+                    onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
+                >
+                    <Menu className="h-6 w-6" />
+                </Button>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
                         {getGreeting()}

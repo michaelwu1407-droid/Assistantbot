@@ -89,3 +89,42 @@ export async function completeSafetyCheck(dealId: string, checkData: any) {
         return { success: false, error: "Failed to complete safety check" };
     }
 }
+
+export async function completeJob(dealId: string, signatureDataUrl: string) {
+    try {
+        // Get existing metadata
+        const deal = await db.deal.findUnique({
+            where: { id: dealId },
+            select: { metadata: true }
+        });
+
+        const currentMetadata = (deal?.metadata as Record<string, any>) || {};
+
+        await db.deal.update({
+            where: { id: dealId },
+            data: {
+                jobStatus: "COMPLETED" as JobStatus,
+                metadata: {
+                    ...currentMetadata,
+                    signature: signatureDataUrl,
+                    completedAt: new Date().toISOString()
+                }
+            }
+        });
+
+        // Log the completion
+        await logActivity({
+            type: "NOTE",
+            title: "Job Completed",
+            description: "Job signed off by client",
+            content: "Signature captured and stored in job record.",
+            dealId,
+        });
+
+        revalidatePath(`/dashboard/tradie/jobs/${dealId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Error completing job:", error);
+        return { success: false, error: "Failed to complete job" };
+    }
+}

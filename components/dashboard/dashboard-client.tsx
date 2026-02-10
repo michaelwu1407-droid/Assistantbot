@@ -21,10 +21,10 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
 
     return (
         <div className="h-full flex flex-col space-y-4 p-6">
-            <Header 
-                userName={userName} 
+            <Header
+                userName={userName}
                 userId={userId}
-                onNewDeal={() => setIsNewDealModalOpen(true)} 
+                onNewDeal={() => setIsNewDealModalOpen(true)}
             />
 
             {/* Health Widget */}
@@ -34,7 +34,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
             <div className="flex-1 w-full flex gap-6 overflow-hidden min-h-0">
                 {/* Left: Kanban Board */}
                 <div className="flex-1 min-w-[300px] h-full overflow-hidden">
-                    <KanbanBoard deals={deals} />
+                    <KanbanBoard deals={deals} industryType={workspace.industryType} />
                 </div>
 
                 {/* Right: Activity Feed / Widgets */}
@@ -43,10 +43,10 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 </div>
             </div>
 
-            <NewDealModal 
-                isOpen={isNewDealModalOpen} 
-                onClose={() => setIsNewDealModalOpen(false)} 
-                workspaceId={workspace.id} 
+            <NewDealModal
+                isOpen={isNewDealModalOpen}
+                onClose={() => setIsNewDealModalOpen(false)}
+                workspaceId={workspace.id}
             />
         </div>
     )

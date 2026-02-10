@@ -7,6 +7,8 @@ import { useShellStore } from "@/lib/store"
 import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
+import { Sidebar } from "@/components/core/sidebar"
+import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
@@ -66,23 +68,40 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </div>
         </div>
       ) : (
-        <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
-          {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
-          <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
-            <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-muted/30">
-              {children}
-            </div>
-          </ResizablePanel>
+        <div className="flex-1 flex h-full overflow-hidden">
+          {/* Desktop Sidebar - Hidden on Mobile */}
+          <Sidebar className="hidden md:flex shrink-0" />
 
-          <ResizableHandle withHandle />
+          {/* Mobile Sidebar - Drawer */}
+          <MobileSidebar />
 
-          {/* Right Chatbot - 25% */}
-          <ResizablePanel defaultSize={25} minSize={20} maxSize={50} id="assistant-panel">
-            <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
-              {chatbot || <AssistantPane />}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+            {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
+            <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
+              <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-muted/30">
+                {children}
+              </div>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle className="hidden md:flex" />
+
+            {/* Right Chatbot - 25% */}
+            <ResizablePanel
+              defaultSize={25}
+              minSize={20}
+              maxSize={50}
+              collapsible={true}
+              collapsedSize={0}
+              onCollapse={() => { console.log("Collapsed") }}
+              id="assistant-panel"
+              className="hidden md:block transition-all duration-300 ease-in-out pl-2"
+            >
+              <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
+                {chatbot || <AssistantPane />}
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       )}
     </div>
   )

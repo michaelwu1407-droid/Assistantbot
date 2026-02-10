@@ -37,11 +37,38 @@ const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
   { id: "lost", title: "Lost", color: "bg-slate-400" },
 ]
 
-interface KanbanBoardProps {
-  deals: DealView[]
+
+// Mapping for industry-specific column titles
+const LABELS = {
+  TRADES: {
+    new: "New Jobs",
+    contacted: "Quoted",
+    negotiation: "In Progress",
+    won: "Completed",
+    lost: "Lost"
+  },
+  REAL_ESTATE: {
+    new: "New Listings",
+    contacted: "Appraised",
+    negotiation: "Under Offer",
+    won: "Settled",
+    lost: "Withdrawn"
+  },
+  DEFAULT: {
+    new: "New Lead",
+    contacted: "Contacted",
+    negotiation: "Negotiation",
+    won: "Won",
+    lost: "Lost"
+  }
 }
 
-export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
+interface KanbanBoardProps {
+  deals: DealView[]
+  industryType?: "TRADES" | "REAL_ESTATE" | null
+}
+
+export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
   const [deals, setDeals] = useState<DealView[]>(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -175,13 +202,17 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 
+          // Determine label based on industry
+          const mapping = industryType ? LABELS[industryType] : LABELS.DEFAULT
+          const title = mapping[col.id as keyof typeof mapping] || col.title
+
           return (
             <div key={col.id} className="w-80 flex-shrink-0 flex flex-col h-full max-h-full">
               {/* Column Header */}
               <div className="flex items-center justify-between mb-3 px-1">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${col.color}`} />
-                  <h3 className="font-semibold text-slate-700 text-sm">{col.title}</h3>
+                  <h3 className="font-semibold text-slate-700 text-sm">{title}</h3>
                   <span className="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
                     {colDeals.length}
                   </span>
@@ -208,7 +239,7 @@ export function KanbanBoard({ deals: initialDeals }: KanbanBoardProps) {
                   ) : (
                     // Empty state
                     <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs text-center p-4">
-                      Drop here to move to {col.title}
+                      Drop here to move to {title}
                     </div>
                   )}
                 </div>

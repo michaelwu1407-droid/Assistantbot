@@ -31,13 +31,17 @@ const tradieSubItems = [
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+    className?: string
+}
+
+export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
     const { setViewMode, viewMode } = useShellStore()
     const isTradie = pathname.includes("/tradie")
 
     return (
-        <div id="sidebar-nav" className="flex h-full w-16 flex-col items-center border-r border-slate-200 bg-slate-50 py-4 z-20">
+        <div id="sidebar-nav" className={cn("flex h-full w-16 flex-col items-center border-r border-slate-200 bg-slate-50 py-4 z-20", className)}>
             <div className="mb-8 font-bold text-slate-900 italic">Pj</div>
 
             {/* Mode Toggle */}

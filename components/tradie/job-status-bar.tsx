@@ -8,6 +8,7 @@ import { updateJobStatus } from "@/actions/job-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SafetyModal } from "./safety-modal";
+import { JobCompletionModal } from "./job-completion-modal";
 
 type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED";
 
@@ -21,6 +22,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
     const [status, setStatus] = useState<JobStatus>(currentStatus);
     const [loading, setLoading] = useState(false);
     const [safetyModalOpen, setSafetyModalOpen] = useState(false);
+    const [completionModalOpen, setCompletionModalOpen] = useState(false);
     const router = useRouter();
 
     const handleStatusChange = async (newStatus: JobStatus) => {
@@ -104,9 +106,9 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                             <Button
                                 variant="outline"
                                 className="text-black bg-white"
-                                onClick={() => { }} // TODO: Complete Job Logic
+                                onClick={() => setCompletionModalOpen(true)}
                             >
-                                In Progress
+                                Complete Job
                             </Button>
                         )}
                     </div>
@@ -118,6 +120,13 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                 onOpenChange={setSafetyModalOpen}
                 onConfirm={onSafetyCheckComplete}
                 dealId={dealId}
+            />
+
+            <JobCompletionModal
+                open={completionModalOpen}
+                onOpenChange={setCompletionModalOpen}
+                dealId={dealId}
+                onSuccess={() => setStatus("COMPLETED")}
             />
         </>
     );

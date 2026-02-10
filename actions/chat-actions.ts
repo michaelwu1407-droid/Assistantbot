@@ -207,62 +207,61 @@ function parseCommandRegex(message: string): ParsedCommand {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function parseCommandAI(message: string, industryContext: any): Promise<ParsedCommand | null> {
-  // Prefer Gemini, fallback to OpenAI if Gemini key missing (future proofing)
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.warn("Missing GEMINI_API_KEY");
+    console.warn("Missing GEMINI_API_KEY - falling back to regex");
     return null;
   }
 
   try {
     const systemPrompt = `
-    You are an intent parser for a CRM system.
-    The user is a ${industryContext.dealLabel} manager.
+    You are an intent parser for a CRM system. 
+    User Context: ${industryContext.dealLabel} manager.
     
-    Available Intents:
-    - show_deals: List pipeline items
-    - show_stale: List items needing attention
-    - create_deal: Create new item. Params: title, company (optional), value (number string)
+    Intents:
+    - show_deals: List pipeline
+    - show_stale: List neglected items
+    - create_deal: New item. Params: title, company (opt), value (number string)
     - move_deal: Update stage. Params: title, stage (new, contacted, negotiation, won, lost)
-    - create_invoice: Generate invoice. Params: title (of deal), amount (number string)
-    - log_activity: Log interaction. Params: type (CALL, EMAIL, MEETING, NOTE), content
-    - search_contacts: Find people. Params: query
-    - add_contact: Create person. Params: name, email
-    - create_task: Set reminder. Params: title
+    - create_invoice: Generate invoice. Params: title, amount
+    - log_activity: Log call/email/note. Params: type (CALL/EMAIL/NOTE/MEETING), content
+    - search_contacts: Find person. Params: query
+    - add_contact: New person. Params: name, email
+    - create_task: Reminder. Params: title
     - morning_digest: Daily summary
-    - start_day: Open map/route view
-    - start_open_house: Open kiosk mode
+    - start_day: Map view
+    - start_open_house: Kiosk mode
     - use_template: Render template. Params: templateName, contactQuery
-    - show_templates: List templates
-    - find_duplicates: Check for dupes
-    - help: User asks for help
+    - find_duplicates: Check dupes
+    - help: Help/commands
+
+    Current Date: ${new Date().toISOString()}
     
-    Output JSON only. Example: {"intent": "create_deal", "params": {"title": "Fix Roof", "value": "500"}}
-    If unsure, return {"intent": "unknown", "params": {}}
+    Output JSON ONLY. No markdown.
+    Example: {"intent": "create_deal", "params": {"title": "Fix Roof", "value": "500"}}
+    Return {"intent": "unknown", "params": {}} if unsure.
     `;
+
+    // Add 5s timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          contents: [{
-            role: "user",
-            parts: [{ text: message }]
-          }],
-          generationConfig: {
-            response_mime_type: "application/json"
-          }
-        })
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: message }] }],
+          generationConfig: { response_mime_type: "application/json" }
+        }),
+        signal: controller.signal
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error("Gemini API Error:", await response.text());
@@ -274,13 +273,10 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 
     if (!content) return null;
 
-    // Gemini usually returns clean JSON in JSON mode, but sometimes wraps in markdown
     const cleanJson = content.replace(/```json\n?|```/g, "").trim();
-    const parsed = JSON.parse(cleanJson) as ParsedCommand;
-
-    return parsed;
+    return JSON.parse(cleanJson) as ParsedCommand;
   } catch (error) {
-    console.error("AI Parse Error:", error);
+    console.warn("AI Parse Error (fallback to regex):", error);
     return null;
   }
 }
