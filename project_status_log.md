@@ -12,6 +12,15 @@
 *   **Verification**: `tsc --noEmit` passes, grep confirms `"demo-user"` only in `lib/auth.ts` fallback
 *   **Status**: Resolves ERR-011 (systemic demo-user hardcoding)
 
+### 2026-02-10 21:50 AEST [Frontend - Antigravity] - Tradie Workflow Refinements
+**Feature**: "Morning" Scenario Gap Closure
+*   **Map View**: Updated `TradiePage` to fetch `getTodaySchedule` (all jobs) instead of just one active job. Map now displays pins for the full day's route.
+*   **Quick Actions**: Moved [Navigate] [Call] [Text] [Parts] buttons in `JobBottomSheet` from hidden "Details" tab to top-level "Quick Actions" row for one-thumb access.
+*   **Status Logic**: Verified "Start Travel" -> "Arrived" -> "Safety Check" flow and button text/color dynamics.
+*   **Files modified**: `app/dashboard/tradie/page.tsx`, `components/tradie/tradie-dashboard-client.tsx`, `components/tradie/job-bottom-sheet.tsx`, `actions/tradie-actions.ts`
+*   **Status**: Resolves "Scenario Gap Analysis" items for Morning/Travel workflow.
+*   **Commit**: `feat(tradie): refine morning workflow with map view, quick actions, and status flow`
+
 ---
 
 ### 2026-02-10 10:40 AEST [Frontend - Antigravity] - Bug Fix
