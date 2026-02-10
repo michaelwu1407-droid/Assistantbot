@@ -286,8 +286,28 @@ export async function completeSafetyCheck(jobId: string) {
 }
 
 /**
- * Save a job photo.
+ * Update job schedule (drag and drop).
  */
+export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
+  try {
+    const deal = await db.deal.update({
+      where: { id: jobId },
+      data: {
+        scheduledAt,
+        // If it was previously unscheduled (NEW/CONTACTED), move to WON (Scheduled) logic or similar?
+        // For now, just update the time.
+        lastActivityAt: new Date()
+      }
+    });
+
+    revalidatePath('/dashboard/tradie/schedule');
+    return { success: true, scheduledAt: deal.scheduledAt };
+  } catch (error) {
+    console.error("Failed to update schedule:", error);
+    return { success: false, error: "Failed to update schedule" };
+  }
+}
+
 export async function saveJobPhoto(dealId: string, url: string, caption?: string) {
   try {
     await db.jobPhoto.create({

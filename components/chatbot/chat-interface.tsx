@@ -30,10 +30,56 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const router = useRouter();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'bot', text: 'Hey! I\'m Pj. How can I help you today?' }
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SR) {
+        const recognition = new SR();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-AU';
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        };
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+          toast.error("Microphone error: " + event.error);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      toast.error("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      if (isListening) {
+        recognitionRef.current.stop();
+      } else {
+        recognitionRef.current.start();
+      }
+    } catch (error) {
+      console.error("Mic toggle error:", error);
+      toast.error("Could not access microphone");
+    }
+  };
 
   useEffect(() => {
     // Load history
@@ -136,7 +182,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setViewMode("TUTORIAL")}>
+            <DropdownMenuItem onClick={() => {\n              setViewMode("TUTORIAL")\n              router.push("/dashboard")\n            }}>
               <Play className="mr-2 h-4 w-4" />
               Replay Tutorial
             </DropdownMenuItem>
@@ -256,7 +302,15 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
             className="w-full bg-slate-100 border-0 rounded-full py-3 pl-4 pr-12 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 placeholder:text-slate-400 disabled:opacity-50"
           />
           <div className="absolute right-2 flex items-center gap-1">
-            <button className="p-2 text-slate-400 hover:text-slate-600">
+            <button
+              onClick={toggleListening}
+              className={cn(
+                "p-2 rounded-full transition-all",
+                isListening
+                  ? "bg-red-100 text-red-600 animate-pulse"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              )}
+            >
               <Mic className="w-5 h-5" />
             </button>
             <button

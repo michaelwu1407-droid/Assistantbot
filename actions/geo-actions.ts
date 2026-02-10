@@ -13,6 +13,7 @@ export interface GeocodedDeal {
   address: string;
   latitude: number;
   longitude: number;
+  scheduledAt: Date | null;
 }
 
 interface GeocodeResult {
@@ -117,6 +118,7 @@ export async function getDealsWithLocation(
     latitude: d.latitude!,
     longitude: d.longitude!,
     contactName: d.contact.name,
+    scheduledAt: d.scheduledAt,
   }));
 }
 

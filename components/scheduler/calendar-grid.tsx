@@ -3,20 +3,23 @@
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { SchedulerJob, DraggableJobCard } from "./draggable-job-card";
+import { format, isToday } from "date-fns";
 
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 8); // 8am to 5pm
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
 interface CalendarGridProps {
-    scheduledJobs: Record<string, SchedulerJob[]>; // Key is "Day-Hour" e.g., "Mon-10"
+    scheduledJobs: Record<string, SchedulerJob[]>; // Key is "yyyy-MM-dd-H"
+    visibleDates: Date[];
 }
 
 // Droppable Cell Component
-function TimeSlot({ id, children, day, hour }: { id: string, children: React.ReactNode, day: string, hour: number }) {
+function TimeSlot({ id, children, date, hour }: { id: string, children: React.ReactNode, date: Date, hour: number }) {
     const { isOver, setNodeRef } = useDroppable({
         id: id,
-        data: { day, hour },
+        data: { date, hour },
     });
+
+    const isCurrentDay = isToday(date);
 
     return (
         <div
@@ -24,8 +27,8 @@ function TimeSlot({ id, children, day, hour }: { id: string, children: React.Rea
             className={cn(
                 "border-r border-b min-h-[80px] p-1 transition-colors relative",
                 isOver ? "bg-blue-50" : "bg-white",
-                // Alternate column backgrounds slightly
-                ["Mon", "Wed", "Fri"].includes(day) && !isOver && "bg-slate-50/30"
+                // Highlight today column slightly
+                isCurrentDay && !isOver && "bg-blue-50/10"
             )}
         >
             <div className="absolute top-1 right-1 text-[10px] text-slate-300 pointer-events-none select-none">
@@ -36,24 +39,36 @@ function TimeSlot({ id, children, day, hour }: { id: string, children: React.Rea
     );
 }
 
-export function CalendarGrid({ scheduledJobs }: CalendarGridProps) {
+export function CalendarGrid({ scheduledJobs, visibleDates }: CalendarGridProps) {
+    // Calculate grid columns: 1 for time + number of visible dates
+    const gridCols = `grid-cols-${visibleDates.length + 1}`;
+
+    // Dynamic style for grid template columns if Tailwind classes aren't enough
+    const gridStyle = {
+        gridTemplateColumns: `80px repeat(${visibleDates.length}, minmax(0, 1fr))`
+    };
+
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
             {/* Header Row */}
-            <div className="grid grid-cols-6 border-b bg-slate-50">
+            <div className="grid border-b bg-slate-50 shrink-0" style={gridStyle}>
                 <div className="p-3 border-r font-medium text-xs text-center text-muted-foreground flex items-center justify-center">
                     Time
                 </div>
-                {DAYS.map(day => (
-                    <div key={day} className="p-3 border-r font-semibold text-sm text-center">
-                        {day}
+                {visibleDates.map(date => (
+                    <div key={date.toISOString()} className={cn(
+                        "p-3 border-r font-semibold text-sm text-center flex flex-col items-center justify-center",
+                        isToday(date) && "bg-blue-50 text-blue-700"
+                    )}>
+                        <span className="uppercase text-xs text-muted-foreground">{format(date, 'EEE')}</span>
+                        <span className="text-lg leading-none">{format(date, 'd')}</span>
                     </div>
                 ))}
             </div>
 
             {/* Scrollable Grid */}
             <div className="overflow-y-auto flex-1 custom-scrollbar">
-                <div className="grid grid-cols-6" style={{ minWidth: "800px" }}>
+                <div className="grid" style={{ ...gridStyle, minWidth: visibleDates.length > 1 ? "800px" : "auto" }}>
                     {/* Time Labels Column */}
                     <div className="flex flex-col">
                         {HOURS.map(hour => (
@@ -64,14 +79,15 @@ export function CalendarGrid({ scheduledJobs }: CalendarGridProps) {
                     </div>
 
                     {/* Days Columns */}
-                    {DAYS.map(day => (
-                        <div key={day} className="flex flex-col">
+                    {visibleDates.map(date => (
+                        <div key={date.toISOString()} className="flex flex-col">
                             {HOURS.map(hour => {
-                                const slotId = `${day}-${hour}`;
+                                const dateKey = format(date, 'yyyy-MM-dd');
+                                const slotId = `${dateKey}-${hour}`;
                                 const jobsInSlot = scheduledJobs[slotId] || [];
 
                                 return (
-                                    <TimeSlot key={slotId} id={slotId} day={day} hour={hour}>
+                                    <TimeSlot key={slotId} id={slotId} date={date} hour={hour}>
                                         {jobsInSlot.map(job => (
                                             <DraggableJobCard key={job.id} job={job} />
                                         ))}

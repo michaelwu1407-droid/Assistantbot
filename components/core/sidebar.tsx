@@ -13,10 +13,18 @@ import {
     Calendar,
     Users,
     FileText,
-    MessageSquare
+    MessageSquare,
+    LayoutTemplate
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useShellStore } from "@/lib/store"
+import { useIndustry } from "@/components/providers/industry-provider"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const navItems = [
     { icon: Home, label: "Hub", href: "/dashboard", id: "hub-link" },
@@ -25,10 +33,16 @@ const navItems = [
 ]
 
 const tradieSubItems = [
-    { icon: Map, label: "Map", href: "/dashboard/tradie/map", id: "map-link" },
+    { icon: Map, label: "Job Map", href: "/dashboard/tradie/map", id: "map-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/tradie/schedule", id: "schedule-link" },
     { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "estimator-link" },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
+]
+
+const agentSubItems = [
+    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "agent-contacts-link" },
+    { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "agent-estimator-link" },
+    { icon: LayoutTemplate, label: "Open House", href: "/kiosk/open-house", id: "kiosk-link" },
 ]
 
 interface SidebarProps {
@@ -38,84 +52,156 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
     const { setViewMode, viewMode } = useShellStore()
-    const isTradie = pathname.includes("/tradie")
+    const { industry, setIndustry } = useIndustry()
+
+    const isTradie = industry === "TRADES" || (industry === null && pathname.includes("/tradie"))
+    const isAgent = industry === "REAL_ESTATE" || (industry === null && pathname.includes("/agent"))
+
+    const handleNavClick = (label: string) => {
+        if (label === "Tradie") setIndustry("TRADES")
+        else if (label === "Agent") setIndustry("REAL_ESTATE")
+        else if (label === "Hub") setIndustry(null)
+    }
 
     return (
-        <div id="sidebar-nav" className={cn("flex h-full w-16 flex-col items-center border-r border-slate-200 bg-slate-50 py-4 z-20", className)}>
-            <div className="mb-8 font-bold text-slate-900 italic">Pj</div>
+        <TooltipProvider delayDuration={0}>
+            <div id="sidebar-nav" className={cn("flex h-full w-16 flex-col items-center border-r border-slate-200 bg-slate-50 py-4 z-20", className)}>
+                <div className="mb-8 font-bold text-slate-900 italic">Pj</div>
 
-            {/* Mode Toggle */}
-            {viewMode === "ADVANCED" && (
-                <button
-                    id="mode-toggle-btn"
-                    onClick={() => setViewMode("BASIC")}
-                    className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
-                    title="Switch to Basic Mode"
-                >
-                    <MessageSquare className="h-5 w-5" />
-                </button>
-            )}
-
-            <nav className="flex flex-1 flex-col gap-4">
-                {navItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
-
-                    return (
-                        <Link key={item.href} href={item.href} id={item.id}>
-                            <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className={cn(
-                                    "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
-                                    isActive
-                                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                                        : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
-                                )}
+                {/* Mode Toggle */}
+                {viewMode === "ADVANCED" && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                id="mode-toggle-btn"
+                                onClick={() => setViewMode("BASIC")}
+                                className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
                             >
-                                <item.icon className="h-5 w-5" />
-                            </motion.div>
-                        </Link>
-                    )
-                })}
-
-                {/* Tradie Sub-items */}
-                {isTradie && (
-                    <>
-                        <div className="h-px bg-slate-200 w-8 mx-auto my-2" />
-                        {tradieSubItems.map((item) => {
-                            const isActive = pathname === item.href
-
-                            return (
-                                <Link key={item.href} href={item.href} id={item.id}>
-                                    <motion.div
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        className={cn(
-                                            "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
-                                            isActive
-                                                ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                                                : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
-                                        )}
-                                    >
-                                        <item.icon className="h-5 w-5" />
-                                    </motion.div>
-                                </Link>
-                            )
-                        })}
-                    </>
+                                <MessageSquare className="h-5 w-5" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Switch to Basic Mode</TooltipContent>
+                    </Tooltip>
                 )}
-            </nav>
 
-            <div className="mt-auto flex flex-col gap-4">
-                <Link href="/dashboard/settings" id="settings-link">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
-                        <Settings className="h-5 w-5" />
-                    </div>
-                </Link>
-                <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
-                    <LogOut className="h-5 w-5" />
-                </button>
+                <nav className="flex flex-1 flex-col gap-4">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+
+                        return (
+                            <Tooltip key={item.href}>
+                                <TooltipTrigger asChild>
+                                    <Link
+                                        href={item.href}
+                                        id={item.id}
+                                        onClick={() => handleNavClick(item.label)}
+                                    >
+                                        <motion.div
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            className={cn(
+                                                "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                                                isActive
+                                                    ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                                                    : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                                            )}
+                                        >
+                                            <item.icon className="h-5 w-5" />
+                                        </motion.div>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">{item.label}</TooltipContent>
+                            </Tooltip>
+                        )
+                    })}
+
+                    {/* Tradie Sub-items */}
+                    {isTradie && (
+                        <>
+                            <div className="h-px bg-slate-200 w-8 mx-auto my-2" />
+                            {tradieSubItems.map((item) => {
+                                const isActive = pathname === item.href
+
+                                return (
+                                    <Tooltip key={item.href}>
+                                        <TooltipTrigger asChild>
+                                            <Link href={item.href} id={item.id}>
+                                                <motion.div
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    className={cn(
+                                                        "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                                                        isActive
+                                                            ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                                                            : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                                                    )}
+                                                >
+                                                    <item.icon className="h-5 w-5" />
+                                                </motion.div>
+                                            </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">{item.label}</TooltipContent>
+                                    </Tooltip>
+                                )
+                            })}
+                        </>
+                    )}
+
+                    {/* Agent Sub-items */}
+                    {isAgent && (
+                        <>
+                            <div className="h-px bg-slate-200 w-8 mx-auto my-2" />
+                            {agentSubItems.map((item) => {
+                                const isActive = pathname === item.href
+
+                                return (
+                                    <Tooltip key={item.href}>
+                                        <TooltipTrigger asChild>
+                                            <Link href={item.href} id={item.id}>
+                                                <motion.div
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    className={cn(
+                                                        "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                                                        isActive
+                                                            ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                                                            : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                                                    )}
+                                                >
+                                                    <item.icon className="h-5 w-5" />
+                                                </motion.div>
+                                            </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">{item.label}</TooltipContent>
+                                    </Tooltip>
+                                )
+                            })}
+                        </>
+                    )}
+                </nav>
+
+                <div className="mt-auto flex flex-col gap-4">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Link href="/dashboard/settings" id="settings-link">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
+                                    <Settings className="h-5 w-5" />
+                                </div>
+                            </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Settings</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
+                                <LogOut className="h-5 w-5" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Log Out</TooltipContent>
+                    </Tooltip>
+                </div>
             </div>
-        </div>
+        </TooltipProvider>
     )
 }

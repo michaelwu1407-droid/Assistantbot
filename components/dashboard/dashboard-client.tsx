@@ -29,14 +29,14 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
             />
 
             {/* Top Row: Health & Activity */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[400px] shrink-0">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 shrink-0 xl:h-[400px]">
                 {/* Health Widget (2/3 width) */}
-                <div className="xl:col-span-2 h-full overflow-hidden">
+                <div className="xl:col-span-2 h-full overflow-hidden min-h-[300px]">
                     <DealHealthWidget deals={deals} />
                 </div>
 
                 {/* Activity Feed (1/3 width) - Moved here to give Kanban full width below */}
-                <div className="h-full overflow-hidden">
+                <div className="h-full overflow-hidden min-h-[300px]">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>

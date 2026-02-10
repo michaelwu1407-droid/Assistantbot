@@ -1,19 +1,34 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Bot, Maximize2, Minimize2, Send, Mic, MicOff } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bot, Maximize2, Minimize2, Send, Mic, MicOff, Settings, Check, X, Loader2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import { format, isSameDay, isToday, isYesterday } from "date-fns"
+import { toast } from "sonner"
 
 interface Message {
     id: string
     role: "user" | "assistant"
     content: string
+    timestamp: number
+    action?: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: any
+}
+
+interface DraftDealData {
+    title: string
+    company?: string
+    value?: string
 }
 
 export function AssistantPane() {
@@ -26,6 +41,7 @@ export function AssistantPane() {
     const scrollRef = useRef<HTMLDivElement>(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null)
+    const router = useRouter()
 
     useEffect(() => {
         // Scroll to bottom on new message
@@ -52,6 +68,11 @@ export function AssistantPane() {
                     const transcript = event.results[0][0].transcript
                     setInput((prev: string) => prev ? `${prev} ${transcript}` : transcript)
                 }
+                recognition.onerror = (event: any) => {
+                    console.error("Speech recognition error", event.error)
+                    setIsListening(false)
+                    toast.error("Microphone error: " + event.error)
+                }
 
                 recognitionRef.current = recognition
             }
@@ -60,37 +81,52 @@ export function AssistantPane() {
 
     const toggleListening = () => {
         if (!recognitionRef.current) {
-            alert("Speech recognition is not supported in this browser.")
+            toast.error("Speech recognition is not supported in this browser.")
             return
         }
 
-        if (isListening) {
-            recognitionRef.current.stop()
-        } else {
-            recognitionRef.current.start()
+        try {
+            if (isListening) {
+                recognitionRef.current.stop()
+            } else {
+                recognitionRef.current.start()
+            }
+        } catch (error) {
+            console.error("Mic toggle error:", error)
+            toast.error("Could not access microphone")
         }
     }
 
-    const handleSend = async () => {
-        if (!input.trim() || !workspaceId || isLoading) return
+    const handleSend = async (overrideMsg?: string, overrideParams?: any) => {
+        const msgText = overrideMsg || input
+        if (!msgText.trim() && !overrideParams) return
+        if (!workspaceId || isLoading) return
 
         const userMsg: Message = {
             id: Date.now().toString(),
             role: "user",
-            content: input
+            content: msgText,
+            timestamp: Date.now()
         }
 
-        setMessages(prev => [...prev, userMsg])
+        // Only add user message if it's not a background confirmation
+        if (!overrideParams?.confirmed) {
+            setMessages(prev => [...prev, userMsg])
+        }
+
         setInput("")
         setIsLoading(true)
 
         try {
-            const response = await processChat(userMsg.content, workspaceId)
+            const response = await processChat(msgText, workspaceId, overrideParams)
 
             const botMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                content: response.message
+                content: response.message,
+                timestamp: Date.now(),
+                action: response.action,
+                data: response.data
             }
             setMessages(prev => [...prev, botMsg])
 
@@ -99,25 +135,22 @@ export function AssistantPane() {
                 switch (response.action) {
                     case "start_day":
                         setViewMode("ADVANCED")
-                        // Navigate to tradie map view
                         window.location.href = "/dashboard/tradie/map"
                         break
                     case "start_open_house":
-                        // Navigate to kiosk mode
                         window.location.href = "/kiosk/open-house"
                         break
                     case "show_deals":
-                        setViewMode("ADVANCED")
-                        // Shows kanban already visible in dashboard
-                        break
                     case "show_stale":
-                        setViewMode("ADVANCED")
-                        break
-                    case "create_deal":
-                        setViewMode("ADVANCED")
-                        break
+                    case "create_deal": // Success case
                     case "create_invoice":
-                        setViewMode("ADVANCED")
+                        if (viewMode === "BASIC") {
+                            // Optional: Switch to advanced if looking at heavy data
+                            // setViewMode("ADVANCED")
+                        }
+                        break
+                    case "draft_deal":
+                        // Stay in chat to confirm
                         break
                 }
             }
@@ -127,7 +160,8 @@ export function AssistantPane() {
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                content: "Sorry, I encountered an error processing your request."
+                content: "Sorry, I encountered an error processing your request.",
+                timestamp: Date.now()
             }
             setMessages(prev => [...prev, errorMsg])
         } finally {
@@ -142,85 +176,215 @@ export function AssistantPane() {
         }
     }
 
+    const handleConfirmDraft = async (draft: DraftDealData) => {
+        // Trigger creation with confirmed flag
+        await handleSend(`Create ${draft.title}`, {
+            intent: "create_deal",
+            confirmed: "true",
+            title: draft.title,
+            company: draft.company,
+            value: draft.value
+        })
+    }
+
+    // Helper to render date dividers
+    const renderDateDivider = (timestamp: number, index: number) => {
+        if (index === 0) return renderDividerContent(timestamp)
+
+        const prevMsg = messages[index - 1]
+        if (!isSameDay(timestamp, prevMsg.timestamp)) {
+            return renderDividerContent(timestamp)
+        }
+        return null
+    }
+
+    const renderDividerContent = (timestamp: number) => {
+        let label = format(timestamp, "MMMM d, yyyy")
+        if (isToday(timestamp)) label = "Today"
+        if (isYesterday(timestamp)) label = "Yesterday"
+
+        return (
+            <div className="flex items-center gap-4 my-4">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                    {label}
+                </span>
+                <Separator className="flex-1" />
+            </div>
+        )
+    }
+
     return (
         <div
             id="assistant-pane"
             className={cn(
-                "flex h-full flex-col bg-background transition-all duration-500 ease-in-out",
+                "flex h-full flex-col bg-background transition-all duration-500 ease-in-out relative overflow-hidden",
                 // In Basic view, we want a centered, floating card look if in premium mode
                 viewMode === "BASIC" && "md:max-w-3xl md:mx-auto md:h-[85vh] md:rounded-2xl md:shadow-2xl md:border",
                 // Glass effect for premium basic mode
                 viewMode === "BASIC" && "supports-[backdrop-filter]:bg-background/80 backdrop-blur-xl"
             )}
         >
-            <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl">
+            {/* Background Pattern for Basic Mode */}
+            {viewMode === "BASIC" && (
+                <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+                     style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
+                />
+            )}
+
+            {/* Header */}
+            <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl z-10">
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Bot className="h-5 w-5" />
                     </div>
-                    <span className="font-semibold text-foreground">Pj Assistant</span>
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-foreground leading-none">Pj Assistant</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-0.5">
+                            {industry || "General"} AI
+                        </span>
+                    </div>
                 </div>
 
-                {/* Layout Toggle */}
-                <Button
-                    id="mode-toggle"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode(viewMode === "BASIC" ? "ADVANCED" : "BASIC")}
-                    title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}
-                >
-                    {viewMode === "BASIC" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                </Button>
+                <div className="flex items-center gap-1">
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => router.push("/dashboard/settings")}
+                        title="Settings"
+                    >
+                        <Settings className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+
+                    <Button
+                        id="mode-toggle"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewMode(viewMode === "BASIC" ? "ADVANCED" : "BASIC")}
+                        title={viewMode === "BASIC" ? "Show CRM" : "Focus Chat"}
+                    >
+                        {viewMode === "BASIC" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex-1 overflow-hidden bg-muted/30">
+            {/* Chat Area */}
+            <div className="flex-1 overflow-hidden bg-muted/30 relative z-10">
                 <div className="h-full flex flex-col">
                     <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={scrollRef}>
                         {messages.length === 0 && (
-                            <div className="text-muted-foreground text-sm space-y-4 max-w-sm mx-auto mt-10 text-center">
-                                <Bot className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                                <p>
-                                    {industry === "TRADES"
-                                        ? "G'day! Ready to quote some jobs or chase invoices?"
-                                        : industry === "REAL_ESTATE"
-                                            ? "Hey! Ready for the open house or need to find a buyer?"
-                                            : "Hey! I'm ready to help you manage your jobs and leads."}
-                                </p>
-                                <div className="grid gap-2">
-                                    <Button variant="outline" size="sm" className="justify-start h-auto py-2 px-3 text-left font-normal" onClick={() => setInput(industry === "TRADES" ? "Start my day" : "Who is matching 123 Main St?")}>
+                            <div className="text-muted-foreground text-sm space-y-6 max-w-sm mx-auto mt-20 text-center">
+                                <div className="bg-primary/5 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-6">
+                                    <Bot className="h-12 w-12 text-primary/80" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-semibold text-foreground">
+                                        {industry === "TRADES" ? "G'day! Ready to work?" : industry === "REAL_ESTATE" ? "Welcome back, Agent." : "How can I help?"}
+                                    </h3>
+                                    <p className="text-muted-foreground/80">
+                                        {industry === "TRADES"
+                                            ? "I can help you quote jobs, chase invoices, or plan your route."
+                                            : industry === "REAL_ESTATE"
+                                                ? "I can help you match buyers, schedule opens, or write listings."
+                                                : "I'm ready to help you manage your jobs and leads."}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-2 pt-4">
+                                    <Button variant="outline" size="sm" className="justify-start h-auto py-3 px-4 text-left font-normal" onClick={() => setInput(industry === "TRADES" ? "Start my day" : "Who is matching 123 Main St?")}>
                                         "{industry === "TRADES" ? "Start my day" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}"
                                     </Button>
-                                    <Button variant="outline" size="sm" className="justify-start h-auto py-2 px-3 text-left font-normal" onClick={() => setInput("Show stale deals")}>
+                                    <Button variant="outline" size="sm" className="justify-start h-auto py-3 px-4 text-left font-normal" onClick={() => setInput("Show stale deals")}>
                                         "Show stale deals"
                                     </Button>
                                 </div>
                             </div>
                         )}
 
-                        {messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={cn(
-                                    "flex w-full",
+                        {messages.map((msg, index) => (
+                            <div key={msg.id}>
+                                {renderDateDivider(msg.timestamp, index)}
+
+                                <div className={cn(
+                                    "flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300",
                                     msg.role === "user" ? "justify-end" : "justify-start"
-                                )}
-                            >
-                                <div
-                                    className={cn(
-                                        "rounded-2xl px-4 py-3 max-w-[85%] text-sm whitespace-pre-wrap shadow-sm",
+                                )}>
+                                    <div className={cn(
+                                        "rounded-2xl px-4 py-3 max-w-[85%] text-sm shadow-sm",
                                         msg.role === "user"
                                             ? "bg-primary text-primary-foreground rounded-br-none"
                                             : "bg-card text-card-foreground border border-border/50 rounded-bl-none"
-                                    )}
-                                >
-                                    {msg.content}
+                                    )}>
+                                        <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                                        {/* Generative UI: Draft Deal Card */}
+                                        {msg.action === "draft_deal" && msg.data && (
+                                            <Card className="mt-3 border-primary/20 bg-muted/30 overflow-hidden">
+                                                <CardHeader className="pb-2 bg-muted/50">
+                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"/>
+                                                        Draft Deal
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="pt-3 text-xs space-y-2">
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Title:</span>
+                                                        <span className="col-span-2 font-medium">{msg.data.title}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Client:</span>
+                                                        <span className="col-span-2 font-medium">{msg.data.company || "New Client"}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Value:</span>
+                                                        <span className="col-span-2 font-medium text-emerald-600">
+                                                            ${Number(msg.data.value).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                </CardContent>
+                                                <CardFooter className="p-2 bg-muted/50 flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="flex-1 h-8 text-xs hover:bg-destructive/10 hover:text-destructive"
+                                                        onClick={() => {
+                                                            setMessages(prev => [...prev, {
+                                                                id: Date.now().toString(),
+                                                                role: "assistant",
+                                                                content: "Cancelled draft.",
+                                                                timestamp: Date.now()
+                                                            }])
+                                                        }}
+                                                    >
+                                                        <X className="h-3 w-3 mr-1"/> Cancel
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        className="flex-1 h-8 text-xs"
+                                                        onClick={() => handleConfirmDraft(msg.data)}
+                                                    >
+                                                        <Check className="h-3 w-3 mr-1"/> Confirm
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
+                                        )}
+
+                                        <div className={cn(
+                                            "text-[10px] mt-1 text-right opacity-50",
+                                            msg.role === "user" ? "text-primary-foreground" : "text-muted-foreground"
+                                        )}>
+                                            {format(msg.timestamp, "h:mm a")}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ))}
 
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">
+                                <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
+                                    <Loader2 className="h-3 w-3 animate-spin"/>
                                     Thinking...
                                 </div>
                             </div>
@@ -229,7 +393,8 @@ export function AssistantPane() {
                 </div>
             </div>
 
-            <div className="p-4 border-t bg-background rounded-b-2xl">
+            {/* Input Area */}
+            <div className="p-4 border-t bg-background rounded-b-2xl z-10">
                 <div className="flex gap-2 relative">
                     <Button
                         id="voice-btn"
@@ -253,7 +418,7 @@ export function AssistantPane() {
                     <Button
                         size="icon"
                         className="absolute right-0 top-0 h-full rounded-l-none"
-                        onClick={handleSend}
+                        onClick={() => handleSend()}
                         disabled={isLoading || !workspaceId || !input.trim()}
                     >
                         <Send className="h-4 w-4" />

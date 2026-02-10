@@ -61,66 +61,73 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
     }, [contactId, dealId, limit])
 
     return (
-        <Card className={cn("h-full border-slate-200 shadow-none", className)}>
-            <CardHeader className="pb-3 pt-4 px-4">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+        <Card className={cn("h-full border-border/50 shadow-sm flex flex-col overflow-hidden", className)}>
+            <CardHeader className="pb-3 pt-5 px-5 border-b border-border/40 bg-muted/20 shrink-0">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
                     {contactId || dealId ? 'History' : 'Recent Activity'}
+                    <span className="text-xs font-normal text-muted-foreground ml-auto bg-muted px-2 py-0.5 rounded-full">
+                        {activities.length}
+                    </span>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="px-2 pb-2 h-[300px] overflow-y-auto custom-scrollbar">
-                {loading ? (
-                    <div className="flex flex-col gap-4 p-2">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="flex gap-3">
-                                <Skeleton className="h-8 w-8 rounded-full" />
-                                <div className="flex-1 space-y-2">
-                                    <Skeleton className="h-3 w-3/4" />
-                                    <Skeleton className="h-2 w-1/2" />
+            <CardContent className="p-0 flex-1 overflow-hidden min-h-0">
+                <div className="h-full overflow-y-auto custom-scrollbar px-3 py-3">
+                    {loading ? (
+                        <div className="flex flex-col gap-4 p-2">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex gap-3">
+                                    <Skeleton className="h-8 w-8 rounded-full" />
+                                    <div className="flex-1 space-y-2">
+                                        <Skeleton className="h-3 w-3/4" />
+                                        <Skeleton className="h-2 w-1/2" />
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    ) : activities.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-12">
+                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                <MessageSquare className="h-5 w-5 opacity-40" />
                             </div>
-                        ))}
-                    </div>
-                ) : activities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
-                        <MessageSquare className="h-8 w-8 mb-2 opacity-20" />
-                        No activity found
-                    </div>
-                ) : (
-                    <div className="space-y-4 p-2">
-                        {activities.map((activity) => {
-                            const Icon = ICON_MAP[activity.type] || MessageSquare
-                            const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
+                            No activity found
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            {activities.map((activity) => {
+                                const Icon = ICON_MAP[activity.type] || MessageSquare
+                                const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
 
-                            return (
-                                <div
-                                    key={activity.id}
-                                    className="flex gap-3 items-start group cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"
-                                    onClick={() => {
-                                        if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
-                                        else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
-                                    }}
-                                >
-                                    <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                                        <Icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1 space-y-0.5 min-w-0">
-                                        <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-                                            {activity.title}
-                                        </p>
-                                        {activity.description && (
-                                            <p className="text-xs text-slate-500 line-clamp-1">
-                                                {activity.description}
+                                return (
+                                    <div
+                                        key={activity.id}
+                                        className="flex gap-3 items-start group cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border border-transparent hover:border-border/50"
+                                        onClick={() => {
+                                            if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
+                                            else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
+                                        }}
+                                    >
+                                        <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>
+                                            <Icon className="h-4 w-4" />
+                                        </div>
+                                        <div className="flex-1 space-y-1 min-w-0">
+                                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                                                {activity.title}
                                             </p>
-                                        )}
+                                            {activity.description && (
+                                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                                    {activity.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0 font-medium">
+                                            {activity.time}
+                                        </span>
                                     </div>
-                                    <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
-                                        {activity.time}
-                                    </span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
             </CardContent>
         </Card>
     )

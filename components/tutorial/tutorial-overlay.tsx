@@ -185,7 +185,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const [isVisible, setIsVisible] = useState(true)
 
     // Determined visibility
-    const shouldShow = viewMode === "TUTORIAL" && isVisible && !tutorialComplete
+    const shouldShow = viewMode === "TUTORIAL" && isVisible
 
     // If not showing, return null safely for now (since Spotlight handles null targetId, but we want to unmount logic)
     // Actually, to prevent the `removeChild` error, we should return null here.
