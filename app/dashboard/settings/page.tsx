@@ -1,3 +1,4 @@
+// Force rebuild: Fix Vercel build error
 "use client"
 
 import { Separator } from "@/components/ui/separator"
@@ -8,7 +9,7 @@ import { Play } from "lucide-react"
 import { useShellStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
 
-export default function SettingsProfilePage() {
+export default function SettingsPage() {
     const { setViewMode } = useShellStore()
     const router = useRouter()
 
