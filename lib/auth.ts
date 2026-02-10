@@ -17,8 +17,10 @@ export async function getAuthUserId(): Promise<string> {
             return user.id
         }
     } catch {
-        // Supabase client creation failed — fall back
+        // Supabase client creation failed — fall back to demo-user for local dev without Supabase configured
     }
+    // Fallback: only used when Supabase env vars are missing (local dev). All server pages and client
+    // components rely on getAuthUserId() / getAuthUser(), so a real Supabase user ID is used in production.
     return "demo-user"
 }
 

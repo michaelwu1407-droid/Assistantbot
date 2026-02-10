@@ -7,9 +7,13 @@ interface ShellState {
   viewMode: ViewMode
   persona: Persona
   tutorialComplete: boolean
+  workspaceId: string | null
+  userId: string | null
   setViewMode: (mode: ViewMode) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
+  setWorkspaceId: (id: string) => void
+  setUserId: (id: string) => void
 }
 
 // Check localStorage for persisted tutorial state (client-side only)
@@ -26,6 +30,8 @@ export const useShellStore = create<ShellState>((set) => ({
   viewMode: 'BASIC',
   persona: 'TRADIE',
   tutorialComplete: getPersistedTutorialComplete(),
+  workspaceId: null,
+  userId: null,
   setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
   setPersona: (persona: Persona) => set({ persona }),
   setTutorialComplete: () => {
@@ -33,5 +39,7 @@ export const useShellStore = create<ShellState>((set) => ({
     try { localStorage.setItem('pj_tutorial_complete', 'true') } catch { }
     set({ tutorialComplete: true })
   },
+  setWorkspaceId: (id: string) => set({ workspaceId: id }),
+  setUserId: (id: string) => set({ userId: id }),
 }))
 

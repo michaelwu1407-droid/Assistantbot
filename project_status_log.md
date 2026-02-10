@@ -2,6 +2,48 @@
 
 **Purpose**: Usage by Google Antigravity (Frontend), Claude Code (Backend), and Aider (Backend) to stay synchronized on the "Pj Buddy" project.
 
+---
+
+### 2026-02-10 12:15 AEST [Frontend - Antigravity] - Systemic Cleanup
+**Fix**: Eliminated ALL remaining `"demo-user"` hardcoding (20 instances → 0 except auth.ts fallback)
+*   **Approach**: Server pages use `getAuthUserId()` directly. Client components read from Zustand `ShellStore`, populated by new `ShellInitializer` component in layouts.
+*   **Files created**: `components/layout/shell-initializer.tsx`
+*   **Files modified** (14): `lib/store.ts`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`, `app/dashboard/estimator/page.tsx`, `app/dashboard/tradie/page.tsx`, `app/dashboard/tradie/map/page.tsx`, `app/dashboard/agent/page.tsx`, `app/dashboard/settings/workspace/page.tsx`, `app/inbox/page.tsx`, `app/kiosk/open-house/page.tsx`, `app/(dashboard)/tradie/page.tsx`, `app/(dashboard)/agent/page.tsx`, `components/core/assistant-pane.tsx`, `components/core/command-palette.tsx`, `components/dashboard/notification-feed.tsx`, `components/tradie/tradie-dashboard-client.tsx`, `lib/auth.ts`
+*   **Verification**: `tsc --noEmit` passes, grep confirms `"demo-user"` only in `lib/auth.ts` fallback
+*   **Status**: Resolves ERR-011 (systemic demo-user hardcoding)
+
+---
+
+### 2026-02-10 10:40 AEST [Frontend - Antigravity] - Bug Fix
+**Fix**: Centralized auth — eliminated all `"demo-user"` hardcoding in critical paths
+*   **Root Cause**: `completeOnboarding()` marked demo-user's workspace as onboarded. Dashboard checked real user's workspace (still `false`) → redirect to `/setup`.
+*   **Solution**: Created `lib/auth.ts` with `getAuthUserId()` and `getAuthUser()` helpers. Updated 5 critical-path files to use real auth.
+*   **Files created**: `lib/auth.ts`
+*   **Files modified**: `actions/workspace-actions.ts`, `app/dashboard/page.tsx`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`, `app/setup/page.tsx`
+*   **Commit**: `f34066e`
+*   **Status**: Resolves ERR-010 (Advanced Mode → /setup redirect)
+
+### 2026-02-10 09:10 AEST [Frontend - Antigravity] - Bug Fix
+**Fix**: Correct onboarding flow, persist tutorial state, fix service worker redirects
+*   **Middleware**: Redirects auth users to `/dashboard` instead of `/setup`
+*   **Setup page**: Already-onboarded users go to `/dashboard` (no tutorial trigger)
+*   **Tutorial**: `tutorialComplete` persisted to `localStorage` via Zustand store
+*   **Service Worker**: Now skips navigation requests — prevents `opaqueredirect` error
+*   **Files modified**: `middleware.ts`, `app/setup/page.tsx`, `lib/store.ts`, `public/sw.js`
+*   **Files created**: `error_tracking_log.md`
+*   **Commit**: `180727c`
+*   **Status**: Resolves ERR-004, ERR-005, ERR-006
+
+### 2026-02-09 23:00 AEST [Frontend - Antigravity] - Bug Fix
+**Fix**: React Error #310 — added Suspense boundary and ThemeProvider
+*   **Shell.tsx** uses `useSearchParams()` which requires `<Suspense>` in Next.js 14+
+*   **Toaster** (sonner) uses `useTheme()` which requires `<ThemeProvider>`
+*   **Files modified**: `app/layout.tsx`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`
+*   **Commit**: `b445f95`
+*   **Status**: Resolves ERR-002, ERR-003
+
+---
+
 ## Project Summary
 **Pj Buddy** is a high-velocity CRM platform for SMEs featuring a "Hub and Spoke" architecture.
 *   **The Core (Hub)**: Universal CRM (Contacts, Pipeline, Activity Feed).

@@ -1,13 +1,15 @@
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getDeals } from "@/actions/deal-actions";
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client";
+import { getAuthUserId } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
 export default async function TradiePage() {
   let workspace, deals;
   try {
-    workspace = await getOrCreateWorkspace("demo-user");
+    const userId = await getAuthUserId();
+    workspace = await getOrCreateWorkspace(userId);
     deals = await getDeals(workspace.id);
   } catch {
     return (
@@ -22,14 +24,14 @@ export default async function TradiePage() {
   // 1. Deals in 'CONTRACT' stage (mapped from 'TRAVELING'/'ARRIVED')
   // 2. Deals in 'NEW' or 'CONTACTED' (Scheduled)
   // 3. Sort by date (oldest first? or newest?)
-  
-  const activeJob = deals.find(d => d.stage === 'contract') 
+
+  const activeJob = deals.find(d => d.stage === 'contract')
     || deals.find(d => d.stage === 'new' || d.stage === 'contacted');
 
   return (
-    <TradieDashboardClient 
-      initialJob={activeJob} 
-      userName={workspace.name.split(' ')[0] || "Mate"} 
+    <TradieDashboardClient
+      initialJob={activeJob}
+      userName={workspace.name.split(' ')[0] || "Mate"}
     />
   );
 }

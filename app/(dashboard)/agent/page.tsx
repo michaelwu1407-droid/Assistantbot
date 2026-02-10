@@ -5,11 +5,13 @@ import { SpeedToLeadWidget } from "@/components/agent/speed-to-lead"
 import { CommissionCalculator } from "@/components/agent/commission-calculator"
 import { VendorReportCard } from "@/components/agent/vendor-report-card"
 import { PulseWidget } from "@/components/dashboard/pulse-widget"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
 export default async function AgentPage() {
-    const workspace = await getOrCreateWorkspace("demo-user")
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
 
     // Parallel fetching
     const [freshLeads, pipeline] = await Promise.all([

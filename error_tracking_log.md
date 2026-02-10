@@ -112,3 +112,20 @@
 3. **Redirect loops** → Compare user identification logic across ALL pages in the redirect chain
 4. **Service Worker errors** → Check `public/sw.js` fetch handler; skip navigation requests
 5. **"opaqueredirect"** → SW is trying to cache a redirect response; let browser handle navigation natively
+6. **Advanced Mode takes me to /setup** → `completeOnboarding()` or layout uses wrong user ID (see ERR-010)
+
+---
+
+## ERR-010: Advanced Mode Redirects to /setup (Systemic Auth Mismatch)
+- **Status**: ✅ RESOLVED (commit `f34066e`)
+- **Symptoms**: User completes onboarding, sees dashboard in Basic Mode. Clicking "Advanced Mode" redirects to `/setup`.
+- **Root Cause**: **Systemic `"demo-user"` hardcoding across 25+ files**. The most critical instance was `completeOnboarding()` in `workspace-actions.ts`, which marked the **demo-user's** workspace as completed, not the real authenticated user's. When the dashboard page (which correctly used the real user) checked `onboardingComplete`, it found `false` and redirected to `/setup`.
+- **Solution**: Created a centralized `lib/auth.ts` module with `getAuthUserId()` and `getAuthUser()` helpers. Updated all critical-path files to use these instead of hardcoded `"demo-user"`:
+  - `actions/workspace-actions.ts` (`completeOnboarding`)
+  - `app/dashboard/page.tsx`
+  - `app/dashboard/layout.tsx`
+  - `app/(dashboard)/layout.tsx`
+  - `app/setup/page.tsx`
+- **Files Modified**: 6 files (5 existing + 1 new `lib/auth.ts`)
+- **Remaining**: ~~15 non-critical files still use `"demo-user"`~~ All 14 remaining files migrated on 2026-02-10. `"demo-user"` now only exists as the fallback in `lib/auth.ts`.
+- **Learning**: NEVER hardcode user IDs. Create a centralized auth helper from day one and use it everywhere. When fixing auth in one file, grep for ALL occurrences of the pattern.

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { processChat } from "@/actions/chat-actions"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { cn } from "@/lib/utils"
 
 interface Message {
@@ -18,21 +17,15 @@ interface Message {
 }
 
 export function AssistantPane() {
-    const { viewMode, setViewMode } = useShellStore()
+    const { viewMode, setViewMode, workspaceId } = useShellStore()
     const { industry } = useIndustry()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [isListening, setIsListening] = useState(false)
-    const [workspaceId, setWorkspaceId] = useState<string | null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null)
-
-    useEffect(() => {
-        // Initialize workspace
-        getOrCreateWorkspace("demo-user").then(ws => setWorkspaceId(ws.id))
-    }, [])
 
     useEffect(() => {
         // Scroll to bottom on new message

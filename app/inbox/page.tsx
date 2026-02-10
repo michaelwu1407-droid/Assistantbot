@@ -4,6 +4,7 @@ import { getInboxThreads } from "@/actions/messaging-actions";
 import { InboxView } from "@/components/crm/inbox-view";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { getAuthUserId } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,8 @@ export default async function InboxPage() {
   let workspace, threads;
   let dbError = false;
   try {
-    workspace = await getOrCreateWorkspace("demo-user");
+    const userId = await getAuthUserId();
+    workspace = await getOrCreateWorkspace(userId);
     threads = await getInboxThreads(workspace.id);
   } catch {
     dbError = true;

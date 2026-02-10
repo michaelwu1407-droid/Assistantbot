@@ -1,11 +1,13 @@
 import { Separator } from "@/components/ui/separator"
 import { WorkspaceForm } from "./workspace-form"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = "force-dynamic";
 
 export default async function WorkspaceSettingsPage() {
-    const workspace = await getOrCreateWorkspace("demo-user");
+    const userId = await getAuthUserId();
+    const workspace = await getOrCreateWorkspace(userId);
 
     return (
         <div className="space-y-6">

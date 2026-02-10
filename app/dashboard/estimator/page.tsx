@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { EstimatorForm } from "@/components/tradie/estimator-form"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,8 @@ export default async function EstimatorPage() {
     let workspace, deals;
     let dbError = false;
     try {
-        workspace = await getOrCreateWorkspace("demo-user")
+        const userId = await getAuthUserId()
+        workspace = await getOrCreateWorkspace(userId)
         deals = await getDeals(workspace.id)
     } catch {
         dbError = true;

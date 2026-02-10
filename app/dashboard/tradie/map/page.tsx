@@ -4,6 +4,7 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { Button } from "@/components/ui/button"
 import { List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,8 @@ export default async function TradieMapPage() {
     let workspace;
     let dbError = false;
     try {
-        workspace = await getOrCreateWorkspace("demo-user")
+        const userId = await getAuthUserId()
+        workspace = await getOrCreateWorkspace(userId)
         await getDeals(workspace.id)
     } catch {
         dbError = true;

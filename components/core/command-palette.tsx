@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Search, User, DollarSign, CheckCircle2, Loader2, ArrowRight } from "lucide-react"
 import { globalSearch, type SearchResultItem } from "@/actions/search-actions"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { useShellStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
 export function CommandPalette() {
@@ -12,14 +12,10 @@ export function CommandPalette() {
   const [query, setQuery] = React.useState("")
   const [results, setResults] = React.useState<SearchResultItem[]>([])
   const [loading, setLoading] = React.useState(false)
-  const [workspaceId, setWorkspaceId] = React.useState<string | null>(null)
+  const workspaceId = useShellStore(s => s.workspaceId)
   const router = useRouter()
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    getOrCreateWorkspace("demo-user").then(ws => setWorkspaceId(ws.id))
-  }, [])
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -75,7 +71,7 @@ export function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-slate-900/20 backdrop-blur-sm transition-all">
-      <div 
+      <div
         ref={containerRef}
         className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
       >
@@ -135,7 +131,7 @@ export function CommandPalette() {
           ))}
         </div>
       </div>
-      
+
       {/* Backdrop click to close */}
       <div className="absolute inset-0 -z-10" onClick={() => setOpen(false)} />
     </div>

@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils"
 // For now, these imports would likely break on client-side if they use 'use server' inside without being wrapped or called correctly.
 // But Next.js handles server actions imported in client components just fine.
 import { getNotifications, markAsRead, markAllAsRead, NotificationView } from "@/actions/notification-actions"
+import { useShellStore } from "@/lib/store"
 
 export function NotificationFeed() {
     const [notifications, setNotifications] = useState<NotificationView[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
 
-    // TODO: Ideally pass userId or fetch from session context.
-    const userId = "demo-user"
+    const userId = useShellStore(s => s.userId) ?? "anonymous"
 
     useEffect(() => {
         if (isOpen) {

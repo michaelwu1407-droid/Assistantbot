@@ -2,6 +2,7 @@ import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { generateQRDataURL } from "@/lib/qrcode"
+import { getAuthUserId } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,8 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         dealId = params.dealId
 
         if (!dealId) {
-            const workspace = await getOrCreateWorkspace("demo-user")
+            const userId = await getAuthUserId()
+            const workspace = await getOrCreateWorkspace(userId)
             const deals = await getDeals(workspace.id)
             const firstDeal = deals[0]
             if (firstDeal) {

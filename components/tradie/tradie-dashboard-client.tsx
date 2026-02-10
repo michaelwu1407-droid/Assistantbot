@@ -10,21 +10,23 @@ import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
 import { Header } from "@/components/dashboard/header"
+import { useShellStore } from "@/lib/store"
 
 interface TradieDashboardClientProps {
-    initialJob?: {
-        id: string;
-        title: string;
-        address?: string | null;
-        latitude?: number | null;
-        longitude?: number | null;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [key: string]: any;
-    }
-    userName: string
+  initialJob?: {
+    id: string;
+    title: string;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }
+  userName: string
 }
 
 export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieDashboardClientProps) {
+  const userId = useShellStore(s => s.userId) ?? "anonymous";
   const [isSheetExpanded, setSheetExpanded] = useState(false);
 
   // Parse initial status from metadata or default to PENDING
@@ -96,11 +98,11 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
       {/* Header Overlay - Using Local Header Component logic but positioned for Tradie view */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none">
         <div className="pointer-events-auto">
-            <Header 
-                userName={userName} 
-                userId="demo-user" 
-                onNewDeal={() => {}} 
-            />
+          <Header
+            userName={userName}
+            userId={userId}
+            onNewDeal={() => { }}
+          />
         </div>
       </div>
 

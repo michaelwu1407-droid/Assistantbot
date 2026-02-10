@@ -1,24 +1,45 @@
-## Last Updated: 2026-02-09 (Sprint 9 — Feature Completion)
-**Session**: Antigravity (Frontend)
+## Last Updated: 2026-02-10 10:40 AEST
+**Session**: Antigravity (Frontend) — Bug Fix Session
 **Branch**: `main`
+**Latest Commit**: `f34066e`
 
-## What Was Done This Session — SPRINT 9 COMPLETION
-**Antigravity (Frontend):**
-- **Tutorial Overhaul**: Expanded to 18 steps, added spotlighting and mode toggles.
-- **Vendor Reports**: Implemented real data aggregation logic (`agent-actions.ts`).
-- **Camera & Storage**: Enabled Photo uploads via `CameraFAB` and Supabase Storage integration.
-- **Chat Bridge**: Enhanced assistant navigation (e.g., "start day" -> Tradie Map).
-- **Matchmaker**: Implemented `findMatches` logic for Agent Feed.
+## What Was Done This Session — Auth & Stability Fixes
+
+### Batch 1: React Error #310 Fix (commit `b445f95`)
+- Added `<Suspense>` boundary around `Shell` component (uses `useSearchParams`)
+- Added `<ThemeProvider>` from `next-themes` in root layout (for `useTheme` in Toaster)
+- Added `suppressHydrationWarning` to `<html>` tag
+- **Files**: `app/layout.tsx`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`
+
+### Batch 2: Onboarding Flow + Service Worker (commit `180727c`)
+- Middleware now redirects auth users to `/dashboard` not `/setup`
+- Setup page: returning users skip tutorial (`/dashboard` not `?tutorial=true`)
+- `tutorialComplete` persisted to localStorage
+- Service worker skips navigation requests (fixes `opaqueredirect`)
+- **Files**: `middleware.ts`, `app/setup/page.tsx`, `lib/store.ts`, `public/sw.js`
+
+### Batch 3: Centralized Auth (commit `f34066e`)
+- Created `lib/auth.ts` — `getAuthUserId()` and `getAuthUser()` helpers
+- Fixed `completeOnboarding()` to use real user (was hardcoded `"demo-user"`)
+- Updated both dashboard layouts and dashboard page
+- **Files created**: `lib/auth.ts`
+- **Files modified**: `actions/workspace-actions.ts`, `app/dashboard/page.tsx`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`, `app/setup/page.tsx`
 
 ## Current State
-- **Build: PASSING**
-- **Features**: All P0/P1/P2 features from `GAP_ANALYSIS.md` are IMPLEMENTED.
-- **Infrastructure**: Documented requirements in `infrastructure_setup.md`.
+- **Build**: PASSING (TypeScript pre-commit hook verified)
+- **Deployment**: Vercel auto-deploy from `main`
+- **Key Auth Pattern**: Use `getAuthUserId()` from `lib/auth.ts` — NOT `"demo-user"`
 
-## Next Steps for Backend Team
-1.  **Infrastructure**: Configure Supabase `job-photos` bucket (See `infrastructure_setup.md`).
-2.  **Deployment**: Monitor Vercel logs for any runtime edge cases.
+## Known Issues (See `error_tracking_log.md`)
+- ~15 non-critical files still use `"demo-user"` (tradie pages, agent pages, kiosk, command palette)
+- These should be migrated to `lib/auth.ts` helpers over time
 
-## Key Notes
-- `agent-actions.ts` now contains full logic for Vendor Reports and Matchmaker.
-- `camera-fab.tsx` relies on `storage-actions.ts` which needs the bucket.
+## Next Steps
+1. **Verify deployment**: Test onboarding flow and Advanced Mode on Vercel
+2. **Migrate remaining `demo-user`**: Tradie/agent pages, kiosk, command palette, assistant pane
+3. **Service worker**: Monitor for any remaining cache issues (old SW v1 may persist in some browsers)
+
+## Key Notes for All AI Agents
+- Always use `lib/auth.ts` helpers for user identification — never hardcode `"demo-user"`
+- After making changes, update: `project_status_log.md`, `HANDOVER.md`, `error_tracking_log.md`
+- See `.agent/workflows/post-change-docs.md` for detailed workflow
