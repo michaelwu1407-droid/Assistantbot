@@ -3,14 +3,17 @@ import { getDeals } from "@/actions/deal-actions";
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client";
 import { getAuthUserId } from "@/lib/auth";
 
+import { getFinancialStats } from "@/actions/dashboard-actions";
+
 export const dynamic = 'force-dynamic';
 
 export default async function TradiePage() {
-  let workspace, deals;
+  let workspace, deals, financialStats;
   try {
     const userId = await getAuthUserId();
     workspace = await getOrCreateWorkspace(userId);
     deals = await getDeals(workspace.id);
+    financialStats = await getFinancialStats(workspace.id);
   } catch {
     return (
       <div className="h-full flex items-center justify-center bg-slate-950 text-slate-400">
@@ -32,6 +35,7 @@ export default async function TradiePage() {
     <TradieDashboardClient
       initialJob={activeJob}
       userName={workspace.name.split(' ')[0] || "Mate"}
+      financialStats={financialStats}
     />
   );
 }

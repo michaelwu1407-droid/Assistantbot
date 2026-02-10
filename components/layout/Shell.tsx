@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
+import { useTheme } from "next-themes"
 import { useShellStore } from "@/lib/store"
 import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -9,6 +10,7 @@ import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
+  const { theme } = useTheme()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -38,8 +40,10 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
       {isBasicView ? (
         <div className="flex-1 flex items-center justify-center p-4 md:p-6 relative">
-          {/* Decorative Background for Basic Mode */}
-          <div className="absolute inset-0 bg-gradient-mesh opacity-10 pointer-events-none" />
+          {/* Decorative Background for Basic Mode - Only in Premium */}
+          {theme === 'premium' && (
+            <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
+          )}
 
           {/* Mode Toggle Button - Floating */}
           <button

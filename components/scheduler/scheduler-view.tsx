@@ -16,18 +16,46 @@ import { CalendarGrid } from "./calendar-grid";
 import { DraggableJobCard, SchedulerJob } from "./draggable-job-card";
 import { createPortal } from "react-dom";
 
-// Mock Data
-const INITIAL_UNSCHEDULED: SchedulerJob[] = [
-    { id: "job-1", title: "Leaky Faucet Repair", clientName: "Alice Smith", duration: 1, color: "border-blue-500" },
-    { id: "job-2", title: "Switchboard Upgrade", clientName: "Bob Jones", duration: 3, color: "border-amber-500" },
-    { id: "job-3", title: "Garden Lighting", clientName: "Charlie Day", duration: 2, color: "border-green-500" },
-    { id: "job-4", title: "Smoke Alarm Check", clientName: "Dana White", duration: 1, color: "border-red-500" },
-    { id: "job-5", title: "CCTV Installation", clientName: "Evan Peters", duration: 4, color: "border-purple-500" },
-];
+import { format } from "date-fns";
 
-export default function SchedulerView() {
-    const [unscheduledJobs, setUnscheduledJobs] = useState<SchedulerJob[]>(INITIAL_UNSCHEDULED);
-    const [scheduledJobs, setScheduledJobs] = useState<Record<string, SchedulerJob[]>>({});
+// ... imports ...
+
+// ... imports ...
+
+export interface SchedulerViewProps {
+    initialJobs?: any[];
+}
+
+export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) {
+    // Transform initialJobs to SchedulerJob format
+    const transformedJobs: SchedulerJob[] = initialJobs.map((job: any) => ({
+        id: job.id,
+        title: job.title,
+        clientName: job.clientName,
+        duration: 2, // Default duration as it's not in the simple job model yet
+        color: job.status === 'COMPLETED' ? 'border-green-500' : 'border-blue-500',
+        stage: job.status,
+        scheduledAt: job.scheduledAt
+    }));
+
+    const [unscheduledJobs, setUnscheduledJobs] = useState<SchedulerJob[]>(
+        transformedJobs.filter(j => !j.scheduledAt && j.stage !== 'COMPLETED')
+    );
+
+    // Initialize scheduled jobs map
+    const initialScheduled: Record<string, SchedulerJob[]> = {};
+    transformedJobs.forEach(job => {
+        if (job.scheduledAt) {
+            const date = new Date(job.scheduledAt);
+            const key = `${format(date, 'eee')}-${format(date, 'H')}`; // e.g. "Mon-10"
+            if (!initialScheduled[key]) {
+                initialScheduled[key] = [];
+            }
+            initialScheduled[key].push(job);
+        }
+    });
+
+    const [scheduledJobs, setScheduledJobs] = useState<Record<string, SchedulerJob[]>>(initialScheduled);
     const [activeJob, setActiveJob] = useState<SchedulerJob | null>(null);
 
     const sensors = useSensors(

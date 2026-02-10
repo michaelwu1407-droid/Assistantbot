@@ -5,7 +5,7 @@ import { OfflineBanner } from "@/components/core/offline-banner";
 import { IndustryProvider } from "@/components/providers/industry-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "next-themes";
+import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
 
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased font-sans bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <ClientThemeProvider>
           <IndustryProvider>
             {children}
             <CommandPalette />
@@ -28,7 +28,7 @@ export default function RootLayout({
             <ServiceWorkerProvider />
             <Toaster />
           </IndustryProvider>
-        </ThemeProvider>
+        </ClientThemeProvider>
       </body>
     </html>
   );

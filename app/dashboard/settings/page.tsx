@@ -1,7 +1,6 @@
-"use client"
-
 import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "./profile-form"
+import { AppearanceForm } from "./appearance-form"
 import { Button } from "@/components/ui/button"
 import { Play } from "lucide-react"
 import { useShellStore } from "@/lib/store"
@@ -32,6 +31,17 @@ export default function SettingsProfilePage() {
             </div>
             <Separator />
             <ProfileForm />
+
+            <div className="pt-6">
+                <div>
+                    <h3 className="text-lg font-medium">Appearance</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Customize the look and feel of the dashboard.
+                    </p>
+                </div>
+                <Separator className="my-4" />
+                <AppearanceForm />
+            </div>
         </div>
     )
 }

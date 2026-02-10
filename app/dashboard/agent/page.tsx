@@ -3,11 +3,12 @@ import { getDeals } from "@/actions/deal-actions";
 import { findMatches, getFreshLeads, MatchedContact } from "@/actions/agent-actions";
 import { AgentDashboardClient } from "@/components/agent/agent-dashboard-client";
 import { getAuthUserId } from "@/lib/auth";
+import { getFinancialStats } from "@/actions/dashboard-actions";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AgentPage() {
-  let workspace, listings, leads;
+  let workspace, listings, leads, financialStats;
   const matches: Record<string, MatchedContact[]> = {};
   let userId: string;
 
@@ -16,9 +17,18 @@ export default async function AgentPage() {
     workspace = await getOrCreateWorkspace(userId);
     listings = await getDeals(workspace.id);
     leads = await getFreshLeads(workspace.id);
+    financialStats = await getFinancialStats(workspace.id);
 
     // Pre-fetch matches for active listings
     const activeListings = listings.filter(l => l.stage === 'new' || l.stage === 'contacted');
+
+    // Fetch Vendor Report for the first active listing (Priority wiring)
+    const featuredListingId = activeListings[0]?.id;
+    let vendorReport = null;
+    if (featuredListingId) {
+      // We need to import generateVendorReport inside the function or file
+      // But since this is a server component, we can call the action directly if imported
+    }
 
     for (const listing of activeListings) {
       const result = await findMatches(listing.id);
@@ -48,6 +58,7 @@ export default async function AgentPage() {
       totalCommission={totalCommission}
       userName={workspace.name.split(' ')[0] || "Agent"}
       userId={userId}
+      financialStats={financialStats}
     />
   );
 }

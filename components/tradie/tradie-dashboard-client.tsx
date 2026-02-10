@@ -23,9 +23,13 @@ interface TradieDashboardClientProps {
     [key: string]: any;
   }
   userName: string
+  financialStats?: {
+    weeklyRevenue: number;
+    outstandingDebt: number;
+  }
 }
 
-export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieDashboardClientProps) {
+export function TradieDashboardClient({ initialJob, userName = "Mate", financialStats }: TradieDashboardClientProps) {
   const userId = useShellStore(s => s.userId) ?? "anonymous";
   const [isSheetExpanded, setSheetExpanded] = useState(false);
 
@@ -107,7 +111,12 @@ export function TradieDashboardClient({ initialJob, userName = "Mate" }: TradieD
       </div>
 
       {/* The Pulse Widget - Positioned absolutely as per remote */}
-      <PulseWidget className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-20" mode="tradie" />
+      <PulseWidget
+        className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
+        mode="tradie"
+        weeklyRevenue={financialStats?.weeklyRevenue}
+        outstandingDebt={financialStats?.outstandingDebt}
+      />
 
       {/* Map Layer */}
       <div className="absolute inset-0 bg-slate-900">

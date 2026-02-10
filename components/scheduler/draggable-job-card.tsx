@@ -11,6 +11,8 @@ export interface SchedulerJob {
     clientName: string;
     duration: number; // in hours
     color: string;
+    scheduledAt?: Date;
+    stage?: string;
 }
 
 interface DraggableJobCardProps {

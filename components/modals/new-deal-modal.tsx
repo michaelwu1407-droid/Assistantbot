@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createDeal } from "@/actions/deal-actions"
-import { getContacts, type ContactView } from "@/actions/contact-actions"
+import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
+import { Plus, User, Mail, Phone } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface NewDealModalProps {
     isOpen: boolean
@@ -21,39 +23,81 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [value, setValue] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
+
+    // New Contact Mode State
+    const [mode, setMode] = useState<"select" | "create">("select")
+    const [newContactName, setNewContactName] = useState("")
+    const [newContactEmail, setNewContactEmail] = useState("")
+    const [newContactPhone, setNewContactPhone] = useState("")
+
     const [isLoading, setIsLoading] = useState(false)
     const [isFetchingContacts, setIsFetchingContacts] = useState(false)
 
     useEffect(() => {
         if (isOpen && workspaceId) {
-            setIsFetchingContacts(true)
-            getContacts(workspaceId)
-                .then(setContacts)
-                .catch(console.error)
-                .finally(() => setIsFetchingContacts(false))
+            fetchContacts()
         }
     }, [isOpen, workspaceId])
 
+    const fetchContacts = () => {
+        setIsFetchingContacts(true)
+        getContacts(workspaceId)
+            .then(setContacts)
+            .catch(console.error)
+            .finally(() => setIsFetchingContacts(false))
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!title || !contactId) return
+        if (!title) return
+        if (mode === "select" && !contactId) return
+        if (mode === "create" && !newContactName) return
 
         setIsLoading(true)
         try {
+            let finalContactId = contactId
+
+            // If creating a new contact, do that first
+            if (mode === "create") {
+                const contactResult = await createContact({
+                    name: newContactName,
+                    email: newContactEmail || undefined,
+                    phone: newContactPhone || undefined,
+                    workspaceId
+                })
+
+                if (!contactResult.success) {
+                    toast.error("Failed to create contact: " + contactResult.error)
+                    setIsLoading(false)
+                    return
+                }
+
+                finalContactId = contactResult.contactId
+                toast.success("Contact created!")
+            }
+
+            // Create the deal
             const result = await createDeal({
                 title,
                 value: parseFloat(value) || 0,
-                contactId,
+                contactId: finalContactId,
                 stage: "new",
                 workspaceId
             })
 
             if (result.success) {
                 toast.success("Deal created successfully!")
+                // Reset form
+                setTitle("")
+                setValue("")
+                setContactId("")
+                setNewContactName("")
+                setNewContactEmail("")
+                setNewContactPhone("")
+                setMode("select")
+
                 onClose()
-                // Refresh logic would be needed here (e.g. router.refresh())
-                // For now, let's just close. The parent might need to refresh.
-                window.location.reload() // Brute force refresh for now to see data
+                window.location.reload()
             } else {
                 console.error(result.error)
                 toast.error("Failed to create deal: " + result.error)
@@ -68,57 +112,132 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Create New Deal</DialogTitle>
                     <DialogDescription>
                         Add a new deal to your pipeline.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="title">Deal Title</Label>
-                        <Input
-                            id="title"
-                            placeholder="e.g. Kitchen Renovation"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                        />
+
+                <form onSubmit={handleSubmit} className="grid gap-6 py-4">
+                    {/* Deal Details */}
+                    <div className="grid gap-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="title" className="text-right">
+                                Title *
+                            </Label>
+                            <Input
+                                id="title"
+                                placeholder="e.g. Kitchen Renovation"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="col-span-3"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="value" className="text-right">
+                                Value ($)
+                            </Label>
+                            <Input
+                                id="value"
+                                type="number"
+                                placeholder="0.00"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="value">Value ($)</Label>
-                        <Input
-                            id="value"
-                            type="number"
-                            placeholder="0.00"
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                        />
+
+                    <div className="border-t border-slate-100 my-1" />
+
+                    {/* Contact Selection / Creation */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label>Client / Contact *</Label>
+                            <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-[200px]">
+                                <TabsList className="grid w-full grid-cols-2 h-8">
+                                    <TabsTrigger value="select" className="text-xs">Select</TabsTrigger>
+                                    <TabsTrigger value="create" className="text-xs">Create New</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+
+                        {mode === "select" ? (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="contact" className="text-right text-slate-500">
+                                    Existing
+                                </Label>
+                                <Select value={contactId} onValueChange={setContactId}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a contact"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {contacts.map(contact => (
+                                            <SelectItem key={contact.id} value={contact.id}>
+                                                {contact.name} {contact.company && `(${contact.company})`}
+                                            </SelectItem>
+                                        ))}
+                                        {contacts.length === 0 && !isFetchingContacts && (
+                                            <div className="p-2 text-sm text-muted-foreground text-center">No contacts found</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : (
+                            <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-name" className="text-right text-xs">Name *</Label>
+                                    <div className="col-span-3 relative">
+                                        <User className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="new-name"
+                                            placeholder="John Doe"
+                                            className="pl-9"
+                                            value={newContactName}
+                                            onChange={e => setNewContactName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-email" className="text-right text-xs">Email</Label>
+                                    <div className="col-span-3 relative">
+                                        <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="new-email"
+                                            type="email"
+                                            placeholder="john@example.com"
+                                            className="pl-9"
+                                            value={newContactEmail}
+                                            onChange={e => setNewContactEmail(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="new-phone" className="text-right text-xs">Phone</Label>
+                                    <div className="col-span-3 relative">
+                                        <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="new-phone"
+                                            type="tel"
+                                            placeholder="0400 000 000"
+                                            className="pl-9"
+                                            value={newContactPhone}
+                                            onChange={e => setNewContactPhone(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="contact">Contact</Label>
-                        <Select value={contactId} onValueChange={setContactId} required>
-                            <SelectTrigger>
-                                <SelectValue placeholder={isFetchingContacts ? "Loading contacts..." : "Select a contact"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {contacts.map(contact => (
-                                    <SelectItem key={contact.id} value={contact.id}>
-                                        {contact.name}
-                                    </SelectItem>
-                                ))}
-                                {contacts.length === 0 && !isFetchingContacts && (
-                                    <div className="p-2 text-sm text-muted-foreground text-center">No contacts found</div>
-                                )}
-                            </SelectContent>
-                        </Select>
-                    </div>
+
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading || !contactId || !title}>
+                        <Button type="submit" disabled={isLoading || (mode === "select" ? !contactId : !newContactName) || !title}>
                             {isLoading ? "Creating..." : "Create Deal"}
                         </Button>
                     </DialogFooter>

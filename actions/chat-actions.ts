@@ -61,9 +61,29 @@ function parseCommandRegex(message: string): ParsedCommand {
     return { intent: "show_stale", params: {} };
   }
 
-  // Create: "new deal/job/listing Title for Company worth 5000"
+  // 1. Natural language creation with pre-positioned value: "create a $100 deal for Sharon..."
+  const preValueMatch = msg.match(
+    /create\s+(?:a\s+)?\$?(\d+)\s+(?:deal|job|listing|lead)\s+(?:for|with)\s+(.+?)(?:\s+(?:at|to|in)\s+(.*))?$/
+  );
+  if (preValueMatch) {
+    const value = preValueMatch[1];
+    const contact = preValueMatch[2];
+    // The rest is the title/description
+    const description = preValueMatch[3] || "New Deal";
+
+    return {
+      intent: "create_deal",
+      params: {
+        title: description, // Use the description as title if available
+        company: contact,
+        value: value,
+      },
+    };
+  }
+
+  // 2. Standard creation: "new deal Title for Company worth 5000"
   const createMatch = msg.match(
-    new RegExp(`(?:new|create|add)\\s+${NOUN}\\s+(.+?)(?:\\s+for\\s+(.+?))?(?:\\s+worth\\s+\\$?([\\d,]+))?$`)
+    new RegExp(`(?:new|create|add)\\s+(?:a\\s+)?${NOUN}\\s+(.+?)(?:\\s+for\\s+(.+?))?(?:\\s+worth\\s+\\$?([\\d,]+))?$`)
   );
   if (createMatch) {
     return {
@@ -189,7 +209,7 @@ function parseCommandRegex(message: string): ParsedCommand {
 async function parseCommandAI(message: string, industryContext: any): Promise<ParsedCommand | null> {
   // Prefer Gemini, fallback to OpenAI if Gemini key missing (future proofing)
   const apiKey = process.env.GEMINI_API_KEY;
-  
+
   if (!apiKey) {
     console.warn("Missing GEMINI_API_KEY");
     return null;
@@ -251,13 +271,13 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 
     const data = await response.json();
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
+
     if (!content) return null;
 
     // Gemini usually returns clean JSON in JSON mode, but sometimes wraps in markdown
     const cleanJson = content.replace(/```json\n?|```/g, "").trim();
     const parsed = JSON.parse(cleanJson) as ParsedCommand;
-    
+
     return parsed;
   } catch (error) {
     console.error("AI Parse Error:", error);

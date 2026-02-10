@@ -143,8 +143,17 @@ export function AssistantPane() {
     }
 
     return (
-        <div id="assistant-pane" className="flex h-full flex-col bg-background">
-            <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div
+            id="assistant-pane"
+            className={cn(
+                "flex h-full flex-col bg-background transition-all duration-500 ease-in-out",
+                // In Basic view, we want a centered, floating card look if in premium mode
+                viewMode === "BASIC" && "md:max-w-3xl md:mx-auto md:h-[85vh] md:rounded-2xl md:shadow-2xl md:border",
+                // Glass effect for premium basic mode
+                viewMode === "BASIC" && "supports-[backdrop-filter]:bg-background/80 backdrop-blur-xl"
+            )}
+        >
+            <div className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl">
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Bot className="h-5 w-5" />
@@ -180,6 +189,9 @@ export function AssistantPane() {
                                 <div className="grid gap-2">
                                     <Button variant="outline" size="sm" className="justify-start h-auto py-2 px-3 text-left font-normal" onClick={() => setInput(industry === "TRADES" ? "Start my day" : "Who is matching 123 Main St?")}>
                                         "{industry === "TRADES" ? "Start my day" : industry === "REAL_ESTATE" ? "Who is matching 123 Main St?" : "Show me deals in negotiation"}"
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="justify-start h-auto py-2 px-3 text-left font-normal" onClick={() => setInput("Show stale deals")}>
+                                        "Show stale deals"
                                     </Button>
                                 </div>
                             </div>
@@ -217,7 +229,7 @@ export function AssistantPane() {
                 </div>
             </div>
 
-            <div className="p-4 border-t bg-background">
+            <div className="p-4 border-t bg-background rounded-b-2xl">
                 <div className="flex gap-2 relative">
                     <Button
                         id="voice-btn"
