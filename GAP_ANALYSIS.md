@@ -378,19 +378,64 @@ These are issues that affect the entire app regardless of scenario.
 6. **X-8**: New Deal modal/form (Frontend)
 7. **X-3**: Toast notification system (Frontend)
 
-### Sprint 2 — Core Scenarios (Week 2)
-1. **X-12/M-4**: Chat → UI bridge (Both)
-2. **J-2**: Job status model (Backend)
-3. **J-3/J-4**: Travel workflow + auto-SMS (Both)
-4. **J-6/X-15**: Camera + file storage (Both)
-5. **D-6**: Bottom Sheet component (Frontend)
-
-### Sprint 3 — Workflows (Week 3)
-1. **D-1/D-3**: Greeting header + notifications (Both)
-2. **J-5/J-8/J-9**: Safety check + voice + materials (Both)
-3. **AG-2/AG-4**: Commission calc + match feed (Both)
-4. **VR-1–5**: Vendor reporting (Both)
+3. **VR-1–5**: Vendor reporting (Both)
 
 ### Sprint 4 — Polish (Week 4)
 1. **K-2/K-3**: Kiosk QR flow (Both)
 2. **J-11/J-13**: Signature + complete job (Both)
+
+---
+
+## SECTION 8: USER FEEDBACK (2026-02-11)
+
+**Source**: User Review of "Chatbot Mode", "Advanced Mode", and "Settings".
+
+### 8.1 Chatbot Mode (Basic)
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Too much whitespace / Bare** | **M-2**, **X-17** | Add background pattern/gradient, refine spacing, maybe add "suggested prompts" bubbles to fill void. |
+| **No timestamps / delineation** | **[NEW] C-1** | Add "Today", "Yesterday" headers. Add visible dividers between conversation turns. |
+| **"Create Deal" fails to draft** | **[NEW] C-2** | **Generative UI**: When intent is `new_deal`, AI should return a structured "Draft Deal" card (Lead Name, Address, Issue, Quote) for confirmation *before* creating. |
+| **Microphone Broken** | **J-8** | Fix microphone permission/state handling in `ChatInput`. |
+| **Settings -> Replay Tutorial** | **[NEW] C-3** | Fix Settings Cog behavior. It should go to `/dashboard/settings`. "Replay Tutorial" should be a sub-item or inside Help. |
+
+### 8.2 Advanced Dashboard
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **"Atrocious formatting"** | **X-17** | Fix text overflow in cards. Standardize font sizes (caps vs sentence case). Text must stay inside boxes. |
+| **Recent Activity cuts off Kanban** | **[NEW] UI-1** | Move Recent Activity to top row (3-col grid: Pulse | Health | Activity) or limit height with scroll. |
+| **Cards overlapping** | **X-17** | Fix grid layout margins/padding. Ensure `gap-4` or `gap-6` is respected. |
+
+### 8.3 Settings
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Profile Copy ("how others see you")** | **[NEW] S-1** | Change copy to "Manage your personal details and account preferences." |
+### 8.4 Map Page (Tradie View)
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Sidebar Navigation Hints** | **[NEW] UI-2** | Add Tooltips to Sidebar icons. On hover, show label. |
+| **"Atrocious" Map Visuals** | **D-5** | Switch from standard OSM tiles to a premium provider (e.g., CartoDB Voyager or Dark Matter). Custom marker icons. |
+| **Data Filtering logic unclear** | **D-9** | Explicitly filter for "Today's Jobs" and show a legend/list side-by-side. |
+| **Glitching / Transparency** | **[NEW] UI-3** | Fix `z-index` of map container. Ensure background is opaque so other pages don't "bleed" through on zoom. |
+| **Popup Card Formatting** | **X-17** | Style the Leaflet popup to match `DealCard` aesthetics (fonts, sizes, shadows). |
+| **Popup Interactivity** | **[NEW] UI-4** | Make the popup clickable -> navigates to `DealDetail` page. |
+### 8.5 Navigation Logic
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Redundant "Map" Icon** | **[NEW] NAV-1** | The "Tool" icon opens the map, but there is also a "Map" icon. Consolidate or clarify. |
+| **Mode Switching Logic** | **[NEW] NAV-2** | Clicking "Tool" (Tradie) or "Briefcase" (Agent) should **toggle the sidebar menu items** relevant to that industry, not just navigate to a page. |
+| **Industry Separation** | **[NEW] NAV-3** | **Post-MVP**: Hide the irrelevant industry icon based on user signup. |
+### 8.6 Calendar Page
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Empty Calendar** | **[NEW] CAL-1** | Jobs exist in DB but don't show on Calendar. Likely a date parsing or filtering mismatch in `getCalendarJobs`. |
+| **Grid Alignment** | **[NEW] UI-5** | Time lines do not align with day columns. Refactor CSS grid/flex layout for precise alignment. |
+| **Formatting / Aesthetic** | **[NEW] UI-6** | Upgrade calendar to "Google Calendar" quality: modern event styling, time indicators, clean lines. |
+| **Interactivity (Clicking)** | **[NEW] UI-7** | Calendar cards should be clickable -> navigates to `DealDetail`. |
+| **AI Rescheduling** | **[NEW] AI-1** | AI must support intent "move [lead] from [time] to [time]". Need `rescheduleDeal` action + Gemini mapping. |
+
+### 8.7 AI Intelligence
+| Issue | Task Ref | Action |
+|-------|----------|--------|
+| **Response Quality** | **[NEW] AI-2** | AI fails on basic requests (e.g. "sharon need sink fixed"). Improve `systemPrompt` with few-shot examples and industry context. |
+| **Training / Fine-tuning** | **[NEW] AI-3** | Evaluation of current Gemini model vs. specialized prompt engineering. Prioritize RAG (Retrieval Augmented Generation) for lead context. |

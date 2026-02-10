@@ -4,6 +4,17 @@
 
 ---
 
+### 2026-02-11 01:00 AEST [Frontend - Antigravity] - Comprehensive User Feedback Triage
+**Activity**: Completed triage of a wide range of critical UX/UI and AI issues.
+*   **Identified Issues**:
+    *   **Chat**: Whitespace, Timestamps, Generative UI (Draft Deal), Mic bug.
+    *   **Dashboard**: Formatting, Layout overlaps, Activity Feed height.
+    *   **Map**: Visual style (Premium), Popup styling, Side itinerary panel.
+    *   **Calendar**: Data sync (missing jobs), Alignment, Aesthetic, Clickability.
+    *   **Nav**: Tool/Briefcase as industry toggles.
+    *   **AI**: Intent recognition for rescheduling and complex lead entry.
+*   **Action**: Updated `GAP_ANALYSIS.md` and `task.md`. Proceeding to immediate implementation.
+
 ### 2026-02-10 23:45 AEST [Frontend - Antigravity] - UI/UX Polish Sprint
 **Feature**: UI/UX Overhaul (Design Audit Score: 40/50)
 *   **Loading States**: Replaced spinners with `Skeleton` loaders for Dashboard and Activity Feed (Audit #15).
