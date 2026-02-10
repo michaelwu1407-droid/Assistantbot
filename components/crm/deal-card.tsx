@@ -39,17 +39,17 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     let statusBadge = null
 
     if (deal.health?.status === "ROTTING") {
-        statusColor = "border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+        statusColor = "border-red-600 bg-red-50/10 shadow-[0_0_10px_rgba(220,38,38,0.1)]"
         statusBadge = (
-            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10">
+            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10 font-bold tracking-wide">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 Rotting
             </div>
         )
     } else if (deal.health?.status === "STALE") {
-        statusColor = "border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+        statusColor = "border-amber-400 bg-amber-50/10 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
         statusBadge = (
-            <div className="absolute -top-2 -right-2 bg-amber-400 text-slate-900 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm font-bold z-10">
+            <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-950 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm font-bold z-10 tracking-wide">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 Stale
             </div>
@@ -63,7 +63,8 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     } else if (isDragging) {
         statusColor += " opacity-30"
     } else {
-        statusColor += " cursor-grab hover:border-slate-300 hover:shadow-md transition-all"
+        // Use default Card hover effects from ui/card.tsx, just add cursor
+        statusColor += " cursor-grab hover:border-slate-300"
     }
 
     return (
@@ -103,7 +104,7 @@ export function DealCard({ deal, overlay }: DealCardProps) {
                     {/* Footer: Date */}
                     <div className={cn(
                         "flex items-center text-xs pt-2 border-t border-slate-100",
-                        (deal.health?.status === "ROTTING" || deal.health?.status === "STALE") ? "text-amber-600" : "text-slate-400"
+                        (deal.health?.status === "ROTTING" || deal.health?.status === "STALE") ? "text-amber-700 font-medium" : "text-slate-400"
                     )}>
                         <Calendar className="w-3 h-3 mr-1.5" />
                         {daysSinceActivity === 0 ? "Today" : `${daysSinceActivity}d ago`}

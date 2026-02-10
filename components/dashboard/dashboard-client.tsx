@@ -20,7 +20,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
 
     return (
-        <div className="h-full flex flex-col space-y-4 p-6">
+        <div className="h-full flex flex-col space-y-6 p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <Header
                 userName={userName}
                 userId={userId}

@@ -1,51 +1,71 @@
 "use client"
 
 import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
 import { motion, HTMLMotionProps } from "framer-motion"
 import { cn } from "@/lib/utils"
 
-interface ButtonProps extends HTMLMotionProps<"button"> {
-    variant?: "default" | "outline" | "ghost" | "link" | "secondary" | "destructive"
-    size?: "default" | "sm" | "lg" | "icon"
+const buttonVariants = cva(
+    "inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 whitespace-nowrap",
+    {
+        variants: {
+            variant: {
+                default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg",
+                destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
+                outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                ghost: "hover:bg-accent hover:text-accent-foreground",
+                link: "text-primary underline-offset-4 hover:underline",
+            },
+            size: {
+                default: "h-11 px-5 py-2",
+                sm: "h-9 rounded-md px-3",
+                lg: "h-12 rounded-lg px-8 text-base",
+                icon: "h-10 w-10",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+            size: "default",
+        },
+    }
+)
+
+export interface ButtonProps
+    extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+    asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = "default", size = "default", children, ...props }, ref) => {
-        const variants = {
-            default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg",
-            secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-            destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
-            outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-            ghost: "hover:bg-accent hover:text-accent-foreground",
-            link: "text-primary underline-offset-4 hover:underline",
+    ({ className, variant, size, asChild = false, ...props }, ref) => {
+
+        // If asChild is true, we don't render a motion.button, 
+        // we render the Slot. Slot merges props onto the child.
+        if (asChild) {
+            return (
+                <Slot
+                    className={cn(buttonVariants({ variant, size, className }))}
+                    ref={ref}
+                    {...props}
+                />
+            )
         }
 
-        const sizes = {
-            default: "h-11 px-5 py-2", // Slightly larger touch target
-            sm: "h-9 rounded-md px-3",
-            lg: "h-12 rounded-lg px-8 text-base",
-            icon: "h-10 w-10",
-        }
-
+        // Standard button with motion
         return (
             <motion.button
-                ref={ref}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className={cn(
-                    "inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                    variants[variant],
-                    sizes[size],
-                    className
-                )}
-                {...props}
-            >
-                {children}
-            </motion.button>
+                ref={ref as React.Ref<HTMLButtonElement>}
+                whileHover={{ scale: 1.05, filter: "brightness(1.1)" }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className={cn(buttonVariants({ variant, size, className }))}
+                {...props as HTMLMotionProps<"button">}
+            />
         )
     }
 )
 Button.displayName = "Button"
 
-export { Button }
+export { Button, buttonVariants }

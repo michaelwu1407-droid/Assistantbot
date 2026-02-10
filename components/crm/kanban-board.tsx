@@ -198,7 +198,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div id="kanban-board" className="flex h-full gap-4 overflow-x-auto pb-4 items-start no-scrollbar">
+      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start no-scrollbar">
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 
@@ -238,8 +238,16 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                     ))
                   ) : (
                     // Empty state
-                    <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs text-center p-4">
-                      Drop here to move to {title}
+                    // Empty state
+                    <div className="h-40 border-2 border-dashed border-slate-200/60 rounded-xl flex flex-col items-center justify-center text-slate-400 p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/50 group">
+                      <div className="p-3 bg-slate-100 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                        <Plus className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <span className="text-sm font-medium text-slate-600 mb-1">No deals yet</span>
+                      <span className="text-xs text-slate-400 mb-3 text-center">Drop here or create new</span>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => document.getElementById('new-deal-btn')?.click()}>
+                        Create {industryType === "TRADES" ? "Job" : "Deal"}
+                      </Button>
                     </div>
                   )}
                 </div>

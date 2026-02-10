@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search"
+import { Breadcrumbs } from "@/components/layout/breadcrumbs"
 
 interface HeaderProps {
     userName: string
@@ -91,10 +92,11 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     <Menu className="h-6 w-6" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
+                    <Breadcrumbs className="mb-1" />
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tighter drop-shadow-sm">
                         {getGreeting()}
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5 font-medium">
+                    <p className="text-base text-slate-500 mt-1 font-medium">
                         {getSubtitle()}
                     </p>
                 </div>

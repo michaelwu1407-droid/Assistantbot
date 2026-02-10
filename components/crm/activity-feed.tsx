@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lucide-react"
 import { getActivities, ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ActivityFeedProps {
     contactId?: string
@@ -68,13 +69,13 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
             </CardHeader>
             <CardContent className="px-2 pb-2 h-[300px] overflow-y-auto custom-scrollbar">
                 {loading ? (
-                    <div className="flex flex-col gap-3 p-2">
+                    <div className="flex flex-col gap-4 p-2">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="flex gap-3 animate-pulse">
-                                <div className="h-8 w-8 rounded-full bg-slate-100" />
+                            <div key={i} className="flex gap-3">
+                                <Skeleton className="h-8 w-8 rounded-full" />
                                 <div className="flex-1 space-y-2">
-                                    <div className="h-3 bg-slate-100 rounded w-3/4" />
-                                    <div className="h-2 bg-slate-100 rounded w-1/2" />
+                                    <Skeleton className="h-3 w-3/4" />
+                                    <Skeleton className="h-2 w-1/2" />
                                 </div>
                             </div>
                         ))}
