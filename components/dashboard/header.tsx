@@ -14,14 +14,16 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useShellStore } from "@/lib/store"
+import { GlobalSearch } from "@/components/layout/global-search"
 
 interface HeaderProps {
     userName: string
     userId: string
+    workspaceId: string
     onNewDeal: () => void
 }
 
-export function Header({ userName, userId, onNewDeal }: HeaderProps) {
+export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
     const router = useRouter()
     const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
@@ -106,7 +108,10 @@ export function Header({ userName, userId, onNewDeal }: HeaderProps) {
             </div>
 
             <div className="flex items-center gap-2">
-                {/* Mobile Search Trigger (Desktop uses CMD+K) */}
+                {/* Global Search - CMD+K */}
+                <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />
+
+                {/* Mobile Search Trigger */}
                 <Button
                     id="search-btn"
                     variant="ghost"

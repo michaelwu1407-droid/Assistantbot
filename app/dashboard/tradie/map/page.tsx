@@ -5,16 +5,18 @@ import { Button } from "@/components/ui/button"
 import { List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
 import { getAuthUserId } from "@/lib/auth"
+import { JobMapView } from "@/components/crm/job-map-view"
 
 export const dynamic = 'force-dynamic'
 
 export default async function TradieMapPage() {
     let workspace;
+    let deals: any[] = [];
     let dbError = false;
     try {
         const userId = await getAuthUserId()
         workspace = await getOrCreateWorkspace(userId)
-        await getDeals(workspace.id)
+        deals = await getDeals(workspace.id)
     } catch {
         dbError = true;
     }
@@ -52,8 +54,12 @@ export default async function TradieMapPage() {
                 </div>
             </header>
 
-            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex items-center justify-center">
-                <p className="text-slate-400">Map unavailable during build maintenance.</p>
+            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                <JobMapView
+                    initialDeals={deals}
+                    workspaceId={workspace.id}
+                    pendingCount={deals.filter((d: any) => !['won', 'lost'].includes(d.stage)).length}
+                />
             </div>
         </div>
     )

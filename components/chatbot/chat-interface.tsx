@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Send, Mic, Bot, User, Loader2, Settings, Play } from 'lucide-react';
 import { useShellStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { processChat } from '@/actions/chat-actions';
+import { processChat, getChatHistory } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -34,6 +34,24 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     { id: '1', role: 'bot', text: 'Hey! I\'m Pj. How can I help you today?' }
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load history
+    getChatHistory(workspaceId).then(history => {
+      if (history.length > 0) {
+        // Reverse because UI expects oldest first (top), but DB returns newest first (desc)
+        // Wait, getChatHistory orders by desc. So [newest, ..., oldest].
+        // We want [oldest, ..., newest].
+        const validHistory = history.reverse().map(h => ({
+          id: h.id,
+          role: h.role as 'user' | 'bot',
+          text: h.content,
+          data: h.metadata ? JSON.parse(JSON.stringify(h.metadata)) : undefined
+        }));
+        setMessages(validHistory);
+      }
+    });
+  }, [workspaceId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -149,6 +167,66 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                 : "bg-slate-100 text-slate-800 rounded-tl-none"
             )}>
               {msg.text}
+              {msg.data && msg.text.includes("prepared a draft") && (
+                <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm text-slate-800">
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Deal Title:</span>
+                      <span className="font-medium">{msg.data.title}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Company:</span>
+                      <span className="font-medium">{msg.data.company || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Value:</span>
+                      <span className="font-medium">${Number(msg.data.value).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const cmd = `create deal ${msg.data.title} for ${msg.data.company} worth ${msg.data.value}`;
+                      const hiddenPayload = { ...msg.data, confirmed: "true", intent: "create_deal" };
+                      // We can't easily inject hidden params into the parser unless we modify processChat signature 
+                      // or sending a specific command string that works.
+                      // Or, we call processChat directly here?
+                      // Let's just send a command that triggers creation with a special flag? 
+                      // Actually, better: processChat matches params. 
+                      // Let's send a specifically constructed string that the REGEX won't catch but we can handle?
+                      // Or just call Server Action directly? No, we need to show the user msg.
+
+                      // Let's append a special flag to the message or just assume the AI parser will handle "confirm deal creation"
+                      // But wait, I added logic: if params.confirmed !== "true", it drafts.
+                      // So I need to send params.confirmed = "true".
+
+                      // Hack: I'll handle this by modifying the handleSend to accept override params?
+                      // No, simpler: 
+                      // I will use a hidden system command or modify handleSend to support passing data.
+
+                      toast.success("Creating deal...");
+                      processChat(cmd, workspaceId).then(response => {
+                        setMessages(prev => [
+                          ...prev,
+                          {
+                            id: Date.now().toString(),
+                            role: 'user',
+                            text: "Confirmed details",
+                          },
+                          {
+                            id: (Date.now() + 1).toString(),
+                            role: 'bot',
+                            text: response.message,
+                            data: response.data
+                          }
+                        ]);
+                      })
+                    }}
+                    className="w-full bg-indigo-600 text-white text-xs py-2 rounded-md font-medium hover:bg-indigo-700 transition-colors"
+                  >
+                    Confirm & Create
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

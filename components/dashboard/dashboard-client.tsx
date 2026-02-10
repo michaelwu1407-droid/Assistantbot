@@ -24,23 +24,26 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
             <Header
                 userName={userName}
                 userId={userId}
+                workspaceId={workspace.id}
                 onNewDeal={() => setIsNewDealModalOpen(true)}
             />
 
-            {/* Health Widget */}
-            <DealHealthWidget deals={deals} />
-
-            {/* Main Content Area */}
-            <div className="flex-1 w-full flex gap-6 overflow-hidden min-h-0">
-                {/* Left: Kanban Board */}
-                <div className="flex-1 min-w-[300px] h-full overflow-hidden">
-                    <KanbanBoard deals={deals} industryType={workspace.industryType} />
+            {/* Top Row: Health & Activity */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[400px] shrink-0">
+                {/* Health Widget (2/3 width) */}
+                <div className="xl:col-span-2 h-full overflow-hidden">
+                    <DealHealthWidget deals={deals} />
                 </div>
 
-                {/* Right: Activity Feed / Widgets */}
-                <div className="hidden xl:block w-[350px] shrink-0 h-full overflow-hidden">
+                {/* Activity Feed (1/3 width) - Moved here to give Kanban full width below */}
+                <div className="h-full overflow-hidden">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
+            </div>
+
+            {/* Main Content Area - Full Width Kanban */}
+            <div className="flex-1 w-full overflow-hidden min-h-0">
+                <KanbanBoard deals={deals} industryType={workspace.industryType} />
             </div>
 
             <NewDealModal

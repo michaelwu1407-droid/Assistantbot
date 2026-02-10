@@ -22,6 +22,7 @@ interface TradieDashboardClientProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   }
+  todayJobs?: any[]
   userName: string
   financialStats?: {
     weeklyRevenue: number;
@@ -29,7 +30,7 @@ interface TradieDashboardClientProps {
   }
 }
 
-export function TradieDashboardClient({ initialJob, userName = "Mate", financialStats }: TradieDashboardClientProps) {
+export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "Mate", financialStats }: TradieDashboardClientProps) {
   const userId = useShellStore(s => s.userId) ?? "anonymous";
   const [isSheetExpanded, setSheetExpanded] = useState(false);
 
@@ -105,6 +106,7 @@ export function TradieDashboardClient({ initialJob, userName = "Mate", financial
           <Header
             userName={userName}
             userId={userId}
+            workspaceId={useShellStore.getState().workspaceId || ""}
             onNewDeal={() => { }}
           />
         </div>
@@ -120,7 +122,7 @@ export function TradieDashboardClient({ initialJob, userName = "Mate", financial
 
       {/* Map Layer */}
       <div className="absolute inset-0 bg-slate-900">
-        <JobMap deals={[initialJob]} />
+        <JobMap deals={todayJobs.length > 0 ? todayJobs : (initialJob ? [initialJob] : [])} />
       </div>
 
       {/* Safety Check Modal */}

@@ -75,6 +75,26 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAction, status, onAdd
                                 exit={{ opacity: 0 }}
                                 className="flex-1 flex flex-col overflow-hidden"
                             >
+                                {/* Quick Actions Row (Scenario Requirement) */}
+                                <div className="grid grid-cols-4 gap-4 mb-6 shrink-0">
+                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-emerald-500/50 transition-all">
+                                        <Navigation className="w-6 h-6 text-emerald-400" />
+                                        <span className="text-[10px] uppercase tracking-wide">Navigate</span>
+                                    </Button>
+                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-blue-500/50 transition-all">
+                                        <Phone className="w-6 h-6 text-blue-400" />
+                                        <span className="text-[10px] uppercase tracking-wide">Call</span>
+                                    </Button>
+                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-purple-500/50 transition-all">
+                                        <MessageSquare className="w-6 h-6 text-purple-400" />
+                                        <span className="text-[10px] uppercase tracking-wide">Text</span>
+                                    </Button>
+                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-orange-500/50 transition-all">
+                                        <Wrench className="w-6 h-6 text-orange-400" />
+                                        <span className="text-[10px] uppercase tracking-wide">Parts</span>
+                                    </Button>
+                                </div>
+
                                 {/* Tabs */}
                                 <div className="flex border-b border-slate-800 mb-4 shrink-0">
                                     <button
@@ -101,24 +121,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAction, status, onAdd
                                 <div className="flex-1 overflow-y-auto pb-24">
                                     {activeTab === 'DETAILS' && (
                                         <div className="space-y-6">
-                                            <div className="grid grid-cols-4 gap-4">
-                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-emerald-500/50 transition-all">
-                                                    <Navigation className="w-6 h-6 text-emerald-400" />
-                                                    <span className="text-xs">Navigate</span>
-                                                </Button>
-                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-blue-500/50 transition-all">
-                                                    <Phone className="w-6 h-6 text-blue-400" />
-                                                    <span className="text-xs">Call</span>
-                                                </Button>
-                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-purple-500/50 transition-all">
-                                                    <MessageSquare className="w-6 h-6 text-purple-400" />
-                                                    <span className="text-xs">Text</span>
-                                                </Button>
-                                                <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white hover:border-orange-500/50 transition-all">
-                                                    <Wrench className="w-6 h-6 text-orange-400" />
-                                                    <span className="text-xs">Parts</span>
-                                                </Button>
-                                            </div>
+                                            {/* (Moved buttons from here) */}
                                             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-800">
                                                 <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-2">Job Description</h4>
                                                 <p className="text-slate-200 text-sm leading-relaxed">

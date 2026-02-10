@@ -331,7 +331,8 @@ function getIndustryContext(industryType: string | null) {
  */
 export async function processChat(
   message: string,
-  workspaceId: string
+  workspaceId: string,
+  overrideParams?: Record<string, string>
 ): Promise<ChatResponse> {
   // Persist user message
   await db.chatMessage.create({
@@ -363,6 +364,13 @@ export async function processChat(
   // 3. If still unknown, ensure we have a valid object
   if (!parsed) {
     parsed = { intent: "unknown", params: {} };
+  }
+
+  if (overrideParams) {
+    parsed = {
+      intent: overrideParams.intent as any || parsed.intent,
+      params: { ...parsed.params, ...overrideParams }
+    }
   }
 
   const { intent, params } = parsed;
@@ -449,6 +457,20 @@ export async function processChat(
 
       if (!contactId) {
         response = { message: "Could not find or create a contact for this deal." };
+        break;
+      }
+
+      // Draft Mode: If not explicitly confirmed, ask for confirmation
+      if (params.confirmed !== "true") {
+        response = {
+          message: `I've prepared a draft for "${params.title}". Please confirm the details.`,
+          action: "draft_deal",
+          data: {
+            title: params.title,
+            company: params.company,
+            value: params.value,
+          }
+        };
         break;
       }
 

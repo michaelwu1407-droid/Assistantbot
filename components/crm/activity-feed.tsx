@@ -91,7 +91,14 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                             const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
 
                             return (
-                                <div key={activity.id} className="flex gap-3 items-start group">
+                                <div
+                                    key={activity.id}
+                                    className="flex gap-3 items-start group cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"
+                                    onClick={() => {
+                                        if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
+                                        else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
+                                    }}
+                                >
                                     <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
                                         <Icon className="h-4 w-4" />
                                     </div>

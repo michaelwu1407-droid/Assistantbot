@@ -1,49 +1,33 @@
-"use client"
-
 import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "./profile-form"
-import { AppearanceForm } from "./appearance-form"
-import { Button } from "@/components/ui/button"
-import { Play } from "lucide-react"
-import { useShellStore } from "@/lib/store"
-import { useRouter } from "next/navigation"
+// import { Button } from "@/components/ui/button" // Replay tutorial button needs client component or different approach
+// We'll move the replay button to a client component or just the AppearanceForm?
+// Actually, let's just make a small client wrapper for the header button if needed, or drop it for now? 
+// The user asked to fix broken pages. Replay tutorial is a nice to have.
+// Let's keep it but use a client component for the header?
+import { SettingsHeader } from "./settings-header"
+import { getAuthUserId } from "@/lib/auth"
+import { getUserProfile } from "@/actions/user-actions"
 
-export default function SettingsPage() {
-    const { setViewMode } = useShellStore()
-    const router = useRouter()
+export const dynamic = "force-dynamic"
 
-    const handleReplayTutorial = () => {
-        setViewMode("TUTORIAL")
-        router.push("/dashboard")
-    }
+export default async function SettingsPage() {
+    const userId = await getAuthUserId()
+    const profile = await getUserProfile(userId)
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-medium">Profile</h3>
-                    <p className="text-sm text-muted-foreground">
-                        This is how others will see you on the site.
-                    </p>
-                </div>
-                <Button variant="outline" onClick={handleReplayTutorial} className="gap-2">
-                    <Play className="h-4 w-4" />
-                    Replay Tutorial
-                </Button>
-            </div>
+            <SettingsHeader />
             <Separator />
-            <ProfileForm />
-
-            <div className="pt-6">
-                <div>
-                    <h3 className="text-lg font-medium">Appearance</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Customize the look and feel of the dashboard.
-                    </p>
-                </div>
-                <Separator className="my-4" />
-                <AppearanceForm />
-            </div>
+            <ProfileForm
+                userId={userId}
+                initialData={profile ? {
+                    username: profile.username,
+                    email: profile.email,
+                    bio: profile.bio,
+                    urls: profile.urls
+                } : undefined}
+            />
         </div>
     )
 }

@@ -73,8 +73,9 @@ export function DealCard({ deal, overlay }: DealCardProps) {
             {...attributes}
             {...listeners}
             className="mb-3 relative group"
+            onClick={() => window.location.href = `/dashboard/deals/${deal.id}`} // Simple navigation for now
         >
-            <Card className={cn("transition-colors select-none", statusColor)}>
+            <Card className={cn("transition-colors select-none cursor-pointer hover:border-slate-400", statusColor)}>
                 {statusBadge}
                 <CardContent className="p-4 space-y-3">
                     {/* Header */}

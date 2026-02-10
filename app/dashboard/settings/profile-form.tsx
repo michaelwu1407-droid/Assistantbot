@@ -55,17 +55,49 @@ const defaultValues: Partial<ProfileFormValues> = {
     ],
 }
 
-export function ProfileForm() {
+import { updateUserProfile } from "@/actions/user-actions"
+import { useRouter } from "next/navigation"
+
+interface ProfileFormProps {
+    userId?: string
+    initialData?: Partial<ProfileFormValues>
+}
+
+export function ProfileForm({ userId, initialData }: ProfileFormProps) {
+    const router = useRouter()
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileFormSchema),
-        defaultValues,
+        defaultValues: initialData || defaultValues,
         mode: "onChange",
     })
 
-    function onSubmit(data: ProfileFormValues) {
-        toast.success("Profile updated", {
-            description: "Your changes have been saved successfully."
-        })
+    async function onSubmit(data: ProfileFormValues) {
+        if (!userId) {
+            toast.error("User ID missing")
+            return
+        }
+
+        try {
+            const result = await updateUserProfile(userId, {
+                username: data.username,
+                email: data.email,
+                bio: data.bio || undefined,
+                urls: data.urls
+            })
+
+            if (result.success) {
+                toast.success("Profile updated", {
+                    description: "Your changes have been saved successfully."
+                })
+                router.refresh()
+            } else {
+                toast.error("Failed to update profile", {
+                    description: result.error
+                })
+            }
+        } catch (error) {
+            toast.error("An error occurred")
+        }
     }
 
     return (

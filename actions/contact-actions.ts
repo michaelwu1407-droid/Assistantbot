@@ -109,6 +109,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
 
 /**
  * Create a new contact with optional auto-enrichment from email.
+ * Includes Smart Deduplication: Merges if email or phone exists.
  */
 export async function createContact(input: z.infer<typeof CreateContactSchema>) {
   const parsed = CreateContactSchema.safeParse(input);
@@ -116,6 +117,44 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
+  // 1. Smart Deduplication Check
+  const existingContact = await db.contact.findFirst({
+    where: {
+      workspaceId: parsed.data.workspaceId,
+      OR: [
+        parsed.data.email ? { email: parsed.data.email } : {},
+        parsed.data.phone ? { phone: parsed.data.phone } : {},
+      ],
+    },
+  });
+
+  if (existingContact) {
+    // Merge Strategy: Update missing fields only (except Name/Company might be override?)
+    // For now, we'll only fill in blanks to be safe, or update if provided explicitly?
+    // Let's go with: Update provided fields if they are currently null on the record. 
+    // AND update the latest info if provided strings are longer/newer? 
+    // Simple Merge: Overwrite with new data if provided.
+
+    await db.contact.update({
+      where: { id: existingContact.id },
+      data: {
+        name: parsed.data.name, // Accept new name as "latest"
+        email: parsed.data.email || existingContact.email,
+        phone: parsed.data.phone || existingContact.phone,
+        company: parsed.data.company || existingContact.company,
+        address: parsed.data.address || existingContact.address,
+      }
+    });
+
+    return {
+      success: true as const,
+      contactId: existingContact.id,
+      enriched: null,
+      merged: true
+    };
+  }
+
+  // 2. Enrichment (Only for new contacts)
   let enriched: EnrichedCompany | null = null;
   if (parsed.data.email) {
     enriched = await enrichFromEmail(parsed.data.email);
@@ -148,7 +187,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     contactId: contact.id
   });
 
-  return { success: true as const, contactId: contact.id, enriched };
+  return { success: true as const, contactId: contact.id, enriched, merged: false };
 }
 
 /**

@@ -35,6 +35,14 @@ const sidebarNavItems = [
         title: "Display",
         href: "/dashboard/settings/display",
     },
+    {
+        title: "Automations",
+        href: "/dashboard/settings/automations",
+    },
+    {
+        title: "Integrations",
+        href: "/dashboard/settings/integrations",
+    },
 ]
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {

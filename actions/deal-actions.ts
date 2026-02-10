@@ -219,3 +219,24 @@ export async function deleteDeal(dealId: string) {
   await db.deal.delete({ where: { id: dealId } });
   return { success: true };
 }
+/**
+ * Fuzzy search deals.
+ */
+import { fuzzySearch, type SearchableItem } from "@/lib/search";
+
+interface SearchableDeal extends SearchableItem {
+  deal: DealView;
+}
+
+export async function searchDeals(workspaceId: string, query: string): Promise<DealView[]> {
+  const deals = await getDeals(workspaceId);
+
+  const searchable: SearchableDeal[] = deals.map((deal) => ({
+    id: deal.id,
+    searchableFields: [deal.title, deal.company, deal.contactName].filter(Boolean),
+    deal,
+  }));
+
+  const results = fuzzySearch(searchable, query);
+  return results.map((r) => r.item.deal);
+}
