@@ -167,7 +167,8 @@ export async function getInboxThreads(workspaceId: string): Promise<InboxThread[
  */
 export async function sendSMS(
   contactId: string,
-  message: string
+  message: string,
+  dealId?: string
 ): Promise<MessageResult> {
   const parsed = SendMessageSchema.safeParse({
     contactId,
@@ -192,6 +193,7 @@ export async function sendSMS(
         title: "SMS sent",
         content: `SMS to ${contact.name}: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
         contactId,
+        dealId, // Associate with deal if provided
       },
     });
   }

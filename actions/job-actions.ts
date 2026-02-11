@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { JobStatus } from "@prisma/client";
 import { logActivity } from "./activity-actions";
+import { sendSMS } from "@/actions/messaging-actions";
 
 // --- Job Status Management ---
 
@@ -49,19 +50,10 @@ export async function sendTravelSMS(dealId: string) {
             return { success: false, error: "No contact phone number" };
         }
 
-        // Stub for Twilio integration
-        console.log(`[SMS MOCK] Sending to ${deal.contact.phone}: Hi ${deal.contact.name}, I'm on my way to ${deal.title}. See you soon!`);
+        const message = `Hi ${deal.contact.name}, I'm on my way to ${deal.title}. See you soon!`;
+        const result = await sendSMS(deal.contactId, message, deal.id);
 
-        await logActivity({
-            type: "CALL", // Using CALL/EMAIL types as proxy for SMS for now
-            title: "SMS Sent: On My Way",
-            description: "Automated travel notification sent to client",
-            content: `Hi ${deal.contact.name}, I'm on my way to ${deal.title}. See you soon!`,
-            dealId: deal.id,
-            contactId: deal.contactId,
-        });
-
-        return { success: true };
+        return result;
     } catch (error) {
         console.error("Error sending SMS:", error);
         return { success: false, error: "Failed to send SMS" };

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { MapPin, Navigation, HardHat, CheckCircle, Smartphone } from "lucide-react";
+import { Loader2, Navigation, MapPin, HardHat, CheckCircle2 } from "lucide-react";
 import { updateJobStatus } from "@/actions/job-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SafetyModal } from "./safety-modal";
 import { JobCompletionModal } from "./job-completion-modal";
+import { cn } from "@/lib/utils";
 
 type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED";
 
@@ -16,9 +16,10 @@ interface JobStatusBarProps {
     dealId: string;
     currentStatus: JobStatus;
     contactName: string;
+    safetyCheckCompleted: boolean;
 }
 
-export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBarProps) {
+export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCompleted }: JobStatusBarProps) {
     const [status, setStatus] = useState<JobStatus>(currentStatus);
     const [loading, setLoading] = useState(false);
     const [safetyModalOpen, setSafetyModalOpen] = useState(false);
@@ -31,7 +32,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
             const result = await updateJobStatus(dealId, newStatus);
             if (result.success) {
                 setStatus(newStatus);
-                toast.success(`Status updated to ${newStatus}`);
+                toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
                 if (newStatus === "TRAVELING") {
                     toast.success(`SMS sent to ${contactName}: "On my way!"`);
                 }
@@ -40,6 +41,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                 toast.error("Failed to update status");
             }
         } catch (error) {
+            console.error(error);
             toast.error("An error occurred");
         } finally {
             setLoading(false);
@@ -47,73 +49,68 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
     };
 
     const handleStartWork = () => {
-        setSafetyModalOpen(true);
+        // If they are arriving, we switch to ON_SITE
+        handleStatusChange("ON_SITE");
     };
 
     const onSafetyCheckComplete = () => {
         setSafetyModalOpen(false);
-        handleStatusChange("ON_SITE");
+        router.refresh(); // Refresh to update the safetyCheckCompleted prop from server
     };
 
-    if (status === "COMPLETED") {
-        return (
-            <Card className="fixed bottom-0 left-0 right-0 p-4 border-t bg-green-50 z-10 flex items-center justify-center gap-2">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-                <span className="font-semibold text-green-800">Job Completed</span>
-            </Card>
-        );
+    if (status === "COMPLETED" || status === "CANCELLED") {
+        return null; // Don't show footer for completed jobs
     }
 
     return (
         <>
-            <Card className="fixed bottom-4 left-4 right-4 p-4 border bg-neutral-900 text-white z-10 shadow-xl safe-area-pb">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-xs text-neutral-400 uppercase tracking-wider">Current Status</span>
-                        <span className="font-bold text-lg flex items-center gap-2">
-                            {status === "SCHEDULED" && <><MapPin className="h-4 w-4" /> Ready to Go</>}
-                            {status === "TRAVELING" && <><Navigation className="h-4 w-4 animate-pulse" /> Traveling</>}
-                            {status === "ON_SITE" && <><HardHat className="h-4 w-4" /> On Site</>}
-                        </span>
-                    </div>
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950 p-4 pb-8 border-t border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500">
+                <div className="max-w-md mx-auto w-full">
+                    {status === "SCHEDULED" && (
+                        <Button
+                            onClick={() => handleStatusChange("TRAVELING")}
+                            disabled={loading}
+                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-[#ccff00] hover:bg-[#b3e600] text-black shadow-[0_0_20px_rgba(204,255,0,0.4)] transition-all active:scale-95"
+                        >
+                            {loading ? <Loader2 className="animate-spin mr-3 h-6 w-6" /> : <Navigation className="mr-3 h-6 w-6" />}
+                            START TRAVEL
+                        </Button>
+                    )}
 
-                    <div className="flex gap-2">
-                        {status === "SCHEDULED" && (
-                            <Button
-                                onClick={() => handleStatusChange("TRAVELING")}
-                                disabled={loading}
-                                className="bg-green-500 hover:bg-green-600 text-black font-bold"
-                                size="lg"
-                            >
-                                <Navigation className="mr-2 h-4 w-4" />
-                                Start Travel
-                            </Button>
-                        )}
+                    {status === "TRAVELING" && (
+                        <Button
+                            onClick={handleStartWork}
+                            disabled={loading}
+                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-[#ccff00] hover:bg-[#b3e600] text-black shadow-[0_0_20px_rgba(204,255,0,0.4)] transition-all active:scale-95"
+                        >
+                            {loading ? <Loader2 className="animate-spin mr-3 h-6 w-6" /> : <MapPin className="mr-3 h-6 w-6" />}
+                            I'VE ARRIVED
+                        </Button>
+                    )}
 
-                        {status === "TRAVELING" && (
-                            <Button
-                                onClick={handleStartWork}
-                                disabled={loading}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold"
-                                size="lg"
-                            >
-                                <HardHat className="mr-2 h-4 w-4" />
-                                Arrived / Start Work
-                            </Button>
-                        )}
+                    {status === "ON_SITE" && !safetyCheckCompleted && (
+                        <Button
+                            onClick={() => setSafetyModalOpen(true)}
+                            disabled={loading}
+                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-amber-500 hover:bg-amber-600 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all active:scale-95"
+                        >
+                            <HardHat className="mr-3 h-6 w-6" />
+                            SAFETY CHECK
+                        </Button>
+                    )}
 
-                        {status === "ON_SITE" && (
-                            <Button
-                                variant="outline"
-                                className="text-black bg-white"
-                                onClick={() => setCompletionModalOpen(true)}
-                            >
-                                Complete Job
-                            </Button>
-                        )}
-                    </div>
+                    {status === "ON_SITE" && safetyCheckCompleted && (
+                        <Button
+                            onClick={() => setCompletionModalOpen(true)}
+                            disabled={loading}
+                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-white hover:bg-slate-200 text-black shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all active:scale-95"
+                        >
+                            <CheckCircle2 className="mr-3 h-6 w-6" />
+                            COMPLETE JOB
+                        </Button>
+                    )}
                 </div>
-            </Card>
+            </div>
 
             <SafetyModal
                 open={safetyModalOpen}
@@ -126,7 +123,10 @@ export function JobStatusBar({ dealId, currentStatus, contactName }: JobStatusBa
                 open={completionModalOpen}
                 onOpenChange={setCompletionModalOpen}
                 dealId={dealId}
-                onSuccess={() => setStatus("COMPLETED")}
+                onSuccess={() => {
+                    setStatus("COMPLETED");
+                    router.refresh();
+                }}
             />
         </>
     );
