@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -9,7 +9,8 @@ import {
     useSensor,
     useSensors,
     PointerSensor,
-    TouchSensor
+    TouchSensor,
+    closestCenter
 } from "@dnd-kit/core";
 import { JobSidebar } from "./job-sidebar";
 import { CalendarGrid } from "./calendar-grid";
@@ -19,12 +20,10 @@ import {
     format,
     startOfWeek,
     addDays,
-    startOfDay,
     addWeeks,
-    subWeeks,
-    isSameDay
+    isValid
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, LayoutGrid } from "lucide-react";
+import { ChevronLeft, ChevronRight, List, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { updateJobSchedule } from "@/actions/tradie-actions";
 import { toast } from "sonner";
@@ -34,52 +33,74 @@ export interface SchedulerViewProps {
 }
 
 export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) {
+    const [mounted, setMounted] = useState(false);
+
     // State for navigation
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
+    const [activeJob, setActiveJob] = useState<SchedulerJob | null>(null);
+
+    // Hydration fix
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Calculate visible dates based on view mode
     const visibleDates = useMemo(() => {
-        const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
         if (viewMode === 'day') {
             return [currentDate];
         }
-        // Week view (5 days for now, could be 7)
+        // Week view (Monday - Friday)
+        const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         return Array.from({ length: 5 }, (_, i) => addDays(start, i));
     }, [currentDate, viewMode]);
 
-    // Transform initialJobs to SchedulerJob format
-    const transformedJobs: SchedulerJob[] = initialJobs.map((job: any) => ({
-        id: job.id,
-        title: job.title,
-        clientName: job.clientName,
-        duration: 2, // Default duration
-        color: "", // Handled by component now
-        stage: job.status || job.stage, // Ensure stage/status is passed
-        status: job.status || job.stage,
-        scheduledAt: job.scheduledAt
-    }));
+    // Transform & Filter Jobs
+    // We maintain two lists: Scheduled (on the grid) and Unscheduled (sidebar)
 
-    const [unscheduledJobs, setUnscheduledJobs] = useState<SchedulerJob[]>(
-        transformedJobs.filter(j => !j.scheduledAt && j.status !== 'COMPLETED' && j.status !== 'CANCELLED')
-    );
+    const { scheduledMap, unscheduledList } = useMemo(() => {
+        const sMap: Record<string, SchedulerJob[]> = {};
+        const uList: SchedulerJob[] = [];
 
-    // Initialize scheduled jobs map
-    // Key format: "yyyy-MM-dd-H"
-    const initialScheduled: Record<string, SchedulerJob[]> = {};
-    transformedJobs.forEach(job => {
-        if (job.scheduledAt) {
-            const date = new Date(job.scheduledAt);
-            const key = `${format(date, 'yyyy-MM-dd')}-${format(date, 'H')}`;
-            if (!initialScheduled[key]) {
-                initialScheduled[key] = [];
+        initialJobs.forEach((job: any) => {
+            const scheduledDate = job.scheduledAt ? new Date(job.scheduledAt) : null;
+            const isScheduled = scheduledDate && isValid(scheduledDate);
+
+            const schedulerJob: SchedulerJob = {
+                id: job.id,
+                title: job.title,
+                clientName: job.contact?.name || job.clientName || "Unknown Client",
+                duration: 2, // Default duration, ideally from DB
+                color: job.stage === 'WON' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 'bg-blue-100 border-blue-200 text-blue-800',
+                stage: job.stage,
+                status: job.status,
+                scheduledAt: isScheduled && scheduledDate ? scheduledDate.toISOString() : null
+            };
+
+            if (isScheduled && scheduledDate) {
+                // Key format: "yyyy-MM-dd-H" (e.g., "2023-10-27-10")
+                const key = `${format(scheduledDate, 'yyyy-MM-dd')}-${format(scheduledDate, 'H')}`;
+                if (!sMap[key]) sMap[key] = [];
+                sMap[key].push(schedulerJob);
+            } else if (job.stage !== 'WON' && job.stage !== 'LOST' && job.stage !== 'ARCHIVED') {
+                // Only show active deals in sidebar
+                uList.push(schedulerJob);
             }
-            initialScheduled[key].push(job);
-        }
-    });
+        });
 
-    const [scheduledJobs, setScheduledJobs] = useState<Record<string, SchedulerJob[]>>(initialScheduled);
-    const [activeJob, setActiveJob] = useState<SchedulerJob | null>(null);
+        return { scheduledMap: sMap, unscheduledList: uList };
+    }, [initialJobs]);
+
+    // Local state to handle optimistic updates
+    const [localScheduled, setLocalScheduled] = useState(scheduledMap);
+    const [localUnscheduled, setLocalUnscheduled] = useState(unscheduledList);
+
+    // Sync when props change
+    useEffect(() => {
+        setLocalScheduled(scheduledMap);
+        setLocalUnscheduled(unscheduledList);
+    }, [scheduledMap, unscheduledList]);
+
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -99,159 +120,171 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
         if (!over) return;
 
         const job = active.data.current?.job as SchedulerJob;
-        const dropZoneId = over.id as string; // e.g., "2023-10-27-10"
+        const dropZoneId = over.id as string;
 
-        // Check if dropping onto a time slot
-        if (dropZoneId.includes("-") && dropZoneId.split('-').length >= 4) {
-            const [year, month, day, hour] = dropZoneId.split('-').map(Number);
+        // Check if dropping onto a valid time slot
+        // ID format: "yyyy-MM-dd-H"
+        if (dropZoneId.includes("-") && dropZoneId.split('-').length >= 3) {
+            // Parse drop date
+            // Note: Our ID is yyyy-MM-dd-H. Split gives [y, m, d, h]
+            const parts = dropZoneId.split('-').map(Number);
+            if (parts.length < 4) return;
 
-            // Construct new date
-            const newScheduledAt = new Date(year, month - 1, day, hour);
+            const [year, month, day, hour] = parts;
+            const newDate = new Date(year, month - 1, day, hour);
+
+            if (!isValid(newDate)) return;
 
             // Optimistic Update
+            const newScheduled = { ...localScheduled };
 
-            // 1. Remove from unscheduled if it was there
-            const wasUnscheduled = unscheduledJobs.some(j => j.id === job.id);
-            if (wasUnscheduled) {
-                setUnscheduledJobs(prev => prev.filter(j => j.id !== job.id));
+            // 1. Remove from source (sidebar or previous slot)
+            if (localUnscheduled.some(j => j.id === job.id)) {
+                 setLocalUnscheduled(prev => prev.filter(j => j.id !== job.id));
+            } else {
+                // Remove from previous scheduled slot
+                Object.keys(newScheduled).forEach(key => {
+                    newScheduled[key] = newScheduled[key].filter(j => j.id !== job.id);
+                });
             }
 
-            // 2. Remove from previous scheduled slot
-            const newScheduled = { ...scheduledJobs };
-            Object.keys(newScheduled).forEach(key => {
-                newScheduled[key] = newScheduled[key].filter(j => j.id !== job.id);
-            });
-
-            // 3. Add to new slot
+            // 2. Add to new slot
             if (!newScheduled[dropZoneId]) {
                 newScheduled[dropZoneId] = [];
             }
 
-            // Update the job object with new time
-            const updatedJob = { ...job, scheduledAt: newScheduledAt, status: job.status === 'NEW' ? 'SCHEDULED' : job.status };
+            const updatedJob: SchedulerJob = {
+                ...job,
+                scheduledAt: newDate.toISOString(),
+                status: 'SCHEDULED'
+            };
+
             newScheduled[dropZoneId].push(updatedJob);
+            setLocalScheduled(newScheduled);
 
-            setScheduledJobs(newScheduled);
+            toast.success(`Rescheduled to ${format(newDate, 'MMM d, h:mm a')}`);
 
-            // 4. Persist to server
+            // 3. Persist
             try {
-                const result = await updateJobSchedule(job.id, newScheduledAt);
-                if (!result.success) {
-                    throw new Error(result.error);
-                }
-                toast.success("Schedule updated");
+                const result = await updateJobSchedule(job.id, newDate);
+                if (!result.success) throw new Error(result.error);
             } catch (error) {
                 console.error("Failed to update schedule", error);
-                toast.error("Failed to update schedule");
-                // Rollback (omitted for brevity, but should be done in prod)
+                toast.error("Failed to save schedule change");
+                // Revert state (simplified: refresh page or complex rollback logic)
             }
         }
     };
 
-    // Navigation Handlers
-    const handlePrev = () => {
+    // Navigation
+    const navigate = (direction: 'prev' | 'next' | 'today') => {
+        if (direction === 'today') {
+            setCurrentDate(new Date());
+            return;
+        }
+
+        const delta = direction === 'next' ? 1 : -1;
         if (viewMode === 'day') {
-            setCurrentDate(prev => addDays(prev, -1));
+            setCurrentDate(d => addDays(d, delta));
         } else {
-            setCurrentDate(prev => subWeeks(prev, 1));
+            setCurrentDate(d => addWeeks(d, delta));
         }
     };
 
-    const handleNext = () => {
-        if (viewMode === 'day') {
-            setCurrentDate(prev => addDays(prev, 1));
-        } else {
-            setCurrentDate(prev => addWeeks(prev, 1));
-        }
-    };
-
-    const handleToday = () => {
-        setCurrentDate(new Date());
-    };
+    if (!mounted) return null;
 
     return (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="flex flex-col h-full max-h-screen bg-slate-50">
-                {/* Calendar Header */}
-                <div className="flex items-center justify-between px-6 py-4 bg-white border-b shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-slate-100 rounded-lg p-1 border">
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+                {/* Header (UI-6 Style Upgrade) */}
+                <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shrink-0">
+                    <div className="flex items-center gap-6">
+                        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            {format(currentDate, 'MMMM yyyy')}
+                        </h2>
+
+                        <div className="flex items-center bg-slate-100 rounded-md p-0.5 border border-slate-200">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
-                                onClick={handlePrev}
+                                className="h-7 w-7 rounded-sm hover:bg-white hover:shadow-sm"
+                                onClick={() => navigate('prev')}
                             >
-                                <ChevronLeft className="h-4 w-4" />
+                                <ChevronLeft className="h-4 w-4 text-slate-600" />
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 text-xs font-medium px-3"
-                                onClick={handleToday}
+                                className="h-7 text-xs font-medium px-3 rounded-sm hover:bg-white hover:shadow-sm"
+                                onClick={() => navigate('today')}
                             >
                                 Today
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
-                                onClick={handleNext}
+                                className="h-7 w-7 rounded-sm hover:bg-white hover:shadow-sm"
+                                onClick={() => navigate('next')}
                             >
-                                <ChevronRight className="h-4 w-4" />
+                                <ChevronRight className="h-4 w-4 text-slate-600" />
                             </Button>
                         </div>
-                        <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                            <CalendarIcon className="h-5 w-5 text-blue-600" />
-                            {viewMode === 'day'
-                                ? format(currentDate, 'EEEE, MMMM d, yyyy')
-                                : `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d, yyyy')}`
-                            }
-                        </h2>
                     </div>
 
-                    <div className="flex items-center bg-slate-100 rounded-lg p-1 border">
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewMode('day')}
-                            className={`h-7 px-3 text-xs font-medium ${viewMode === 'day' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600'}`}
+                            className={`h-8 px-3 text-xs font-medium transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
                         >
-                            <List className="h-3.5 w-3.5 mr-1.5" />
+                            <List className="h-3.5 w-3.5 mr-2" />
                             Day
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewMode('week')}
-                            className={`h-7 px-3 text-xs font-medium ${viewMode === 'week' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600'}`}
+                            className={`h-8 px-3 text-xs font-medium transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
                         >
-                            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+                            <LayoutGrid className="h-3.5 w-3.5 mr-2" />
                             Week
                         </Button>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-hidden flex">
-                    {/* Sidebar (Fixed Width) */}
-                    <div className="w-80 flex-shrink-0 h-full border-r bg-white z-10 shadow-sm">
-                        <JobSidebar jobs={unscheduledJobs} />
+                    {/* Sidebar: Unscheduled Jobs */}
+                    <div className="w-72 flex-shrink-0 h-full border-r border-slate-200 bg-white z-10 flex flex-col">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unscheduled Jobs</h3>
+                        </div>
+                        <JobSidebar jobs={localUnscheduled} />
                     </div>
 
-                    {/* Main Calendar Area */}
-                    <div className="flex-1 h-full min-w-0 bg-white">
+                    {/* Main Calendar Grid */}
+                    <div className="flex-1 h-full min-w-0 bg-white overflow-hidden flex flex-col">
                         <CalendarGrid
-                            scheduledJobs={scheduledJobs}
+                            scheduledJobs={localScheduled}
                             visibleDates={visibleDates}
                         />
                     </div>
                 </div>
             </div>
 
-            {/* Drag Overlay for visual feedback */}
-            {createPortal(
-                <DragOverlay>
-                    {activeJob ? <DraggableJobCard job={activeJob} isOverlay /> : null}
+            {/* Drag Overlay Portal */}
+            {mounted && createPortal(
+                <DragOverlay dropAnimation={{ duration: 250, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                    {activeJob ? (
+                        <div className="rotate-3 scale-105 opacity-90 cursor-grabbing">
+                             <DraggableJobCard job={activeJob} isOverlay />
+                        </div>
+                    ) : null}
                 </DragOverlay>,
                 document.body
             )}

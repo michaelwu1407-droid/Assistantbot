@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { List, Map as MapIcon } from "lucide-react"
 import Link from "next/link"
 import { getAuthUserId } from "@/lib/auth"
-import { JobMapView } from "@/components/crm/job-map-view"
+import { JobMapViewWrapper } from "@/components/crm/job-map-view-wrapper"
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +55,7 @@ export default async function TradieMapPage() {
             </header>
 
             <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
-                <JobMapView
+                <JobMapViewWrapper
                     initialDeals={deals}
                     workspaceId={workspace.id}
                     pendingCount={deals.filter((d: any) => !['won', 'lost'].includes(d.stage)).length}

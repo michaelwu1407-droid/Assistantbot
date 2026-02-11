@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isToday } from "date-fns";
 
-
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,
@@ -21,7 +20,7 @@ const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ),
 });
 
-interface JobMapViewProps {
+export interface JobMapViewProps {
   initialDeals: GeocodedDeal[];
   workspaceId: string;
   pendingCount: number;
