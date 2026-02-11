@@ -103,6 +103,13 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
                  <KanbanBoard deals={deals} />
             </div>
 
+            {/* 3. Main Content Area: Kanban Board */}
+            {/* flex-1 ensures it takes ALL remaining vertical space */}
+            {/* min-h-0 allows the container to shrink if window is small, enabling internal scrolling */}
+            <div className="flex-1 w-full overflow-hidden min-h-0 border-t border-slate-100 pt-4">
+                 <KanbanBoard deals={deals} />
+            </div>
+
             <NewDealModal
                 isOpen={isNewDealModalOpen}
                 onClose={() => setIsNewDealModalOpen(false)}
