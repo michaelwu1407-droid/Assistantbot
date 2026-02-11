@@ -202,7 +202,7 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
         >
             <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
                 {/* Header (UI-6 Style Upgrade) */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-6 py-4 bg-white border-b border-slate-200 shrink-0 gap-4">
+                <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shrink-0">
                     <div className="flex items-center gap-6">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             {format(currentDate, 'MMMM yyyy')}
@@ -236,7 +236,7 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200 self-end md:self-auto">
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
                          <Button
                             variant="ghost"
                             size="sm"
@@ -258,17 +258,17 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-                    {/* Sidebar: Unscheduled Jobs (Responsive: Collapsed on mobile/small screens or full width) */}
-                    <div className="w-full md:w-64 lg:w-72 flex-shrink-0 h-1/3 md:h-full border-r border-slate-200 bg-white z-10 flex flex-col order-2 md:order-1">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10">
+                <div className="flex-1 overflow-hidden flex">
+                    {/* Sidebar: Unscheduled Jobs */}
+                    <div className="w-72 flex-shrink-0 h-full border-r border-slate-200 bg-white z-10 flex flex-col">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unscheduled Jobs</h3>
                         </div>
                         <JobSidebar jobs={localUnscheduled} />
                     </div>
 
                     {/* Main Calendar Grid */}
-                    <div className="flex-1 h-2/3 md:h-full min-w-0 bg-white overflow-hidden flex flex-col order-1 md:order-2">
+                    <div className="flex-1 h-full min-w-0 bg-white overflow-hidden flex flex-col">
                         <CalendarGrid
                             scheduledJobs={localScheduled}
                             visibleDates={visibleDates}

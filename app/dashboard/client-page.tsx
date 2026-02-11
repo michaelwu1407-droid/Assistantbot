@@ -44,8 +44,8 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
                 </Button>
             </div>
 
-            {/* Top Row: Widgets (Pulse / Health / Activity) - Responsive Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 shrink-0 min-h-[140px] md:h-[220px]">
+            {/* Top Row: Widgets (Pulse / Health / Activity) - Fix for UI-1 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 h-[220px]">
                 {/* Widget 1: Pipeline Pulse */}
                 <Card className="border-slate-200 shadow-sm flex flex-col">
                     <CardHeader className="pb-2">
@@ -74,8 +74,8 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
                     </CardContent>
                 </Card>
 
-                 {/* Widget 3: Recent Activity (Hidden on smaller laptops/tablets if cramped, shown on XL or stacked on mobile) */}
-                 <div className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden flex flex-col md:col-span-2 xl:col-span-1">
+                 {/* Widget 3: Recent Activity (Moved from sidebar) */}
+                 <div className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
                         <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                              <Activity className="h-4 w-4 text-amber-500" />
@@ -83,7 +83,7 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
                         </div>
                         <span className="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full text-slate-600">{activities.length}</span>
                     </div>
-                    <div className="flex-1 overflow-hidden h-32 md:h-auto">
+                    <div className="flex-1 overflow-hidden">
                         {/* Compact version of ActivityFeed */}
                         <ActivityFeed activities={activities} className="border-0 shadow-none" compact />
                     </div>
