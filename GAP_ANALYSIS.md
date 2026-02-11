@@ -185,7 +185,7 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | **Too much whitespace / Bare** | **M-2**, **X-17** | Add background pattern/gradient, refine spacing, maybe add "suggested prompts" bubbles to fill void. | ✅ Done |
 | **No timestamps / delineation** | **[NEW] C-1** | Add "Today", "Yesterday" headers. Add visible dividers between conversation turns. | ✅ Done |
 | **"Create Deal" fails to draft** | **[NEW] C-2** | **Generative UI**: When intent is `new_deal`, AI should return a structured "Draft Deal" card (Lead Name, Address, Issue, Quote) for confirmation *before* creating. | ✅ Done |
-| **Microphone Broken** | **J-8** | Fix microphone permission/state handling in `ChatInput`. | ⚠️ Partial |
+| **Microphone Broken** | **J-8** | Fix microphone permission/state handling in `ChatInput`. | ✅ Done |
 | **Settings -> Replay Tutorial** | **[NEW] C-3** | Fix Settings Cog behavior. It should go to `/dashboard/settings`. "Replay Tutorial" should be a sub-item or inside Help. | ✅ Done |
 
 ### 8.2 Advanced Dashboard
@@ -220,5 +220,5 @@ This is the **largest gap** in the entire application. Almost none of the job ex
 | Issue | Task Ref | Action | Status |
 |-------|----------|--------|--------|
 | **Empty Calendar** | **[NEW] CAL-1** | Jobs exist in DB but don't show on Calendar. Likely a date parsing or filtering mismatch in `getCalendarJobs`. | ✅ Done |
-| **Grid Alignment** | **[NEW] UI-5** | Time lines do not align with day columns. Refactor CSS grid/flex layout for precise alignment. | ⚠️ Partial |
+| **Grid Alignment** | **[NEW] UI-5** | Time lines do not align with day columns. Refactor CSS grid/flex layout for precise alignment. | ✅ Done |
 | **Formatting / Aesthetic** | **[NEW] UI-6** | Upgrade calendar to "Google Calendar" quality: modern event styling, time indicators, clean lines. | ✅ Done |

@@ -463,12 +463,12 @@ export async function processChat(
       // Draft Mode: If not explicitly confirmed, ask for confirmation
       if (params.confirmed !== "true") {
         response = {
-          message: `I've prepared a draft for "${params.title}". Please confirm the details.`,
+          message: `I've prepared a draft for "${params.title || "New Deal"}". Please confirm the details.`,
           action: "draft_deal",
           data: {
-            title: params.title,
-            company: params.company,
-            value: params.value,
+            title: params.title || "New Deal",
+            company: params.company || "Unknown Client",
+            value: params.value || "0",
           }
         };
         break;

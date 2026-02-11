@@ -96,7 +96,7 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
             {...attributes}
             onClick={handleClick}
             className={cn(
-                "cursor-move hover:shadow-md transition-all mb-2 border-l-4 h-full",
+                "cursor-move hover:shadow-md transition-all border-l-4 h-full",
                 config.borderColor,
                 config.bgColor,
                 isDragging && "opacity-50",

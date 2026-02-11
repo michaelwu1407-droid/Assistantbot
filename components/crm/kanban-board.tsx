@@ -231,7 +231,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                 items={colDeals.map(d => d.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex-1 bg-slate-50/50 rounded-xl border border-slate-200/60 p-2 overflow-y-auto min-h-[150px]">
+                <div className="flex-1 bg-slate-50/50 rounded-xl border border-slate-200/60 p-2 overflow-y-auto min-h-[150px] flex flex-col gap-4">
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
                       <DealCard key={deal.id} deal={deal} />

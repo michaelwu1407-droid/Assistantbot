@@ -73,7 +73,7 @@ export function DealCard({ deal, overlay }: DealCardProps) {
             style={style}
             {...attributes}
             {...listeners}
-            className="mb-3 relative group"
+            className="relative group"
             onClick={() => window.location.href = `/dashboard/deals/${deal.id}`} // Simple navigation for now
         >
             <Card className={cn("transition-colors select-none cursor-pointer hover:border-slate-400", statusColor)}>
@@ -83,7 +83,7 @@ export function DealCard({ deal, overlay }: DealCardProps) {
                     <div className="flex justify-between items-start">
                         <div>
                             <h4 className="font-semibold text-slate-900 line-clamp-1">{deal.title}</h4>
-                            <p className="text-xs text-slate-500">{deal.company}</p>
+                            <p className="text-xs text-slate-500 truncate">{deal.company}</p>
                         </div>
                         {/* Grab handle visual cue could go here */}
                     </div>

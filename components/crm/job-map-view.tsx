@@ -5,7 +5,7 @@ import { GeocodedDeal, batchGeocode } from "@/actions/geo-actions";
 import { MapPin, Navigation, RefreshCw, Calendar, Filter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { isToday } from "date-fns";
+import { isToday, isValid } from "date-fns";
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -33,9 +33,11 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
 
   const filteredDeals = useMemo(() => {
     if (filter === 'all') return initialDeals;
-    return initialDeals.filter(deal =>
-      deal.scheduledAt && isToday(new Date(deal.scheduledAt))
-    );
+    return initialDeals.filter(deal => {
+      if (!deal.scheduledAt) return false;
+      const date = new Date(deal.scheduledAt);
+      return isValid(date) && isToday(date);
+    });
   }, [initialDeals, filter]);
 
   const handleBatchGeocode = async () => {
@@ -111,19 +113,29 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
           {filteredDeals.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               <MapPin className="h-8 w-8 mx-auto mb-3 text-slate-300" />
-              <p>No mapped jobs found{filter === 'today' ? ' for today' : ''}.</p>
-              <p className="text-xs mt-1">
+              <h3 className="text-sm font-medium text-slate-900 mb-1">No jobs found</h3>
+              <p className="text-xs">
                 {filter === 'today'
-                  ? "Check your 'All Jobs' view or schedule some tasks."
-                  : "Add addresses to your deals to see them here."}
+                  ? "No mapped jobs scheduled for today."
+                  : "No mapped jobs found in your workspace."}
               </p>
+              {pendingCount > 0 && (
+                 <p className="text-xs mt-4 text-blue-600">
+                    You have {pendingCount} jobs waiting to be mapped.
+                 </p>
+              )}
             </div>
           ) : (
             <div className="divide-y">
               {filteredDeals.map((deal) => (
                 <div key={deal.id} className="p-4 hover:bg-slate-50 transition-colors group">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-medium text-slate-900 truncate pr-2">{deal.title}</h3>
+                    <h3
+                        className="font-medium text-slate-900 truncate pr-2 cursor-help"
+                        title={deal.title}
+                    >
+                        {deal.title}
+                    </h3>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
                       deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-slate-100 text-slate-600 border-slate-200'
@@ -136,7 +148,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
 
                   <div className="flex items-start gap-2 text-xs text-slate-500 mb-3">
                     <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                    <span className="line-clamp-2">{deal.address}</span>
+                    <span className="line-clamp-2" title={deal.address}>{deal.address}</span>
                   </div>
 
                   <div className="flex gap-2">

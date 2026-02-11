@@ -71,6 +71,11 @@ export function AssistantPane() {
                 recognition.onerror = (event: any) => {
                     console.error("Speech recognition error", event.error)
                     setIsListening(false)
+                    if (event.error === 'no-speech') return
+                    if (event.error === 'not-allowed') {
+                        toast.error("Microphone access denied. Check permissions.")
+                        return
+                    }
                     toast.error("Microphone error: " + event.error)
                 }
 
@@ -227,9 +232,12 @@ export function AssistantPane() {
         >
             {/* Background Pattern for Basic Mode */}
             {viewMode === "BASIC" && (
-                <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
-                     style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
-                />
+                <>
+                    <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/30 pointer-events-none" />
+                    <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
+                    />
+                </>
             )}
 
             {/* Header */}

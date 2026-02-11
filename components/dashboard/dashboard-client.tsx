@@ -36,7 +36,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 </div>
 
                 {/* Activity Feed (1/3 width) - Moved here to give Kanban full width below */}
-                <div className="h-full overflow-hidden min-h-[300px]">
+                <div className="h-full overflow-hidden min-h-[300px] max-h-[500px] xl:max-h-full">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>

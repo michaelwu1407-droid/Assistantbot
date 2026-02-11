@@ -124,23 +124,14 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     <Search className="h-5 w-5" />
                 </Button>
 
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100">
-                            <Settings className="h-5 w-5" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => useShellStore.getState().setViewMode("TUTORIAL")}>
-                            <Play className="mr-2 h-4 w-4" />
-                            Replay Tutorial
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-500 hover:bg-slate-100"
+                    onClick={() => router.push("/dashboard/settings")}
+                >
+                    <Settings className="h-5 w-5" />
+                </Button>
 
                 <NotificationsBtn userId={userId} />
 
