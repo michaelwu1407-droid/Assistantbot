@@ -14,7 +14,7 @@ export interface SchedulerJob {
     clientName: string;
     duration: number; // in hours
     color: string;
-    scheduledAt?: Date;
+    scheduledAt?: string | null; // Use string for ISO dates (safe for serialization)
     stage?: string;
     status?: string;
 }

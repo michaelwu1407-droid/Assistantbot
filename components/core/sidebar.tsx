@@ -28,8 +28,8 @@ import {
 
 const navItems = [
     { icon: Home, label: "Hub", href: "/dashboard", id: "hub-link" },
-    { icon: Hammer, label: "Tradie", href: "/dashboard/tradie", id: "tradie-link" },
-    { icon: Briefcase, label: "Agent", href: "/dashboard/agent", id: "agent-link" },
+    { icon: Hammer, label: "Tradie", href: "#", id: "tradie-link", isToggle: true },
+    { icon: Briefcase, label: "Agent", href: "#", id: "agent-link", isToggle: true },
 ]
 
 const tradieSubItems = [
@@ -58,8 +58,12 @@ export function Sidebar({ className }: SidebarProps) {
     const isAgent = industry === "REAL_ESTATE" || (industry === null && pathname.includes("/agent"))
 
     const handleNavClick = (label: string) => {
-        if (label === "Tradie") setIndustry("TRADES")
-        else if (label === "Agent") setIndustry("REAL_ESTATE")
+        if (label === "Tradie") {
+             setIndustry(industry === "TRADES" ? null : "TRADES")
+        }
+        else if (label === "Agent") {
+             setIndustry(industry === "REAL_ESTATE" ? null : "REAL_ESTATE")
+        }
         else if (label === "Hub") setIndustry(null)
     }
 
@@ -86,15 +90,21 @@ export function Sidebar({ className }: SidebarProps) {
 
                 <nav className="flex flex-1 flex-col gap-4">
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                        // Special handling for toggle items vs navigation items
+                        const isActive = item.isToggle
+                            ? (item.label === "Tradie" && isTradie) || (item.label === "Agent" && isAgent)
+                            : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+
+                        const LinkComponent = item.isToggle ? 'div' : Link
 
                         return (
-                            <Tooltip key={item.href}>
+                            <Tooltip key={item.label}>
                                 <TooltipTrigger asChild>
-                                    <Link
+                                    <LinkComponent
                                         href={item.href}
                                         id={item.id}
                                         onClick={() => handleNavClick(item.label)}
+                                        className="cursor-pointer"
                                     >
                                         <motion.div
                                             whileHover={{ scale: 1.1 }}
@@ -108,16 +118,18 @@ export function Sidebar({ className }: SidebarProps) {
                                         >
                                             <item.icon className="h-5 w-5" />
                                         </motion.div>
-                                    </Link>
+                                    </LinkComponent>
                                 </TooltipTrigger>
-                                <TooltipContent side="right">{item.label}</TooltipContent>
+                                <TooltipContent side="right">
+                                    {item.isToggle ? `Toggle ${item.label} Menu` : item.label}
+                                </TooltipContent>
                             </Tooltip>
                         )
                     })}
 
                     {/* Tradie Sub-items */}
                     {isTradie && (
-                        <>
+                        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
                             <div className="h-px bg-slate-200 w-8 mx-auto my-2" />
                             {tradieSubItems.map((item) => {
                                 const isActive = pathname === item.href
@@ -144,12 +156,12 @@ export function Sidebar({ className }: SidebarProps) {
                                     </Tooltip>
                                 )
                             })}
-                        </>
+                        </div>
                     )}
 
                     {/* Agent Sub-items */}
                     {isAgent && (
-                        <>
+                        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
                             <div className="h-px bg-slate-200 w-8 mx-auto my-2" />
                             {agentSubItems.map((item) => {
                                 const isActive = pathname === item.href
@@ -176,7 +188,7 @@ export function Sidebar({ className }: SidebarProps) {
                                     </Tooltip>
                                 )
                             })}
-                        </>
+                        </div>
                     )}
                 </nav>
 
@@ -184,7 +196,12 @@ export function Sidebar({ className }: SidebarProps) {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Link href="/dashboard/settings" id="settings-link">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
+                                <div className={cn(
+                                    "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                                    pathname.startsWith("/dashboard/settings")
+                                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                                        : "text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                                )}>
                                     <Settings className="h-5 w-5" />
                                 </div>
                             </Link>

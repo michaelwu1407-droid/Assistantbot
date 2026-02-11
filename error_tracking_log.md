@@ -106,16 +106,6 @@
 
 ---
 
-## Quick Reference: Common Debug Steps
-1. **Blank page / "Application error"** → Check browser console for React hydration errors
-2. **Frozen buttons** → Usually a hydration crash (ERR-002 pattern). Check for missing `<Suspense>` or provider mismatches
-3. **Redirect loops** → Compare user identification logic across ALL pages in the redirect chain
-4. **Service Worker errors** → Check `public/sw.js` fetch handler; skip navigation requests
-5. **"opaqueredirect"** → SW is trying to cache a redirect response; let browser handle navigation natively
-6. **Advanced Mode takes me to /setup** → `completeOnboarding()` or layout uses wrong user ID (see ERR-010)
-
----
-
 ## ERR-010: Advanced Mode Redirects to /setup (Systemic Auth Mismatch)
 - **Status**: ✅ RESOLVED (commit `f34066e`)
 - **Symptoms**: User completes onboarding, sees dashboard in Basic Mode. Clicking "Advanced Mode" redirects to `/setup`.
@@ -129,3 +119,33 @@
 - **Files Modified**: 6 files (5 existing + 1 new `lib/auth.ts`)
 - **Remaining**: ~~15 non-critical files still use `"demo-user"`~~ All 14 remaining files migrated on 2026-02-10. `"demo-user"` now only exists as the fallback in `lib/auth.ts`.
 - **Learning**: NEVER hardcode user IDs. Create a centralized auth helper from day one and use it everywhere. When fixing auth in one file, grep for ALL occurrences of the pattern.
+
+---
+
+## ERR-011: Build Failed - Prisma Schema Validation (v7+)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: `npm run build` failed with `Error: Prisma schema validation - (get-config wasm)`. Error code `P1012`. "The datasource property 'url' is no longer supported".
+- **Root Cause**: `npm install prisma@latest` installed v7.3.0, which has breaking changes for schema configuration (requires `prisma.config.ts` or constructor args for URLs). The project was set up for Prisma v5.
+- **Solution**: Downgraded Prisma to v5.21.1 to match project patterns.
+- **Command**: `npm install prisma@5.21.1 --save-dev && npm install @prisma/client@5.21.1`
+- **Learning**: Always pin major versions of critical infrastructure libraries like Prisma to avoid breaking changes in CI/CD.
+
+---
+
+## ERR-012: Build Failed - JobMapView Window Undefined
+- **Status**: ✅ RESOLVED
+- **Symptoms**: Build error: `window is not defined` in `app/dashboard/tradie/map/page.tsx`.
+- **Root Cause**: Importing `JobMapView` (which uses Leaflet) directly in a Server Component or during SSR. Leaflet accesses `window` on initialization.
+- **Solution**: Created `components/crm/job-map-view-wrapper.tsx` which uses `next/dynamic` with `{ ssr: false }` to load the map component only on the client.
+- **Files Modified**: `app/dashboard/tradie/map/page.tsx`, `components/crm/job-map-view-wrapper.tsx`
+- **Learning**: Any component using Leaflet (or browser-only APIs) MUST be dynamically imported with SSR disabled if included in a Next.js App Router page.
+
+---
+
+## ERR-013: Empty Calendar - Date Serialization
+- **Status**: ✅ RESOLVED
+- **Symptoms**: Calendar page loaded but showed no events, even though DB had jobs.
+- **Root Cause**: Passing raw `Date` objects from Server Component (`page.tsx`) to Client Component (`scheduler-view.tsx`). Next.js warns about non-serializable data, and `dnd-kit` or date-fns logic on the client failed to parse the server-side Date object correctly across the boundary.
+- **Solution**: Converted dates to ISO strings in `page.tsx` before passing to the client component.
+- **Files Modified**: `app/dashboard/tradie/schedule/page.tsx`
+- **Learning**: Always serialize dates to strings (ISO format) when passing data from Server Components to Client Components.
