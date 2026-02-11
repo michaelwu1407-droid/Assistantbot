@@ -6,7 +6,7 @@ import { MapPin, Navigation, RefreshCw, Calendar, Filter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isToday } from "date-fns";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -63,30 +63,28 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
           </p>
         </div>
         <div className="flex gap-3 items-center">
-            <div className="bg-slate-100 p-1 rounded-lg border flex gap-1">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                        filter === 'all'
-                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                            : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                >
-                    <Filter className="h-3.5 w-3.5" />
-                    All Jobs
-                </button>
-                <button
-                    onClick={() => setFilter('today')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                        filter === 'today'
-                            ? 'bg-white text-blue-600 shadow-sm border border-blue-100'
-                            : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                >
-                    <Calendar className="h-3.5 w-3.5" />
-                    Today Only
-                </button>
-            </div>
+          <div className="bg-slate-100 p-1 rounded-lg border flex gap-1">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${filter === 'all'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-900'
+                }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              All Jobs
+            </button>
+            <button
+              onClick={() => setFilter('today')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${filter === 'today'
+                  ? 'bg-white text-blue-600 shadow-sm border border-blue-100'
+                  : 'text-slate-500 hover:text-slate-900'
+                }`}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Today Only
+            </button>
+          </div>
 
           {pendingCount > 0 && (
             <button
@@ -116,9 +114,9 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
               <MapPin className="h-8 w-8 mx-auto mb-3 text-slate-300" />
               <p>No mapped jobs found{filter === 'today' ? ' for today' : ''}.</p>
               <p className="text-xs mt-1">
-                  {filter === 'today'
-                    ? "Check your 'All Jobs' view or schedule some tasks."
-                    : "Add addresses to your deals to see them here."}
+                {filter === 'today'
+                  ? "Check your 'All Jobs' view or schedule some tasks."
+                  : "Add addresses to your deals to see them here."}
               </p>
             </div>
           ) : (
@@ -128,8 +126,8 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-medium text-slate-900 truncate pr-2">{deal.title}</h3>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${deal.stage === 'won' ? 'bg-green-50 text-green-700 border-green-200' :
-                        deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          'bg-slate-100 text-slate-600 border-slate-200'
+                      deal.stage === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
                       {deal.stage}
                     </span>

@@ -31,7 +31,8 @@ export default function JobMap({ deals }: JobMapProps) {
         longitude: d.longitude || 151.2093,
         stage: d.stage || "unknown",
         value: d.value || 0,
-        contactName: d.clientName || d.contactName || "Client"
+        contactName: d.clientName || d.contactName || "Client",
+        scheduledAt: d.scheduledAt || null
     }))
 
     return <LeafletMap deals={mappedDeals} />

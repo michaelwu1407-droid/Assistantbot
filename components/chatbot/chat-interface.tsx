@@ -182,7 +182,10 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {\n              setViewMode("TUTORIAL")\n              router.push("/dashboard")\n            }}>
+            <DropdownMenuItem onClick={() => {
+              setViewMode("TUTORIAL")
+              router.push("/dashboard")
+            }}>
               <Play className="mr-2 h-4 w-4" />
               Replay Tutorial
             </DropdownMenuItem>
