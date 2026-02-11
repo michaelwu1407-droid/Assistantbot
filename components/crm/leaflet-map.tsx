@@ -6,8 +6,9 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { GeocodedDeal } from "@/actions/geo-actions"
-import { MapPin, User, Calendar, DollarSign, Navigation } from "lucide-react"
+import { MapPin, User, Calendar, DollarSign, Navigation, ArrowRight } from "lucide-react"
 import { format } from "date-fns"
+import { Button } from "@/components/ui/button"
 
 // Fix for Leaflet default icon in Next.js/Webpack
 const icon = L.icon({
@@ -33,88 +34,111 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
     : [-33.8688, 151.2093]
 
   const handlePopupClick = (dealId: string) => {
-    if (industry === "TRADES") {
-      router.push(`/dashboard/tradie/jobs/${dealId}`)
-    } else {
-      router.push(`/dashboard/deals/${dealId}`)
-    }
+    // Navigate based on industry context or general deal page
+    // For now, let's route to the general deal page which is robust
+    router.push(`/dashboard/deals/${dealId}`)
   }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={11}
-      style={{ height: "100%", width: "100%", zIndex: 0 }}
-      scrollWheelZoom={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-      />
-
-      {deals.map((deal) => (
-        <Marker
-          key={deal.id}
-          position={[deal.latitude, deal.longitude]}
-          icon={icon}
+    // z-index: 0 ensures it doesn't bleed through overlays (UI-3)
+    <div className="h-full w-full relative z-0">
+        <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={true}
         >
-          <Popup className="custom-popup">
-            <div
-              className="min-w-[240px] p-1 cursor-pointer hover:bg-slate-50 transition-colors rounded"
-              onClick={() => handlePopupClick(deal.id)}
+        {/* Dark Matter / Voyager Tile Layer (D-5) */}
+        <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        />
+
+        {deals.map((deal) => (
+            <Marker
+            key={deal.id}
+            position={[deal.latitude, deal.longitude]}
+            icon={icon}
             >
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-base text-slate-900 leading-tight pr-2">
-                  {deal.title}
-                </h3>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${deal.stage === 'won' ? 'bg-green-100 text-green-700' :
-                    deal.stage === 'negotiation' ? 'bg-amber-100 text-amber-700' :
-                      'bg-slate-100 text-slate-600'
-                  }`}>
-                  {deal.stage}
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-3">
-                <div className="flex items-start gap-2 text-sm text-slate-600">
-                    <MapPin className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
-                    <span className="leading-snug">{deal.address}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <User className="h-4 w-4 text-slate-400 shrink-0" />
-                    <span>{deal.contactName}</span>
-                </div>
-
-                {deal.scheduledAt && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600 font-medium bg-blue-50 p-1.5 rounded">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        <span>{format(new Date(deal.scheduledAt), "EEE, MMM d • h:mm a")}</span>
+            <Popup className="custom-popup" minWidth={280}>
+                {/* Popup Content - Styled like DealCard (X-17) */}
+                <div className="flex flex-col gap-3 p-1">
+                    {/* Header */}
+                    <div className="flex justify-between items-start gap-2">
+                        <h3 className="font-semibold text-base text-slate-900 leading-tight">
+                            {deal.title}
+                        </h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                            deal.stage === 'won' ? 'bg-green-100 text-green-700' :
+                            deal.stage === 'negotiation' ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-600'
+                        }`}>
+                            {deal.stage}
+                        </span>
                     </div>
-                )}
 
-                {deal.value > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
-                        <span>${deal.value.toLocaleString()}</span>
+                    {/* Details */}
+                    <div className="space-y-2">
+                         {/* Address */}
+                        <div className="flex items-start gap-2 text-sm text-slate-600">
+                            <MapPin className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                            <span className="leading-snug">{deal.address}</span>
+                        </div>
+
+                         {/* Contact */}
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <User className="h-4 w-4 text-slate-400 shrink-0" />
+                            <span>{deal.contactName}</span>
+                        </div>
+
+                        {/* Time */}
+                        {deal.scheduledAt && (
+                            <div className="flex items-center gap-2 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1.5 rounded-md border border-blue-100">
+                                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                <span>{format(new Date(deal.scheduledAt), "EEE, MMM d • h:mm a")}</span>
+                            </div>
+                        )}
+
+                        {/* Value */}
+                        {deal.value > 0 && (
+                             <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                                <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span>${deal.value.toLocaleString()}</span>
+                            </div>
+                        )}
                     </div>
-                )}
-              </div>
 
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${deal.latitude},${deal.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 text-white text-xs font-medium rounded hover:bg-slate-800 transition-colors"
-              >
-                <Navigation className="h-3 w-3" />
-                Get Directions
-              </a>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-1">
+                        <Button
+                            size="sm"
+                            variant="default"
+                            className="flex-1 bg-slate-900 hover:bg-slate-800 text-xs h-8"
+                            onClick={() => handlePopupClick(deal.id)}
+                        >
+                            View Job <ArrowRight className="ml-1 h-3 w-3" />
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-8"
+                            asChild
+                        >
+                             <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${deal.latitude},${deal.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Navigation className="mr-1 h-3 w-3" />
+                                Directions
+                            </a>
+                        </Button>
+                    </div>
+                </div>
+            </Popup>
+            </Marker>
+        ))}
+        </MapContainer>
+    </div>
   )
 }
