@@ -25,7 +25,7 @@ export default async function DealDetailPage({ params }: PageProps) {
         notFound()
     }
 
-    const metadata = deal.metadata as Record<string, unknown> || {}
+    const metadata = (deal.metadata || {}) as Record<string, unknown>
     const isRealEstate = !!metadata.bedrooms || !!metadata.address
     const contact = deal.contacts[0]
 
