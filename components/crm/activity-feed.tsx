@@ -14,6 +14,7 @@ interface ActivityFeedProps {
     className?: string
     activities?: ActivityView[]
     workspaceId?: string
+    compact?: boolean // New prop for simplified view
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -32,12 +33,18 @@ const COLOR_MAP: Record<string, string> = {
     note: "text-slate-500 bg-slate-50"
 }
 
-export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId }: ActivityFeedProps) {
+export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId, compact = false }: ActivityFeedProps) {
     const [activities, setActivities] = useState<ActivityView[]>(initialData || [])
     const [loading, setLoading] = useState(!initialData)
 
     useEffect(() => {
         let mounted = true
+        // Only fetch if no initial data or if filters change (this is a simple check, could be more robust)
+        if (initialData && !loading) {
+             setActivities(initialData)
+             return;
+        }
+
         async function fetchActivities() {
             try {
                 const data = await getActivities({
@@ -58,7 +65,74 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
 
         fetchActivities()
         return () => { mounted = false }
-    }, [contactId, dealId, limit])
+    }, [contactId, dealId, limit, workspaceId, initialData])
+
+    // If compact, we don't render the Card wrapper, just the list content
+    const Content = (
+        <div className="h-full overflow-y-auto custom-scrollbar px-3 py-3">
+            {loading ? (
+                <div className="flex flex-col gap-4 p-2">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-3 w-3/4" />
+                                <Skeleton className="h-2 w-1/2" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : activities.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-12">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <MessageSquare className="h-5 w-5 opacity-40" />
+                    </div>
+                    No activity found
+                </div>
+            ) : (
+                <div className="space-y-1">
+                    {activities.map((activity) => {
+                        const Icon = ICON_MAP[activity.type] || MessageSquare
+                        const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
+
+                        return (
+                            <div
+                                key={activity.id}
+                                className="flex gap-3 items-start group cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors border border-transparent hover:border-border/50"
+                                onClick={() => {
+                                    if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
+                                    else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
+                                }}
+                            >
+                                <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>
+                                    <Icon className="h-3 w-3" />
+                                </div>
+                                <div className="flex-1 space-y-0.5 min-w-0">
+                                    <div className="flex justify-between items-start">
+                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate pr-2">
+                                            {activity.title}
+                                        </p>
+                                        <span className="text-[9px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                                            {activity.time}
+                                        </span>
+                                    </div>
+                                    {activity.description && (
+                                        <p className="text-[10px] text-muted-foreground line-clamp-1">
+                                            {activity.description}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+
+    if (compact) {
+        return Content
+    }
 
     return (
         <Card className={cn("h-full border-border/50 shadow-sm flex flex-col overflow-hidden", className)}>
@@ -71,63 +145,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-hidden min-h-0">
-                <div className="h-full overflow-y-auto custom-scrollbar px-3 py-3">
-                    {loading ? (
-                        <div className="flex flex-col gap-4 p-2">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex gap-3">
-                                    <Skeleton className="h-8 w-8 rounded-full" />
-                                    <div className="flex-1 space-y-2">
-                                        <Skeleton className="h-3 w-3/4" />
-                                        <Skeleton className="h-2 w-1/2" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : activities.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-12">
-                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                                <MessageSquare className="h-5 w-5 opacity-40" />
-                            </div>
-                            No activity found
-                        </div>
-                    ) : (
-                        <div className="space-y-1">
-                            {activities.map((activity) => {
-                                const Icon = ICON_MAP[activity.type] || MessageSquare
-                                const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
-
-                                return (
-                                    <div
-                                        key={activity.id}
-                                        className="flex gap-3 items-start group cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border border-transparent hover:border-border/50"
-                                        onClick={() => {
-                                            if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
-                                            else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
-                                        }}
-                                    >
-                                        <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>
-                                            <Icon className="h-4 w-4" />
-                                        </div>
-                                        <div className="flex-1 space-y-1 min-w-0">
-                                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                                                {activity.title}
-                                            </p>
-                                            {activity.description && (
-                                                <p className="text-xs text-muted-foreground line-clamp-1">
-                                                    {activity.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0 font-medium">
-                                            {activity.time}
-                                        </span>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-                </div>
+                {Content}
             </CardContent>
         </Card>
     )
