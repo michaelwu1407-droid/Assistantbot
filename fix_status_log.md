@@ -20,7 +20,7 @@
 | C-2 | "Create Deal" Draft Card | ✅ Done | Implemented Generative UI "Draft Deal" card with "Confirm" button. |
 | C-3 | Settings Navigation | ✅ Done | Sidebar cog routes to `/dashboard/settings`. |
 | S-1 | Profile Copy | ✅ Done | Updated to "Manage your personal details and account preferences." |
-| UI-1 | Dashboard Layout (Activity cut-off) | ✅ Done | Implemented 3-column responsive widget grid (Pulse, Health, Activity) above Kanban. Fixed overlapping on laptops. |
+| UI-1 | Dashboard Layout (Activity cut-off) | ✅ Done | Refactored to Flex Column layout with strict `max-h` and internal scrolling. |
 | UI-2 | Sidebar Tooltips | ✅ Done | Added tooltips to all sidebar icons. |
 | UI-3 | Map Z-Index Bleed | ✅ Done | Set `z-index: 0` on Leaflet container. |
 | UI-4 | Map Popup Interactivity | ✅ Done | Added "View Job" (navigates to detail) and "Directions" buttons. |
