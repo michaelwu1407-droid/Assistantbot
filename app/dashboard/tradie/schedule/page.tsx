@@ -10,9 +10,17 @@ export default async function SchedulePage() {
     const workspace = await getOrCreateWorkspace(userId)
     const jobs = await getTradieJobs(workspace.id)
 
+    // Ensure jobs are correctly formatted dates for client component
+    const safeJobs = jobs.map((job: any) => ({
+        ...job,
+        scheduledAt: job.scheduledAt ? job.scheduledAt.toISOString() : null,
+        createdAt: job.createdAt ? job.createdAt.toISOString() : null,
+        updatedAt: job.updatedAt ? job.updatedAt.toISOString() : null,
+    }))
+
     return (
-        <div className="h-full flex flex-col">
-            <SchedulerView initialJobs={jobs} />
+        <div className="h-full flex flex-col overflow-hidden">
+            <SchedulerView initialJobs={safeJobs} />
         </div>
     )
 }

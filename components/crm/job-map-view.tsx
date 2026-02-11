@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isToday } from "date-fns";
 
-
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,
@@ -21,7 +20,7 @@ const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ),
 });
 
-interface JobMapViewProps {
+export interface JobMapViewProps {
   initialDeals: GeocodedDeal[];
   workspaceId: string;
   pendingCount: number;
@@ -52,7 +51,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4 flex justify-between items-center shrink-0">
+      <div className="bg-white border-b px-4 md:px-6 py-4 flex flex-col md:flex-row md:justify-between md:items-center shrink-0 gap-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
             <MapPin className="h-5 w-5 text-blue-600" />
@@ -62,7 +61,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
             {filteredDeals.length} locations mapped {filter === 'today' ? 'today' : ''} • {pendingCount} pending geocoding
           </p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="bg-slate-100 p-1 rounded-lg border flex gap-1">
             <button
               onClick={() => setFilter('all')}
@@ -100,10 +99,10 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Sidebar List */}
-        <div className="w-80 bg-white border-r overflow-y-auto flex flex-col shrink-0">
-          <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+        {/* Sidebar List - Responsive Width */}
+        <div className="w-full md:w-72 lg:w-80 h-1/3 md:h-full bg-white border-r overflow-y-auto flex flex-col shrink-0 order-2 md:order-1">
+          <div className="p-4 border-b bg-slate-50 flex justify-between items-center sticky top-0 z-10">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {filter === 'today' ? "Today's Schedule" : "All Scheduled Jobs"}
             </h2>
@@ -157,8 +156,8 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
           )}
         </div>
 
-        {/* Map Stage */}
-        <div className="flex-1 bg-slate-100 relative z-0">
+        {/* Map Stage - Flexible Width */}
+        <div className="flex-1 h-2/3 md:h-full bg-slate-100 relative z-0 min-w-0 order-1 md:order-2">
           <LeafletMap deals={filteredDeals} />
         </div>
       </div>

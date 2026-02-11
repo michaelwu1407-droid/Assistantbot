@@ -20,7 +20,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
   // Determine if we should show the simplified Basic (Chat) view
   // Only show Basic view if user is in BASIC mode AND on the main dashboard page
-  // This allows navigating to settings/profile pages while keeping the "Chat First" preference
   const isDashboardRoot = pathname === "/dashboard"
   const isBasicView = viewMode === "BASIC" && isDashboardRoot
 
@@ -34,7 +33,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     }
   }, [searchParams, setViewMode, router, pathname])
 
-  // Standardize the layout structure to prevent React reconciliation issues
   return (
     <div className="h-screen w-full bg-background relative flex flex-col overflow-hidden">
       {/* Tutorial Overlay always mounted, handles its own visibility */}
@@ -85,7 +83,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
             <ResizableHandle withHandle className="hidden md:flex" />
 
-            {/* Right Chatbot - 25% */}
+            {/* Right Chatbot - 25% (M-5 / A-1) */}
             <ResizablePanel
               defaultSize={25}
               minSize={20}
