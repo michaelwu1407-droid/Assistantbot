@@ -1,6 +1,14 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, MapPin, Navigation, Phone } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobStatusBar } from "./job-status-bar"
+import { CameraFAB } from "./camera-fab"
 
 // Define the type locally based on what getJobDetails returns
 interface JobDetail {
@@ -29,7 +37,6 @@ interface JobDetailViewProps {
 }
 
 export function JobDetailView({ job }: JobDetailViewProps) {
-    const [status, setStatus] = useState(job.status)
     const router = useRouter()
 
     return (
