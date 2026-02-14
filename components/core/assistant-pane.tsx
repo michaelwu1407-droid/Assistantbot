@@ -55,6 +55,25 @@ export function AssistantPane() {
         }
     }, [workspaceId])
 
+    // Clear chat history
+    const clearChatHistory = async () => {
+        try {
+            // Clear all messages from database
+            await db.chatMessage.deleteMany({
+                where: { workspaceId }
+            });
+            console.log("Chat history cleared for workspace:", workspaceId);
+        } catch (error) {
+            console.error("Failed to clear chat history:", error);
+        }
+    };
+
+    const handleClearHistory = async () => {
+        await clearChatHistory();
+        setMessages([]);
+        toast.success("Chat history cleared");
+    };
+
     // Scroll to bottom on new message
     useEffect(() => {
         if (scrollRef.current) {

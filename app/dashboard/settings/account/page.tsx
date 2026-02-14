@@ -1,6 +1,12 @@
 import { Separator } from "@/components/ui/separator"
+import { ProfileForm } from "../profile-form"
+import { getAuthUser } from "@/lib/auth"
 
-export default function AccountSettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AccountSettingsPage() {
+    const user = await getAuthUser();
+
     return (
         <div className="space-y-6">
             <div>
@@ -10,9 +16,13 @@ export default function AccountSettingsPage() {
                 </p>
             </div>
             <Separator />
-            <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg">
-                <p className="text-muted-foreground">Account settings coming soon.</p>
-            </div>
+            <ProfileForm 
+                initialData={{
+                    username: user.name?.split(' ')[0] || "user", // Use first name as username
+                    email: user.email,
+                    bio: "", // Bio not available in user model yet
+                }}
+            />
         </div>
     )
 }

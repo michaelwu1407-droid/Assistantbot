@@ -43,10 +43,9 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
     // Fallback for contact
     const contact = deal.contact || { name: "Unknown", phone: "", email: "", address: "" };
 
-    // Parse Job Status from metadata (jobStatus field not in schema yet)
-    const dealMeta = (deal.metadata as Record<string, any>) || {};
-    const jobStatus = (dealMeta.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
-    const safetyCheckCompleted = dealMeta.safetyCheckCompleted === true;
+    // Use native Prisma fields instead of metadata
+    const jobStatus = (deal.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
+    const safetyCheckCompleted = deal.safetyCheckCompleted === true;
 
     // Format Date from fields
     const scheduledDate = deal.scheduledAt
@@ -141,7 +140,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                             </CardHeader>
                             <CardContent>
                                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                                    {deal.metadata ? (deal.metadata as any).description : "No description provided."}
+                                    {(deal.metadata as any)?.description || "No description provided."}
                                 </p>
                             </CardContent>
                         </Card>

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lucide-react"
 import { getActivities, ActivityView } from "@/actions/activity-actions"
@@ -36,6 +37,7 @@ const COLOR_MAP: Record<string, string> = {
 export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId, compact = false }: ActivityFeedProps) {
     const [activities, setActivities] = useState<ActivityView[]>(initialData || [])
     const [loading, setLoading] = useState(!initialData)
+    const router = useRouter()
 
     useEffect(() => {
         let mounted = true
@@ -100,8 +102,8 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                 key={activity.id}
                                 className="flex gap-3 items-start group cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors border border-transparent hover:border-border/50"
                                 onClick={() => {
-                                    if (activity.dealId) window.location.href = `/dashboard/deals/${activity.dealId}`
-                                    else if (activity.contactId) window.location.href = `/dashboard/contacts/${activity.contactId}`
+                                    if (activity.dealId) router.push(`/dashboard/deals/${activity.dealId}`)
+                                    else if (activity.contactId) router.push(`/dashboard/contacts/${activity.contactId}`)
                                 }}
                             >
                                 <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>

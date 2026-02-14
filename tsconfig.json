@@ -4,6 +4,8 @@
     "lib": [
       "dom",
       "dom.iterable",
+      "es6",
+      "es2017",
       "esnext"
     ],
     "allowJs": true,
@@ -27,28 +29,17 @@
         "./*"
       ]
     },
-    "include": [
-      "next-env.d.ts",
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.mts",
-      ".next/types/**/*.ts",
-      ".next/dev/types/**/*.ts"
-    ],
     "typeRoots": [
       "node_modules/@prisma/client"
-    ],
-    "exclude": [
-      "node_modules"
     ]
   },
   "include": [
     "next-env.d.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

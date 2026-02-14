@@ -35,7 +35,7 @@ const navItems = [
 const tradieSubItems = [
     { icon: Map, label: "Job Map", href: "/dashboard/tradie/map", id: "map-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/tradie/schedule", id: "schedule-link" },
-    { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "estimator-link" },
+    { icon: FileText, label: "Estimator", href: "/dashboard/tradie/estimator", id: "estimator-link" },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
 ]
 
