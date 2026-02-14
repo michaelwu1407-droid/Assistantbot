@@ -54,7 +54,7 @@
 
 | # | Issue | Status | Details |
 |---|-------|--------|---------|
-| BUILD-01 | Prisma version mismatch (CLI 7.4.0 vs package 5.21.1) | ⚠️ PARTIAL | Workaround: `npx prisma@5.21.1 generate` in build script. Permanent fix needs version alignment |
+| BUILD-01 | Prisma version mismatch (CLI 7.4.0 vs package 5.21.1) | ✅ FIXED | All Prisma packages aligned at 5.21.1 in package.json and package-lock.json |
 | BUILD-02 | 8 critical TypeScript build errors | ✅ FIXED | Prisma type mismatches, null checks, Decimal conversions (commit `fff6699`) |
 | BUILD-03 | tsconfig.json duplicate include/exclude | ✅ FIXED | Removed duplicates (commit `6b4bfb4`) |
 | BUILD-04 | `window is not defined` (Leaflet SSR) | ✅ FIXED | Dynamic import wrapper with `ssr: false` (commit in ERR-012) |
@@ -108,7 +108,7 @@
 |---|-------|--------|---------|
 | NAV-01 | Global search Cmd+K not working in tradie | ✅ FIXED | Integrated via Header component |
 | NAV-02 | Hardcoded workspace ID in search | ✅ FIXED | Uses `useShellStore` for dynamic workspace ID |
-| NAV-03 | Workspace ID TODO in search dialog | ⚠️ PARTIAL | Still has TODO comment but functional via store |
+| NAV-03 | Workspace ID TODO in search dialog | ✅ FIXED | Uses `useShellStore` for dynamic workspace ID, removed TODO |
 
 ---
 
@@ -151,11 +151,11 @@
 |----------|-------|-------|---------|------|----------|
 | Chatbot | 18 | 18 | 0 | 0 | 0 |
 | Auth | 5 | 5 | 0 | 0 | 0 |
-| Build | 6 | 5 | 1 | 0 | 0 |
+| Build | 6 | 6 | 0 | 0 | 0 |
 | UI | 17 | 15 | 1 | 0 | 0 |
 | Tradie | 8 | 8 | 0 | 0 | 0 |
-| Search/Nav | 3 | 2 | 1 | 0 | 0 |
+| Search/Nav | 3 | 3 | 0 | 0 | 0 |
 | API | 5 | 0 | 3 | 2 | 0 |
 | Infra | 3 | 2 | 0 | 1 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
-| **TOTAL** | **69** | **55** | **6** | **3** | **4** |
+| **TOTAL** | **69** | **57** | **4** | **3** | **4** |

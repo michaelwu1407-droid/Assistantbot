@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-    Calculator,
     Calendar,
     CreditCard,
     Settings,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/command"
 
 import { globalSearch, SearchResultItem } from "@/actions/search-actions"
+import { useShellStore } from "@/lib/store"
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -48,6 +48,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
     const [results, setResults] = React.useState<SearchResultItem[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
+    const workspaceId = useShellStore(s => s.workspaceId) || "default"
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -70,11 +71,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         const search = async () => {
             setIsLoading(true)
             try {
-                // TODO: Get real workspace ID. For now assuming "default" or handled by session context if we had it.
-                // Since this component is client-side, we ideally pass workspaceId as prop. 
-                // But actions can also infer from session. 
-                // Here we'll pass a placeholder standard ID or fetch dynamically if needed.
-                const items = await globalSearch("default", debouncedQuery)
+                const items = await globalSearch(workspaceId, debouncedQuery)
                 setResults(items)
             } catch (error) {
                 console.error("Search failed:", error)
