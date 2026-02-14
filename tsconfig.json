@@ -30,7 +30,10 @@
     "include": [
       "next-env.d.ts",
       "**/*.ts",
-      "**/*.tsx"
+      "**/*.tsx",
+      "**/*.mts",
+      ".next/types/**/*.ts",
+      ".next/dev/types/**/*.ts"
     ],
     "typeRoots": [
       "node_modules/@prisma/client"
