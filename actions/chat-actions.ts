@@ -18,9 +18,17 @@ export interface ChatResponse {
   data?: Record<string, unknown>;
 }
 
-// ─── Command Parser ─────────────────────────────────────────────────
+export interface IndustryContext {
+  dealLabel: string;
+  dealsLabel: string;
+  contactLabel: string;
+  stageLabels: Record<string, string>;
+  helpExtras: string;
+  greeting: string;
+  unknownFallback: string;
+}
 
-interface ParsedCommand {
+export interface ParsedCommand {
   intent:
   | "show_deals"
   | "show_stale"
@@ -240,10 +248,6 @@ function parseCommandRegex(message: string): ParsedCommand {
   }
 
   // Morning digest
-  if (msg.match(/(morning|digest|summary|briefing|today)/)) {
-    return { intent: "morning_digest", params: {} };
-  }
-
   // Help
   if (msg.match(/^(help|commands|what can you do)/)) {
     return { intent: "help", params: {} };
@@ -267,16 +271,14 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 
   try {
     const systemPrompt = `
-    You are an intent parser for a CRM system.
-    User Context: ${industryContext.dealLabel} manager.
-
+    You are an intent parser for a CRM system. User Context: ${industryContext.dealLabel} manager.
+    
     Intents:
     - show_deals: List pipeline
     - show_stale: List neglected items
     - create_deal: New item. Params: title, company (opt), value (number string)
     - create_job_natural: Natural language job entry. Extract: clientName, address, workDescription, price, schedule
     - move_deal: Update stage. Params: title, stage (new, contacted, negotiation, won, lost)
-    - create_invoice: Generate invoice. Params: title, amount
     - log_activity: Log call/email/note. Params: type (CALL/EMAIL/NOTE/MEETING), content
     - search_contacts: Find person. Params: query
     - add_contact: New person. Params: name, email
@@ -287,92 +289,89 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
     - use_template: Render template. Params: templateName, contactQuery
     - find_duplicates: Check dupes
     - help: Help/commands
-
+    
     Current Date: ${new Date().toISOString()}
-
-    IMPORTANT: For natural language job entries like "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm", use create_job_natural and extract all details.
-
-    Output JSON ONLY. No markdown.
-    Example: {"intent": "create_job_natural", "params": {"clientName": "Sharon", "address": "17 Alexandria Street, Redfern", "workDescription": "sink fixed", "price": "200", "schedule": "tomorrow 2pm"}}
-    Return {"intent": "unknown", "params": {}} if unsure.
+    
+    User message: "${message}"
+    
+    Parse the user message and return the appropriate intent and parameters.
+    
+    IMPORTANT: 
+    - If the message doesn't match any known intent, return { intent: "unknown", params: {} }
+    - If you're unsure about the intent, return { intent: "unknown", params: {} }
+    - Only return structured JSON for known intents.
+    - For natural language job entries, extract ALL details (clientName, address, workDescription, price, schedule).
+    - Always validate required fields before proceeding with actions.
     `;
 
-    // Add 5s timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: message }] }],
-          generationConfig: { response_mime_type: "application/json" }
-        }),
-        signal: controller.signal
-      }
-    );
-
-    clearTimeout(timeoutId);
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generate-content?key=" + apiKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: systemPrompt,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 1000,
+        }
+      }),
+    });
 
     if (!response.ok) {
-      console.error("Gemini API Error:", await response.text());
+      console.error("Gemini API error:", response.status);
       return null;
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!data.candidates?.[0]?.content) {
+      console.error("No content returned from Gemini API");
+      return null;
+    }
 
-    if (!content) return null;
+    try {
+      const text = data.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(text);
+      
+      // Validate that this is a proper JSON response
+      if (!parsed || typeof parsed !== 'object') {
+        console.error("Invalid JSON from Gemini API");
+        return null;
+      }
 
-    const cleanJson = content.replace(/```json\n?|```/g, "").trim();
-    return JSON.parse(cleanJson) as ParsedCommand;
+      // Extract intent and parameters from AI response
+      const intent = parsed.intent?.toLowerCase();
+      const params = parsed.parameters || {};
+
+      // Handle different intents with proper validation
+      switch (intent) {
+        case "show_deals":
+        case "show_stale":
+        case "create_deal":
+        case "create_job_natural":
+        case "move_deal":
+        case "log_activity":
+        case "search_contacts":
+        case "add_contact":
+        case "create_task":
+        case "morning_digest":
+        case "start_day":
+        case "start_open_house":
+        case "use_template":
+        case "find_duplicates":
+        case "help":
+          return { intent, params };
+        default:
+          return { intent: "unknown", params: {} };
+      }
+    } catch (error) {
+      console.error("Error parsing AI response:", error);
+      return null;
+    }
   } catch (error) {
-    console.warn("AI Parse Error (fallback to regex):", error);
+    console.error("Error calling Gemini API:", error);
     return null;
   }
-}
-
-// ─── Main Chat Action ───────────────────────────────────────────────
-
-/**
- * Get industry-specific context for chat responses.
- */
-function getIndustryContext(industryType: string | null) {
-  if (industryType === "TRADES") {
-    return {
-      dealLabel: "job",
-      dealsLabel: "jobs",
-      contactLabel: "client",
-      stageLabels: { NEW: "New Lead", CONTACTED: "Quoted", NEGOTIATION: "In Progress", INVOICED: "Invoiced", WON: "Paid", LOST: "Lost" },
-      helpExtras: `  "Start day" — Open map and route\n  "Invoice [job] for [amount]" — Generate an invoice\n  "Show stale jobs" — Find jobs that need follow-up`,
-      greeting: "G'day! Here's your job summary",
-      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "start day" or "new job Kitchen Reno for Smith worth 8000".`,
-    };
-  }
-  if (industryType === "REAL_ESTATE") {
-    return {
-      dealLabel: "listing",
-      dealsLabel: "listings",
-      contactLabel: "buyer",
-      stageLabels: { NEW: "New Listing", CONTACTED: "Appraised", NEGOTIATION: "Under Offer", INVOICED: "Exchanged", WON: "Settled", LOST: "Withdrawn" },
-      helpExtras: `  "Start open house" — Launch kiosk mode\n  "Find matches for [listing]" — Run buyer matchmaker\n  "Show stale listings" — Find listings that need attention`,
-      greeting: "Hey there! Here's your pipeline summary",
-      unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "start open house" or "new listing 42 Ocean Dr for $1,200,000".`,
-    };
-  }
-  // Default/generic
-  return {
-    dealLabel: "deal",
-    dealsLabel: "deals",
-    contactLabel: "contact",
-    stageLabels: { NEW: "New", CONTACTED: "Contacted", NEGOTIATION: "Negotiation", INVOICED: "Invoiced", WON: "Won", LOST: "Lost" },
-    helpExtras: `  "Invoice [deal] for [amount]" — Generate invoice\n  "Show templates" — List message templates`,
-    greeting: "Hey! Here's your briefing",
-    unknownFallback: `I didn't quite catch that. Try "help" to see what I can do, or ask me things like "show stale deals" or "new deal Website Redesign for Acme worth 5000".`,
-  };
 }
 
 /**
