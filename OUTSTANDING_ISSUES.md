@@ -69,11 +69,22 @@ This brings the total from 14 to ~29 materials.
 </Button>
 ```
 
-**Replace with**: Add a `<MaterialPicker>` between the inputs and the button:
+**Replace the entire block from `<div className="flex gap-2">` (line 176) through `Add Variation</Button>` (line 193) with this exact code — keep all attributes, no shorthand:**
 ```tsx
 <div className="flex gap-2">
-    <Input ... value={variationDesc} ... />
-    <Input ... value={variationPrice} ... />
+    <Input
+        placeholder="Item (e.g. 100mm PVC)"
+        className="bg-slate-950 border-slate-800 text-white focus:border-[#ccff00]/50"
+        value={variationDesc}
+        onChange={(e) => setVariationDesc(e.target.value)}
+    />
+    <Input
+        placeholder="$"
+        type="number"
+        className="w-24 bg-slate-950 border-slate-800 text-white focus:border-[#ccff00]/50"
+        value={variationPrice}
+        onChange={(e) => setVariationPrice(e.target.value)}
+    />
 </div>
 <MaterialPicker
     onSelect={(material) => {
@@ -86,7 +97,7 @@ This brings the total from 14 to ~29 materials.
         </Button>
     }
 />
-<Button ... onClick={handleAddVariation}>
+<Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700" onClick={handleAddVariation}>
     <Plus className="w-4 h-4 mr-2" /> Add Variation
 </Button>
 ```
@@ -97,22 +108,48 @@ Also add `Search` to the lucide-react import on line 5:
 + import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool, Search } from "lucide-react"
 ```
 
-#### 1C. Wire `createMaterial` to an "Add Custom Material" button (optional)
+#### 1C. Wire `createMaterial` to an "Add Custom Material" button
 
 **File**: `components/tradie/material-picker.tsx`
-**Location**: After line 98 (`<CommandEmpty>No materials found.</CommandEmpty>`)
 
-Add an "Add to database" action inside `CommandEmpty`:
+**Step 1**: Add import at top of file (after line 21):
 ```tsx
-<CommandEmpty>
-    No materials found.
-    <Button variant="link" size="sm" onClick={() => {/* open add-material dialog */}}>
-        + Add "{search}" to database
+import { searchMaterials, MaterialView, createMaterial } from "@/actions/material-actions"
+```
+(Change existing import on line 21 — add `createMaterial` to the destructure.)
+
+**Step 2**: Replace line 97-98 (`<CommandEmpty>No materials found.</CommandEmpty>`) with:
+```tsx
+<CommandEmpty className="py-4 text-center">
+    <p className="text-sm text-slate-500 mb-2">No materials found.</p>
+    <Button
+        variant="outline"
+        size="sm"
+        className="text-xs border-slate-700 text-slate-300 hover:text-[#ccff00]"
+        onClick={async () => {
+            if (!workspaceId || !search.trim()) return
+            const result = await createMaterial({
+                name: search.trim(),
+                unit: "each",
+                price: 0,
+                workspaceId,
+            })
+            if (result.success) {
+                const updated = await searchMaterials(workspaceId, search)
+                setResults(updated)
+            }
+        }}
+    >
+        <Plus className="h-3 w-3 mr-1" /> Add &quot;{search}&quot; to database
     </Button>
 </CommandEmpty>
 ```
 
-This calls `createMaterial()` from `actions/material-actions.ts:59` with the current search query as the name.
+**Step 3**: Add `Plus` to the lucide-react import on line 4 (currently only imports `Search`):
+```diff
+- import { Search } from "lucide-react"
++ import { Search, Plus } from "lucide-react"
+```
 
 ---
 
@@ -229,12 +266,12 @@ export function useSpeechRecognition() {
 ```tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Mic, MicOff, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
-import { logActivity } from "@/actions/activity-actions"  // already exists
+import { logActivity } from "@/actions/activity-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -247,8 +284,12 @@ export function VoiceNoteInput({ dealId }: VoiceNoteInputProps) {
     const [note, setNote] = useState("")
     const router = useRouter()
 
-    // Append transcript when speech recognition returns
-    // Use useEffect to watch transcript changes and append to note
+    // Append transcript to note when speech recognition returns a result
+    useEffect(() => {
+        if (transcript) {
+            setNote((prev) => prev ? `${prev} ${transcript}` : transcript)
+        }
+    }, [transcript])
 
     const handleSave = async () => {
         if (!note.trim()) return
@@ -713,24 +754,109 @@ export async function syncGmail(workspaceId: string, accessToken: string): Promi
 **File**: `actions/email-actions.ts`
 **Location**: Lines 77-92
 
-Same pattern as 7A but using Microsoft Graph endpoint:
-- Endpoint: `https://graph.microsoft.com/v1.0/me/messages?$top=50&$orderby=receivedDateTime desc&$filter=receivedDateTime ge {date}`
-- Auth header: `Bearer {accessToken}`
-- Match `from.emailAddress.address` to contacts
+**Replace the entire `syncOutlook` function body with:**
+```ts
+export async function syncOutlook(workspaceId: string, accessToken: string): Promise<EmailSyncResult> {
+    try {
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+
+        const res = await fetch(
+            `https://graph.microsoft.com/v1.0/me/messages?$top=50&$orderby=receivedDateTime desc&$filter=receivedDateTime ge ${yesterday.toISOString()}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (!res.ok) return { success: false, synced: 0, activitiesCreated: 0, error: "Outlook API error" }
+        const data = await res.json()
+        const messages = data.value || []
+
+        let synced = 0
+        let activitiesCreated = 0
+
+        for (const msg of messages) {
+            const senderEmail = msg.from?.emailAddress?.address
+            const subject = msg.subject || "No subject"
+
+            if (!senderEmail) { synced++; continue }
+
+            const contact = await db.contact.findFirst({
+                where: { workspaceId, email: senderEmail }
+            })
+
+            if (contact) {
+                await db.activity.create({
+                    data: {
+                        type: "EMAIL",
+                        title: subject,
+                        content: `Email from ${msg.from.emailAddress.name || senderEmail}`,
+                        contactId: contact.id,
+                    }
+                })
+                activitiesCreated++
+            }
+            synced++
+        }
+
+        return { success: true, synced, activitiesCreated }
+    } catch (error) {
+        return { success: false, synced: 0, activitiesCreated: 0, error: String(error) }
+    }
+}
+```
 
 #### 7C. Add OAuth callback route
 
 **Create new file**: `app/api/auth/google/callback/route.ts`
 
-Handle the OAuth callback, exchange code for tokens, store in user/workspace settings:
+**Write this exact content:**
 ```ts
 import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
 
 export async function GET(req: NextRequest) {
     const code = req.nextUrl.searchParams.get("code")
-    // Exchange code for access_token + refresh_token
-    // Store tokens in workspace settings (encrypted)
-    // Redirect back to /dashboard/settings
+    const state = req.nextUrl.searchParams.get("state") // workspaceId passed as state
+
+    if (!code || !state) {
+        return NextResponse.redirect(new URL("/dashboard/settings?error=missing_code", req.url))
+    }
+
+    try {
+        // Exchange authorization code for tokens
+        const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                code,
+                client_id: process.env.GOOGLE_CLIENT_ID || "",
+                client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+                redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/google/callback`,
+                grant_type: "authorization_code",
+            }),
+        })
+
+        if (!tokenRes.ok) {
+            return NextResponse.redirect(new URL("/dashboard/settings?error=token_exchange_failed", req.url))
+        }
+
+        const tokens = await tokenRes.json()
+
+        // Store tokens in workspace settings
+        await db.workspace.update({
+            where: { id: state },
+            data: {
+                settings: {
+                    googleAccessToken: tokens.access_token,
+                    googleRefreshToken: tokens.refresh_token,
+                    googleTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+                },
+            },
+        })
+
+        return NextResponse.redirect(new URL("/dashboard/settings?success=google_connected", req.url))
+    } catch (error) {
+        console.error("OAuth callback error:", error)
+        return NextResponse.redirect(new URL("/dashboard/settings?error=oauth_failed", req.url))
+    }
 }
 ```
 
@@ -835,9 +961,57 @@ if (provider === 'google') {
 
 #### 8C. Implement `syncOutlookCalendar()`
 
-Same pattern as 8A using Microsoft Graph:
-- Endpoint: `https://graph.microsoft.com/v1.0/me/calendarview?startDateTime={now}&endDateTime={future}&$top=50`
-- Match `attendees[].emailAddress.address` to contacts
+**File**: `actions/calendar-actions.ts`
+**Location**: Lines 64-80
+
+**Replace the entire `syncOutlookCalendar` function body with:**
+```ts
+export async function syncOutlookCalendar(workspaceId: string, accessToken: string) {
+    try {
+        const now = new Date().toISOString()
+        const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days ahead
+
+        const res = await fetch(
+            `https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${now}&endDateTime=${future}&$top=50`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (!res.ok) return { success: false, synced: 0, error: "Outlook Calendar API error" }
+        const data = await res.json()
+        const events = data.value || []
+
+        let synced = 0
+        for (const event of events) {
+            for (const attendee of (event.attendees || [])) {
+                const email = attendee.emailAddress?.address
+                if (!email) continue
+
+                const contact = await db.contact.findFirst({
+                    where: { workspaceId, email }
+                })
+                if (contact) {
+                    const existing = await db.activity.findFirst({
+                        where: { contactId: contact.id, title: event.subject, type: "MEETING" }
+                    })
+                    if (!existing) {
+                        await db.activity.create({
+                            data: {
+                                type: "MEETING",
+                                title: event.subject || "Calendar Event",
+                                content: `${event.start?.dateTime} - ${event.end?.dateTime}`,
+                                contactId: contact.id,
+                            }
+                        })
+                    }
+                }
+            }
+            synced++
+        }
+        return { success: true, synced }
+    } catch (error) {
+        return { success: false, synced: 0, error: String(error) }
+    }
+}
+```
 
 ---
 
@@ -964,19 +1138,53 @@ The component declares `job: DealView` (from `deal-actions.ts`), but accesses pr
 - `job.jobStatus` (line 249) — `DealView` does NOT have `jobStatus`
 - `job.status` (line 249) — `DealView` does NOT have `status` (it has `stage`)
 
-**Fix options**:
-1. **Extend `DealView`** in `actions/deal-actions.ts` to include `contactPhone`, `description`, `jobStatus`:
-   ```ts
-   export interface DealView {
-     // ...existing fields...
-     contactPhone?: string | null;
-     description?: string;
-     jobStatus?: string;
-   }
-   ```
-   And update `getDeals()` to populate these fields.
+**Root cause**: `job-bottom-sheet.tsx` is actually consumed by `tradie-dashboard-client.tsx` which passes data from `getTradieJobs()` (in `tradie-actions.ts`), NOT from `getDeals()`. The `getTradieJobs()` return type has `{ id, title, clientName, address, status, value, scheduledAt, description }` — a completely different shape than `DealView`.
 
-2. **OR** Define a local `JobViewProps` interface in `job-bottom-sheet.tsx` instead of reusing `DealView`.
+**Fix**: Replace the `DealView` import and type on lines 9 and 14 with a local interface that matches the actual data shape.
+
+**Step 1**: Remove the DealView import on line 9:
+```diff
+- import { DealView } from "@/actions/deal-actions"
+```
+
+**Step 2**: Replace the `JobBottomSheetProps` interface (lines 13-19) with:
+```ts
+interface TradieJob {
+    id: string
+    title: string
+    clientName: string
+    address: string
+    status: string
+    value: number
+    scheduledAt: Date
+    description: string
+}
+
+interface JobBottomSheetProps {
+    job: TradieJob
+    isOpen: boolean
+    setIsOpen: (open: boolean) => void
+    onAddVariation: (desc: string, price: number) => Promise<void>
+    safetyCheckCompleted: boolean
+}
+```
+
+**Step 3**: Update all property accesses in the JSX:
+- Line 95: `job.contactPhone` → `""` (contact phone not available in this data shape; remove the `tel:` link or pass phone as a separate prop)
+- Line 101: `job.contactPhone` → `""` (same)
+- Line 141: `job.description` → `job.description` (now exists in `TradieJob`)
+- Line 148: `job.contactName` → `job.clientName`
+- Line 149: `job.contactPhone` → `""` (same)
+- Line 249: `job.jobStatus || (job.status === 'WON' ? 'SCHEDULED' : job.status)` → `job.status`
+- Line 250: `job.contactName || job.company || "Client"` → `job.clientName || "Client"`
+
+**Exact replacements for line 249-250:**
+```diff
+- currentStatus={job.jobStatus || (job.status === 'WON' ? 'SCHEDULED' : job.status) as any}
+- contactName={job.contactName || job.company || "Client"}
++ currentStatus={job.status as any}
++ contactName={job.clientName || "Client"}
+```
 
 ---
 
@@ -1042,20 +1250,32 @@ This makes `r.item.material` type-safe.
 **Priority**: MEDIUM — The page reads `jobStatus` from `deal.metadata` JSON (line 47-48) instead of using the native `deal.jobStatus` column. Same for `scheduledAt` (line 51-52).
 
 **File**: `app/(dashboard)/tradie/jobs/[id]/page.tsx`
-**Lines 47-53**:
+
+**Step 1**: Delete lines 46-53 (the metadata parsing block):
 ```ts
-const dealMeta = (deal.metadata as Record<string, any>) || {};
-const jobStatus = (dealMeta.jobStatus || "SCHEDULED") ...
-const scheduledDate = dealMeta.scheduledAt ? format(...) : "Unscheduled";
+// DELETE THESE LINES:
+    // Parse Job Status from metadata (jobStatus field not in schema yet)
+    const dealMeta = (deal.metadata as Record<string, any>) || {};
+    const jobStatus = (dealMeta.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
+
+    // Format Date from metadata (scheduledAt field not in schema yet)
+    const scheduledDate = dealMeta.scheduledAt
+        ? format(new Date(dealMeta.scheduledAt), "EEE, d MMM h:mm a")
+        : "Unscheduled";
 ```
 
-**Fix**: Use the actual Prisma fields:
+**Step 2**: Replace with these two lines in the same location:
 ```ts
-const jobStatus = (deal.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
-const scheduledDate = deal.scheduledAt
-    ? format(deal.scheduledAt, "EEE, d MMM h:mm a")
-    : "Unscheduled";
+    const jobStatus = (deal.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
+    const scheduledDate = deal.scheduledAt ? format(deal.scheduledAt, "EEE, d MMM h:mm a") : "Unscheduled";
 ```
+
+**Step 3**: Also fix line 143 which reads description from metadata:
+```diff
+-   {deal.metadata ? (deal.metadata as any).description : "No description provided."}
++   {(deal.metadata as any)?.description || "No description provided."}
+```
+(This is acceptable since `description` is legitimately in metadata — it's not a native Prisma column unlike `jobStatus` and `scheduledAt`.)
 
 ---
 
@@ -1070,75 +1290,121 @@ const scheduledDate = deal.scheduledAt
 
 **Problem**: The server page (`tradie/page.tsx`) imports the OLD client page, not the new dashboard client.
 
-**Fix**: Update `app/(dashboard)/tradie/page.tsx` to use the new component:
-```diff
-- import TradieDashboard from "./client-page"
-+ import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
+**Fix**: Replace the **entire content** of `app/(dashboard)/tradie/page.tsx` with:
+```tsx
+import { getTradieJobs, getNextJob, getTodaySchedule } from "@/actions/tradie-actions"
+import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+
+export const dynamic = "force-dynamic"
+
+export default async function TradiePage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+
+    const [jobs, nextJob, todayJobs] = await Promise.all([
+        getTradieJobs(workspace.id),
+        getNextJob(workspace.id),
+        getTodaySchedule(workspace.id),
+    ])
+
+    // Map nextJob to the shape TradieDashboardClient expects for initialJob
+    const initialJob = nextJob ? {
+        id: nextJob.id,
+        title: nextJob.title,
+        address: nextJob.address,
+    } : jobs[0] ? {
+        id: jobs[0].id,
+        title: jobs[0].title,
+        address: jobs[0].address,
+    } : undefined
+
+    return (
+        <TradieDashboardClient
+            initialJob={initialJob}
+            todayJobs={todayJobs}
+            userName="Mate"
+        />
+    )
+}
 ```
 
-And pass the correct props (`initialJob`, `todayJobs`, `userName`, `financialStats`).
+**Also**: Delete the old `app/(dashboard)/tradie/client-page.tsx` file since it's no longer imported anywhere.
+Run: `rm app/(dashboard)/tradie/client-page.tsx`
 
 ---
 
 ### ISSUE 15: `tradie/page.tsx` — Unused imports
 
-**Priority**: LOW
-**File**: `app/(dashboard)/tradie/page.tsx`
-**Lines 4-5**:
-```ts
-import { JobBottomSheet } from "@/components/tradie/job-bottom-sheet";
-import { PulseWidget } from "@/components/dashboard/pulse-widget";
-```
-These are imported but never used in the server component (they're used inside the client component).
+**Priority**: LOW — **RESOLVED by Issue 14 fix.** The entire `page.tsx` is being replaced. No separate action needed.
 
 ---
 
 ### ISSUE 16: `search-command.tsx` — Hardcoded `"demo-workspace"` (already in Issue 3B)
 
-Confirmed at line 54. Already covered.
+Confirmed at line 54. Already covered. No separate action needed.
 
 ---
 
-### ISSUE 17: Missing `MapView` component alignment
+### ISSUE 17: `MapView` prop shape — VERIFIED OK
+
+**Priority**: RESOLVED — No fix needed.
+
+After reading `components/map/map-view.tsx`, the `MapView` component expects `jobs: { id, title, clientName, address, status, lat?, lng? }[]`. The `getTradieJobs()` action returns `{ id, title, clientName, address, status, ... }` — the shapes match. The `lat`/`lng` fields are optional in `MapView` (it uses a deterministic offset fallback if missing). No action required.
+
+**However**: Note that Issue 14 replaces the old `client-page.tsx` (which used `MapView`) with `tradie-dashboard-client.tsx` (which uses `JobMap` instead). So `MapView` will no longer be used on the tradie page at all. This is fine — `JobMap` is the correct component.
+
+---
+
+### ISSUE 18: Two `job-detail-view.tsx` files — Delete the unused one
 
 **Priority**: MEDIUM
-**File**: `app/(dashboard)/tradie/client-page.tsx:20`
-**Import**: `components/map/map-view.tsx`
-
-The `MapView` component receives `jobs` prop:
-```tsx
-<MapView jobs={jobs} />
-```
-
-Need to verify `MapView` accepts `jobs` prop with the shape from `getTradieJobs()`. If it expects a different interface (e.g., `deals` with `latitude`/`longitude`), this will render an empty map.
-
----
-
-### ISSUE 18: Two `job-detail-view.tsx` files in different directories
-
-**Priority**: MEDIUM — Confusing; both export different components with different capabilities.
 
 | File | Export | Used By |
 |------|--------|---------|
-| `components/jobs/job-detail-view.tsx` | `export default JobDetailView` | `app/(dashboard)/jobs/[id]/page.tsx:2` — imports from `@/components/jobs/job-detail-view` |
-| `components/tradie/job-detail-view.tsx` | `export function JobDetailView` | **Nobody currently imports it** from this path |
+| `components/jobs/job-detail-view.tsx` | `export default JobDetailView` | `app/(dashboard)/jobs/[id]/page.tsx:2` — **actively used** |
+| `components/tradie/job-detail-view.tsx` | `export function JobDetailView` | `app/(dashboard)/tradie/jobs/[id]/page.tsx` — **NOT imported here** (that page renders its own inline JSX instead) |
 
-The `components/jobs/` version imports `InvoiceGenerator` from `@/components/invoicing/invoice-generator` (exists) and `updateJobStatus` from `@/actions/tradie-actions` (works).
+**Fix**: Delete the unused tradie version since `tradie/jobs/[id]/page.tsx` renders its own JSX and doesn't import it.
 
-The `components/tradie/` version is more complete (has `CameraFAB`, `JobStatusBar` with safety check, photo grid) but is unused.
+**Run**: `rm components/tradie/job-detail-view.tsx`
 
-**Fix**: Either:
-1. Wire `app/(dashboard)/jobs/[id]/page.tsx` to use the tradie version, OR
-2. Delete the unused one to prevent confusion.
+The `components/jobs/job-detail-view.tsx` file remains as it is actively used by the dashboard job detail page.
 
 ---
 
-### ISSUE 19: `estimator-form.tsx` — Exists but never rendered
+### ISSUE 19: `estimator-form.tsx` — Wire to a route or the assistant
 
 **Priority**: LOW
 **File**: `components/tradie/estimator-form.tsx`
 
-This component exists but is never imported or rendered anywhere. Related to Issue 1 (Material Database) — the estimator was planned but never wired.
+The `EstimatorForm` component is fully implemented (214 lines) with deal selection, line items, GST calculation, and quote generation via `generateQuote()`. But it's never rendered anywhere.
+
+**Fix**: Add a route for it. Create `app/(dashboard)/tradie/estimator/page.tsx`:
+
+```tsx
+import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+import { EstimatorForm } from "@/components/tradie/estimator-form"
+
+export const dynamic = "force-dynamic"
+
+export default async function EstimatorPage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    const deals = await getDeals(workspace.id)
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-4">
+            <EstimatorForm deals={deals} />
+        </div>
+    )
+}
+```
+
+Then add a link to it from the tradie dashboard. In `components/tradie/tradie-dashboard-client.tsx`, add a navigation button that links to `/dashboard/tradie/estimator`.
 
 ---
 
