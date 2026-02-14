@@ -4,37 +4,74 @@
 
 ---
 
-## ERR-001: Infinite Redirect Loop (Setup ↔ Dashboard)
-- **Status**: ✅ RESOLVED (commit `f72ec88`)
+## ERR-001: Infinite Redirect Loop (Setup → Dashboard)
+- **Status**: RESOLVED (commit `f72ec88`)
 - **Symptoms**: Browser shows infinite loading, URL oscillates between `/setup` and `/dashboard`
-- **Root Cause**: `app/setup/page.tsx` used hardcoded `"demo-user"` for `getOrCreateWorkspace()`, while `app/dashboard/page.tsx` used the real authenticated user's ID. The demo user had `onboardingComplete: true`, so setup redirected to dashboard. But dashboard checked the REAL user (not onboarded), so it redirected back to setup.
-- **Solution**: Changed `setup/page.tsx` to use `createClient()` from Supabase to fetch the real authenticated user's ID, matching the dashboard's logic.
+- **Root Cause**: `app/setup/page.tsx` used hardcoded `"demo-user"` for `getOrCreateWorkspace()`, while `app/dashboard/page.tsx` used real authenticated user's ID. The demo user had `onboardingComplete: true`, so setup redirected to dashboard. But dashboard checked REAL user (not onboarded), so it redirected back to setup.
+- **Solution**: Changed `setup/page.tsx` to use `createClient()` from Supabase to fetch real authenticated user's ID, matching dashboard's logic.
 - **Files Modified**: `app/setup/page.tsx`
-- **Learning**: Always use the same user identification method across ALL pages. Never mix demo-user with real auth.
+- **Learning**: Always use same user identification method across ALL pages. Never mix demo-user with real auth.
 
 ---
 
-## ERR-002: React Error #310 — "Rendered more hooks than during the previous render"
-- **Status**: ✅ RESOLVED (commit `b445f95`)
+## ERR-002: React Error #310 — "Rendered more hooks than during previous render"
+- **Status**: RESOLVED (commit `b445f95`)
 - **Symptoms**: Blank page with "Application error: a client-side exception has occurred". Console shows Error #310 referencing `useMemo`.
 - **Root Cause**: TWO issues combined:
-  1. `Shell.tsx` uses `useSearchParams()` which requires a `<Suspense>` boundary in Next.js 14+. Without it, React's hydration gets confused during the Suspense fallback/resolve transition, causing the hook count mismatch.
-  2. The `<Toaster>` component (from `sonner`) calls `useTheme()` from `next-themes`, but there was no `<ThemeProvider>` in the component tree. This caused a secondary SSR/CSR mismatch.
-- **Solution**: 
+  1. `Shell.tsx` uses `useSearchParams()` which requires a `<Suspense>` boundary in Next.js 14+. Without it, React's hydration gets confused during Suspense fallback/resolve transition, causing hook count mismatch.
+  2. The `<Toaster>` component (from `sonner`) calls `useTheme()` from `next-themes`, but there was no `<ThemeProvider>` in component tree. This caused a secondary SSR/CSR mismatch.
+- **Solution**:
   1. Wrapped `<Shell>` in `<Suspense>` in both `app/dashboard/layout.tsx` and `app/(dashboard)/layout.tsx`
   2. Added `<ThemeProvider>` from `next-themes` in `app/layout.tsx`
-  3. Added `suppressHydrationWarning` on the `<html>` tag
+  3. Added `suppressHydrationWarning` on `<html>` tag
 - **Files Modified**: `app/layout.tsx`, `app/dashboard/layout.tsx`, `app/(dashboard)/layout.tsx`
 - **Learning**: ALWAYS wrap components using `useSearchParams()` in `<Suspense>`. ALWAYS provide a `<ThemeProvider>` when using `useTheme()`. These are Next.js 14+ requirements.
 
 ---
 
-## ERR-003: Frozen/Missing UI Buttons (Settings, Advanced Mode, Chat Input)
-- **Status**: ✅ RESOLVED (via ERR-002 fix)
-- **Symptoms**: Dashboard loads but buttons appear unresponsive or missing entirely. No click handlers fire.
-- **Root Cause**: React Error #310 kills the entire client-side hydration. When React crashes during hydration, the page renders server HTML only — which has no JavaScript event handlers attached. Buttons APPEAR to exist in the DOM but have no interactivity.
-- **Solution**: Same as ERR-002. Once React hydration succeeds, all event handlers attach properly.
-- **Learning**: "Frozen buttons" in a Next.js app almost always means a hydration crash. Check the browser console for React errors FIRST.
+## ERR-003: Critical TypeScript Build Errors (2026-02-14)
+- **Status**: RESOLVED (commit `fff6699`)
+- **Symptoms**: 8 critical TypeScript errors blocking build across multiple action files
+- **Root Cause**: Prisma 5.x type mismatches and missing null checks in various action files
+- **Solution**: Fixed all 8 TypeScript errors:
+  1. `Date | null` to `Date` conversions in calendar-actions.ts and task-actions.ts
+  2. Contact relation property access with proper type casting
+  3. Decimal to number conversions in deal-actions.ts and geo-actions.ts
+  4. Company property issues in portal-actions.ts and search-actions.ts
+  5. Workspace brandingColor type mismatch
+- **Files Modified**: 8 action files
+- **Learning**: Prisma relations require explicit type casting when accessing nested properties
+
+---
+
+## ERR-004: Prisma Version Compatibility (2026-02-14)
+- **Status**: 🔴 OPEN
+- **Symptoms**: Build fails with Prisma schema validation errors
+- **Error Details**: 
+  - Error code: P1012
+  - Message: "The datasource property `url` is no longer supported in schema files"
+  - CLI Version: 7.4.0 (installed globally)
+  - Package Version: 5.21.1 (project dependency)
+- **Root Cause**: Version mismatch between Prisma CLI (7.4.0) and project package (5.21.1)
+- **Impact**: Blocks all build processes, prevents deployment
+- **Files Affected**: `prisma/schema.prisma`, entire build pipeline
+- **Technical Context**: Prisma 7.x introduced breaking changes requiring configuration migration
+- **Attempted Solutions**:
+  1. ✅ Created `prisma/config.ts` (new Prisma 7.x format)
+  2. ✅ Removed deprecated `directUrl` property from schema
+  3. ❌ CLI still rejects schema format due to version mismatch
+- **Immediate Workaround**: Use `npx prisma@5.21.1 generate` to match package version
+- **Permanent Solutions**:
+  1. **Option A**: Upgrade project to Prisma 7.x and migrate all schema configurations
+  2. **Option B**: Downgrade global Prisma CLI to match project version
+  3. **Option C**: Use project-local Prisma CLI consistently
+- **Required Actions**:
+  - Update `package.json` scripts to use specific Prisma version
+  - OR migrate to Prisma 7.x configuration format
+  - OR set up CI/CD to use specific Prisma version
+- **Dependencies**: None - this is a tooling/version conflict, not code logic
+- **Priority**: HIGH - Blocks all development and deployment
+- **AI Agent Note**: This is a configuration issue, not a code logic problem. The fix requires either version alignment or format migration.
 
 ---
 

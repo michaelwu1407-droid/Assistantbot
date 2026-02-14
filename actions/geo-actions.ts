@@ -109,17 +109,23 @@ export async function getDealsWithLocation(
     include: { contact: true },
   });
 
-  return deals.map((d) => ({
-    id: d.id,
-    title: d.title,
-    value: d.value ? d.value.toNumber() : 0,
-    stage: d.stage,
-    address: d.address ?? "",
-    latitude: d.latitude!,
-    longitude: d.longitude!,
-    contactName: d.contact.name,
-    scheduledAt: d.scheduledAt,
-  }));
+  return deals.map((d: any) => {
+    const dealWithContact = d as typeof d & {
+      contact: { company: string | null };
+    };
+    
+    return {
+      id: d.id,
+      title: d.title,
+      value: d.value ? d.value.toNumber() : 0,
+      stage: d.stage,
+      address: d.address ?? "",
+      latitude: d.latitude!,
+      longitude: d.longitude!,
+      contactName: d.contact.name,
+      scheduledAt: d.scheduledAt,
+    };
+  });
 }
 
 /**

@@ -65,18 +65,25 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
 
   });
 
-  return contacts.map((c) => ({
-    id: c.id,
-    name: c.name,
-    email: c.email,
-    phone: c.phone,
-    company: c.company,
-    avatarUrl: c.avatarUrl,
-    address: c.address,
-    metadata: (c.metadata as Record<string, unknown>) ?? undefined,
-    dealCount: c.deals.length,
-    lastActivityDate: c.activities[0]?.createdAt ?? null,
-  }));
+  return contacts.map((c: any) => {
+    const contactWithRelations = c as typeof c & {
+      deals: any[];
+      activities: any[];
+    };
+    
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      company: c.company,
+      avatarUrl: c.avatarUrl,
+      address: c.address,
+      metadata: (c.metadata as Record<string, unknown>) ?? undefined,
+      dealCount: contactWithRelations.deals.length,
+      lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
+    };
+  });
 }
 
 /**
@@ -86,12 +93,17 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   const contact = await db.contact.findUnique({
     where: { id: contactId },
     include: {
-      deals: { orderBy: { updatedAt: "desc" } },
+      deals: { orderBy: { createdAt: "desc" } },
       activities: { orderBy: { createdAt: "desc" } }
     },
   });
 
   if (!contact) return null;
+
+  const contactWithRelations = contact as typeof contact & {
+    deals: any[];
+    activities: any[];
+  };
 
   return {
     id: contact.id,
@@ -102,8 +114,8 @@ export async function getContact(contactId: string): Promise<ContactView | null>
     avatarUrl: contact.avatarUrl,
     address: contact.address,
     metadata: (contact.metadata as Record<string, unknown>) ?? undefined,
-    dealCount: contact.deals.length,
-    lastActivityDate: contact.activities[0]?.createdAt ?? null,
+    dealCount: contactWithRelations.deals.length,
+    lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
   };
 }
 

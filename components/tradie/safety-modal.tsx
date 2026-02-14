@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { completeSafetyCheck } from "@/actions/job-actions";
+import { completeSafetyCheck } from "@/actions/tradie-actions";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 

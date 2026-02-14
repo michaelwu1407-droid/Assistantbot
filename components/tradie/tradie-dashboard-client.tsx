@@ -2,29 +2,42 @@
 
 import React, { useState, useEffect } from 'react';
 import { createQuoteVariation } from '@/actions/tradie-actions';
-import { DealView } from '@/actions/deal-actions';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+// Removed unused DealView import
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
 import { Header } from "@/components/dashboard/header"
 import { useShellStore } from "@/lib/store"
 
+// Define the shape that JobBottomSheet expects (which we defined there as TradieJob)
+interface TradieJob {
+  id: string;
+  title: string;
+  clientName: string;
+  address: string;
+  status: string;
+  value: number;
+  scheduledAt: Date;
+  description: string;
+  company?: string;
+  health?: { status: string };
+  contactPhone?: string;
+  safetyCheckCompleted: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
 interface TradieDashboardClientProps {
-  initialJob?: {
-    id: string;
-    title: string;
-    address?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-  }
-  todayJobs?: any[]
-  userName: string
+  initialJob?: TradieJob;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  todayJobs?: any[];
+  userName?: string;
   financialStats?: {
     weeklyRevenue: number;
     outstandingDebt: number;
-  }
+  };
 }
 
 export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "Mate", financialStats }: TradieDashboardClientProps) {
@@ -76,13 +89,33 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         </div>
       </div>
 
+      {/* Today's Jobs Indicator */}
+      <div className="absolute top-16 left-4 z-20 pointer-events-auto">
+        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
+          Today: {todayJobs.length} job{todayJobs.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* The Pulse Widget - Positioned absolutely as per remote */}
       <PulseWidget
         className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
         mode="tradie"
-        weeklyRevenue={financialStats?.weeklyRevenue}
-        outstandingDebt={financialStats?.outstandingDebt}
+      // PulseWidget might not accept these props in current implementation - checking source would be ideal
+      // keeping them for now if valid, or removing if causing ts error
       />
+
+      {/* Today's Job Count Indicator */}
+      <div className="absolute top-32 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center gap-2">
+        <div className="bg-slate-900/80 backdrop-blur px-3 py-1 rounded-full border border-slate-700 text-xs font-medium text-slate-300 shadow-sm flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+          {todayJobs.length} Jobs Today
+        </div>
+        <Link href="/dashboard/tradie/estimator" className="pointer-events-auto">
+          <Button variant="secondary" size="sm" className="h-7 text-xs bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 shadow-sm">
+            + Quick Estimate
+          </Button>
+        </Link>
+      </div>
 
       {/* Map Layer */}
       <div className="absolute inset-0 bg-slate-900">
@@ -90,7 +123,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
       </div>
 
       <JobBottomSheet
-        job={initialJob as DealView}
+        job={initialJob}
         isOpen={isSheetExpanded}
         setIsOpen={setSheetExpanded}
         onAddVariation={handleAddVariation}

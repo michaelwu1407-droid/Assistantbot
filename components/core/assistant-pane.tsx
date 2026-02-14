@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { format, isSameDay, isToday, isYesterday } from "date-fns"
 import { toast } from "sonner"
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 
 interface Message {
     id: string
@@ -37,10 +38,8 @@ export function AssistantPane() {
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const [isListening, setIsListening] = useState(false)
+    const { isListening, transcript, toggleListening } = useSpeechRecognition()
     const scrollRef = useRef<HTMLDivElement>(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognitionRef = useRef<any>(null)
     const router = useRouter()
 
     useEffect(() => {
@@ -50,57 +49,12 @@ export function AssistantPane() {
         }
     }, [messages])
 
-    // Initialize Speech Recognition
+    // Append transcript to input
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-            if (SR) {
-                const recognition = new SR()
-                recognition.continuous = false
-                recognition.interimResults = false
-                recognition.lang = "en-AU"
-
-                recognition.onstart = () => setIsListening(true)
-                recognition.onend = () => setIsListening(false)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                recognition.onresult = (event: any) => {
-                    const transcript = event.results[0][0].transcript
-                    setInput((prev: string) => prev ? `${prev} ${transcript}` : transcript)
-                }
-                recognition.onerror = (event: any) => {
-                    console.error("Speech recognition error", event.error)
-                    setIsListening(false)
-                    if (event.error === 'no-speech') return
-                    if (event.error === 'not-allowed') {
-                        toast.error("Microphone access denied. Check permissions.")
-                        return
-                    }
-                    toast.error("Microphone error: " + event.error)
-                }
-
-                recognitionRef.current = recognition
-            }
+        if (transcript) {
+            setInput((prev: string) => prev ? `${prev} ${transcript}` : transcript)
         }
-    }, [])
-
-    const toggleListening = () => {
-        if (!recognitionRef.current) {
-            toast.error("Speech recognition is not supported in this browser.")
-            return
-        }
-
-        try {
-            if (isListening) {
-                recognitionRef.current.stop()
-            } else {
-                recognitionRef.current.start()
-            }
-        } catch (error) {
-            console.error("Mic toggle error:", error)
-            toast.error("Could not access microphone")
-        }
-    }
+    }, [transcript])
 
     const handleSend = async (overrideMsg?: string, overrideParams?: any) => {
         const msgText = overrideMsg || input
@@ -264,7 +218,7 @@ export function AssistantPane() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                     <Button
+                    <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => router.push("/dashboard/settings")}
@@ -340,7 +294,7 @@ export function AssistantPane() {
                                             <Card className="mt-3 border-primary/20 bg-muted/30 overflow-hidden">
                                                 <CardHeader className="pb-2 bg-muted/50">
                                                     <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"/>
+                                                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                                                         Draft Deal
                                                     </CardTitle>
                                                 </CardHeader>
@@ -374,14 +328,14 @@ export function AssistantPane() {
                                                             }])
                                                         }}
                                                     >
-                                                        <X className="h-3 w-3 mr-1"/> Cancel
+                                                        <X className="h-3 w-3 mr-1" /> Cancel
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         className="flex-1 h-8 text-xs"
                                                         onClick={() => handleConfirmDraft(msg.data)}
                                                     >
-                                                        <Check className="h-3 w-3 mr-1"/> Confirm
+                                                        <Check className="h-3 w-3 mr-1" /> Confirm
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
@@ -461,7 +415,7 @@ export function AssistantPane() {
                         {isLoading && (
                             <div className="flex justify-start">
                                 <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
-                                    <Loader2 className="h-3 w-3 animate-spin"/>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
                                     Thinking...
                                 </div>
                             </div>
