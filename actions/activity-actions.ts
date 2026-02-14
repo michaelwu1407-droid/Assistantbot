@@ -54,30 +54,35 @@ export async function getActivities(options?: {
   workspaceId?: string;
   limit?: number;
 }): Promise<ActivityView[]> {
-  const where: Record<string, unknown> = {};
+  try {
+    const where: Record<string, unknown> = {};
 
-  if (options?.dealId) where.dealId = options.dealId;
-  if (options?.contactId) where.contactId = options.contactId;
-  if (options?.workspaceId) {
-    where.deal = { workspaceId: options.workspaceId };
+    if (options?.dealId) where.dealId = options.dealId;
+    if (options?.contactId) where.contactId = options.contactId;
+    if (options?.workspaceId) {
+      where.deal = { workspaceId: options.workspaceId };
+    }
+
+    const activities = await db.activity.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: options?.limit ?? 20,
+    });
+
+    return activities.map((a) => ({
+      id: a.id,
+      type: a.type.toLowerCase(),
+      title: a.title,
+      description: a.description,
+      time: relativeTime(a.createdAt),
+      createdAt: a.createdAt,
+      dealId: a.dealId ?? undefined,
+      contactId: a.contactId ?? undefined,
+    }));
+  } catch (error) {
+    console.error("Database Error in getActivities:", error);
+    return [];
   }
-
-  const activities = await db.activity.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: options?.limit ?? 20,
-  });
-
-  return activities.map((a) => ({
-    id: a.id,
-    type: a.type.toLowerCase(),
-    title: a.title,
-    description: a.description,
-    time: relativeTime(a.createdAt),
-    createdAt: a.createdAt,
-    dealId: a.dealId ?? undefined,
-    contactId: a.contactId ?? undefined,
-  }));
 }
 
 /**

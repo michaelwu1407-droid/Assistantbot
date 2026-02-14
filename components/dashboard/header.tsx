@@ -61,18 +61,20 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
         return <Sun className="h-5 w-5 text-amber-500" />
     }
 
-    const getGreeting = () => {
+    const [greeting, setGreeting] = useState(`Hey ${userName}`)
+
+    useEffect(() => {
         const hour = new Date().getHours()
         const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
         if (industry === "TRADES") {
-            return `G'day, ${userName}`
+            setGreeting(`G'day, ${userName}`)
+        } else if (industry === "REAL_ESTATE") {
+            setGreeting(`Hey ${userName}`)
+        } else {
+            setGreeting(`${timeGreeting}, ${userName}`)
         }
-        if (industry === "REAL_ESTATE") {
-            return `Hey ${userName}`
-        }
-        return `${timeGreeting}, ${userName}`
-    }
+    }, [industry, userName])
 
     const getSubtitle = () => {
         if (industry === "TRADES") return "Here's what's happening on site today."
@@ -94,7 +96,7 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                 <div>
                     <Breadcrumbs className="mb-1" />
                     <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tighter drop-shadow-sm">
-                        {getGreeting()}
+                        {greeting}
                     </h1>
                     <p className="text-base text-slate-500 mt-1 font-medium">
                         {getSubtitle()}

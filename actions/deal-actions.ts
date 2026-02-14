@@ -73,47 +73,52 @@ const UpdateStageSchema = z.object({
  * Optionally filter by contactId.
  */
 export async function getDeals(workspaceId: string, contactId?: string): Promise<DealView[]> {
-  const where: Record<string, unknown> = { workspaceId };
-  if (contactId) where.contactId = contactId;
+  try {
+    const where: Record<string, unknown> = { workspaceId };
+    if (contactId) where.contactId = contactId;
 
-  const deals = await db.deal.findMany({
-    where,
-    include: {
-      contact: true,
-      activities: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
+    const deals = await db.deal.findMany({
+      where,
+      include: {
+        contact: true,
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: { updatedAt: "desc" },
+    });
 
-  return deals.map((deal) => {
-    const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
-    const health = getDealHealth(lastActivityDate);
+    return deals.map((deal) => {
+      const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
+      const health = getDealHealth(lastActivityDate);
 
-    const daysInStage = Math.floor(
-      (Date.now() - new Date(deal.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
-    );
+      const daysInStage = Math.floor(
+        (Date.now() - new Date(deal.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-    return {
-      id: deal.id,
-      title: deal.title,
-      company: deal.contact.company ?? "",
-      value: deal.value ? deal.value.toNumber() : 0,
-      stage: STAGE_MAP[deal.stage] ?? "new",
-      lastActivityDate,
-      contactName: deal.contact.name,
-      contactAvatar: deal.contact.avatarUrl ?? undefined,
-      health,
-      daysInStage,
-      stageChangedAt: deal.stageChangedAt,
-      metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
-      address: deal.address ?? undefined,
-      latitude: deal.latitude ?? undefined,
-      longitude: deal.longitude ?? undefined,
-    };
-  });
+      return {
+        id: deal.id,
+        title: deal.title,
+        company: deal.contact.company ?? "",
+        value: deal.value ? deal.value.toNumber() : 0,
+        stage: STAGE_MAP[deal.stage] ?? "new",
+        lastActivityDate,
+        contactName: deal.contact.name,
+        contactAvatar: deal.contact.avatarUrl ?? undefined,
+        health,
+        daysInStage,
+        stageChangedAt: deal.stageChangedAt,
+        metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
+        address: deal.address ?? undefined,
+        latitude: deal.latitude ?? undefined,
+        longitude: deal.longitude ?? undefined,
+      };
+    });
+  } catch (error) {
+    console.error("Database Error in getDeals:", error);
+    throw error;
+  }
 }
 
 /**

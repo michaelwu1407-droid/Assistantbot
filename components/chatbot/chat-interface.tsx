@@ -33,7 +33,6 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       id: 'welcome',
       role: 'bot',
       text: 'Hey! I\'m Pj. How can I help you today?',
-      createdAt: new Date().toISOString()
     }
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
