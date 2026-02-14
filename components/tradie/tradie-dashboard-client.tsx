@@ -89,6 +89,13 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         </div>
       </div>
 
+      {/* Today's Jobs Indicator */}
+      <div className="absolute top-16 left-4 z-20 pointer-events-auto">
+        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
+          Today: {todayJobs.length} job{todayJobs.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* The Pulse Widget - Positioned absolutely as per remote */}
       <PulseWidget
         className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
