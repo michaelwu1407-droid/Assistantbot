@@ -83,14 +83,15 @@ function parseCommandRegex(message: string): ParsedCommand {
   // Also handles: "sally 20 wyndham avenue alexandria, broken sink" (no time/day)
   // Also handles: "sally 6pm tmrw 20 wyndham avenue alexandria, broken sink $200"
   const TIME_PAT = `(?:\\d{1,2}(?::\\d{2})?\\s*(?:am|pm))|(?:am|pm)`;
-  const DAY_PAT = `(?:mon|tue|wed|thu|fri|sat|sun|today|tomorrow|tmrw|ymrw|yesterday)`;
+  const DAY_PAT = `(?:mon|tue|wed|thu|fri|sat|sun|today|tomorrow|tmrw|ymrw|yesterday|asap|urgent|stat|eo|eos)`;
+  const TRADES_PATTERNS = `(?:broken|leaking|noisy|blocked|clogged|faulty|tripped|blown|burnt|smell|flickering|dead|stuck|jammed|cracked|warped|rusty|moldy|loose|wobbly|uneven|sagging|peeling|stained|scorched|chipped|split|torn|ripped|burst|overflow|short|grounded|sparking|arcing|buzzing|humming|rattling|clanking|grinding|squealing|hissing|gurgling|whistling|dripping|spraying|seeping|leaking|running|trickling|pulsing|flashing|dim|bright|flickering|glowing|hot|warm|cold|freezing|frozen|icy|wet|damp|humid|muggy|stuffy|drafty|ventilated|circulated|filtered|purified|clean|dirty|dusty|polluted|contaminated|toxic|hazardous|unsafe|dangerous|shocked|electrocuted|injured|hurt|accident|emergency|call|help|assist|repair|fix|replace|install|remove|uninstall|disconnect|connect|wire|plumb|pipe|fitting|valve|faucet|tap|shower|toilet|sink|basement|attic|roof|gutter|downpipe|drain|sewer|water|gas|electric|power|outage|blackout|surge|trip|breaker|fuse|switch|outlet|socket|plug|cord|cable|wire|conduit|junction|box|panel|meter|main|service|utility|company|tradie|plumber|electrician|carpenter|builder|painter|tiler|roofer|hvac|technician|mechanic|engineer|architect|designer|supplier|store|quote|estimate|invoice|payment|cash|card|check|transfer|deposit|balance|owe|budget|cost|price|rate|hour|day|week|month|year|warranty|guarantee|insurance|permit|license|certified|bonded|insured|covered|protected)`;
 
   const shorthandJobMatch = msg.match(
     new RegExp(
       `^` +
       `([^$]+?)` +                                           // client name (any chars until time/day)
-      `\\s+(${TIME_PAT}|${DAY_PAT})` +                     // time or day
-      `\\s+([^$]+?)` +                                     // job description (any chars until price/address)
+      `\\s+(${TIME_PAT}|${DAY_PAT}|${TRADES_PATTERNS})` +        // time, day, or urgent keywords
+      `\\s+([^$]*?)` +                                     // job description (any chars until price/address)
       `(?:\\s+(?:\\$?(\\d+(?:,\\d{3})*(?:\\.\\d{2})?))?` +   // optional price
       `(?:\\s+([^$]*?))?$`,                                 // optional address
       "i"
@@ -99,29 +100,31 @@ function parseCommandRegex(message: string): ParsedCommand {
 
   if (shorthandJobMatch) {
     const [, clientName, timeOrDay, workDesc, price, address] = shorthandJobMatch;
-
+    
     // Extract price if present, otherwise look for it in description
     let extractedPrice = price?.replace(/,/g, "") || "";
     let extractedWorkDesc = workDesc.trim();
     let extractedAddress = address?.trim() || "";
-
+    
     // If no price but description contains $ pattern, extract it
     if (!extractedPrice && extractedWorkDesc.includes('$')) {
-      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\\.\\d{2})?)/);
+      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\.\d{2})?)/);
       if (priceMatch) {
         extractedPrice = priceMatch[1].replace('$', '');
         extractedWorkDesc = extractedWorkDesc.replace(priceMatch[0], '').trim();
       }
     }
-
+    
     // If description contains street-like patterns, treat as address
-    if (!extractedAddress && (extractedWorkDesc.match(/\\d+\\s+\\w+\\s+st|street|ave|road|blvd/i) || extractedWorkDesc.match(/\d+\s+.+\s+(st|street|ave|road|blvd)/i))) {
+    if (!extractedAddress && (extractedWorkDesc.match(/\d+\s+\w+\s+(st|street|ave|road|blvd|drive|lane|court|place|circle|terrace)/i) || extractedWorkDesc.match(/\d+\s+.+\s+(st|street|ave|road|blvd)/i))) {
       extractedAddress = extractedWorkDesc;
       extractedWorkDesc = "General service/repair";
     }
-
+    
+    // Detect urgency from keywords
+    const isUrgent = timeOrDay.match(/\b(asap|urgent|stat|emergency|emergency)\b/i);
     const schedule = timeOrDay.includes('$') ? `Not specified` : timeOrDay.trim();
-
+    
     return {
       intent: "create_job_natural",
       params: {
@@ -129,7 +132,8 @@ function parseCommandRegex(message: string): ParsedCommand {
         address: extractedAddress,
         workDescription: extractedWorkDesc,
         price: extractedPrice || "0",
-        schedule
+        schedule,
+        urgency: isUrgent ? "high" : "normal"
       }
     };
   }
@@ -264,6 +268,163 @@ function parseCommandRegex(message: string): ParsedCommand {
   // Show templates
   if (msg.match(/(?:show|list)\s+templates?/)) {
     return { intent: "show_templates", params: {} };
+  }
+
+  // Tradie-specific scenarios
+  // Material/parts requests: "need materials for bathroom reno"
+  const materialsMatch = msg.match(/(?:need|require|get|order|pick\s*up)\s+(?:materials|parts|supplies|stock|inventory)\s+(?:for|to)\s+(.+?)/i);
+  if (materialsMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Order materials for ${materialsMatch[1].trim()}`,
+        type: "MATERIALS"
+      }
+    };
+  }
+
+  // Tool/equipment requests: "need to borrow power tools"
+  const toolsMatch = msg.match(/(?:need|borrow|rent|hire|get)\s+(?:tools|equipment|machinery|scaffolding|ladder|drill|saw|hammer)\s+(?:for|to)\s+(.+?)/i);
+  if (toolsMatch) {
+    return {
+      intent: "create_task", 
+      params: { 
+        title: `Arrange tools: ${toolsMatch[1].trim()}`,
+        type: "EQUIPMENT"
+      }
+    };
+  }
+
+  // Team/crew requests: "need extra hands for tomorrow"
+  const crewMatch = msg.match(/(?:need|require|get|hire)\s+(?:help|hands|crew|team|labour|workers|staff|guys|people)\s+(?:for|on|with)\s+(.+?)/i);
+  if (crewMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Arrange crew: ${crewMatch[1].trim()}`,
+        type: "CREW"
+      }
+    };
+  }
+
+  // Vehicle requests: "need ute for moving materials"
+  const vehicleMatch = msg.match(/(?:need|use|take|bring)\s+(?:ute|van|truck|trailer|vehicle|car)\s+(?:for|to)\s+(.+?)/i);
+  if (vehicleMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Arrange vehicle: ${vehicleMatch[1].trim()}`,
+        type: "VEHICLE"
+      }
+    };
+  }
+
+  // Permit/safety requests: "need permit for electrical work"
+  const permitMatch = msg.match(/(?:need|require|get|apply|organise)\s+(?:permit|certification|safety|induction|blue\s*card|white\s*card|license)\s+(?:for|to)\s+(.+?)/i);
+  if (permitMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Arrange permit: ${permitMatch[1].trim()}`,
+        type: "PERMIT"
+      }
+    };
+  }
+
+  // Quote/estimate requests: "need quote for kitchen reno"
+  const quoteRequestMatch = msg.match(/(?:need|want|get|can\s+you)\s+(?:quote|estimate|price|cost)\s+(?:for|on)\s+(.+?)/i);
+  if (quoteRequestMatch) {
+    return {
+      intent: "create_invoice",
+      params: { 
+        title: quoteRequestMatch[1].trim(),
+        requestType: "QUOTE_REQUEST"
+      }
+    };
+  }
+
+  // Schedule changes: "need to move friday job to monday"
+  const scheduleChangeMatch = msg.match(/(?:move|reschedule|change|shift)\s+(?:job|appointment|booking|schedule)\s+(.+?)\s+(?:to|for|on)\s+(.+?)/i);
+  if (scheduleChangeMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Reschedule: ${scheduleChangeMatch[1].trim()} to ${scheduleChangeMatch[2].trim()}`,
+        type: "RESCHEDULE"
+      }
+    };
+  }
+
+  // Client communication: "need to call client about delay"
+  const clientCommMatch = msg.match(/(?:call|phone|text|email|contact|message|notify|inform|update)\s+(?:the\s+)?(?:client|customer|owner)\s+(?:about|regarding|for)\s+(.+?)/i);
+  if (clientCommMatch) {
+    return {
+      intent: "log_activity",
+      params: { 
+        type: "NOTE",
+        content: `Contact client regarding: ${clientCommMatch[1].trim()}`
+      }
+    };
+  }
+
+  // Location/directions: "need directions to job site"
+  const directionsMatch = msg.match(/(?:need|get|want)\s+(?:directions|address|location|gps|map|where\s+is)\s+(?:for|to|of)\s+(.+?)/i);
+  if (directionsMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Get directions to: ${directionsMatch[1].trim()}`,
+        type: "DIRECTIONS"
+      }
+    };
+  }
+
+  // Measurement/assessment: "need to measure bathroom for quote"
+  const measureMatch = msg.match(/(?:need|want|get|have\s+to)\s+(?:measure|assess|check|inspect|survey|quote)\s+(?:for|on)\s+(.+?)/i);
+  if (measureMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        title: `Measure/assess: ${measureMatch[1].trim()}`,
+        type: "MEASUREMENT"
+      }
+    };
+  }
+
+  // Time tracking: "start timer on plumbing job"
+  const timeTrackMatch = msg.match(/(?:start|begin|commence|stop|pause|log|track)\s+(?:timer|time|hours)\s+(?:for|on)\s+(.+?)/i);
+  if (timeTrackMatch) {
+    return {
+      intent: "log_activity",
+      params: { 
+        type: "NOTE",
+        content: `Time tracking: ${timeTrackMatch[1].trim()}`
+      }
+    };
+  }
+
+  // Weather delays: "rained out today can't work"
+  const weatherMatch = msg.match(/(?:rain|storm|wind|snow|heat|wet|muddy|flood|lightning|too\s+(?:hot|cold|wet|dry|windy|sunny))\s+(?:out|off|in|delayed|postponed|cancelled)\s+(?:job|work|site)\s*(?:for|today|tomorrow)?/i);
+  if (weatherMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        type: "NOTE",
+        content: `Weather delay: ${weatherMatch[0].trim()}`
+      }
+    };
+  }
+
+  // Supplier/trade calls: "need to call supplier about parts"
+  const supplierMatch = msg.match(/(?:call|phone|contact|email|message)\s+(?:supplier|trade|distributor|manufacturer|store)\s+(?:about|for|regarding)\s+(.+?)/i);
+  if (supplierMatch) {
+    return {
+      intent: "create_task",
+      params: { 
+        type: "CALL",
+        content: `Contact supplier: ${supplierMatch[1].trim()}`
+      }
+    };
   }
 
   // Find duplicates
@@ -929,20 +1090,54 @@ export async function processChat(
 
     case "help":
       response = {
-        message: `Here's what I can do:\n
-  "Show me ${ctx.dealsLabel}" — View your pipeline
-  "Show stale ${ctx.dealsLabel}" — Find neglected ${ctx.dealsLabel}
-  "New ${ctx.dealLabel} [title] for [${ctx.contactLabel}] worth [amount]" — Create a ${ctx.dealLabel}
-  "Move [${ctx.dealLabel}] to [stage]" — Update pipeline
-  "Log call/email/note [details]" — Record activity
-  "Find [name]" — Search ${ctx.contactLabel}s (fuzzy)
-  "Add contact [name] [email]" — Create ${ctx.contactLabel} (auto-enriches)
-  "Remind me to [task]" — Create a follow-up
-  "Morning digest" — Today's priority briefing
-  "Show templates" — List message templates
-  "Use template [name] for [${ctx.contactLabel}]" — Render a template
-  "Find duplicates" — Check for duplicate ${ctx.contactLabel}s
-${ctx.helpExtras}`,
+        message: `Here's what I can do for your ${ctx.dealsLabel} business:
+
+**Job Management:**
+• "Show me ${ctx.dealsLabel}" — View your pipeline
+• "Show stale ${ctx.dealsLabel}" — Find neglected jobs
+• "New ${ctx.dealLabel} [title] for [${ctx.contactLabel}] worth [amount]" — Create a job
+• "Move [${ctx.dealLabel}] to [stage]" — Update pipeline stage
+• "[Client name] [time] [work description] [price] [address]" — Quick job entry
+
+**Daily Operations:**
+• "Morning digest" — Today's priority briefing
+• "Start day" — Open map view
+• "On my way" — Notify client you're traveling
+
+**Materials & Tools:**
+• "Need [materials] for [job]" — Order supplies
+• "Need [tools/equipment] for [job]" — Arrange equipment
+• "Need [ute/vehicle] for [job]" — Arrange transport
+• "Need [crew/help] for [job]" — Arrange additional workers
+
+**Business Operations:**
+• "Need [permit/license] for [job]" — Handle compliance
+• "Need [quote/estimate] for [job]" — Generate quotes
+• "Need [directions/address] for [job]" — Get location details
+• "Need to [measure/assess] [job]" — Site measurements
+• "Start timer on [job]" — Time tracking
+• "Call [supplier/trade] about [parts]" — Supply chain
+
+**Client Communication:**
+• "Call [client] about [issue]" — Log communication
+• "Contact [client] regarding [matter]" — Client updates
+
+**Planning & Scheduling:**
+• "Move [job] to [day/time]" — Reschedule jobs
+• "Weather delay" — Log weather impacts
+• "Find duplicates" — Check for duplicate clients
+
+**Templates & Automation:**
+• "Show templates" — List message templates
+• "Use template [name] for [${ctx.contactLabel}]" — Send template
+
+**Examples:**
+• "sally 2pm tmrw broken fan $200" — Quick job entry
+• "need materials for bathroom reno" — Order supplies
+• "call supplier about pipe fittings" — Supply chain
+• "move kitchen reno to monday" — Reschedule
+• "need ute for moving materials" — Transport
+• "emergency call out plumber needed" — Urgent job${ctx.helpExtras}`,
       };
       break;
 
