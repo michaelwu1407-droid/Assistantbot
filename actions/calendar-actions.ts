@@ -221,8 +221,8 @@ export async function createCalendarEvent(
   const event: CalendarEvent = {
     id: `evt_${task.id}`,
     title: task.title,
-    start: task.dueAt,
-    end: new Date(task.dueAt.getTime() + 30 * 60 * 1000), // 30min default
+    start: task.dueAt!,
+    end: new Date(task.dueAt!.getTime() + 30 * 60 * 1000), // 30min default
     attendees: task.contact?.email ? [task.contact.email] : [],
     description: [
       task.description,

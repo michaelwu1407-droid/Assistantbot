@@ -44,7 +44,7 @@ function toWorkspaceView(w: {
     ownerId: w.ownerId,
     location: w.location,
     onboardingComplete: w.onboardingComplete,
-    brandingColor: w.brandingColor,
+    brandingColor: w.brandingColor || "",
   };
 }
 

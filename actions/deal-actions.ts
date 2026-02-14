@@ -84,7 +84,11 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
     orderBy: { updatedAt: "desc" },
   });
 
-  return deals.map((deal) => {
+  return deals.map((deal: any) => {
+    const dealWithContact = deal as typeof deal & {
+      contact: { company: string | null };
+    };
+    
     const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
     const health = getDealHealth(lastActivityDate);
 
@@ -95,7 +99,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
     return {
       id: deal.id,
       title: deal.title,
-      company: deal.contact.company ?? "",
+      company: dealWithContact.contact.company ?? "",
       value: deal.value ? deal.value.toNumber() : 0,
       stage: STAGE_MAP[deal.stage] ?? "new",
       lastActivityDate,
@@ -121,7 +125,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { title, company, value, stage, contactId, workspaceId, metadata } = parsed.data;
+  const { title, value, stage, contactId, workspaceId, metadata } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
   const deal = await db.deal.create({

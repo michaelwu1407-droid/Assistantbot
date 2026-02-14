@@ -54,7 +54,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
   const results: SearchResultItem[] = []
 
   // 1. Map Contacts
-  contacts.forEach(c => {
+  contacts.forEach((c: any) => {
     results.push({
       id: c.id,
       type: "contact",
@@ -66,25 +66,29 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
   })
 
   // 2. Map Deals
-  deals.forEach(d => {
+  deals.forEach((d: any) => {
+    const dealWithContact = d as typeof d & {
+      contact: { company: string | null };
+    };
+    
     results.push({
       id: d.id,
       type: "deal",
       title: d.title,
-      subtitle: `${d.stage} • $${(d.value?.toNumber() ?? 0).toLocaleString()}`,
+      subtitle: `${d.stage} • $${(d.value ? d.value.toNumber() : 0).toLocaleString()}`,
       url: `/dashboard/deals/${d.id}`,
       score: 1
     })
   })
 
   // 3. Map Tasks
-  tasks.forEach(t => {
+  tasks.forEach((t: any) => {
     results.push({
       id: t.id,
       type: "task",
       title: t.title,
-      subtitle: "Task",
-      url: `/dashboard?taskId=${t.id}`,
+      subtitle: t.dueAt ? `Due ${t.dueAt.toLocaleDateString()}` : "No due date",
+      url: `/dashboard/tasks/${t.id}`,
       score: 1
     })
   })
