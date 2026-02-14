@@ -68,22 +68,21 @@
 ### Global Search & Navigation
 | ID | Requirement | Status | Note |
 |----|-------------|--------|------|
-| 3A | GlobalSearch in tradie | ✅ Done | Integrated via Header component with Cmd+K support. |
-| 3B | Fix hardcoded workspace | ✅ Done | Uses `useShellStore` for dynamic workspace ID. |
-| 3C | Cmd+K keyboard listener | ✅ Done | Implemented in GlobalSearch component. |
+| 3A | GlobalSearch in tradie | **Done** | Integrated via Header component with Cmd+K support. |
+| 3B | Fix hardcoded workspace | **Done** | Uses `useShellStore` for dynamic workspace ID. |
+| 3C | Cmd+K keyboard listener | **Done** | Implemented in GlobalSearch component. |
+| 4A | getNextJob server action | **Done** | Server calls `getNextJob` and `getTodaySchedule`. |
+| 4B | Client nextJob prop | **Done** | Client properly uses nextJob for current job selection. |
+| 4C | Today's jobs filtering | **Done** | Tradie page showing only today's jobs. |
+| 4D | Today's jobs indicator | **Done** | Visual job count indicators added. |
 
 ### Next Job Calculation (D-8)
 | ID | Requirement | Status | Note |
 |----|-------------|--------|------|
-| 4A | getNextJob server action | ✅ Done | Server calls `getNextJob` and `getTodaySchedule`. |
-| 4B | Client nextJob prop | ✅ Done | Client properly uses nextJob for current job selection. |
-
-### Today's Jobs Filter (D-9)
-| ID | Requirement | Status | Note |
-|----|-------------|--------|------|
-| 5A | Today's jobs server action | ✅ Done | `getTodaySchedule` implemented and called. |
-| 5B | Filter map pins | ✅ Done | Map prefers todayJobs over all jobs. |
-| 5C | Today's jobs indicator | ✅ Done | Added "Today: X jobs" indicator in tradie header. |
+| 4A | getNextJob server action | **Done** | Server calls `getNextJob` and `getTodaySchedule`. |
+| 4B | Client nextJob prop | **Done** | Client properly uses nextJob for current job selection. |
+| 4C | Today's jobs filtering | **Done** | Tradie page showing only today's jobs. |
+| 4D | Today's jobs indicator | **Done** | Visual job count indicators added. |
 
 ### Auto-Retreat Canvas (M-6)
 | ID | Requirement | Status | Note |
