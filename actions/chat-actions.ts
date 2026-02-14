@@ -438,19 +438,56 @@ function parseCommandRegex(message: string): ParsedCommand {
   }
 
   // Natural language job creation: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
-  const jobMatch = msg.match(/^([a-zA-Z\s]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+(?:today|tomorrow|ymrw|tmrw)?\s*([^$.]+?)\.?\s*(\$\s*\d+(?:,\d{3})*(?:\.\d{2})?)\s*(.+?)(?:\s|$)/i);
-  if (jobMatch) {
-    const [, clientName, time, workDescription, price, address] = jobMatch;
-    return {
-      intent: "create_job_natural",
-      params: {
-        clientName: clientName.trim(),
-        schedule: time.trim(),
-        workDescription: workDescription.trim(),
-        price: price.replace(/\s/g, ''),
-        address: address.trim()
-      }
-    };
+  const clientMatch = msg.match(/^([a-zA-Z\s]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+  if (clientMatch) {
+    const clientName = clientMatch[1].trim();
+    const time = clientMatch[2].trim();
+    
+    let remaining = msg.substring(clientMatch[0].length).trim();
+    
+    // Remove day indicators (ymrw, today, tomorrow, etc.)
+    remaining = remaining.replace(/^(ymrw|today|tomorrow|tmrw)\s+/i, '');
+    
+    // Look for job price in format "200$" (number before $)
+    const jobPriceMatch = remaining.match(/(\d+)\s*\$/i);
+    
+    if (jobPriceMatch) {
+      const priceIndex = jobPriceMatch.index!;
+      const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
+      const price = jobPriceMatch[0]; // Includes the $ sign
+      const address = remaining.substring(priceIndex + price.length).trim();
+      
+      return {
+        intent: "create_job_natural",
+        params: {
+          clientName,
+          schedule: time,
+          workDescription,
+          price: price.replace(/\s/g, ''),
+          address: address || "No address provided"
+        }
+      };
+    }
+    
+    // Fallback: try $ first format
+    const fallbackPriceMatch = remaining.match(/(\$\s*\d+)/i);
+    if (fallbackPriceMatch) {
+      const priceIndex = fallbackPriceMatch.index!;
+      const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
+      const price = fallbackPriceMatch[1];
+      const address = remaining.substring(priceIndex + price.length).trim();
+      
+      return {
+        intent: "create_job_natural",
+        params: {
+          clientName,
+          schedule: time,
+          workDescription,
+          price: price.replace(/\s/g, ''),
+          address: address || "No address provided"
+        }
+      };
+    }
   }
 
   // Find duplicates
