@@ -1,9 +1,18 @@
-import SchedulerView from "@/components/scheduler/scheduler-view";
+import { getTradieJobs } from "@/actions/tradie-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+import SchedulerView from "@/components/scheduler/scheduler-view"
 
-export default function SchedulerPage() {
+export const dynamic = "force-dynamic"
+
+export default async function SchedulerPage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    const jobs = await getTradieJobs(workspace.id)
+
     return (
-        <div className="h-[calc(100vh-4rem)]"> {/* Minus header height approx */}
-            <SchedulerView />
+        <div className="h-[calc(100vh-4rem)]">
+            <SchedulerView initialJobs={jobs} />
         </div>
-    );
+    )
 }

@@ -46,56 +46,54 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
             </div>
 
             {/* 2. Top Widgets (Fixed Max Height) */}
-            {/* ABSOLUTE CONSTRAINT: This container CANNOT grow beyond 250px or 30% of screen */}
+            {/* ABSOLUTE CONSTRAINT: This container CANNOT grow beyond 350px or 25% of screen */}
             {/* shrink-0 prevents it from collapsing to 0, max-h ensures it doesn't push Kanban out */}
-            <div className="shrink-0 mb-4" style={{ maxHeight: '30vh', minHeight: '140px' }}>
+            <div className="shrink-0 mb-4" style={{ maxHeight: 'min(350px, 25vh)', minHeight: '200px' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 h-full">
                     {/* Widget 1: Pipeline Pulse */}
-                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full">
+                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full min-w-0">
                         <CardHeader className="pb-2 shrink-0">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <TrendingUp className="h-4 w-4 text-emerald-500" />
                                 Pipeline Pulse
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-end min-h-0">
-                            <div className="text-xl md:text-2xl font-bold text-slate-900 truncate" title="$124,500">
+                        <CardContent className="flex-1 flex flex-col justify-end min-h-0 min-w-0">
+                            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 truncate w-full" title="$124,500">
                                 $124,500
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">+12% from last month</p>
+                            <p className="text-xs text-muted-foreground truncate w-full">+12% from last month</p>
                         </CardContent>
                     </Card>
 
-                    {/* Widget 2: Health */}
-                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full">
+                    {/* Widget 2: Active Deals */}
+                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full min-w-0">
                         <CardHeader className="pb-2 shrink-0">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <DollarSign className="h-4 w-4 text-blue-500" />
                                 Active Deals
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-end min-h-0">
-                            <div className="text-xl md:text-2xl font-bold text-slate-900 truncate">
+                        <CardContent className="flex-1 flex flex-col justify-end min-h-0 min-w-0">
+                            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 truncate w-full">
                                 {deals.length}
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">3 closing this week</p>
+                            <p className="text-xs text-muted-foreground truncate w-full">3 closing this week</p>
                         </CardContent>
                     </Card>
 
                     {/* Widget 3: Recent Activity */}
-                    <div className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden flex flex-col md:col-span-2 xl:col-span-1 h-full">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
+                    <div className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden flex flex-col md:col-span-2 xl:col-span-1 h-full max-h-[300px] min-w-0">
+                        <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
                             <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Activity className="h-4 w-4 text-amber-500" />
                                 Recent Activity
                             </div>
                             <span className="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full text-slate-600">{activities.length}</span>
                         </div>
-                        {/* Internal scrollable area */}
-                        <div className="flex-1 overflow-hidden min-h-0 relative">
-                            <div className="absolute inset-0 overflow-y-auto">
-                                <ActivityFeed activities={activities} className="border-0 shadow-none h-full" compact />
-                            </div>
+                        {/* Internal scrollable area with strict height */}
+                        <div className="flex-1 overflow-y-auto min-h-0">
+                            <ActivityFeed activities={activities} className="border-0 shadow-none" compact />
                         </div>
                     </div>
                 </div>
@@ -103,8 +101,8 @@ export default function DashboardClientPage({ deals, activities, workspaceId }: 
 
             {/* 3. Main Content Area: Kanban Board */}
             {/* flex-1 ensures it takes ALL remaining vertical space */}
-            {/* min-h-0 allows the container to shrink if window is small, enabling internal scrolling */}
-            <div className="flex-1 w-full overflow-hidden min-h-0 border-t border-slate-100 pt-4">
+            {/* min-h-[500px] forces visibility even if widgets are tall */}
+            <div className="flex-1 w-full overflow-hidden min-h-[500px] border-t border-slate-100 pt-4">
                  <KanbanBoard deals={deals} />
             </div>
 
