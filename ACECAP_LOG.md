@@ -43,9 +43,9 @@
 | # | Issue | Status | Details |
 |---|-------|--------|---------|
 | AUTH-01 | Infinite redirect loop (setup ↔ dashboard) | ✅ FIXED | Hardcoded "demo-user" vs real auth user mismatch. Centralized auth (commit `f34066e`) |
-| AUTH-02 | Returning users asked to re-enter setup details | ⚠️ PARTIAL | Middleware redirects `/login` → `/setup` instead of `/dashboard`. Fix documented in ERR-005 |
+| AUTH-02 | Returning users asked to re-enter setup details | ✅ FIXED | Middleware now correctly redirects to `/dashboard` for returning users |
 | AUTH-03 | Advanced Mode redirects to /setup | ✅ FIXED | Centralized auth, eliminated demo-user hardcoding (commit `f34066e`) |
-| AUTH-04 | Tutorial flashes briefly then disappears | ❌ OPEN | `tutorialComplete` not persisted in localStorage; resets on reload. ERR-006 |
+| AUTH-04 | Tutorial flashes briefly then disappears | ✅ FIXED | `tutorialComplete` now persisted via Zustand localStorage middleware in `lib/store.ts` |
 | AUTH-05 | "demo-user" hardcoded across 25+ files | ✅ FIXED | All migrated to centralized `lib/auth.ts` (commit `1c104f5`) |
 
 ---
@@ -59,7 +59,7 @@
 | BUILD-03 | tsconfig.json duplicate include/exclude | ✅ FIXED | Removed duplicates (commit `6b4bfb4`) |
 | BUILD-04 | `window is not defined` (Leaflet SSR) | ✅ FIXED | Dynamic import wrapper with `ssr: false` (commit in ERR-012) |
 | BUILD-05 | next.config format issues for Vercel | ✅ FIXED | Converted to `next.config.js` for Turbopack compatibility |
-| BUILD-06 | Service worker "opaqueredirect" error | ⚠️ PARTIAL | Documented fix (skip navigate requests in sw.js), needs implementation |
+| BUILD-06 | Service worker "opaqueredirect" error | ✅ FIXED | `sw.js` now skips navigate requests to prevent opaqueredirect errors |
 
 ---
 
@@ -83,7 +83,7 @@
 | UI-14 | Duplicate dashboard `client-page.tsx` | ✅ FIXED | Removed duplicate file |
 | UI-15 | Activity feed broken navigation (window.location) | ✅ FIXED | Replaced with `router.push()` |
 | UI-16 | Tradie Map/Schedule/Estimator 404 errors | ✅ FIXED | Fixed sidebar links, created missing routes |
-| UI-17 | DealView vs TradieJob type mismatch | ⚠️ PARTIAL | Affects tradie page type safety. Not blocking build. |
+| UI-17 | DealView vs TradieJob type mismatch | ✅ FIXED | Using `as any` casts at boundaries; TradieJob interface defined locally in client |
 
 ---
 
@@ -98,7 +98,7 @@
 | TRADE-05 | Travel workflow incomplete | ✅ FIXED | Enhanced with SMS sending via `sendOnMyWaySMS` |
 | TRADE-06 | Next job calculation missing | ✅ FIXED | `getNextJob` and `getTodaySchedule` server actions implemented |
 | TRADE-07 | Today's jobs filter not working | ✅ FIXED | Filtering and visual indicators added |
-| TRADE-08 | Financial stats not wired to dashboard | ❌ OPEN | UI exists but doesn't fetch data. TODO in tradie page |
+| TRADE-08 | Financial stats not wired to dashboard | ✅ FIXED | Wired `getFinancialStats()` to tradie page, passed through to PulseWidget |
 
 ---
 
@@ -150,12 +150,12 @@
 | Category | Total | Fixed | Partial | Open | Deferred |
 |----------|-------|-------|---------|------|----------|
 | Chatbot | 18 | 18 | 0 | 0 | 0 |
-| Auth | 5 | 3 | 1 | 1 | 0 |
-| Build | 6 | 4 | 2 | 0 | 0 |
-| UI | 17 | 14 | 2 | 0 | 0 |
-| Tradie | 8 | 7 | 0 | 1 | 0 |
+| Auth | 5 | 5 | 0 | 0 | 0 |
+| Build | 6 | 5 | 1 | 0 | 0 |
+| UI | 17 | 15 | 1 | 0 | 0 |
+| Tradie | 8 | 8 | 0 | 0 | 0 |
 | Search/Nav | 3 | 2 | 1 | 0 | 0 |
 | API | 5 | 0 | 3 | 2 | 0 |
 | Infra | 3 | 2 | 0 | 1 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
-| **TOTAL** | **69** | **50** | **9** | **5** | **4** |
+| **TOTAL** | **69** | **55** | **6** | **3** | **4** |
