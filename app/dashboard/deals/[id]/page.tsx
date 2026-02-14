@@ -45,7 +45,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                             </Badge>
                         </div>
                         <p className="text-slate-500 flex items-center gap-2 text-sm mt-1">
-                            {deal.company || contact?.company} •
+                            {contact?.company || 'No company'} •
                             <span className="text-emerald-600 font-medium">${Number(deal.value).toLocaleString()}</span>
                             {isRealEstate && typeof metadata.address === 'string' && ` • ${metadata.address}`}
                         </p>

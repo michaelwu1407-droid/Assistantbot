@@ -73,7 +73,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="font-medium text-slate-900">{deal.title}</p>
-                                            <p className="text-xs text-slate-500">{deal.company || 'No company'}</p>
+                                            <p className="text-xs text-slate-500">{contact.company || 'No company'}</p>
                                         </div>
                                         <Badge variant="outline">{deal.stage}</Badge>
                                     </div>

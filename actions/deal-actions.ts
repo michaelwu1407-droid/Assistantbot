@@ -42,6 +42,10 @@ export interface DealView {
   address?: string;
   latitude?: number;
   longitude?: number;
+  contactPhone?: string;
+  description?: string;
+  jobStatus?: string;
+  status?: string;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
