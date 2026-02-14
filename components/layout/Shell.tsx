@@ -23,6 +23,39 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const isDashboardRoot = pathname === "/dashboard"
   const isBasicView = viewMode === "BASIC" && isDashboardRoot
 
+  // Auto-Retreat: Collapse to Basic mode after 30s of inactivity
+  useEffect(() => {
+    if (viewMode !== "ADVANCED") return
+
+    let timeout: NodeJS.Timeout
+
+    const resetTimer = () => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        // Only auto-retreat if we are truly idle and locally (client-side) determined
+        console.log("Auto-retreating to Basic mode due to inactivity")
+        setViewMode("BASIC")
+      }, 30000) // 30 seconds
+    }
+
+    // Initial start
+    resetTimer()
+
+    // Listeners
+    window.addEventListener("mousemove", resetTimer)
+    window.addEventListener("click", resetTimer)
+    window.addEventListener("keydown", resetTimer)
+    window.addEventListener("scroll", resetTimer)
+
+    return () => {
+      clearTimeout(timeout)
+      window.removeEventListener("mousemove", resetTimer)
+      window.removeEventListener("click", resetTimer)
+      window.removeEventListener("keydown", resetTimer)
+      window.removeEventListener("scroll", resetTimer)
+    }
+  }, [viewMode, setViewMode])
+
   // Verify tutorial trigger
   useEffect(() => {
     if (searchParams.get("tutorial") === "true" && !tutorialTriggered.current) {

@@ -130,7 +130,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { title, company, value, stage, contactId, workspaceId, metadata } = parsed.data;
+  const { title, value, stage, contactId, workspaceId, metadata } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
   const deal = await db.deal.create({

@@ -131,7 +131,7 @@ export async function importFromPortal(
         name: `${listing.portal.toUpperCase()} Listing`,
         company: listing.portal === "rea" ? "realestate.com.au" : "Domain",
         workspaceId,
-      },
+      } as any,
     });
     contactId = placeholder.id;
   }

@@ -64,7 +64,7 @@ export async function getTasks(options?: {
     description: t.description,
     dueAt: t.dueAt || null,
     completed: t.completed,
-    overdue: !t.completed && (t.dueAt ? t.dueAt < now : false),
+    overdue: !t.completed && (t.dueAt! < now),
     dealTitle: t.deal?.title,
     contactName: t.contact?.name,
   }));

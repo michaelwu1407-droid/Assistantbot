@@ -8,7 +8,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspaceType {
@@ -63,6 +62,7 @@ model Workspace {
   location           String?
   onboardingComplete Boolean       @default(false)
   brandingColor      String?
+  settings           Json?
   
   users              User[]
   deals              Deal[]

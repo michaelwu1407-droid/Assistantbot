@@ -4,6 +4,52 @@
 
 ---
 
+### 2026-02-14 02:00 AEST [Frontend - Antigravity] - Critical Build Fixes
+**Fix**: Resolved 8 critical TypeScript errors and runtime crashes (Issues 9-14).
+*   **Safety**: Fixed `completeSafetyCheck` signature mismatch and stale imports.
+*   **Tradie**: Consolidated `job-actions.ts` into `tradie-actions.ts` to remove duplicates.
+*   **Types**: Fixed `fuzzySearch` type loss in `material-actions.ts` and `DealView` in `job-bottom-sheet.tsx`.
+*   **Runtime**: Fixed invalid Prisma relation access in `digest.ts`.
+*   **Files modified**: `actions/tradie-actions.ts`, `actions/material-actions.ts`, `app/(dashboard)/tradie/jobs/[id]/page.tsx`, `components/tradie/job-bottom-sheet.tsx`, `lib/digest.ts`, `components/tradie/safety-modal.tsx`, `components/tradie/job-completion-modal.tsx`, `components/tradie/job-status-bar.tsx`.
+*   **Files deleted**: `actions/job-actions.ts`.
+*   **Status**: Build is GREEN (0 TS errors). Resolves Issues 9, 10, 11, 12, 13, 14.
+
+### 2026-02-14 03:00 AEST [Frontend - Antigravity] - High-Priority Features Implementation
+**Feature**: Implemented Material Database (Issue 1) and Voice-to-Text (Issue 2).
+*   **Materials**: 
+    *   Expanded seed data with ~15 new items (HVAC, General, Roofing).
+    *   Wired `MaterialPicker` into `JobBottomSheet`.
+    *   Added "Create Material" workflow to picker.
+*   **Voice**: 
+    *   Created `useSpeechRecognition` hook.
+    *   Implemented `VoiceNoteInput` for job diary dictation.
+    *   Refactored `AssistantPane` to use shared voice hook.
+*   **Status**: Features implemented and type-checked (0 errors). Ready for testing.
+
+### 2026-02-14 03:45 AEST [Frontend - Antigravity] - Medium-Priority Features Implementation
+**Feature**: Implemented Global Search (Issue 3), Schedule Logic (Issue 4/5), and Auto-Retreat (Issue 6).
+*   **Search**: 
+    *   Wired `GlobalSearch` into Tradie Headers.
+    *   Fixed hardcoded workspace ID in legacy search components.
+*   **Schedule**: 
+    *   Updated `getNextJob` to prioritize active jobs (Traveling/On-Site) over future scheduled ones.
+    *   Added "Today's Job Count" indicator to the dashboard.
+*   **UX**: 
+    *   Implemented Auto-Retreat for the AI Canvas (collapses to basic mode after 30s inactivity).
+*   **Status**: Build GREEN. All functional priority tasks complete.
+
+### 2026-02-14 04:30 AEST [Frontend - Antigravity] - API Stubs Implementation
+**Feature**: Implemented Email (Issue 7) and Calendar (Issue 8) API Stubs.
+*   **Email**: 
+    *   Replaced `syncGmail` and `syncOutlook` stubs with actual fetch implementation (Gmail API / Microsoft Graph).
+    *   Implemented contact matching logic for incoming emails.
+*   **Calendar**: 
+    *   Implemented `syncGoogleCalendar` and `syncOutlookCalendar` matching logic.
+    *   Implemented `createCalendarEvent` to post events to external providers.
+*   **Auth**: 
+    *   Created `app/api/auth/google/callback/route.ts` as a placeholder for OAuth handling.
+*   **Status**: Build GREEN. Logic ready for token integration.
+
 ### 2026-02-11 01:00 AEST [Frontend - Antigravity] - Comprehensive User Feedback Triage
 **Activity**: Completed triage of a wide range of critical UX/UI and AI issues.
 *   **Identified Issues**:

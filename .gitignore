@@ -49,3 +49,6 @@ next-env.d.ts
 # database
 *.db
 *.sqlite
+
+# Allow access to Prisma types for development
+!node_modules/@prisma/client

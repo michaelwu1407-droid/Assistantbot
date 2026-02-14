@@ -48,9 +48,9 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
     const jobStatus = (dealMeta.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
     const safetyCheckCompleted = dealMeta.safetyCheckCompleted === true;
 
-    // Format Date from metadata (scheduledAt field not in schema yet)
-    const scheduledDate = dealMeta.scheduledAt
-        ? format(new Date(dealMeta.scheduledAt), "EEE, d MMM h:mm a")
+    // Format Date from fields
+    const scheduledDate = deal.scheduledAt
+        ? format(deal.scheduledAt, "EEE, d MMM h:mm a")
         : "Unscheduled";
 
     return (
@@ -157,11 +157,15 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                                 <ActivityFeed
                                     activities={
                                         deal.activities.map(a => ({
-                                            ...a,
+                                            id: a.id,
+                                            type: a.type as any,
+                                            title: a.title,
+                                            description: a.description || "",
+                                            time: format(a.createdAt, "h:mm a"), // Use actual formatted time
+                                            date: a.createdAt, // Pass date object if needed by component
+                                            createdAt: a.createdAt,
                                             dealId: a.dealId || undefined,
-                                            contactId: a.contactId || undefined,
-                                            description: a.description || null,
-                                            time: "Recently" // TODO: fix relative time logic
+                                            contactId: a.contactId || undefined
                                         }))
                                     }
                                 />

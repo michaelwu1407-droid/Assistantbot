@@ -41,7 +41,7 @@ export async function generateMorningDigest(
       stage: { notIn: ["WON", "LOST", "ARCHIVED"] },
     },
     include: {
-      contacts: { take: 1 },
+      contact: true,
       activities: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -56,8 +56,8 @@ export async function generateMorningDigest(
     totalPipelineValue += Number(deal.value ?? 0);
     const lastActivity = deal.activities?.[0]?.createdAt ?? deal.createdAt;
     const health = getDealHealth(lastActivity);
-    const contactName = deal.contacts?.[0]?.name ?? 'Unknown';
-    const contactId = deal.contacts?.[0]?.id;
+    const contactName = deal.contact?.name ?? 'Unknown';
+    const contactId = deal.contact?.id;
 
     if (health.status === "ROTTING") {
       items.push({

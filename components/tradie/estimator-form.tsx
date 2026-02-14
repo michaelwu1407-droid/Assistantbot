@@ -8,12 +8,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateQuote, type LineItem } from "@/actions/tradie-actions"
 import { DealView } from "@/actions/deal-actions"
+import { MaterialPicker } from "./material-picker"
 
 interface EstimatorFormProps {
-    deals: DealView[]
+    deals?: DealView[] // Optional now as we might fetch inside or pass from page
+    workspaceId: string
 }
 
-export function EstimatorForm({ deals }: EstimatorFormProps) {
+export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
     const [selectedDealId, setSelectedDealId] = useState<string>("")
     const [items, setItems] = useState<LineItem[]>([{ desc: "", price: 0 }])
     const [loading, setLoading] = useState(false)
@@ -129,6 +131,17 @@ export function EstimatorForm({ deals }: EstimatorFormProps) {
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
                         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Line Items</label>
+                        <MaterialPicker
+                            workspaceId={workspaceId}
+                            onSelect={(m) => {
+                                setItems([...items, { desc: m.description, price: m.price }])
+                            }}
+                            trigger={
+                                <Button variant="ghost" size="sm" className="h-6 text-xs text-blue-600 hover:text-blue-700 px-2">
+                                    + Add from Database
+                                </Button>
+                            }
+                        />
                     </div>
 
                     <div className="space-y-3">

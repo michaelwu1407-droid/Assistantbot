@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SignaturePad } from "./signature-pad";
-import { completeJob } from "@/actions/job-actions";
+import { completeJob } from "@/actions/tradie-actions";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 

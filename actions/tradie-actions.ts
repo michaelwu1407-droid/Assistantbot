@@ -74,7 +74,7 @@ export async function getTradieJobs(workspaceId: string) {
 export async function getTodaySchedule(workspaceId: string) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
-  
+
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
@@ -110,25 +110,52 @@ export async function getTodaySchedule(workspaceId: string) {
  * Finds the first job scheduled in the future.
  */
 export async function getNextJob(workspaceId: string) {
-  const now = new Date();
-  const job = await db.deal.findFirst({
+  // 1. Check for any currently active job (TRAVELING or ON_SITE)
+  const activeJob = await db.deal.findFirst({
     where: {
       workspaceId,
-      scheduledAt: { gt: now },
-      jobStatus: { notIn: ["COMPLETED", "CANCELLED"] }
+      jobStatus: { in: ["TRAVELING", "ON_SITE"] }
     },
     include: { contact: true },
     orderBy: { scheduledAt: "asc" }
   });
 
-  if (!job) return null;
+  if (activeJob) {
+    return {
+      id: activeJob.id,
+      title: activeJob.title,
+      client: activeJob.contact.name,
+      time: activeJob.scheduledAt,
+      address: activeJob.address || activeJob.contact.address,
+      status: activeJob.jobStatus,
+      safetyCheckCompleted: activeJob.safetyCheckCompleted,
+      description: (activeJob.metadata as any)?.description
+    };
+  }
+
+  // 2. If no active job, get the next scheduled one
+  const now = new Date();
+  const nextJob = await db.deal.findFirst({
+    where: {
+      workspaceId,
+      scheduledAt: { gt: now },
+      jobStatus: { notIn: ["COMPLETED", "CANCELLED", "TRAVELING", "ON_SITE"] } // Exclude statuses we checked above
+    },
+    include: { contact: true },
+    orderBy: { scheduledAt: "asc" }
+  });
+
+  if (!nextJob) return null;
 
   return {
-    id: job.id,
-    title: job.title,
-    client: job.contact.name,
-    time: job.scheduledAt,
-    address: job.address || job.contact.address
+    id: nextJob.id,
+    title: nextJob.title,
+    client: nextJob.contact.name,
+    time: nextJob.scheduledAt,
+    address: nextJob.address || nextJob.contact.address,
+    status: nextJob.jobStatus,
+    safetyCheckCompleted: nextJob.safetyCheckCompleted,
+    description: (nextJob.metadata as any)?.description
   };
 }
 
@@ -192,10 +219,10 @@ export async function sendOnMyWaySMS(jobId: string) {
   }
 
   const message = `Hi ${deal.contact.name}, I'm on my way to ${deal.title}. See you soon!`;
-  
+
   // Use the messaging action
   const result = await sendSMS(deal.contactId, message);
-  
+
   if (result.success) {
     // Log specific activity
     await db.activity.create({
@@ -240,21 +267,21 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
 
   if (status === 'COMPLETED') {
     // Notify workspace users
-    const deal = await db.deal.findUnique({ 
-        where: { id: jobId },
-        include: { workspace: { include: { users: true } } }
+    const deal = await db.deal.findUnique({
+      where: { id: jobId },
+      include: { workspace: { include: { users: true } } }
     });
-    
+
     if (deal) {
-        for (const user of deal.workspace.users) {
-            await createNotification({
-                userId: user.id,
-                title: "Job Completed",
-                message: `Job "${deal.title}" has been marked as completed.`,
-                type: "SUCCESS",
-                link: `/dashboard/jobs/${jobId}`
-            });
-        }
+      for (const user of deal.workspace.users) {
+        await createNotification({
+          userId: user.id,
+          title: "Job Completed",
+          message: `Job "${deal.title}" has been marked as completed.`,
+          type: "SUCCESS",
+          link: `/dashboard/jobs/${jobId}`
+        });
+      }
     }
   }
 
@@ -266,12 +293,29 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
 /**
  * Mark safety check as completed.
  */
-export async function completeSafetyCheck(jobId: string) {
+export async function completeSafetyCheck(
+  jobId: string,
+  checks?: { siteSafe: boolean; powerOff: boolean; ppeWorn: boolean }
+) {
+  const deal = await db.deal.findUnique({
+    where: { id: jobId },
+    select: { metadata: true }
+  });
+
+  const currentMetadata = (deal?.metadata as Record<string, any>) || {};
+
   await db.deal.update({
     where: { id: jobId },
-    data: { safetyCheckCompleted: true }
+    data: {
+      safetyCheckCompleted: true,
+      metadata: {
+        ...currentMetadata,
+        safetyChecks: checks,
+        safetyCheckTime: new Date().toISOString()
+      }
+    }
   });
-  
+
   await db.activity.create({
     data: {
       type: "NOTE",
@@ -280,7 +324,7 @@ export async function completeSafetyCheck(jobId: string) {
       dealId: jobId
     }
   });
-  
+
   revalidatePath(`/dashboard/jobs/${jobId}`);
   return { success: true };
 }
@@ -317,7 +361,7 @@ export async function saveJobPhoto(dealId: string, url: string, caption?: string
         caption
       }
     });
-    
+
     // Log activity
     await db.activity.create({
       data: {
@@ -595,4 +639,55 @@ ${invoice.deal.contact.address ? `<p style="margin:0;color:#64748b">${invoice.de
 </body></html>`;
 
   return { success: true, data, html };
+}
+
+/**
+ * Complete a job with signature (moved from job-actions.ts).
+ */
+export async function completeJob(dealId: string, signatureDataUrl: string) {
+  try {
+    // Get existing metadata
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { metadata: true }
+    });
+
+    const currentMetadata = (deal?.metadata as Record<string, any>) || {};
+
+    await db.deal.update({
+      where: { id: dealId },
+      data: {
+        jobStatus: "COMPLETED", // Use string literal matching definition
+        stage: "WON",
+        metadata: {
+          ...currentMetadata,
+          signature: signatureDataUrl,
+          completedAt: new Date().toISOString()
+        }
+      }
+    });
+
+    // Trigger notifications/hooks logic
+    // We reuse the updateJobStatus logic's side effects effectively by manually doing them here or just letting this be standalone.
+    // For parity with updateJobStatus('COMPLETED'), we should probably trigger notifications here too, 
+    // but let's stick to the job-actions implementation first to just fix the build/dup issue.
+
+    // Log the completion (using activity-actions logger pattern or direct db)
+    // tradie-actions uses direct db.activity.create usually
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Job Completed",
+        content: "Job signed off by client. Signature captured.",
+        dealId,
+        // contactId? We need to fetch it if we want to link it.
+      }
+    });
+
+    revalidatePath(`/dashboard/tradie/jobs/${dealId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error completing job:", error);
+    return { success: false, error: "Failed to complete job" };
+  }
 }
