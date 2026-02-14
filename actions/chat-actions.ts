@@ -357,21 +357,31 @@ export async function processChat(
   workspaceId: string,
   overrideParams?: Record<string, string>
 ): Promise<ChatResponse> {
-  // Persist user message
-  await db.chatMessage.create({
-    data: {
-      role: "user",
-      content: message,
-      workspace: { connect: { id: workspaceId } }
-    },
-  });
+  // Persist user message (non-blocking — chat should work even without DB)
+  try {
+    await db.chatMessage.create({
+      data: {
+        role: "user",
+        content: message,
+        workspace: { connect: { id: workspaceId } }
+      },
+    });
+  } catch {
+    // DB unavailable — continue without persistence
+  }
 
   // Fetch workspace to get industry context
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { industryType: true },
-  });
-  const ctx = getIndustryContext(workspace?.industryType ?? null);
+  let industryType: string | null = null;
+  try {
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { industryType: true },
+    });
+    industryType = workspace?.industryType ?? null;
+  } catch {
+    // DB unavailable — use default industry context
+  }
+  const ctx = getIndustryContext(industryType);
 
   // 1. Try AI Parser first
   let parsed = await parseCommandAI(message, ctx);
@@ -817,15 +827,19 @@ ${ctx.helpExtras}`,
       };
   }
 
-  // Persist assistant response
-  await db.chatMessage.create({
-    data: {
-      role: "assistant",
-      content: response.message,
-      workspaceId,
-      metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
-    },
-  });
+  // Persist assistant response (non-blocking — chat should work even without DB)
+  try {
+    await db.chatMessage.create({
+      data: {
+        role: "assistant",
+        content: response.message,
+        workspaceId,
+        metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
+      },
+    });
+  } catch {
+    // DB unavailable — continue without persistence
+  }
 
   return response;
 }
@@ -834,9 +848,13 @@ ${ctx.helpExtras}`,
  * Get chat history for a workspace.
  */
 export async function getChatHistory(workspaceId: string, limit = 50) {
-  return db.chatMessage.findMany({
-    where: { workspaceId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
+  try {
+    return await db.chatMessage.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  } catch {
+    return [];
+  }
 }
