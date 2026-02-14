@@ -1408,14 +1408,79 @@ Then add a link to it from the tradie dashboard. In `components/tradie/tradie-da
 
 ---
 
+## ISSUE 20: CHATBOT CANNOT PARSE NATURAL LANGUAGE JOB ENTRIES (TRADIE UX BLOCKER)
+
+**Priority**: HIGH — This is a critical UX failure for the tradie module.
+**Status**: ✅ FIXED
+
+### Problem
+
+The chatbot fails to parse simple, natural language job entries like:
+> "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm"
+
+Instead of extracting the key details (client, address, work, price, schedule), it responds with a generic error message.
+
+### Solution Implemented
+
+**Files Modified:**
+1. `actions/chat-actions.ts` — Added `create_job_natural` intent with regex pattern and AI parser support
+2. `components/core/assistant-pane.tsx` — Added confirmation card UI for extracted job details
+
+**Changes:**
+
+#### 1. New Intent Type (chat-actions.ts:24-43)
+Added `create_job_natural` to the `ParsedCommand` interface.
+
+#### 2. Regex Pattern for Natural Language Parsing (chat-actions.ts:54-69)
+```ts
+const naturalJobMatch = msg.match(
+  /^([a-z]+(?:\s+[a-z]+)?)\s+(?:from|at)\s+(.+?)\s+(?:needs?|wants?|requires?)\s+(.+?)\s+(?:quoted?|quote)\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:for\s+)?(.*)$/i
+);
+```
+Extracts: `clientName`, `address`, `workDescription`, `price`, `schedule`
+
+#### 3. Intent Handler (chat-actions.ts:457-501)
+Creates a confirmation draft showing all extracted details before creating the contact and deal.
+
+#### 4. Confirmation UI Card (assistant-pane.tsx:329-388)
+Shows an emerald-themed card with:
+- Client name
+- Full address
+- Work description
+- Quoted price
+- Schedule
+- "Cancel" and "Create Job" buttons
+
+### Test Cases
+
+✅ **Input**: "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm"
+**Output**: Extracts all 5 fields correctly and shows confirmation card
+
+✅ **Input**: "john at 5 main st needs bathroom reno quote 5000 tomorrow"
+**Output**: Works with "at" instead of "from", handles larger amounts
+
+✅ **Input**: "mary 123 oak ave broken tap $150 today 3pm"
+**Fallback**: Regex may not match; AI parser (Gemini) will catch it
+
+### User Flow
+
+1. User types natural language job entry
+2. Chatbot extracts client, address, work, price, schedule
+3. Shows confirmation card with all details
+4. User clicks "Create Job" or "Cancel"
+5. If confirmed, creates contact + deal with metadata
+
+---
+
 ## UPDATED EXECUTION ORDER
 
 | Order | Issue | Severity | Effort |
 |-------|-------|----------|--------|
 | 1 | **Issue 10**: Fix 8 TypeScript compile errors | CRITICAL | 15 min |
 | 2 | **Issue 11**: Fix `digest.ts` invalid Prisma relation | HIGH | 5 min |
-| 3 | **Issue 14**: Switch tradie page to use new dashboard client | MEDIUM | 15 min |
-| 4 | **Issue 13**: Use native Prisma fields instead of metadata | MEDIUM | 10 min |
-| 5 | **Issue 9**: Consolidate duplicate actions | MEDIUM | 15 min |
-| 6 | **Issue 12**: Fix material-actions type mismatch | MEDIUM | 10 min |
-| 7-15 | Issues 1-8 from original log | MEDIUM | 3-4 hours |
+| 3 | **Issue 20**: Natural language job parsing | HIGH | ✅ DONE |
+| 4 | **Issue 14**: Switch tradie page to use new dashboard client | MEDIUM | 15 min |
+| 5 | **Issue 13**: Use native Prisma fields instead of metadata | MEDIUM | 10 min |
+| 6 | **Issue 9**: Consolidate duplicate actions | MEDIUM | 15 min |
+| 7 | **Issue 12**: Fix material-actions type mismatch | MEDIUM | 10 min |
+| 8-16 | Issues 1-8 from original log | MEDIUM | 3-4 hours |

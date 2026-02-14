@@ -192,6 +192,15 @@ export function AssistantPane() {
         })
     }
 
+    const handleConfirmJobNatural = async (jobData: any) => {
+        // Trigger creation with confirmed flag
+        await handleSend(`Create job for ${jobData.clientName}`, {
+            intent: "create_job_natural",
+            confirmed: "true",
+            ...jobData
+        })
+    }
+
     // Helper to render date dividers
     const renderDateDivider = (timestamp: number, index: number) => {
         if (index === 0) return renderDividerContent(timestamp)
@@ -373,6 +382,66 @@ export function AssistantPane() {
                                                         onClick={() => handleConfirmDraft(msg.data)}
                                                     >
                                                         <Check className="h-3 w-3 mr-1"/> Confirm
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
+                                        )}
+
+                                        {/* Generative UI: Natural Language Job Confirmation */}
+                                        {msg.action === "draft_job_natural" && msg.data && (
+                                            <Card className="mt-3 border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20 overflow-hidden">
+                                                <CardHeader className="pb-2 bg-emerald-100/50 dark:bg-emerald-900/20">
+                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"/>
+                                                        New Job Entry
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="pt-3 text-xs space-y-2">
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Client:</span>
+                                                        <span className="col-span-2 font-medium">{msg.data.clientName}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Address:</span>
+                                                        <span className="col-span-2 font-medium text-xs">{msg.data.address}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Work:</span>
+                                                        <span className="col-span-2 font-medium">{msg.data.workDescription}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Quoted:</span>
+                                                        <span className="col-span-2 font-medium text-emerald-600">
+                                                            ${Number(msg.data.price).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <span className="text-muted-foreground">Schedule:</span>
+                                                        <span className="col-span-2 font-medium">{msg.data.schedule}</span>
+                                                    </div>
+                                                </CardContent>
+                                                <CardFooter className="p-2 bg-emerald-100/50 dark:bg-emerald-900/20 flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="flex-1 h-8 text-xs hover:bg-destructive/10 hover:text-destructive"
+                                                        onClick={() => {
+                                                            setMessages(prev => [...prev, {
+                                                                id: Date.now().toString(),
+                                                                role: "assistant",
+                                                                content: "Job entry cancelled. Try again with corrections if needed.",
+                                                                timestamp: Date.now()
+                                                            }])
+                                                        }}
+                                                    >
+                                                        <X className="h-3 w-3 mr-1"/> Cancel
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                                        onClick={() => handleConfirmJobNatural(msg.data)}
+                                                    >
+                                                        <Check className="h-3 w-3 mr-1"/> Create Job
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
