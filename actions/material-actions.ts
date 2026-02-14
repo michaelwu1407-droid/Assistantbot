@@ -46,7 +46,7 @@ export async function searchMaterials(
     material: m
   }));
 
-  const results = fuzzySearch<MaterialSearchItem>(searchable, query);
+  const results = fuzzySearch(searchable, query);
 
   return results.map(r => ({
     id: r.item.material.id,

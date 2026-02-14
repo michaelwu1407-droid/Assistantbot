@@ -6,21 +6,27 @@ import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool,
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { DealView } from "@/actions/deal-actions"
+// Removed unneeded DealView import
 import { JobStatusBar } from "./job-status-bar"
 import { MaterialPicker } from "./material-picker"
 
 // Extend DealView for missing props in this component usage
-interface ExtendedJobView extends DealView {
-    contactPhone?: string | null
-    description?: string
-    jobStatus?: string
-    status?: string // 'WON' etc
+interface TradieJob {
+    id: string
+    title: string
+    clientName: string
+    address: string
+    status: string
+    value: number
+    scheduledAt: Date
+    description: string
+    company?: string
+    health?: { status: string }
+    contactPhone?: string // Optional, might not be available
 }
 
 interface JobBottomSheetProps {
-    job: ExtendedJobView
-
+    job: TradieJob
     isOpen: boolean
     setIsOpen: (open: boolean) => void
     onAddVariation: (desc: string, price: number) => Promise<void>
@@ -75,7 +81,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                             <h2 className="text-xl font-black text-white leading-tight">{job.title}</h2>
                             <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
                                 <span className={cn("w-2 h-2 rounded-full", job.health?.status === 'ROTTING' ? 'bg-red-500' : 'bg-[#ccff00]')}></span>
-                                8:00 AM • {job.company}
+                                8:00 AM • {job.company || "Company"}
                             </p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-black border border-[#ccff00]/20">
@@ -154,8 +160,8 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                             <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
                                                 <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Site Contact</h4>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-white font-medium">{job.contactName}</span>
-                                                    <span className="text-slate-400 text-sm">{job.contactPhone}</span>
+                                                    <span className="text-white font-medium">{job.clientName}</span>
+                                                    <span className="text-slate-400 text-sm">{job.contactPhone || ""}</span>
                                                 </div>
                                                 <div className="mt-2 text-slate-400 text-sm border-t border-slate-800 pt-2">
                                                     {job.address}
@@ -268,8 +274,8 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                         <div className="pointer-events-auto">
                             <JobStatusBar
                                 dealId={job.id}
-                                currentStatus={job.jobStatus || (job.status === 'WON' ? 'SCHEDULED' : job.status) as any}
-                                contactName={job.contactName || job.company || "Client"}
+                                currentStatus={job.status as any}
+                                contactName={job.clientName || "Client"}
                                 safetyCheckCompleted={safetyCheckCompleted}
                             />
                         </div>

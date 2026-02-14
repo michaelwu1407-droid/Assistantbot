@@ -24,16 +24,18 @@ import { useDebounce } from "@/hooks/use-debounce"
 interface MaterialPickerProps {
   onSelect: (material: { description: string, price: number }) => void
   trigger?: React.ReactNode
+  workspaceId?: string
 }
 
-export function MaterialPicker({ onSelect, trigger }: MaterialPickerProps) {
+export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId }: MaterialPickerProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const [results, setResults] = React.useState<MaterialView[]>([])
   const [loading, setLoading] = React.useState(false)
 
   const debouncedSearch = useDebounce(search, 300)
-  const workspaceId = useShellStore(s => s.workspaceId)
+  const storeWorkspaceId = useShellStore(s => s.workspaceId)
+  const workspaceId = propWorkspaceId || storeWorkspaceId
 
   React.useEffect(() => {
     async function performSearch() {

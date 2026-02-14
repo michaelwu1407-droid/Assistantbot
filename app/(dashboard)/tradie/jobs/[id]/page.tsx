@@ -155,11 +155,15 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                                 <ActivityFeed
                                     activities={
                                         deal.activities.map(a => ({
-                                            ...a,
+                                            id: a.id,
+                                            type: a.type as any,
+                                            title: a.title,
+                                            description: a.description || "",
+                                            time: format(a.createdAt, "h:mm a"), // Use actual formatted time
+                                            date: a.createdAt, // Pass date object if needed by component
+                                            createdAt: a.createdAt,
                                             dealId: a.dealId || undefined,
-                                            contactId: a.contactId || undefined,
-                                            description: a.description || null,
-                                            time: "Recently" // TODO: fix relative time logic
+                                            contactId: a.contactId || undefined
                                         }))
                                     }
                                 />
