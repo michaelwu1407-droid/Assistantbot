@@ -62,6 +62,7 @@ model Workspace {
   location           String?
   onboardingComplete Boolean       @default(false)
   brandingColor      String?
+  settings           Json?
   
   users              User[]
   deals              Deal[]

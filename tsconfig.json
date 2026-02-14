@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "typeRoots": ["node_modules/@prisma/client"]
   },
   "include": [
     "next-env.d.ts",

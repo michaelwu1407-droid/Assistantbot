@@ -6,6 +6,6 @@ const config = {
       url: process.env.DATABASE_URL,
     },
   },
-} satisfies PrismaClient.PrismaConfig
+} satisfies any
 
 export default config
