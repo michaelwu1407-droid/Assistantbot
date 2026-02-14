@@ -22,12 +22,14 @@ import {
 } from "@/components/ui/command"
 import { useRouter } from "next/navigation"
 import { searchContacts, ContactView } from "@/actions/contact-actions"
+import { useShellStore } from "@/lib/store"
 
 export function SearchCommand() {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [contacts, setContacts] = React.useState<ContactView[]>([])
   const router = useRouter()
+  const workspaceId = useShellStore(s => s.workspaceId)
 
   // Toggle with Cmd+K
   React.useEffect(() => {
@@ -45,13 +47,12 @@ export function SearchCommand() {
   // Search contacts when query changes
   React.useEffect(() => {
     if (!open) return
-    
+
     // Debounce to avoid slamming the server
     const timer = setTimeout(async () => {
-      if (query.length > 0) {
+      if (query.length > 0 && workspaceId) {
         try {
-          // Pass "demo-workspace" or similar until we have real auth context
-          const results = await searchContacts("demo-workspace", query)
+          const results = await searchContacts(workspaceId, query)
           setContacts(results)
         } catch (error) {
           console.error("Search failed", error)
@@ -62,7 +63,7 @@ export function SearchCommand() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, open])
+  }, [query, open, workspaceId])
 
   const runCommand = React.useCallback((command: () => unknown) => {
     setOpen(false)
@@ -71,13 +72,13 @@ export function SearchCommand() {
 
   return (
     <>
-      <div 
+      <div
         onClick={() => setOpen(true)}
-         className="hidden md:flex items-center w-64 px-3 py-1.5 text-sm text-slate-500 border border-slate-200 rounded-full cursor-text hover:border-slate-300 hover:bg-white transition-all bg-white/60 shadow-sm"
+        className="hidden md:flex items-center w-64 px-3 py-1.5 text-sm text-slate-500 border border-slate-200 rounded-full cursor-text hover:border-slate-300 hover:bg-white transition-all bg-white/60 shadow-sm"
       >
         <Search className="mr-2 h-4 w-4 opacity-50" />
         <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-            Search (Cmd+K)...
+          Search (Cmd+K)...
         </span>
         <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-500 opacity-100">
           <span className="text-xs">⌘</span>K
@@ -85,14 +86,14 @@ export function SearchCommand() {
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="Type a command or search..." 
+        <CommandInput
+          placeholder="Type a command or search..."
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
-          
+
           {query.length > 0 && contacts.length > 0 && (
             <CommandGroup heading="Contacts">
               {contacts.map(contact => (
