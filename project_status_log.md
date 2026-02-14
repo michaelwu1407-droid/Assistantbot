@@ -665,40 +665,6 @@ Then trigger a redeploy. This is NOT a code issue — the app works correctly wh
 *   **Status**: Agent workflow significantly enhanced with reporting and calculation tools.
 *   **Files created**: `components/agent/vendor-report-widget.tsx`, `components/modals/whatsapp-preview-modal.tsx`, `components/agent/commission-calculator.tsx`.
 *   **Files modified**: `app/dashboard/deals/[id]/page.tsx`.
-
-### 2026-02-09 13:00 AEST [Backend - Aider] - Weather & Kiosk QR
-**Feature**: Weather Integration & Kiosk QR Code
-*   **Weather**: Updated `components/dashboard/header.tsx` to fetch and display weather using `getWeather` action (Task D-2).
-*   **Kiosk**: Updated `app/kiosk/open-house/page.tsx` to generate and display a QR code for visitor self-registration (Task K-2).
-*   **Status**: Header now shows live weather. Kiosk page has a scannable QR code.
-*   **Files modified**: `components/dashboard/header.tsx`, `app/kiosk/open-house/page.tsx`.
-
-### 2026-02-09 12:45 AEST [Backend - Aider] - Job Billing Logic Fix
-**Fix**: Updated Job Billing Tab to create invoices correctly.
-*   **Billing**: Switched `JobBillingTab` to use `generateQuote` instead of `createQuoteVariation` so that an invoice is immediately created and visible in the list.
-*   **UI**: Improved empty states and added refresh button to billing tab.
-*   **Status**: Job Billing flow is now functional (Create Invoice -> View -> Pay).
-*   **Files modified**: `components/tradie/job-billing-tab.tsx`.
-
-### 2026-02-09 12:30 AEST [Backend - Aider] - Job Billing & Auth Fixes
-**Feature**: Job Billing Tab & Real Auth for Settings
-*   **Billing**: Created `components/tradie/job-billing-tab.tsx` to allow adding variations and viewing invoices.
-*   **Wiring**: Updated `app/(dashboard)/tradie/jobs/[id]/page.tsx` to pass `dealId` to the billing tab.
-*   **Auth**: Updated `app/dashboard/settings/workspace/page.tsx` to use real Supabase user ID instead of hardcoded "demo-user".
-*   **Status**: Job Detail page is now fully functional with billing. Workspace settings use real auth.
-*   **Files created**: `components/tradie/job-billing-tab.tsx`.
-*   **Files modified**: `app/(dashboard)/tradie/jobs/[id]/page.tsx`, `app/dashboard/settings/workspace/page.tsx`.
-
-### 2026-02-09 12:15 AEST [Backend - Aider] - Matchmaker & Pipeline
-**Feature**: Agent Matchmaker Feed & Industry Pipeline Config
-*   **Matchmaker**: Added `getMatchFeed` to `actions/agent-actions.ts`. Aggregates buyer matches across all active listings (Task AG-4).
-*   **Pipeline**: Created `actions/pipeline-actions.ts` to serve industry-specific Kanban stages (Trades vs Real Estate) (Task X-4).
-*   **Status**: Backend ready for Matchmaker Sidebar and Dynamic Kanban.
-*   **Files modified**: `actions/agent-actions.ts`.
-*   **Files created**: `actions/pipeline-actions.ts`.
-
-### 2026-02-09 11:45 AEST [Backend - Aider] - Search & Onboarding Persistence
-**Feature**: Optimized Search & User Onboarding
 *   **Search**: Refactored `globalSearch` in `actions/search-actions.ts` to use DB `contains` queries instead of in-memory filtering (Task BE-10).
 *   **Onboarding**: Added `hasOnboarded` to User schema and `completeUserOnboarding` action (Task BE-4).
 *   **Seed**: Expanded `prisma/seed.ts` with realistic trade materials (Task BE-9).
