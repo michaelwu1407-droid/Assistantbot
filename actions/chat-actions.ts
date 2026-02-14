@@ -82,29 +82,53 @@ function parseCommandRegex(message: string): ParsedCommand {
   // Pattern: [name] [optional time] [optional day] [street-number address], [job description]
   // Also handles: "sally 20 wyndham avenue alexandria, broken sink" (no time/day)
   // Also handles: "sally 6pm tmrw 20 wyndham avenue alexandria, broken sink $200"
-  const TIME_PAT = "\\d{1,2}(?::?\\d{2})?\\s*(?:am|pm)";
-  const DAY_PAT = "(?:today|tonight|tomorrow|tmrw|tmr|tomorow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thurs|fri|sat|sun|next\\s+\\w+)";
+  const TIME_PAT = `(?:\\d{1,2}(?::\\d{2})?\\s*(?:am|pm))|(?:am|pm)`;
+  const DAY_PAT = `(?:mon|tue|wed|thu|fri|sat|sun|today|tomorrow|tmrw|ymrw|yesterday)`;
+
   const shorthandJobMatch = msg.match(
     new RegExp(
-      `^([a-z]+(?:\\s+[a-z]+)?)\\s+` +                       // name
-      `(?:(${TIME_PAT})\\s+)?` +                               // optional time
-      `(?:(${DAY_PAT})\\s+)?` +                                // optional day
-      `(\\d+\\s+.+?),\\s*` +                                   // address (starts with number, ends at comma)
-      `(.+?)` +                                                 // job description
-      `(?:\\s+\\$?(\\d+(?:,\\d{3})*(?:\\.\\d{2})?))?$`,        // optional price at end
+      `^` +
+      `([^$]+?)` +                                           // client name (any chars until time/day)
+      `\\s+(${TIME_PAT}|${DAY_PAT})` +                     // time or day
+      `\\s+([^$]+?)` +                                     // job description (any chars until price/address)
+      `(?:\\s+(?:\\$?(\\d+(?:,\\d{3})*(?:\\.\\d{2})?))?` +   // optional price
+      `(?:\\s+([^$]*?))?$`,                                 // optional address
       "i"
     )
   );
+
   if (shorthandJobMatch) {
-    const [, name, time, day, address, workDesc, price] = shorthandJobMatch;
-    const schedule = [time, day].filter(Boolean).join(" ") || "Not specified";
+    const [, clientName, timeOrDay, workDesc, price, address] = shorthandJobMatch;
+
+    // Extract price if present, otherwise look for it in description
+    let extractedPrice = price?.replace(/,/g, "") || "";
+    let extractedWorkDesc = workDesc.trim();
+    let extractedAddress = address?.trim() || "";
+
+    // If no price but description contains $ pattern, extract it
+    if (!extractedPrice && extractedWorkDesc.includes('$')) {
+      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\\.\\d{2})?)/);
+      if (priceMatch) {
+        extractedPrice = priceMatch[1].replace('$', '');
+        extractedWorkDesc = extractedWorkDesc.replace(priceMatch[0], '').trim();
+      }
+    }
+
+    // If description contains street-like patterns, treat as address
+    if (!extractedAddress && (extractedWorkDesc.match(/\\d+\\s+\\w+\\s+st|street|ave|road|blvd/i) || extractedWorkDesc.match(/\d+\s+.+\s+(st|street|ave|road|blvd)/i))) {
+      extractedAddress = extractedWorkDesc;
+      extractedWorkDesc = "General service/repair";
+    }
+
+    const schedule = timeOrDay.includes('$') ? `Not specified` : timeOrDay.trim();
+
     return {
       intent: "create_job_natural",
       params: {
-        clientName: name.trim(),
-        address: address.trim(),
-        workDescription: workDesc.trim(),
-        price: price?.replace(/,/g, "") ?? "0",
+        clientName: clientName.trim(),
+        address: extractedAddress,
+        workDescription: extractedWorkDesc,
+        price: extractedPrice || "0",
         schedule
       }
     };
