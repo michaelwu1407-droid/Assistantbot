@@ -915,3 +915,241 @@ This file should be deleted or reduced to re-exports. The `tradie-actions.ts` ve
 - `hooks/use-speech-recognition.ts` — Reusable SpeechRecognition hook
 - `components/tradie/voice-note-input.tsx` — Voice dictation for job diary
 - `app/api/auth/google/callback/route.ts` — OAuth callback handler (for Issue 7)
+
+---
+
+## ADDITIONAL ISSUES FOUND (Repo-wide scan — 2026-02-14)
+
+The following issues were identified by a full repo audit including `npx tsc --noEmit` type-check (8 errors), manual code review of all actions/components/pages, and cross-referencing imports against the Prisma schema.
+
+---
+
+### ISSUE 10: 8 TypeScript Compile Errors (BUILD BLOCKER)
+
+**Priority**: CRITICAL — Build will fail.
+**`npx tsc --noEmit` output (after `npm install`):**
+
+#### 10A. Missing `safetyCheckCompleted` prop — `app/(dashboard)/tradie/jobs/[id]/page.tsx:185`
+
+**Error**: `TS2741: Property 'safetyCheckCompleted' is missing in type '{ dealId: string; currentStatus: ...; contactName: string; }' but required in type 'JobStatusBarProps'.`
+
+**File**: `app/(dashboard)/tradie/jobs/[id]/page.tsx`
+**Line 185**:
+```tsx
+<JobStatusBar
+    dealId={deal.id}
+    currentStatus={jobStatus}
+    contactName={contact.name}
+/>
+```
+
+**Fix**: Add the missing prop:
+```tsx
+<JobStatusBar
+    dealId={deal.id}
+    currentStatus={jobStatus}
+    contactName={contact.name}
+    safetyCheckCompleted={deal.safetyCheckCompleted}
+/>
+```
+
+#### 10B. `DealView` type mismatch in `job-bottom-sheet.tsx` (7 errors)
+
+**File**: `components/tradie/job-bottom-sheet.tsx`
+**Lines**: 95, 101, 141, 149, 249
+
+The component declares `job: DealView` (from `deal-actions.ts`), but accesses properties that don't exist on `DealView`:
+- `job.contactPhone` (lines 95, 101, 149) — `DealView` has `contactName` but NOT `contactPhone`
+- `job.description` (line 141) — `DealView` does NOT have `description`
+- `job.jobStatus` (line 249) — `DealView` does NOT have `jobStatus`
+- `job.status` (line 249) — `DealView` does NOT have `status` (it has `stage`)
+
+**Fix options**:
+1. **Extend `DealView`** in `actions/deal-actions.ts` to include `contactPhone`, `description`, `jobStatus`:
+   ```ts
+   export interface DealView {
+     // ...existing fields...
+     contactPhone?: string | null;
+     description?: string;
+     jobStatus?: string;
+   }
+   ```
+   And update `getDeals()` to populate these fields.
+
+2. **OR** Define a local `JobViewProps` interface in `job-bottom-sheet.tsx` instead of reusing `DealView`.
+
+---
+
+### ISSUE 11: `digest.ts` — Invalid Prisma Relation `contacts` (RUNTIME CRASH)
+
+**Priority**: HIGH — Will throw at runtime whenever the morning digest runs.
+**File**: `lib/digest.ts`
+**Line 44**:
+```ts
+include: {
+    contacts: { take: 1 },  // ← WRONG: Prisma schema has `contact` (singular), not `contacts`
+```
+
+The `Deal` model has a singular `contact Contact` relation (via `contactId`), not a `contacts` array.
+
+**Fix**:
+```ts
+include: {
+    contact: true,
+```
+
+Then update references on lines 59-60:
+```diff
+- const contactName = deal.contacts?.[0]?.name ?? 'Unknown';
+- const contactId = deal.contacts?.[0]?.id;
++ const contactName = deal.contact?.name ?? 'Unknown';
++ const contactId = deal.contact?.id;
+```
+
+The `as any` cast on line 50 was masking this schema mismatch.
+
+---
+
+### ISSUE 12: `material-actions.ts` — Type mismatch with `fuzzySearch` (6 TS errors)
+
+**Priority**: MEDIUM — Compiles with errors; `searchMaterials()` will crash if query is non-empty.
+**File**: `actions/material-actions.ts`
+**Lines**: 47-52
+
+The `searchable` array adds a `material` property (line 41), but `SearchableItem` interface in `lib/search.ts:62` only declares `{ id, searchableFields }`. The `fuzzySearch()` return type loses the `material` property because `T extends SearchableItem` — TypeScript sees `r.item.material` as nonexistent.
+
+**Fix**: Use a properly typed wrapper:
+```ts
+interface MaterialSearchItem extends SearchableItem {
+    material: typeof materials[number]
+}
+
+const searchable: MaterialSearchItem[] = materials.map(m => ({
+    id: m.id,
+    searchableFields: [m.name, m.description || "", m.category || ""],
+    material: m
+}));
+
+const results = fuzzySearch(searchable, query);
+```
+
+This makes `r.item.material` type-safe.
+
+---
+
+### ISSUE 13: `tradie/jobs/[id]/page.tsx` — Redundant data path, ignores schema fields
+
+**Priority**: MEDIUM — The page reads `jobStatus` from `deal.metadata` JSON (line 47-48) instead of using the native `deal.jobStatus` column. Same for `scheduledAt` (line 51-52).
+
+**File**: `app/(dashboard)/tradie/jobs/[id]/page.tsx`
+**Lines 47-53**:
+```ts
+const dealMeta = (deal.metadata as Record<string, any>) || {};
+const jobStatus = (dealMeta.jobStatus || "SCHEDULED") ...
+const scheduledDate = dealMeta.scheduledAt ? format(...) : "Unscheduled";
+```
+
+**Fix**: Use the actual Prisma fields:
+```ts
+const jobStatus = (deal.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
+const scheduledDate = deal.scheduledAt
+    ? format(deal.scheduledAt, "EEE, d MMM h:mm a")
+    : "Unscheduled";
+```
+
+---
+
+### ISSUE 14: Two duplicate `client-page.tsx` implementations for Tradie Dashboard
+
+**Priority**: MEDIUM — Confusing; only one is used.
+
+| File | Used By | Implementation |
+|------|---------|----------------|
+| `app/(dashboard)/tradie/client-page.tsx` | `app/(dashboard)/tradie/page.tsx` (line 2) | Uses `MapView` dynamic import, Drawer component, hardcoded "Good Morning Scott", hardcoded Pulse widget values ($4.2k/$850). This is the **OLD** implementation. |
+| `components/tradie/tradie-dashboard-client.tsx` | **Nobody imports it** in the current route | Uses `JobMap`, `JobBottomSheet`, `Header`, `PulseWidget` (real components). This is the **NEW** implementation. |
+
+**Problem**: The server page (`tradie/page.tsx`) imports the OLD client page, not the new dashboard client.
+
+**Fix**: Update `app/(dashboard)/tradie/page.tsx` to use the new component:
+```diff
+- import TradieDashboard from "./client-page"
++ import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
+```
+
+And pass the correct props (`initialJob`, `todayJobs`, `userName`, `financialStats`).
+
+---
+
+### ISSUE 15: `tradie/page.tsx` — Unused imports
+
+**Priority**: LOW
+**File**: `app/(dashboard)/tradie/page.tsx`
+**Lines 4-5**:
+```ts
+import { JobBottomSheet } from "@/components/tradie/job-bottom-sheet";
+import { PulseWidget } from "@/components/dashboard/pulse-widget";
+```
+These are imported but never used in the server component (they're used inside the client component).
+
+---
+
+### ISSUE 16: `search-command.tsx` — Hardcoded `"demo-workspace"` (already in Issue 3B)
+
+Confirmed at line 54. Already covered.
+
+---
+
+### ISSUE 17: Missing `MapView` component alignment
+
+**Priority**: MEDIUM
+**File**: `app/(dashboard)/tradie/client-page.tsx:20`
+**Import**: `components/map/map-view.tsx`
+
+The `MapView` component receives `jobs` prop:
+```tsx
+<MapView jobs={jobs} />
+```
+
+Need to verify `MapView` accepts `jobs` prop with the shape from `getTradieJobs()`. If it expects a different interface (e.g., `deals` with `latitude`/`longitude`), this will render an empty map.
+
+---
+
+### ISSUE 18: Two `job-detail-view.tsx` files in different directories
+
+**Priority**: MEDIUM — Confusing; both export different components with different capabilities.
+
+| File | Export | Used By |
+|------|--------|---------|
+| `components/jobs/job-detail-view.tsx` | `export default JobDetailView` | `app/(dashboard)/jobs/[id]/page.tsx:2` — imports from `@/components/jobs/job-detail-view` |
+| `components/tradie/job-detail-view.tsx` | `export function JobDetailView` | **Nobody currently imports it** from this path |
+
+The `components/jobs/` version imports `InvoiceGenerator` from `@/components/invoicing/invoice-generator` (exists) and `updateJobStatus` from `@/actions/tradie-actions` (works).
+
+The `components/tradie/` version is more complete (has `CameraFAB`, `JobStatusBar` with safety check, photo grid) but is unused.
+
+**Fix**: Either:
+1. Wire `app/(dashboard)/jobs/[id]/page.tsx` to use the tradie version, OR
+2. Delete the unused one to prevent confusion.
+
+---
+
+### ISSUE 19: `estimator-form.tsx` — Exists but never rendered
+
+**Priority**: LOW
+**File**: `components/tradie/estimator-form.tsx`
+
+This component exists but is never imported or rendered anywhere. Related to Issue 1 (Material Database) — the estimator was planned but never wired.
+
+---
+
+## UPDATED EXECUTION ORDER
+
+| Order | Issue | Severity | Effort |
+|-------|-------|----------|--------|
+| 1 | **Issue 10**: Fix 8 TypeScript compile errors | CRITICAL | 15 min |
+| 2 | **Issue 11**: Fix `digest.ts` invalid Prisma relation | HIGH | 5 min |
+| 3 | **Issue 14**: Switch tradie page to use new dashboard client | MEDIUM | 15 min |
+| 4 | **Issue 13**: Use native Prisma fields instead of metadata | MEDIUM | 10 min |
+| 5 | **Issue 9**: Consolidate duplicate actions | MEDIUM | 15 min |
+| 6 | **Issue 12**: Fix material-actions type mismatch | MEDIUM | 10 min |
+| 7-15 | Issues 1-8 from original log | MEDIUM | 3-4 hours |
