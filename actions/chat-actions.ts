@@ -437,6 +437,22 @@ function parseCommandRegex(message: string): ParsedCommand {
     };
   }
 
+  // Natural language job creation: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
+  const jobMatch = msg.match(/^([a-zA-Z\s]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+(?:today|tomorrow|ymrw|tmrw)?\s*([^$.]+?)\.?\s*(\$\s*\d+(?:,\d{3})*(?:\.\d{2})?)\s*(.+?)(?:\s|$)/i);
+  if (jobMatch) {
+    const [, clientName, time, workDescription, price, address] = jobMatch;
+    return {
+      intent: "create_job_natural",
+      params: {
+        clientName: clientName.trim(),
+        schedule: time.trim(),
+        workDescription: workDescription.trim(),
+        price: price.replace(/\s/g, ''),
+        address: address.trim()
+      }
+    };
+  }
+
   // Find duplicates
   if (msg.match(/(?:find|show|check)\s+(?:duplicate|dupe|dup)s?/)) {
     return { intent: "find_duplicates", params: {} };
@@ -465,8 +481,7 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
   }
 
   try {
-    const systemPrompt = `
-    You are an intent parser for a CRM system. User Context: ${industryContext.dealLabel} manager.
+    const systemPrompt = `You are an intent parser for a CRM system. User Context: ${industryContext.dealLabel} manager.
     
     Intents:
     - show_deals: List pipeline
@@ -496,14 +511,17 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
     - If you're unsure about the intent, return { intent: "unknown", params: {} }
     - Only return structured JSON for known intents.
     - For natural language job entries, extract ALL details (clientName, address, workDescription, price, schedule).
-    - Always validate required fields before proceeding with actions.
-    `;
+    - Always validate required fields before proceeding with actions.`;
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generate-content?key=" + apiKey, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: systemPrompt,
+        contents: [{
+          parts: [{
+            text: systemPrompt
+          }]
+        }],
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.1,
