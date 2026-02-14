@@ -32,6 +32,132 @@ interface DraftDealData {
     value?: string
 }
 
+/** Editable draft card for natural-language job entries */
+function JobDraftCard({ data, onConfirm, onCancel }: {
+    data: any
+    onConfirm: (edited: any) => void
+    onCancel: () => void
+}) {
+    const [firstName, setFirstName] = useState(data.firstName || "")
+    const [lastName, setLastName] = useState(data.lastName || "")
+    const [workDescription, setWorkDescription] = useState(data.workDescription || "")
+    const [price, setPrice] = useState(data.price || "0")
+    const [schedule, setSchedule] = useState(data.schedule || "")
+    const [address, setAddress] = useState(data.address || "")
+
+    const category = data.workCategory || "General"
+
+    const handleConfirm = () => {
+        onConfirm({
+            clientName: `${firstName}${lastName ? " " + lastName : ""}`,
+            firstName,
+            lastName,
+            workDescription,
+            price,
+            schedule,
+            address,
+            workCategory: category,
+        })
+    }
+
+    return (
+        <Card className="mt-3 border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20 overflow-hidden">
+            <CardHeader className="pb-2 bg-emerald-100/50 dark:bg-emerald-900/20">
+                <CardTitle className="text-sm font-medium flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        New Job Entry
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-normal border-emerald-500/40 text-emerald-700 dark:text-emerald-400">
+                        {category}
+                    </Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3 text-xs space-y-2.5">
+                {/* Client name — first + last */}
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">First Name</label>
+                        <Input
+                            className="h-7 text-xs"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">Last Name</label>
+                        <Input
+                            className="h-7 text-xs"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="(optional)"
+                        />
+                    </div>
+                </div>
+
+                {/* Work description */}
+                <div>
+                    <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">Work Description</label>
+                    <Input
+                        className="h-7 text-xs"
+                        value={workDescription}
+                        onChange={(e) => setWorkDescription(e.target.value)}
+                    />
+                </div>
+
+                {/* Price + Schedule side by side */}
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">Quoted ($)</label>
+                        <Input
+                            className="h-7 text-xs"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            type="text"
+                            inputMode="numeric"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">Schedule</label>
+                        <Input
+                            className="h-7 text-xs"
+                            value={schedule}
+                            onChange={(e) => setSchedule(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Address */}
+                <div>
+                    <label className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5 block">Address</label>
+                    <Input
+                        className="h-7 text-xs"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                    />
+                </div>
+            </CardContent>
+            <CardFooter className="p-2 bg-emerald-100/50 dark:bg-emerald-900/20 flex gap-2">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1 h-8 text-xs hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onCancel}
+                >
+                    <X className="h-3 w-3 mr-1" /> Cancel
+                </Button>
+                <Button
+                    size="sm"
+                    className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                    onClick={handleConfirm}
+                >
+                    <Check className="h-3 w-3 mr-1" /> Create Job
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export function AssistantPane() {
     const { viewMode, setViewMode, workspaceId } = useShellStore()
     const { industry } = useIndustry()
@@ -370,64 +496,20 @@ export function AssistantPane() {
                                             </Card>
                                         )}
 
-                                        {/* Generative UI: Natural Language Job Confirmation */}
+                                        {/* Generative UI: Editable Job Draft Card */}
                                         {msg.action === "draft_job_natural" && msg.data && (
-                                            <Card className="mt-3 border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20 overflow-hidden">
-                                                <CardHeader className="pb-2 bg-emerald-100/50 dark:bg-emerald-900/20">
-                                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"/>
-                                                        New Job Entry
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="pt-3 text-xs space-y-2">
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        <span className="text-muted-foreground">Client:</span>
-                                                        <span className="col-span-2 font-medium">{msg.data.clientName}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        <span className="text-muted-foreground">Address:</span>
-                                                        <span className="col-span-2 font-medium text-xs">{msg.data.address}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        <span className="text-muted-foreground">Work:</span>
-                                                        <span className="col-span-2 font-medium">{msg.data.workDescription}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        <span className="text-muted-foreground">Quoted:</span>
-                                                        <span className="col-span-2 font-medium text-emerald-600">
-                                                            ${Number(msg.data.price).toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        <span className="text-muted-foreground">Schedule:</span>
-                                                        <span className="col-span-2 font-medium">{msg.data.schedule}</span>
-                                                    </div>
-                                                </CardContent>
-                                                <CardFooter className="p-2 bg-emerald-100/50 dark:bg-emerald-900/20 flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="flex-1 h-8 text-xs hover:bg-destructive/10 hover:text-destructive"
-                                                        onClick={() => {
-                                                            setMessages(prev => [...prev, {
-                                                                id: Date.now().toString(),
-                                                                role: "assistant",
-                                                                content: "Job entry cancelled. Try again with corrections if needed.",
-                                                                timestamp: Date.now()
-                                                            }])
-                                                        }}
-                                                    >
-                                                        <X className="h-3 w-3 mr-1"/> Cancel
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                                                        onClick={() => handleConfirmJobNatural(msg.data)}
-                                                    >
-                                                        <Check className="h-3 w-3 mr-1"/> Create Job
-                                                    </Button>
-                                                </CardFooter>
-                                            </Card>
+                                            <JobDraftCard
+                                                data={msg.data}
+                                                onConfirm={(edited) => handleConfirmJobNatural(edited)}
+                                                onCancel={() => {
+                                                    setMessages(prev => [...prev, {
+                                                        id: Date.now().toString(),
+                                                        role: "assistant",
+                                                        content: "Job entry cancelled. Try again with corrections if needed.",
+                                                        timestamp: Date.now()
+                                                    }])
+                                                }}
+                                            />
                                         )}
 
                                         <div className={cn(

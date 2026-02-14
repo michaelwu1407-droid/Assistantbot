@@ -29,6 +29,12 @@
 | CB-10 | Chatbot 422/500 server errors | ✅ FIXED | Made processChat and getChatHistory DB-resilient (commit `dfcec95`) |
 | CB-11 | Chatbot syntax errors in AI parsing | ✅ FIXED | Fixed in commit `ecd621f` |
 | CB-12 | Case sensitivity in message parsing | ✅ FIXED | Fixed in commit `7f8627e` |
+| CB-13 | Draft card shows raw un-enriched data | ✅ FIXED | Added enrichment: name capitalisation, date resolution, address formatting, work categorisation |
+| CB-14 | Draft card not editable — user can't correct data before confirming | ✅ FIXED | Rebuilt as `JobDraftCard` with editable input fields for all data |
+| CB-15 | No last name field in job entry | ✅ FIXED | Split name into first/last fields on draft card |
+| CB-16 | Schedule shows raw shorthand (e.g. "12pm ymrw") | ✅ FIXED | `resolveSchedule()` converts to "12:00 PM, Sat 15 Feb 2026" |
+| CB-17 | Address not enriched (e.g. "45 wyndham st" stays lowercase) | ✅ FIXED | `enrichAddress()` capitalises + expands abbreviations ("Street", "Avenue" etc.) |
+| CB-18 | No work category shown on draft | ✅ FIXED | `categoriseWork()` maps keywords to Plumbing/Electrical/HVAC/Carpentry/etc. |
 
 ---
 
@@ -143,7 +149,7 @@
 
 | Category | Total | Fixed | Partial | Open | Deferred |
 |----------|-------|-------|---------|------|----------|
-| Chatbot | 12 | 12 | 0 | 0 | 0 |
+| Chatbot | 18 | 18 | 0 | 0 | 0 |
 | Auth | 5 | 3 | 1 | 1 | 0 |
 | Build | 6 | 4 | 2 | 0 | 0 |
 | UI | 17 | 14 | 2 | 0 | 0 |
@@ -152,4 +158,4 @@
 | API | 5 | 0 | 3 | 2 | 0 |
 | Infra | 3 | 2 | 0 | 1 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
-| **TOTAL** | **63** | **44** | **9** | **5** | **4** |
+| **TOTAL** | **69** | **50** | **9** | **5** | **4** |

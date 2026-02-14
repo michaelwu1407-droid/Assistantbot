@@ -137,10 +137,21 @@
 | CB-08 | Chat metadata doesn't preserve `action` type | ✅ Done | Saves `{ action, data }` in metadata |
 | CB-09 | `draft_job_natural` missing from UI action switch | ✅ Done | Added alongside `draft_deal` |
 
+## Draft Card Enrichment & Editable UI (2026-02-14, Session 3)
+
+| ID | Issue | Status | Implementation Note |
+|----|-------|--------|---------------------|
+| CB-13 | Draft shows raw un-enriched data | ✅ Done | Added titleCase, resolveSchedule, enrichAddress, categoriseWork enrichment functions |
+| CB-14 | Draft card not editable | ✅ Done | Rebuilt as `JobDraftCard` component with editable input fields |
+| CB-15 | No last name field | ✅ Done | Split clientName into firstName + lastName inputs |
+| CB-16 | Schedule shows raw shorthand | ✅ Done | "12pm ymrw" → "12:00 PM, Sat 15 Feb 2026" via resolveSchedule() |
+| CB-17 | Address not enriched | ✅ Done | enrichAddress() capitalises + expands "st"→"Street" etc. |
+| CB-18 | No work category | ✅ Done | categoriseWork() maps keywords → Plumbing/Electrical/HVAC/Carpentry/etc. badge |
+
 ---
 
 ## Summary
-**Total Issues Resolved**: 49/49 (100% of functional issues)
+**Total Issues Resolved**: 55/55 (100% of functional issues)
 **Code Quality**: All HIGH and MEDIUM priority issues from OUTSTANDING_ISSUES.md resolved
 **Build Status**: ⚠️ Blocked by Prisma configuration version mismatch
 **Overall Health**: 🟢 Excellent - All functional requirements complete

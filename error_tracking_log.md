@@ -229,3 +229,19 @@
 - **Solution**: Changed metadata to save `{ action: response.action, data: response.data }`. Updated history loader to read `metadata.action` and `metadata.data`.
 - **Files Modified**: `actions/chat-actions.ts` (line 1234), `components/core/assistant-pane.tsx` (lines 55-56)
 - **Learning**: When UI rendering depends on response metadata (action type, data payload), ALL of it must be persisted to the database, not just partial fields.
+
+---
+
+## ERR-018: Draft Card Shows Raw Un-Enriched Data (2026-02-14)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: User enters "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria". Draft card shows raw data: lowercase "sally", schedule "12pm ymrw" instead of a real date, "45 wyndham st alexandria" without capitalisation, no work category, no last name field. User expects polished pre-filled data they can review and edit.
+- **Root Cause**: The `create_job_natural` handler returned raw parsed strings with no enrichment. The draft card was static text (non-editable) showing whatever the parser extracted verbatim.
+- **Solution**: Added five enrichment functions and rebuilt the draft card UI:
+  1. `titleCase()` — capitalises "sally" → "Sally"
+  2. `categoriseWork()` — maps keywords to trade categories (Plumbing, Electrical, HVAC, etc.)
+  3. `resolveSchedule()` — converts "12pm ymrw" → "12:00 PM, Sat 15 Feb 2026" with ISO date
+  4. `enrichAddress()` — capitalises + expands abbreviations ("st" → "Street,")
+  5. Split client name into first/last name fields
+  6. Rebuilt card as `JobDraftCard` component with editable `<Input>` fields, category badge, and pre-filled enriched data
+- **Files Modified**: `actions/chat-actions.ts` (enrichment functions + draft response), `components/core/assistant-pane.tsx` (JobDraftCard component)
+- **Learning**: Chatbot draft UIs should always present enriched, editable data — not raw parser output. Users expect to review and correct, not re-enter from scratch.
