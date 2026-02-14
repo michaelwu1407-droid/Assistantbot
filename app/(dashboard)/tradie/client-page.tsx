@@ -37,9 +37,18 @@ interface TradieDashboardProps {
   initialJobs: Job[]
 }
 
+import { GlobalSearch } from "@/components/layout/global-search"
+
+// ...
+
+interface TradieDashboardProps {
+  initialJobs: Job[]
+}
+
 export default function TradieDashboard({ initialJobs }: TradieDashboardProps) {
-  const { setViewMode, setPersona } = useShellStore()
+  const { setViewMode, setPersona, workspaceId } = useShellStore() // Get workspaceId
   const [isTraveleling, setIsTraveling] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [jobs, setJobs] = useState<Job[]>(initialJobs)
   const currentJob = jobs[0] // Simple "next job" logic
   const router = useRouter()
@@ -64,9 +73,10 @@ export default function TradieDashboard({ initialJobs }: TradieDashboardProps) {
         </div>
 
         <div className="flex gap-2 pointer-events-auto">
-          <Button size="icon" variant="secondary" className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 rounded-full">
+          <Button size="icon" variant="secondary" className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 rounded-full" onClick={() => setSearchOpen(true)}>
             <Search className="h-5 w-5" />
           </Button>
+          <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} workspaceId={workspaceId || ""} />
           <div className="relative">
             <Button size="icon" variant="secondary" className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 rounded-full">
               <Bell className="h-5 w-5" />

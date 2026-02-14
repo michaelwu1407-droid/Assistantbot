@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool } from "lucide-react"
+import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -10,8 +10,17 @@ import { DealView } from "@/actions/deal-actions"
 import { JobStatusBar } from "./job-status-bar"
 import { MaterialPicker } from "./material-picker"
 
+// Extend DealView for missing props in this component usage
+interface ExtendedJobView extends DealView {
+    contactPhone?: string | null
+    description?: string
+    jobStatus?: string
+    status?: string // 'WON' etc
+}
+
 interface JobBottomSheetProps {
-    job: DealView
+    job: ExtendedJobView
+
     isOpen: boolean
     setIsOpen: (open: boolean) => void
     onAddVariation: (desc: string, price: number) => Promise<void>
@@ -188,6 +197,19 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                                             onChange={(e) => setVariationPrice(e.target.value)}
                                                         />
                                                     </div>
+
+                                                    <MaterialPicker
+                                                        onSelect={(material) => {
+                                                            setVariationDesc(material.description)
+                                                            setVariationPrice(String(material.price))
+                                                        }}
+                                                        trigger={
+                                                            <Button variant="outline" size="sm" className="w-full mb-2 gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-[#ccff00]">
+                                                                <Search className="h-4 w-4" /> Search Material Database
+                                                            </Button>
+                                                        }
+                                                    />
+
                                                     <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700" onClick={handleAddVariation}>
                                                         <Plus className="w-4 h-4 mr-2" /> Add Variation
                                                     </Button>

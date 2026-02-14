@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { fuzzySearch } from "@/lib/search";
+import { fuzzySearch, SearchableItem } from "@/lib/search";
+import { Material } from "@prisma/client";
 
 export interface MaterialView {
   id: string;
@@ -10,6 +11,10 @@ export interface MaterialView {
   unit: string;
   price: number;
   category: string | null;
+}
+
+interface MaterialSearchItem extends SearchableItem {
+  material: Material
 }
 
 /**
@@ -35,13 +40,13 @@ export async function searchMaterials(
     }));
   }
 
-  const searchable = materials.map(m => ({
+  const searchable: MaterialSearchItem[] = materials.map(m => ({
     id: m.id,
     searchableFields: [m.name, m.description || "", m.category || ""],
     material: m
   }));
 
-  const results = fuzzySearch(searchable, query);
+  const results = fuzzySearch<MaterialSearchItem>(searchable, query);
 
   return results.map(r => ({
     id: r.item.material.id,

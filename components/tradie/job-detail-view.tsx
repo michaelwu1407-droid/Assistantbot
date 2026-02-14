@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobStatusBar } from "./job-status-bar"
 import { CameraFAB } from "./camera-fab"
+import { VoiceNoteInput } from "./voice-note-input"
 
 // Define the type locally based on what getJobDetails returns
 interface JobDetail {
@@ -101,6 +102,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                         </TabsContent>
 
                         <TabsContent value="diary" className="mt-4 space-y-4">
+                            <VoiceNoteInput dealId={job.id} />
                             {/* Photos Grid */}
                             <div className="grid grid-cols-2 gap-3">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

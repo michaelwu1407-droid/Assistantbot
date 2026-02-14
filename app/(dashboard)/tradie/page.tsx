@@ -1,9 +1,8 @@
-import { getTradieJobs } from "@/actions/tradie-actions"
-import TradieDashboard from "./client-page"
+import { getNextJob, getTodaySchedule } from "@/actions/tradie-actions"
+import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
-import { JobBottomSheet } from "@/components/tradie/job-bottom-sheet";
-import { PulseWidget } from "@/components/dashboard/pulse-widget";
-import { getAuthUserId } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth"
+import { db } from "@/lib/db"
 
 // Force dynamic since we fetch user-specific data
 export const dynamic = "force-dynamic"
@@ -11,7 +10,19 @@ export const dynamic = "force-dynamic"
 export default async function TradiePage() {
     const userId = await getAuthUserId()
     const workspace = await getOrCreateWorkspace(userId)
-    const jobs = await getTradieJobs(workspace.id)
 
-    return <TradieDashboard initialJobs={jobs} />
+    const [nextJob, todayJobs, user] = await Promise.all([
+        getNextJob(workspace.id),
+        getTodaySchedule(workspace.id),
+        db.user.findUnique({ where: { id: userId } })
+    ])
+
+    return (
+        <TradieDashboardClient
+            initialJob={nextJob || undefined}
+            todayJobs={todayJobs}
+            userName={user?.name || "Mate"}
+        // financialStats={...} // TODO: Implement stats fetching
+        />
+    )
 }

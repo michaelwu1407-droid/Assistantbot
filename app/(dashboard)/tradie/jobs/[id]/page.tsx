@@ -43,13 +43,12 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
     // Fallback for contact
     const contact = deal.contact || { name: "Unknown", phone: "", email: "", address: "" };
 
-    // Parse Job Status from metadata (jobStatus field not in schema yet)
-    const dealMeta = (deal.metadata as Record<string, any>) || {};
-    const jobStatus = (dealMeta.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
+    // Parse Job Status from fields
+    const jobStatus = (deal.jobStatus || "SCHEDULED") as "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED";
 
-    // Format Date from metadata (scheduledAt field not in schema yet)
-    const scheduledDate = dealMeta.scheduledAt
-        ? format(new Date(dealMeta.scheduledAt), "EEE, d MMM h:mm a")
+    // Format Date from fields
+    const scheduledDate = deal.scheduledAt
+        ? format(deal.scheduledAt, "EEE, d MMM h:mm a")
         : "Unscheduled";
 
     return (
@@ -186,6 +185,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                 dealId={deal.id}
                 currentStatus={jobStatus}
                 contactName={contact.name}
+                safetyCheckCompleted={deal.safetyCheckCompleted}
             />
         </div>
     );

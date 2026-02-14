@@ -84,6 +84,14 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         outstandingDebt={financialStats?.outstandingDebt}
       />
 
+      {/* Today's Job Count Indicator */}
+      <div className="absolute top-32 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+        <div className="bg-slate-900/80 backdrop-blur px-3 py-1 rounded-full border border-slate-700 text-xs font-medium text-slate-300 shadow-sm flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+          {todayJobs.length} Jobs Today
+        </div>
+      </div>
+
       {/* Map Layer */}
       <div className="absolute inset-0 bg-slate-900">
         <JobMap deals={todayJobs.length > 0 ? todayJobs : (initialJob ? [initialJob] : [])} />

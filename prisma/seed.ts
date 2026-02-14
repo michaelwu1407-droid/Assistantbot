@@ -202,18 +202,39 @@ async function main() {
       { name: "PVC Pipe 100mm", unit: "m", price: 15.00, category: "Plumbing", workspaceId: workspace.id },
       { name: "Teflon Tape", unit: "roll", price: 2.50, category: "Plumbing", workspaceId: workspace.id },
       { name: "Mixer Tap (Chrome)", unit: "each", price: 120.00, category: "Plumbing", workspaceId: workspace.id },
-      
+
       // Electrical
       { name: "Power Point (Double)", unit: "each", price: 25.00, category: "Electrical", workspaceId: workspace.id },
       { name: "Cat6 Cable", unit: "m", price: 1.50, category: "Electrical", workspaceId: workspace.id },
       { name: "LED Downlight", unit: "each", price: 18.00, category: "Electrical", workspaceId: workspace.id },
       { name: "Switchboard Enclosure", unit: "each", price: 85.00, category: "Electrical", workspaceId: workspace.id },
       { name: "Circuit Breaker 20A", unit: "each", price: 15.00, category: "Electrical", workspaceId: workspace.id },
-      
+
       // Labor
       { name: "Labor (Standard)", unit: "hr", price: 110.00, category: "Labor", workspaceId: workspace.id },
       { name: "Labor (After Hours)", unit: "hr", price: 165.00, category: "Labor", workspaceId: workspace.id },
       { name: "Call Out Fee", unit: "flat", price: 150.00, category: "Labor", workspaceId: workspace.id },
+
+      // HVAC
+      { name: "Refrigerant R410A", unit: "kg", price: 45.00, category: "HVAC", workspaceId: workspace.id },
+      { name: "Copper coil 6mm", unit: "m", price: 8.50, category: "HVAC", workspaceId: workspace.id },
+      { name: "Split system bracket", unit: "each", price: 35.00, category: "HVAC", workspaceId: workspace.id },
+      { name: "Condensate pump", unit: "each", price: 85.00, category: "HVAC", workspaceId: workspace.id },
+      { name: "Duct tape foil", unit: "roll", price: 12.00, category: "HVAC", workspaceId: workspace.id },
+
+      // General/Hardware
+      { name: "Silicone sealant", unit: "each", price: 8.00, category: "Hardware", workspaceId: workspace.id },
+      { name: "Masking tape", unit: "roll", price: 4.50, category: "Hardware", workspaceId: workspace.id },
+      { name: "Drill bit set", unit: "pack", price: 22.00, category: "Hardware", workspaceId: workspace.id },
+      { name: "Wall anchors M6", unit: "pack", price: 6.00, category: "Hardware", workspaceId: workspace.id },
+      { name: "Cable ties 200mm", unit: "pack", price: 5.00, category: "Hardware", workspaceId: workspace.id },
+
+      // Roofing
+      { name: "Colorbond sheet 3m", unit: "each", price: 45.00, category: "Roofing", workspaceId: workspace.id },
+      { name: "Ridge cap", unit: "m", price: 18.00, category: "Roofing", workspaceId: workspace.id },
+      { name: "Roof screw kit", unit: "pack", price: 12.00, category: "Roofing", workspaceId: workspace.id },
+      { name: "Flashing aluminium", unit: "m", price: 15.00, category: "Roofing", workspaceId: workspace.id },
+      { name: "Gutter bracket", unit: "each", price: 4.50, category: "Roofing", workspaceId: workspace.id },
     ]
   });
 
@@ -241,7 +262,7 @@ async function main() {
   console.log("  Keys: 3 created");
 
   // ─── Activities ───────────────────────────────────────────────────
-  
+
   await prisma.activity.create({
     data: {
       type: "EMAIL",

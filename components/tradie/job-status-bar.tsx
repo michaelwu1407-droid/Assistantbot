@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Navigation, MapPin, HardHat, CheckCircle2 } from "lucide-react";
-import { updateJobStatus } from "@/actions/job-actions";
+import { updateJobStatus } from "@/actions/tradie-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SafetyModal } from "./safety-modal";
