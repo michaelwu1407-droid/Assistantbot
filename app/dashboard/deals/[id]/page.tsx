@@ -18,8 +18,8 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const deal = await db.deal.findUnique({
         where: { id },
-        include: { contacts: { take: 1 } }
-    } as any) as any
+        include: { contact: true }
+    })
 
     if (!deal) {
         notFound()
@@ -27,7 +27,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const metadata = (deal.metadata || {}) as Record<string, unknown>
     const isRealEstate = !!metadata.bedrooms || !!metadata.address
-    const contact = deal.contacts[0]
+    const contact = deal.contact
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-8 space-y-6 overflow-hidden">

@@ -108,8 +108,8 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                     <Icon className="h-3 w-3" />
                                 </div>
                                 <div className="flex-1 space-y-0.5 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate pr-2">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 pr-1">
                                             {activity.title}
                                         </p>
                                         <span className="text-[9px] text-muted-foreground whitespace-nowrap flex-shrink-0">
@@ -117,7 +117,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                         </span>
                                     </div>
                                     {activity.description && (
-                                        <p className="text-[10px] text-muted-foreground line-clamp-1">
+                                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                                             {activity.description}
                                         </p>
                                     )}
