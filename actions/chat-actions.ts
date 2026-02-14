@@ -55,7 +55,8 @@ export interface ParsedCommand {
  * Regex-based parser (Fallback/Fast-path)
  */
 function parseCommandRegex(message: string): ParsedCommand {
-  const msg = message.trim(); // Don't convert to lowercase for time parsing
+  // Normalize price formats: "200$" → "200", "$200" → "200" (regex price group handles bare numbers)
+  const msg = message.trim().replace(/(\d+)\s*\$/g, '$1').replace(/\$\s*(\d)/g, '$1');
 
   // Industry-agnostic noun: "deal", "job", "listing", "lead", "property"
   const NOUN = "(?:deal|job|listing|lead|property|gig|project)";
@@ -89,59 +90,50 @@ function parseCommandRegex(message: string): ParsedCommand {
   const shorthandJobMatch = msg.match(
     new RegExp(
       `^` +
-      `([^$]+?)` +                                           // client name (any chars until time/day)
+      `(.+?)` +                                              // client name (any chars until time/day)
       `\\s+(${TIME_PAT}|${DAY_PAT}|${TRADES_PATTERNS})` +        // time, day, or urgent keywords
-      `\\s+([^$]*?)` +                                     // job description (any chars until price/address)
-      `(?:\\s+(?:\\$?(\\d+(?:,\\d{3})*(?:\\.\\d{2})?))?` +   // optional price
-      `(?:\\s+([^$]*?))?$`,                                 // optional address
+      `\\s+(.+?)` +                                         // job description (any chars until price/address)
+      `(?:\\s+(\\d+(?:,\\d{3})*(?:\\.\\d{2})?))?` +          // optional price (bare number, $ already stripped)
+      `(?:\\s+(.+?))?$`,                                     // optional address
       "i"
     )
   );
 
   if (shorthandJobMatch) {
     const [, clientName, timeOrDay, workDesc, price, address] = shorthandJobMatch;
-    
-    // Extract price if present, otherwise look for it in description
-    let extractedPrice = price?.replace(/,/g, "") || "";
+
+    let extractedPrice = price?.replace(/,/g, "") || "0";
     let extractedWorkDesc = workDesc.trim();
     let extractedAddress = address?.trim() || "";
-    
-    // If no price but description contains $ pattern, extract it
-    if (!extractedPrice && extractedWorkDesc.includes('$')) {
-      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\\.\\d{2})?)/);
-      if (priceMatch) {
-        extractedPrice = priceMatch[1].replace('$', '');
-        extractedWorkDesc = extractedWorkDesc.replace(priceMatch[0], '').trim();
-      }
+
+    // Separate day indicators (ymrw, tmrw, today, mon-sun, etc.) from work description
+    const dayRegex = /^(ymrw|tmrw|today|tomorrow|yesterday|asap|urgent|stat|eo|eos|mon|tue|wed|thu|fri|sat|sun)\b\s*/i;
+    let schedule = timeOrDay.trim();
+    const dayInDesc = extractedWorkDesc.match(dayRegex);
+    if (dayInDesc) {
+      schedule = `${schedule} ${dayInDesc[1]}`;
+      extractedWorkDesc = extractedWorkDesc.replace(dayRegex, '').trim();
     }
-    
-    // Handle your exact example: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
-    if (extractedWorkDesc === "broken fan" && !extractedAddress && timeOrDay.includes("ymrw")) {
-      // Extract address from the end of the message
-      const addressMatch = msg.match(/(\d+\s+.+?\s+(?:st|street|ave|road|blvd|drive|lane|court|place|circle|terrace)\.+)/i);
-      if (addressMatch) {
-        extractedAddress = addressMatch[1].trim();
-        extractedWorkDesc = "broken fan"; // Keep the work description clean
-      }
-    }
-    
+
+    // Clean trailing periods from work description
+    extractedWorkDesc = extractedWorkDesc.replace(/\.\s*$/, '').trim();
+
     // If description contains street-like patterns, treat as address
-    if (!extractedAddress && (extractedWorkDesc.match(/\d+\s+\w+\s+(st|street|ave|road|blvd|drive|lane|court|place|circle|terrace)/i) || extractedWorkDesc.match(/\d+\s+.+\s+(st|street|ave|road|blvd)/i))) {
+    if (!extractedAddress && extractedWorkDesc.match(/\d+\s+\w+\s+(st|street|ave|avenue|road|rd|blvd|drive|dr|lane|ln|court|ct|place|pl|circle|terrace|tce|way|crescent|cres)\b/i)) {
       extractedAddress = extractedWorkDesc;
       extractedWorkDesc = "General service/repair";
     }
-    
+
     // Detect urgency from keywords
-    const isUrgent = timeOrDay.match(/\b(asap|urgent|stat|emergency)\b/i);
-    const schedule = timeOrDay.includes('$') ? `Not specified` : timeOrDay.trim();
-    
+    const isUrgent = /\b(asap|urgent|stat|emergency)\b/i.test(schedule);
+
     return {
       intent: "create_job_natural",
       params: {
         clientName: clientName.trim(),
         address: extractedAddress,
         workDescription: extractedWorkDesc,
-        price: extractedPrice || "0",
+        price: extractedPrice,
         schedule,
         urgency: isUrgent ? "high" : "normal"
       }
@@ -437,65 +429,37 @@ function parseCommandRegex(message: string): ParsedCommand {
     };
   }
 
-  // Natural language job creation: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
-  console.log("🔍 Testing job regex on:", msg);
+  // Natural language job creation fallback: "sally 12pm ymrw broken fan 200 45 wyndham st alexandria"
   const clientMatch = msg.match(/^([a-zA-Z\s]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
-  console.log("👤 Client match:", clientMatch);
-  
+
   if (clientMatch) {
     const clientName = clientMatch[1].trim();
     const time = clientMatch[2].trim();
-    
+
     let remaining = msg.substring(clientMatch[0].length).trim();
-    console.log("📝 Remaining after client+time:", remaining);
-    
-    // Remove day indicators (ymrw, today, tomorrow, etc.)
-    remaining = remaining.replace(/^(ymrw|today|tomorrow|tmrw)\s+/i, '');
-    console.log("📅 After removing day indicator:", remaining);
-    
-    // Look for job price in format "200$" (number before $)
-    const jobPriceMatch = remaining.match(/(\d+)\s*\$/i);
-    console.log("💰 Job price match:", jobPriceMatch);
-    
-    if (jobPriceMatch) {
-      const priceIndex = jobPriceMatch.index!;
-      const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
-      const price = jobPriceMatch[0]; // Includes the $ sign
-      const address = remaining.substring(priceIndex + price.length).trim();
-      
-      console.log("✅ PARSED JOB:", { clientName, time, workDescription, price, address });
-      
-      return {
-        intent: "create_job_natural",
-        params: {
-          clientName,
-          schedule: time,
-          workDescription,
-          price: price.replace(/\s/g, ''),
-          address: address || "No address provided"
-        }
-      };
+
+    // Extract and preserve day indicator for schedule
+    const dayMatch = remaining.match(/^(ymrw|tmrw|today|tomorrow|yesterday|asap|urgent|stat|eo|eos|mon|tue|wed|thu|fri|sat|sun)\b\s*/i);
+    const schedule = dayMatch ? `${time} ${dayMatch[1]}` : time;
+    if (dayMatch) {
+      remaining = remaining.substring(dayMatch[0].length);
     }
-    
-    // Fallback: try $ first format
-    const fallbackPriceMatch = remaining.match(/(\$\s*\d+)/i);
-    console.log("💰 Fallback price match:", fallbackPriceMatch);
-    
-    if (fallbackPriceMatch) {
-      const priceIndex = fallbackPriceMatch.index!;
-      const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
-      const price = fallbackPriceMatch[1];
-      const address = remaining.substring(priceIndex + price.length).trim();
-      
-      console.log("✅ PARSED JOB (fallback):", { clientName, time, workDescription, price, address });
-      
+
+    // Find price (bare number after $ was already stripped by normalization)
+    const priceMatch = remaining.match(/\b(\d+(?:,\d{3})*(?:\.\d{2})?)\b/);
+    if (priceMatch && priceMatch.index != null) {
+      const priceIndex = priceMatch.index;
+      const workDescription = remaining.substring(0, priceIndex).replace(/\.\s*$/, '').trim();
+      const price = priceMatch[1].replace(/,/g, '');
+      const address = remaining.substring(priceIndex + priceMatch[0].length).trim();
+
       return {
         intent: "create_job_natural",
         params: {
           clientName,
-          schedule: time,
-          workDescription,
-          price: price.replace(/\s/g, ''),
+          schedule,
+          workDescription: workDescription || "General service/repair",
+          price,
           address: address || "No address provided"
         }
       };
@@ -603,7 +567,7 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 
       // Extract intent and parameters from AI response
       const intent = parsed.intent?.toLowerCase();
-      const params = parsed.parameters || {};
+      const params = parsed.parameters || parsed.params || {};
 
       // Handle different intents with proper validation
       switch (intent) {
