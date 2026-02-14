@@ -115,19 +115,28 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
               )}
 
               {!loading && results.length === 0 && (
-                <CommandEmpty className="py-6 text-center text-sm text-slate-500">
-                  <p className="mb-2">No materials found.</p>
-                  {search && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-2 border-slate-700 bg-slate-800 hover:bg-slate-700 hover:text-white"
-                      onClick={handleCreate}
-                    >
-                      <Plus className="h-3 w-3" />
-                      Create "{search}"
-                    </Button>
-                  )}
+                <CommandEmpty className="py-6 text-center">
+                  <p className="text-sm text-slate-500 mb-2">No materials found.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs border-slate-700 text-slate-300 hover:text-[#ccff00]"
+                    onClick={async () => {
+                      if (!workspaceId || !search.trim()) return
+                      const result = await createMaterial({
+                        name: search.trim(),
+                        unit: "each",
+                        price: 0,
+                        workspaceId,
+                      })
+                      if (result.success) {
+                        const updated = await searchMaterials(workspaceId, search)
+                        setResults(updated)
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add &quot;{search}&quot; to database
+                  </Button>
                 </CommandEmpty>
               )}
 

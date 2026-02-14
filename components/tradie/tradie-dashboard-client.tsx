@@ -10,6 +10,8 @@ import { JobBottomSheet } from './job-bottom-sheet';
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
 import { Header } from "@/components/dashboard/header"
 import { useShellStore } from "@/lib/store"
+import { GlobalSearch } from "@/components/layout/global-search";
+import { Search } from "lucide-react";
 
 // Define the shape that JobBottomSheet expects (which we defined there as TradieJob)
 interface TradieJob {
@@ -43,6 +45,7 @@ interface TradieDashboardClientProps {
 export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "Mate", financialStats }: TradieDashboardClientProps) {
   const userId = useShellStore(s => s.userId) ?? "anonymous";
   const [isSheetExpanded, setSheetExpanded] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Parse initial status from metadata or default to PENDING
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,8 +89,12 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
             workspaceId={useShellStore.getState().workspaceId || ""}
             onNewDeal={() => { }}
           />
+          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
+            <Search className="h-5 w-5" />
+          </Button>
         </div>
       </div>
+      <GlobalSearch workspaceId={useShellStore.getState().workspaceId || ""} open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Today's Jobs Indicator */}
       <div className="absolute top-16 left-4 z-20 pointer-events-auto">

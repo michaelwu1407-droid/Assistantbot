@@ -223,11 +223,11 @@ async function main() {
       { name: "Duct tape foil", unit: "roll", price: 12.00, category: "HVAC", workspaceId: workspace.id },
 
       // General/Hardware
-      { name: "Silicone sealant", unit: "each", price: 8.00, category: "Hardware", workspaceId: workspace.id },
-      { name: "Masking tape", unit: "roll", price: 4.50, category: "Hardware", workspaceId: workspace.id },
-      { name: "Drill bit set", unit: "pack", price: 22.00, category: "Hardware", workspaceId: workspace.id },
-      { name: "Wall anchors M6", unit: "pack", price: 6.00, category: "Hardware", workspaceId: workspace.id },
-      { name: "Cable ties 200mm", unit: "pack", price: 5.00, category: "Hardware", workspaceId: workspace.id },
+      { name: "Silicone sealant", unit: "each", price: 8.00, category: "General/Hardware", workspaceId: workspace.id },
+      { name: "Masking tape", unit: "roll", price: 4.50, category: "General/Hardware", workspaceId: workspace.id },
+      { name: "Drill bit set", unit: "pack", price: 22.00, category: "General/Hardware", workspaceId: workspace.id },
+      { name: "Wall anchors M6", unit: "pack", price: 6.00, category: "General/Hardware", workspaceId: workspace.id },
+      { name: "Cable ties 200mm", unit: "pack", price: 5.00, category: "General/Hardware", workspaceId: workspace.id },
 
       // Roofing
       { name: "Colorbond sheet 3m", unit: "each", price: 45.00, category: "Roofing", workspaceId: workspace.id },
@@ -235,10 +235,12 @@ async function main() {
       { name: "Roof screw kit", unit: "pack", price: 12.00, category: "Roofing", workspaceId: workspace.id },
       { name: "Flashing aluminium", unit: "m", price: 15.00, category: "Roofing", workspaceId: workspace.id },
       { name: "Gutter bracket", unit: "each", price: 4.50, category: "Roofing", workspaceId: workspace.id },
+      { name: "Flashing aluminium", unit: "m", price: 15.00, category: "Roofing", workspaceId: workspace.id },
+      { name: "Gutter bracket", unit: "each", price: 4.50, category: "Roofing", workspaceId: workspace.id },
     ]
   });
 
-  console.log("  Materials: 14 created");
+  console.log("  Materials: 29 created");
 
   // ─── Keys (Agent) ─────────────────────────────────────────────────
 
