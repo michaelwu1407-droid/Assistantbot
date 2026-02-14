@@ -417,7 +417,7 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
 
   return {
     success: true,
-    // In a real app this would be a real URL
+    total,
     pdfUrl: `/api/quotes/${jobId}/variation`
   };
 }
@@ -450,7 +450,7 @@ export async function generateQuote(
 
   const existingMetadata = (deal.metadata as Record<string, unknown>) ?? {};
 
-  // Update the deal
+  // Update: deal
   await db.deal.update({
     where: { id: parsed.data.dealId },
     data: {
