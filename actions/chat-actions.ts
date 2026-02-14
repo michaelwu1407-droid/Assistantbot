@@ -55,7 +55,7 @@ export interface ParsedCommand {
  * Regex-based parser (Fallback/Fast-path)
  */
 function parseCommandRegex(message: string): ParsedCommand {
-  const msg = message.toLowerCase().trim();
+  const msg = message.trim(); // Don't convert to lowercase for time parsing
 
   // Industry-agnostic noun: "deal", "job", "listing", "lead", "property"
   const NOUN = "(?:deal|job|listing|lead|property|gig|project)";
@@ -149,12 +149,12 @@ function parseCommandRegex(message: string): ParsedCommand {
   }
 
   // Show pipeline / deals / jobs / listings
-  if (msg.match(new RegExp(`show.*(?:${NOUN.slice(3, -1)}|pipeline|board|kanban|my\\s+(?:deals|jobs|listings))`))) {
+  if (msg.match(new RegExp(`show.*(?:${NOUN.slice(3, -1)}|pipeline|board|kanban|my\\s+(?:deals|jobs|listings))`, "i"))) {
     return { intent: "show_deals", params: {} };
   }
 
   // Show stale / rotting
-  if (msg.match(new RegExp(`(stale|rotting|neglected|forgotten|old)\\s*${NOUN}?s?`))) {
+  if (msg.match(new RegExp(`(stale|rotting|neglected|forgotten|old)\\s*${NOUN}?s?`, "i"))) {
     return { intent: "show_stale", params: {} };
   }
 
@@ -438,24 +438,32 @@ function parseCommandRegex(message: string): ParsedCommand {
   }
 
   // Natural language job creation: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
+  console.log("🔍 Testing job regex on:", msg);
   const clientMatch = msg.match(/^([a-zA-Z\s]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+  console.log("👤 Client match:", clientMatch);
+  
   if (clientMatch) {
     const clientName = clientMatch[1].trim();
     const time = clientMatch[2].trim();
     
     let remaining = msg.substring(clientMatch[0].length).trim();
+    console.log("📝 Remaining after client+time:", remaining);
     
     // Remove day indicators (ymrw, today, tomorrow, etc.)
     remaining = remaining.replace(/^(ymrw|today|tomorrow|tmrw)\s+/i, '');
+    console.log("📅 After removing day indicator:", remaining);
     
     // Look for job price in format "200$" (number before $)
     const jobPriceMatch = remaining.match(/(\d+)\s*\$/i);
+    console.log("💰 Job price match:", jobPriceMatch);
     
     if (jobPriceMatch) {
       const priceIndex = jobPriceMatch.index!;
       const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
       const price = jobPriceMatch[0]; // Includes the $ sign
       const address = remaining.substring(priceIndex + price.length).trim();
+      
+      console.log("✅ PARSED JOB:", { clientName, time, workDescription, price, address });
       
       return {
         intent: "create_job_natural",
@@ -471,11 +479,15 @@ function parseCommandRegex(message: string): ParsedCommand {
     
     // Fallback: try $ first format
     const fallbackPriceMatch = remaining.match(/(\$\s*\d+)/i);
+    console.log("💰 Fallback price match:", fallbackPriceMatch);
+    
     if (fallbackPriceMatch) {
       const priceIndex = fallbackPriceMatch.index!;
       const workDescription = remaining.substring(0, priceIndex).replace(/\.$/, '').trim();
       const price = fallbackPriceMatch[1];
       const address = remaining.substring(priceIndex + price.length).trim();
+      
+      console.log("✅ PARSED JOB (fallback):", { clientName, time, workDescription, price, address });
       
       return {
         intent: "create_job_natural",
@@ -497,7 +509,7 @@ function parseCommandRegex(message: string): ParsedCommand {
 
   // Morning digest
   // Help
-  if (msg.match(/^(help|commands|what can you do)/)) {
+  if (msg.match(/^(help|commands|what can you do)/i)) {
     return { intent: "help", params: {} };
   }
 
