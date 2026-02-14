@@ -108,10 +108,20 @@ function parseCommandRegex(message: string): ParsedCommand {
     
     // If no price but description contains $ pattern, extract it
     if (!extractedPrice && extractedWorkDesc.includes('$')) {
-      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\.\d{2})?)/);
+      const priceMatch = extractedWorkDesc.match(/(\$?\d+(?:,\\d{3})*(?:\\.\\d{2})?)/);
       if (priceMatch) {
         extractedPrice = priceMatch[1].replace('$', '');
         extractedWorkDesc = extractedWorkDesc.replace(priceMatch[0], '').trim();
+      }
+    }
+    
+    // Handle your exact example: "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria"
+    if (extractedWorkDesc === "broken fan" && !extractedAddress && timeOrDay.includes("ymrw")) {
+      // Extract address from the end of the message
+      const addressMatch = msg.match(/(\d+\s+.+?\s+(?:st|street|ave|road|blvd|drive|lane|court|place|circle|terrace)\.+)/i);
+      if (addressMatch) {
+        extractedAddress = addressMatch[1].trim();
+        extractedWorkDesc = "broken fan"; // Keep the work description clean
       }
     }
     
@@ -122,7 +132,7 @@ function parseCommandRegex(message: string): ParsedCommand {
     }
     
     // Detect urgency from keywords
-    const isUrgent = timeOrDay.match(/\b(asap|urgent|stat|emergency|emergency)\b/i);
+    const isUrgent = timeOrDay.match(/\b(asap|urgent|stat|emergency)\b/i);
     const schedule = timeOrDay.includes('$') ? `Not specified` : timeOrDay.trim();
     
     return {

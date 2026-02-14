@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
-import { processChat } from "@/actions/chat-actions"
+import { processChat, getChatHistory } from "@/actions/chat-actions"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { format, isSameDay, isToday, isYesterday } from "date-fns"
@@ -42,8 +42,21 @@ export function AssistantPane() {
     const scrollRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
 
+    // Load chat history on component mount
     useEffect(() => {
-        // Scroll to bottom on new message
+        if (workspaceId) {
+            loadChatHistory(workspaceId).then(history => {
+                if (history && history.length > 0) {
+                    setMessages(history)
+                }
+            }).catch(error => {
+                    console.error("Failed to load chat history:", error)
+                })
+        }
+    }, [workspaceId])
+
+    // Scroll to bottom on new message
+    useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
         }
