@@ -123,8 +123,24 @@
 2. **Verification**: Run full build test to confirm all issues resolved
 3. **Documentation**: Update README with build requirements
 
+## Chatbot Parsing & UI Fixes (2026-02-14, Session 2)
+
+| ID | Issue | Status | Implementation Note |
+|----|-------|--------|---------------------|
+| CB-01 | Shorthand regex `[^$]` blocks `$` in prices | ✅ Done | Replaced with `.+?` + input normalization stripping `$` |
+| CB-02 | "200$" price format → NaN | ✅ Done | Pre-normalization: `200$` → `200`, `$200` → `200` |
+| CB-03 | Day indicator (ymrw) lost from schedule | ✅ Done | Extracted from workDesc, appended to schedule |
+| CB-04 | Draft card shows wrong data ($0 price, wrong desc) | ✅ Done | Added price/address extraction from over-captured Group 3 |
+| CB-05 | AI parser drops params key | ✅ Done | Now checks `parsed.parameters \|\| parsed.params \|\| {}` |
+| CB-06 | `loadChatHistory` undefined (never loads history) | ✅ Done | Changed to `getChatHistory` with DB→Message mapping |
+| CB-07 | `clearChatHistory` uses `db` in client component | ✅ Done | Created `clearChatHistoryAction` server action |
+| CB-08 | Chat metadata doesn't preserve `action` type | ✅ Done | Saves `{ action, data }` in metadata |
+| CB-09 | `draft_job_natural` missing from UI action switch | ✅ Done | Added alongside `draft_deal` |
+
+---
+
 ## Summary
-**Total Issues Resolved**: 40/40 (100% of functional issues)
+**Total Issues Resolved**: 49/49 (100% of functional issues)
 **Code Quality**: All HIGH and MEDIUM priority issues from OUTSTANDING_ISSUES.md resolved
 **Build Status**: ⚠️ Blocked by Prisma configuration version mismatch
 **Overall Health**: 🟢 Excellent - All functional requirements complete

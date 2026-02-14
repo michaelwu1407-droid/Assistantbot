@@ -186,3 +186,46 @@
 - **Solution**: Converted dates to ISO strings in `page.tsx` before passing to the client component.
 - **Files Modified**: `app/dashboard/tradie/schedule/page.tsx`
 - **Learning**: Always serialize dates to strings (ISO format) when passing data from Server Components to Client Components.
+
+---
+
+## ERR-014: Chatbot Draft Card Shows Wrong Data (2026-02-14)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: User enters "sally 12pm ymrw broken fan. 200$ 45 wyndham st alexandria". Bot responds with "I've extracted these details from your message. Please confirm:" but the draft card shows price $0, work description "General service/repair", and address containing the work description.
+- **Root Cause**: Three compounding issues in `parseCommandRegex()`:
+  1. **Shorthand regex over-capture**: The non-greedy `.+?` in Group 3 (work description) expanded to swallow the entire remainder (price + address) because the optional groups `(?:\s+(\d+))?(?:\s+(.+?))?$` never forced capture — they're all optional, so the regex engine let Group 3 consume everything.
+  2. **Street-pattern check replaces entire workDesc**: When the bloated Group 3 contained "45 wyndham st", the street detection replaced the entire string with "General service/repair" and set the whole thing as address.
+  3. **Price defaulted to "0"**: Since Group 4 (price) never captured anything, `extractedPrice` fell through to "0".
+- **Solution**: Added post-processing in shorthand handler — when price group is empty, search the work description for a number, split text before it as work description, the number as price, and text after as address.
+- **Files Modified**: `actions/chat-actions.ts` (lines 120-134)
+- **Learning**: Non-greedy quantifiers (`.+?`) followed by entirely optional groups are effectively greedy — the regex engine minimizes `.+?` only when it MUST yield to required subsequent groups. Always add post-processing fallbacks when regex groups are optional.
+
+---
+
+## ERR-015: loadChatHistory Undefined — Chat History Never Loads (2026-02-14)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: Chat history doesn't persist across page reloads. Console shows `ReferenceError: loadChatHistory is not defined`.
+- **Root Cause**: `assistant-pane.tsx` calls `loadChatHistory(workspaceId)` at line 48, but this function doesn't exist. The imported function is `getChatHistory`. The `.catch()` handler silently swallows the ReferenceError.
+- **Solution**: Changed to `getChatHistory(workspaceId)` with proper data mapping (DB rows → Message interface: converting `createdAt` to timestamp, mapping `metadata.action` and `metadata.data`).
+- **Files Modified**: `components/core/assistant-pane.tsx` (lines 46-64)
+- **Learning**: Always verify function names match their imports. Silent `.catch()` handlers mask bugs — consider logging or re-throwing.
+
+---
+
+## ERR-016: clearChatHistory Uses Server-Only db in Client Component (2026-02-14)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: Clicking "Clear History" crashes with `ReferenceError: db is not defined`. The `db` Prisma client is a server-only module.
+- **Root Cause**: `assistant-pane.tsx` (marked `"use client"`) directly called `db.chatMessage.deleteMany()` — the Prisma client (`@/lib/db`) is server-only and not available in client components.
+- **Solution**: Created `clearChatHistoryAction()` server action in `chat-actions.ts` and called it from the component instead.
+- **Files Modified**: `actions/chat-actions.ts` (new export), `components/core/assistant-pane.tsx` (import + usage)
+- **Learning**: NEVER import or use `db` (Prisma client) in `"use client"` components. Always go through server actions.
+
+---
+
+## ERR-017: Chat History Metadata Doesn't Preserve Action Type (2026-02-14)
+- **Status**: ✅ RESOLVED
+- **Symptoms**: After page reload, messages that had draft cards (e.g., `draft_job_natural`) lose their card UI because the `action` field wasn't saved to the database.
+- **Root Cause**: The DB persistence code saved `response.data` as metadata but not `response.action`. On reload, `metadata.action` was `undefined`, so the card condition `msg.action === "draft_job_natural"` was never true.
+- **Solution**: Changed metadata to save `{ action: response.action, data: response.data }`. Updated history loader to read `metadata.action` and `metadata.data`.
+- **Files Modified**: `actions/chat-actions.ts` (line 1234), `components/core/assistant-pane.tsx` (lines 55-56)
+- **Learning**: When UI rendering depends on response metadata (action type, data payload), ALL of it must be persisted to the database, not just partial fields.

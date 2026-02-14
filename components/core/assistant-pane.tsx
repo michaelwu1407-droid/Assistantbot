@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
-import { processChat, getChatHistory } from "@/actions/chat-actions"
+import { processChat, getChatHistory, clearChatHistoryAction } from "@/actions/chat-actions"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { format, isSameDay, isToday, isYesterday } from "date-fns"
@@ -45,31 +45,27 @@ export function AssistantPane() {
     // Load chat history on component mount
     useEffect(() => {
         if (workspaceId) {
-            loadChatHistory(workspaceId).then(history => {
-                if (history && history.length > 0) {
+            getChatHistory(workspaceId).then(rows => {
+                if (rows && rows.length > 0) {
+                    const history: Message[] = rows.reverse().map((r: any) => ({
+                        id: r.id,
+                        role: r.role as "user" | "assistant",
+                        content: r.content,
+                        timestamp: new Date(r.createdAt).getTime(),
+                        action: r.metadata?.action,
+                        data: r.metadata?.data,
+                    }))
                     setMessages(history)
                 }
             }).catch(error => {
-                    console.error("Failed to load chat history:", error)
-                })
+                console.error("Failed to load chat history:", error)
+            })
         }
     }, [workspaceId])
 
-    // Clear chat history
-    const clearChatHistory = async () => {
-        try {
-            // Clear all messages from database
-            await db.chatMessage.deleteMany({
-                where: { workspaceId }
-            });
-            console.log("Chat history cleared for workspace:", workspaceId);
-        } catch (error) {
-            console.error("Failed to clear chat history:", error);
-        }
-    };
-
     const handleClearHistory = async () => {
-        await clearChatHistory();
+        if (!workspaceId) return;
+        await clearChatHistoryAction(workspaceId);
         setMessages([]);
         toast.success("Chat history cleared");
     };
@@ -141,6 +137,7 @@ export function AssistantPane() {
                         }
                         break
                     case "draft_deal":
+                    case "draft_job_natural":
                         // Stay in chat to confirm
                         break
                 }

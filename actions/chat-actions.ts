@@ -102,7 +102,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (shorthandJobMatch) {
     const [, clientName, timeOrDay, workDesc, price, address] = shorthandJobMatch;
 
-    let extractedPrice = price?.replace(/,/g, "") || "0";
+    let extractedPrice = price?.replace(/,/g, "") || "";
     let extractedWorkDesc = workDesc.trim();
     let extractedAddress = address?.trim() || "";
 
@@ -118,7 +118,23 @@ function parseCommandRegex(message: string): ParsedCommand {
     // Clean trailing periods from work description
     extractedWorkDesc = extractedWorkDesc.replace(/\.\s*$/, '').trim();
 
-    // If description contains street-like patterns, treat as address
+    // When the regex optional groups didn't fire, price/address get swallowed into workDesc.
+    // Try to extract a numeric price and a street address from the work description.
+    if (!extractedPrice) {
+      const priceInDesc = extractedWorkDesc.match(/\b(\d+(?:,\d{3})*(?:\.\d{2})?)\b/);
+      if (priceInDesc && priceInDesc.index != null) {
+        const beforePrice = extractedWorkDesc.substring(0, priceInDesc.index).replace(/\.\s*$/, '').trim();
+        const afterPrice = extractedWorkDesc.substring(priceInDesc.index + priceInDesc[0].length).trim();
+        // Only treat as price if there's descriptive text before the number
+        if (beforePrice.length >= 2) {
+          extractedPrice = priceInDesc[1].replace(/,/g, '');
+          extractedWorkDesc = beforePrice;
+          if (afterPrice) extractedAddress = afterPrice;
+        }
+      }
+    }
+
+    // If description still contains street-like patterns, split it out as address
     if (!extractedAddress && extractedWorkDesc.match(/\d+\s+\w+\s+(st|street|ave|avenue|road|rd|blvd|drive|dr|lane|ln|court|ct|place|pl|circle|terrace|tce|way|crescent|cres)\b/i)) {
       extractedAddress = extractedWorkDesc;
       extractedWorkDesc = "General service/repair";
@@ -133,7 +149,7 @@ function parseCommandRegex(message: string): ParsedCommand {
         clientName: clientName.trim(),
         address: extractedAddress,
         workDescription: extractedWorkDesc,
-        price: extractedPrice,
+        price: extractedPrice || "0",
         schedule,
         urgency: isUrgent ? "high" : "normal"
       }
@@ -1195,7 +1211,9 @@ export async function processChat(
         role: "assistant",
         content: response.message,
         workspaceId,
-        metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
+        metadata: (response.action || response.data)
+          ? JSON.parse(JSON.stringify({ action: response.action, data: response.data }))
+          : undefined,
       },
     });
   } catch {
@@ -1217,5 +1235,20 @@ export async function getChatHistory(workspaceId: string, limit = 50) {
     });
   } catch {
     return [];
+  }
+}
+
+/**
+ * Clear chat history for a workspace.
+ */
+export async function clearChatHistoryAction(workspaceId: string) {
+  try {
+    await db.chatMessage.deleteMany({
+      where: { workspaceId },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to clear chat history:", error);
+    return { success: false };
   }
 }
