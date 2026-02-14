@@ -375,6 +375,62 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 }
 
 /**
+ * Get industry-specific context for chat responses.
+ */
+function getIndustryContext(industryType: string | null): IndustryContext {
+  switch (industryType) {
+    case "REAL_ESTATE":
+      return {
+        dealLabel: "listing",
+        dealsLabel: "listings",
+        contactLabel: "buyer",
+        stageLabels: {
+          NEW: "New",
+          CONTACTED: "Contacted", 
+          NEGOTIATION: "Under Offer",
+          WON: "Under Contract",
+          LOST: "Lost"
+        },
+        helpExtras: "\n  \"Start open house\" — Begin kiosk mode",
+        greeting: "Hi! I'm your real estate assistant. How can I help you today?",
+        unknownFallback: "I'm not sure how to help with that. Try asking about listings, buyers, or scheduling."
+      };
+    case "CONSTRUCTION":
+      return {
+        dealLabel: "project",
+        dealsLabel: "projects", 
+        contactLabel: "client",
+        stageLabels: {
+          NEW: "Lead",
+          CONTACTED: "Quoting",
+          NEGOTIATION: "Negotiation",
+          WON: "Awarded",
+          LOST: "Lost"
+        },
+        helpExtras: "\n  \"Site check\" — Complete safety checklist",
+        greeting: "Hi! I'm your construction assistant. What can I help you with today?",
+        unknownFallback: "I'm not sure how to help with that. Try asking about projects, clients, or site checks."
+      };
+    default: // TRADES
+      return {
+        dealLabel: "job",
+        dealsLabel: "jobs",
+        contactLabel: "client", 
+        stageLabels: {
+          NEW: "Lead",
+          CONTACTED: "Quoting",
+          NEGOTIATION: "Negotiation", 
+          WON: "Scheduled",
+          LOST: "Lost"
+        },
+        helpExtras: "\n  \"On my way\" — Notify client you're traveling",
+        greeting: "Hi! I'm your trades assistant. How can I help you today?",
+        unknownFallback: "I'm not sure how to help with that. Try asking about jobs, clients, or scheduling."
+      };
+  }
+}
+
+/**
  * Process a chat message and execute CRM actions.
  * This is the primary interface — users message the chatbot
  * and the system updates the CRM automatically.
@@ -387,6 +443,8 @@ export async function processChat(
   workspaceId: string,
   overrideParams?: Record<string, string>
 ): Promise<ChatResponse> {
+  console.log("🔍 Processing chat:", { message, workspaceId, overrideParams });
+
   // Persist user message (non-blocking — chat should work even without DB)
   try {
     await db.chatMessage.create({
@@ -396,7 +454,8 @@ export async function processChat(
         workspace: { connect: { id: workspaceId } }
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("❌ DB Error saving user message:", error);
     // DB unavailable — continue without persistence
   }
 
@@ -408,19 +467,31 @@ export async function processChat(
       select: { industryType: true },
     });
     industryType = workspace?.industryType ?? null;
-  } catch {
+  } catch (error) {
+    console.error("❌ DB Error fetching workspace:", error);
     // DB unavailable — use default industry context
   }
   const ctx = getIndustryContext(industryType);
 
   // 1. Try AI Parser first
-  let parsed = await parseCommandAI(message, ctx);
+  let parsed = null;
+  try {
+    parsed = await parseCommandAI(message, ctx);
+    console.log("✅ AI Parser result:", parsed);
+  } catch (error) {
+    console.error("❌ AI Parser failed:", error);
+  }
 
   // 2. Fallback to Regex if AI fails or returns unknown (and regex might catch it)
   if (!parsed || parsed.intent === "unknown") {
-    const regexParsed = parseCommandRegex(message);
-    if (regexParsed.intent !== "unknown") {
-      parsed = regexParsed;
+    try {
+      const regexParsed = parseCommandRegex(message);
+      console.log("🔄 Regex Parser result:", regexParsed);
+      if (regexParsed.intent !== "unknown") {
+        parsed = regexParsed;
+      }
+    } catch (error) {
+      console.error("❌ Regex Parser failed:", error);
     }
   }
 
