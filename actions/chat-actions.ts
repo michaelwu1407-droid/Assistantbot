@@ -25,6 +25,7 @@ interface ParsedCommand {
   | "show_deals"
   | "show_stale"
   | "create_deal"
+  | "create_job_natural"
   | "move_deal"
   | "log_activity"
   | "search_contacts"
@@ -50,6 +51,25 @@ function parseCommandRegex(message: string): ParsedCommand {
 
   // Industry-agnostic noun: "deal", "job", "listing", "lead", "property"
   const NOUN = "(?:deal|job|listing|lead|property|gig|project)";
+
+  // Natural language job entry: "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm"
+  // Pattern: [name] (from|at) [address] needs [work] (quoted|quote) [$]amount (for|tmrw|tomorrow|today) [time]
+  const naturalJobMatch = msg.match(
+    /^([a-z]+(?:\s+[a-z]+)?)\s+(?:from|at)\s+(.+?)\s+(?:needs?|wants?|requires?)\s+(.+?)\s+(?:quoted?|quote)\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:for\s+)?(.*)$/i
+  );
+  if (naturalJobMatch) {
+    const [, name, address, workDesc, price, schedule] = naturalJobMatch;
+    return {
+      intent: "create_job_natural",
+      params: {
+        clientName: name.trim(),
+        address: address.trim(),
+        workDescription: workDesc.trim(),
+        price: price.replace(/,/g, ""),
+        schedule: schedule.trim() || "Not specified"
+      }
+    };
+  }
 
   // Show pipeline / deals / jobs / listings
   if (msg.match(new RegExp(`show.*(?:${NOUN.slice(3, -1)}|pipeline|board|kanban|my\\s+(?:deals|jobs|listings))`))) {
@@ -216,13 +236,14 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
 
   try {
     const systemPrompt = `
-    You are an intent parser for a CRM system. 
+    You are an intent parser for a CRM system.
     User Context: ${industryContext.dealLabel} manager.
-    
+
     Intents:
     - show_deals: List pipeline
     - show_stale: List neglected items
     - create_deal: New item. Params: title, company (opt), value (number string)
+    - create_job_natural: Natural language job entry. Extract: clientName, address, workDescription, price, schedule
     - move_deal: Update stage. Params: title, stage (new, contacted, negotiation, won, lost)
     - create_invoice: Generate invoice. Params: title, amount
     - log_activity: Log call/email/note. Params: type (CALL/EMAIL/NOTE/MEETING), content
@@ -237,9 +258,11 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
     - help: Help/commands
 
     Current Date: ${new Date().toISOString()}
-    
+
+    IMPORTANT: For natural language job entries like "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm", use create_job_natural and extract all details.
+
     Output JSON ONLY. No markdown.
-    Example: {"intent": "create_deal", "params": {"title": "Fix Roof", "value": "500"}}
+    Example: {"intent": "create_job_natural", "params": {"clientName": "Sharon", "address": "17 Alexandria Street, Redfern", "workDescription": "sink fixed", "price": "200", "schedule": "tomorrow 2pm"}}
     Return {"intent": "unknown", "params": {}} if unsure.
     `;
 
@@ -435,6 +458,61 @@ export async function processChat(
           data: { deals: stale },
         };
       }
+      break;
+    }
+
+    case "create_job_natural": {
+      // Parse natural language job entry and show confirmation
+      const { clientName, address, workDescription, price, schedule } = params;
+
+      if (params.confirmed !== "true") {
+        // Show draft with all extracted details for confirmation
+        response = {
+          message: `I've extracted these details from your message. Please confirm:`,
+          action: "draft_job_natural",
+          data: {
+            clientName,
+            address,
+            workDescription,
+            price,
+            schedule,
+          }
+        };
+        break;
+      }
+
+      // User confirmed - create the contact and deal
+      const contactResult = await createContact({
+        name: clientName,
+        workspaceId,
+      });
+
+      if (!contactResult.success) {
+        response = { message: `Failed to create contact: ${contactResult.error}` };
+        break;
+      }
+
+      const dealResult = await createDeal({
+        title: workDescription,
+        company: clientName,
+        value: Number(price) || 0,
+        stage: "new",
+        contactId: contactResult.contactId!,
+        workspaceId,
+        metadata: {
+          address,
+          schedule,
+          workDescription,
+        }
+      });
+
+      response = {
+        message: dealResult.success
+          ? `✅ Job created!\n\nClient: ${clientName}\nWork: ${workDescription}\nQuoted: $${Number(price).toLocaleString()}\nScheduled: ${schedule}\nAddress: ${address}`
+          : `Failed: ${dealResult.error}`,
+        action: "create_deal",
+        data: dealResult.success ? { dealId: dealResult.dealId } : undefined,
+      };
       break;
     }
 

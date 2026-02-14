@@ -1408,14 +1408,790 @@ Then add a link to it from the tradie dashboard. In `components/tradie/tradie-da
 
 ---
 
+## ISSUE 20: CHATBOT CANNOT PARSE NATURAL LANGUAGE JOB ENTRIES (TRADIE UX BLOCKER)
+
+**Priority**: HIGH — This is a critical UX failure for the tradie module.
+**Status**: ✅ FIXED
+
+### Problem
+
+The chatbot fails to parse simple, natural language job entries like:
+> "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm"
+
+Instead of extracting the key details (client, address, work, price, schedule), it responds with a generic error message.
+
+### Solution Implemented
+
+**Files Modified:**
+1. `actions/chat-actions.ts` — Added `create_job_natural` intent with regex pattern and AI parser support
+2. `components/core/assistant-pane.tsx` — Added confirmation card UI for extracted job details
+
+**Changes:**
+
+#### 1. New Intent Type (chat-actions.ts:24-43)
+Added `create_job_natural` to the `ParsedCommand` interface.
+
+#### 2. Regex Pattern for Natural Language Parsing (chat-actions.ts:54-69)
+```ts
+const naturalJobMatch = msg.match(
+  /^([a-z]+(?:\s+[a-z]+)?)\s+(?:from|at)\s+(.+?)\s+(?:needs?|wants?|requires?)\s+(.+?)\s+(?:quoted?|quote)\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:for\s+)?(.*)$/i
+);
+```
+Extracts: `clientName`, `address`, `workDescription`, `price`, `schedule`
+
+#### 3. Intent Handler (chat-actions.ts:457-501)
+Creates a confirmation draft showing all extracted details before creating the contact and deal.
+
+#### 4. Confirmation UI Card (assistant-pane.tsx:329-388)
+Shows an emerald-themed card with:
+- Client name
+- Full address
+- Work description
+- Quoted price
+- Schedule
+- "Cancel" and "Create Job" buttons
+
+### Test Cases
+
+✅ **Input**: "sharon from 17 alexandria street redfern needs sink fixed quoted $200 for tmrw 2pm"
+**Output**: Extracts all 5 fields correctly and shows confirmation card
+
+✅ **Input**: "john at 5 main st needs bathroom reno quote 5000 tomorrow"
+**Output**: Works with "at" instead of "from", handles larger amounts
+
+✅ **Input**: "mary 123 oak ave broken tap $150 today 3pm"
+**Fallback**: Regex may not match; AI parser (Gemini) will catch it
+
+### User Flow
+
+1. User types natural language job entry
+2. Chatbot extracts client, address, work, price, schedule
+3. Shows confirmation card with all details
+4. User clicks "Create Job" or "Cancel"
+5. If confirmed, creates contact + deal with metadata
+
+---
+
+## ISSUE 21: DASHBOARD TAB — CARD LAYOUT BROKEN, KANBAN BOARD MISSING (UI BLOCKER)
+
+**Priority**: CRITICAL — Main dashboard is unusable
+**Status**: Dashboard widgets overflow, excessive white space, Kanban board not visible
+**Affects**: `/dashboard` route in Advanced mode
+
+### Current State
+
+| Component | File | Lines | Issue |
+|-----------|------|-------|-------|
+| Dashboard Client | `app/dashboard/client-page.tsx` | 51-102 | Widget grid uses `max-h: 30vh` constraint but cards still overflow. Text like "$1,000" extends outside card boundaries. |
+| Dashboard Client | `app/dashboard/client-page.tsx` | 107-109 | Kanban board is pushed off-screen by excessive widget height. User reports Kanban "disappeared". |
+| Pipeline Pulse Card | `app/dashboard/client-page.tsx` | 54-67 | Hardcoded static values: "$124,500" and "+12% from last month". Not dynamic/responsive to window resize. |
+| Active Deals Card | `app/dashboard/client-page.tsx` | 70-83 | Hardcoded "3 closing this week". |
+| Recent Activity Card | `app/dashboard/client-page.tsx` | 85-100 | Card is "really long" with "so much blank space". Internal scrolling area doesn't constrain height properly. |
+
+### Root Causes
+
+1. **Text Overflow**: Cards use `text-xl md:text-2xl font-bold` with `truncate` but parent container doesn't enforce width constraints
+2. **Fixed Height Issue**: `max-h: 30vh` on widget row (line 51) isn't respected by flex children
+3. **Kanban Visibility**: Kanban board needs `min-h-[500px]` or similar to force visibility even when widgets are tall
+4. **Responsive Breakpoints**: Current grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`) causes layout thrashing on resize
+5. **Activity Feed Height**: Doesn't respect parent height constraint, creates excessive vertical space
+
+### Tasks
+
+#### 21A. Fix card text overflow with proper container constraints
+
+**File**: `app/dashboard/client-page.tsx`
+**Location**: Lines 54-83 (Pipeline Pulse and Active Deals cards)
+
+**Replace lines 54-83** with this exact code (adds explicit width constraint and improves responsive text sizing):
+
+```tsx
+                    {/* Widget 1: Pipeline Pulse */}
+                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full min-w-0">
+                        <CardHeader className="pb-2 shrink-0">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                Pipeline Pulse
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col justify-end min-h-0 min-w-0">
+                            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 truncate w-full" title="$124,500">
+                                $124,500
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate w-full">+12% from last month</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Widget 2: Active Deals */}
+                    <Card className="border-slate-200 shadow-sm flex flex-col overflow-hidden h-full min-w-0">
+                        <CardHeader className="pb-2 shrink-0">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-blue-500" />
+                                Active Deals
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col justify-end min-h-0 min-w-0">
+                            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 truncate w-full">
+                                {deals.length}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate w-full">3 closing this week</p>
+                        </CardContent>
+                    </Card>
+```
+
+**Key changes**:
+- Added `min-w-0` to Card wrapper (allows flex child to shrink below content size)
+- Changed text from `text-xl md:text-2xl` to `text-lg sm:text-xl lg:text-2xl` (smoother responsive scaling)
+- Added explicit `w-full` to truncate divs (ensures truncation boundary is parent width)
+- Added `min-w-0` to CardContent (prevents text from forcing parent expansion)
+
+#### 21B. Fix Recent Activity card height constraint
+
+**File**: `app/dashboard/client-page.tsx`
+**Location**: Lines 85-100
+
+**Replace the entire Recent Activity card block (lines 85-100)** with:
+
+```tsx
+                    {/* Widget 3: Recent Activity */}
+                    <div className="border border-slate-200 shadow-sm rounded-xl bg-white overflow-hidden flex flex-col md:col-span-2 xl:col-span-1 h-full max-h-[300px] min-w-0">
+                        <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
+                            <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-amber-500" />
+                                Recent Activity
+                            </div>
+                            <span className="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full text-slate-600">{activities.length}</span>
+                        </div>
+                        {/* Internal scrollable area with strict height */}
+                        <div className="flex-1 overflow-y-auto min-h-0">
+                            <ActivityFeed activities={activities} className="border-0 shadow-none" compact />
+                        </div>
+                    </div>
+```
+
+**Key changes**:
+- Added `max-h-[300px]` to outer container (hard cap on card height)
+- Reduced padding from `p-4` to `p-3` in header (saves vertical space)
+- Removed nested `absolute inset-0` wrapper (was causing height calculation issues)
+- Simplified scroll container structure (direct `overflow-y-auto` on flex-1 child)
+
+#### 21C. Enforce Kanban board visibility with minimum height
+
+**File**: `app/dashboard/client-page.tsx`
+**Location**: Line 107-109
+
+**Replace lines 107-109** with:
+
+```tsx
+            {/* 3. Main Content Area: Kanban Board */}
+            {/* flex-1 ensures it takes ALL remaining vertical space */}
+            {/* min-h-[500px] forces visibility even if widgets are tall */}
+            <div className="flex-1 w-full overflow-hidden min-h-[500px] border-t border-slate-100 pt-4">
+                 <KanbanBoard deals={deals} />
+            </div>
+```
+
+**Key change**:
+- Changed `min-h-0` to `min-h-[500px]` — guarantees Kanban board is always visible and takes up significant space
+
+#### 21D. Adjust top widget row height constraints
+
+**File**: `app/dashboard/client-page.tsx`
+**Location**: Line 51
+
+**Replace line 51** with:
+
+```tsx
+            <div className="shrink-0 mb-4" style={{ maxHeight: 'min(350px, 25vh)', minHeight: '200px' }}>
+```
+
+**Key changes**:
+- Changed from `maxHeight: '30vh', minHeight: '140px'` to `maxHeight: 'min(350px, 25vh)', minHeight: '200px'`
+- Uses `min()` CSS function to cap at 350px OR 25% of viewport height, whichever is smaller
+- Increased `minHeight` from 140px to 200px to prevent cards from collapsing too much
+- This ensures widgets never take more than ~350px vertical space, leaving room for Kanban
+
+---
+
+## ISSUE 22: TRADIE MODE — MAP VIEW, SCHEDULE VIEW, ESTIMATOR VIEW RETURN 404 (NAVIGATION BLOCKER)
+
+**Priority**: HIGH — Core tradie navigation is broken
+**Status**: Routes exist but are missing required data props
+**Affects**: `/dashboard/tradie/map`, `/dashboard/tradie/schedule`, `/dashboard/estimator`
+
+### Current State
+
+| Route | File Exists | Issue |
+|-------|-------------|-------|
+| `/dashboard/tradie/map` | ❌ NO | No `page.tsx` exists at this path. Sidebar links to it (sidebar.tsx:36). |
+| `/dashboard/tradie/schedule` | ✅ YES | `app/(dashboard)/tradie/schedule/page.tsx` exists but `SchedulerView` component expects `initialJobs` prop (scheduler-view.tsx:35) and page doesn't pass it. |
+| `/dashboard/estimator` | ✅ YES | `app/dashboard/estimator/page.tsx` exists. Need to verify if it works. |
+
+### Root Causes
+
+1. **Map route missing**: Sidebar.tsx:36 links to `/dashboard/tradie/map` but this route doesn't exist
+2. **Schedule page incomplete**: `app/(dashboard)/tradie/schedule/page.tsx` renders `<SchedulerView />` but SchedulerView.tsx:35 accepts `initialJobs?: any[]` prop — without data, calendar shows empty
+3. **Estimator route**: Sidebar.tsx:38 links to `/dashboard/estimator` (not `/dashboard/tradie/estimator`) — verify this works
+
+### Tasks
+
+#### 22A. Create missing `/dashboard/tradie/map` route
+
+**Create new file**: `app/(dashboard)/tradie/map/page.tsx`
+
+```tsx
+import { getTradieJobs } from "@/actions/tradie-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+import dynamic from "next/dynamic"
+
+export const dynamic = "force-dynamic"
+
+// Dynamically import to avoid SSR issues with Leaflet
+const MapView = dynamic(() => import("@/components/map/map-view"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-full w-full bg-slate-900 flex items-center justify-center text-slate-500">
+            Loading Map...
+        </div>
+    ),
+})
+
+export default async function TradieMapPage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    const jobs = await getTradieJobs(workspace.id)
+
+    return (
+        <div className="h-[calc(100vh-4rem)] w-full">
+            <MapView jobs={jobs} />
+        </div>
+    )
+}
+```
+
+#### 22B. Fix Schedule page to pass jobs data
+
+**File**: `app/(dashboard)/tradie/schedule/page.tsx`
+**Location**: Lines 1-9
+
+**Replace the entire file** with:
+
+```tsx
+import { getTradieJobs } from "@/actions/tradie-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+import SchedulerView from "@/components/scheduler/scheduler-view"
+
+export const dynamic = "force-dynamic"
+
+export default async function SchedulerPage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    const jobs = await getTradieJobs(workspace.id)
+
+    return (
+        <div className="h-[calc(100vh-4rem)]">
+            <SchedulerView initialJobs={jobs} />
+        </div>
+    )
+}
+```
+
+**Key changes**:
+- Added server data fetching (userId, workspace, jobs)
+- Passed `initialJobs={jobs}` prop to SchedulerView
+
+#### 22C. Verify Estimator route works (or create if missing)
+
+**Check if file exists**: `app/dashboard/estimator/page.tsx`
+
+**If file doesn't exist, create**: `app/dashboard/estimator/page.tsx`
+
+```tsx
+import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUserId } from "@/lib/auth"
+import { EstimatorForm } from "@/components/tradie/estimator-form"
+
+export const dynamic = "force-dynamic"
+
+export default async function EstimatorPage() {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    const deals = await getDeals(workspace.id)
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-4">
+            <EstimatorForm deals={deals} />
+        </div>
+    )
+}
+```
+
+**If file exists**, read it and verify it:
+1. Fetches deals/jobs data from the server
+2. Passes data to EstimatorForm component
+3. If missing, add the fetching logic above
+
+---
+
+## ISSUE 23: ADVANCED MODE DASHBOARD — RECENT ACTIVITY UNREADABLE, CLICKING ITEMS BREAKS PAGE (UX BLOCKER)
+
+**Priority**: HIGH — Users cannot interact with recent activity
+**Status**: Activity feed items are clickable but navigation fails
+**Affects**: `/dashboard` in Advanced mode, Recent Activity widget
+
+### Current State
+
+| Component | File | Lines | Issue |
+|-----------|------|-------|-------|
+| ActivityFeed | `components/crm/activity-feed.tsx` | 102-105 | onClick handler redirects to `/dashboard/deals/${dealId}` or `/dashboard/contacts/${contactId}` using `window.location.href` |
+| Deal detail route | `app/dashboard/deals/[id]/page.tsx` | 1-136 | **Route exists** but uses invalid Prisma query (line 21: `include: { contacts: { take: 1 } }`) — Deal model has `contact` relation (singular), not `contacts` (plural). Will crash at runtime. |
+| Contact detail route | `app/dashboard/contacts/[id]/page.tsx` | ❓ | **Unknown** if this route exists. Need to check. |
+
+### Root Causes
+
+1. **Deal detail page Prisma error**: Line 21 of `app/dashboard/deals/[id]/page.tsx` uses `contacts: { take: 1 }` but schema defines `contact Contact @relation("DealContact")` (singular). This causes a Prisma error.
+2. **Navigation method**: ActivityFeed uses `window.location.href` (line 103-104) which triggers full page reload instead of client-side navigation.
+3. **Activity content unclear**: User reports "can't really see what the recent activity mentions" — likely due to truncated text in compact mode.
+
+### Tasks
+
+#### 23A. Fix Deal detail page Prisma query
+
+**File**: `app/dashboard/deals/[id]/page.tsx`
+**Location**: Line 19-22
+
+**Replace lines 19-22** with:
+
+```tsx
+    const deal = await db.deal.findUnique({
+        where: { id },
+        include: { contact: true }
+    })
+```
+
+**Then update line 30** from:
+```tsx
+    const contact = deal.contacts[0]
+```
+
+**To**:
+```tsx
+    const contact = deal.contact
+```
+
+**Key changes**:
+- Changed `contacts: { take: 1 }` to `contact: true` (matches schema)
+- Changed `deal.contacts[0]` to `deal.contact` (no array indexing needed)
+- Removed `as any` casts since TypeScript now has correct types
+
+#### 23B. Create missing Contact detail page (if it doesn't exist)
+
+**Check if exists**: `app/dashboard/contacts/[id]/page.tsx`
+
+**If it doesn't exist, create**: `app/dashboard/contacts/[id]/page.tsx`
+
+```tsx
+import { db } from "@/lib/db"
+import { notFound } from "next/navigation"
+import { ActivityFeed } from "@/components/crm/activity-feed"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, Edit, Mail, Phone } from "lucide-react"
+import Link from "next/link"
+
+export const dynamic = "force-dynamic"
+
+interface PageProps {
+    params: Promise<{ id: string }>
+}
+
+export default async function ContactDetailPage({ params }: PageProps) {
+    const { id } = await params
+
+    const contact = await db.contact.findUnique({
+        where: { id },
+        include: { deals: { take: 5, orderBy: { createdAt: 'desc' } } }
+    })
+
+    if (!contact) {
+        notFound()
+    }
+
+    return (
+        <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-8 space-y-6 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard" className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-900 transition-colors">
+                        <ChevronLeft className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">{contact.name}</h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            {contact.email && (
+                                <a href={`mailto:${contact.email}`} className="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    {contact.email}
+                                </a>
+                            )}
+                            {contact.phone && (
+                                <a href={`tel:${contact.phone}`} className="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    {contact.phone}
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <Button variant="outline">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                </Button>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                {/* Left: Deals */}
+                <div className="space-y-4 overflow-y-auto pr-2">
+                    <h3 className="font-semibold text-slate-900">Associated Deals ({contact.deals.length})</h3>
+                    {contact.deals.length === 0 ? (
+                        <p className="text-slate-500 text-sm">No deals yet.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {contact.deals.map(deal => (
+                                <Link
+                                    key={deal.id}
+                                    href={`/dashboard/deals/${deal.id}`}
+                                    className="block p-4 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-medium text-slate-900">{deal.title}</p>
+                                            <p className="text-xs text-slate-500">{deal.company || 'No company'}</p>
+                                        </div>
+                                        <Badge variant="outline">{deal.stage}</Badge>
+                                    </div>
+                                    <p className="text-sm text-emerald-600 font-medium mt-2">
+                                        ${Number(deal.value).toLocaleString()}
+                                    </p>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Activity */}
+                <div className="h-full overflow-hidden border border-slate-200 rounded-xl bg-white flex flex-col">
+                    <div className="p-4 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50">
+                        Activity History
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <ActivityFeed contactId={contact.id} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+```
+
+#### 23C. Improve ActivityFeed readability in compact mode
+
+**File**: `components/crm/activity-feed.tsx`
+**Location**: Lines 110-124
+
+**Replace the activity item content block (lines 110-124)** with:
+
+```tsx
+                                <div className="flex-1 space-y-0.5 min-w-0">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 pr-1">
+                                            {activity.title}
+                                        </p>
+                                        <span className="text-[9px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                                            {activity.time}
+                                        </span>
+                                    </div>
+                                    {activity.description && (
+                                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                            {activity.description}
+                                        </p>
+                                    )}
+                                </div>
+```
+
+**Key changes**:
+- Changed title from `truncate` to `line-clamp-2` (shows 2 lines instead of cutting off at 1)
+- Changed description from `text-[10px]` to `text-[11px]` (slightly more readable)
+- Changed description from `line-clamp-1` to `line-clamp-2` (shows 2 lines)
+- Added `leading-relaxed` to description for better line spacing
+- Added `gap-2` to flex container for spacing between title and time
+
+---
+
+## ISSUE 24: SETTINGS SUBPAGES SAY "COMING SOON" — NEED FULL IMPLEMENTATION (FEATURE GAP)
+
+**Priority**: MEDIUM — Settings are non-functional
+**Status**: Settings navigation exists but all subpages show placeholder content
+**Affects**: `/dashboard/settings/*` routes
+
+### Current State
+
+**Need to investigate:**
+1. What settings routes exist (e.g., `/dashboard/settings/profile`, `/dashboard/settings/workspace`, etc.)
+2. What the current placeholder content shows
+3. What settings should be available for this app
+
+### Expected Settings Pages (Based on App Type)
+
+For a CRM/Tradie/Agent app, typical settings include:
+
+1. **Profile Settings** (`/dashboard/settings/profile`)
+   - User name, email, phone
+   - Profile photo upload
+   - Password change
+   - Notification preferences
+
+2. **Workspace Settings** (`/dashboard/settings/workspace`)
+   - Workspace name
+   - Industry type (already in schema: `industryType: String`)
+   - Time zone
+   - Business hours
+   - Currency settings
+
+3. **Integration Settings** (`/dashboard/settings/integrations`)
+   - Email sync (Gmail/Outlook OAuth — already stubbed in email-actions.ts)
+   - Calendar sync (Google/Outlook — already stubbed in calendar-actions.ts)
+   - Messaging integrations (Twilio for SMS — already in use)
+   - Webhook URLs
+
+4. **Team Settings** (`/dashboard/settings/team`) — Future
+   - Invite team members
+   - Manage roles/permissions
+   - User list
+
+5. **Billing Settings** (`/dashboard/settings/billing`) — Future
+   - Subscription plan
+   - Payment method
+   - Invoice history
+
+### Tasks
+
+#### 24A. Discover existing settings routes and structure
+
+**Action for AI agent:**
+
+1. Run: `find app -type f -path "*/settings/*" -name "*.tsx" | head -20`
+2. Read the main settings layout file (likely `app/dashboard/settings/layout.tsx` or `app/(dashboard)/settings/layout.tsx`)
+3. Read the main settings page (likely `app/dashboard/settings/page.tsx`)
+4. List all subpages found
+
+#### 24B. Implement Profile Settings page
+
+**Create/Update**: `app/dashboard/settings/profile/page.tsx`
+
+**Implement a form with:**
+- User name field (editable)
+- Email field (read-only, from auth)
+- Phone field (optional)
+- Profile photo upload (use existing photo upload logic from job-bottom-sheet.tsx or similar)
+- Save button that calls a new server action `updateUserProfile(userId, data)`
+
+**Server action to create**: `actions/user-actions.ts`
+
+```ts
+"use server"
+
+import { db } from "@/lib/db"
+import { getAuthUserId } from "@/lib/auth"
+import { revalidatePath } from "next/cache"
+
+export async function updateUserProfile(data: {
+    name?: string
+    phone?: string
+    avatar?: string
+}) {
+    const userId = await getAuthUserId()
+
+    await db.user.update({
+        where: { id: userId },
+        data: {
+            name: data.name,
+            // Note: User table in schema doesn't have phone/avatar fields yet
+            // Will need to add these fields to schema first
+        }
+    })
+
+    revalidatePath("/dashboard/settings/profile")
+    return { success: true }
+}
+```
+
+**Note**: Check if User model in `prisma/schema.prisma` has `phone` and `avatar` fields. If not, add them:
+```prisma
+model User {
+    id    String @id @default(cuid())
+    email String @unique
+    name  String
+    phone String? // ADD THIS
+    avatar String? // ADD THIS
+    createdAt DateTime @default(now())
+    // ... rest of fields
+}
+```
+
+Then run `npx prisma db push` to update database.
+
+#### 24C. Implement Workspace Settings page
+
+**Create/Update**: `app/dashboard/settings/workspace/page.tsx`
+
+**Implement a form with:**
+- Workspace name (from workspace.name)
+- Industry type dropdown (TRADIE, AGENT, SALES, GENERAL)
+- Time zone selector
+- Business hours (start/end time)
+- Currency (AUD, USD, etc.)
+- Save button calling `updateWorkspaceSettings(workspaceId, data)`
+
+**Check schema** for workspace fields. Current Workspace model has:
+- `name: String`
+- `industryType: String`
+- `onboardingComplete: Boolean`
+- `settings: Json?`
+
+Store time zone, business hours, currency in the `settings` JSON field.
+
+**Server action** in `actions/workspace-actions.ts`:
+
+```ts
+export async function updateWorkspaceSettings(workspaceId: string, data: {
+    name?: string
+    industryType?: string
+    settings?: {
+        timezone?: string
+        businessHours?: { start: string, end: string }
+        currency?: string
+    }
+}) {
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: {
+            name: data.name,
+            industryType: data.industryType,
+            settings: data.settings ? { ...data.settings } : undefined
+        }
+    })
+
+    revalidatePath("/dashboard/settings/workspace")
+    return { success: true }
+}
+```
+
+#### 24D. Implement Integrations Settings page
+
+**Create/Update**: `app/dashboard/settings/integrations/page.tsx`
+
+**Implement connection cards for:**
+
+1. **Gmail Integration**
+   - Show connection status (connected/not connected)
+   - If not connected: Button that calls `getGmailAuthUrl()` and redirects
+   - If connected: Show connected email, "Disconnect" button, "Sync Now" button
+
+2. **Outlook Integration**
+   - Same as Gmail but using `getOutlookAuthUrl()`
+
+3. **Google Calendar**
+   - Connection status
+   - Connect/Disconnect buttons
+
+4. **Twilio SMS**
+   - Show if Twilio credentials are configured (check env vars)
+   - Field to enter Twilio phone number
+   - Test SMS button
+
+**Use existing server actions**:
+- `getGmailAuthUrl()` from `actions/email-actions.ts`
+- `getOutlookAuthUrl()` from `actions/email-actions.ts`
+- `syncGmail()` and `syncOutlook()` for manual sync buttons
+
+**UI Structure** (example for Gmail):
+
+```tsx
+<Card>
+    <CardHeader>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5" />
+                <div>
+                    <h3 className="font-semibold">Gmail</h3>
+                    <p className="text-xs text-slate-500">Sync emails to contacts</p>
+                </div>
+            </div>
+            {isConnected ? (
+                <Badge className="bg-green-100 text-green-800">Connected</Badge>
+            ) : (
+                <Badge variant="outline">Not Connected</Badge>
+            )}
+        </div>
+    </CardHeader>
+    <CardContent>
+        {isConnected ? (
+            <div className="space-y-2">
+                <p className="text-sm text-slate-600">Syncing: user@gmail.com</p>
+                <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSyncNow}>Sync Now</Button>
+                    <Button size="sm" variant="outline" onClick={handleDisconnect}>Disconnect</Button>
+                </div>
+            </div>
+        ) : (
+            <Button onClick={handleConnect}>Connect Gmail</Button>
+        )}
+    </CardContent>
+</Card>
+```
+
+#### 24E. Add Settings navigation sidebar
+
+**File**: Likely exists as part of settings layout
+
+**Ensure sidebar includes these links:**
+- Profile
+- Workspace
+- Integrations
+- Team (placeholder, "Coming Soon")
+- Billing (placeholder, "Coming Soon")
+
+**Example sidebar component**:
+
+```tsx
+const settingsNavItems = [
+    { label: "Profile", href: "/dashboard/settings/profile", icon: User },
+    { label: "Workspace", href: "/dashboard/settings/workspace", icon: Building },
+    { label: "Integrations", href: "/dashboard/settings/integrations", icon: Zap },
+    { label: "Team", href: "/dashboard/settings/team", icon: Users, disabled: true },
+    { label: "Billing", href: "/dashboard/settings/billing", icon: CreditCard, disabled: true },
+]
+```
+
+---
+
 ## UPDATED EXECUTION ORDER
 
 | Order | Issue | Severity | Effort |
 |-------|-------|----------|--------|
 | 1 | **Issue 10**: Fix 8 TypeScript compile errors | CRITICAL | 15 min |
-| 2 | **Issue 11**: Fix `digest.ts` invalid Prisma relation | HIGH | 5 min |
-| 3 | **Issue 14**: Switch tradie page to use new dashboard client | MEDIUM | 15 min |
-| 4 | **Issue 13**: Use native Prisma fields instead of metadata | MEDIUM | 10 min |
-| 5 | **Issue 9**: Consolidate duplicate actions | MEDIUM | 15 min |
-| 6 | **Issue 12**: Fix material-actions type mismatch | MEDIUM | 10 min |
-| 7-15 | Issues 1-8 from original log | MEDIUM | 3-4 hours |
+| 2 | **Issue 21**: Dashboard card layout broken, Kanban missing | CRITICAL | 20 min |
+| 3 | **Issue 11**: Fix `digest.ts` invalid Prisma relation | HIGH | 5 min |
+| 4 | **Issue 23**: Advanced dashboard activity feed broken navigation | HIGH | 20 min |
+| 5 | **Issue 22**: Tradie Map/Schedule/Estimator 404 errors | HIGH | 25 min |
+| 6 | **Issue 20**: Natural language job parsing | HIGH | ✅ DONE |
+| 7 | **Issue 24**: Settings pages implementation | MEDIUM | 2-3 hours |
+| 8 | **Issue 14**: Switch tradie page to use new dashboard client | MEDIUM | 15 min |
+| 9 | **Issue 13**: Use native Prisma fields instead of metadata | MEDIUM | 10 min |
+| 10 | **Issue 9**: Consolidate duplicate actions | MEDIUM | 15 min |
+| 11 | **Issue 12**: Fix material-actions type mismatch | MEDIUM | 10 min |
+| 12-20 | Issues 1-8 from original log | MEDIUM | 3-4 hours |
