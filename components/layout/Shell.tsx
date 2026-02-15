@@ -4,7 +4,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 import { useShellStore } from "@/lib/store"
-import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
@@ -94,7 +93,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
             {/* ID for Spotlight */}
             <div id="assistant-pane" className="h-full w-full">
-              {chatbot || <AssistantPane />}
+              {chatbot}
             </div>
           </div>
         </div>
@@ -128,7 +127,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               className="hidden md:block transition-all duration-300 ease-in-out pl-2"
             >
               <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
-                {chatbot || <AssistantPane />}
+                {chatbot}
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
