@@ -8,6 +8,81 @@ import { cn } from '@/lib/utils';
 import { processChat, getChatHistory } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import { format, isToday, isYesterday } from 'date-fns';
+import { Input } from '@/components/ui/input';
+
+/** Editable draft card for natural-language job entries */
+function JobDraftCard({ data, onConfirm, onCancel }: {
+  data: any;
+  onConfirm: (edited: any) => void;
+  onCancel: () => void;
+}) {
+  const [firstName, setFirstName] = useState(data.firstName || '');
+  const [lastName, setLastName] = useState(data.lastName || '');
+  const [workDescription, setWorkDescription] = useState(data.workDescription || '');
+  const [price, setPrice] = useState(data.price || '0');
+  const [schedule, setSchedule] = useState(data.schedule || '');
+  const [address, setAddress] = useState(data.address || '');
+  const category = data.workCategory || 'General';
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/50">
+      <div className="bg-emerald-100/60 px-4 py-2 border-b border-emerald-200 flex justify-between items-center">
+        <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          New Job Entry
+        </span>
+        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300">{category}</span>
+      </div>
+      <div className="p-4 space-y-3 bg-white">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">First Name</label>
+            <Input className="h-7 text-xs" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">Last Name</label>
+            <Input className="h-7 text-xs" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="(optional)" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">Work Description</label>
+          <Input className="h-7 text-xs" value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">Quoted ($)</label>
+            <Input className="h-7 text-xs" value={price} onChange={(e) => setPrice(e.target.value)} type="text" inputMode="numeric" />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">Schedule</label>
+            <Input className="h-7 text-xs" value={schedule} onChange={(e) => setSchedule(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5 block">Address</label>
+          <Input className="h-7 text-xs" value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+      </div>
+      <div className="p-2 bg-emerald-50 border-t border-emerald-200 flex gap-2">
+        <button
+          onClick={onCancel}
+          className="flex-1 px-3 bg-white border border-slate-200 text-slate-600 text-xs py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+        >
+          <X className="w-3 h-3" /> Cancel
+        </button>
+        <button
+          onClick={() => onConfirm({
+            clientName: `${firstName}${lastName ? ' ' + lastName : ''}`,
+            firstName, lastName, workDescription, price, schedule, address, workCategory: category,
+          })}
+          className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <Check className="w-3.5 h-3.5" /> Create Job
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface Message {
   id: string;
@@ -194,14 +269,42 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   };
 
   const handleConfirmDeal = (dealData: any) => {
-     // Construct a natural language command to confirm creation
-     // We assume the backend handles this if we just say "Confirm create deal [title]" or similar.
-     // For now, let's just trigger a toast simulation for the "Draft" flow requested in C-2
-     // The prompt asked for "Generative UI: return structured Draft Deal card".
-     // This UI below IS the draft card. Now we need to actually submit it.
-
-     // We'll simulate the "Yes, create it" response
      handleSend(`Yes, please create the deal: ${dealData.title}`);
+  };
+
+  const handleConfirmJobNatural = async (jobData: any) => {
+    // Send confirmation with all edited fields as override params
+    const textToSend = `Create job for ${jobData.clientName}`;
+    const overrideParams = {
+      intent: 'create_job_natural',
+      confirmed: 'true',
+      ...jobData,
+    };
+
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      text: textToSend,
+      createdAt: new Date().toISOString(),
+    }]);
+    setIsLoading(true);
+
+    try {
+      const response = await processChat(textToSend, workspaceId, overrideParams);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'bot' as const,
+        text: response.message,
+        action: response.action,
+        data: response.data,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch (error) {
+      console.error('Job confirm error:', error);
+      toast.error('Failed to create job');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -248,7 +351,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                         )}>
                           <div className="whitespace-pre-wrap">{msg.text}</div>
 
-                          {/* Generative UI: Draft Deal Card (C-2) */}
+                          {/* Generative UI: Draft Deal Card */}
                           {msg.action === 'draft_deal' && msg.data && (
                             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/50">
                                 <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
@@ -287,6 +390,22 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                                     </button>
                                 </div>
                             </div>
+                          )}
+
+                          {/* Generative UI: Editable Job Draft Card */}
+                          {msg.action === 'draft_job_natural' && msg.data && (
+                            <JobDraftCard
+                              data={msg.data}
+                              onConfirm={(edited) => handleConfirmJobNatural(edited)}
+                              onCancel={() => {
+                                setMessages(prev => [...prev, {
+                                  id: Date.now().toString(),
+                                  role: 'bot',
+                                  text: 'Job entry cancelled.',
+                                  createdAt: new Date().toISOString(),
+                                }]);
+                              }}
+                            />
                           )}
                         </div>
 
