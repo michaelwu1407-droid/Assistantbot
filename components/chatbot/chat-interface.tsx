@@ -25,7 +25,7 @@ function JobDraftCard({ data, onConfirm, onCancel }: {
   const category = data.workCategory || 'General';
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/50">
+    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/50">
       <div className="bg-emerald-100/60 px-4 py-2 border-b border-emerald-200 flex justify-between items-center">
         <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -195,8 +195,13 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   }, [workspaceId]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (el) {
+      // Immediate scroll
+      el.scrollTop = el.scrollHeight;
+      // Delayed scroll to catch cards that render after paint
+      const t = setTimeout(() => { el.scrollTop = el.scrollHeight; }, 100);
+      return () => clearTimeout(t);
     }
   }, [messages, isLoading]);
 
@@ -314,7 +319,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     )}>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 pb-8 space-y-6 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 pb-24 space-y-6 scroll-smooth">
         {Object.entries(groupedMessages).map(([dateKey, msgs]) => (
             <div key={dateKey} className="space-y-6">
                 <div className="flex items-center justify-center my-6">
@@ -438,7 +443,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
 
       {/* Input Area */}
       <div className={cn(
-          "p-4 bg-white/80 backdrop-blur-md border-t border-slate-200",
+          "flex-shrink-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 relative z-10",
           viewMode === 'BASIC' ? "pb-8" : "pb-4"
       )}>
         <div className="relative flex items-center max-w-4xl mx-auto w-full shadow-sm rounded-full bg-slate-100 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all duration-200 border border-transparent focus-within:border-indigo-200">
