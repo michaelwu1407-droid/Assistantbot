@@ -1,2 +1,0 @@
-app/dashboard/estimator/page.tsx(43,14): error TS2741: Property 'workspaceId' is missing in type '{ deals: DealView[]; }' but required in type 'EstimatorFormProps'.
-app/dashboard/tradie/page.tsx(39,7): error TS2739: Type 'DealView' is missing the following properties from type 'TradieJob': clientName, status, scheduledAt, description, safetyCheckCompleted

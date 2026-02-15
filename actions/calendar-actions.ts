@@ -192,11 +192,12 @@ export async function syncOutlookCalendar(
 
 /**
  * Create a calendar event from a CRM task.
- * Returns the event creation payload (stub — doesn't actually call API).
+ * Posts to the appropriate calendar provider using workspace OAuth tokens.
  */
 export async function createCalendarEvent(
   taskId: string,
-  _provider: "google" | "outlook" = "google"
+  workspaceId: string,
+  provider: "google" | "outlook" = "google"
 ): Promise<{
   success: boolean;
   event?: CalendarEvent;
@@ -218,6 +219,16 @@ export async function createCalendarEvent(
     return { success: false, error: "Task has no due date" };
   }
 
+  // Retrieve OAuth token from workspace settings
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
+  const settings = workspace?.settings as Record<string, string> | null;
+  const tokenKey = provider === "google" ? "google_access_token" : "outlook_access_token";
+  const accessToken = settings?.[tokenKey];
+
+  if (!accessToken) {
+    return { success: false, error: `${provider === "google" ? "Google" : "Outlook"} Calendar not connected. Please connect in Settings.` };
+  }
+
   const event: CalendarEvent = {
     id: `evt_${task.id}`,
     title: task.title,
@@ -233,12 +244,8 @@ export async function createCalendarEvent(
       .join("\n"),
   };
 
-  // 2. Post to external calendar API
   try {
-    if (_provider === 'google') {
-      // Check for token (in real app, fetched from DB)
-      const accessToken = "placeholder_token";
-
+    if (provider === 'google') {
       const googleEvent = {
         summary: event.title,
         description: event.description,
@@ -261,11 +268,8 @@ export async function createCalendarEvent(
 
       if (!res.ok) throw new Error(`Google API error: ${res.statusText}`);
       const data = await res.json();
-      event.id = data.id || event.id; // Update ID if successful
-    }
-    else if (_provider === 'outlook') {
-      const accessToken = "placeholder_token";
-
+      event.id = data.id || event.id;
+    } else {
       const outlookEvent = {
         subject: event.title,
         body: { contentType: "text", content: event.description },
@@ -292,8 +296,6 @@ export async function createCalendarEvent(
     }
   } catch (error) {
     console.error("Failed to create external calendar event:", error);
-    // We still return success:true for the database task creation, but maybe note the sync failure?
-    // For now, let's return error.
     return { success: false, error: error instanceof Error ? error.message : "External sync failed" };
   }
 

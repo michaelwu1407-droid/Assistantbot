@@ -88,11 +88,14 @@ export async function syncGmail(
       });
 
       if (contact) {
-        // Check if activity already exists to avoid dupes (simple check by title/date range roughly)
-        // For matching, we might normally store the external IDs. 
-        // Here we just create it for the demo logic.
-
-        [{ "AllowMultiple": false, "EndLine": 103, "ReplacementContent": "            await db.activity.create({\n                data: {\n                    type: \"EMAIL\",\n                    title: subject,\n                    content: `From: ${fromHeader}\\n\\n${snippet}`,\n                    contactId: contact.id\n                }\n            });", "StartLine": 94, "TargetContent": "        await db.activity.create({\n          data: {\n            type: \"EMAIL\",\n            title: subject,\n            content: `From: ${fromHeader}\\n\\n${snippet}`,\n            contactId: contact.id,\n            workspaceId\n          }\n        });" }, { "AllowMultiple": false, "EndLine": 172, "ReplacementContent": "            await db.activity.create({\n                data: {\n                    type: \"EMAIL\",\n                    title: msg.subject || \"No Subject\",\n                    content: `From: ${msg.from.emailAddress.name} <${senderEmail}>\\n\\n${msg.bodyPreview}`,\n                    contactId: contact.id\n                }\n            });", "StartLine": 163, "TargetContent": "            await db.activity.create({\n                data: {\n                    type: \"EMAIL\",\n                    title: msg.subject || \"No Subject\",\n                    content: `From: ${msg.from.emailAddress.name} <${senderEmail}>\\n\\n${msg.bodyPreview}`,\n                    contactId: contact.id,\n                    workspaceId\n                }\n            });" }]
+        await db.activity.create({
+          data: {
+            type: "EMAIL",
+            title: subject,
+            content: `From: ${fromHeader}\n\n${snippet}`,
+            contactId: contact.id,
+          }
+        });
         activitiesCreated++;
       }
       synced++;

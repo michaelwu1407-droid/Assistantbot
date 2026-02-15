@@ -30,6 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# build logs / dev artifacts
+build_*.log
+build_*.txt
+tsc_*.log
+tsc_*.txt
+lint_errors.txt
+
 # env files
 .env
 .env.local

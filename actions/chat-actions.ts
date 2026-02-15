@@ -9,6 +9,15 @@ import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
+import {
+  titleCase,
+  categoriseWork,
+  resolveSchedule,
+  enrichAddress,
+  WORK_CATEGORIES,
+  STREET_ABBREVS,
+  DAY_ABBREVS,
+} from "@/lib/chat-utils";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -102,7 +111,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (shorthandJobMatch) {
     const [, clientName, timeOrDay, workDesc, price, address] = shorthandJobMatch;
 
-    let extractedPrice = price?.replace(/,/g, "") || "0";
+    let extractedPrice = price?.replace(/,/g, "") || "";
     let extractedWorkDesc = workDesc.trim();
     let extractedAddress = address?.trim() || "";
 
@@ -118,7 +127,23 @@ function parseCommandRegex(message: string): ParsedCommand {
     // Clean trailing periods from work description
     extractedWorkDesc = extractedWorkDesc.replace(/\.\s*$/, '').trim();
 
-    // If description contains street-like patterns, treat as address
+    // When the regex optional groups didn't fire, price/address get swallowed into workDesc.
+    // Try to extract a numeric price and a street address from the work description.
+    if (!extractedPrice) {
+      const priceInDesc = extractedWorkDesc.match(/\b(\d+(?:,\d{3})*(?:\.\d{2})?)\b/);
+      if (priceInDesc && priceInDesc.index != null) {
+        const beforePrice = extractedWorkDesc.substring(0, priceInDesc.index).replace(/\.\s*$/, '').trim();
+        const afterPrice = extractedWorkDesc.substring(priceInDesc.index + priceInDesc[0].length).trim();
+        // Only treat as price if there's descriptive text before the number
+        if (beforePrice.length >= 2) {
+          extractedPrice = priceInDesc[1].replace(/,/g, '');
+          extractedWorkDesc = beforePrice;
+          if (afterPrice) extractedAddress = afterPrice;
+        }
+      }
+    }
+
+    // If description still contains street-like patterns, split it out as address
     if (!extractedAddress && extractedWorkDesc.match(/\d+\s+\w+\s+(st|street|ave|avenue|road|rd|blvd|drive|dr|lane|ln|court|ct|place|pl|circle|terrace|tce|way|crescent|cres)\b/i)) {
       extractedAddress = extractedWorkDesc;
       extractedWorkDesc = "General service/repair";
@@ -133,7 +158,7 @@ function parseCommandRegex(message: string): ParsedCommand {
         clientName: clientName.trim(),
         address: extractedAddress,
         workDescription: extractedWorkDesc,
-        price: extractedPrice,
+        price: extractedPrice || "0",
         schedule,
         urgency: isUrgent ? "high" : "normal"
       }
@@ -803,16 +828,28 @@ export async function processChat(
       const { clientName, address, workDescription, price, schedule } = params;
 
       if (params.confirmed !== "true") {
-        // Show draft with all extracted details for confirmation
+        // Enrich the raw parsed data before showing draft
+        const nameParts = titleCase(clientName).split(/\s+/);
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+        const category = categoriseWork(workDescription);
+        const enrichedAddress = enrichAddress(address);
+        const resolved = resolveSchedule(schedule);
+
         response = {
-          message: `I've extracted these details from your message. Please confirm:`,
+          message: `Here's what I got — edit anything before confirming:`,
           action: "draft_job_natural",
           data: {
-            clientName,
-            address,
-            workDescription,
+            firstName,
+            lastName,
+            clientName: `${firstName}${lastName ? " " + lastName : ""}`,
+            address: enrichedAddress,
+            workDescription: titleCase(workDescription),
+            workCategory: category,
             price,
-            schedule,
+            schedule: resolved.display,
+            scheduleISO: resolved.iso,
+            rawSchedule: schedule,
           }
         };
         break;
@@ -1195,7 +1232,9 @@ export async function processChat(
         role: "assistant",
         content: response.message,
         workspaceId,
-        metadata: response.data ? JSON.parse(JSON.stringify(response.data)) : undefined,
+        metadata: (response.action || response.data)
+          ? JSON.parse(JSON.stringify({ action: response.action, data: response.data }))
+          : undefined,
       },
     });
   } catch {
@@ -1217,5 +1256,20 @@ export async function getChatHistory(workspaceId: string, limit = 50) {
     });
   } catch {
     return [];
+  }
+}
+
+/**
+ * Clear chat history for a workspace.
+ */
+export async function clearChatHistoryAction(workspaceId: string) {
+  try {
+    await db.chatMessage.deleteMany({
+      where: { workspaceId },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to clear chat history:", error);
+    return { success: false };
   }
 }

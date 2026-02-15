@@ -1,4 +1,5 @@
 import { getNextJob, getTodaySchedule, getTradieJobs } from "@/actions/tradie-actions"
+import { getFinancialStats } from "@/actions/dashboard-actions"
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
@@ -10,10 +11,11 @@ export default async function TradiePage() {
     const userId = await getAuthUserId()
     const workspace = await getOrCreateWorkspace(userId)
 
-    const [jobs, nextJob, todayJobs] = await Promise.all([
+    const [jobs, nextJob, todayJobs, financialStats] = await Promise.all([
         getTradieJobs(workspace.id),
         getNextJob(workspace.id),
         getTodaySchedule(workspace.id),
+        getFinancialStats(workspace.id),
     ])
 
     const initialJob = nextJob ? {
@@ -47,7 +49,7 @@ export default async function TradiePage() {
             initialJob={initialJob}
             todayJobs={todayJobs}
             userName={user?.name || "Mate"}
-        // financialStats={...} // TODO: Implement stats fetching
+            financialStats={financialStats}
         />
     )
 }

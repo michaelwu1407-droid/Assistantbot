@@ -107,8 +107,8 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
       <PulseWidget
         className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
         mode="tradie"
-      // PulseWidget might not accept these props in current implementation - checking source would be ideal
-      // keeping them for now if valid, or removing if causing ts error
+        weeklyRevenue={financialStats?.weeklyRevenue}
+        outstandingDebt={financialStats?.outstandingDebt}
       />
 
       {/* Today's Job Count Indicator */}
