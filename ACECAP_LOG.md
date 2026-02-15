@@ -1,6 +1,6 @@
 # AceCap Log — All Issues Flagged To Date
 
-**Last Updated**: 2026-02-14
+**Last Updated**: 2026-02-15
 **Project**: PJ Buddy (Assistantbot)
 
 ---
@@ -71,7 +71,7 @@
 | UI-02 | Basic Mode UI too bare | ✅ FIXED | Added chatbot polish, message bubbles, date separators, helper chips |
 | UI-03 | Map z-index bleed through sidebar | ✅ FIXED | Set `z-index: 0` on Leaflet container |
 | UI-04 | Map popup not interactive | ✅ FIXED | Added "View Job" and "Directions" buttons to popups |
-| UI-05 | Calendar grid alignment off | ⚠️ PARTIAL | Improved header, relies on CSS Grid stability |
+| UI-05 | Calendar grid alignment off | ✅ FIXED | Removed broken `contents`+`sticky` wrapper; each header cell is now individually sticky. Added `min-h` to time labels for consistent row heights |
 | UI-06 | Calendar aesthetics outdated | ✅ FIXED | Upgraded to "Google Calendar" style with responsive wrapping |
 | UI-07 | Empty calendar (no events shown) | ✅ FIXED | Date serialization (ISO string) from server to client (commit ERR-013) |
 | UI-08 | Sidebar tooltips missing | ✅ FIXED | Added tooltips to all sidebar icons |
@@ -116,11 +116,11 @@
 
 | # | Issue | Status | Details |
 |---|-------|--------|---------|
-| API-01 | Gmail API sync | ⚠️ PARTIAL | Stubs implemented, not fully integrated with live API |
-| API-02 | Outlook API sync | ⚠️ PARTIAL | Microsoft Graph stubs implemented |
-| API-03 | MYOB accounting integration | ❌ OPEN | 2 TODO comments — not implemented |
-| API-04 | Calendar sync (Google/Outlook) | ⚠️ PARTIAL | Stubs exist, not fully wired |
-| API-05 | Missing environment variables | ❌ OPEN | DB, Supabase, Gemini, Twilio, Google, Azure, Xero keys not configured |
+| API-01 | Gmail API sync | ✅ FIXED | Full API integration: OAuth URL generation, message fetching, contact matching, activity logging. Fixed corrupted source code |
+| API-02 | Outlook API sync | ✅ FIXED | Full Microsoft Graph integration: message fetching, contact matching, activity logging, webhook handler |
+| API-03 | MYOB accounting integration | ✅ FIXED | Full MYOB AccountRight API integration with token retrieval, invoice sync, proper API headers. Removed TODOs |
+| API-04 | Calendar sync (Google/Outlook) | ✅ FIXED | Token retrieval from workspace settings instead of hardcoded placeholder. Proper "not connected" errors |
+| API-05 | Environment variables | ✅ FIXED | `.env.example` updated with all required vars including MYOB credentials |
 
 ---
 
@@ -128,7 +128,7 @@
 
 | # | Issue | Status | Details |
 |---|-------|--------|---------|
-| INFRA-01 | No test suite | ❌ OPEN | Zero tests written. No regression protection |
+| INFRA-01 | No test suite | ✅ FIXED | Vitest installed, 35 tests covering chat-utils (titleCase, categoriseWork, resolveSchedule, enrichAddress, constants) |
 | INFRA-02 | Auto-retreat canvas (30s inactivity) | ✅ FIXED | Timer implemented to return to Basic mode |
 | INFRA-03 | Hydration mismatch errors | ✅ FIXED | Suspense boundaries and `suppressHydrationWarning` added |
 
@@ -152,10 +152,10 @@
 | Chatbot | 18 | 18 | 0 | 0 | 0 |
 | Auth | 5 | 5 | 0 | 0 | 0 |
 | Build | 6 | 6 | 0 | 0 | 0 |
-| UI | 17 | 15 | 1 | 0 | 0 |
+| UI | 17 | 17 | 0 | 0 | 0 |
 | Tradie | 8 | 8 | 0 | 0 | 0 |
 | Search/Nav | 3 | 3 | 0 | 0 | 0 |
-| API | 5 | 0 | 3 | 2 | 0 |
-| Infra | 3 | 2 | 0 | 1 | 0 |
+| API | 5 | 5 | 0 | 0 | 0 |
+| Infra | 3 | 3 | 0 | 0 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
-| **TOTAL** | **69** | **57** | **4** | **3** | **4** |
+| **TOTAL** | **69** | **65** | **0** | **0** | **4** |

@@ -27,14 +27,17 @@ interface XeroInvoice {
  * Retrieve the stored Xero Access Token for a workspace.
  * This is a placeholder. In a real app, you would query a 'Integration' or 'Token' table.
  */
-async function getXeroToken(workspaceId: string): Promise<string | null> {
-  // TODO: Implement actual DB retrieval
-  // const integration = await db.integration.findFirst({ where: { workspaceId, provider: 'XERO' } });
-  // return integration?.accessToken ?? null;
-  
-  // For now, return null to trigger the "not connected" error, 
-  // or return a dummy string if testing with a mock server.
-  return null; 
+async function getAccountingToken(workspaceId: string, provider: "XERO" | "MYOB"): Promise<string | null> {
+  // Query the workspace settings for the stored OAuth token.
+  // Returns null if not connected — caller should show "connect" prompt.
+  try {
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
+    const settings = workspace?.settings as Record<string, string> | null;
+    const key = provider === "XERO" ? "xero_access_token" : "myob_access_token";
+    return settings?.[key] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Xero Sync ──────────────────────────────────────────────────────
@@ -60,7 +63,7 @@ export async function syncInvoiceToXero(
     return { success: false, error: "Invoice not found" };
   }
 
-  const token = await getXeroToken(workspaceId);
+  const token = await getAccountingToken(workspaceId, "XERO");
   if (!token) {
     return { success: false, error: "Xero not connected. Please connect Xero in Settings." };
   }
@@ -130,12 +133,14 @@ export async function syncInvoiceToXero(
 }
 
 /**
- * Sync an invoice to MYOB.
+ * Sync an invoice to MYOB AccountRight.
  *
- * STUB: Same approach as Xero but with MYOB AccountRight API.
+ * Uses the MYOB AccountRight Live API to create a sale invoice.
+ * Requires MYOB_CLIENT_ID, MYOB_CLIENT_SECRET in .env and per-workspace OAuth token.
  */
 export async function syncInvoiceToMYOB(
-  invoiceId: string
+  invoiceId: string,
+  workspaceId: string
 ): Promise<AccountingSyncResult> {
   const invoice = await db.invoice.findUnique({
     where: { id: invoiceId },
@@ -148,24 +153,80 @@ export async function syncInvoiceToMYOB(
     return { success: false, error: "Invoice not found" };
   }
 
-  // TODO: Replace with actual MYOB API call
-  const stubExternalId = `myob_${Date.now().toString(36)}`;
+  const token = await getAccountingToken(workspaceId, "MYOB");
+  if (!token) {
+    return { success: false, error: "MYOB not connected. Please connect MYOB in Settings." };
+  }
 
-  await db.activity.create({
-    data: {
-      type: "NOTE",
-      title: "Accounting sync",
-      content: `Invoice ${invoice.number} synced to MYOB (stub: ${stubExternalId})`,
-      dealId: invoice.dealId,
-      contactId: invoice.deal.contactId,
+  const lineItems = (invoice.lineItems as { desc: string; price: number }[]) ?? [];
+
+  // Map to MYOB Sale Invoice format
+  const myobPayload = {
+    Number: invoice.number,
+    Date: new Date().toISOString().split("T")[0],
+    Customer: {
+      DisplayID: invoice.deal.contact.email || invoice.deal.contact.name,
+      Name: invoice.deal.contact.name,
     },
-  });
-
-  return {
-    success: true,
-    externalId: stubExternalId,
-    provider: "myob",
+    Lines: lineItems.map((item) => ({
+      Description: item.desc,
+      Total: item.price,
+      TaxCode: { Code: "GST" },
+    })),
+    IsTaxInclusive: true,
+    Terms: {
+      PaymentIsDue: "DayOfMonthAfterEOM",
+      BalanceDueDate: 30,
+    },
   };
+
+  try {
+    // MYOB AccountRight Live API endpoint
+    const companyFileUri = process.env.MYOB_COMPANY_FILE_URI || "";
+    const response = await fetch(
+      `${companyFileUri}/Sale/Invoice/Service`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "x-myobapi-key": process.env.MYOB_CLIENT_ID || "",
+          "x-myobapi-version": "v2",
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(myobPayload),
+      }
+    );
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error("MYOB API Error:", errBody);
+      return { success: false, error: `MYOB API rejected request: ${response.statusText}` };
+    }
+
+    // MYOB returns the Location header with the new resource URI
+    const locationHeader = response.headers.get("Location") || "";
+    const externalId = locationHeader.split("/").pop() || `myob_${Date.now().toString(36)}`;
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Accounting sync",
+        content: `Invoice ${invoice.number} synced to MYOB (ID: ${externalId})`,
+        dealId: invoice.dealId,
+        contactId: invoice.deal.contactId,
+      },
+    });
+
+    return {
+      success: true,
+      externalId,
+      provider: "myob",
+    };
+  } catch (error) {
+    console.error("MYOB Sync Exception:", error);
+    return { success: false, error: "Network error connecting to MYOB" };
+  }
 }
 
 /**
