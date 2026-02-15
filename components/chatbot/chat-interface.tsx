@@ -319,7 +319,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     )}>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 pb-24 space-y-6 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 pb-4 space-y-4 sm:space-y-6 scroll-smooth">
         {Object.entries(groupedMessages).map(([dateKey, msgs]) => (
             <div key={dateKey} className="space-y-6">
                 <div className="flex items-center justify-center my-6">
@@ -332,19 +332,19 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex gap-4 group animate-in slide-in-from-bottom-2 duration-300",
-                      msg.role === 'user' ? "ml-auto flex-row-reverse max-w-[85%]" : "",
-                      msg.role !== 'user' && (msg.action === 'draft_job_natural' || msg.action === 'draft_deal') ? "max-w-[95%]" : msg.role !== 'user' ? "max-w-[85%]" : ""
+                      "flex gap-2 sm:gap-4 group animate-in slide-in-from-bottom-2 duration-300",
+                      msg.role === 'user' ? "ml-auto flex-row-reverse max-w-[95%] sm:max-w-[85%]" : "",
+                      msg.role !== 'user' && (msg.action === 'draft_job_natural' || msg.action === 'draft_deal') ? "max-w-full sm:max-w-[95%]" : msg.role !== 'user' ? "max-w-[95%] sm:max-w-[85%]" : ""
                     )}
                   >
                     <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white",
+                      "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white",
                       msg.role === 'user' ? "bg-slate-800" : "bg-indigo-600"
                     )}>
                       {msg.role === 'user' ? (
-                          <User className="w-4 h-4 text-white" />
+                          <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       ) : (
-                          <Sparkles className="w-4 h-4 text-white" />
+                          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       )}
                     </div>
 
@@ -443,10 +443,10 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
 
       {/* Input Area */}
       <div className={cn(
-          "flex-shrink-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 relative z-10",
-          viewMode === 'BASIC' ? "pb-8" : "pb-4"
+          "flex-shrink-0 p-3 sm:p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 relative z-10",
+          viewMode === 'BASIC' ? "pb-[env(safe-area-inset-bottom,0.5rem)]" : "pb-3 sm:pb-4"
       )}>
-        <div className="relative flex items-center max-w-4xl mx-auto w-full shadow-sm rounded-full bg-slate-100 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all duration-200 border border-transparent focus-within:border-indigo-200">
+        <div className="relative flex items-center max-w-full sm:max-w-2xl lg:max-w-4xl mx-auto w-full shadow-sm rounded-full bg-slate-100 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all duration-200 border border-transparent focus-within:border-indigo-200">
             <button
               onClick={toggleListening}
               className={cn(

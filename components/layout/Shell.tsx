@@ -72,7 +72,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       <TutorialOverlay />
 
       {isBasicView ? (
-        <div className="flex-1 flex items-center justify-center p-4 md:p-6 relative">
+        <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative">
           {/* Decorative Background for Basic Mode - Only in Premium */}
           {theme === 'premium' && (
             <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
@@ -91,7 +91,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </button>
 
           {/* Main Chat Container - Large & Immersive */}
-          <div className="z-10 w-full max-w-4xl h-full md:h-[92vh] shadow-2xl rounded-2xl overflow-hidden border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
+          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
             {/* ID for Spotlight */}
             <div id="assistant-pane" className="h-full w-full">
               {chatbot || <AssistantPane />}

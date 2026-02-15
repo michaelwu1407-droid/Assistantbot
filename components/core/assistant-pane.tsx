@@ -342,8 +342,6 @@ export function AssistantPane() {
             id="assistant-pane"
             className={cn(
                 "flex h-full flex-col bg-background transition-all duration-500 ease-in-out relative overflow-hidden",
-                // In Basic view, we want a centered, floating card look if in premium mode
-                viewMode === "BASIC" && "md:max-w-3xl md:mx-auto md:h-[85vh] md:rounded-2xl md:shadow-2xl md:border",
                 // Glass effect for premium basic mode
                 viewMode === "BASIC" && "supports-[backdrop-filter]:bg-background/80 backdrop-blur-xl"
             )}
@@ -437,7 +435,7 @@ export function AssistantPane() {
                                     msg.role === "user" ? "justify-end" : "justify-start"
                                 )}>
                                     <div className={cn(
-                                        "rounded-2xl px-4 py-3 max-w-[85%] text-sm shadow-sm",
+                                        "rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 max-w-[92%] sm:max-w-[85%] lg:max-w-[75%] text-sm shadow-sm",
                                         msg.role === "user"
                                             ? "bg-primary text-primary-foreground rounded-br-none"
                                             : "bg-card text-card-foreground border border-border/50 rounded-bl-none"
@@ -536,7 +534,7 @@ export function AssistantPane() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t bg-background rounded-b-2xl z-10">
+            <div className="p-3 sm:p-4 border-t bg-background rounded-b-2xl z-10 flex-shrink-0">
                 <div className="flex gap-2 relative">
                     <Button
                         id="voice-btn"
