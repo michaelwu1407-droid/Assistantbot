@@ -29,21 +29,12 @@ export default async function DashboardPage() {
 
     if (dbError || !workspace || !deals) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <div className="text-center max-w-md space-y-4">
-                    <h2 className="text-2xl font-bold text-slate-900">Database Not Initialized</h2>
-                    <p className="text-slate-500">
-                        The database tables have not been created yet. Run these commands with your Supabase DIRECT_URL:
-                    </p>
-                    <pre className="bg-slate-100 text-slate-800 p-4 rounded-lg text-left text-sm overflow-x-auto">
-                        {`DATABASE_URL="your-direct-url" \\
-  npx prisma@6 db push
-
-DATABASE_URL="your-direct-url" \\
-  npx prisma@6 db seed`}
-                    </pre>
-                    <p className="text-xs text-slate-400">
-                        Use the DIRECT_URL (port 5432), not the pooler URL.
+            <div className="h-full flex flex-col items-center justify-center p-8 gap-4">
+                <div className="max-w-sm w-full rounded-xl border border-amber-200 bg-amber-50 p-5 text-center space-y-2">
+                    <h3 className="text-sm font-semibold text-amber-800">Database connection unavailable</h3>
+                    <p className="text-xs text-amber-600">
+                        CRM features (deals, contacts, kanban) need a database connection.
+                        The chatbot is still available in the sidebar.
                     </p>
                 </div>
             </div>
