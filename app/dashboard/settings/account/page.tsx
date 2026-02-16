@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator"
-import { ProfileForm } from "@/components/dashboard/profile-form"
+import { AccountForm } from "@/components/dashboard/account-form"
 import { getAuthUserId } from "@/lib/auth"
 import { getUserProfile } from "@/actions/user-actions"
 
@@ -14,18 +14,13 @@ export default async function AccountSettingsPage() {
             <div>
                 <h3 className="text-lg font-medium">Account</h3>
                 <p className="text-sm text-muted-foreground">
-                    Update your account settings. Set your preferred language and timezone.
+                    Manage your account security and preferences.
                 </p>
             </div>
             <Separator />
-            <ProfileForm 
+            <AccountForm 
                 userId={userId}
-                initialData={profile ? {
-                    username: profile.username,
-                    email: profile.email,
-                    bio: profile.bio || undefined,
-                    urls: profile.urls
-                } : undefined}
+                email={profile?.email}
             />
         </div>
     )
