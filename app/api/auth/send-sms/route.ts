@@ -4,6 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 const MESSAGEBIRD_API_KEY = process.env.MESSAGEBIRD_API_KEY;
 const MESSAGEBIRD_API_URL = 'https://rest.messagebird.com/messages';
 
+// Type for verification codes
+interface VerificationCode {
+  phone: string;
+  code: string;
+  timestamp: number;
+  expires: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber, countryCode } = await request.json();
@@ -18,21 +26,20 @@ export async function POST(request: NextRequest) {
     // Generate 6-digit verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store code temporarily (in production, use Redis or database)
-    // For demo purposes, we'll use in-memory storage
-    const codeData = {
+    // Store code temporarily (use Redis/DB in production)
+    const codeData: VerificationCode = {
       phone: phoneNumber,
       code: verificationCode,
       timestamp: Date.now(),
       expires: Date.now() + 10 * 60 * 1000 // 10 minutes
     };
 
-    // Store in a temporary storage (you should use Redis/DB in production)
-    global.verificationCodes = global.verificationCodes || [];
-    global.verificationCodes = global.verificationCodes.filter(
-      (code: any) => code.expires > Date.now()
+    // Store in global storage
+    (globalThis as any).verificationCodes = (globalThis as any).verificationCodes || [];
+    (globalThis as any).verificationCodes = (globalThis as any).verificationCodes.filter(
+      (code: VerificationCode) => code.expires > Date.now()
     );
-    global.verificationCodes.push(codeData);
+    (globalThis as any).verificationCodes.push(codeData);
 
     // Send SMS via MessageBird
     const messagePayload = {

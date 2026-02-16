@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { phoneNumber, code } = await request.json();
 
     // Get stored verification codes
-    const verificationCodes: VerificationCode[] = (global as any).verificationCodes || [];
+    const verificationCodes: VerificationCode[] = (globalThis as any).verificationCodes || [];
     
     // Find matching code
     const matchingCode = verificationCodes.find(
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove used code
-    (global as any).verificationCodes = verificationCodes.filter(
+    (globalThis as any).verificationCodes = verificationCodes.filter(
       (vc: VerificationCode) => vc !== matchingCode
     );
 
