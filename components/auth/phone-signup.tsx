@@ -34,6 +34,7 @@ export function PhoneSignUp() {
                 dividerLine: "hidden",
                 formButtonPrimary: "w-full",
                 formFieldInput: "w-full",
+                formEmailRow: "hidden",
               },
             }}
           />
