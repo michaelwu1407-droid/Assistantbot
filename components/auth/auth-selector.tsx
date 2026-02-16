@@ -50,7 +50,17 @@ export function AuthSelector() {
     } else if (data.user && data.user.identities && data.user.identities.length === 0) {
       setMessage("An account with this email already exists. Please sign in instead.");
     } else {
-      setMessage("Account created! You can now sign in.");
+      // Auto sign in after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        setMessage("Account created! Please sign in with your credentials.");
+      } else {
+        router.push("/setup");
+        router.refresh();
+      }
     }
     setLoading(false);
   };
