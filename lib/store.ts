@@ -18,27 +18,33 @@ interface ShellState {
   setMobileMenuOpen: (open: boolean) => void
 }
 
-// Check localStorage for persisted tutorial state (client-side only)
-const getPersistedTutorialComplete = (): boolean => {
-  if (typeof window === 'undefined') return false
+// Check localStorage for persisted state (client-side only)
+const getPersistedValue = (key: string, defaultValue: any): any => {
+  if (typeof window === 'undefined') return defaultValue
   try {
-    return localStorage.getItem('pj_tutorial_complete') === 'true'
+    const value = localStorage.getItem(key)
+    return value !== null ? value : defaultValue
   } catch {
-    return false
+    return defaultValue
   }
 }
 
 export const useShellStore = create<ShellState>((set) => ({
-  viewMode: 'BASIC',
-  persona: 'TRADIE',
-  tutorialComplete: getPersistedTutorialComplete(),
+  viewMode: getPersistedValue('pj_view_mode', 'BASIC') as ViewMode,
+  persona: getPersistedValue('pj_persona', 'TRADIE') as Persona,
+  tutorialComplete: getPersistedValue('pj_tutorial_complete', 'false') === 'true',
   workspaceId: null,
   userId: null,
   mobileMenuOpen: false,
-  setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
-  setPersona: (persona: Persona) => set({ persona }),
+  setViewMode: (mode: ViewMode) => {
+    try { localStorage.setItem('pj_view_mode', mode) } catch { }
+    set({ viewMode: mode })
+  },
+  setPersona: (persona: Persona) => {
+    try { localStorage.setItem('pj_persona', persona) } catch { }
+    set({ persona })
+  },
   setTutorialComplete: () => {
-    // Persist to localStorage so it survives page reloads
     try { localStorage.setItem('pj_tutorial_complete', 'true') } catch { }
     set({ tutorialComplete: true })
   },
