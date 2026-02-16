@@ -61,20 +61,22 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
         return <Sun className="h-5 w-5 text-amber-500" />
     }
 
-    const [greeting, setGreeting] = useState(`Hey ${userName}`)
+    const firstName = userName.split(/[@\s\.]/)[0] // Get first part before @, space, or dot
+
+    const [greeting, setGreeting] = useState(`Hey ${firstName}`)
 
     useEffect(() => {
         const hour = new Date().getHours()
         const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
         if (industry === "TRADES") {
-            setGreeting(`G'day, ${userName}`)
+            setGreeting(`G'day, ${firstName}`)
         } else if (industry === "REAL_ESTATE") {
-            setGreeting(`Hey ${userName}`)
+            setGreeting(`Hey ${firstName}`)
         } else {
-            setGreeting(`${timeGreeting}, ${userName}`)
+            setGreeting(`${timeGreeting}, ${firstName}`)
         }
-    }, [industry, userName])
+    }, [industry, firstName])
 
     const getSubtitle = () => {
         if (industry === "TRADES") return "Here's what's happening on site today."
@@ -137,9 +139,9 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
 
                 <NotificationsBtn userId={userId} />
 
-                <Button id="new-deal-btn" onClick={onNewDeal} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">
+                <Button id="new-deal-btn" onClick={onNewDeal} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm whitespace-nowrap flex-shrink-0">
+                    <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline truncate max-w-[100px]">
                         {industry === "TRADES" ? "New Job" : industry === "REAL_ESTATE" ? "New Listing" : "New Deal"}
                     </span>
                     <span className="sm:hidden">New</span>

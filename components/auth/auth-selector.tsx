@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export function AuthSelector() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -42,6 +43,7 @@ export function AuthSelector() {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           confirmed_at: new Date().toISOString(),
+          name: name || email.split('@')[0],
         }
       },
     });
@@ -167,6 +169,17 @@ export function AuthSelector() {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Smith"
+                    required
+                  />
+                </div>
                 <div>
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

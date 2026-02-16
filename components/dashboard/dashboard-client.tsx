@@ -20,7 +20,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
 
     return (
-        <div className="h-full flex flex-col space-y-6 p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="h-full flex flex-col gap-4 p-4 md:p-6 overflow-hidden">
             <Header
                 userName={userName}
                 userId={userId}
@@ -28,22 +28,22 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 onNewDeal={() => setIsNewDealModalOpen(true)}
             />
 
-            {/* Top Row: Health & Activity */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 shrink-0 xl:h-[400px]">
-                {/* Health Widget (2/3 width) */}
-                <div className="xl:col-span-2 h-full overflow-hidden min-h-[300px]">
-                    <DealHealthWidget deals={deals} />
-                </div>
-
-                {/* Activity Feed (1/3 width) - Moved here to give Kanban full width below */}
-                <div className="h-full overflow-hidden min-h-[300px] max-h-[500px] xl:max-h-full">
-                    <ActivityFeed workspaceId={workspace.id} />
-                </div>
+            {/* Top Row: Health Widget Only */}
+            <div className="shrink-0">
+                <DealHealthWidget deals={deals} />
             </div>
 
-            {/* Main Content Area - Full Width Kanban */}
-            <div className="flex-1 w-full overflow-hidden min-h-0">
-                <KanbanBoard deals={deals} industryType={workspace.industryType} />
+            {/* Middle Row: Activity & Kanban side by side on large screens */}
+            <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-4 min-h-0 overflow-hidden">
+                {/* Activity Feed - Takes 1 column */}
+                <div className="xl:col-span-1 h-full min-h-0 overflow-hidden">
+                    <ActivityFeed workspaceId={workspace.id} />
+                </div>
+
+                {/* Kanban - Takes 3 columns, full width */}
+                <div className="xl:col-span-3 h-full min-h-0 overflow-hidden">
+                    <KanbanBoard deals={deals} industryType={workspace.industryType} />
+                </div>
             </div>
 
             <NewDealModal
