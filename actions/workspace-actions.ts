@@ -160,6 +160,11 @@ export async function completeOnboarding(data: {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
   const userId = await getAuthUserId();
+  
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+  
   const workspace = await getOrCreateWorkspace(userId);
 
   // Map industry to workspace type

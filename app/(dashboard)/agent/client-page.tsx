@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import { useShellStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"

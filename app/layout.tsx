@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { ConditionalClerkProvider } from "@/components/providers/conditional-clerk-provider";
+import { ClerkProvider } from "@clerk/nextjs";
 import { AccessibilityProvider } from "@/components/providers/accessibility-provider";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ConditionalClerkProvider>
+    <ClerkProvider>
       <AccessibilityProvider>
         <html lang="en" suppressHydrationWarning>
           <body className="antialiased font-sans bg-background text-foreground">
@@ -43,6 +43,6 @@ export default function RootLayout({
           </body>
         </html>
       </AccessibilityProvider>
-    </ConditionalClerkProvider>
+    </ClerkProvider>
   );
 }

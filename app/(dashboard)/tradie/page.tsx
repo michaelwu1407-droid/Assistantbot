@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic"
 
 export default async function TradiePage() {
     const userId = await getAuthUserId()
+    
+    if (!userId) {
+        throw new Error("User not authenticated");
+    }
+    
     const workspace = await getOrCreateWorkspace(userId)
 
     const [jobs, nextJob, todayJobs, financialStats] = await Promise.all([

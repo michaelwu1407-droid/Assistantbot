@@ -17,7 +17,11 @@ export default async function DashboardLayout({
   let userId = "";
 
   try {
-    userId = await getAuthUserId();
+    const authUserId = await getAuthUserId();
+    if (!authUserId) {
+      throw new Error("User not authenticated");
+    }
+    userId = authUserId;
     const workspace = await getOrCreateWorkspace(userId);
     workspaceId = workspace.id;
   } catch (error) {

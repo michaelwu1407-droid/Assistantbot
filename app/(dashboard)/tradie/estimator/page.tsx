@@ -8,6 +8,11 @@ import Link from "next/link";
 
 export default async function EstimatorPage() {
     const userId = await getAuthUserId();
+    
+    if (!userId) {
+        throw new Error("User not authenticated");
+    }
+    
     const workspace = await getOrCreateWorkspace(userId);
 
     return (

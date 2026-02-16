@@ -12,6 +12,12 @@ export default async function DashboardPage() {
 
     // 1. Get User
     const authUser = await getAuthUser()
+    
+    // Redirect if not authenticated
+    if (!authUser) {
+        redirect("/login")
+    }
+
     const userId = authUser.id
     const userName = authUser.name
 
