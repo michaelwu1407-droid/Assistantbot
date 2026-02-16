@@ -34,15 +34,15 @@ const navItems = [
 ]
 
 const tradieSubItems = [
-    { icon: Map, label: "Job Map", href: "/dashboard/tradie/map", id: "map-link" },
-    { icon: Calendar, label: "Schedule", href: "/dashboard/tradie/schedule", id: "schedule-link" },
-    { icon: FileText, label: "Estimator", href: "/dashboard/tradie/estimator", id: "estimator-link" },
-    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
+    { icon: Map, label: "Job Map", href: "/tradie/map", id: "map-link" },
+    { icon: Calendar, label: "Schedule", href: "/tradie/schedule", id: "schedule-link" },
+    { icon: FileText, label: "Estimator", href: "/tradie/estimator", id: "estimator-link" },
+    { icon: Users, label: "Contacts", href: "/contacts", id: "contacts-link" },
 ]
 
 const agentSubItems = [
-    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "agent-contacts-link" },
-    { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "agent-estimator-link" },
+    { icon: Users, label: "Contacts", href: "/contacts", id: "agent-contacts-link" },
+    { icon: FileText, label: "Estimator", href: "/estimator", id: "agent-estimator-link" },
     { icon: LayoutTemplate, label: "Open House", href: "/kiosk/open-house", id: "kiosk-link" },
 ]
 
