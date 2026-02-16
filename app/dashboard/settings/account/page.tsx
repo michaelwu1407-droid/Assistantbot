@@ -1,11 +1,13 @@
 import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "@/components/dashboard/profile-form"
-import { getAuthUser } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth"
+import { getUserProfile } from "@/actions/user-actions"
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountSettingsPage() {
-    const user = await getAuthUser();
+    const userId = await getAuthUserId()
+    const profile = await getUserProfile(userId)
 
     return (
         <div className="space-y-6">
@@ -17,11 +19,13 @@ export default async function AccountSettingsPage() {
             </div>
             <Separator />
             <ProfileForm 
-                initialData={{
-                    username: user.name?.split(' ')[0] || "user", // Use first name as username
-                    email: user.email,
-                    bio: user.bio || undefined,
-                }}
+                userId={userId}
+                initialData={profile ? {
+                    username: profile.username,
+                    email: profile.email,
+                    bio: profile.bio || undefined,
+                    urls: profile.urls
+                } : undefined}
             />
         </div>
     )
