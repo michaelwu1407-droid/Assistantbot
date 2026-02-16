@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getChatHistory, clearChatHistoryAction } from '@/actions/chat-actions';
 
 interface ChatInterfaceProps {
   workspaceId?: string;
@@ -25,16 +26,50 @@ const QUICK_ACTIONS = [
 ];
 
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    { 
-      role: 'assistant', 
-      content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!workspaceId) return;
+      try {
+        setIsLoadingHistory(true);
+        const history = await getChatHistory(workspaceId);
+        if (history && history.length > 0) {
+          // Convert history to Message format
+          const formattedMessages: Message[] = history.map((msg: any) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: new Date(msg.createdAt)
+          }));
+          setMessages(formattedMessages);
+        } else {
+          // Show welcome message if no history
+          setMessages([{
+            role: 'assistant',
+            content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
+            timestamp: new Date()
+          }]);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        // Show welcome message on error
+        setMessages([{
+          role: 'assistant',
+          content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
+          timestamp: new Date()
+        }]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [workspaceId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,7 +81,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !workspaceId) return;
 
     const userMessage: Message = { 
       role: 'user', 
@@ -57,16 +92,28 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Import processChat dynamically to avoid SSR issues
+      const { processChat } = await import('@/actions/chat-actions');
+      const response = await processChat(input, workspaceId);
+      
       const assistantMessage: Message = { 
         role: 'assistant', 
-        content: 'I\'m here to help! The chat functionality is being updated. Please try again later.',
+        content: response.message,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat processing error:', error);
+      const errorMessage: Message = { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleQuickAction = (prompt: string) => {

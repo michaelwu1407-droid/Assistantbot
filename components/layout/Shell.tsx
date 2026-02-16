@@ -24,38 +24,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const isDashboardRoot = pathname === "/dashboard"
   const isBasicView = viewMode === "BASIC" && isDashboardRoot
 
-  // Auto-Retreat: Collapse to Basic mode after 30s of inactivity
-  useEffect(() => {
-    if (viewMode !== "ADVANCED") return
-
-    let timeout: NodeJS.Timeout
-
-    const resetTimer = () => {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        // Only auto-retreat if we are truly idle and locally (client-side) determined
-        setViewMode("BASIC")
-      }, 30000) // 30 seconds
-    }
-
-    // Initial start
-    resetTimer()
-
-    // Listeners
-    window.addEventListener("mousemove", resetTimer)
-    window.addEventListener("click", resetTimer)
-    window.addEventListener("keydown", resetTimer)
-    window.addEventListener("scroll", resetTimer)
-
-    return () => {
-      clearTimeout(timeout)
-      window.removeEventListener("mousemove", resetTimer)
-      window.removeEventListener("click", resetTimer)
-      window.removeEventListener("keydown", resetTimer)
-      window.removeEventListener("scroll", resetTimer)
-    }
-  }, [viewMode, setViewMode])
-
   // Verify tutorial trigger
   useEffect(() => {
     if (searchParams.get("tutorial") === "true" && !tutorialTriggered.current) {
@@ -116,6 +84,23 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
             <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
               <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-muted/30">
+                {/* Mode Toggle Button - Floating Switch in Advanced Mode */}
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl transition-all">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Chat</span>
+                  </div>
+                  <Switch
+                    id="mode-toggle"
+                    checked={false}
+                    onCheckedChange={() => setViewMode("BASIC")}
+                    className="data-[state=checked]:bg-blue-600"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">Advanced</span>
+                  </div>
+                </div>
                 {children}
               </div>
             </ResizablePanel>
