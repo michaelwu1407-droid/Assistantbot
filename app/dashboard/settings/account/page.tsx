@@ -20,7 +20,7 @@ export default async function AccountSettingsPage() {
                 initialData={{
                     username: user.name?.split(' ')[0] || "user", // Use first name as username
                     email: user.email,
-                    bio: user.bio || "",
+                    bio: user.bio || undefined,
                 }}
             />
         </div>
