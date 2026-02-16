@@ -72,10 +72,12 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
   const [deals, setDeals] = useState<DealView[]>(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
 
-  // Sync state if props change (re-fetch)
+  // Sync state if props change (re-fetch) - but not during drag operations
   useEffect(() => {
-    setDeals(initialDeals)
-  }, [initialDeals])
+    if (!activeId) {
+      setDeals(initialDeals)
+    }
+  }, [initialDeals, activeId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
