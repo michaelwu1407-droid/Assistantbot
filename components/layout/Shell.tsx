@@ -10,6 +10,7 @@ import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 import { Switch } from "@/components/ui/switch"
 import { Layers, MessageSquare } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
@@ -49,18 +50,18 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {/* Mode Toggle Button - Floating Switch */}
           <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Chat</span>
+              <MessageSquare className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-600">Chat</span>
             </div>
             <Switch
               id="mode-toggle"
-              checked={true}
+              checked={false}
               onCheckedChange={() => setViewMode("ADVANCED")}
               className="data-[state=checked]:bg-blue-600"
             />
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-600">Advanced</span>
+              <Layers className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Advanced</span>
             </div>
           </div>
 

@@ -30,13 +30,13 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
 
             {/* Top Row: Health Widgets + Activity Feed */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
-                {/* Health Widgets - Takes 3 columns */}
-                <div className="xl:col-span-3">
+                {/* Health Widgets - Takes 2 columns */}
+                <div className="xl:col-span-2">
                     <DealHealthWidget deals={deals} />
                 </div>
 
-                {/* Activity Feed - Takes 1 column, same height as health widgets */}
-                <div className="xl:col-span-1 h-[140px] overflow-hidden">
+                {/* Activity Feed - Takes 2 columns, matches single card height */}
+                <div className="xl:col-span-2 h-[130px] overflow-hidden">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>

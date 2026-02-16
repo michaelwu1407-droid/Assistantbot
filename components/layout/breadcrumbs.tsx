@@ -9,7 +9,8 @@ export function Breadcrumbs({ className }: { className?: string }) {
     const pathname = usePathname()
     const segments = pathname.split("/").filter(Boolean)
 
-    if (segments.length === 0) return null
+    // Hide breadcrumbs on main dashboard page (only "dashboard" in path)
+    if (segments.length === 0 || (segments.length === 1 && segments[0] === "dashboard")) return null
 
     return (
         <nav aria-label="Breadcrumb" className={cn("hidden md:flex items-center text-sm text-slate-500", className)}>

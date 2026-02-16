@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Settings, Play, Menu } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
 import {
     DropdownMenu,
@@ -126,15 +126,6 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
                 >
                     <Search className="h-5 w-5" />
-                </Button>
-
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-slate-500 hover:bg-slate-100"
-                    onClick={() => router.push("/dashboard/settings")}
-                >
-                    <Settings className="h-5 w-5" />
                 </Button>
 
                 <NotificationsBtn userId={userId} />
