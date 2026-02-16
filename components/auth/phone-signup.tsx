@@ -35,6 +35,9 @@ export function PhoneSignUp() {
                 formButtonPrimary: "w-full",
                 formFieldInput: "w-full",
                 formEmailRow: "hidden",
+                formPasswordRow: "hidden",
+                formRow: "hidden",
+                formResendCodeRow: "hidden",
               },
             }}
           />
