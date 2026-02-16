@@ -35,6 +35,7 @@ export function EmailSignIn() {
                 formButtonPrimary: "w-full",
                 formFieldInput: "w-full",
                 formStrategiesList: "hidden",
+                formPhoneNumber: "hidden",
               },
             }}
           />
