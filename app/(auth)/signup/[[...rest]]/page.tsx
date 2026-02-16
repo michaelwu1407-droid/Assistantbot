@@ -3,11 +3,10 @@
 import { EmailSignUp } from "@/components/auth/email-signup";
 import { PhoneSignUp } from "@/components/auth/phone-signup";
 import { usePathname } from "next/navigation";
-import { use } from "react";
 
-export default function SignUpPage({ params }: { params: { rest?: Promise<string[]> } }) {
+export default async function SignUpPage({ params }: { params: Promise<{ rest?: string[] }> }) {
   const pathname = usePathname();
-  const resolvedParams = use(params) as { rest?: string[] };
+  const resolvedParams = await params;
   
   // Check if URL explicitly ends with /phone for phone signup
   const isPhoneSignUp = pathname.endsWith("/phone") || 
