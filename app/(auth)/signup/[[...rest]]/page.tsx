@@ -7,10 +7,10 @@ import { usePathname } from "next/navigation";
 export default function SignupPage({ params }: { params: { rest: string[] } }) {
   const pathname = usePathname();
   
-  // If URL contains "phone", show phone signup, otherwise show email
-  const isPhoneSignUp = params.rest?.includes?.("phone") || 
-                       params.rest?.includes?.("sms") || 
-                       pathname.includes("phone");
+  // Check if URL explicitly ends with /phone for phone signup
+  const isPhoneSignUp = pathname.endsWith("/phone") || 
+                       pathname.endsWith("/signup/phone") ||
+                       (params.rest && params.rest.includes("phone"));
   
   return isPhoneSignUp ? <PhoneSignUp /> : <EmailSignUp />;
 }

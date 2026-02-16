@@ -7,10 +7,10 @@ import { usePathname } from "next/navigation";
 export default function LoginPage({ params }: { params: { rest: string[] } }) {
   const pathname = usePathname();
   
-  // If URL contains "phone", show phone signin, otherwise show email
-  const isPhoneSignIn = params.rest?.includes?.("phone") || 
-                       params.rest?.includes?.("sms") || 
-                       pathname.includes("phone");
+  // Check if URL explicitly ends with /phone for phone signin
+  const isPhoneSignIn = pathname.endsWith("/phone") || 
+                      pathname.endsWith("/login/phone") ||
+                      (params.rest && params.rest.includes("phone"));
   
   return isPhoneSignIn ? <PhoneSignIn /> : <EmailSignIn />;
 }
