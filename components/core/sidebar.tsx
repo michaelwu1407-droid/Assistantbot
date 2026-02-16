@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import {
     Home,
@@ -17,7 +17,7 @@ import {
     LayoutTemplate
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useClerk } from "@clerk/nextjs"
+import { createClient } from "@/lib/supabase/client"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import {
@@ -52,9 +52,15 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
-    const { signOut } = useClerk()
+    const supabase = createClient()
     const { setViewMode, viewMode } = useShellStore()
     const { industry, setIndustry } = useIndustry()
+    const router = useRouter()
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut()
+        router.push("/login")
+    }
 
     const isTradie = industry === "TRADES" || (industry === null && pathname.includes("/tradie"))
     const isAgent = industry === "REAL_ESTATE" || (industry === null && pathname.includes("/agent"))
@@ -214,7 +220,7 @@ export function Sidebar({ className }: SidebarProps) {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
-                                onClick={() => signOut({ redirectUrl: "/login" })}
+                                onClick={handleSignOut}
                                 className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm"
                             >
                                 <LogOut className="h-5 w-5" />

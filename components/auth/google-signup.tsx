@@ -1,15 +1,39 @@
 "use client";
 
-import { SignUp, useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export function GoogleSignUp() {
-  const { isSignedIn } = useUser();
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
-  if (isSignedIn) {
-    window.location.href = "/setup";
-    return null;
-  }
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push("/setup");
+      }
+    };
+    checkUser();
+  }, [router, supabase]);
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      console.error("Error signing up with Google:", error.message);
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -21,26 +45,13 @@ export function GoogleSignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SignUp 
-            redirectUrl="/setup"
-            afterSignUpUrl="/setup"
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "shadow-none border-0 p-0",
-                headerTitle: "hidden",
-                headerSubtitle: "hidden",
-                socialButtonsBlockButton: "hidden",
-                dividerLine: "hidden",
-                formButtonPrimary: "w-full",
-                formFieldInput: "w-full",
-                formEmailRow: "hidden",
-                formPasswordRow: "hidden",
-                formRow: "hidden",
-                formStrategiesList: "hidden",
-              },
-            }}
-          />
+          <Button 
+            onClick={handleGoogleSignUp} 
+            disabled={loading}
+            className="w-full"
+          >
+            {loading ? "Signing up..." : "Sign up with Google"}
+          </Button>
         </CardContent>
       </Card>
     </div>
