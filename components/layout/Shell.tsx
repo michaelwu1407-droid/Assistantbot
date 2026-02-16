@@ -4,7 +4,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 import { useShellStore } from "@/lib/store"
-import { AssistantPane } from "@/components/core/assistant-pane"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
@@ -33,7 +32,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         // Only auto-retreat if we are truly idle and locally (client-side) determined
-        console.log("Auto-retreating to Basic mode due to inactivity")
         setViewMode("BASIC")
       }, 30000) // 30 seconds
     }
@@ -72,7 +70,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       <TutorialOverlay />
 
       {isBasicView ? (
-        <div className="flex-1 flex items-center justify-center p-4 md:p-6 relative">
+        <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative">
           {/* Decorative Background for Basic Mode - Only in Premium */}
           {theme === 'premium' && (
             <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
@@ -91,10 +89,10 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </button>
 
           {/* Main Chat Container - Large & Immersive */}
-          <div className="z-10 w-full max-w-4xl h-full md:h-[92vh] shadow-2xl rounded-2xl overflow-hidden border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
+          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
             {/* ID for Spotlight */}
             <div id="assistant-pane" className="h-full w-full">
-              {chatbot || <AssistantPane />}
+              {chatbot}
             </div>
           </div>
         </div>
@@ -123,12 +121,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
-              onCollapse={() => { console.log("Collapsed") }}
+              onCollapse={() => {}}
               id="assistant-panel"
               className="hidden md:block transition-all duration-300 ease-in-out pl-2"
             >
               <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
-                {chatbot || <AssistantPane />}
+                {chatbot}
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>

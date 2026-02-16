@@ -22,7 +22,7 @@ export function ServiceWorkerProvider() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("Service Worker registered with scope:", registration.scope)
+          if (process.env.NODE_ENV === 'development') console.log("SW registered:", registration.scope)
         })
         .catch((error) => {
           console.error("Service Worker registration failed:", error)
@@ -31,7 +31,7 @@ export function ServiceWorkerProvider() {
 
     // Listen for online status to trigger sync
     const handleOnline = () => {
-      console.log("App is online. Processing sync queue...");
+      if (process.env.NODE_ENV === 'development') console.log("Online — processing sync queue");
       processQueue(ACTION_MAP);
     };
 

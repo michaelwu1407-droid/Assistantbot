@@ -39,7 +39,7 @@ export async function queueMutation(actionName: string, payload: any) {
     payload,
     createdAt: Date.now(),
   });
-  console.log(`[SyncQueue] Queued action: ${actionName}`);
+  if (process.env.NODE_ENV === 'development') console.log(`[SyncQueue] Queued action: ${actionName}`);
 }
 
 /**
@@ -59,13 +59,13 @@ export async function processQueue(actionMap: Record<string, (payload: any) => P
 
   if (items.length === 0) return;
 
-  console.log(`[SyncQueue] Processing ${items.length} offline mutations...`);
+  if (process.env.NODE_ENV === 'development') console.log(`[SyncQueue] Processing ${items.length} offline mutations...`);
 
   for (const item of items) {
     const executor = actionMap[item.actionName];
     if (executor) {
       try {
-        console.log(`[SyncQueue] Replaying: ${item.actionName}`);
+        if (process.env.NODE_ENV === 'development') console.log(`[SyncQueue] Replaying: ${item.actionName}`);
         await executor(item.payload);
         // If successful, remove from queue
         if (item.id) await store.delete(item.id);
@@ -80,5 +80,5 @@ export async function processQueue(actionMap: Record<string, (payload: any) => P
   }
 
   await tx.done;
-  console.log('[SyncQueue] Sync complete.');
+  if (process.env.NODE_ENV === 'development') console.log('[SyncQueue] Sync complete.');
 }
