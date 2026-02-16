@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Check, ArrowRight, Hammer, Smartphone, Mail } from "lucide-react"
 import Link from "next/link"
+import { AuthSelector } from "@/components/auth/auth-selector"
 
 export default function Home() {
   return (
@@ -21,16 +22,10 @@ export default function Home() {
             Pj Buddy isn&apos;t just a CRM. It&apos;s a chatbot-first assistant that manages your trades or real estate business while you work.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link href="/login">
+            <Link href="/auth">
               <Button size="lg" className="h-12 px-8 text-lg">
-                <Mail className="mr-2 h-4 w-4" />
-                Email Sign In
-              </Button>
-            </Link>
-            <Link href="/login/phone">
-              <Button size="lg" variant="outline" className="h-12 px-8 text-lg">
-                <Smartphone className="mr-2 h-4 w-4" />
-                Phone Sign In
+                Get Started for Free
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -104,7 +99,9 @@ export default function Home() {
                 <li className="flex items-center gap-2 text-slate-600"><Check className="h-4 w-4 text-green-500" /> 1 Module Access</li>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" variant="outline">Get Started</Button>
+                <Link href="/auth">
+                  <Button className="w-full" variant="outline">Get Started</Button>
+                </Link>
               </CardFooter>
             </Card>
 
@@ -126,7 +123,7 @@ export default function Home() {
                 <li className="flex items-center gap-2 text-slate-600"><Check className="h-4 w-4 text-green-500" /> Priority Support</li>
               </CardContent>
               <CardFooter>
-                <Link href="/login" className="w-full">
+                <Link href="/auth" className="w-full">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700">Get Pro</Button>
                 </Link>
               </CardFooter>
@@ -141,7 +138,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold">Ready to streamline your workflow?</h2>
           <p className="text-slate-400">Join thousands of SMEs using Pj Buddy today.</p>
           <div className="flex justify-center gap-4">
-            <Link href="/login">
+            <Link href="/auth">
               <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-slate-900">
                 Contact Sales
               </Button>
