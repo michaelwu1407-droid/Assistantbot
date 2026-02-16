@@ -124,61 +124,83 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const isDifferentDay = (date1: Date, date2: Date) => {
+    return date1.toDateString() !== date2.toDateString();
+  };
+
   const isOnlyWelcomeMessage = messages.length === 1;
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-white to-slate-50/50">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={cn(
-              "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
-              message.role === "user" ? "flex-row-reverse" : "flex-row"
-            )}
-          >
-            {/* Avatar */}
-            <Avatar className={cn(
-              "w-10 h-10 shadow-md",
-              message.role === "user" ? "bg-blue-600" : "bg-gradient-to-br from-slate-100 to-slate-200"
-            )}>
-              {message.role === "user" ? (
-                <AvatarFallback className="bg-blue-600 text-white">
-                  <User className="w-5 h-5" />
-                </AvatarFallback>
-              ) : (
-                <>
-                  <AvatarImage src="/bot-avatar.png" />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                    <Bot className="w-5 h-5" />
-                  </AvatarFallback>
-                </>
+        {messages.map((message, index) => {
+          const showDateSeparator = index === 0 || isDifferentDay(message.timestamp, messages[index - 1].timestamp);
+          
+          return (
+            <div key={index}>
+              {/* Date Separator */}
+              {showDateSeparator && (
+                <div className="flex items-center justify-center my-4">
+                  <div className="bg-slate-100 text-slate-500 text-xs px-3 py-1 rounded-full">
+                    {formatDate(message.timestamp)}
+                  </div>
+                </div>
               )}
-            </Avatar>
-
-            {/* Message Content */}
-            <div className="flex flex-col gap-1 max-w-[80%]">
+              
               <div
                 className={cn(
-                  "rounded-2xl px-5 py-3 shadow-sm",
-                  message.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-md"
-                    : "bg-white border border-slate-200 text-slate-800 rounded-bl-md"
+                  "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  message.role === "user" ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                <p className="text-[15px] leading-relaxed">{message.content}</p>
+                {/* Avatar */}
+                <Avatar className={cn(
+                  "w-10 h-10 shadow-md",
+                  message.role === "user" ? "bg-blue-600" : "bg-gradient-to-br from-slate-100 to-slate-200"
+                )}>
+                  {message.role === "user" ? (
+                    <AvatarFallback className="bg-blue-600 text-white">
+                      <User className="w-5 h-5" />
+                    </AvatarFallback>
+                  ) : (
+                    <>
+                      <AvatarImage src="/bot-avatar.png" />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                        <Bot className="w-5 h-5" />
+                      </AvatarFallback>
+                    </>
+                  )}
+                </Avatar>
+
+                {/* Message Content */}
+                <div className="flex flex-col gap-1 max-w-[80%]">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-5 py-3 shadow-sm",
+                      message.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-md"
+                        : "bg-white border border-slate-200 text-slate-800 rounded-bl-md"
+                    )}
+                  >
+                    <p className="text-[15px] leading-relaxed">{message.content}</p>
+                  </div>
+                  <span className={cn(
+                    "text-xs flex items-center gap-1",
+                    message.role === "user" ? "text-slate-400 justify-end" : "text-slate-400"
+                  )}>
+                    <Clock className="w-3 h-3" />
+                    {formatTime(message.timestamp)}
+                  </span>
+                </div>
               </div>
-              <span className={cn(
-                "text-xs flex items-center gap-1",
-                message.role === "user" ? "text-slate-400 justify-end" : "text-slate-400"
-              )}>
-                <Clock className="w-3 h-3" />
-                {formatTime(message.timestamp)}
-              </span>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Loading State */}
         {isLoading && (
