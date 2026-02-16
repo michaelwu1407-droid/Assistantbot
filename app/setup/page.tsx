@@ -8,13 +8,15 @@ export const dynamic = 'force-dynamic'
 export default async function SetupPage() {
     const userId = await getAuthUserId()
 
-    // Check if the user has already completed onboarding
+    // Check if user has already completed onboarding
     let alreadyOnboarded = false
     try {
         const workspace = await getOrCreateWorkspace(userId)
         alreadyOnboarded = workspace.onboardingComplete
-    } catch {
-        // DB not ready — show setup anyway, it will save when DB is available
+    } catch (error) {
+        console.error("Workspace error:", error)
+        // For now, just continue to setup even if DB fails
+        // This will be fixed once database is properly synced
     }
 
     if (alreadyOnboarded) {
