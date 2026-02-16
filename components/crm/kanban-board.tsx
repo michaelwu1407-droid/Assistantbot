@@ -79,10 +79,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     if (!activeId && !hasDragged.current) {
       setDeals(initialDeals)
     }
-    // Reset the drag flag after sync
-    if (!activeId) {
-      hasDragged.current = false
-    }
+    // Note: hasDragged is reset in handleDragStart, not here
   }, [initialDeals, activeId])
 
   const sensors = useSensors(
