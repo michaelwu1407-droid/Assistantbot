@@ -694,7 +694,7 @@ export async function processChat(
   workspaceId: string,
   overrideParams?: Record<string, string>
 ): Promise<ChatResponse> {
-  console.log("🔍 Processing chat:", { message, workspaceId, overrideParams });
+
 
   // Persist user message (non-blocking — chat should work even without DB)
   try {
@@ -728,7 +728,6 @@ export async function processChat(
   let parsed = null;
   try {
     parsed = await parseCommandAI(message, ctx);
-    console.log("✅ AI Parser result:", parsed);
   } catch (error) {
     console.error("❌ AI Parser failed:", error);
   }
@@ -737,7 +736,6 @@ export async function processChat(
   if (!parsed || parsed.intent === "unknown") {
     try {
       const regexParsed = parseCommandRegex(message);
-      console.log("🔄 Regex Parser result:", regexParsed);
       if (regexParsed.intent !== "unknown") {
         parsed = regexParsed;
       }

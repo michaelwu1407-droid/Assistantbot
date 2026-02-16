@@ -32,7 +32,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         // Only auto-retreat if we are truly idle and locally (client-side) determined
-        console.log("Auto-retreating to Basic mode due to inactivity")
         setViewMode("BASIC")
       }, 30000) // 30 seconds
     }
@@ -122,7 +121,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
-              onCollapse={() => { console.log("Collapsed") }}
+              onCollapse={() => {}}
               id="assistant-panel"
               className="hidden md:block transition-all duration-300 ease-in-out pl-2"
             >

@@ -17,6 +17,7 @@ import {
     LayoutTemplate
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useClerk } from "@clerk/nextjs"
 import { useShellStore } from "@/lib/store"
 import { useIndustry } from "@/components/providers/industry-provider"
 import {
@@ -51,6 +52,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
+    const { signOut } = useClerk()
     const { setViewMode, viewMode } = useShellStore()
     const { industry, setIndustry } = useIndustry()
 
@@ -211,7 +213,10 @@ export function Sidebar({ className }: SidebarProps) {
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <button className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm">
+                            <button
+                                onClick={() => signOut({ redirectUrl: "/login" })}
+                                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                            >
                                 <LogOut className="h-5 w-5" />
                             </button>
                         </TooltipTrigger>
