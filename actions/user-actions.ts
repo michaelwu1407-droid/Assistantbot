@@ -8,44 +8,74 @@ import { revalidatePath } from "next/cache";
 
 const UpdateProfileSchema = z.object({
   username: z.string().min(2),
-  email: z.string().email(),
   bio: z.string().optional(),
   urls: z.array(z.object({ value: z.string().url() })).optional(),
+  viewMode: z.enum(["BASIC", "ADVANCED"]).optional(),
 });
+
+// ─── Types ───────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  bio: string | null;
+  urls: { value: string }[];
+  viewMode: "BASIC" | "ADVANCED";
+  hasOnboarded: boolean;
+}
 
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
  * Get the current user's profile.
- * In a real app, we'd get the ID from the session.
- * For now, we accept an ID or default to demo-user logic.
  */
-export async function getUserProfile(userId: string) {
-  // If using demo-user, we might need to find the first user in the workspace
-  // or just return null if not found.
-  const user = await db.user.findUnique({
-    where: { id: userId },
-  });
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        bio: true,
+        urls: true,
+        viewMode: true,
+        hasOnboarded: true,
+      },
+    });
 
-  if (!user) {
-    // Fallback for demo mode if no user exists yet
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      username: user.name || "",
+      email: user.email,
+      bio: user.bio || "",
+      urls: (user.urls as { value: string }[]) || [],
+      viewMode: (user.viewMode as "BASIC" | "ADVANCED") || "BASIC",
+      hasOnboarded: user.hasOnboarded,
+    };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
     return null;
   }
-
-  return {
-    id: user.id,
-    username: user.name || "",
-    email: user.email,
-    bio: user.bio || "",
-    urls: (user.urls as { value: string }[]) || [],
-    hasOnboarded: user.hasOnboarded,
-  };
 }
 
 /**
- * Update the user's profile.
+ * Update user's profile.
  */
-export async function updateUserProfile(userId: string, data: z.infer<typeof UpdateProfileSchema>) {
+export async function updateUserProfile(
+  userId: string,
+  data: {
+    username?: string;
+    bio?: string;
+    urls?: { value: string }[];
+    viewMode?: "BASIC" | "ADVANCED";
+  }
+): Promise<{ success: boolean; error?: string }> {
   const parsed = UpdateProfileSchema.safeParse(data);
   
   if (!parsed.success) {
@@ -57,9 +87,9 @@ export async function updateUserProfile(userId: string, data: z.infer<typeof Upd
       where: { id: userId },
       data: {
         name: parsed.data.username,
-        email: parsed.data.email,
         bio: parsed.data.bio,
         urls: parsed.data.urls ? JSON.parse(JSON.stringify(parsed.data.urls)) : undefined,
+        viewMode: parsed.data.viewMode,
       },
     });
 

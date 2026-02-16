@@ -24,7 +24,7 @@ export default async function SettingsPage() {
                 initialData={profile ? {
                     username: profile.username,
                     email: profile.email,
-                    bio: profile.bio,
+                    bio: profile.bio || undefined,
                     urls: profile.urls
                 } : undefined}
             />
