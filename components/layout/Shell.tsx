@@ -8,6 +8,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
+import { Switch } from "@/components/ui/switch"
+import { Layers, MessageSquare } from "lucide-react"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
@@ -76,17 +78,23 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
           )}
 
-          {/* Mode Toggle Button - Floating */}
-          <button
-            id="mode-toggle-btn"
-            onClick={() => setViewMode("ADVANCED")}
-            className="absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-sm border border-border rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-card transition-all shadow-lg hover:shadow-xl"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-            </svg>
-            Advanced Mode
-          </button>
+          {/* Mode Toggle Button - Floating Switch */}
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Chat</span>
+            </div>
+            <Switch
+              id="mode-toggle"
+              checked={true}
+              onCheckedChange={() => setViewMode("ADVANCED")}
+              className="data-[state=checked]:bg-blue-600"
+            />
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-600">Advanced</span>
+            </div>
+          </div>
 
           {/* Main Chat Container - Large & Immersive */}
           <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
