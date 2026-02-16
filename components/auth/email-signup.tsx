@@ -35,8 +35,9 @@ export function EmailSignUp() {
                 formButtonPrimary: "w-full",
                 formFieldInput: "w-full",
                 formStrategiesList: "hidden",
-                formPhoneNumber: "hidden",
-                formCodePassword: "hidden",
+                formPasswordRow: "hidden",
+                formEmailRow: "w-full",
+                formPhoneNumberRow: "hidden",
               },
             }}
           />
