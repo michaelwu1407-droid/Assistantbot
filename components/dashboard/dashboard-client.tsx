@@ -28,22 +28,22 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 onNewDeal={() => setIsNewDealModalOpen(true)}
             />
 
-            {/* Top Row: Health Widget Only */}
-            <div className="shrink-0">
-                <DealHealthWidget deals={deals} />
-            </div>
+            {/* Top Row: Health Widgets + Activity Feed */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 shrink-0">
+                {/* Health Widgets - Takes 3 columns */}
+                <div className="xl:col-span-3">
+                    <DealHealthWidget deals={deals} />
+                </div>
 
-            {/* Middle Row: Activity & Kanban side by side on large screens */}
-            <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-4 min-h-0 overflow-hidden">
-                {/* Activity Feed - Takes 1 column */}
-                <div className="xl:col-span-1 h-full min-h-0 overflow-hidden">
+                {/* Activity Feed - Takes 1 column, shorter height */}
+                <div className="xl:col-span-1 h-[280px] overflow-hidden">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
+            </div>
 
-                {/* Kanban - Takes 3 columns, full width */}
-                <div className="xl:col-span-3 h-full min-h-0 overflow-hidden">
-                    <KanbanBoard deals={deals} industryType={workspace.industryType} />
-                </div>
+            {/* Kanban Board - Full width */}
+            <div className="flex-1 w-full min-h-0 overflow-hidden">
+                <KanbanBoard deals={deals} industryType={workspace.industryType} />
             </div>
 
             <NewDealModal
