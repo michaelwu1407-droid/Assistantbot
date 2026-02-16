@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -71,11 +71,17 @@ interface KanbanBoardProps {
 export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
   const [deals, setDeals] = useState<DealView[]>(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const hasDragged = useRef(false)
 
-  // Sync state if props change (re-fetch) - but not during drag operations
+  // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {
-    if (!activeId) {
+    // Only sync if we haven't just completed a drag
+    if (!activeId && !hasDragged.current) {
       setDeals(initialDeals)
+    }
+    // Reset the drag flag after sync
+    if (!activeId) {
+      hasDragged.current = false
     }
   }, [initialDeals, activeId])
 
@@ -117,6 +123,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string)
+    hasDragged.current = true
   }
 
   function handleDragOver(event: DragOverEvent) {
