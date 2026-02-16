@@ -34,18 +34,23 @@ export function AuthSelector() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          confirmed_at: new Date().toISOString(),
+        }
       },
     });
 
     if (error) {
       setMessage(error.message);
+    } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setMessage("An account with this email already exists. Please sign in instead.");
     } else {
-      setMessage("Check your email for the confirmation link!");
+      setMessage("Account created! You can now sign in.");
     }
     setLoading(false);
   };
