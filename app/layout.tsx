@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ConditionalClerkProvider } from "@/components/providers/conditional-clerk-provider";
+import { AccessibilityProvider } from "@/components/providers/accessibility-provider";
 import "./globals.css";
 import { CommandPalette } from "@/components/core/command-palette";
 import { OfflineBanner } from "@/components/core/offline-banner";
@@ -26,20 +27,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className="antialiased font-sans bg-background text-foreground">
-          <ClientThemeProvider>
-            <IndustryProvider>
-              {children}
-              <CommandPalette />
-              <OfflineBanner />
-              <ServiceWorkerProvider />
-              <Toaster />
-            </IndustryProvider>
-          </ClientThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <ConditionalClerkProvider>
+      <AccessibilityProvider>
+        <html lang="en" suppressHydrationWarning>
+          <body className="antialiased font-sans bg-background text-foreground">
+            <ClientThemeProvider>
+              <IndustryProvider>
+                {children}
+                <CommandPalette />
+                <OfflineBanner />
+                <ServiceWorkerProvider />
+                <Toaster />
+              </IndustryProvider>
+            </ClientThemeProvider>
+          </body>
+        </html>
+      </AccessibilityProvider>
+    </ConditionalClerkProvider>
   );
 }
