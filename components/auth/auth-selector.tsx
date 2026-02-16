@@ -14,6 +14,7 @@ export function AuthSelector() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -69,6 +70,7 @@ export function AuthSelector() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setNeedsConfirmation(false);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -76,10 +78,30 @@ export function AuthSelector() {
     });
 
     if (error) {
-      setMessage(error.message);
+      if (error.message.includes("Email not confirmed")) {
+        setNeedsConfirmation(true);
+        setMessage("Email not confirmed. Check your inbox or resend confirmation.");
+      } else {
+        setMessage(error.message);
+      }
     } else {
       router.push("/setup");
       router.refresh();
+    }
+    setLoading(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    setLoading(true);
+    setMessage("");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage("Confirmation email sent! Check your inbox.");
     }
     setLoading(false);
   };
@@ -129,6 +151,17 @@ export function AuthSelector() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
+                {needsConfirmation && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleResendConfirmation}
+                    disabled={loading}
+                  >
+                    Resend Confirmation Email
+                  </Button>
+                )}
               </form>
             </TabsContent>
             
