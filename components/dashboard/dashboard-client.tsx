@@ -20,7 +20,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
 
     return (
-        <div className="h-full flex flex-col gap-4 p-4 md:p-6 overflow-hidden">
+        <div className="h-full flex flex-col gap-2 p-2 md:p-4 overflow-hidden">
             <Header
                 userName={userName}
                 userId={userId}
@@ -29,14 +29,14 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
             />
 
             {/* Top Row: Health Widgets + Activity Feed */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 shrink-0">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
                 {/* Health Widgets - Takes 3 columns */}
                 <div className="xl:col-span-3">
                     <DealHealthWidget deals={deals} />
                 </div>
 
-                {/* Activity Feed - Takes 1 column, shorter height */}
-                <div className="xl:col-span-1 h-[180px] overflow-hidden">
+                {/* Activity Feed - Takes 1 column, same height as health widgets */}
+                <div className="xl:col-span-1 h-[140px] overflow-hidden">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>

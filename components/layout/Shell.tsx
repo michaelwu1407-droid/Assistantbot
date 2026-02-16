@@ -84,23 +84,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
             <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
               <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-muted/30">
-                {/* Mode Toggle Button - Floating Switch in Advanced Mode */}
-                <div className="absolute top-2 left-4 z-20 flex items-center gap-2 px-3 py-1.5 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-md hover:shadow-lg transition-all">
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground">Chat</span>
-                  </div>
-                  <Switch
-                    id="mode-toggle"
-                    checked={false}
-                    onCheckedChange={() => setViewMode("BASIC")}
-                    className="data-[state=checked]:bg-blue-600 scale-90"
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="text-xs font-medium text-blue-600">Advanced</span>
-                  </div>
-                </div>
                 {children}
               </div>
             </ResizablePanel>
@@ -118,7 +101,24 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               id="assistant-panel"
               className="hidden md:block transition-all duration-300 ease-in-out pl-2"
             >
-              <div id="assistant-pane" className="h-full w-full border-l border-border bg-card">
+              {/* Mode Toggle Button - Above Chatbot */}
+              <div className="flex items-center justify-center gap-3 px-4 py-2 bg-card border-b border-border">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Chat</span>
+                </div>
+                <Switch
+                  id="mode-toggle"
+                  checked={viewMode === "ADVANCED"}
+                  onCheckedChange={(checked) => setViewMode(checked ? "ADVANCED" : "BASIC")}
+                  className="data-[state=checked]:bg-blue-600"
+                />
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-600">Advanced</span>
+                </div>
+              </div>
+              <div id="assistant-pane" className="h-[calc(100%-48px)] w-full border-l border-border bg-card">
                 {chatbot}
               </div>
             </ResizablePanel>

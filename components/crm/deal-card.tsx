@@ -81,8 +81,8 @@ export function DealCard({ deal, overlay }: DealCardProps) {
                 <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex justify-between items-start">
-                        <div>
-                            <h4 className="font-semibold text-slate-900 line-clamp-1">{deal.title}</h4>
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-slate-900 truncate capitalize">{deal.title}</h4>
                             <p className="text-xs text-slate-500 truncate">{deal.company}</p>
                         </div>
                         {/* Grab handle visual cue could go here */}
