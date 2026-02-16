@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { SignIn, SignUp, useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, Chrome } from "lucide-react";
-import Link from "next/link";
+import { useState } from "react";
 
 export function AuthSelector() {
-  const [selectedMethod, setSelectedMethod] = useState<"email" | "phone" | "google">("email");
+  const { isSignedIn } = useUser();
   const [isSignUp, setIsSignUp] = useState(false);
+
+  if (isSignedIn) {
+    window.location.href = "/setup";
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
@@ -18,62 +22,42 @@ export function AuthSelector() {
             {isSignUp ? "Create Account" : "Welcome Back"}
           </CardTitle>
           <CardDescription>
-            Choose how you'd like to {isSignUp ? "sign up" : "sign in"}
+            {isSignUp ? "Sign up to get started" : "Sign in to your account"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3">
-            <Button
-              variant={selectedMethod === "email" ? "default" : "outline"}
-              className="w-full h-16 flex items-center justify-center gap-3"
-              onClick={() => setSelectedMethod("email")}
-            >
-              <Mail className="h-6 w-6" />
-              <div className="text-left">
-                <div className="font-semibold">Email Address</div>
-                <div className="text-sm text-slate-500">Use your email to {isSignUp ? "sign up" : "sign in"}</div>
-              </div>
-            </Button>
-
-            <Button
-              variant={selectedMethod === "phone" ? "default" : "outline"}
-              className="w-full h-16 flex items-center justify-center gap-3"
-              onClick={() => setSelectedMethod("phone")}
-            >
-              <Phone className="h-6 w-6" />
-              <div className="text-left">
-                <div className="font-semibold">Phone Number</div>
-                <div className="text-sm text-slate-500">Use your phone number to {isSignUp ? "sign up" : "sign in"}</div>
-              </div>
-            </Button>
-
-            <Button
-              variant={selectedMethod === "google" ? "default" : "outline"}
-              className="w-full h-16 flex items-center justify-center gap-3"
-              onClick={() => setSelectedMethod("google")}
-            >
-              <Chrome className="h-6 w-6" />
-              <div className="text-left">
-                <div className="font-semibold">Google Account</div>
-                <div className="text-sm text-slate-500">{isSignUp ? "Sign up" : "Sign in"} with Google</div>
-              </div>
-            </Button>
-          </div>
-
-          {selectedMethod && (
-            <div className="mt-6 text-center">
-              <Link href={
-                selectedMethod === "email" 
-                  ? (isSignUp ? "/signup" : "/login")
-                  : selectedMethod === "phone" 
-                    ? (isSignUp ? "/signup/phone" : "/login/phone")
-                    : (isSignUp ? "/signup/google" : "/login/google")
-              }>
-                <Button size="lg" className="w-full">
-                  {isSignUp ? "Sign Up" : "Sign In"} with {selectedMethod === "email" ? "Email" : selectedMethod === "phone" ? "Phone" : "Google"}
-                </Button>
-              </Link>
-            </div>
+        <CardContent>
+          {isSignUp ? (
+            <SignUp 
+              redirectUrl="/setup"
+              afterSignUpUrl="/setup"
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  card: "shadow-none border-0 p-0",
+                  headerTitle: "hidden",
+                  headerSubtitle: "hidden",
+                  socialButtonsBlockButton: "w-full",
+                  formButtonPrimary: "w-full",
+                  formFieldInput: "w-full",
+                },
+              }}
+            />
+          ) : (
+            <SignIn 
+              redirectUrl="/setup"
+              afterSignInUrl="/setup"
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  card: "shadow-none border-0 p-0",
+                  headerTitle: "hidden",
+                  headerSubtitle: "hidden",
+                  socialButtonsBlockButton: "w-full",
+                  formButtonPrimary: "w-full",
+                  formFieldInput: "w-full",
+                },
+              }}
+            />
           )}
 
           <div className="mt-6 text-center text-sm text-slate-600">
