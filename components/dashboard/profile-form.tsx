@@ -15,7 +15,7 @@ interface ProfileFormProps {
   initialData?: {
     username: string;
     email: string;
-    bio: string;
+    bio?: string;
     urls: { value: string }[];
   };
 }

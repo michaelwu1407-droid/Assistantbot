@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator"
-import { ProfileForm } from "../profile-form"
+import { ProfileForm } from "@/components/dashboard/profile-form"
 import { getAuthUser } from "@/lib/auth"
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function AccountSettingsPage() {
                 initialData={{
                     username: user.name?.split(' ')[0] || "user", // Use first name as username
                     email: user.email,
-                    bio: "", // Bio not available in user model yet
+                    bio: user.bio || "",
                 }}
             />
         </div>
