@@ -2,7 +2,6 @@
 
 import { SignIn, SignUp, useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export function AuthSelector() {
@@ -36,7 +35,6 @@ export function AuthSelector() {
                   card: "shadow-none border-0 p-0",
                   headerTitle: "hidden",
                   headerSubtitle: "hidden",
-                  socialButtonsBlockButton: "w-full",
                   formButtonPrimary: "w-full",
                   formFieldInput: "w-full",
                 },
@@ -52,7 +50,6 @@ export function AuthSelector() {
                   card: "shadow-none border-0 p-0",
                   headerTitle: "hidden",
                   headerSubtitle: "hidden",
-                  socialButtonsBlockButton: "w-full",
                   formButtonPrimary: "w-full",
                   formFieldInput: "w-full",
                 },
