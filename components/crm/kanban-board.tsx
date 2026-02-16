@@ -198,7 +198,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start no-scrollbar">
+      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 

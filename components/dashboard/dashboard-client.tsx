@@ -36,7 +36,7 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 </div>
 
                 {/* Activity Feed - Takes 1 column, shorter height */}
-                <div className="xl:col-span-1 h-[280px] overflow-hidden">
+                <div className="xl:col-span-1 h-[180px] overflow-hidden">
                     <ActivityFeed workspaceId={workspace.id} />
                 </div>
             </div>
