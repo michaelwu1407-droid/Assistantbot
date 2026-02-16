@@ -52,6 +52,8 @@ export function EnhancedSignIn() {
                     dividerLine: "hidden",
                     formButtonPrimary: "w-full",
                     formFieldInput: "w-full",
+                    formResendCodeLink: "hidden",
+                    formPasswordResetLink: "hidden",
                   },
                 }}
               />

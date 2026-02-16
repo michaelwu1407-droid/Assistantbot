@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Check, ArrowRight, Hammer, Smartphone } from "lucide-react"
+import { Check, ArrowRight, Hammer, Smartphone, Mail } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {
@@ -23,13 +23,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link href="/login">
               <Button size="lg" className="h-12 px-8 text-lg">
-                Get Started for Free
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <Mail className="mr-2 h-4 w-4" />
+                Email Sign In
               </Button>
             </Link>
-            <Link href="#product">
+            <Link href="/login/phone">
               <Button size="lg" variant="outline" className="h-12 px-8 text-lg">
-                Learn More
+                <Smartphone className="mr-2 h-4 w-4" />
+                Phone Sign In
               </Button>
             </Link>
           </div>
