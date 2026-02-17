@@ -13,14 +13,14 @@ interface ContactProfileProps {
 
 export function ContactProfile({ contact }: ContactProfileProps) {
     // Extract unique addresses from deals as "properties"
-    const properties = (contact as any).deals
-        ?.map((d: any) => ({
+    const properties = (contact.deals ?? [])
+        .filter((d) => d.address)
+        .map((d) => ({
             title: d.title,
-            address: d.address || (d.metadata as any)?.address,
+            address: d.address,
             stage: d.stage,
-            value: Number(d.value)
-        }))
-        .filter((p: any) => p.address) ?? [];
+            value: d.value
+        }));
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">

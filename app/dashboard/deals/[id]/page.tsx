@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Edit } from "lucide-react"
+import { ChevronLeft, Edit, Camera, MessageSquare } from "lucide-react"
 import Link from "next/link"
 
 interface PageProps {
@@ -17,7 +17,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
     const deal = await db.deal.findUnique({
         where: { id },
-        include: { contact: true }
+        include: { contact: true, jobPhotos: { orderBy: { createdAt: 'desc' } } }
     })
 
     if (!deal) {
@@ -117,12 +117,39 @@ export default async function DealDetailPage({ params }: PageProps) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Photos Section */}
+                    {deal.jobPhotos && deal.jobPhotos.length > 0 && (
+                        <div className="p-6 border border-slate-200 rounded-xl bg-white shadow-sm">
+                            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                                <Camera className="w-4 h-4" />
+                                Photos ({deal.jobPhotos.length})
+                            </h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                {deal.jobPhotos.map((photo) => (
+                                    <div key={photo.id} className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                                        <img
+                                            src={photo.url}
+                                            alt={photo.caption || 'Job photo'}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Activity Feed */}
                 <div className="h-full overflow-hidden border border-slate-200 rounded-xl bg-white flex flex-col">
-                    <div className="select-none p-4 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50">
+                    <div className="select-none p-4 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between">
                         Activity History
+                        <Link href={`/dashboard/inbox?contact=${deal.contactId}`}>
+                            <Button size="sm" variant="outline" className="gap-1 text-xs">
+                                <MessageSquare className="w-3 h-3" />
+                                Quick Reply
+                            </Button>
+                        </Link>
                     </div>
                     <div className="flex-1 overflow-hidden p-0">
                         <ActivityFeed dealId={deal.id} />

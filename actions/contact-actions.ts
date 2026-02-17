@@ -19,6 +19,7 @@ export interface ContactView {
   metadata?: Record<string, unknown>;
   dealCount: number;
   lastActivityDate: Date | null;
+  deals?: { title: string; address?: string; stage: string; value: number }[];
 }
 
 interface SearchableContact extends SearchableItem {
@@ -70,7 +71,7 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
       deals: any[];
       activities: any[];
     };
-    
+
     return {
       id: c.id,
       name: c.name,
@@ -116,6 +117,12 @@ export async function getContact(contactId: string): Promise<ContactView | null>
     metadata: (contact.metadata as Record<string, unknown>) ?? undefined,
     dealCount: contactWithRelations.deals.length,
     lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
+    deals: contactWithRelations.deals.map((d: any) => ({
+      title: d.title,
+      address: (d.metadata as any)?.address || d.address,
+      stage: d.stage,
+      value: Number(d.value),
+    })),
   };
 }
 
