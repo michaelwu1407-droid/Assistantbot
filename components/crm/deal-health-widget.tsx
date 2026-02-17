@@ -19,62 +19,78 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
     return (
         <div className="grid gap-6 grid-cols-2 md:grid-cols-4 h-full">
             {/* Total Pipeline Card */}
-            <div className="ott-card relative overflow-hidden group p-6 md:p-8">
-                <div className="space-y-4 relative z-10">
-                    <div className="flex items-center gap-3 text-[#64748B] mb-2">
-                        <div className="p-2.5 bg-slate-100 rounded-full">
-                            <DollarSign className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <span className="text-sm font-bold uppercase tracking-wide">Pipeline</span>
+            <div className="ott-card p-6 flex flex-col justify-between h-full min-h-[180px]">
+                <div className="flex justify-between items-start">
+                    <span className="text-lg font-bold text-[#0F172A] tracking-tight">Pipeline</span>
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-md transform -rotate-45">
+                        <TrendingUp className="w-4 h-4" />
                     </div>
-                    <div className="text-3xl md:text-3xl font-extrabold text-[#0F172A] tracking-tighter">
-                        ${totalValue.toLocaleString()}
+                </div>
+                <div>
+                    <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-4xl font-extrabold text-[#0F172A] tracking-tighter">
+                            ${totalValue.toLocaleString()}
+                        </span>
+                        <span className="text-sm font-bold text-[#00D28B]">+12.7%</span>
                     </div>
+                    <span className="text-sm font-medium text-[#94A3B8]">Total potential value</span>
                 </div>
             </div>
 
             {/* Healthy Deals Card */}
-            <div className="ott-card relative overflow-hidden group p-6 md:p-8">
-                <div className="space-y-4 relative z-10">
-                    <div className="flex items-center gap-3 text-[#64748B] mb-2">
-                        <div className="p-2.5 bg-emerald-50 rounded-full">
-                            <Activity className="w-5 h-5 text-[#00D28B]" />
-                        </div>
-                        <span className="text-sm font-bold uppercase tracking-wide">Healthy</span>
+            <div className="ott-card p-6 flex flex-col justify-between h-full min-h-[180px]">
+                <div className="flex justify-between items-start">
+                    <span className="text-lg font-bold text-[#0F172A] tracking-tight">Healthy</span>
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-md transform -rotate-45">
+                        <Activity className="w-4 h-4" />
                     </div>
-                    <div className="text-3xl md:text-3xl font-extrabold text-[#0F172A] tracking-tighter">
-                        {healthyCount}
+                </div>
+                <div>
+                    <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-4xl font-extrabold text-[#0F172A] tracking-tighter">
+                            {healthyCount}
+                        </span>
+                        <span className="text-sm font-bold text-[#00D28B]">+63.0%</span>
                     </div>
+                    <span className="text-sm font-medium text-[#94A3B8]">On track deals</span>
                 </div>
             </div>
 
             {/* Stale Deals Card */}
-            <div className="ott-card relative overflow-hidden group p-6 md:p-8">
-                <div className="space-y-4 relative z-10">
-                    <div className="flex items-center gap-3 text-[#64748B] mb-2">
-                        <div className="p-2.5 bg-amber-50 rounded-full">
-                            <Clock className="w-5 h-5 text-amber-500" />
-                        </div>
-                        <span className="text-sm font-bold uppercase tracking-wide">Stale</span>
+            <div className="ott-card p-6 flex flex-col justify-between h-full min-h-[180px]">
+                <div className="flex justify-between items-start">
+                    <span className="text-lg font-bold text-[#0F172A] tracking-tight">Stale</span>
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-md transform -rotate-45">
+                        <Clock className="w-4 h-4" />
                     </div>
-                    <div className={cn("text-3xl md:text-3xl font-extrabold tracking-tighter", staleDeals.length > 0 ? "text-amber-600" : "text-[#0F172A]")}>
-                        {staleDeals.length}
+                </div>
+                <div>
+                    <div className="flex items-baseline gap-2 mb-1">
+                        <span className={cn("text-4xl font-extrabold tracking-tighter", staleDeals.length > 0 ? "text-amber-500" : "text-[#0F172A]")}>
+                            {staleDeals.length}
+                        </span>
+                        <span className="text-sm font-bold text-amber-500">+10.7%</span>
                     </div>
+                    <span className="text-sm font-medium text-[#94A3B8]">No activity &gt; 7 days</span>
                 </div>
             </div>
 
             {/* Rotting Deals Card */}
-            <div className="ott-card relative overflow-hidden group p-6 md:p-8">
-                <div className="space-y-4 relative z-10">
-                    <div className="flex items-center gap-3 text-[#64748B] mb-2">
-                        <div className="p-2.5 bg-red-50 rounded-full">
-                            <AlertTriangle className="w-5 h-5 text-red-500" />
-                        </div>
-                        <span className="text-sm font-bold uppercase tracking-wide">Rotting</span>
+            <div className="ott-card p-6 flex flex-col justify-between h-full min-h-[180px]">
+                <div className="flex justify-between items-start">
+                    <span className="text-lg font-bold text-[#0F172A] tracking-tight">Rotting</span>
+                    <div className="w-8 h-8 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-md transform -rotate-45">
+                        <AlertTriangle className="w-4 h-4" />
                     </div>
-                    <div className={cn("text-3xl md:text-3xl font-extrabold tracking-tighter", rottingDeals.length > 0 ? "text-red-600" : "text-[#0F172A]")}>
-                        {rottingDeals.length}
+                </div>
+                <div>
+                    <div className="flex items-baseline gap-2 mb-1">
+                        <span className={cn("text-4xl font-extrabold tracking-tighter", rottingDeals.length > 0 ? "text-red-500" : "text-[#0F172A]")}>
+                            {rottingDeals.length}
+                        </span>
+                        <span className="text-sm font-bold text-red-500">-2.4%</span>
                     </div>
+                    <span className="text-sm font-medium text-[#94A3B8]">Needs attention</span>
                 </div>
             </div>
         </div>
