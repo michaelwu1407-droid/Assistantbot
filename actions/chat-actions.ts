@@ -355,10 +355,39 @@ function parseCommandRegex(message: string): ParsedCommand {
     };
   }
 
+  // Marketing/Industry-specific searches: "find me indoor work", "show plumbing jobs", "find bathroom renovations"
+  const marketingMatch = msg.match(/(?:find|show|get|list)\s+me\s+(.+?)(?:\s+(?:jobs|deals|leads|work|projects))/i);
+  if (marketingMatch) {
+    const query = marketingMatch[1].trim().toLowerCase();
+    return {
+      intent: "search_contacts",
+      params: { query },
+    };
+  }
+
+  // Industry-specific work type searches: "plumbing jobs", "bathroom renovations", "kitchen remodels"
+  const workTypeMatch = msg.match(/(?:plumbing|electrical|hvac|carpentry|roofing|painting|tiling|kitchen|bathroom|renovation|remodel)\s+(?:jobs|deals|leads|work|projects)/i);
+  if (workTypeMatch) {
+    const workType = workTypeMatch[0].toLowerCase();
+    return {
+      intent: "search_contacts",
+      params: { query: workType },
+    };
+  }
+
+  // Location-based searches: "jobs in Sydney", "work in North Shore"
+  const locationMatch = msg.match(/(?:jobs|deals|leads|work|projects)\s+(?:in|at|near)\s+(.+)$/i);
+  if (locationMatch) {
+    const location = locationMatch[1].trim();
+    return {
+      intent: "search_contacts",
+      params: { query: location },
+    };
+  }
+
   // Add contact/client/buyer: "add client John Doe john@tesla.com"
   const addContactMatch = msg.match(
-    /(?:add|new)\s+(?:contact|client|buyer|vendor|customer)\s+([A-Za-z\s]+?)(?:\s+([\w.+-]+@[\w.-]+))?$/
-  );
+    /(?:add|new)\s+(?:contact|client|buyer|vendor|customer)\s+([A-Za-z\s]+?)(?:\s+([\w.+-]+@[\w.-]+))?$/);
   if (addContactMatch) {
     return {
       intent: "add_contact",

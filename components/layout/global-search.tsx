@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/command"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { searchContacts, ContactView } from "@/actions/contact-actions"
-import { searchDeals, DealView } from "@/actions/deal-actions"
+import { globalSearch, SearchResultItem } from "@/actions/search-actions"
 
 interface GlobalSearchProps {
     className?: string
@@ -35,8 +34,7 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
     const setOpen = isControlled ? externalOnOpenChange! : setInternalOpen
 
     const [query, setQuery] = React.useState("")
-    const [contacts, setContacts] = React.useState<ContactView[]>([])
-    const [deals, setDeals] = React.useState<DealView[]>([])
+    const [results, setResults] = React.useState<SearchResultItem[]>([])
     const [loading, setLoading] = React.useState(false)
 
     // Toggle with Cmd+K
@@ -55,19 +53,14 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
     React.useEffect(() => {
         const timer = setTimeout(async () => {
             if (!query || !workspaceId) {
-                setContacts([])
-                setDeals([])
+                setResults([])
                 return
             }
 
             setLoading(true)
             try {
-                const [contactResults, dealResults] = await Promise.all([
-                    searchContacts(workspaceId, query),
-                    searchDeals(workspaceId, query)
-                ])
-                setContacts(contactResults)
-                setDeals(dealResults)
+                const searchResults = await globalSearch(workspaceId, query)
+                setResults(searchResults)
             } catch (error) {
                 console.error(error)
             } finally {
@@ -110,41 +103,68 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
                 <CommandList>
                     <CommandEmpty>No results found.</CommandEmpty>
 
-                    {(contacts.length > 0) && (
-                        <CommandGroup heading="Contacts">
-                            {contacts.map(contact => (
-                                <CommandItem
-                                    key={contact.id}
-                                    value={`${contact.name} ${contact.email}`} // Value for internal filtering if we wanted client side too, but we do server
-                                    onSelect={() => {
-                                        runCommand(() => router.push(`/dashboard/contacts?id=${contact.id}`)) // Or modal
-                                    }}
-                                >
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>{contact.name}</span>
-                                    {contact.company && <span className="ml-2 text-muted-foreground text-xs">({contact.company})</span>}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    )}
+                    {(() => {
+                        const contactResults = results.filter(r => r.type === 'contact')
+                        const dealResults = results.filter(r => r.type === 'deal')
+                        const taskResults = results.filter(r => r.type === 'task')
 
-                    {(deals.length > 0) && (
-                        <CommandGroup heading="Deals">
-                            {deals.map(deal => (
-                                <CommandItem
-                                    key={deal.id}
-                                    value={`${deal.title} ${deal.company}`}
-                                    onSelect={() => {
-                                        runCommand(() => router.push(`/dashboard/deals/${deal.id}`))
-                                    }}
-                                >
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    <span>{deal.title}</span>
-                                    <span className="ml-auto text-xs text-muted-foreground">${deal.value.toLocaleString()}</span>
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    )}
+                        return (
+                            <>
+                                {contactResults.length > 0 && (
+                                    <CommandGroup heading="Contacts">
+                                        {contactResults.map(contact => (
+                                            <CommandItem
+                                                key={contact.id}
+                                                value={contact.title}
+                                                onSelect={() => {
+                                                    runCommand(() => router.push(contact.url))
+                                                }}
+                                            >
+                                                <User className="mr-2 h-4 w-4" />
+                                                <span>{contact.title}</span>
+                                                {contact.subtitle && <span className="ml-2 text-muted-foreground text-xs">({contact.subtitle})</span>}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                )}
+
+                                {dealResults.length > 0 && (
+                                    <CommandGroup heading="Deals">
+                                        {dealResults.map(deal => (
+                                            <CommandItem
+                                                key={deal.id}
+                                                value={deal.title}
+                                                onSelect={() => {
+                                                    runCommand(() => router.push(deal.url))
+                                                }}
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                <span>{deal.title}</span>
+                                                {deal.subtitle && <span className="ml-auto text-xs text-muted-foreground">{deal.subtitle}</span>}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                )}
+
+                                {taskResults.length > 0 && (
+                                    <CommandGroup heading="Tasks">
+                                        {taskResults.map(task => (
+                                            <CommandItem
+                                                key={task.id}
+                                                value={task.title}
+                                                onSelect={() => {
+                                                    runCommand(() => router.push(task.url))
+                                                }}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                <span>{task.title}</span>
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                )}
+                            </>
+                        )
+                    })()}
 
                     <CommandSeparator />
                     <CommandGroup heading="Pages">

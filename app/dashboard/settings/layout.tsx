@@ -43,6 +43,14 @@ const sidebarNavItems = [
         title: "Integrations",
         href: "/dashboard/settings/integrations",
     },
+    {
+        title: "AI Voice Agent",
+        href: "/dashboard/settings/ai-voice",
+    },
+    {
+        title: "After Hours",
+        href: "/dashboard/settings/after-hours",
+    },
 ]
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {

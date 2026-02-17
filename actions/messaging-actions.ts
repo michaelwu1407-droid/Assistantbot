@@ -315,3 +315,100 @@ export async function sendBulkSMS(
 
   return { success: true, sent, failed, errors };
 }
+
+/**
+ * Send initial confirmation SMS for a scheduled job.
+ */
+export async function sendConfirmationSMS(dealId: string): Promise<MessageResult> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      include: { contact: true }
+    });
+
+    if (!deal || !deal.contact.phone) {
+      return { success: false, error: "No contact phone number found" };
+    }
+
+    const message = `Hi ${deal.contact.name}, this is a confirmation for your job scheduled for ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "today"} at ${deal.address || "your location"}. Please reply "CONFIRM" to confirm or call us if you need to reschedule. Thanks!`;
+
+    const result = await sendSMS(deal.contactId, message, dealId);
+
+    if (result.success) {
+      // Store confirmation status in deal metadata
+      await db.deal.update({
+        where: { id: dealId },
+        data: {
+          metadata: {
+            ...(deal.metadata as Record<string, any> || {}),
+            confirmationSent: new Date().toISOString(),
+            confirmationStatus: "pending"
+          }
+        }
+      });
+
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Confirmation SMS Sent",
+          content: `Sent confirmation SMS to ${deal.contact.name}`,
+          dealId,
+          contactId: deal.contactId
+        }
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error sending confirmation SMS:", error);
+    return { success: false, error: "Failed to send confirmation SMS" };
+  }
+}
+
+/**
+ * Resend/nudge confirmation SMS for a pending job.
+ */
+export async function resendConfirmationSMS(dealId: string): Promise<MessageResult> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      include: { contact: true }
+    });
+
+    if (!deal || !deal.contact.phone) {
+      return { success: false, error: "No contact phone number found" };
+    }
+
+    const message = `Hi ${deal.contact.name}, just following up on your job scheduled for ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "today"}. Please reply "CONFIRM" or call us to reschedule. Thanks!`;
+
+    const result = await sendSMS(deal.contactId, message, dealId);
+
+    if (result.success) {
+      // Update last nudge time
+      await db.deal.update({
+        where: { id: dealId },
+        data: {
+          metadata: {
+            ...(deal.metadata as Record<string, any> || {}),
+            lastNudgeSent: new Date().toISOString()
+          }
+        }
+      });
+
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Nudge SMS Sent",
+          content: `Sent nudge SMS to ${deal.contact.name}`,
+          dealId,
+          contactId: deal.contactId
+        }
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error sending nudge SMS:", error);
+    return { success: false, error: "Failed to send nudge SMS" };
+  }
+}

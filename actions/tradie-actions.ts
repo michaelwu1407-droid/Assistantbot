@@ -692,6 +692,7 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
   }
 }
 
+
 /**
  * Send a Google Review request SMS to the client after job completion.
  */
