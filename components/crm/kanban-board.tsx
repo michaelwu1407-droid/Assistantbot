@@ -217,39 +217,38 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ring-2 ring-opacity-50 ring-offset-1 ${col.color.replace('bg-', 'ring-')}`} />
-                  <h3 className="font-semibold text-foreground text-sm tracking-tight">{title}</h3>
-                  <span className="text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded-full border border-border/50">
+                  <div className={`w-3 h-3 rounded-full ${col.color}`} />
+                  <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{title}</h3>
+                  <span className="text-xs text-[#475569] font-bold bg-[#F1F5F9] px-2 py-0.5 rounded-full">
                     {colDeals.length}
                   </span>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]">
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
 
               {/* Column Body / Drop Zone */}
-              {/* We make the whole column a sortable context */}
               <SortableContext
                 id={col.id} // This is critical for empty columns to be droppable
                 items={colDeals.map(d => d.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex-1 bg-muted/10 dark:bg-white/5 rounded-2xl border border-dashed border-border/30 p-2 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors hover:bg-muted/20">
+                <div className="flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors hover:bg-white hover:shadow-inner">
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
                       <DealCard key={deal.id} deal={deal} />
                     ))
                   ) : (
                     // Empty state
-                    <div className="h-40 flex flex-col items-center justify-center text-muted-foreground p-4 opacity-50 hover:opacity-100 transition-opacity">
-                      <div className="p-3 bg-muted/30 rounded-full mb-3">
-                        <Plus className="h-5 w-5 text-muted-foreground" />
+                    <div className="h-40 flex flex-col items-center justify-center text-[#94A3B8] p-4">
+                      <div className="p-3 bg-[#F1F5F9] rounded-full mb-3">
+                        <Plus className="h-5 w-5 text-[#94A3B8]" />
                       </div>
                       <span className="text-sm font-medium mb-1">No deals</span>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-white/10" onClick={() => document.getElementById('new-deal-btn')?.click()}>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-[#E2E8F0] rounded-full px-4" onClick={() => document.getElementById('new-deal-btn')?.click()}>
                         Add New
                       </Button>
                     </div>

@@ -4,6 +4,21 @@
 
 ---
 
+### 2026-02-18 00:40 AEST [Frontend - Antigravity] - Ottorize Design System Finalization
+**Feature**: Strict implementation of Ottorize Design System (v2).
+*   **Design Tokens**:
+    *   **Typography**: Switched globally to `Plus Jakarta Sans`.
+    *   **Colors**: Enforced "Mint & Milk" palette (`#F8FAFC` bg, `#FFFFFF` cards, `#0F172A` text, `#00D28B` accent).
+    *   **Shadows**: Implemented 3-layer soft shadow system for "floating" effect.
+*   **Components Updated**:
+    *   **Global**: Replaced `.glass-card` (deprecated) with `.ott-card` (solid white, 32px radius).
+    *   **Dashboard**: Added generic `.ott-glow` radial background.
+    *   **Buttons**: Primary CTAs are now solid black pills (`#020617`).
+    *   **Kanban**: Cleaned up columns (solid borders, no dashed lines).
+*   **Files modified**: `app/globals.css`, `app/layout.tsx`, `components/dashboard/*`, `components/crm/*`, `components/auth/*`.
+*   **Status**: Resolves "Ottorize Overhaul" task.
+*   **Commit**: `feat: Finalize Ottorize Design - Plus Jakarta Sans, Solid Cards, Mint Accents`
+
 ### 2026-02-18 00:05 AEST [Frontend - Antigravity] - UI Redesign & Polish
 **Feature**: Comprehensive UI overhaul inspired by Ottorize CRM aesthetics.
 *   **Design System**:

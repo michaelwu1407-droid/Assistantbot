@@ -80,10 +80,10 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside className={cn("flex h-full w-[72px] flex-col items-center border-r border-white/5 bg-[#111113] py-6 z-20 shadow-xl", className)}>
+            <aside className={cn("flex h-full w-[80px] flex-col items-center border-r border-[#1E293B] bg-[#020617] py-6 z-20 shadow-xl", className)}>
                 {/* Logo / Brand */}
-                <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]">
-                    <span className="font-bold italic text-lg">Pj</span>
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-[16px] bg-[#00D28B]/10 border border-[#00D28B]/20 text-[#00D28B] shadow-[0_0_15px_-3px_rgba(0,210,139,0.3)]">
+                    <span className="font-extrabold italic text-xl">Pj</span>
                 </div>
 
                 {/* Mode Toggle (Advanced/Basic) */}
@@ -93,7 +93,7 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="mode-toggle-btn"
                                 onClick={() => setViewMode("BASIC")}
-                                className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white/10 hover:text-white transition-all"
+                                className="mb-6 flex h-10 w-10 items-center justify-center rounded-[16px] text-slate-400 hover:bg-white/10 hover:text-white transition-all"
                             >
                                 <MessageSquare className="h-5 w-5" />
                             </button>
@@ -124,10 +124,10 @@ export function Sidebar({ className }: SidebarProps) {
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             className={cn(
-                                                "flex h-11 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                                "flex h-11 w-full items-center justify-center rounded-[16px] transition-all duration-300",
                                                 isActive
-                                                    ? "bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_-3px_rgba(16,185,129,0.2)]"
-                                                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                                    ? "bg-[#00D28B] text-[#020617] shadow-[0_0_15px_-3px_rgba(0,210,139,0.4)]"
+                                                    : "text-[#94A3B8] hover:bg-white/5 hover:text-white"
                                             )}
                                         >
                                             <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
@@ -156,10 +156,10 @@ export function Sidebar({ className }: SidebarProps) {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     className={cn(
-                                                        "flex h-11 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                                        "flex h-11 w-full items-center justify-center rounded-[16px] transition-all duration-300",
                                                         isActive
-                                                            ? "bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_-3px_rgba(16,185,129,0.2)]"
-                                                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                                            ? "bg-[#00D28B]/20 text-[#00D28B] border border-[#00D28B]/30"
+                                                            : "text-[#94A3B8] hover:bg-white/5 hover:text-white"
                                                     )}
                                                 >
                                                     <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
@@ -188,10 +188,10 @@ export function Sidebar({ className }: SidebarProps) {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     className={cn(
-                                                        "flex h-11 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                                        "flex h-11 w-full items-center justify-center rounded-[16px] transition-all duration-300",
                                                         isActive
-                                                            ? "bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_-3px_rgba(16,185,129,0.2)]"
-                                                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                                            ? "bg-[#00D28B]/20 text-[#00D28B] border border-[#00D28B]/30"
+                                                            : "text-[#94A3B8] hover:bg-white/5 hover:text-white"
                                                     )}
                                                 >
                                                     <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
@@ -217,10 +217,10 @@ export function Sidebar({ className }: SidebarProps) {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     className={cn(
-                                        "flex h-11 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                        "flex h-11 w-full items-center justify-center rounded-[16px] transition-all duration-300",
                                         pathname.startsWith("/dashboard/settings")
-                                            ? "bg-emerald-500/10 text-emerald-400"
-                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                            ? "bg-[#00D28B]/20 text-[#00D28B]"
+                                            : "text-[#64748B] hover:bg-white/5 hover:text-white"
                                     )}
                                 >
                                     <Settings className="h-5 w-5" />
@@ -235,7 +235,7 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-11 w-full items-center justify-center rounded-xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
+                                className="flex h-11 w-full items-center justify-center rounded-[16px] text-[#64748B] hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
                             >
                                 <LogOut className="h-5 w-5" />
                             </button>

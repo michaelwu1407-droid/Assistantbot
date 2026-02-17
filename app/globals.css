@@ -5,42 +5,41 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-heading: var(--font-heading);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -53,123 +52,104 @@
 }
 
 :root {
-  /* Typography */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Outfit', system-ui, sans-serif;
+  /* Typography - Plus Jakarta Sans */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 
-  /* Base Radius - Increased for friendlier, modern feel (Ottorize style) */
-  --radius: 1rem;
+  /* Radius - Ottorize Spec: 32px outer, 24px inner */
+  --radius: 1.5rem;
+  /* Base radius for shadcn components, we use specific classes for strict Ottorize shapes */
 
-  /* LIGHT THEME (Clean, Airy, Emerald & Violet) */
-  /* Background: Almost pure white */
-  --background: oklch(0.985 0.002 247);
-  /* Foreground: Soft rich black */
-  --foreground: oklch(0.145 0.02 260);
+  /* LIGHT THEME - Ottorize "Mint & Milk" */
+  --background: #F8FAFC;
+  /* Off-white page bg */
+  --foreground: #475569;
+  /* Cool Slate body text */
 
-  /* Card: Pure white */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.02 260);
+  --card: #FFFFFF;
+  /* Pure white cards */
+  --card-foreground: #0F172A;
+  /* Deep Midnight headers */
 
-  /* Popover: Slightly elevated white */
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.02 260);
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
 
-  /* Primary: Emerald 500 (Vibrant Mint Green) */
-  --primary: oklch(0.623 0.188 145);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: #00D28B;
+  /* Vibrant Mint Green */
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary: Violet 500 (Complementary accent) */
-  --secondary: oklch(0.627 0.265 303);
-  --secondary-foreground: oklch(0.98 0 0);
+  --secondary: #F1F5F9;
+  /* Light grey-blue */
+  --secondary-foreground: #0F172A;
 
-  /* Muted: Subtle cool grays */
-  --muted: oklch(0.96 0.01 260);
-  --muted-foreground: oklch(0.55 0.02 260);
+  --muted: #F1F5F9;
+  --muted-foreground: #94A3B8;
+  /* Light Slate */
 
-  /* Accent: Hover states (Light Emerald) */
-  --accent: oklch(0.96 0.02 145);
-  --accent-foreground: oklch(0.25 0.08 145);
+  --accent: #ECFDF5;
+  /* Pale Mint hover */
+  --accent-foreground: #00D28B;
 
-  /* Destructive: Sophisticated Red */
-  --destructive: oklch(0.6 0.18 25);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
 
-  /* Border: Subtle Slate */
-  --border: oklch(0.92 0.01 260);
-  --input: oklch(0.92 0.01 260);
-  --ring: oklch(0.623 0.188 145);
+  --border: #E2E8F0;
+  /* Subtle grey-blue */
+  --input: #FFFFFF;
+  /* White inputs */
+  --ring: #00D28B;
+  /* Mint focus ring */
 
-  /* Charts: Modern, distinct palette */
-  --chart-1: oklch(0.623 0.188 145);
-  /* Emerald */
-  --chart-2: oklch(0.627 0.265 303);
-  /* Violet */
-  --chart-3: oklch(0.55 0.15 260);
-  /* Blue */
-  --chart-4: oklch(0.75 0.15 90);
-  /* Amber */
-  --chart-5: oklch(0.6 0.2 320);
-  /* Pink */
-
-  /* Sidebar: ALWAYS DARK (Brand Identity) */
-  --sidebar: oklch(0.08 0.02 265);
-  --sidebar-foreground: oklch(0.98 0.005 260);
-  --sidebar-primary: oklch(0.623 0.188 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.15 0.03 265);
-  --sidebar-accent-foreground: oklch(0.98 0.005 260);
-  --sidebar-border: oklch(0.2 0.04 260);
-  --sidebar-ring: oklch(0.623 0.188 145);
+  /* Sidebar - Dark Charcoal Brand Identity */
+  --sidebar: #0F172A;
+  /* Deep Midnight */
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #00D28B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  /* Slightly lighter midnight */
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #00D28B;
 }
 
 .dark {
-  /* DARK THEME (Deep Navy/Charcoal) */
-  --background: oklch(0.12 0.03 260);
-  --foreground: oklch(0.98 0.005 260);
+  /* DARK THEME - Mapped for consistency but Ottorize is primarily a light aesthetic */
+  --background: #020617;
+  --foreground: #E2E8F0;
 
-  --card: oklch(0.15 0.03 260);
-  --card-foreground: oklch(0.98 0.005 260);
+  --card: #0F172A;
+  --card-foreground: #F8FAFC;
 
-  --popover: oklch(0.15 0.03 260);
-  --popover-foreground: oklch(0.98 0.005 260);
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
 
-  /* Primary: Emerald 400 (Brighter for dark mode) */
-  --primary: oklch(0.7 0.16 145);
-  --primary-foreground: oklch(0.12 0.03 260);
+  --primary: #00D28B;
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary: Violet 400 */
-  --secondary: oklch(0.7 0.2 303);
-  --secondary-foreground: oklch(0.98 0.005 260);
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
 
-  --muted: oklch(0.2 0.04 260);
-  --muted-foreground: oklch(0.65 0.04 260);
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
 
-  --accent: oklch(0.2 0.04 260);
-  --accent-foreground: oklch(0.98 0.005 260);
+  --accent: #1E293B;
+  --accent-foreground: #00D28B;
 
-  --destructive: oklch(0.4 0.15 25);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive: #7F1D1D;
+  --destructive-foreground: #FFFFFF;
 
-  --border: oklch(0.2 0.04 260);
-  --input: oklch(0.2 0.04 260);
-  --ring: oklch(0.7 0.16 145);
+  --border: #1E293B;
+  --input: #020617;
+  --ring: #00D28B;
 
-  /* Charts */
-  --chart-1: oklch(0.7 0.16 145);
-  --chart-2: oklch(0.7 0.2 303);
-  --chart-3: oklch(0.55 0.2 260);
-  --chart-4: oklch(0.8 0.2 90);
-  --chart-5: oklch(0.65 0.25 320);
-
-  /* Sidebar: Matches root (Always dark) */
-  --sidebar: oklch(0.08 0.02 265);
-  --sidebar-foreground: oklch(0.98 0.005 260);
-  --sidebar-primary: oklch(0.7 0.16 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.15 0.03 265);
-  --sidebar-accent-foreground: oklch(0.98 0.005 260);
-  --sidebar-border: oklch(0.2 0.04 260);
-  --sidebar-ring: oklch(0.7 0.16 145);
+  --sidebar: #020617;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #00D28B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #00D28B;
 }
 
 @layer base {
@@ -182,50 +162,78 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   }
 
+  /* Ottorize Typography Spec */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply font-heading tracking-tighter font-bold text-foreground;
+    @apply font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight;
   }
 
   h1 {
-    @apply text-3xl md:text-5xl;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    font-weight: 800;
   }
 
   h2 {
-    @apply text-2xl md:text-4xl;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    font-weight: 700;
   }
 
   h3 {
-    @apply text-xl md:text-3xl;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    font-weight: 600;
   }
 }
 
 @layer utilities {
-  .glass-panel {
-    @apply bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+
+  /* THE OTTORIZE CARD: Solid white, layered soft shadows, rounded corners */
+  .ott-card {
+    @apply bg-card border border-border/60 rounded-[24px] transition-all duration-300;
+    box-shadow:
+      0px 1px 2px rgba(0, 0, 0, 0.05),
+      0px 10px 15px -3px rgba(0, 0, 0, 0.03),
+      0px 4px 6px -2px rgba(0, 0, 0, 0.02);
   }
 
-  .glass-card {
-    @apply bg-card/80 dark:bg-card/60 backdrop-blur-md border border-border/50 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20;
+  .ott-card:hover {
+    @apply -translate-y-[4px] border-primary/50;
+    box-shadow:
+      0px 10px 25px -5px rgba(0, 210, 139, 0.15),
+      0px 8px 10px -6px rgba(0, 0, 0, 0.05);
   }
 
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-violet-500;
+  /* ATMOSPHERIC GLOW: Subtle mint radial background */
+  .ott-glow {
+    background: radial-gradient(ellipse at top,
+        rgba(0, 210, 139, 0.12) 0%,
+        rgba(0, 210, 139, 0.05) 40%,
+        transparent 80%);
   }
 
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  /* PRIMARY BUTTON: Solid Black Pill */
+  .ott-btn-primary {
+    @apply h-12 px-8 bg-[#020617] text-white rounded-full font-semibold transition-transform active:scale-95 hover:shadow-lg dark:bg-white dark:text-black;
+  }
+
+  /* SECONDARY BUTTON: White with border */
+  .ott-btn-secondary {
+    @apply h-12 px-8 bg-white text-[#0F172A] border border-[#E2E8F0] rounded-full font-semibold hover:bg-[#F8FAFC] transition-colors dark:bg-transparent dark:text-white dark:border-white/20;
+  }
+
+  /* BADGE: Mint Green Pill */
+  .ott-badge-mint {
+    @apply bg-[#ECFDF5] text-[#00D28B] px-3 py-1 rounded-full text-xs font-bold border border-[#00D28B]/20 dark:bg-[#00D28B]/10;
+  }
+
+  /* Layout Helper */
+  .ott-layout-grid {
+    @apply grid grid-cols-1 md:grid-cols-12 gap-8 max-w-[1600px] mx-auto;
   }
 }

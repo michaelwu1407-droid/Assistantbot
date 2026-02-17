@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export function AuthSelector() {
   const [email, setEmail] = useState("");
@@ -112,24 +113,24 @@ export function AuthSelector() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="w-full max-w-md mx-4 glass-card rounded-2xl p-8 border border-border/50 shadow-xl">
+      <div className="w-full max-w-md mx-4 ott-card bg-white p-8 relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">Welcome to Pj Buddy</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight mb-2">Welcome to Pj Buddy</h1>
+          <p className="text-[#475569] text-base font-medium">
             Sign in to your account or create a new one
           </p>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="signin" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Sign In</TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#F1F5F9] p-1 rounded-full h-12">
+            <TabsTrigger value="signin" className="rounded-full h-10 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#0F172A] data-[state=active]:shadow-sm transition-all text-[#64748B]">Sign In</TabsTrigger>
+            <TabsTrigger value="signup" className="rounded-full h-10 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#0F172A] data-[state=active]:shadow-sm transition-all text-[#64748B]">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form onSubmit={handleSignIn} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="signin-email" className="text-[#0F172A] font-semibold">Email</Label>
                 <Input
                   id="signin-email"
                   type="email"
@@ -137,11 +138,11 @@ export function AuthSelector() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="bg-background/50 border-border/50 focus:bg-background transition-colors"
+                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
+                <Label htmlFor="signin-password" className="text-[#0F172A] font-semibold">Password</Label>
                 <Input
                   id="signin-password"
                   type="password"
@@ -149,17 +150,17 @@ export function AuthSelector() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="bg-background/50 border-border/50 focus:bg-background transition-colors"
+                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <Button type="submit" className="w-full h-10 text-base shadow-lg shadow-primary/20" disabled={loading}>
+              <Button type="submit" className="ott-btn-primary w-full shadow-xl shadow-black/10 mt-2" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
               {needsConfirmation && (
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-10"
+                  className="w-full h-12 rounded-full border-[#E2E8F0] text-[#475569] font-semibold hover:bg-[#F8FAFC]"
                   onClick={handleResendConfirmation}
                   disabled={loading}
                 >
@@ -170,9 +171,9 @@ export function AuthSelector() {
           </TabsContent>
 
           <TabsContent value="signup" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <form onSubmit={handleSignUp} className="space-y-4">
+            <form onSubmit={handleSignUp} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
+                <Label htmlFor="signup-name" className="text-[#0F172A] font-semibold">Full Name</Label>
                 <Input
                   id="signup-name"
                   type="text"
@@ -180,11 +181,11 @@ export function AuthSelector() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Smith"
                   required
-                  className="bg-background/50 border-border/50 focus:bg-background transition-colors"
+                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
+                <Label htmlFor="signup-email" className="text-[#0F172A] font-semibold">Email</Label>
                 <Input
                   id="signup-email"
                   type="email"
@@ -192,11 +193,11 @@ export function AuthSelector() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="bg-background/50 border-border/50 focus:bg-background transition-colors"
+                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
+                <Label htmlFor="signup-password" className="text-[#0F172A] font-semibold">Password</Label>
                 <Input
                   id="signup-password"
                   type="password"
@@ -204,10 +205,10 @@ export function AuthSelector() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="bg-background/50 border-border/50 focus:bg-background transition-colors"
+                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <Button type="submit" className="w-full h-10 text-base shadow-lg shadow-primary/20" disabled={loading}>
+              <Button type="submit" className="ott-btn-primary w-full shadow-xl shadow-black/10 mt-2" disabled={loading}>
                 {loading ? "Signing up..." : "Sign Up"}
               </Button>
             </form>
@@ -215,7 +216,12 @@ export function AuthSelector() {
         </Tabs>
 
         {message && (
-          <div className={`mt-6 p-3 rounded-lg text-center text-sm font-medium ${message.includes("error") || message.includes("Error") ? "bg-red-500/10 text-red-500" : "bg-emerald-500/10 text-emerald-500"}`}>
+          <div className={cn(
+            "mt-6 p-4 rounded-xl text-center text-sm font-bold border",
+            message.includes("error") || message.includes("Error")
+              ? "bg-red-50 text-red-600 border-red-100"
+              : "bg-[#ECFDF5] text-[#00D28B] border-[#00D28B]/20"
+          )}>
             {message}
           </div>
         )}

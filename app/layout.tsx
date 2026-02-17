@@ -8,6 +8,14 @@ import { ServiceWorkerProvider } from "@/components/providers/service-worker-pro
 import { Toaster } from "@/components/ui/sonner";
 import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
 
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const fontSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: "Pj Buddy — CRM for SMEs",
   description: "High-velocity CRM platform with Hub and Spoke architecture",
@@ -28,7 +36,7 @@ export default function RootLayout({
   return (
     <AccessibilityProvider>
       <html lang="en" suppressHydrationWarning>
-        <body className="antialiased font-sans bg-background text-foreground">
+        <body className={`${fontSans.variable} antialiased font-sans bg-background text-foreground`}>
           <ClientThemeProvider>
             <IndustryProvider>
               {children}

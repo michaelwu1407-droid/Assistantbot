@@ -86,8 +86,8 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
     }
 
     return (
-        <div className="flex items-center justify-between shrink-0 pb-6 pt-2">
-            <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between shrink-0 pb-2 pt-2">
+            <div className="flex items-center gap-6">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -97,25 +97,25 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     <Menu className="h-6 w-6" />
                 </Button>
                 <div>
-                    <Breadcrumbs className="mb-2" />
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-3xl md:text-5xl font-heading font-bold text-foreground tracking-tight drop-shadow-sm">
+                    {/* Breadcrumbs can stay, but maybe style them more subtly later */}
+                    <div className="flex items-center gap-4 mb-1">
+                        <h1 className="text-3xl md:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
                             {greeting}
                         </h1>
                         {weather && (
-                            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/40 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-full shadow-sm animate-in fade-in slide-in-from-left-2">
+                            <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#ECFDF5] border border-[#00D28B]/20 rounded-full animate-in fade-in slide-in-from-left-2">
                                 {getWeatherIcon(weather.condition)}
-                                <span className="text-sm font-semibold text-foreground/80">{weather.temp}°</span>
+                                <span className="text-sm font-bold text-[#00D28B]">{weather.temp}°</span>
                             </div>
                         )}
                     </div>
-                    <p className="text-base md:text-lg text-muted-foreground mt-1 font-medium">
+                    <p className="text-base md:text-lg text-[#475569] font-medium tracking-wide">
                         {getSubtitle()}
                     </p>
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-3 md:gap-4">
                 {/* Global Search - CMD+K */}
                 <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />
 
@@ -132,10 +132,11 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
 
                 <NotificationsBtn userId={userId} />
 
+                {/* PRIMARY CTA: SOLID BLACK PILL */}
                 <Button
                     id="new-deal-btn"
                     onClick={onNewDeal}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 whitespace-nowrap flex-shrink-0 h-11 px-6 rounded-xl transition-all hover:scale-105"
+                    className="ott-btn-primary h-12 px-6 shadow-xl shadow-black/10 hover:shadow-black/20"
                 >
                     <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
                     <span className="hidden sm:inline font-semibold">
