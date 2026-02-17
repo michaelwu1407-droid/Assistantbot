@@ -1,5 +1,20 @@
 # Project Status Log
 
+## 2026-02-18: Visual Refinements & Hydration Fixes (Phase 8-10)
+- **Hydration Fix**: Resolved `Sidebar`/`Shell` mismatch by deferring client-side rendering of the view toggle.
+- **KPI Widget**: 
+  - Reduced card height to ~45px for a more compact view.
+  - Implemented horizontal scrolling (`min-w-[800px]`) to preventing squeezing when the chat panel expands.
+  - Tightened padding and typography.
+- **Chat Interface**: 
+  - Fixed input width expansion issue by enforcing `w-full` and using JS for auto-height.
+  - Removed avatars and compacted the message list.
+- **Dashboard Layout**: 
+  - Moved header higher by reducing top padding.
+  - Standardized gaps and grid behavior.
+- **Verification**: `npm run dev` and `npm run build` pass with no errors. Visuals confirmed against user feedback.
+
+
 **Purpose**: Usage by Google Antigravity (Frontend), Claude Code (Backend), and Aider (Backend) to stay synchronized on the "Pj Buddy" project.
 
 ---
