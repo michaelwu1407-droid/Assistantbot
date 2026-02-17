@@ -98,18 +98,18 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                 </Button>
                 <div>
                     {/* Breadcrumbs can stay, but maybe style them more subtly later */}
-                    <div className="flex items-center gap-4 mb-1">
-                        <h1 className="text-3xl md:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-2xl md:text-3xl font-bold text-[#0F172A] tracking-tight leading-tight">
                             {greeting}
                         </h1>
                         {weather && (
-                            <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#ECFDF5] border border-[#00D28B]/20 rounded-full animate-in fade-in slide-in-from-left-2">
+                            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 bg-[#ECFDF5] border border-[#00D28B]/20 rounded-full animate-in fade-in slide-in-from-left-2">
                                 {getWeatherIcon(weather.condition)}
-                                <span className="text-sm font-bold text-[#00D28B]">{weather.temp}°</span>
+                                <span className="text-xs font-bold text-[#00D28B]">{weather.temp}°</span>
                             </div>
                         )}
                     </div>
-                    <p className="text-base md:text-lg text-[#475569] font-medium tracking-wide">
+                    <p className="text-sm md:text-base text-[#64748B] font-medium tracking-normal">
                         {getSubtitle()}
                     </p>
                 </div>

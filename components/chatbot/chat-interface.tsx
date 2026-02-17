@@ -303,16 +303,16 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                 </Avatar>
 
                 {/* Message Content */}
-                <div className="flex flex-col gap-1 max-w-[80%]">
+                <div className="flex flex-col gap-1 max-w-[85%]">
                   <div
                     className={cn(
-                      "rounded-2xl px-5 py-3 shadow-sm",
+                      "rounded-2xl px-4 py-2.5 shadow-sm",
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "glass-card text-foreground rounded-bl-md border border-border/50"
+                        ? "bg-[#0F172A] text-white rounded-br-sm"
+                        : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                     )}
                   >
-                    <p className="text-[15px] leading-relaxed whitespace-pre-line">{message.content}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
 
                     {/* Draft Confirmation Card */}
                     {isDraftAction(message.action) && message.data && (

@@ -33,11 +33,11 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     }
 
     // Stale Logic (Backend provided)
-    let cardClasses = "ott-card bg-white hover:border-[#00D28B] p-4"
+    let cardClasses = "ott-card bg-white hover:border-[#00D28B] p-5"
     let statusBadge = null
 
     if (deal.health?.status === "ROTTING") {
-        cardClasses = "ott-card bg-white border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.1)] p-4"
+        cardClasses = "ott-card bg-white border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.1)] p-5"
         statusBadge = (
             <div className="absolute top-3 right-3 bg-red-50 text-red-600 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10 font-bold tracking-wide border border-red-100">
                 <AlertCircle className="w-3 h-3 mr-1" />

@@ -4,6 +4,20 @@
 
 ---
 
+### 2026-02-18 00:55 AEST [Frontend - Antigravity] - Typography & Spacing Calibration
+**Feature**: "Brutal Breakdown" fixes to align with Ottorize premium feel.
+*   **Typography**:
+    *   Squashed "Billboard" sizes: Header `text-5xl` -> `text-3xl`, KPIs `text-4xl` -> `text-3xl`.
+    *   Standardized Chat: Reduced bubble text from `15px` to `14px` (text-sm).
+*   **Spacing / layout**:
+    *   **Doubled Padding**: Inner card padding increased from `p-4` to `p-6/p-8`.
+    *   **Tripled Gaps**: Dashboard grid gap increased from `gap-8` to `gap-12`.
+*   **Sidebar**:
+    *   Switched from Heavy Black (`#020617`) to **Light Mode** (`#FFFFFF` + Border).
+*   **Files modified**: `app/globals.css`, `components/dashboard/header.tsx`, `components/dashboard/dashboard-client.tsx`, `components/core/sidebar.tsx`, `components/crm/deal-health-widget.tsx`, `components/crm/deal-card.tsx`, `components/chatbot/chat-interface.tsx`.
+*   **Status**: Resolves "Cramped UI" and "Giant Text" user feedback.
+*   **Commit**: `feat: Typography Squash, Light Sidebar, and Expanded Spacing`
+
 ### 2026-02-18 00:40 AEST [Frontend - Antigravity] - Ottorize Design System Finalization
 **Feature**: Strict implementation of Ottorize Design System (v2).
 *   **Design Tokens**:
