@@ -43,12 +43,12 @@ const navItems = [
 ]
 
 const tradieSubItems = [
-    { icon: Users, label: "Contacts", href: "/contacts", id: "contacts-link" },
+    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
 ]
 
 const agentSubItems = [
-    { icon: Users, label: "Contacts", href: "/contacts", id: "agent-contacts-link" },
-    { icon: FileText, label: "Estimator", href: "/estimator", id: "agent-estimator-link" },
+    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "agent-contacts-link" },
+    { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "agent-estimator-link" },
     { icon: LayoutTemplate, label: "Open House", href: "/kiosk/open-house", id: "kiosk-link" },
 ]
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import { getDeals, createDeal, updateDealStage } from "./deal-actions";
 import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
@@ -9,6 +10,7 @@ import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
+import { fuzzyScore } from "@/lib/search";
 import {
   titleCase,
   categoriseWork,
@@ -18,6 +20,94 @@ import {
   STREET_ABBREVS,
   DAY_ABBREVS,
 } from "@/lib/chat-utils";
+
+// ─── Stage Alias Mapping ─────────────────────────────────────────────
+// Maps any user-facing stage name (industry-specific or generic) to the
+// internal lowercase stage key used by the Kanban board and DB.
+const STAGE_ALIASES: Record<string, string> = {
+  // Internal keys (identity)
+  "new": "new",
+  "contacted": "contacted",
+  "negotiation": "negotiation",
+  "won": "won",
+  "lost": "lost",
+  "invoiced": "invoiced",
+  // Generic CRM
+  "new lead": "new",
+  "lead": "new",
+  // Trades
+  "new job": "new",
+  "new jobs": "new",
+  "quoted": "contacted",
+  "quote": "contacted",
+  "quoting": "contacted",
+  "in progress": "negotiation",
+  "in-progress": "negotiation",
+  "inprogress": "negotiation",
+  "progress": "negotiation",
+  "completed": "won",
+  "complete": "won",
+  "done": "won",
+  "finished": "won",
+  "scheduled": "won",
+  // Real Estate
+  "new listing": "new",
+  "new listings": "new",
+  "listing": "new",
+  "appraised": "contacted",
+  "appraisal": "contacted",
+  "under offer": "negotiation",
+  "under-offer": "negotiation",
+  "offer": "negotiation",
+  "settled": "won",
+  "settlement": "won",
+  "under contract": "won",
+  "exchanged": "won",
+  "withdrawn": "lost",
+  "cancelled": "lost",
+  "canceled": "lost",
+  // Construction
+  "awarded": "won",
+  // Paid / Invoice stages
+  "paid": "won",
+  "invoice": "invoiced",
+};
+
+/** Resolve a user-facing stage name to the internal stage key */
+function resolveStage(raw: string): string | null {
+  const key = raw.trim().toLowerCase().replace(/\s+/g, " ");
+  if (STAGE_ALIASES[key]) return STAGE_ALIASES[key];
+  // Partial match fallback
+  for (const [alias, stage] of Object.entries(STAGE_ALIASES)) {
+    if (key.includes(alias) || alias.includes(key)) return stage;
+  }
+  return null;
+}
+
+/** Fuzzy-match a deal title from the deals list */
+function findDealByTitle(deals: { id: string; title: string }[], query: string): { id: string; title: string } | null {
+  const q = query.toLowerCase().trim();
+  // Exact match first
+  const exact = deals.find(d => d.title.toLowerCase() === q);
+  if (exact) return exact;
+  // Contains match
+  const contains = deals.find(d => d.title.toLowerCase().includes(q));
+  if (contains) return contains;
+  // Reverse contains (query contains deal title)
+  const reverseContains = deals.find(d => q.includes(d.title.toLowerCase()));
+  if (reverseContains) return reverseContains;
+  // Fuzzy match
+  let bestDeal: { id: string; title: string } | null = null;
+  let bestScore = 0;
+  for (const deal of deals) {
+    const score = fuzzyScore(q, deal.title.toLowerCase());
+    if (score > bestScore && score >= 0.5) {
+      bestScore = score;
+      bestDeal = deal;
+    }
+  }
+  return bestDeal;
+}
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -210,14 +300,26 @@ function parseCommandRegex(message: string): ParsedCommand {
     };
   }
 
-  // Move deal/job/listing: "move Kitchen Reno to negotiation"
+  // Move deal/job/listing: "move Kitchen Reno to negotiation" / "move card X from Y to Z"
+  // Supports: "move X to Y", "move X from Y to Z", "move card X to Y"
   const moveMatch = msg.match(
-    /move\s+(.+?)\s+to\s+(new|contacted|negotiation|quoted|in\s*progress|invoiced|won|lost|paid|settled|appraised|under\s*offer|exchanged)/
+    /move\s+(?:card\s+|deal\s+|job\s+|listing\s+)?(.+?)\s+(?:from\s+.+?\s+)?to\s+(.+?)$/i
   );
   if (moveMatch) {
     return {
       intent: "move_deal",
       params: { title: moveMatch[1].trim(), stage: moveMatch[2].trim() },
+    };
+  }
+
+  // Also match: "change X stage to Y", "update X to Y", "set X to Y"
+  const changeStageMatch = msg.match(
+    /(?:change|update|set)\s+(?:card\s+|deal\s+|job\s+|listing\s+)?(.+?)\s+(?:stage\s+)?to\s+(.+?)$/i
+  );
+  if (changeStageMatch) {
+    return {
+      intent: "move_deal",
+      params: { title: changeStageMatch[1].trim(), stage: changeStageMatch[2].trim() },
     };
   }
 
@@ -519,37 +621,46 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
   }
 
   try {
-    const systemPrompt = `You are an intent parser for a CRM system. User Context: ${industryContext.dealLabel} manager.
-    
-    Intents:
-    - show_deals: List pipeline
-    - show_stale: List neglected items
-    - create_deal: New item. Params: title, company (opt), value (number string)
-    - create_job_natural: Natural language job entry. Extract: clientName, address, workDescription, price, schedule
-    - move_deal: Update stage. Params: title, stage (new, contacted, negotiation, won, lost)
-    - log_activity: Log call/email/note. Params: type (CALL/EMAIL/NOTE/MEETING), content
-    - search_contacts: Find person. Params: query
-    - add_contact: New person. Params: name, email
-    - create_task: Reminder. Params: title
-    - morning_digest: Daily summary
-    - start_day: Map view
-    - start_open_house: Kiosk mode
-    - use_template: Render template. Params: templateName, contactQuery
-    - find_duplicates: Check dupes
-    - help: Help/commands
-    
-    Current Date: ${new Date().toISOString()}
-    
-    User message: "${message}"
-    
-    Parse the user message and return the appropriate intent and parameters.
-    
-    IMPORTANT: 
-    - If the message doesn't match any known intent, return { intent: "unknown", params: {} }
-    - If you're unsure about the intent, return { intent: "unknown", params: {} }
-    - Only return structured JSON for known intents.
-    - For natural language job entries, extract ALL details (clientName, address, workDescription, price, schedule).
-    - Always validate required fields before proceeding with actions.`;
+    const stageAliasExamples = Object.entries(STAGE_ALIASES)
+      .filter(([k]) => k.length > 3)
+      .map(([alias, stage]) => `"${alias}" → ${stage}`)
+      .join(", ");
+
+    const systemPrompt = `You are an intent parser for a CRM/job management system. User Context: ${industryContext.dealLabel} manager.
+
+INTENTS (return one of these as "intent"):
+- show_deals: User wants to see their pipeline/board/deals/jobs/listings
+- show_stale: User asks about neglected/stale/rotting items
+- create_deal: Create a new deal/job/listing. Params: title, company (opt), value (number string)
+- create_job_natural: Natural language job entry with client details. Extract: clientName, address, workDescription, price, schedule
+- move_deal: Move/change a deal's stage. Params: title (the deal name), stage (the target stage name - can be any alias like "quoted", "in progress", "completed", etc.)
+- log_activity: Log a call/email/note/meeting. Params: type (CALL/EMAIL/NOTE/MEETING), content
+- search_contacts: Find/look up a person. Params: query
+- add_contact: Add a new person. Params: name, email
+- create_task: Create a reminder/task/todo. Params: title
+- morning_digest: Daily summary/briefing
+- start_day: Open map view / start the day
+- start_open_house: Kiosk mode for open houses
+- use_template: Use a message template. Params: templateName, contactQuery
+- show_templates: List available templates
+- find_duplicates: Check for duplicate contacts
+- create_invoice: Generate invoice/quote for a deal. Params: title, amount (opt)
+- help: User asks what you can do
+
+STAGE ALIASES (for move_deal intent):
+${stageAliasExamples}
+
+CRITICAL RULES:
+1. For "move_deal": Extract the deal/job/listing NAME and the TARGET STAGE. The stage can be any industry term (e.g. "quoted", "in progress", "completed", "new job", "settled").
+   Examples: "Move card X from new job to quoted" → { intent: "move_deal", params: { title: "X", stage: "quoted" } }
+   "Move Kitchen Reno to in progress" → { intent: "move_deal", params: { title: "Kitchen Reno", stage: "in progress" } }
+2. For "create_job_natural": Extract ALL details from natural language. Example: "sharon from 17 alexandria st needs sink fixed quoted $200 for tmrw 2pm"
+3. If the user is clearly trying to perform an action but you're unsure which, prefer the closest matching intent over "unknown".
+4. Return ONLY valid JSON: { "intent": "...", "params": { ... } }
+
+Current Date: ${new Date().toISOString()}
+User message: "${message}"`;
+
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generate-content?key=" + apiKey, {
       method: "POST",
@@ -609,7 +720,9 @@ async function parseCommandAI(message: string, industryContext: any): Promise<Pa
         case "start_day":
         case "start_open_house":
         case "use_template":
+        case "show_templates":
         case "find_duplicates":
+        case "create_invoice":
         case "help":
           return { intent, params };
         default:
@@ -878,6 +991,10 @@ export async function processChat(
         }
       });
 
+      if (dealResult.success) {
+        revalidatePath("/dashboard");
+        revalidatePath("/dashboard/deals");
+      }
       response = {
         message: dealResult.success
           ? `✅ Job created!\n\nClient: ${clientName}\nWork: ${workDescription}\nQuoted: $${Number(price).toLocaleString()}\nScheduled: ${schedule}\nAddress: ${address}`
@@ -933,6 +1050,10 @@ export async function processChat(
         workspaceId,
       });
 
+      if (result.success) {
+        revalidatePath("/dashboard");
+        revalidatePath("/dashboard/deals");
+      }
       response = {
         message: result.success
           ? `${ctx.dealLabel.charAt(0).toUpperCase() + ctx.dealLabel.slice(1)} "${params.title}" created${params.value !== "0" ? ` worth $${Number(params.value).toLocaleString()}` : ""}. Added to ${ctx.stageLabels.NEW} column.`
@@ -945,22 +1066,41 @@ export async function processChat(
 
     case "move_deal": {
       const deals = await getDeals(workspaceId);
-      const deal = deals.find((d) =>
-        d.title.toLowerCase().includes(params.title.toLowerCase())
-      );
+      const deal = findDealByTitle(deals, params.title);
 
       if (!deal) {
-        response = { message: `Couldn't find a deal matching "${params.title}".` };
+        // Provide helpful suggestions
+        const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
+        response = {
+          message: `Couldn't find a deal matching "${params.title}".${deals.length > 0 ? ` Your current deals: ${suggestions}` : " You don't have any deals yet."}`,
+        };
         break;
       }
 
-      const result = await updateDealStage(deal.id, params.stage);
-      response = {
-        message: result.success
-          ? `Moved "${deal.title}" to ${params.stage}.`
-          : `Failed: ${result.error}`,
-        action: "move_deal",
-      };
+      // Resolve the stage alias to internal key
+      const resolvedStage = resolveStage(params.stage);
+      if (!resolvedStage) {
+        const validStages = Object.keys(STAGE_ALIASES).filter(k => k.length > 3).slice(0, 10).join(", ");
+        response = {
+          message: `I don't recognise the stage "${params.stage}". Try one of: ${validStages}`,
+        };
+        break;
+      }
+
+      const result = await updateDealStage(deal.id, resolvedStage);
+      if (result.success) {
+        // Get the display label for the stage
+        const stageLabel = ctx.stageLabels[resolvedStage.toUpperCase() as keyof typeof ctx.stageLabels] ?? resolvedStage;
+        revalidatePath("/dashboard");
+        revalidatePath("/dashboard/deals");
+        response = {
+          message: `✅ Moved "${deal.title}" to **${stageLabel}**.`,
+          action: "move_deal",
+          data: { dealId: deal.id, stage: resolvedStage },
+        };
+      } else {
+        response = { message: `Failed to move deal: ${result.error}` };
+      }
       break;
     }
 
@@ -1217,10 +1357,47 @@ export async function processChat(
       };
       break;
 
-    default:
-      response = {
-        message: ctx.unknownFallback,
-      };
+    default: {
+      // Try to generate a helpful conversational response via Gemini
+      let fallbackMessage = ctx.unknownFallback;
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (geminiKey && message.trim().length > 0) {
+        try {
+          const conversationalPrompt = `You are Pj Buddy, a friendly and helpful CRM assistant for a ${ctx.dealLabel} business. The user said: "${message}"
+
+You could NOT parse this as a specific CRM command. Respond conversationally and helpfully. If they seem to be trying to do something CRM-related, suggest the correct phrasing. Keep your response concise (2-3 sentences max).
+
+Available commands they can use:
+- "Move [deal name] to [stage]" (stages: new, quoted, in progress, completed, lost)
+- "New job [title] for [client] worth [amount]"
+- "Show my deals" / "Show stale deals"
+- "Search [name]" / "Add client [name]"
+- "Help" for full command list
+
+Respond naturally:`;
+
+          const res = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiKey,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: conversationalPrompt }] }],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+              }),
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) fallbackMessage = text.trim();
+          }
+        } catch {
+          // Gemini unavailable — use static fallback
+        }
+      }
+      response = { message: fallbackMessage };
+    }
   }
 
   // Persist assistant response (non-blocking — chat should work even without DB)

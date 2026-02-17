@@ -9,6 +9,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   DragStartEvent,
   DragOverEvent,
   DragEndEvent
@@ -68,6 +69,19 @@ interface KanbanBoardProps {
   industryType?: "TRADES" | "REAL_ESTATE" | null
 }
 
+/* ── Droppable Column wrapper ─────────────────────────────── */
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors ${isOver ? "bg-emerald-50 border-emerald-300 shadow-inner" : "hover:bg-white hover:shadow-inner"}`}
+    >
+      {children}
+    </div>
+  )
+}
+
 export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
   const [deals, setDeals] = useState<DealView[]>(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -85,7 +99,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5 // Drag starts after 5px movement
+        distance: 8 // Increased to better distinguish click vs drag
       }
     }),
     useSensor(KeyboardSensor, {
@@ -118,6 +132,14 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     deals.find(d => d.id === activeId),
     [deals, activeId])
 
+  function findColumnForItem(itemId: string): string | undefined {
+    // Check if it's a column ID
+    if (COLUMNS.find(c => c.id === itemId)) return itemId
+    // Otherwise find which column the deal belongs to
+    const deal = deals.find(d => d.id === itemId)
+    return deal?.stage.toLowerCase()
+  }
+
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string)
     hasDragged.current = true
@@ -130,38 +152,31 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     const activeId = active.id as string
     const overId = over.id as string
 
-    // Find the containers (stages)
-    const activeDeal = deals.find(d => d.id === activeId)
-    const overDeal = deals.find(d => d.id === overId)
+    const activeColumn = findColumnForItem(activeId)
+    const overColumn = findColumnForItem(overId)
 
-    if (!activeDeal) return
+    if (!activeColumn || !overColumn || activeColumn === overColumn) return
 
-    const activeStage = activeDeal.stage.toLowerCase()
-    const overStage = overDeal
-      ? overDeal.stage.toLowerCase()
-      : (COLUMNS.find(c => c.id === overId)?.id || activeStage) // Drop on column header/empty space
+    setDeals((prev) => {
+      const activeIndex = prev.findIndex((d) => d.id === activeId)
+      if (activeIndex === -1) return prev
 
-    if (activeStage !== overStage) {
-      setDeals((prev) => {
-        const activeIndex = prev.findIndex((d) => d.id === activeId)
-        const overIndex = overDeal ? prev.findIndex((d) => d.id === overId) : prev.length // End of list if empty
+      const overDeal = prev.find(d => d.id === overId)
+      const overIndex = overDeal ? prev.findIndex((d) => d.id === overId) : prev.length
 
-        // Clone and update stage instantly for visual feedback
-        const newDeals = [...prev]
-        newDeals[activeIndex] = {
-          ...newDeals[activeIndex],
-          stage: overStage
-        }
+      const newDeals = [...prev]
+      newDeals[activeIndex] = {
+        ...newDeals[activeIndex],
+        stage: overColumn
+      }
 
-        // Move in array to correct relative position (optional for simple lists, but good for sort)
-        return arrayMove(newDeals, activeIndex, overIndex)
-      })
-    }
+      return arrayMove(newDeals, activeIndex, overIndex)
+    })
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    const activeId = active.id as string
+    const draggedId = active.id as string
 
     if (!over) {
       setActiveId(null)
@@ -169,31 +184,32 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     }
 
     const overId = over.id as string
+    const draggedDeal = deals.find(d => d.id === draggedId)
+    const targetColumn = findColumnForItem(overId)
 
-    const activeDeal = deals.find(d => d.id === activeId)
+    if (draggedDeal && targetColumn) {
+      const originalStage = initialDeals.find(d => d.id === draggedId)?.stage.toLowerCase()
 
-    const activeStage = activeDeal?.stage.toLowerCase()
-    // If dropping on a container ID directly (empty column) vs a card ID
-    const overStage = COLUMNS.find(c => c.id === overId)?.id ||
-      deals.find(d => d.id === overId)?.stage.toLowerCase()
-
-    if (activeDeal && overStage && activeStage !== overStage) {
-      // It's already moved visually in handleDragOver, just persist here
-      try {
-        const result = await updateDealStage(activeId, overStage)
-        if (result.success) {
-          toast.success(`Moved to ${overStage}`)
-        } else {
-          throw new Error(result.error)
+      if (originalStage && originalStage !== targetColumn) {
+        try {
+          const result = await updateDealStage(draggedId, targetColumn)
+          if (result.success) {
+            toast.success(`Moved to ${targetColumn}`)
+          } else {
+            throw new Error(result.error)
+          }
+        } catch (err) {
+          console.error("Failed to update stage:", err)
+          toast.error("Failed to save changes")
+          // Revert to original state
+          setDeals(initialDeals)
         }
-      } catch (err) {
-        console.error("Failed to update stage:", err)
-        toast.error("Failed to save changes")
-        // Ideally revert state here, but for now we rely on next refresh
       }
     }
 
     setActiveId(null)
+    // Reset hasDragged after a short delay so the next prop sync works
+    setTimeout(() => { hasDragged.current = false }, 500)
   }
 
   return (
@@ -224,19 +240,24 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                   </span>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]"
+                    onClick={() => document.getElementById('new-deal-btn')?.click()}
+                  >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
 
-              {/* Column Body / Drop Zone */}
+              {/* Column Body / Drop Zone - useDroppable wrapper ensures empty columns accept drops */}
               <SortableContext
-                id={col.id} // This is critical for empty columns to be droppable
+                id={col.id}
                 items={colDeals.map(d => d.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors hover:bg-white hover:shadow-inner">
+                <DroppableColumn id={col.id}>
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
                       <DealCard key={deal.id} deal={deal} />
@@ -253,7 +274,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                       </Button>
                     </div>
                   )}
-                </div>
+                </DroppableColumn>
               </SortableContext>
             </div>
           )

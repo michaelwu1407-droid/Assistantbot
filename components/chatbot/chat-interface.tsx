@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Send, Bot, User, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, MapPin, DollarSign, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
@@ -87,6 +88,12 @@ function DraftJobCard({
   );
 }
 
+// Actions that mutate data and should trigger a UI refresh
+const MUTATION_ACTIONS = new Set([
+  'move_deal', 'create_deal', 'create_job_natural', 'add_contact',
+  'create_task', 'log_activity', 'create_invoice', 'confirmed',
+]);
+
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -94,6 +101,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [confirmingIndex, setConfirmingIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Load chat history on mount
   useEffect(() => {
@@ -172,6 +180,11 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         data: response.data,
       };
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Refresh the page data if the action mutated something
+      if (response.action && MUTATION_ACTIONS.has(response.action)) {
+        router.refresh();
+      }
     } catch (error) {
       console.error('Chat processing error:', error);
       const errorMessage: Message = {
@@ -213,6 +226,9 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         data: response.data,
       };
       setMessages(prev => [...prev, confirmMsg]);
+
+      // Refresh the page data after confirmation
+      router.refresh();
     } catch (error) {
       console.error('Confirm error:', error);
       const errMsg: Message = {

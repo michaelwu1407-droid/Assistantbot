@@ -60,7 +60,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
       type: "contact",
       title: c.name,
       subtitle: c.company || c.email || "Contact",
-      url: `/contacts/${c.id}`,
+      url: `/dashboard/contacts?id=${c.id}`,
       score: 1 // DB match implies relevance
     })
   })
@@ -75,7 +75,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
       id: d.id,
       type: "deal",
       title: d.title,
-      subtitle: `${d.stage} • $${(d.value ? d.value.toNumber() : 0).toLocaleString()}`,
+      subtitle: `${d.stage} • $${(d.value != null ? (typeof d.value === 'object' && 'toNumber' in d.value ? d.value.toNumber() : Number(d.value)) : 0).toLocaleString()}`,
       url: `/dashboard/deals/${d.id}`,
       score: 1
     })

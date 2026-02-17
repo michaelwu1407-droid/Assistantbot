@@ -48,7 +48,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
     const [results, setResults] = React.useState<SearchResultItem[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
-    const workspaceId = useShellStore(s => s.workspaceId) || "default"
+    const workspaceId = useShellStore(s => s.workspaceId)
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -63,7 +63,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
     }, [])
 
     React.useEffect(() => {
-        if (!debouncedQuery || debouncedQuery.length < 2) {
+        if (!debouncedQuery || debouncedQuery.length < 2 || !workspaceId) {
             setResults([])
             return
         }
@@ -71,7 +71,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         const search = async () => {
             setIsLoading(true)
             try {
-                const items = await globalSearch(workspaceId, debouncedQuery)
+                const items = await globalSearch(workspaceId!, debouncedQuery)
                 setResults(items)
             } catch (error) {
                 console.error("Search failed:", error)
@@ -81,7 +81,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         }
 
         search()
-    }, [debouncedQuery])
+    }, [debouncedQuery, workspaceId])
 
     const runCommand = React.useCallback((command: () => unknown) => {
         setOpen(false)
