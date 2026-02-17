@@ -33,16 +33,20 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 />
 
                 {/* Dashboard Content Grid - Tight gap (12px) */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-2 flex-1 min-h-0">
+                <div className="flex flex-col flex-1 min-h-0 gap-2">
 
-                    {/* Row 1: KPI Cards (Cols 1-8 / 66%) & Activity Feed (Cols 9-12 / 33%) */}
-                    <div className="xl:col-span-8 shrink-0 h-auto overflow-x-auto pb-1 scrollbar-hide">
-                        <DealHealthWidget deals={deals} />
-                    </div>
+                    {/* Row 1: KPI Cards & Activity Feed - Horizontal Scroll Wrapper */}
+                    <div className="flex gap-4 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
+                        {/* KPI Cards - Fixed Min Width */}
+                        <div className="min-w-[800px] h-auto">
+                            <DealHealthWidget deals={deals} />
+                        </div>
 
-                    <div className="xl:col-span-4 h-auto min-h-0 overflow-hidden">
-                        <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
-                            <ActivityFeed workspaceId={workspace.id} className="h-full" compact={true} />
+                        {/* Activity Feed - Fixed Min Width */}
+                        <div className="min-w-[320px] h-auto">
+                            <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
+                                <ActivityFeed workspaceId={workspace.id} className="h-full" compact={true} />
+                            </div>
                         </div>
                     </div>
 

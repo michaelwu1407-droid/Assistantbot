@@ -1,5 +1,13 @@
 # Project Status Log
 
+## 2026-02-18: Stress Test & Critical Fixes (Phase 11-12)
+- **Feature**: Added `Address` support to `createDeal` action and `NewDealModal`.
+- **UX**: Replaced `window.location.reload()` with `router.refresh()` for smoother deal creation.
+- **Documentation**: 
+  - Created `stress_test_walkthrough.md` for manual verification.
+  - Created `GAP_ANALYSIS.md` to track missing features.
+- **Verification**: Code-level verification passed. Browser automation tool failed (CDP Error) - requires manual user testing.
+
 ## 2026-02-18: Visual Refinements & Hydration Fixes (Phase 8-10)
 - **Hydration Fix**: Resolved `Sidebar`/`Shell` mismatch by deferring client-side rendering of the view toggle.
 - **KPI Widget**: 

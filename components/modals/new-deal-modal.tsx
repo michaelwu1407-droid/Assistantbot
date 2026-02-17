@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
-import { Plus, User, Mail, Phone } from "lucide-react"
+import { Plus, User, Mail, Phone, MapPin } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface NewDealModalProps {
@@ -19,8 +20,10 @@ interface NewDealModalProps {
 }
 
 export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps) {
+    const router = useRouter()
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
+    const [address, setAddress] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
 
@@ -82,7 +85,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 value: parseFloat(value) || 0,
                 contactId: finalContactId,
                 stage: "new",
-                workspaceId
+                workspaceId,
+                address: address || undefined
             })
 
             if (result.success) {
@@ -90,6 +94,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 // Reset form
                 setTitle("")
                 setValue("")
+                setAddress("")
                 setContactId("")
                 setNewContactName("")
                 setNewContactEmail("")
@@ -97,7 +102,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 setMode("select")
 
                 onClose()
-                window.location.reload()
+                router.refresh()
             } else {
                 console.error(result.error)
                 toast.error("Failed to create deal: " + result.error)
@@ -148,6 +153,21 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                 onChange={(e) => setValue(e.target.value)}
                                 className="col-span-3"
                             />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="address" className="text-right">
+                                Address
+                            </Label>
+                            <div className="col-span-3 relative">
+                                <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="address"
+                                    placeholder="123 Main St"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
                         </div>
                     </div>
 
