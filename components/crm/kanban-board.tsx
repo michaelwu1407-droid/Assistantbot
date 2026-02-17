@@ -34,7 +34,7 @@ const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
   { id: "contacted", title: "Contacted", color: "bg-indigo-500" },
   { id: "negotiation", title: "Negotiation", color: "bg-amber-500" },
   { id: "won", title: "Won", color: "bg-emerald-500" },
-  { id: "lost", title: "Lost", color: "bg-slate-400" },
+  { id: "lost", title: "Lost", color: "bg-muted-foreground" },
 ]
 
 
@@ -204,7 +204,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start pl-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 
@@ -215,16 +215,16 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
           return (
             <div key={col.id} className="w-80 flex-shrink-0 flex flex-col h-full max-h-full">
               {/* Column Header */}
-              <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${col.color}`} />
-                  <h3 className="font-semibold text-slate-700 text-sm">{title}</h3>
-                  <span className="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
+                  <div className={`w-2 h-2 rounded-full ring-2 ring-opacity-50 ring-offset-1 ${col.color.replace('bg-', 'ring-')}`} />
+                  <h3 className="font-semibold text-foreground text-sm tracking-tight">{title}</h3>
+                  <span className="text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded-full border border-border/50">
                     {colDeals.length}
                   </span>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-slate-400 hover:text-slate-900">
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground">
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -237,22 +237,20 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                 items={colDeals.map(d => d.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex-1 bg-slate-50/50 rounded-xl border border-slate-200/60 p-2 overflow-y-auto min-h-[150px] flex flex-col gap-4">
+                <div className="flex-1 bg-muted/10 dark:bg-white/5 rounded-2xl border border-dashed border-border/30 p-2 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors hover:bg-muted/20">
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
                       <DealCard key={deal.id} deal={deal} />
                     ))
                   ) : (
                     // Empty state
-                    // Empty state
-                    <div className="h-40 border-2 border-dashed border-slate-200/60 rounded-xl flex flex-col items-center justify-center text-slate-400 p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/50 group">
-                      <div className="p-3 bg-slate-100 rounded-full mb-3 group-hover:scale-110 transition-transform">
-                        <Plus className="h-5 w-5 text-slate-400" />
+                    <div className="h-40 flex flex-col items-center justify-center text-muted-foreground p-4 opacity-50 hover:opacity-100 transition-opacity">
+                      <div className="p-3 bg-muted/30 rounded-full mb-3">
+                        <Plus className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <span className="text-sm font-medium text-slate-600 mb-1">No deals yet</span>
-                      <span className="text-xs text-slate-400 mb-3 text-center">Drop here or create new</span>
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => document.getElementById('new-deal-btn')?.click()}>
-                        Create {industryType === "TRADES" ? "Job" : "Deal"}
+                      <span className="text-sm font-medium mb-1">No deals</span>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-white/10" onClick={() => document.getElementById('new-deal-btn')?.click()}>
+                        Add New
                       </Button>
                     </div>
                   )}

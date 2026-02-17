@@ -26,24 +26,24 @@ export function InboxView({ initialThreads }: InboxViewProps) {
   const selectedThread = initialThreads.find((t) => t.contactId === selectedContactId);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full glass-card rounded-2xl overflow-hidden">
       {/* Sidebar List */}
-      <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50">
-        <div className="p-4 border-b border-slate-200">
+      <div className="w-80 border-r border-border/40 flex flex-col bg-muted/10">
+        <div className="p-4 border-b border-border/40">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search messages..."
-              className="pl-9 bg-white"
+              className="pl-9 bg-background/50 border-border/50 focus:bg-background transition-colors"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           {filteredThreads.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-sm">
+            <div className="p-8 text-center text-muted-foreground text-sm">
               No messages found.
             </div>
           ) : (
@@ -52,34 +52,34 @@ export function InboxView({ initialThreads }: InboxViewProps) {
                 key={thread.contactId}
                 onClick={() => setSelectedContactId(thread.contactId)}
                 className={cn(
-                  "w-full text-left p-4 border-b border-slate-100 hover:bg-white transition-colors flex gap-3",
+                  "w-full text-left p-4 border-b border-border/10 transition-all flex gap-3 group relative overflow-hidden",
                   selectedContactId === thread.contactId
-                    ? "bg-white border-l-4 border-l-blue-600 shadow-sm"
-                    : "border-l-4 border-l-transparent"
+                    ? "bg-primary/10 border-l-4 border-l-primary"
+                    : "border-l-4 border-l-transparent hover:bg-white/5"
                 )}
               >
-                <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-border/20">
                   {thread.contactAvatar ? (
                     <img src={thread.contactAvatar} alt={thread.contactName} className="h-full w-full object-cover" />
                   ) : (
-                    <User className="h-5 w-5 text-slate-400" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
                     <span className={cn(
-                      "font-medium truncate",
-                      selectedContactId === thread.contactId ? "text-blue-700" : "text-slate-900"
+                      "font-medium truncate transition-colors",
+                      selectedContactId === thread.contactId ? "text-primary" : "text-foreground group-hover:text-primary"
                     )}>
                       {thread.contactName}
                     </span>
                     {thread.lastMessage && (
-                      <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
                         {new Date(thread.lastMessage.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 truncate">
+                  <p className="text-xs text-muted-foreground truncate opacity-80">
                     {thread.lastMessage?.content ?? "No messages"}
                   </p>
                 </div>
@@ -90,18 +90,18 @@ export function InboxView({ initialThreads }: InboxViewProps) {
       </div>
 
       {/* Chat Pane */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-background/20 backdrop-blur-sm">
         {selectedContactId ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 border-b border-slate-100 flex items-center px-6 justify-between shrink-0">
+            <div className="h-16 border-b border-border/40 flex items-center px-6 justify-between shrink-0 bg-white/5">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">
+                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm">
                   {selectedThread?.contactName.charAt(0)}
                 </div>
                 <div>
-                  <h2 className="font-semibold text-slate-900">{selectedThread?.contactName}</h2>
-                  <p className="text-xs text-slate-500">{selectedThread?.contactCompany}</p>
+                  <h2 className="font-semibold text-foreground text-sm">{selectedThread?.contactName}</h2>
+                  <p className="text-xs text-muted-foreground">{selectedThread?.contactCompany}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export function InboxView({ initialThreads }: InboxViewProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    className="gap-1.5 hover:text-emerald-500 hover:border-emerald-500/30 hover:bg-emerald-500/10 transition-colors"
                     onClick={() => window.open(`tel:${selectedThread.contactPhone}`)}
                   >
                     <Phone className="h-3.5 w-3.5" />
@@ -117,7 +117,7 @@ export function InboxView({ initialThreads }: InboxViewProps) {
                   </Button>
                 )}
                 <Link href={`/dashboard/contacts/${selectedContactId}`}>
-                  <Button variant="outline" size="sm" className="gap-1.5">
+                  <Button variant="outline" size="sm" className="gap-1.5 hover:bg-primary/5 hover:text-primary">
                     <ExternalLink className="h-3.5 w-3.5" />
                     Profile
                   </Button>
@@ -126,16 +126,19 @@ export function InboxView({ initialThreads }: InboxViewProps) {
             </div>
 
             {/* Activity Feed (reused as chat history) */}
-            <div className="flex-1 overflow-hidden p-4 bg-slate-50/30">
+            <div className="flex-1 overflow-hidden p-0">
               <ActivityFeed
                 contactId={selectedContactId}
-                className="h-full border-none shadow-none bg-transparent"
+                className="h-full border-none shadow-none bg-transparent rounded-none"
               />
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
-            Select a conversation to start messaging
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
+              <Search className="w-6 h-6 opacity-50" />
+            </div>
+            <p className="text-sm font-medium">Select a conversation to start messaging</p>
           </div>
         )}
       </div>

@@ -27,11 +27,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 const COLOR_MAP: Record<string, string> = {
-    email: "text-blue-500 bg-blue-50",
-    call: "text-amber-500 bg-amber-50",
-    meeting: "text-purple-500 bg-purple-50",
-    task: "text-emerald-500 bg-emerald-50",
-    note: "text-slate-500 bg-slate-50"
+    email: "text-blue-500 bg-blue-500/10",
+    call: "text-amber-500 bg-amber-500/10",
+    meeting: "text-purple-500 bg-purple-500/10",
+    task: "text-emerald-500 bg-emerald-500/10",
+    note: "text-slate-500 bg-slate-500/10"
 }
 
 export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId, compact = false }: ActivityFeedProps) {
@@ -41,10 +41,9 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
 
     useEffect(() => {
         let mounted = true
-        // Only fetch if no initial data or if filters change (this is a simple check, could be more robust)
         if (initialData && !loading) {
-             setActivities(initialData)
-             return;
+            setActivities(initialData)
+            return;
         }
 
         async function fetchActivities() {
@@ -69,7 +68,6 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
         return () => { mounted = false }
     }, [contactId, dealId, limit, workspaceId, initialData])
 
-    // If compact, we don't render the Card wrapper, just the list content
     const Content = (
         <div className="h-full overflow-y-auto custom-scrollbar px-3 py-3">
             {loading ? (
@@ -85,22 +83,22 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                     ))}
                 </div>
             ) : activities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-12">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-8">
+                    <div className="h-10 w-10 rounded-full bg-muted/20 flex items-center justify-center mb-3">
                         <MessageSquare className="h-5 w-5 opacity-40" />
                     </div>
-                    No activity found
+                    No recent activity
                 </div>
             ) : (
                 <div className="space-y-1">
                     {activities.map((activity) => {
                         const Icon = ICON_MAP[activity.type] || MessageSquare
-                        const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-50"
+                        const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-500/10"
 
                         return (
                             <div
                                 key={activity.id}
-                                className="flex gap-3 items-start group cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors border border-transparent hover:border-border/50"
+                                className="flex gap-3 items-start group cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-border/50"
                                 onClick={() => {
                                     if (activity.dealId) router.push(`/dashboard/deals/${activity.dealId}`)
                                     else if (activity.contactId) router.push(`/dashboard/contacts/${activity.contactId}`)
@@ -119,7 +117,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                         </span>
                                     </div>
                                     {activity.description && (
-                                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed opacity-80">
                                             {activity.description}
                                         </p>
                                     )}
@@ -137,18 +135,18 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
     }
 
     return (
-        <Card className={cn("h-full border-border/50 shadow-sm flex flex-col overflow-hidden", className)}>
-            <CardHeader className="pb-3 pt-5 px-5 border-b border-border/40 bg-muted/20 shrink-0">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                    {contactId || dealId ? 'History' : 'Recent Activity'}
-                    <span className="text-xs font-normal text-muted-foreground ml-auto bg-muted px-2 py-0.5 rounded-full">
-                        {activities.length}
-                    </span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-hidden min-h-0">
+        <div className={cn("glass-card flex flex-col h-full rounded-2xl overflow-hidden", className)}>
+            <div className="pb-3 pt-4 px-5 border-b border-border/10 bg-white/5 shrink-0 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    {contactId || dealId ? 'History' : 'Activity Feed'}
+                </h3>
+                <span className="text-[10px] font-medium text-muted-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    {activities.length}
+                </span>
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0 bg-background/20 backdrop-blur-sm">
                 {Content}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     )
 }

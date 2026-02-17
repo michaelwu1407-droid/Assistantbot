@@ -161,9 +161,9 @@ export function SetupChat() {
     }
 
     return (
-        <div className="flex flex-col h-[600px] w-full max-w-2xl mx-auto bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="flex flex-col h-[600px] w-full max-w-2xl mx-auto glass-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-muted/10 custom-scrollbar">
                 <AnimatePresence>
                     {messages.map((msg) => (
                         <motion.div
@@ -173,9 +173,9 @@ export function SetupChat() {
                             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                             <div
-                                className={`max-w-[80%] rounded-2xl px-5 py-3 ${msg.role === "user"
-                                    ? "bg-slate-900 text-white"
-                                    : "bg-white border border-slate-200 text-slate-800 shadow-sm"
+                                className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${msg.role === "user"
+                                    ? "bg-primary text-primary-foreground rounded-br-md"
+                                    : "glass-card text-foreground rounded-bl-md border border-border/50"
                                     }`}
                             >
                                 <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
@@ -188,10 +188,10 @@ export function SetupChat() {
                             animate={{ opacity: 1, y: 0 }}
                             className="flex justify-start"
                         >
-                            <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex items-center gap-1">
-                                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
+                            <div className="glass-card rounded-2xl px-4 py-3 shadow-sm flex items-center gap-1 border border-border/50">
+                                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></span>
                             </div>
                         </motion.div>
                     )}
@@ -208,10 +208,10 @@ export function SetupChat() {
                             <Button
                                 key={choice.value}
                                 variant="outline"
-                                className="h-auto py-3 px-6 flex flex-col items-center gap-2 hover:border-slate-900 hover:bg-slate-50 transition-all"
+                                className="h-auto py-3 px-6 flex flex-col items-center gap-2 glass-card hover:border-primary/50 hover:bg-primary/5 transition-all text-foreground"
                                 onClick={() => handleChoice(choice)}
                             >
-                                {choice.icon && <choice.icon className="h-6 w-6 text-slate-600" />}
+                                {choice.icon && <choice.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />}
                                 <span className="font-medium">{choice.label}</span>
                             </Button>
                         ))}
@@ -222,7 +222,7 @@ export function SetupChat() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t border-slate-100">
+            <div className="p-4 bg-background/50 border-t border-border/50 backdrop-blur-sm">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault()
@@ -234,14 +234,14 @@ export function SetupChat() {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Type your answer..."
-                        className="flex-1 bg-slate-50 border-slate-200 focus-visible:ring-slate-900"
+                        className="flex-1 bg-background/50 border-border/50 focus-visible:ring-primary/20 focus-visible:border-primary/50 transition-all"
                         disabled={isTyping || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "choice")}
                     />
                     <Button
                         type="submit"
                         size="icon"
                         disabled={!inputValue.trim() || isTyping || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "choice")}
-                        className="bg-slate-900 hover:bg-slate-800"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all"
                     >
                         <Send className="h-4 w-4" />
                     </Button>

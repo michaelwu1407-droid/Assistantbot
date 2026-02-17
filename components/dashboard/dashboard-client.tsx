@@ -28,22 +28,25 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 onNewDeal={() => setIsNewDealModalOpen(true)}
             />
 
-            {/* Top Row: Health Widgets + Activity Feed */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
-                {/* Health Widgets - Takes 2 columns */}
-                <div className="xl:col-span-2">
+            {/* Dashboard Content Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 flex-1 min-h-0">
+
+                {/* Row 1: KPI Cards - Full Width */}
+                <div className="xl:col-span-4 shrink-0">
                     <DealHealthWidget deals={deals} />
                 </div>
 
-                {/* Activity Feed - Takes 2 columns, matches single card height */}
-                <div className="xl:col-span-2 h-[130px] overflow-hidden">
-                    <ActivityFeed workspaceId={workspace.id} />
-                </div>
-            </div>
+                {/* Row 2: Main Workspace (Kanban) & Sidebar (Activity) */}
 
-            {/* Kanban Board - Full width */}
-            <div className="flex-1 w-full min-h-0 overflow-hidden">
-                <KanbanBoard deals={deals} industryType={workspace.industryType} />
+                {/* Kanban Board - Takes 3 columns on large screens */}
+                <div className="xl:col-span-3 h-[500px] xl:h-auto min-h-0 overflow-hidden flex flex-col">
+                    <KanbanBoard deals={deals} industryType={workspace.industryType} />
+                </div>
+
+                {/* Activity Feed - Side Panel, 1 column */}
+                <div className="xl:col-span-1 h-[300px] xl:h-auto min-h-0 overflow-hidden">
+                    <ActivityFeed workspaceId={workspace.id} className="h-full" />
+                </div>
             </div>
 
             <NewDealModal

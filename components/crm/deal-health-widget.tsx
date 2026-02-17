@@ -1,9 +1,10 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, TrendingUp, Clock, AlertTriangle } from "lucide-react"
+import { AlertCircle, TrendingUp, Clock, AlertTriangle, DollarSign, Activity } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { DealView } from "@/actions/deal-actions"
+import { cn } from "@/lib/utils"
 
 interface DealHealthWidgetProps {
     deals: DealView[]
@@ -13,82 +14,81 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
     const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0)
     const rottingDeals = deals.filter(d => d.health.status === 'ROTTING')
     const staleDeals = deals.filter(d => d.health.status === 'STALE')
-
-    // Only show if there's something to worry about, or at least show summaries
-    // If everything is healthy, we show a positive state.
+    const healthyCount = deals.length - rottingDeals.length - staleDeals.length
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
-            <Card className="border-slate-200 shadow-sm overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger className="cursor-help">
-                                <CardTitle className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors truncate">Total Pipeline</CardTitle>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Sum of all active deals (excluding Lost)</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                    <TrendingUp className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight truncate">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 h-full">
+            {/* Total Pipeline Card */}
+            <div className="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <DollarSign className="w-12 h-12 text-emerald-500" />
+                </div>
+                <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Pipeline</span>
+                    <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
                         ${totalValue.toLocaleString()}
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                        {deals.length} active deals
-                    </p>
-                </CardContent>
-            </Card>
+                </div>
+                <div className="mt-2 flex items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    <span>{deals.length} active deals</span>
+                </div>
+            </div>
 
-            <Card className="border-slate-200 shadow-sm overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                    <CardTitle className="text-xs sm:text-sm font-medium text-slate-500 truncate">Healthy</CardTitle>
-                    <Clock className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                </CardHeader>
-                <CardContent className="pt-0 px-4 pb-4">
-                    <div className="text-2xl sm:text-3xl font-bold text-emerald-600 tracking-tight">
-                        {deals.length - rottingDeals.length - staleDeals.length}
+            {/* Healthy Deals Card */}
+            <div className="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Activity className="w-12 h-12 text-emerald-500" />
+                </div>
+                <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Healthy</span>
+                    <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                        {healthyCount}
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">On track</p>
-                </CardContent>
-            </Card>
+                </div>
+                <div className="mt-2 flex items-center text-xs font-medium text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+                    On track
+                </div>
+            </div>
 
-            {staleDeals.length > 0 && (
-                <Card className="border-amber-200 bg-amber-50/50 shadow-sm overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-amber-900 truncate">Stale Deals</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0 px-4 pb-4">
-                        <div className="text-2xl sm:text-3xl font-bold text-amber-700 tracking-tight">
-                            {staleDeals.length}
-                        </div>
-                        <p className="text-xs text-amber-800 font-medium mt-1">
-                            No activity {'>'} 7 days
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
+            {/* Stale Deals Card (Conditional or Placeholder) */}
+            <div className={cn(
+                "glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group transition-all",
+                staleDeals.length > 0 ? "border-amber-500/30 bg-amber-500/5" : ""
+            )}>
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Clock className={cn("w-12 h-12", staleDeals.length > 0 ? "text-amber-500" : "text-muted-foreground")} />
+                </div>
+                <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Stale</span>
+                    <div className={cn("text-2xl md:text-3xl font-bold tracking-tight", staleDeals.length > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground")}>
+                        {staleDeals.length}
+                    </div>
+                </div>
+                <div className="mt-2 text-xs font-medium text-muted-foreground">
+                    {staleDeals.length > 0 ? "No activity > 7 days" : "All good"}
+                </div>
+            </div>
 
-            {rottingDeals.length > 0 && (
-                <Card className="border-red-200 bg-red-50/50 shadow-sm overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-red-900 truncate">Rotting Deals</CardTitle>
-                        <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0 px-4 pb-4">
-                        <div className="text-2xl sm:text-3xl font-bold text-red-700 tracking-tight">
-                            {rottingDeals.length}
-                        </div>
-                        <p className="text-xs text-red-800 font-medium mt-1">
-                            No activity {'>'} 14 days
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
+            {/* Rotting Deals Card */}
+            <div className={cn(
+                "glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group transition-all",
+                rottingDeals.length > 0 ? "border-red-500/30 bg-red-500/5" : ""
+            )}>
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <AlertTriangle className={cn("w-12 h-12", rottingDeals.length > 0 ? "text-red-500" : "text-muted-foreground")} />
+                </div>
+                <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rotting</span>
+                    <div className={cn("text-2xl md:text-3xl font-bold tracking-tight", rottingDeals.length > 0 ? "text-red-600 dark:text-red-400" : "text-foreground")}>
+                        {rottingDeals.length}
+                    </div>
+                </div>
+                <div className="mt-2 text-xs font-medium text-muted-foreground">
+                    {rottingDeals.length > 0 ? "Needs attention" : "No critical issues"}
+                </div>
+            </div>
         </div>
     )
 }

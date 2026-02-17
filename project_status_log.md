@@ -4,6 +4,21 @@
 
 ---
 
+### 2026-02-18 00:05 AEST [Frontend - Antigravity] - UI Redesign & Polish
+**Feature**: Comprehensive UI overhaul inspired by Ottorize CRM aesthetics.
+*   **Design System**:
+    *   Implemented `glass-card`, `glass-panel` utilities with semantic tokens.
+    *   Consolidated color palette to Emerald/Violet primary/secondary themes.
+    *   Removed hardcoded legacy `slate-` colors across the application.
+*   **Components Refactored**:
+    *   **CRM**: `KanbanBoard`, `DealCard`, `InboxView`, `ContactProfile`, `FeedbackWidget`.
+    *   **Tradie**: `JobMapView` (Leaflet), `ContactsClient`.
+    *   **Auth**: `AuthSelector`, `GoogleSignIn/Up`, `PhoneVerification`.
+    *   **Layout**: `Sidebar`, `Header`, `Shell`, `DashboardClient` (Bento Grid).
+*   **Files modified**: Numerous files in `components/crm`, `components/auth`, `components/layout`.
+*   **Status**: Resolves FE-1 (UI Polish pass), FE-2 (Chat-first UI), FE-9 (Kanban colors).
+*   **Commit**: `feat: UI Redesign - Glassmorphism, Semantic Tokens, Legacy Color Removal`
+
 ### 2026-02-14 13:45 AEST [Frontend - Antigravity] - Documentation Cleanup
 **Maintenance**: Consolidated repository logs.
 *   **Merge**: Integrated `ISSUES_RESOLUTION_COMPLETE.md` and `PRODUCTION_FIX.md` into `ACECAP_LOG.md` (Master Issue Log).

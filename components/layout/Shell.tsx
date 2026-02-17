@@ -42,22 +42,20 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
       {isBasicView ? (
         <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative">
-          {/* Decorative Background for Basic Mode - Only in Premium */}
-          {theme === 'premium' && (
-            <div className="absolute inset-0 bg-gradient-mesh opacity-20 pointer-events-none" />
-          )}
+
+          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-violet-500/5 opacity-40 pointer-events-none" />
 
           {/* Mode Toggle Button - Floating Switch */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl transition-all">
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-full shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-600">Chat</span>
+              <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Chat</span>
             </div>
             <Switch
               id="mode-toggle"
               checked={false}
               onCheckedChange={() => setViewMode("ADVANCED")}
-              className="data-[state=checked]:bg-blue-600"
+              className="data-[state=checked]:bg-emerald-600"
             />
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-muted-foreground" />
@@ -66,7 +64,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </div>
 
           {/* Main Chat Container - Large & Immersive */}
-          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/50 bg-background/60 backdrop-blur-xl relative flex flex-col">
+          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-3xl overflow-hidden border-0 md:border border-white/20 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-2xl relative flex flex-col">
             {/* ID for Spotlight */}
             <div id="assistant-pane" className="h-full w-full">
               {chatbot}
@@ -84,12 +82,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
             {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
             <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
-              <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-muted/30">
+              <div id="main-canvas" className="h-full w-full overflow-hidden relative bg-background">
                 {children}
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle className="hidden md:flex" />
+            <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-emerald-500/50 transition-colors w-1" />
 
             {/* Right Chatbot - 25% (M-5 / A-1) */}
             <ResizablePanel
@@ -98,12 +96,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
-              onCollapse={() => {}}
+              onCollapse={() => { }}
               id="assistant-panel"
-              className="hidden md:block transition-all duration-300 ease-in-out pl-2"
+              className="hidden md:block transition-all duration-300 ease-in-out pl-0"
             >
-              {/* Mode Toggle Button - Above Chatbot */}
-              <div className="flex items-center justify-center gap-3 px-4 py-2 bg-card border-b border-border">
+              {/* Mode Toggle Button - Above Chatbot - integrated into header or separate */}
+              <div className="flex items-center justify-center gap-3 px-4 py-3 bg-background border-b border-border/50">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">Chat</span>
@@ -112,14 +110,14 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   id="mode-toggle"
                   checked={viewMode === "ADVANCED"}
                   onCheckedChange={(checked) => setViewMode(checked ? "ADVANCED" : "BASIC")}
-                  className="data-[state=checked]:bg-blue-600"
+                  className="data-[state=checked]:bg-emerald-600"
                 />
                 <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-600">Advanced</span>
+                  <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Advanced</span>
                 </div>
               </div>
-              <div id="assistant-pane" className="h-[calc(100%-48px)] w-full border-l border-border bg-card">
+              <div id="assistant-pane" className="h-[calc(100%-57px)] w-full border-l border-border/50 bg-background/50 backdrop-blur-sm">
                 {chatbot}
               </div>
             </ResizablePanel>

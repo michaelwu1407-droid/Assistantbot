@@ -16,6 +16,7 @@ import {
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { Breadcrumbs } from "@/components/layout/breadcrumbs"
+import { cn } from "@/lib/utils"
 
 interface HeaderProps {
     userName: string
@@ -81,39 +82,40 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
     const getSubtitle = () => {
         if (industry === "TRADES") return "Here's what's happening on site today."
         if (industry === "REAL_ESTATE") return "Here's your pipeline update."
-        return "Here's your daily briefing."
+        return "Here's the latest update on your business."
     }
 
     return (
-        <div className="flex items-center justify-between shrink-0 pb-2">
+        <div className="flex items-center justify-between shrink-0 pb-6 pt-2">
             <div className="flex items-center gap-4">
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden -ml-2 text-slate-500"
+                    className="md:hidden -ml-2 text-muted-foreground"
                     onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
                 >
                     <Menu className="h-6 w-6" />
                 </Button>
                 <div>
-                    <Breadcrumbs className="mb-1" />
-                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tighter drop-shadow-sm">
-                        {greeting}
-                    </h1>
-                    <p className="text-base text-slate-500 mt-1 font-medium">
+                    <Breadcrumbs className="mb-2" />
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-3xl md:text-5xl font-heading font-bold text-foreground tracking-tight drop-shadow-sm">
+                            {greeting}
+                        </h1>
+                        {weather && (
+                            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/40 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-full shadow-sm animate-in fade-in slide-in-from-left-2">
+                                {getWeatherIcon(weather.condition)}
+                                <span className="text-sm font-semibold text-foreground/80">{weather.temp}°</span>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-base md:text-lg text-muted-foreground mt-1 font-medium">
                         {getSubtitle()}
                     </p>
                 </div>
-
-                {weather && (
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/50 backdrop-blur-sm border border-slate-200/60 rounded-full shadow-sm animate-in fade-in slide-in-from-left-2">
-                        {getWeatherIcon(weather.condition)}
-                        <span className="text-sm font-semibold text-slate-700">{weather.temp}°</span>
-                    </div>
-                )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:gap-3">
                 {/* Global Search - CMD+K */}
                 <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />
 
@@ -122,7 +124,7 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     id="search-btn"
                     variant="ghost"
                     size="icon"
-                    className="md:hidden text-slate-500 hover:bg-slate-100"
+                    className="md:hidden text-muted-foreground hover:bg-muted"
                     onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
                 >
                     <Search className="h-5 w-5" />
@@ -130,9 +132,13 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
 
                 <NotificationsBtn userId={userId} />
 
-                <Button id="new-deal-btn" onClick={onNewDeal} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm whitespace-nowrap flex-shrink-0">
-                    <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
-                    <span className="hidden sm:inline truncate max-w-[100px]">
+                <Button
+                    id="new-deal-btn"
+                    onClick={onNewDeal}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 whitespace-nowrap flex-shrink-0 h-11 px-6 rounded-xl transition-all hover:scale-105"
+                >
+                    <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
+                    <span className="hidden sm:inline font-semibold">
                         {industry === "TRADES" ? "New Job" : industry === "REAL_ESTATE" ? "New Listing" : "New Deal"}
                     </span>
                     <span className="sm:hidden">New</span>

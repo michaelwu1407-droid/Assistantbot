@@ -50,14 +50,14 @@ function DraftJobCard({
   ].filter(f => f.value !== "—");
 
   return (
-    <div className="mt-3 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-slate-50 p-4 shadow-sm space-y-3 max-w-sm">
+    <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm space-y-3 max-w-sm backdrop-blur-sm">
       <div className="space-y-2">
         {fields.map(({ icon: Icon, label, value }) => (
           <div key={label} className="flex items-start gap-2.5">
-            <Icon className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <Icon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{label}</span>
-              <p className="text-sm font-medium text-slate-800 leading-tight">{value}</p>
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+              <p className="text-sm font-medium text-foreground leading-tight">{value}</p>
             </div>
           </div>
         ))}
@@ -77,7 +77,7 @@ function DraftJobCard({
           variant="outline"
           onClick={onCancel}
           disabled={isConfirming}
-          className="gap-1.5 rounded-lg h-9 text-sm border-slate-200"
+          className="gap-1.5 rounded-lg h-9 text-sm border-border/50 hover:bg-background/50"
         >
           <X className="w-3.5 h-3.5" />
           Cancel
@@ -260,9 +260,9 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const isOnlyWelcomeMessage = messages.length === 1;
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-white to-slate-50/50">
+    <div className="flex flex-col h-full bg-background/50 backdrop-blur-sm">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
         {messages.map((message, index) => {
           const showDateSeparator = index === 0 || isDifferentDay(message.timestamp, messages[index - 1].timestamp);
 
@@ -271,7 +271,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               {/* Date Separator */}
               {showDateSeparator && (
                 <div className="flex items-center justify-center my-4">
-                  <div className="bg-slate-100 text-slate-500 text-xs px-3 py-1 rounded-full">
+                  <div className="bg-muted/50 text-muted-foreground text-xs px-3 py-1 rounded-full border border-border/50">
                     {formatDate(message.timestamp)}
                   </div>
                 </div>
@@ -285,17 +285,17 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               >
                 {/* Avatar */}
                 <Avatar className={cn(
-                  "w-10 h-10 shadow-md",
-                  message.role === "user" ? "bg-blue-600" : "bg-gradient-to-br from-slate-100 to-slate-200"
+                  "w-10 h-10 shadow-sm border border-border/20",
+                  message.role === "user" ? "bg-primary" : "bg-muted"
                 )}>
                   {message.role === "user" ? (
-                    <AvatarFallback className="bg-blue-600 text-white">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
                       <User className="w-5 h-5" />
                     </AvatarFallback>
                   ) : (
                     <>
                       <AvatarImage src="/bot-avatar.png" />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
                         <Bot className="w-5 h-5" />
                       </AvatarFallback>
                     </>
@@ -308,8 +308,8 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                     className={cn(
                       "rounded-2xl px-5 py-3 shadow-sm",
                       message.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-white border border-slate-200 text-slate-800 rounded-bl-md"
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "glass-card text-foreground rounded-bl-md border border-border/50"
                     )}
                   >
                     <p className="text-[15px] leading-relaxed whitespace-pre-line">{message.content}</p>
@@ -326,7 +326,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                   </div>
                   <span className={cn(
                     "text-xs flex items-center gap-1",
-                    message.role === "user" ? "text-slate-400 justify-end" : "text-slate-400"
+                    message.role === "user" ? "text-muted-foreground justify-end" : "text-muted-foreground"
                   )}>
                     <Clock className="w-3 h-3" />
                     {formatTime(message.timestamp)}
@@ -340,15 +340,15 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         {/* Loading State */}
         {isLoading && (
           <div className="flex gap-3 max-w-3xl mx-auto animate-in fade-in">
-            <Avatar className="w-10 h-10 shadow-md bg-gradient-to-br from-slate-100 to-slate-200">
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+            <Avatar className="w-10 h-10 shadow-sm border border-border/20">
+              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
                 <Bot className="w-5 h-5" />
               </AvatarFallback>
             </Avatar>
-            <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-md px-5 py-3 shadow-sm">
+            <div className="glass-card rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50">
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                <span className="text-sm text-slate-500">Thinking...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Thinking...</span>
               </div>
             </div>
           </div>
@@ -357,18 +357,18 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         {/* Quick Actions - Only show when empty */}
         {isOnlyWelcomeMessage && !isLoading && (
           <div className="max-w-3xl mx-auto mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <p className="text-sm text-slate-500 mb-3 text-center">Quick actions to get started:</p>
+            <p className="text-sm text-muted-foreground mb-3 text-center">Quick actions to get started:</p>
             <div className="grid grid-cols-2 gap-3">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prompt)}
-                  className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition-all group shadow-sm hover:shadow-md"
+                  className="flex items-center gap-3 px-4 py-3 glass-card rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center group-hover:from-blue-500/20 group-hover:to-purple-500/20 transition-all">
-                    <action.icon className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+                    <action.icon className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-700">
+                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                     {action.label}
                   </span>
                 </button>
@@ -381,7 +381,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-slate-200/80 bg-white/80 backdrop-blur-sm p-4">
+      <div className="border-t border-border/40 bg-background/80 backdrop-blur-md p-4">
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
           <div className="relative flex-1">
             <Input
@@ -389,18 +389,18 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
               disabled={isLoading}
-              className="pr-12 py-6 text-[15px] rounded-xl border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+              className="pr-12 py-6 text-[15px] rounded-xl border-border/50 bg-background/50 focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
           <Button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="px-6 py-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+            className="px-6 py-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
           >
             <Send className="w-5 h-5" />
           </Button>
         </form>
-        <p className="text-xs text-slate-400 text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2 opacity-70">
           Pj Buddy AI can make mistakes. Please verify important information.
         </p>
       </div>

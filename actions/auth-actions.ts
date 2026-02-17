@@ -11,8 +11,13 @@ export async function signup(_formData: FormData) {
   return { error: "Use Clerk sign-up component" };
 }
 
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
 export async function logout() {
-  // Clerk handles sign-out client-side via clerk.signOut()
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
 }
 
 export async function loginWithGoogle() {

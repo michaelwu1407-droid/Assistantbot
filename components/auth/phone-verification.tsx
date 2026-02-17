@@ -52,7 +52,7 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
       const response = await fetch("/api/auth/send-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           phoneNumber: formatPhoneNumber(phoneNumber),
           countryCode: "+61"
         }),
@@ -78,9 +78,9 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
       const response = await fetch("/api/auth/verify-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           phoneNumber: formatPhoneNumber(phoneNumber),
-          code: verificationCode 
+          code: verificationCode
         }),
       });
 
@@ -97,13 +97,13 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
   };
 
   return (
-    <Card className="w-full max-w-md mx-4">
+    <Card className="w-full max-w-md mx-4 glass-card border-border/50 shadow-xl">
       <CardHeader className="text-center">
-        <CardTitle className="flex items-center justify-center gap-2">
-          <Phone className="h-5 w-5" />
+        <CardTitle className="flex items-center justify-center gap-2 text-foreground">
+          <Phone className="h-5 w-5 text-primary" />
           Phone Verification
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Verify your Australian mobile number
         </CardDescription>
       </CardHeader>
@@ -118,9 +118,9 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
                 placeholder="04xx xxx xxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="mt-1"
+                className="mt-1 bg-background/50 border-border/50 focus:bg-background transition-colors"
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Format: 04xx xxx xxx or +61 4xx xxx xxx
               </p>
             </div>
@@ -130,10 +130,10 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
               </Alert>
             )}
             <div className="flex gap-2">
-              <Button 
-                onClick={handleSendCode} 
+              <Button
+                onClick={handleSendCode}
                 disabled={isSending || !phoneNumber}
-                className="flex-1"
+                className="flex-1 shadow-lg shadow-primary/20"
               >
                 {isSending ? (
                   <>
@@ -147,16 +147,16 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
                   </>
                 )}
               </Button>
-              <Button variant="outline" onClick={onCancel}>
+              <Button variant="outline" onClick={onCancel} className="bg-transparent border-border/50 hover:bg-muted">
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-600 mb-2" />
-              <p className="text-sm text-green-800">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-emerald-500 mb-2" />
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
                 Verification code sent to {formatPhoneNumber(phoneNumber)}
               </p>
             </div>
@@ -168,7 +168,7 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
                 placeholder="Enter 6-digit code"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="mt-1 text-center text-lg tracking-widest"
+                className="mt-1 text-center text-lg tracking-widest bg-background/50 border-border/50 focus:bg-background transition-colors"
                 maxLength={6}
               />
             </div>
@@ -178,22 +178,22 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
               </Alert>
             )}
             <div className="flex gap-2">
-              <Button 
-                onClick={handleVerifyCode} 
+              <Button
+                onClick={handleVerifyCode}
                 disabled={isVerifying || verificationCode.length !== 6}
-                className="flex-1"
+                className="flex-1 shadow-lg shadow-primary/20"
               >
                 {isVerifying ? "Verifying..." : "Verify"}
               </Button>
-              <Button variant="outline" onClick={() => setIsCodeSent(false)}>
+              <Button variant="outline" onClick={() => setIsCodeSent(false)} className="bg-transparent border-border/50 hover:bg-muted">
                 Back
               </Button>
             </div>
-            <Button 
-              variant="ghost" 
-              onClick={handleSendCode} 
+            <Button
+              variant="ghost"
+              onClick={handleSendCode}
               disabled={isSending}
-              className="w-full text-sm"
+              className="w-full text-sm text-muted-foreground hover:text-foreground"
             >
               Resend code
             </Button>

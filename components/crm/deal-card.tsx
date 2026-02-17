@@ -2,10 +2,8 @@
 
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, DollarSign, AlertCircle } from "lucide-react"
+import { Calendar, DollarSign, AlertCircle, Building2, UserCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-// import { differenceInDays } from "date-fns" // Handled by backend health check now
 import { DealView } from "@/actions/deal-actions"
 
 interface DealCardProps {
@@ -35,21 +33,21 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     }
 
     // Stale Logic (Backend provided)
-    let statusColor = "border-slate-200"
+    let cardClasses = "glass-card hover:border-primary/30"
     let statusBadge = null
 
     if (deal.health?.status === "ROTTING") {
-        statusColor = "border-red-600 bg-red-50/10 shadow-[0_0_10px_rgba(220,38,38,0.1)]"
+        cardClasses = "glass-card border-red-500/50 shadow-[0_0_15px_-3px_rgba(239,68,68,0.2)] bg-red-500/5"
         statusBadge = (
-            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10 font-bold tracking-wide">
+            <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10 font-bold tracking-wide">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 Rotting
             </div>
         )
     } else if (deal.health?.status === "STALE") {
-        statusColor = "border-amber-400 bg-amber-50/10 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+        cardClasses = "glass-card border-amber-500/50 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)] bg-amber-500/5"
         statusBadge = (
-            <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-950 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm font-bold z-10 tracking-wide">
+            <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm font-bold z-10 tracking-wide">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 Stale
             </div>
@@ -59,12 +57,11 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     const daysSinceActivity = deal.health?.daysSinceActivity ?? 0
 
     if (overlay) {
-        statusColor += " cursor-grabbing shadow-2xl scale-105 rotate-2"
+        cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-primary/20"
     } else if (isDragging) {
-        statusColor += " opacity-30"
+        cardClasses += " opacity-30 grayscale"
     } else {
-        // Use default Card hover effects from ui/card.tsx, just add cursor
-        statusColor += " cursor-grab hover:border-slate-300"
+        cardClasses += " cursor-grab active:cursor-grabbing"
     }
 
     return (
@@ -73,44 +70,55 @@ export function DealCard({ deal, overlay }: DealCardProps) {
             style={style}
             {...attributes}
             {...listeners}
-            className="relative group"
-            onClick={() => window.location.href = `/dashboard/deals/${deal.id}`} // Simple navigation for now
+            className="relative group touch-none"
+            onClick={() => window.location.href = `/dashboard/deals/${deal.id}`}
         >
-            <Card className={cn("transition-colors select-none cursor-pointer hover:border-slate-400", statusColor)}>
+            <div className={cn("rounded-xl p-4 transition-all duration-300 relative overflow-hidden", cardClasses)}>
+                {/* Decorative glow for overlay */}
+                {overlay && <div className="absolute inset-0 bg-primary/5 animate-pulse" />}
+
                 {statusBadge}
-                <CardContent className="p-4 space-y-3">
+
+                <div className="space-y-3 relative z-10">
                     {/* Header */}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start pr-6">
                         <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-slate-900 truncate capitalize">{deal.title}</h4>
-                            <p className="text-xs text-slate-500 truncate">{deal.company}</p>
+                            <h4 className="font-semibold text-foreground truncate capitalize text-sm md:text-base leading-tight">
+                                {deal.title}
+                            </h4>
+                            <div className="flex items-center text-xs text-muted-foreground mt-1 truncate">
+                                <Building2 className="w-3 h-3 mr-1 opacity-70" />
+                                <span className="truncate">{deal.company}</span>
+                            </div>
                         </div>
-                        {/* Grab handle visual cue could go here */}
                     </div>
 
-                    {/* Value & Info */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center text-slate-900 font-bold">
-                            <DollarSign className="w-3 h-3 text-slate-400 mr-0.5" />
+                    {/* Value & Contact */}
+                    <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center text-foreground font-bold text-sm bg-background/50 px-2 py-1 rounded-lg border border-border/50">
+                            <DollarSign className="w-3 h-3 text-emerald-500 mr-0.5" />
                             {deal.value.toLocaleString()}
                         </div>
                         {deal.contactName && (
-                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-medium text-slate-600 border border-slate-200" title={deal.contactName}>
-                                {deal.contactName.slice(0, 2).toUpperCase()}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 pl-1 pr-2 py-0.5 rounded-full border border-border/30">
+                                <div className="h-5 w-5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-[9px] font-bold text-white shadow-sm">
+                                    {deal.contactName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="truncate max-w-[80px]">{deal.contactName.split(' ')[0]}</span>
                             </div>
                         )}
                     </div>
 
                     {/* Footer: Date */}
                     <div className={cn(
-                        "flex items-center text-xs pt-2 border-t border-slate-100",
-                        (deal.health?.status === "ROTTING" || deal.health?.status === "STALE") ? "text-amber-700 font-medium" : "text-slate-400"
+                        "flex items-center text-[10px] font-medium pt-3 mt-1 border-t border-border/30",
+                        (deal.health?.status === "ROTTING" || deal.health?.status === "STALE") ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
                     )}>
-                        <Calendar className="w-3 h-3 mr-1.5" />
-                        {daysSinceActivity === 0 ? "Today" : `${daysSinceActivity}d ago`}
+                        <Calendar className="w-3 h-3 mr-1.5 opacity-70" />
+                        {daysSinceActivity === 0 ? "Updated today" : `Active ${daysSinceActivity}d ago`}
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

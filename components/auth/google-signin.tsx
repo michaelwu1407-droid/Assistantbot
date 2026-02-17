@@ -36,19 +36,19 @@ export function GoogleSignIn() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <Card className="w-full max-w-md mx-4">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <Card className="w-full max-w-md mx-4 glass-card border-border/50 shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-foreground">Welcome Back</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Sign in with your Google account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button 
-            onClick={handleGoogleSignIn} 
+          <Button
+            onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full"
+            className="w-full shadow-lg shadow-primary/20"
           >
             {loading ? "Signing in..." : "Sign in with Google"}
           </Button>
