@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Calendar, FileText, Phone } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, MapPin, DollarSign, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,9 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  action?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: Record<string, any>;
 }
 
 const QUICK_ACTIONS = [
@@ -25,11 +28,71 @@ const QUICK_ACTIONS = [
   { icon: Sparkles, label: "General help", prompt: "What can you help me with?" },
 ];
 
+/* ── Draft Job Confirmation Card ────────────────────────── */
+function DraftJobCard({
+  data,
+  onConfirm,
+  onCancel,
+  isConfirming,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isConfirming: boolean;
+}) {
+  const fields = [
+    { icon: User, label: "Client", value: data.clientName || data.company || "—" },
+    { icon: Wrench, label: "Work", value: data.workDescription || data.title || "—" },
+    { icon: DollarSign, label: "Price", value: data.price || data.value ? `$${Number(data.price || data.value).toLocaleString()}` : "—" },
+    { icon: Calendar, label: "Schedule", value: data.schedule || "—" },
+    { icon: MapPin, label: "Address", value: data.address || "—" },
+  ].filter(f => f.value !== "—");
+
+  return (
+    <div className="mt-3 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-slate-50 p-4 shadow-sm space-y-3 max-w-sm">
+      <div className="space-y-2">
+        {fields.map(({ icon: Icon, label, value }) => (
+          <div key={label} className="flex items-start gap-2.5">
+            <Icon className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{label}</span>
+              <p className="text-sm font-medium text-slate-800 leading-tight">{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Button
+          size="sm"
+          onClick={onConfirm}
+          disabled={isConfirming}
+          className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg h-9 text-sm font-medium shadow-sm"
+        >
+          {isConfirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          {isConfirming ? "Creating..." : "Confirm"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isConfirming}
+          className="gap-1.5 rounded-lg h-9 text-sm border-slate-200"
+        >
+          <X className="w-3.5 h-3.5" />
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [confirmingIndex, setConfirmingIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on mount
@@ -40,15 +103,21 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         setIsLoadingHistory(true);
         const history = await getChatHistory(workspaceId);
         if (history && history.length > 0) {
-          // Convert history to Message format
-          const formattedMessages: Message[] = history.map((msg: any) => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-            timestamp: new Date(msg.createdAt)
-          }));
+          // Convert history to Message format — also restore action/data from metadata
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const formattedMessages: Message[] = history.map((msg: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const meta = msg.metadata as Record<string, any> | null;
+            return {
+              role: msg.role as 'user' | 'assistant',
+              content: msg.content,
+              timestamp: new Date(msg.createdAt),
+              action: meta?.action,
+              data: meta?.data,
+            };
+          });
           setMessages(formattedMessages);
         } else {
-          // Show welcome message if no history
           setMessages([{
             role: 'assistant',
             content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
@@ -57,7 +126,6 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         }
       } catch (error) {
         console.error('Failed to load chat history:', error);
-        // Show welcome message on error
         setMessages([{
           role: 'assistant',
           content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
@@ -83,8 +151,8 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     e.preventDefault();
     if (!input.trim() || isLoading || !workspaceId) return;
 
-    const userMessage: Message = { 
-      role: 'user', 
+    const userMessage: Message = {
+      role: 'user',
       content: input,
       timestamp: new Date()
     };
@@ -93,20 +161,21 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     setIsLoading(true);
 
     try {
-      // Import processChat dynamically to avoid SSR issues
       const { processChat } = await import('@/actions/chat-actions');
       const response = await processChat(input, workspaceId);
-      
-      const assistantMessage: Message = { 
-        role: 'assistant', 
+
+      const assistantMessage: Message = {
+        role: 'assistant',
         content: response.message,
-        timestamp: new Date()
+        timestamp: new Date(),
+        action: response.action,
+        data: response.data,
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat processing error:', error);
-      const errorMessage: Message = { 
-        role: 'assistant', 
+      const errorMessage: Message = {
+        role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date()
       };
@@ -114,6 +183,59 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleConfirmDraft = async (index: number, data: Record<string, any>) => {
+    if (!workspaceId) return;
+    setConfirmingIndex(index);
+
+    try {
+      const { processChat } = await import('@/actions/chat-actions');
+      const intent = messages[index].action === 'draft_job_natural' ? 'create_job_natural' : 'create_deal';
+      const response = await processChat('', workspaceId, {
+        intent,
+        confirmed: 'true',
+        ...data,
+      });
+
+      // Replace the draft message's action so the card disappears
+      setMessages(prev => prev.map((m, i) =>
+        i === index ? { ...m, action: 'confirmed', data: undefined } : m
+      ));
+
+      // Add confirmation response
+      const confirmMsg: Message = {
+        role: 'assistant',
+        content: response.message,
+        timestamp: new Date(),
+        action: response.action,
+        data: response.data,
+      };
+      setMessages(prev => [...prev, confirmMsg]);
+    } catch (error) {
+      console.error('Confirm error:', error);
+      const errMsg: Message = {
+        role: 'assistant',
+        content: 'Sorry, something went wrong creating the job. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errMsg]);
+    } finally {
+      setConfirmingIndex(null);
+    }
+  };
+
+  const handleCancelDraft = (index: number) => {
+    setMessages(prev => prev.map((m, i) =>
+      i === index ? { ...m, action: 'cancelled', data: undefined } : m
+    ));
+    const cancelMsg: Message = {
+      role: 'assistant',
+      content: 'No worries — cancelled. Just tell me whenever you want to try again.',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, cancelMsg]);
   };
 
   const handleQuickAction = (prompt: string) => {
@@ -132,6 +254,9 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     return date1.toDateString() !== date2.toDateString();
   };
 
+  const isDraftAction = (action?: string) =>
+    action === 'draft_job_natural' || action === 'draft_deal';
+
   const isOnlyWelcomeMessage = messages.length === 1;
 
   return (
@@ -140,7 +265,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {messages.map((message, index) => {
           const showDateSeparator = index === 0 || isDifferentDay(message.timestamp, messages[index - 1].timestamp);
-          
+
           return (
             <div key={index}>
               {/* Date Separator */}
@@ -151,7 +276,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                   </div>
                 </div>
               )}
-              
+
               <div
                 className={cn(
                   "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
@@ -187,7 +312,17 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                         : "bg-white border border-slate-200 text-slate-800 rounded-bl-md"
                     )}
                   >
-                    <p className="text-[15px] leading-relaxed">{message.content}</p>
+                    <p className="text-[15px] leading-relaxed whitespace-pre-line">{message.content}</p>
+
+                    {/* Draft Confirmation Card */}
+                    {isDraftAction(message.action) && message.data && (
+                      <DraftJobCard
+                        data={message.data}
+                        onConfirm={() => handleConfirmDraft(index, message.data!)}
+                        onCancel={() => handleCancelDraft(index)}
+                        isConfirming={confirmingIndex === index}
+                      />
+                    )}
                   </div>
                   <span className={cn(
                     "text-xs flex items-center gap-1",
@@ -257,8 +392,8 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
               className="pr-12 py-6 text-[15px] rounded-xl border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isLoading || !input.trim()}
             className="px-6 py-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50"
           >
