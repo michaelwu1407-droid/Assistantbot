@@ -81,12 +81,16 @@ export function DealCard({ deal, overlay }: DealCardProps) {
                     {/* Header */}
                     <div className="flex justify-between items-start pr-6">
                         <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-[#0F172A] truncate capitalize text-base leading-tight">
+                            <h4 className="font-bold text-[#0F172A] truncate capitalize text-base leading-tight mb-1">
                                 {deal.title}
                             </h4>
-                            <div className="flex items-center text-xs text-[#475569] mt-1 truncate">
-                                <Building2 className="w-3 h-3 mr-1 opacity-70" />
-                                <span className="truncate">{deal.company}</span>
+                            {deal.address && (
+                                <div className="flex items-center text-[11px] text-[#64748B] mb-1.5 truncate">
+                                    <span className="truncate">{deal.address}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center text-xs text-[#475569] truncate">
+                                <span className="truncate">{deal.company || "No Company"}</span>
                             </div>
                         </div>
                     </div>

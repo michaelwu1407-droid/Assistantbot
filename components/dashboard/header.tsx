@@ -97,9 +97,9 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                     <Menu className="h-6 w-6" />
                 </Button>
                 <div>
-                    {/* Breadcrumbs can stay, but maybe style them more subtly later */}
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-2xl md:text-3xl font-bold text-[#0F172A] tracking-tight leading-tight">
+                    {/* Compact single-line header */}
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-xl md:text-2xl font-bold text-[#0F172A] tracking-tight leading-none whitespace-nowrap">
                             {greeting}
                         </h1>
                         {weather && (
@@ -109,9 +109,6 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                             </div>
                         )}
                     </div>
-                    <p className="text-sm md:text-base text-[#64748B] font-medium tracking-normal">
-                        {getSubtitle()}
-                    </p>
                 </div>
             </div>
 
@@ -136,10 +133,10 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
                 <Button
                     id="new-deal-btn"
                     onClick={onNewDeal}
-                    className="ott-btn-primary h-12 px-6 shadow-xl shadow-black/10 hover:shadow-black/20"
+                    className="ott-btn-primary h-10 px-5 shadow-xl shadow-black/10 hover:shadow-black/20"
                 >
-                    <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
-                    <span className="hidden sm:inline font-semibold">
+                    <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline font-semibold text-sm">
                         {industry === "TRADES" ? "New Job" : industry === "REAL_ESTATE" ? "New Listing" : "New Deal"}
                     </span>
                     <span className="sm:hidden">New</span>

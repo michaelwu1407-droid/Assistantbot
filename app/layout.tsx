@@ -34,9 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AccessibilityProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${fontSans.variable} antialiased font-sans bg-background text-foreground`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${fontSans.variable} antialiased font-sans bg-background text-foreground`}>
+        <AccessibilityProvider>
           <ClientThemeProvider>
             <IndustryProvider>
               {children}
@@ -46,8 +46,8 @@ export default function RootLayout({
               <Toaster />
             </IndustryProvider>
           </ClientThemeProvider>
-        </body>
-      </html>
-    </AccessibilityProvider>
+        </AccessibilityProvider>
+      </body>
+    </html>
   );
 }

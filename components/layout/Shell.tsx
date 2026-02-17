@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { useShellStore } from "@/lib/store"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -19,11 +19,16 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const router = useRouter()
   const pathname = usePathname()
   const tutorialTriggered = useRef(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Determine if we should show the simplified Basic (Chat) view
   // Only show Basic view if user is in BASIC mode AND on the main dashboard page
   const isDashboardRoot = pathname === "/dashboard"
-  const isBasicView = viewMode === "BASIC" && isDashboardRoot
+  const isBasicView = mounted && viewMode === "BASIC" && isDashboardRoot
 
   // Verify tutorial trigger
   useEffect(() => {
@@ -91,7 +96,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
             {/* Right Chatbot - 25% (M-5 / A-1) */}
             <ResizablePanel
-              defaultSize={25}
+              defaultSize={18}
               minSize={20}
               maxSize={50}
               collapsible={true}

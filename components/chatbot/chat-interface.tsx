@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, MapPin, DollarSign, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getChatHistory, clearChatHistoryAction } from '@/actions/chat-actions';
@@ -283,36 +283,19 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
                   message.role === "user" ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                {/* Avatar */}
-                <Avatar className={cn(
-                  "w-10 h-10 shadow-sm border border-border/20",
-                  message.role === "user" ? "bg-primary" : "bg-muted"
-                )}>
-                  {message.role === "user" ? (
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      <User className="w-5 h-5" />
-                    </AvatarFallback>
-                  ) : (
-                    <>
-                      <AvatarImage src="/bot-avatar.png" />
-                      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                        <Bot className="w-5 h-5" />
-                      </AvatarFallback>
-                    </>
-                  )}
-                </Avatar>
+                {/* Avatar Removed */}
 
                 {/* Message Content */}
                 <div className="flex flex-col gap-1 max-w-[85%]">
                   <div
                     className={cn(
-                      "rounded-2xl px-4 py-2.5 shadow-sm",
+                      "rounded-2xl px-3 py-2.5 shadow-sm",
                       message.role === "user"
                         ? "bg-[#0F172A] text-white rounded-br-sm"
                         : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                     )}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
+                    <p className="text-xs leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
 
                     {/* Draft Confirmation Card */}
                     {isDraftAction(message.action) && message.data && (
@@ -340,11 +323,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         {/* Loading State */}
         {isLoading && (
           <div className="flex gap-3 max-w-3xl mx-auto animate-in fade-in">
-            <Avatar className="w-10 h-10 shadow-sm border border-border/20">
-              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                <Bot className="w-5 h-5" />
-              </AvatarFallback>
-            </Avatar>
+            {/* Avatar Removed */}
             <div className="glass-card rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -383,22 +362,45 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       {/* Input Area */}
       <div className="border-t border-border/40 bg-background/80 backdrop-blur-md p-4">
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
-          <div className="relative flex-1">
-            <Input
+          <div className="relative flex items-end gap-2 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-2 focus-within:ring-2 focus-within:ring-[#00D28B]/20 transition-all">
+            <Textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit(e as unknown as React.FormEvent)
+                }
+              }}
               placeholder="Type your message..."
-              disabled={isLoading}
-              className="pr-12 py-6 text-[15px] rounded-xl border-border/50 bg-background/50 focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 scrollbar-hide"
+              rows={1}
+              ref={(ref) => {
+                if (ref) {
+                  ref.style.height = "auto";
+                  ref.style.height = `${ref.scrollHeight}px`;
+                }
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = `${target.scrollHeight}px`;
+              }}
             />
+            <Button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className={cn(
+                "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1",
+                input.trim()
+                  ? "bg-[#00D28B] hover:bg-[#00D28B]/90 text-white shadow-md shadow-[#00D28B]/20"
+                  : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+              )}
+            >
+              <Send className="h-3.5 w-3.5 ml-0.5" />
+            </Button>
           </div>
-          <Button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="px-6 py-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
-          >
-            <Send className="w-5 h-5" />
-          </Button>
         </form>
         <p className="text-xs text-muted-foreground text-center mt-2 opacity-70">
           Pj Buddy AI can make mistakes. Please verify important information.
