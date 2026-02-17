@@ -4,6 +4,12 @@
 
 ---
 
+### 2026-02-14 13:45 AEST [Frontend - Antigravity] - Documentation Cleanup
+**Maintenance**: Consolidated repository logs.
+*   **Merge**: Integrated `ISSUES_RESOLUTION_COMPLETE.md` and `PRODUCTION_FIX.md` into `ACECAP_LOG.md` (Master Issue Log).
+*   **Delete**: Removed obsolete `CLERK_KEY_FIX_GUIDE.md`.
+*   **Status**: `ACECAP_LOG.md` is now the single source of truth for all historical and active issues. `project_status_log.md` remains the active project tracker.
+
 ### 2026-02-14 13:15 AEST [Frontend - Antigravity] - Critical Repairs & Cleanup
 **Fix**: Comprehensive build repair, feature completion, and code hygiene.
 *   **Build**: Fixed 8 blocking TypeScript errors and `digest.ts` runtime crash.

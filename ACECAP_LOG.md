@@ -47,6 +47,7 @@
 | AUTH-03 | Advanced Mode redirects to /setup | ✅ FIXED | Centralized auth, eliminated demo-user hardcoding (commit `f34066e`) |
 | AUTH-04 | Tutorial flashes briefly then disappears | ✅ FIXED | `tutorialComplete` now persisted via Zustand localStorage middleware in `lib/store.ts` |
 | AUTH-05 | "demo-user" hardcoded across 25+ files | ✅ FIXED | All migrated to centralized `lib/auth.ts` (commit `1c104f5`) |
+| AUTH-06 | Invalid host / Clerk Key Error (PEM format) | ✅ FIXED | Replaced PEM format key with correct `pk_live_...` format in Vercel Env Vars |
 
 ---
 
@@ -158,4 +159,5 @@
 | API | 5 | 5 | 0 | 0 | 0 |
 | Infra | 3 | 3 | 0 | 0 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
-| **TOTAL** | **69** | **65** | **0** | **0** | **4** |
+| INFRA-04 | Vercel 500 Error (Missing Env Vars) | ✅ FIXED | Added `DATABASE_URL`, `DIRECT_URL` etc. to Vercel Project Settings (Source: PRODUCTION_FIX.md) |
+| **TOTAL** | **70** | **66** | **0** | **0** | **4** |

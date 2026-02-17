@@ -3,7 +3,7 @@
 import { ContactView } from "@/actions/contact-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, Building2, Calendar, Edit } from "lucide-react"
+import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -12,6 +12,16 @@ interface ContactProfileProps {
 }
 
 export function ContactProfile({ contact }: ContactProfileProps) {
+    // Extract unique addresses from deals as "properties"
+    const properties = (contact as any).deals
+        ?.map((d: any) => ({
+            title: d.title,
+            address: d.address || (d.metadata as any)?.address,
+            stage: d.stage,
+            value: Number(d.value)
+        }))
+        .filter((p: any) => p.address) ?? [];
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* Header / Banner Card */}
@@ -109,6 +119,32 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Properties Section (Multi-Property UC13) */}
+                    {properties.length > 0 && (
+                        <Card>
+                            <CardContent className="p-4 space-y-3">
+                                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                                    <Home className="w-4 h-4" />
+                                    Properties ({properties.length})
+                                </h3>
+                                <div className="space-y-2">
+                                    {properties.map((prop: any, i: number) => (
+                                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                            <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-slate-900 truncate">{prop.title}</p>
+                                                <p className="text-xs text-slate-500 truncate">{prop.address}</p>
+                                            </div>
+                                            <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                                                {prop.stage}
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Right: Activity Feed Placeholder (Wait for ActivityFeed update) */}

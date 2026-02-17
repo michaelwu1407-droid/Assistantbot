@@ -130,6 +130,7 @@ model Deal {
   openHouseLogs  OpenHouseLog[]
   buyerFeedback  BuyerFeedback[]
   jobPhotos      JobPhoto[]
+  customerFeedback CustomerFeedback[]
 }
 
 model Contact {
@@ -152,6 +153,7 @@ model Contact {
   tasks       Task[]
   keysHeld    Key[]
   feedback    BuyerFeedback[]
+  customerFeedback CustomerFeedback[] @relation("CustomerFeedback")
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -341,4 +343,21 @@ model JobPhoto {
   deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
   
   createdAt DateTime @default(now())
+}
+
+model CustomerFeedback {
+  id          String   @id @default(cuid())
+  score       Int      // 1-10 rating
+  comment     String?
+  resolved    Boolean  @default(false)
+  resolution  String?  // Internal resolution notes
+  
+  dealId      String
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  contactId   String
+  contact     Contact  @relation("CustomerFeedback", fields: [contactId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

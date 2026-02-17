@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Navigation, Phone } from "lucide-react"
+import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -86,10 +86,11 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                     {/* Tabs */}
                     <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="w-full grid grid-cols-3 bg-white border border-slate-200 p-1 h-12">
+                        <TabsList className="w-full grid grid-cols-4 bg-white border border-slate-200 p-1 h-12">
                             <TabsTrigger value="details">Details</TabsTrigger>
                             <TabsTrigger value="diary">Diary</TabsTrigger>
                             <TabsTrigger value="billing">Billing</TabsTrigger>
+                            <TabsTrigger value="handover">Handover</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="details" className="mt-4 space-y-4">
@@ -124,6 +125,42 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             <Card className="p-4 text-center text-slate-500 text-sm">
                                 Billing features coming soon.
                             </Card>
+                        </TabsContent>
+
+                        <TabsContent value="handover" className="mt-4 space-y-4">
+                            <Card className="p-4">
+                                <h3 className="font-semibold mb-3 text-sm text-slate-900 flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Handover Resources
+                                </h3>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <FileText className="w-5 h-5 text-blue-500" />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-slate-900">Maintenance Guide</p>
+                                            <p className="text-xs text-slate-500">General care instructions</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <FileText className="w-5 h-5 text-emerald-500" />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-slate-900">Warranty Card</p>
+                                            <p className="text-xs text-slate-500">12 month parts warranty</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <FileText className="w-5 h-5 text-amber-500" />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-slate-900">Before / After Photos</p>
+                                            <p className="text-xs text-slate-500">{job.photos.length} photos attached</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                            <Button className="w-full gap-2 bg-slate-900 hover:bg-slate-800">
+                                <Send className="w-4 h-4" />
+                                Send Handover Pack to Client
+                            </Button>
                         </TabsContent>
                     </Tabs>
                 </div>

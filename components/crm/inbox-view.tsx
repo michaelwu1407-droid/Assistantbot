@@ -4,8 +4,10 @@ import { useState } from "react";
 import { InboxThread } from "@/actions/messaging-actions";
 import { ActivityFeed } from "@/components/crm/activity-feed";
 import { cn } from "@/lib/utils";
-import { Search, User } from "lucide-react";
+import { Search, User, Phone, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface InboxViewProps {
   initialThreads: InboxThread[];
@@ -102,13 +104,32 @@ export function InboxView({ initialThreads }: InboxViewProps) {
                   <p className="text-xs text-slate-500">{selectedThread?.contactCompany}</p>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                {selectedThread?.contactPhone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    onClick={() => window.open(`tel:${selectedThread.contactPhone}`)}
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    Call
+                  </Button>
+                )}
+                <Link href={`/dashboard/contacts/${selectedContactId}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Profile
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Activity Feed (reused as chat history) */}
             <div className="flex-1 overflow-hidden p-4 bg-slate-50/30">
-              <ActivityFeed 
-                contactId={selectedContactId} 
-                className="h-full border-none shadow-none bg-transparent" 
+              <ActivityFeed
+                contactId={selectedContactId}
+                className="h-full border-none shadow-none bg-transparent"
               />
             </div>
           </>

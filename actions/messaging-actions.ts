@@ -17,6 +17,7 @@ export interface InboxThread {
   contactName: string;
   contactAvatar: string | null;
   contactCompany: string | null;
+  contactPhone: string | null;
   lastMessage: {
     content: string;
     createdAt: Date;
@@ -59,9 +60,8 @@ async function sendViaTwilio(
   if (!accountSid || !authToken || !fromNumber) {
     return {
       success: false,
-      error: `Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and ${
-        channel === "whatsapp" ? "TWILIO_WHATSAPP_NUMBER" : "TWILIO_PHONE_NUMBER"
-      } in .env`,
+      error: `Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and ${channel === "whatsapp" ? "TWILIO_WHATSAPP_NUMBER" : "TWILIO_PHONE_NUMBER"
+        } in .env`,
     };
   }
 
@@ -122,6 +122,7 @@ export async function getInboxThreads(workspaceId: string): Promise<InboxThread[
       name: true,
       avatarUrl: true,
       company: true,
+      phone: true,
       activities: {
         where: {
           type: { in: ["EMAIL", "CALL", "NOTE"] }
@@ -147,6 +148,7 @@ export async function getInboxThreads(workspaceId: string): Promise<InboxThread[
         contactName: c.name,
         contactAvatar: c.avatarUrl,
         contactCompany: c.company,
+        contactPhone: c.phone ?? null,
         lastMessage: last ? {
           content: last.content || last.title,
           createdAt: last.createdAt,

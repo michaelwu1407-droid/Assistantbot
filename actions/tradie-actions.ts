@@ -691,3 +691,36 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
     return { success: false, error: "Failed to complete job" };
   }
 }
+
+/**
+ * Send a Google Review request SMS to the client after job completion.
+ */
+export async function sendReviewRequestSMS(dealId: string) {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: { contact: true, workspace: true }
+  });
+
+  if (!deal || !deal.contact.phone) {
+    return { success: false, error: "No contact phone number found." };
+  }
+
+  const businessName = deal.workspace.name || "our team";
+  const message = `Hi ${deal.contact.name}, thanks for choosing ${businessName}! We'd love your feedback. Please leave us a quick Google review: https://g.page/${businessName.replace(/\s+/g, '')}/review — Thanks!`;
+
+  const result = await sendSMS(deal.contactId, message, dealId);
+
+  if (result.success) {
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Review Request Sent",
+        content: `Sent Google Review request SMS to ${deal.contact.name}.`,
+        dealId,
+        contactId: deal.contactId
+      }
+    });
+  }
+
+  return result;
+}
