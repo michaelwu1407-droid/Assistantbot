@@ -1,6 +1,6 @@
-# Use Case Walkthroughs
+# Use Case Walkthroughs (Round 2)
 
-This document records the step-by-step execution of user journeys defined in the `APP_MANUAL.md`.
+This document records the step-by-step execution of user journeys after `git pull` (Feb 18).
 
 ## Legend
 - ✅ **Passed**: Feature exists and works as described.
@@ -46,31 +46,32 @@ This document records the step-by-step execution of user journeys defined in the
 ## Batch 2: Jobs & Field Work
 
 ### Use Case 4: Pre-Arrival Friction Reducer
-- **Status**: ❌ **Failed**
-- **Test**: Navigated to `/dashboard/tradie` (404), checked Job Details.
+- **Status**: ⚠️ **Partial** (Improved)
+- **Test**: Navigated to `/dashboard/tradie`.
 - **Observation**:
-  - `/dashboard/tradie` (Map View) does not exist.
-  - No "Start Travel" button found on Job Details.
-  - Sidebar "Hammer" icon is non-functional.
+  - ✅ **Fixed**: `/dashboard/tradie` now loads (Map/Task View).
+  - ❌ **Missing**: "Start Travel" button still absent from Job Details.
+  - Sidebar "Hammer" icon works now.
 
 ### Use Case 8: Post-Job Reputation Building
 - **Status**: ❌ **Failed**
 - **Test**: Checked Job Details for completion flow.
-- **Observation**: No "Complete Job" button. Dragging Deal to "Completed" column didn't trigger review prompt.
+- **Observation**: No "Complete Job" button found.
 
 ### Use Case 10: Digital Handover
-- **Status**: ❌ **Failed**
-- **Test**: Scrolled Job Details.
-- **Observation**: No "Handover" section or "Add Resource" button.
+- **Status**: ⚠️ **Partial**
+- **Test**: Checked Job Details.
+- **Observation**:
+  - ✅ "Photos" tab with "Add Photo" button exists.
+  - ❌ No specific "Handover" section.
 
 ### Use Case 14: Uber-Style Arrival
 - **Status**: ❌ **Failed**
-- **Observation**: Dependent on "Start Travel" which is missing.
+- **Observation**: Dependent on "Start Travel".
 
 ### Use Case 16: Asset DNA
 - **Status**: ❌ **Failed**
-- **Test**: Searched for "Assets", checked Job Details.
-- **Observation**: No asset tracking UI or QR scan features found.
+- **Observation**: No asset tracking UI.
 
 ---
 
@@ -79,26 +80,24 @@ This document records the step-by-step execution of user journeys defined in the
 ### Use Case 5: No-Show Prevention
 - **Status**: ❌ **Failed**
 - **Test**: Checked Calendar events.
-- **Observation**: No visual confirmation status (checkmarks/question marks). clicking event navigates to deal, no "Nudge" popover.
+- **Observation**: No visual confirmation status. Clicking event navigates to deal (no popover).
 
 ### Use Case 7: Ghosted Quote Resurrection
 - **Status**: ⚠️ **Partial**
-- **Test**: Checked Kanban board.
+- **Test**: Dragged "Stale" deal to "Quoted".
 - **Observation**:
   - ✅ "Stale" badges exist.
-  - ❌ Dragging to other columns does NOT trigger any follow-up workflow/modal.
+  - ❌ Dragging does NOT trigger any follow-up modal.
 
 ### Use Case 13: Multi-Property Nexus
-- **Status**: ❌ **Failed**
+- **Status**: ✅ **Passed** (Fixed)
 - **Test**: Checked Contact Details (Sally).
-- **Observation**: No "Properties" tab or list of addresses found.
+- **Observation**: "Properties" tab exists and lists portfolio!
 
 ### Use Case 9/15: CRM Filters
 - **Status**: ⚠️ **Partial**
 - **Test**: Checked Contact Filter Bar.
-- **Observation**:
-  - ✅ "Service Due" filter exists.
-  - ❌ "Last Job Date" and "Suggested Campaign" filters missing.
+- **Observation**: "Service Due" exists. "Last Job" missing.
 
 ---
 
@@ -106,15 +105,13 @@ This document records the step-by-step execution of user journeys defined in the
 
 ### Reports & Analytics
 - **Status**: ❌ **Failed**
-- **Test**: Checked Sidebar and `/dashboard/reports`.
-- **Observation**: No reporting UI exists beyond basic pipeline totals.
+- **Test**: `/dashboard/reports` -> 404.
 
 ### Feedback & Reputation
-- **Status**: ❌ **Failed**
-- **Test**: Checked Sidebar and `/dashboard/feedback`.
-- **Observation**: Feature completely missing.
+- **Status**: ❌ **Failed** (Error)
+- **Test**: `/dashboard/feedback` -> Application Error (Crash).
+- **Observation**: Feature likely partially implemented but broken.
 
-### Team Management (Subbies)
+### Team Management
 - **Status**: ❌ **Failed**
-- **Test**: Checked Settings/Workspace and `/dashboard/team`.
-- **Observation**: No user management or subcontractor permissions found.
+- **Test**: `/dashboard/team` -> 404.
