@@ -10,32 +10,24 @@ interface ShellState {
   workspaceId: string | null
   userId: string | null
   mobileMenuOpen: boolean
+  _hydrated: boolean
   setViewMode: (mode: ViewMode) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
   setMobileMenuOpen: (open: boolean) => void
+  _hydrate: () => void
 }
 
-// Check localStorage for persisted state (client-side only)
-const getPersistedValue = (key: string, defaultValue: any): any => {
-  if (typeof window === 'undefined') return defaultValue
-  try {
-    const value = localStorage.getItem(key)
-    return value !== null ? value : defaultValue
-  } catch {
-    return defaultValue
-  }
-}
-
-export const useShellStore = create<ShellState>((set) => ({
-  viewMode: getPersistedValue('pj_view_mode', 'BASIC') as ViewMode,
-  persona: getPersistedValue('pj_persona', 'TRADIE') as Persona,
-  tutorialComplete: getPersistedValue('pj_tutorial_complete', 'false') === 'true',
+export const useShellStore = create<ShellState>((set, get) => ({
+  viewMode: 'BASIC' as ViewMode,
+  persona: 'TRADIE' as Persona,
+  tutorialComplete: false,
   workspaceId: null,
   userId: null,
   mobileMenuOpen: false,
+  _hydrated: false,
   setViewMode: (mode: ViewMode) => {
     try { localStorage.setItem('pj_view_mode', mode) } catch { }
     set({ viewMode: mode })
@@ -51,5 +43,26 @@ export const useShellStore = create<ShellState>((set) => ({
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
   setUserId: (id: string) => set({ userId: id }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
+  _hydrate: () => {
+    if (get()._hydrated) return
+    try {
+      const vm = localStorage.getItem('pj_view_mode')
+      const p = localStorage.getItem('pj_persona')
+      const tc = localStorage.getItem('pj_tutorial_complete')
+      set({
+        viewMode: (vm as ViewMode) || 'BASIC',
+        persona: (p as Persona) || 'TRADIE',
+        tutorialComplete: tc === 'true',
+        _hydrated: true,
+      })
+    } catch {
+      set({ _hydrated: true })
+    }
+  },
 }))
+
+// Auto-hydrate on client side
+if (typeof window !== 'undefined') {
+  useShellStore.getState()._hydrate()
+}
 

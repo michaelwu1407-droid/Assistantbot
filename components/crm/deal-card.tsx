@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Calendar, DollarSign, AlertCircle, Building2, UserCircle } from "lucide-react"
@@ -31,6 +32,9 @@ export function DealCard({ deal, overlay }: DealCardProps) {
         transform: CSS.Translate.toString(transform),
         transition,
     }
+
+    // Track pointer movement to distinguish click from drag
+    const pointerStart = React.useRef<{ x: number; y: number } | null>(null)
 
     // Stale Logic (Backend provided)
     let cardClasses = "ott-card bg-white hover:border-[#00D28B] p-5"
@@ -71,7 +75,22 @@ export function DealCard({ deal, overlay }: DealCardProps) {
             {...attributes}
             {...listeners}
             className="relative group touch-none"
-            onClick={() => window.location.href = `/dashboard/deals/${deal.id}`}
+            onPointerDown={(e) => { pointerStart.current = { x: e.clientX, y: e.clientY } }}
+            onClick={(e) => {
+                // Only navigate if pointer didn't move significantly (i.e. not a drag)
+                if (pointerStart.current) {
+                    const dx = Math.abs(e.clientX - pointerStart.current.x)
+                    const dy = Math.abs(e.clientY - pointerStart.current.y)
+                    if (dx > 5 || dy > 5) {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        pointerStart.current = null
+                        return
+                    }
+                }
+                pointerStart.current = null
+                window.location.href = `/dashboard/deals/${deal.id}`
+            }}
         >
             <div className={cn("relative overflow-hidden", cardClasses)}>
 
