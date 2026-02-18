@@ -81,10 +81,21 @@ export async function getTodaySchedule(workspaceId: string) {
   const jobs = await db.deal.findMany({
     where: {
       workspaceId,
-      scheduledAt: {
-        gte: startOfDay,
-        lte: endOfDay
-      },
+      OR: [
+        // Jobs for today
+        {
+          scheduledAt: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        },
+        // Overdue jobs (before today AND not completed/cancelled)
+        {
+          scheduledAt: { lt: startOfDay },
+          jobStatus: { notIn: ["COMPLETED", "CANCELLED"] },
+          stage: { notIn: ["WON", "LOST", "ARCHIVED"] }
+        }
+      ],
       jobStatus: { not: "CANCELLED" }
     },
     include: {

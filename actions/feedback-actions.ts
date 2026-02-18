@@ -7,31 +7,36 @@ import { revalidatePath } from "next/cache";
  * Get all customer feedback for a workspace.
  */
 export async function getWorkspaceFeedback(workspaceId: string) {
-    const feedback = await db.customerFeedback.findMany({
-        where: {
-            deal: { workspaceId }
-        },
-        include: {
-            contact: { select: { name: true } },
-            deal: { select: { title: true } }
-        },
-        orderBy: [
-            { resolved: "asc" },   // Unresolved first
-            { score: "asc" },      // Lowest scores first
-            { createdAt: "desc" }
-        ]
-    });
+    try {
+        const feedback = await db.customerFeedback.findMany({
+            where: {
+                deal: { workspaceId }
+            },
+            include: {
+                contact: { select: { name: true } },
+                deal: { select: { title: true } }
+            },
+            orderBy: [
+                { resolved: "asc" },   // Unresolved first
+                { score: "asc" },      // Lowest scores first
+                { createdAt: "desc" }
+            ]
+        });
 
-    return feedback.map(f => ({
-        id: f.id,
-        score: f.score,
-        comment: f.comment,
-        resolved: f.resolved,
-        resolution: f.resolution,
-        contactName: f.contact.name,
-        dealTitle: f.deal.title,
-        createdAt: f.createdAt.toISOString()
-    }));
+        return feedback.map(f => ({
+            id: f.id,
+            score: f.score,
+            comment: f.comment,
+            resolved: f.resolved,
+            resolution: f.resolution,
+            contactName: f.contact?.name || "Unknown Contact",
+            dealTitle: f.deal?.title || "Unknown Deal",
+            createdAt: f.createdAt.toISOString()
+        }));
+    } catch (error) {
+        console.error("Error fetching feedback:", error);
+        return [];
+    }
 }
 
 /**

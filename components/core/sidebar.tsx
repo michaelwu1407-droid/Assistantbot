@@ -37,6 +37,8 @@ const navItems = [
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
     { icon: FileText, label: "Deals", href: "/dashboard/deals", id: "deals-link" },
+    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
+    { icon: Users, label: "Team", href: "/dashboard/team", id: "team-link" },
     // Toggle Sections
     { icon: Hammer, label: "Tradie", href: "/dashboard/tradie", id: "tradie-menu-toggle", isToggle: true },
     { icon: Briefcase, label: "Agent", href: "/dashboard/agent", id: "agent-menu-toggle", isToggle: true },

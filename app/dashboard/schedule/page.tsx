@@ -2,7 +2,9 @@ import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUser } from "@/lib/auth"
 import { getDeals } from "@/actions/deal-actions"
-import { Calendar, Clock, MapPin, DollarSign } from "lucide-react"
+import { Calendar, Clock, MapPin, DollarSign, CheckCircle2, HelpCircle, HardHat } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -58,44 +60,69 @@ export default async function SchedulePage() {
                         const schedule = meta?.schedule as string | undefined
                         const address = deal.address || (meta?.address as string | undefined)
 
+                        const isConfirmed = meta?.status === "CONFIRMED";
+                        const isTentative = meta?.status === "TENTATIVE";
+
+                        // Tradie View Link Mechanism:
+                        // If it's today or a mobile context, we prefer the "Tradie View" (Bottom Sheet)
+                        // For now, we'll make the main card click go to the standard deal view, 
+                        // but add a specific "Open Tradie Mode" action.
+                        const tradieLink = `/dashboard/tradie?jobId=${deal.id}`;
+
                         return (
-                            <Link key={deal.id} href={`/dashboard/deals/${deal.id}`}>
-                                <div className="p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-1.5">
-                                            <h3 className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                                                {deal.title}
-                                            </h3>
-                                            <p className="text-sm text-slate-500">{deal.contactName} {deal.company ? `• ${deal.company}` : ''}</p>
-                                            {address && (
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                                    <MapPin className="w-3 h-3" />
-                                                    <span>{address}</span>
+                            <div key={deal.id} className="relative group">
+                                <Link href={tradieLink}>
+                                    <div className="p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-1.5">
+                                                <h3 className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                                                    {deal.title}
+                                                </h3>
+                                                <p className="text-sm text-slate-500">{deal.contactName} {deal.company ? `• ${deal.company}` : ''}</p>
+                                                {address && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                        <MapPin className="w-3 h-3" />
+                                                        <span>{address}</span>
+                                                    </div>
+                                                )}
+                                                {schedule && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span>{schedule}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    {isConfirmed && <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-1" /> Confirmed</Badge>}
+                                                    {isTentative && <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200"><HelpCircle className="w-3 h-3 mr-1" /> Tentative</Badge>}
                                                 </div>
-                                            )}
-                                            {schedule && (
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                                    <Clock className="w-3 h-3" />
-                                                    <span>{schedule}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">
+                                                    {deal.stage}
+                                                </span>
+                                                <div className="flex items-center text-sm font-bold text-emerald-600">
+                                                    <DollarSign className="w-3.5 h-3.5" />
+                                                    {deal.value.toLocaleString()}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">
-                                                {deal.stage}
-                                            </span>
-                                            <div className="flex items-center text-sm font-bold text-emerald-600">
-                                                <DollarSign className="w-3.5 h-3.5" />
-                                                {deal.value.toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
+                                </Link>
+
+                                {/* Quick Action for Tradie Workflow */}
+                                <div className="absolute top-4 right-4 hidden group-hover:block transition-all">
+                                    <Button size="sm" variant="secondary" className="h-8 shadow-sm" asChild>
+                                        <Link href={tradieLink}>
+                                            <HardHat className="w-3 h-3 mr-2" />
+                                            Open Job Mode
+                                        </Link>
+                                    </Button>
                                 </div>
-                            </Link>
+                            </div>
                         )
                     })}
-                </div>
+                </div >
             )}
-        </div>
+        </div >
     )
 }
