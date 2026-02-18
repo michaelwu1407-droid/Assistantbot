@@ -138,4 +138,25 @@ This document records the step-by-step execution of user journeys after `git pul
 ### 4. Team Management
 - **Status**: ✅ **Passed**
 - **Test**: Navigate to `/dashboard/team`.
-- **Finding**: Page loads with list of team members. Satisfies "Subbie Firewall" use case structure.
+
+## Round 5: Post-Sync Walkthrough (Partial)
+
+### 1. AI Job Creation (Frank)
+- **Status**: ✅ **Passed**
+- **Test**: "New repair job for Frank at 300 George St for $600 tomorrow".
+- **Observation**: AI correctly parsed the request and created the job.
+- **Evidence**:
+  ![AI Response Card](./ai_response_card_1771390582882.png)
+
+### 2. Tradie Workflow (Deep Link)
+- **Status**: ✅ **Passed**
+- **Test**: Open Frank's Job (ID: `cmlrka6qq002hn2bcv2z1tco3`).
+- **Observation**: Job Details page loads correctly with Map and Job Info.
+- **Evidence**:
+  ![Tradie Job Details](./tradie_job_details_frank_1771391376145.png)
+
+### 3. Remaining Flows (Kanban, Search)
+- **Status**: ⚠️ **Skipped**
+- **Note**: Automated browser testing was interrupted by system errors. Previous rounds confirmed:
+  - **Search**: Broken (No results).
+  - **Kanban**: Broken (Drag-and-drop fails).
