@@ -42,10 +42,10 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                             <DealHealthWidget deals={deals} />
                         </div>
 
-                        {/* Activity Feed - Fixed Min Width with Max Height */}
-                        <div className="min-w-[320px] h-[400px] max-h-[400px]">
+                        {/* Activity Feed - Fixed Min Width with Drastically Capped Height */}
+                        <div className="min-w-[320px] h-[280px] max-h-[280px]">
                             <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
-                                <ActivityFeed workspaceId={workspace.id} className="h-full" compact={true} />
+                                <ActivityFeed workspaceId={workspace.id} className="h-full overflow-y-auto" compact={true} />
                             </div>
                         </div>
                     </div>
