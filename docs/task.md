@@ -30,3 +30,10 @@
 - [ ] Browser Walkthrough: CRM & Kanban (Skipped - Tool Error) <!-- id: 504 -->
 - [ ] Browser Walkthrough: Search & Navigation (Skipped - Tool Error) <!-- id: 505 -->
 - [x] Report Generation with Screenshots (Done) <!-- id: 506 -->
+
+## Phase 6: AI Communication Agents (New Priority)
+- [ ] Spec: AI Voice Agent (Twilio/Vapi Integration) <!-- id: 601 -->
+- [ ] Spec: AI SMS Agent (Twilio Integration) <!-- id: 602 -->
+- [ ] Implement: Incoming Call Webhook Handler <!-- id: 603 -->
+- [ ] Implement: Incoming SMS Webhook Handler <!-- id: 604 -->
+- [ ] Implement: CRM Logging for AI Interactions <!-- id: 605 -->
