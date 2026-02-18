@@ -107,13 +107,49 @@ export async function getTodaySchedule(workspaceId: string) {
   return jobs.map(job => ({
     id: job.id,
     title: job.title,
-    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
-    client: job.contact.name,
+    clientName: job.contact.name,
+    client: job.contact.name, // Keep for backward compat if needed, or remove if unused
     address: job.address || job.contact.address || "No address",
     status: job.jobStatus || "SCHEDULED",
+    value: Number(job.value),
+    scheduledAt: job.scheduledAt || new Date(),
+    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    description: (job.metadata as any)?.description || "No description",
+    safetyCheckCompleted: job.safetyCheckCompleted,
+    contactPhone: job.contact.phone || undefined,
     lat: job.latitude,
     lng: job.longitude
   }));
+}
+
+/**
+ * Fetch a single job formatted for the Tradie view.
+ * Used when deep-linking to a job that isn't in today's schedule.
+ */
+export async function getTradieJobById(jobId: string) {
+  const job = await db.deal.findUnique({
+    where: { id: jobId },
+    include: { contact: true }
+  });
+
+  if (!job) return null;
+
+  return {
+    id: job.id,
+    title: job.title,
+    clientName: job.contact.name,
+    client: job.contact.name,
+    address: job.address || job.contact.address || "No address",
+    status: job.jobStatus || "SCHEDULED",
+    value: Number(job.value),
+    scheduledAt: job.scheduledAt || new Date(),
+    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    description: (job.metadata as any)?.description || "No description",
+    safetyCheckCompleted: job.safetyCheckCompleted,
+    contactPhone: job.contact.phone || undefined,
+    lat: job.latitude,
+    lng: job.longitude
+  };
 }
 
 /**
