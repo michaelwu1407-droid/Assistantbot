@@ -48,19 +48,19 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       {isBasicView ? (
         <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative">
 
-          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-violet-500/5 opacity-40 pointer-events-none" />
+          <div className="absolute inset-0 ott-glow opacity-40 pointer-events-none" />
 
           {/* Mode Toggle Button - Floating Switch */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-full shadow-lg hover:shadow-xl transition-all">
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border rounded-full shadow-ott hover:shadow-ott-hover transition-all">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Chat</span>
+              <MessageSquare className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Chat</span>
             </div>
             <Switch
               id="mode-toggle"
               checked={false}
               onCheckedChange={() => setViewMode("ADVANCED")}
-              className="data-[state=checked]:bg-emerald-600"
+              className="data-[state=checked]:bg-primary"
             />
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-muted-foreground" />
@@ -69,7 +69,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </div>
 
           {/* Main Chat Container - Large & Immersive */}
-          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-2xl rounded-none md:rounded-3xl overflow-hidden border-0 md:border border-white/20 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-2xl relative flex flex-col">
+          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-ott-elevated rounded-none md:rounded-[24px] overflow-hidden border-0 md:border border-border/60 bg-white/80 dark:bg-card/80 backdrop-blur-2xl relative flex flex-col">
             {/* ID for Spotlight */}
             <div id="assistant-pane" className="h-full w-full">
               {chatbot}
@@ -92,7 +92,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-emerald-500/50 transition-colors w-1" />
+            <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-1" />
 
             {/* Right Chatbot - 25% (M-5 / A-1) */}
             <ResizablePanel
@@ -115,11 +115,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   id="mode-toggle"
                   checked={viewMode === "ADVANCED"}
                   onCheckedChange={(checked) => setViewMode(checked ? "ADVANCED" : "BASIC")}
-                  className="data-[state=checked]:bg-emerald-600"
+                  className="data-[state=checked]:bg-primary"
                 />
                 <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Advanced</span>
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Advanced</span>
                 </div>
               </div>
               <div id="assistant-pane" className="h-[calc(100%-57px)] w-full border-l border-border/50 bg-background/50 backdrop-blur-sm">

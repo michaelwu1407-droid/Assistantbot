@@ -13,6 +13,23 @@
   --radius-xl: calc(var(--radius) + 8px);
   --radius-2xl: calc(var(--radius) + 16px);
 
+  /* Ottorize custom design tokens */
+  --color-secondary-blue: var(--secondary-blue);
+  --color-mint-50: #ECFDF5;
+  --color-mint-100: #D1FAE5;
+  --color-mint-500: #00D28B;
+  --color-mint-600: #00B876;
+  --color-blue-50: #EFF6FF;
+  --color-blue-100: #DBEAFE;
+  --color-blue-500: #3B82F6;
+  --color-blue-600: #2563EB;
+  --color-midnight: #0F172A;
+  --color-slate-body: #475569;
+
+  --shadow-ott: 0px 1px 2px rgba(0,0,0,0.05), 0px 10px 15px -3px rgba(0,0,0,0.03), 0px 4px 6px -2px rgba(0,0,0,0.02);
+  --shadow-ott-hover: 0px 10px 25px -5px rgba(0,210,139,0.15), 0px 8px 10px -6px rgba(0,0,0,0.05);
+  --shadow-ott-elevated: 0px 2px 4px rgba(0,0,0,0.06), 0px 12px 20px -4px rgba(0,0,0,0.06), 0px 20px 40px -8px rgba(0,0,0,0.04);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
@@ -99,16 +116,17 @@
   --ring: #00D28B;
   /* Mint focus ring */
 
-  /* Sidebar - Dark Charcoal Brand Identity */
-  --sidebar: #0F172A;
-  /* Deep Midnight */
-  --sidebar-foreground: #F8FAFC;
+  /* Secondary Blue */
+  --secondary-blue: #3B82F6;
+
+  /* Sidebar - Light White */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
   --sidebar-primary: #00D28B;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1E293B;
-  /* Slightly lighter midnight */
-  --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #1E293B;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
   --sidebar-ring: #00D28B;
 }
 
@@ -230,6 +248,25 @@
   /* BADGE: Mint Green Pill */
   .ott-badge-mint {
     @apply bg-[#ECFDF5] text-[#00D28B] px-3 py-1 rounded-full text-xs font-bold border border-[#00D28B]/20 dark:bg-[#00D28B]/10;
+  }
+
+  /* BADGE: Slate Blue Pill */
+  .ott-badge-blue {
+    @apply bg-[#EFF6FF] text-[#3B82F6] px-3 py-1 rounded-full text-xs font-bold border border-[#3B82F6]/20 dark:bg-[#3B82F6]/10;
+  }
+
+  /* ELEVATED CARD: Stronger shadow for featured content */
+  .ott-card-elevated {
+    @apply bg-card border border-border/60 rounded-[24px] transition-all duration-300;
+    box-shadow:
+      0px 2px 4px rgba(0, 0, 0, 0.06),
+      0px 12px 20px -4px rgba(0, 0, 0, 0.06),
+      0px 20px 40px -8px rgba(0, 0, 0, 0.04);
+  }
+
+  /* SECTION CONTAINER */
+  .ott-section {
+    @apply py-20 px-6 md:px-8 lg:px-12;
   }
 
   /* Layout Helper */

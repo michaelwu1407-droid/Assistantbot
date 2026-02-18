@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +53,6 @@ export function AuthSelector() {
     } else if (data.user && data.user.identities && data.user.identities.length === 0) {
       setMessage("An account with this email already exists. Please sign in instead.");
     } else {
-      // Auto sign in after signup
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -112,25 +110,35 @@ export function AuthSelector() {
   if (user) return null;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="w-full max-w-md mx-4 ott-card bg-white p-8 relative z-10">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4 relative">
+      <div className="absolute inset-0 ott-glow -z-10" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] -z-10 rounded-full bg-primary/8 blur-3xl" />
+
+      <div className="w-full max-w-md ott-card bg-card p-8 relative z-10">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
+            <span className="text-white font-extrabold italic text-lg tracking-tighter">Pj</span>
+          </div>
+        </div>
+
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight mb-2">Welcome to Pj Buddy</h1>
-          <p className="text-[#475569] text-base font-medium">
+          <h1 className="text-2xl font-extrabold text-midnight tracking-tight mb-2">Welcome to Pj Buddy</h1>
+          <p className="text-muted-foreground text-sm">
             Sign in to your account or create a new one
           </p>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#F1F5F9] p-1 rounded-full h-12">
-            <TabsTrigger value="signin" className="rounded-full h-10 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#0F172A] data-[state=active]:shadow-sm transition-all text-[#64748B]">Sign In</TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-full h-10 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#0F172A] data-[state=active]:shadow-sm transition-all text-[#64748B]">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <form onSubmit={handleSignIn} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="signin-email" className="text-[#0F172A] font-semibold">Email</Label>
+            <form onSubmit={handleSignIn} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signin-email" className="text-midnight font-semibold text-sm">Email</Label>
                 <Input
                   id="signin-email"
                   type="email"
@@ -138,29 +146,28 @@ export function AuthSelector() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signin-password" className="text-[#0F172A] font-semibold">Password</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signin-password" className="text-midnight font-semibold text-sm">Password</Label>
                 <Input
                   id="signin-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   required
-                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <Button type="submit" className="ott-btn-primary w-full shadow-xl shadow-black/10 mt-2" disabled={loading}>
+              <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
               {needsConfirmation && (
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-12 rounded-full border-[#E2E8F0] text-[#475569] font-semibold hover:bg-[#F8FAFC]"
+                  className="w-full"
+                  size="lg"
                   onClick={handleResendConfirmation}
                   disabled={loading}
                 >
@@ -171,9 +178,9 @@ export function AuthSelector() {
           </TabsContent>
 
           <TabsContent value="signup" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <form onSubmit={handleSignUp} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="signup-name" className="text-[#0F172A] font-semibold">Full Name</Label>
+            <form onSubmit={handleSignUp} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-name" className="text-midnight font-semibold text-sm">Full Name</Label>
                 <Input
                   id="signup-name"
                   type="text"
@@ -181,11 +188,10 @@ export function AuthSelector() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Smith"
                   required
-                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-email" className="text-[#0F172A] font-semibold">Email</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-email" className="text-midnight font-semibold text-sm">Email</Label>
                 <Input
                   id="signup-email"
                   type="email"
@@ -193,22 +199,20 @@ export function AuthSelector() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-password" className="text-[#0F172A] font-semibold">Password</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-password" className="text-midnight font-semibold text-sm">Password</Label>
                 <Input
                   id="signup-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Create a password"
                   required
-                  className="bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white focus:border-[#00D28B] h-12 rounded-xl transition-all font-medium text-[#0F172A] px-4"
                 />
               </div>
-              <Button type="submit" className="ott-btn-primary w-full shadow-xl shadow-black/10 mt-2" disabled={loading}>
+              <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
                 {loading ? "Signing up..." : "Sign Up"}
               </Button>
             </form>
@@ -217,10 +221,10 @@ export function AuthSelector() {
 
         {message && (
           <div className={cn(
-            "mt-6 p-4 rounded-xl text-center text-sm font-bold border",
-            message.includes("error") || message.includes("Error")
+            "mt-6 p-4 rounded-xl text-center text-sm font-semibold border",
+            message.includes("error") || message.includes("Error") || message.includes("already exists")
               ? "bg-red-50 text-red-600 border-red-100"
-              : "bg-[#ECFDF5] text-[#00D28B] border-[#00D28B]/20"
+              : "bg-mint-50 text-primary border-primary/20"
           )}>
             {message}
           </div>
