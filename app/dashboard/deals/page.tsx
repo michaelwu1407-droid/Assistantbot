@@ -32,8 +32,8 @@ export default async function DealsPage() {
         <div className="h-full flex flex-col p-4 md:p-6 overflow-hidden">
             <div className="flex items-center justify-between mb-4 shrink-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Pipeline</h1>
-                    <p className="text-sm text-slate-500">{deals.length} deals worth ${deals.reduce((s, d) => s + d.value, 0).toLocaleString()}</p>
+                    <h1 className="text-2xl font-bold text-midnight">Pipeline</h1>
+                    <p className="text-sm text-slate-body">{deals.length} deals worth ${deals.reduce((s, d) => s + d.value, 0).toLocaleString()}</p>
                 </div>
                 <Link href="/dashboard">
                     <Button variant="outline" size="sm">Back to Dashboard</Button>

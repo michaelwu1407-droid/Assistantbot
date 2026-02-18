@@ -37,10 +37,10 @@ export default async function SchedulePage() {
         <div className="h-full flex flex-col p-4 md:p-6 overflow-auto">
             <div className="mb-6 shrink-0">
                 <div className="flex items-center gap-3 mb-1">
-                    <Calendar className="w-6 h-6 text-emerald-600" />
-                    <h1 className="text-2xl font-bold text-slate-900">Schedule</h1>
+                    <Calendar className="w-6 h-6 text-primary" />
+                    <h1 className="text-2xl font-bold text-midnight">Schedule</h1>
                 </div>
-                <p className="text-sm text-slate-500 ml-9">{todayStr}</p>
+                <p className="text-sm text-slate-body ml-9">{todayStr}</p>
             </div>
 
             {activeDeals.length === 0 ? (
@@ -75,32 +75,32 @@ export default async function SchedulePage() {
                                     <div className="p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">
                                         <div className="flex items-start justify-between">
                                             <div className="space-y-1.5">
-                                                <h3 className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                                                <h3 className="font-semibold text-midnight group-hover:text-primary transition-colors">
                                                     {deal.title}
                                                 </h3>
-                                                <p className="text-sm text-slate-500">{deal.contactName} {deal.company ? `• ${deal.company}` : ''}</p>
+                                                <p className="text-sm text-slate-body">{deal.contactName} {deal.company ? `• ${deal.company}` : ''}</p>
                                                 {address && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                         <MapPin className="w-3 h-3" />
                                                         <span>{address}</span>
                                                     </div>
                                                 )}
                                                 {schedule && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                         <Clock className="w-3 h-3" />
                                                         <span>{schedule}</span>
                                                     </div>
                                                 )}
                                                 <div className="flex gap-2">
-                                                    {isConfirmed && <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-1" /> Confirmed</Badge>}
-                                                    {isTentative && <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200"><HelpCircle className="w-3 h-3 mr-1" /> Tentative</Badge>}
+                                                    {isConfirmed && <div className="ott-badge-mint flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Confirmed</div>}
+                                                    {isTentative && <div className="ott-badge-blue flex items-center gap-1"><HelpCircle className="w-3 h-3" /> Tentative</div>}
                                                 </div>
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
-                                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">
+                                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary text-slate-body capitalize">
                                                     {deal.stage}
                                                 </span>
-                                                <div className="flex items-center text-sm font-bold text-emerald-600">
+                                                <div className="flex items-center text-sm font-bold text-primary">
                                                     <DollarSign className="w-3.5 h-3.5" />
                                                     {deal.value.toLocaleString()}
                                                 </div>

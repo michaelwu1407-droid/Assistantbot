@@ -35,7 +35,7 @@ const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
   { id: "new", title: "New Lead", color: "bg-blue-500" },
   { id: "contacted", title: "Contacted", color: "bg-indigo-500" },
   { id: "negotiation", title: "Negotiation", color: "bg-amber-500" },
-  { id: "won", title: "Won", color: "bg-emerald-500" },
+  { id: "won", title: "Won", color: "bg-primary" },
   { id: "lost", title: "Lost", color: "bg-muted-foreground" },
 ]
 
@@ -231,8 +231,8 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       if (result.success) {
         toast.success("Deal marked as lost")
         // Update the local state to reflect the change
-        setDeals(prev => prev.map(deal => 
-          deal.id === pendingDeal.id 
+        setDeals(prev => prev.map(deal =>
+          deal.id === pendingDeal.id
             ? { ...deal, stage: "lost" }
             : deal
         ))

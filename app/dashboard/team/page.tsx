@@ -50,8 +50,8 @@ export default async function TeamPage() {
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team Management</h1>
-                    <p className="text-slate-500">Manage access and permissions for your workspace.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-midnight">Team Management</h1>
+                    <p className="text-slate-body">Manage access and permissions for your workspace.</p>
                 </div>
                 <Button>
                     <Plus className="w-4 h-4 mr-2" />
@@ -72,30 +72,30 @@ export default async function TeamPage() {
                 <CardContent>
                     <div className="space-y-4">
                         {teamMembers.map((member) => (
-                            <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-border/50">
                                 <div className="flex items-center gap-4">
                                     <Avatar>
                                         <AvatarImage src={member.avatar || ""} />
                                         <AvatarFallback>{member.name[0]}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-medium text-slate-900">{member.name}</p>
-                                        <p className="text-sm text-slate-500">{member.email}</p>
+                                        <p className="font-medium text-midnight">{member.name}</p>
+                                        <p className="text-sm text-slate-body">{member.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <Badge variant="outline" className={
-                                        member.role === "Owner" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                            member.role === "Admin" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                "bg-slate-100 text-slate-600 border-slate-200"
+                                        member.role === "Owner" ? "bg-purple-50 text-purple-700 border-purple-200 rounded-full" :
+                                            member.role === "Admin" ? "bg-blue-50 text-blue-700 border-blue-200 rounded-full" :
+                                                "bg-slate-100 text-slate-600 border-slate-200 rounded-full"
                                     }>
                                         {member.role === "Owner" && <Shield className="w-3 h-3 mr-1" />}
                                         {member.role}
                                     </Badge>
-                                    <span className={`text-xs ${member.status === "Active" ? "text-emerald-600" : "text-amber-600"}`}>
+                                    <span className={`text-xs ${member.status === "Active" ? "text-primary font-medium" : "text-amber-600 font-medium"}`}>
                                         {member.status}
                                     </span>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                                         <MoreHorizontal className="w-4 h-4 text-slate-400" />
                                     </Button>
                                 </div>
