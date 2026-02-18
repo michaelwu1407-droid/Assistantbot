@@ -26,6 +26,7 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DealView, updateDealStage } from "@/actions/deal-actions"
 import { toast } from "sonner"
+import { LossReasonModal } from "./loss-reason-modal"
 
 // Define Column ID type to match Prisma enum / frontend map
 type ColumnId = "new" | "contacted" | "negotiation" | "won" | "lost"
@@ -83,9 +84,11 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 }
 
 export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
-  const [deals, setDeals] = useState<DealView[]>(initialDeals)
+  const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
   const hasDragged = useRef(false)
+  const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false)
+  const [pendingDeal, setPendingDeal] = useState<DealView | null>(null)
 
   // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {
@@ -191,6 +194,14 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       const originalStage = initialDeals.find(d => d.id === draggedId)?.stage.toLowerCase()
 
       if (originalStage && originalStage !== targetColumn) {
+        // If dragging to Lost column, show reason modal first
+        if (targetColumn === "lost") {
+          setPendingDeal(draggedDeal)
+          setLossReasonModalOpen(true)
+          setActiveId(null)
+          return
+        }
+
         try {
           const result = await updateDealStage(draggedId, targetColumn)
           if (result.success) {
@@ -210,6 +221,29 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     setActiveId(null)
     // Reset hasDragged after a short delay so the next prop sync works
     setTimeout(() => { hasDragged.current = false }, 500)
+  }
+
+  const handleLossReasonConfirm = async (reason: string) => {
+    if (!pendingDeal) return
+
+    try {
+      const result = await updateDealStage(pendingDeal.id, "lost")
+      if (result.success) {
+        toast.success("Deal marked as lost")
+        // Update the local state to reflect the change
+        setDeals(prev => prev.map(deal => 
+          deal.id === pendingDeal.id 
+            ? { ...deal, stage: "lost" }
+            : deal
+        ))
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (err) {
+      console.error("Failed to update stage:", err)
+      toast.error("Failed to save changes")
+      throw err
+    }
   }
 
   return (
@@ -288,6 +322,20 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Loss Reason Modal */}
+      {pendingDeal && (
+        <LossReasonModal
+          open={lossReasonModalOpen}
+          onOpenChange={setLossReasonModalOpen}
+          deal={{
+            id: pendingDeal.id,
+            title: pendingDeal.title,
+            contactName: pendingDeal.contactName || "Unknown"
+          }}
+          onConfirm={handleLossReasonConfirm}
+        />
+      )}
     </DndContext>
   )
 }

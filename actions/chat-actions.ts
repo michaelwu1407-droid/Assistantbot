@@ -131,6 +131,7 @@ export interface ParsedCommand {
   intent:
   | "show_deals"
   | "show_stale"
+  | "show_schedule"
   | "create_deal"
   | "create_job_natural"
   | "move_deal"
@@ -258,6 +259,18 @@ function parseCommandRegex(message: string): ParsedCommand {
   // Show pipeline / deals / jobs / listings
   if (msg.match(new RegExp(`show.*(?:${NOUN.slice(3, -1)}|pipeline|board|kanban|my\\s+(?:deals|jobs|listings))`, "i"))) {
     return { intent: "show_deals", params: {} };
+  }
+
+  // Show schedule / calendar
+  if (msg.match(/(?:show|view|see|what's|whats|check|query)\s+(?:schedule|calendar|appointments|bookings|jobs|tasks)\s*(?:for|today|tomorrow|this week|next week|week|month)?/i)) {
+    return { intent: "show_schedule", params: {} };
+  }
+
+  // When/what questions about schedule
+  if (msg.match(/(?:when|what time|what's|whats)\s+(?:do|am|is)\s+(?:I|i)\s+(?:have|got|scheduled|booked)/i) || 
+      msg.match(/(?:what's|whats)\s+(?:on|for)\s+(?:my|the)\s+(?:schedule|calendar|plate)/i) ||
+      msg.match(/(?:any|some)\s+(?:jobs|tasks|appointments|bookings)\s+(?:today|tomorrow|this week|next week)/i)) {
+    return { intent: "show_schedule", params: {} };
   }
 
   // Show stale / rotting
@@ -958,6 +971,25 @@ export async function processChat(
           message: `${stale.length} ${ctx.dealLabel}(s) need attention:\n\n${lines.join("\n")}`,
           action: "show_stale",
           data: { deals: stale },
+        };
+      }
+      break;
+    }
+
+    case "show_schedule": {
+      const deals = await getDeals(workspaceId);
+      const scheduledDeals = deals.filter(d => d.stage === "CONTACTED" || d.stage === "NEGOTIATION");
+      
+      if (scheduledDeals.length === 0) {
+        response = { message: `You don't have any scheduled ${ctx.dealsLabel} right now. Your schedule is clear!` };
+      } else {
+        const lines = scheduledDeals.map(
+          (d) => `  📅 ${d.title} - ${ctx.stageLabels[d.stage.toUpperCase() as keyof typeof ctx.stageLabels]} ($${d.value.toLocaleString()})`
+        );
+        response = {
+          message: `Here's your current schedule:\n\n${lines.join("\n")}\n\nYou have ${scheduledDeals.length} active ${ctx.dealsLabel}.`,
+          action: "show_schedule",
+          data: { deals: scheduledDeals },
         };
       }
       break;
