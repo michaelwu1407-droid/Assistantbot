@@ -41,7 +41,7 @@ export function DealCard({ deal, overlay }: DealCardProps) {
     let statusBadge = null
 
     if (deal.health?.status === "ROTTING") {
-        cardClasses = "ott-card bg-white border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.1)] p-5"
+        cardClasses = "ott-card bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-5"
         statusBadge = (
             <div className="absolute top-3 right-3 bg-red-50 text-red-600 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm z-10 font-bold tracking-wide border border-red-100">
                 <AlertCircle className="w-3 h-3 mr-1" />
@@ -49,7 +49,7 @@ export function DealCard({ deal, overlay }: DealCardProps) {
             </div>
         )
     } else if (deal.health?.status === "STALE") {
-        cardClasses = "ott-card bg-white border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.1)] p-4"
+        cardClasses = "ott-card bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4"
         statusBadge = (
             <div className="absolute top-3 right-3 bg-amber-50 text-amber-600 text-[10px] px-2 py-0.5 rounded-full flex items-center shadow-sm font-bold z-10 tracking-wide border border-amber-100">
                 <AlertCircle className="w-3 h-3 mr-1" />

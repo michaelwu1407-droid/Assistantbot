@@ -311,6 +311,93 @@ export async function collectFeedback(input: z.infer<typeof FeedbackSchema>) {
 }
 
 /**
+ * Get vendor report data for a listing from real BuyerFeedback records.
+ * Computes average price opinion, interest level distribution, and price sentiment.
+ */
+export async function getVendorReportData(dealId: string): Promise<{
+  listingTitle: string;
+  vendorGoalPrice: number | null;
+  marketFeedback: number | null;
+  interestLevel: "High" | "Medium" | "Low";
+  priceFeedback: "Soft" | "On Target" | "Strong";
+  averagePriceOpinion: number | null;
+} | null> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: {
+        title: true,
+        value: true,
+        metadata: true,
+        buyerFeedback: {
+          select: {
+            interestLevel: true,
+            priceOpinion: true,
+          }
+        }
+      }
+    });
+
+    if (!deal) return null;
+
+    const feedback = deal.buyerFeedback;
+    if (feedback.length === 0) {
+      return {
+        listingTitle: deal.title,
+        vendorGoalPrice: deal.value ? Number(deal.value) : null,
+        marketFeedback: null,
+        interestLevel: "Low",
+        priceFeedback: "Soft",
+        averagePriceOpinion: null,
+      };
+    }
+
+    // Calculate average price opinion
+    const priceOpinions = feedback
+      .filter(f => f.priceOpinion !== null)
+      .map(f => Number(f.priceOpinion));
+    const avgPrice = priceOpinions.length > 0
+      ? priceOpinions.reduce((a, b) => a + b, 0) / priceOpinions.length
+      : null;
+
+    // Calculate interest level distribution
+    const hotCount = feedback.filter(f => f.interestLevel === "HOT").length;
+    const warmCount = feedback.filter(f => f.interestLevel === "WARM").length;
+    const totalFeedback = feedback.length;
+    const hotWarmRatio = (hotCount + warmCount) / totalFeedback;
+
+    let interestLevel: "High" | "Medium" | "Low";
+    if (hotWarmRatio >= 0.6) interestLevel = "High";
+    else if (hotWarmRatio >= 0.3) interestLevel = "Medium";
+    else interestLevel = "Low";
+
+    // Calculate price sentiment relative to vendor goal
+    const goalPrice = deal.value ? Number(deal.value) : 0;
+    let priceFeedback: "Soft" | "On Target" | "Strong";
+    if (avgPrice && goalPrice > 0) {
+      const ratio = avgPrice / goalPrice;
+      if (ratio >= 1.0) priceFeedback = "Strong";
+      else if (ratio >= 0.9) priceFeedback = "On Target";
+      else priceFeedback = "Soft";
+    } else {
+      priceFeedback = "Soft";
+    }
+
+    return {
+      listingTitle: deal.title,
+      vendorGoalPrice: goalPrice || null,
+      marketFeedback: avgPrice,
+      interestLevel,
+      priceFeedback,
+      averagePriceOpinion: avgPrice,
+    };
+  } catch (error) {
+    console.error("Error fetching vendor report data:", error);
+    return null;
+  }
+}
+
+/**
  * Get aggregated match feed for the Matchmaker sidebar widget.
  * Returns a list of deals with their match counts.
  */
