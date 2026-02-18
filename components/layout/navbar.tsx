@@ -12,39 +12,52 @@ import { ChevronDown } from "lucide-react"
 
 export function Navbar() {
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between bg-white/80 px-6 backdrop-blur-md border-b border-slate-200">
+        <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between bg-white/80 px-6 lg:px-12 backdrop-blur-xl border-b border-border">
             {/* Brand */}
-            <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-slate-900 border-2 border-slate-900 px-2 py-0.5 rounded-lg">Pj Buddy</span>
+            <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20">
+                    <span className="font-extrabold italic text-sm tracking-tighter">Pj</span>
+                </div>
+                <span className="text-lg font-bold tracking-tight text-midnight">Pj Buddy</span>
             </div>
 
-            {/* Navigation Links */}
+            {/* Navigation Links - Centered */}
             <div className="hidden md:flex items-center gap-8">
-                <Link href="#product" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                <Link href="#product" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Product
                 </Link>
                 <DropdownMenu>
-                    <DropdownMenuTrigger className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors bg-transparent border-none p-0 flex items-center gap-1 focus:outline-none">
+                    <DropdownMenuTrigger className="text-sm font-medium text-slate-body hover:text-midnight transition-colors bg-transparent border-none p-0 flex items-center gap-1 focus:outline-none cursor-pointer">
                         Industries <ChevronDown className="h-4 w-4 opacity-50" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent align="start" className="rounded-2xl border-border shadow-ott-elevated">
                         <DropdownMenuItem asChild>
-                            <Link href="/industries/trades" className="cursor-pointer">Trades</Link>
+                            <Link href="/industries/trades" className="cursor-pointer rounded-xl">Trades</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <Link href="/industries/real-estate" className="cursor-pointer">Real Estate</Link>
+                            <Link href="/industries/real-estate" className="cursor-pointer rounded-xl">Real Estate</Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Link href="#contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                <Link href="#pricing" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                    Pricing
+                </Link>
+                <Link href="#contact" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Contact
                 </Link>
             </div>
 
             {/* CTA */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
                 <Link href="/login">
-                    <Button>Get Started</Button>
+                    <Button variant="ghost" size="sm" className="text-midnight font-medium">
+                        Log in
+                    </Button>
+                </Link>
+                <Link href="/login">
+                    <Button size="sm">
+                        Get Started
+                    </Button>
                 </Link>
             </div>
         </nav>

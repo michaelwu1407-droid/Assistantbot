@@ -88,9 +88,9 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside className={cn("flex h-full w-[60px] flex-col items-center border-r border-slate-200 bg-white py-6 z-20 shadow-sm transition-all duration-300", className)}>
+            <aside className={cn("flex h-full w-[60px] flex-col items-center border-r border-border bg-white py-6 z-20 transition-all duration-300", className)}>
                 {/* Logo / Brand */}
-                <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#00D28B] text-white shadow-lg shadow-[#00D28B]/20 transition-all hover:scale-105 active:scale-95">
+                <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                     <span className="font-extrabold italic text-lg tracking-tighter">Pj</span>
                 </div>
 
@@ -101,12 +101,12 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="mode-toggle-btn"
                                 onClick={() => setViewMode("BASIC")}
-                                className="mb-4 flex h-8 w-8 items-center justify-center rounded-[12px] text-slate-400 hover:bg-white/10 hover:text-white transition-all"
+                                className="mb-4 flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
                             >
                                 <MessageSquare className="h-4 w-4" />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-[#18181B] text-white border-white/10">Switch to Basic Mode</TooltipContent>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Switch to Basic Mode</TooltipContent>
                     </Tooltip>
                 )}
 
@@ -132,10 +132,10 @@ export function Sidebar({ className }: SidebarProps) {
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             className={cn(
-                                                "flex h-10 w-full items-center justify-center rounded-[14px] transition-all duration-300",
+                                                "flex h-10 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                 isActive
-                                                    ? "bg-[#0F172A] text-white shadow-lg shadow-slate-200"
-                                                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                                                    ? "bg-mint-50 text-primary shadow-sm"
+                                                    : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                             )}
                                         >
                                             <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
@@ -152,7 +152,7 @@ export function Sidebar({ className }: SidebarProps) {
                     {/* Tradie Sub-items */}
                     {isTradie && (
                         <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-4 duration-300 w-full pt-1">
-                            <div className="h-px bg-slate-100 w-6 mx-auto my-1" />
+                            <div className="h-px bg-border w-6 mx-auto my-1" />
                             {tradieSubItems.map((item) => {
                                 const isActive = pathname === item.href
 
@@ -164,17 +164,17 @@ export function Sidebar({ className }: SidebarProps) {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     className={cn(
-                                                        "flex h-9 w-full items-center justify-center rounded-[12px] transition-all duration-300",
+                                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                         isActive
-                                                            ? "bg-[#00D28B]/10 text-[#00D28B] ring-1 ring-[#00D28B]/20"
-                                                            : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                                                            ? "bg-mint-50 text-primary ring-1 ring-primary/20"
+                                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                                     )}
                                                 >
                                                     <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
                                                 </motion.div>
                                             </Link>
                                         </TooltipTrigger>
-                                        <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
+                                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
                                     </Tooltip>
                                 )
                             })}
@@ -184,7 +184,7 @@ export function Sidebar({ className }: SidebarProps) {
                     {/* Agent Sub-items */}
                     {isAgent && (
                         <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-4 duration-300 w-full pt-1">
-                            <div className="h-px bg-slate-100 w-6 mx-auto my-1" />
+                            <div className="h-px bg-border w-6 mx-auto my-1" />
                             {agentSubItems.map((item) => {
                                 const isActive = pathname === item.href
 
@@ -196,17 +196,17 @@ export function Sidebar({ className }: SidebarProps) {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     className={cn(
-                                                        "flex h-9 w-full items-center justify-center rounded-[12px] transition-all duration-300",
+                                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                         isActive
-                                                            ? "bg-[#00D28B]/10 text-[#00D28B] ring-1 ring-[#00D28B]/20"
-                                                            : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                                                            ? "bg-mint-50 text-primary ring-1 ring-primary/20"
+                                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                                     )}
                                                 >
                                                     <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
                                                 </motion.div>
                                             </Link>
                                         </TooltipTrigger>
-                                        <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
+                                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
                                     </Tooltip>
                                 )
                             })}
@@ -216,7 +216,7 @@ export function Sidebar({ className }: SidebarProps) {
 
                 {/* Bottom Actions */}
                 <div className="flex flex-col gap-2 px-2 w-full">
-                    <div className="h-px bg-slate-100 w-full" />
+                    <div className="h-px bg-border w-full" />
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -225,17 +225,17 @@ export function Sidebar({ className }: SidebarProps) {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     className={cn(
-                                        "flex h-10 w-full items-center justify-center rounded-[14px] transition-all duration-300",
+                                        "flex h-10 w-full items-center justify-center rounded-xl transition-all duration-300",
                                         pathname.startsWith("/dashboard/settings")
-                                            ? "bg-slate-100 text-slate-900"
-                                            : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                                            ? "bg-mint-50 text-primary"
+                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                     )}
                                 >
                                     <Settings className="h-5 w-5" />
                                 </motion.div>
                             </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">Settings</TooltipContent>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Settings</TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
@@ -243,12 +243,12 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-10 w-full items-center justify-center rounded-[14px] text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-300"
+                                className="flex h-10 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all duration-300"
                             >
                                 <LogOut className="h-5 w-5" />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">Sign Out</TooltipContent>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Sign Out</TooltipContent>
                     </Tooltip>
                 </div>
             </aside>

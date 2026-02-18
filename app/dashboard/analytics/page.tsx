@@ -111,10 +111,10 @@ export default function AnalyticsPage() {
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-8 bg-secondary rounded-xl w-1/3"></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+              <div key={i} className="h-24 bg-secondary rounded-[24px]"></div>
             ))}
           </div>
         </div>
@@ -129,8 +129,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics & Reporting</h1>
-          <p className="text-slate-500 text-sm mt-1">Monitor your business performance and team productivity.</p>
+          <h1 className="text-2xl font-bold text-midnight">Analytics & Reporting</h1>
+          <p className="text-muted-foreground text-sm mt-1">Monitor your business performance and team productivity.</p>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-32">
@@ -151,20 +151,20 @@ export default function AnalyticsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-slate-900">${data.revenue.total.toLocaleString()}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold text-midnight">${data.revenue.total.toLocaleString()}</p>
                 <div className="flex items-center gap-1 mt-1">
                   {data.revenue.growth > 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600" />
+                    <TrendingUp className="h-3 w-3 text-primary" />
                   ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600" />
+                    <TrendingDown className="h-3 w-3 text-destructive" />
                   )}
-                  <span className={`text-xs ${data.revenue.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`text-xs ${data.revenue.growth > 0 ? 'text-primary' : 'text-destructive'}`}>
                     {Math.abs(data.revenue.growth)}%
                   </span>
                 </div>
               </div>
-              <DollarSign className="h-8 w-8 text-slate-400" />
+              <DollarSign className="h-8 w-8 text-muted-foreground/40" />
             </div>
           </CardContent>
         </Card>
@@ -173,14 +173,14 @@ export default function AnalyticsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Deals</p>
-                <p className="text-2xl font-bold text-slate-900">{data.deals.total}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Deals</p>
+                <p className="text-2xl font-bold text-midnight">{data.deals.total}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Target className="h-3 w-3 text-blue-600" />
                   <span className="text-xs text-blue-600">{data.deals.conversion}% conversion</span>
                 </div>
               </div>
-              <BarChart3 className="h-8 w-8 text-slate-400" />
+              <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
             </div>
           </CardContent>
         </Card>
@@ -189,14 +189,14 @@ export default function AnalyticsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Customers</p>
-                <p className="text-2xl font-bold text-slate-900">{data.customers.total}</p>
+                <p className="text-sm font-medium text-muted-foreground">Customers</p>
+                <p className="text-2xl font-bold text-midnight">{data.customers.total}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Users className="h-3 w-3 text-purple-600" />
                   <span className="text-xs text-purple-600">{data.customers.new} new this month</span>
                 </div>
               </div>
-              <Users className="h-8 w-8 text-slate-400" />
+              <Users className="h-8 w-8 text-muted-foreground/40" />
             </div>
           </CardContent>
         </Card>
@@ -205,14 +205,14 @@ export default function AnalyticsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Satisfaction</p>
-                <p className="text-2xl font-bold text-slate-900">{data.customers.satisfaction}</p>
+                <p className="text-sm font-medium text-muted-foreground">Satisfaction</p>
+                <p className="text-2xl font-bold text-midnight">{data.customers.satisfaction}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Star className="h-3 w-3 text-amber-500" />
                   <span className="text-xs text-amber-600">Average rating</span>
                 </div>
               </div>
-              <Star className="h-8 w-8 text-slate-400" />
+              <Star className="h-8 w-8 text-muted-foreground/40" />
             </div>
           </CardContent>
         </Card>
@@ -234,9 +234,9 @@ export default function AnalyticsPage() {
               {data.revenue.monthly.map((month, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <span className="text-sm text-slate-600 w-12">{month.month}</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-6 relative overflow-hidden">
+                  <div className="flex-1 bg-secondary rounded-full h-6 relative overflow-hidden">
                     <div 
-                      className="absolute left-0 top-0 h-full bg-blue-500 rounded-full"
+                      className="absolute left-0 top-0 h-full bg-primary rounded-full"
                       style={{ width: `${(month.revenue / Math.max(...data.revenue.monthly.map(m => m.revenue))) * 100}%` }}
                     />
                   </div>
@@ -263,14 +263,14 @@ export default function AnalyticsPage() {
               {data.deals.byStage.map((stage, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <span className="text-sm text-slate-600 w-24">{stage.stage}</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-6 relative overflow-hidden">
+                  <div className="flex-1 bg-secondary rounded-full h-6 relative overflow-hidden">
                     <div 
                       className={`absolute left-0 top-0 h-full rounded-full ${
-                        stage.stage === 'Closed Won' ? 'bg-green-500' :
+                        stage.stage === 'Closed Won' ? 'bg-primary' :
                         stage.stage === 'Negotiation' ? 'bg-blue-500' :
-                        stage.stage === 'Proposal' ? 'bg-purple-500' :
-                        stage.stage === 'Qualified' ? 'bg-amber-500' :
-                        'bg-gray-500'
+                        stage.stage === 'Proposal' ? 'bg-blue-400' :
+                        stage.stage === 'Qualified' ? 'bg-primary/60' :
+                        'bg-muted-foreground'
                       }`}
                       style={{ width: `${(stage.count / Math.max(...data.deals.byStage.map(s => s.count))) * 100}%` }}
                     />
@@ -296,24 +296,24 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mx-auto mb-2">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-mint-50 rounded-full mx-auto mb-2">
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">{data.jobs.completed}</p>
+                <p className="text-2xl font-bold text-midnight">{data.jobs.completed}</p>
                 <p className="text-xs text-slate-600">Completed</p>
               </div>
               <div className="text-center">
-                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mx-auto mb-2">
-                  <Clock className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-full mx-auto mb-2">
+                  <Clock className="h-6 w-6 text-blue-500" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">{data.jobs.inProgress}</p>
+                <p className="text-2xl font-bold text-midnight">{data.jobs.inProgress}</p>
                 <p className="text-xs text-slate-600">In Progress</p>
               </div>
               <div className="text-center">
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mx-auto mb-2">
-                  <Calendar className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-secondary rounded-full mx-auto mb-2">
+                  <Calendar className="h-6 w-6 text-midnight" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">{data.jobs.avgCompletionTime}</p>
+                <p className="text-2xl font-bold text-midnight">{data.jobs.avgCompletionTime}</p>
                 <p className="text-xs text-slate-600">Avg Days</p>
               </div>
             </div>
@@ -332,14 +332,14 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-3">
               {data.team.performance.map((member, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-2xl">
                   <div>
-                    <p className="font-medium text-slate-900">{member.name}</p>
-                    <p className="text-sm text-slate-600">{member.jobs} jobs completed</p>
+                    <p className="font-medium text-midnight">{member.name}</p>
+                    <p className="text-sm text-muted-foreground">{member.jobs} jobs completed</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-green-600">${member.revenue.toLocaleString()}</p>
-                    <p className="text-xs text-slate-600">revenue</p>
+                    <p className="font-medium text-primary">${member.revenue.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">revenue</p>
                   </div>
                 </div>
               ))}
