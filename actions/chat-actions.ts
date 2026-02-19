@@ -950,17 +950,31 @@ export async function runCreateJobNatural(
   if (!contactResult.success) {
     return { success: false, message: `Failed to create contact: ${contactResult.error}` };
   }
+  const hasSchedule = Boolean(params.schedule?.trim());
+  let scheduledAt: Date | undefined;
+  let scheduleDisplay = params.schedule ?? "";
+  if (hasSchedule) {
+    try {
+      const resolved = resolveSchedule(params.schedule!.trim());
+      scheduledAt = new Date(resolved.iso);
+      scheduleDisplay = resolved.display;
+    } catch {
+      scheduleDisplay = params.schedule!;
+    }
+  }
   const dealResult = await createDeal({
     title: params.workDescription.trim() || "Job",
     company: clientName,
     value: params.price ?? 0,
-    stage: "new",
+    stage: hasSchedule ? "scheduled" : "new",
     contactId: contactResult.contactId!,
     workspaceId,
     address: params.address?.trim(),
+    scheduledAt,
     metadata: {
       address: params.address,
       schedule: params.schedule,
+      scheduleDisplay,
       workDescription: params.workDescription,
     },
   });
@@ -969,10 +983,10 @@ export async function runCreateJobNatural(
   }
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/deals");
-  const schedule = params.schedule ? ` Scheduled: ${params.schedule}.` : "";
+  const scheduleSuffix = scheduleDisplay ? ` Scheduled: ${scheduleDisplay}.` : "";
   return {
     success: true,
-    message: `Job created: ${params.workDescription} for ${clientName}, $${(params.price ?? 0).toLocaleString()}.${schedule}`,
+    message: `Job created: ${params.workDescription} for ${clientName}, $${(params.price ?? 0).toLocaleString()}.${scheduleSuffix}`,
     dealId: dealResult.dealId,
   };
 }

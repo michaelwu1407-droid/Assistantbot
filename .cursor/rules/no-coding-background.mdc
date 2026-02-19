@@ -1,0 +1,11 @@
+---
+description: User has no coding background - give clear, step-by-step instructions
+alwaysApply: true
+---
+
+# Instructions for This User
+
+- **Assume no coding background.** Do not assume familiarity with terms like "terminal," "repo," "dependency," or "node."
+- **Be step-by-step.** Give short, numbered steps. Say exactly what to click, type, or open.
+- **Use plain language.** Avoid jargon; when a technical term is needed, explain it in simple words.
+- **One thing at a time.** Prefer one action per step so it never feels overwhelming.

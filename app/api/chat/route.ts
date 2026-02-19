@@ -8,6 +8,7 @@ import {
   runCreateJobNatural,
   saveUserMessage,
 } from "@/actions/chat-actions";
+import { parseJobOneLiner } from "@/lib/chat-utils";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -39,12 +40,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // Persist the latest user message (non-blocking)
     const lastUser = messages.filter((m: { role: string }) => m.role === "user").pop();
-    if (lastUser?.parts?.some((p: { type: string }) => p.type === "text")) {
-      const textPart = lastUser.parts.find((p: { type: string }) => p.type === "text");
-      const content = textPart?.text ?? "";
-      if (content.trim()) saveUserMessage(workspaceId, content).catch(() => {});
+    const textPart = lastUser?.parts?.find((p: { type: string }) => p.type === "text");
+    const content = (textPart?.text ?? "").trim();
+
+    if (content) saveUserMessage(workspaceId, content).catch(() => {});
+
+    const parsed = parseJobOneLiner(content);
+    if (parsed) {
+      const jobResult = await runCreateJobNatural(workspaceId, parsed);
+      const google = createGoogleGenerativeAI({ apiKey });
+      const result = streamText({
+        model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
+        system: jobResult.success
+          ? `You are a helpful assistant. The user asked to create a job. The job has ALREADY been created. Reply with ONLY a short, friendly confirmation. Do not use any tools. Include this: ${jobResult.message}`
+          : `You are a helpful assistant. The user asked to create a job but it failed. Reply with a brief, friendly message saying it couldn't be created and why. Do not use any tools. Error: ${jobResult.message}`,
+        messages: await convertToModelMessages(messages),
+        maxSteps: 1,
+      });
+      return result.toUIMessageStreamResponse();
     }
 
     const google = createGoogleGenerativeAI({ apiKey });
@@ -54,10 +68,10 @@ export async function POST(req: Request) {
       system: `You are a helpful CRM assistant. You manage deals, jobs, and pipeline stages.
 
 TOOLS:
-- listDeals: Call this when the user asks to see their deals, pipeline, jobs, or what they have. Use it to know exact deal names before moving or describing them.
-- moveDeal: Move a deal to a different stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
-- createDeal: Create a new deal. Need title; optional company/client name and value. Creates or finds a contact by company name.
-- createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. Use when the user gives a one-liner like "Sharon from 17 Alexandria St needs sink fixed quoted $200 for tomorrow 2pm".
+- listDeals: Call when the user asks to see deals, pipeline, jobs, or what they have. Use it to get exact deal names before moving or describing.
+- moveDeal: Move a deal to another stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
+- createDeal: Create a new deal. Needs title; optional company/client name and value. Creates or finds a contact by company name.
+- createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. USE THIS whenever the user sends a single message that describes a job: a person/client name, what work is needed, and optionally address, time, and price. Examples: "Sally at 12 Wyndham St Alexandria needs her sink fixed tomorrow at 2pm. $200 price agreed" or "Sharon from 17 Alexandria St needs sink fixed quoted $200 for tomorrow 2pm". You MUST call createJobNatural with the extracted clientName, workDescription, price, and if mentioned address and schedule—do not only acknowledge. If they mention a date or time (e.g. tomorrow 2pm), always pass it in the schedule parameter so the job is created in the Scheduled column.
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
       messages: await convertToModelMessages(messages),
@@ -91,7 +105,7 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
         }),
         createJobNatural: tool({
           description:
-            "Create a job from full details: client name, work description, price; optional address and schedule. Use when user gives a one-liner like 'Sharon from 17 Alexandria St needs sink fixed quoted $200 for tomorrow 2pm'.",
+            "Create a job from a one-liner: extract clientName, workDescription, price; optional address and schedule. REQUIRED when the user pastes a single message describing a job (person + work + optional address/time/price). Always pass schedule when a date or time is mentioned so the job goes to the Scheduled column.",
           inputSchema: z.object({
             clientName: z.string().describe("Client name"),
             workDescription: z.string().describe("What work is needed"),

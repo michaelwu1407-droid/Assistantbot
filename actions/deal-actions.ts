@@ -81,6 +81,7 @@ const CreateDealSchema = z.object({
   workspaceId: z.string(),
   address: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  scheduledAt: z.union([z.coerce.date(), z.string().transform((s) => new Date(s))]).optional(),
 });
 
 const UpdateStageSchema = z.object({
@@ -178,7 +179,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { title, value, stage, contactId, workspaceId, address, metadata } = parsed.data;
+  const { title, value, stage, contactId, workspaceId, address, metadata, scheduledAt } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
   const deal = await db.deal.create({
@@ -190,6 +191,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       workspaceId,
       address,
       metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
+      scheduledAt: scheduledAt ?? undefined,
     },
   });
 
