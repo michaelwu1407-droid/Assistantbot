@@ -24,6 +24,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
     const [address, setAddress] = useState("")
+    const [stage, setStage] = useState("new_request")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
 
@@ -79,22 +80,21 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 toast.success("Contact created!")
             }
 
-            // Create the deal
             const result = await createDeal({
                 title,
                 value: parseFloat(value) || 0,
                 contactId: finalContactId,
-                stage: "new",
+                stage,
                 workspaceId,
                 address: address || undefined
             })
 
             if (result.success) {
                 toast.success("Deal created successfully!")
-                // Reset form
                 setTitle("")
                 setValue("")
                 setAddress("")
+                setStage("new_request")
                 setContactId("")
                 setNewContactName("")
                 setNewContactEmail("")
@@ -168,6 +168,24 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                     className="pl-9"
                                 />
                             </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="stage" className="text-right">
+                                Stage
+                            </Label>
+                            <Select value={stage} onValueChange={setStage}>
+                                <SelectTrigger id="stage" className="col-span-3">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="new_request">New request</SelectItem>
+                                    <SelectItem value="quote_sent">Quote sent</SelectItem>
+                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="pipeline">Pipeline</SelectItem>
+                                    <SelectItem value="ready_to_invoice">Ready to be invoiced</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

@@ -7,23 +7,29 @@ import { evaluateAutomations } from "./automation-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-// Maps Prisma DealStage enum to frontend lowercase strings
+// Maps Prisma DealStage enum to frontend column ids (6-column CRM)
 const STAGE_MAP: Record<string, string> = {
-  NEW: "new",
-  CONTACTED: "contacted",
-  NEGOTIATION: "negotiation",
-  INVOICED: "invoiced",
-  WON: "won",
+  NEW: "new_request",
+  CONTACTED: "quote_sent",
+  NEGOTIATION: "scheduled",
+  SCHEDULED: "scheduled",
+  PIPELINE: "pipeline",
+  INVOICED: "ready_to_invoice",
+  WON: "completed",
   LOST: "lost",
+  DELETED: "deleted",
 };
 
 const STAGE_REVERSE: Record<string, string> = {
   new: "NEW",
-  contacted: "CONTACTED",
-  negotiation: "NEGOTIATION",
-  invoiced: "INVOICED",
-  won: "WON",
+  new_request: "NEW",
+  quote_sent: "CONTACTED",
+  scheduled: "SCHEDULED",
+  pipeline: "PIPELINE",
+  ready_to_invoice: "INVOICED",
+  completed: "WON",
   lost: "LOST",
+  deleted: "DELETED",
 };
 
 export interface DealView {
@@ -46,6 +52,7 @@ export interface DealView {
   description?: string;
   jobStatus?: string;
   status?: string;
+  scheduledAt?: Date | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -73,6 +80,8 @@ const UpdateStageSchema = z.object({
  * Includes computed lastActivityDate and health status.
  * Optionally filter by contactId.
  */
+const DELETED_DAYS_THRESHOLD = 30;
+
 export async function getDeals(workspaceId: string, contactId?: string): Promise<DealView[]> {
   try {
     const where: Record<string, unknown> = { workspaceId };
@@ -90,7 +99,18 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
       orderBy: { updatedAt: "desc" },
     });
 
-    return deals.map((deal) => {
+    // Autoclear: permanently delete deals that have been in DELETED for 30+ days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - DELETED_DAYS_THRESHOLD);
+    const toDelete = deals.filter(
+      (d) => d.stage === "DELETED" && new Date(d.stageChangedAt) < cutoff
+    );
+    for (const d of toDelete) {
+      await db.deal.delete({ where: { id: d.id } }).catch(() => {});
+    }
+    const filtered = deals.filter((d) => !toDelete.find((t) => t.id === d.id));
+
+    return filtered.map((deal) => {
       const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
       const health = getDealHealth(lastActivityDate);
 
@@ -103,7 +123,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         title: deal.title,
         company: deal.contact.company ?? "",
         value: deal.value ? deal.value.toNumber() : 0,
-        stage: STAGE_MAP[deal.stage] ?? "new",
+        stage: STAGE_MAP[deal.stage] ?? "new_request",
         lastActivityDate,
         contactName: deal.contact.name,
         contactAvatar: deal.contact.avatarUrl ?? undefined,
@@ -114,6 +134,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         address: deal.address ?? undefined,
         latitude: deal.latitude ?? undefined,
         longitude: deal.longitude ?? undefined,
+        scheduledAt: deal.scheduledAt ?? undefined,
       };
     });
   } catch (error) {
@@ -138,7 +159,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     data: {
       title,
       value,
-      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
+      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST",
       contactId,
       workspaceId,
       address,
@@ -177,7 +198,7 @@ export async function updateDealStage(dealId: string, stage: string) {
   const deal = await db.deal.update({
     where: { id: parsed.data.dealId },
     data: {
-      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "INVOICED" | "WON" | "LOST",
+      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
       stageChangedAt: new Date(),
     },
   });

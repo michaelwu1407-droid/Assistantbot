@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 // Custom Marker Icon Generator
 const createCustomIcon = (stage: string) => {
   let colorClass = "text-muted-foreground fill-background" // Default
-  if (stage === 'won') colorClass = "text-emerald-500 fill-emerald-100"
+  if (stage === 'completed') colorClass = "text-emerald-500 fill-emerald-100"
   if (stage === 'negotiation') colorClass = "text-amber-500 fill-amber-100"
   if (stage === 'contacted') colorClass = "text-primary fill-primary/20"
 
@@ -100,7 +100,7 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
               {/* Popup Content - Styled like DealCard (X-17) */}
               <div className="flex flex-col bg-background text-foreground">
                 {/* Header Image/Color Strip */}
-                <div className={`h-2 w-full ${deal.stage === 'won' ? 'bg-emerald-500' :
+                <div className={`h-2 w-full ${deal.stage === 'completed' ? 'bg-emerald-500' :
                     deal.stage === 'negotiation' ? 'bg-amber-500' :
                       'bg-muted-foreground'
                   }`} />
@@ -111,7 +111,7 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
                     <h3 className="font-semibold text-base text-foreground leading-tight">
                       {deal.title}
                     </h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${deal.stage === 'won' ? 'bg-emerald-500/10 text-emerald-500' :
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${deal.stage === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
                         deal.stage === 'negotiation' ? 'bg-amber-500/10 text-amber-500' :
                           'bg-muted text-muted-foreground'
                       }`}>

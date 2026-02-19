@@ -11,6 +11,8 @@ import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 import { Switch } from "@/components/ui/switch"
 import { Layers, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import type { ImperativePanelHandle } from "react-resizable-panels"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
@@ -20,6 +22,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const pathname = usePathname()
   const tutorialTriggered = useRef(false)
   const [mounted, setMounted] = useState(false)
+  const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
+  const [chatbotExpanded, setChatbotExpanded] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -94,14 +98,16 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
             <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-1" />
 
-            {/* Right Chatbot - 25% (M-5 / A-1) */}
+            {/* Right Chatbot - Collapsed by default, expand on click */}
             <ResizablePanel
-              defaultSize={18}
-              minSize={20}
+              ref={chatbotPanelRef}
+              defaultSize={0}
+              minSize={0}
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
-              onCollapse={() => { }}
+              onCollapse={() => setChatbotExpanded(false)}
+              onExpand={() => setChatbotExpanded(true)}
               id="assistant-panel"
               className="hidden md:block transition-all duration-300 ease-in-out pl-0"
             >
@@ -122,11 +128,35 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   <span className="text-sm font-medium text-primary">Advanced</span>
                 </div>
               </div>
-              <div id="assistant-pane" className="h-[calc(100%-57px)] w-full border-l border-border/50 bg-background/50 backdrop-blur-sm">
+              <div 
+                id="assistant-pane" 
+                className="h-[calc(100%-57px)] w-full border-l border-border/50 bg-background/50 backdrop-blur-sm"
+                onClick={() => {
+                  if (!chatbotExpanded) {
+                    chatbotPanelRef.current?.expand()
+                    setChatbotExpanded(true)
+                  }
+                }}
+              >
                 {chatbot}
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
+
+          {/* Floating Chatbot Button - Show when collapsed */}
+          {chatbot && !chatbotExpanded && (
+            <Button
+              onClick={() => {
+                chatbotPanelRef.current?.expand()
+                setChatbotExpanded(true)
+              }}
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-white"
+              size="icon"
+              title="Open chatbot"
+            >
+              <MessageSquare className="h-6 w-6" />
+            </Button>
+          )}
         </div>
       )}
     </div>

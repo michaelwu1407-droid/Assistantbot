@@ -136,7 +136,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                     >
                       {deal.title}
                     </h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${deal.stage === 'won' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${deal.stage === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                       deal.stage === 'negotiation' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                         'bg-muted text-muted-foreground border-border/50'
                       }`}>

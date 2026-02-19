@@ -17,7 +17,7 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
     const healthyCount = deals.length - rottingDeals.length - staleDeals.length
 
     return (
-        <div className="grid gap-2 grid-cols-4 h-full min-w-[800px]">
+        <div className="grid gap-2 grid-cols-4 h-full min-w-[400px]">
             {/* Total Pipeline Card */}
             <div className="ott-card p-2 flex flex-col justify-center h-full min-h-[45px]">
                 <div className="flex justify-between items-center">

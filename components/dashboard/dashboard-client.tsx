@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { ActivityFeed } from "@/components/crm/activity-feed"
-import { DealHealthWidget } from "@/components/crm/deal-health-widget"
+import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
 import { NewDealModal } from "@/components/modals/new-deal-modal"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
@@ -35,17 +35,16 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 {/* Dashboard Content Grid - Tight gap (12px) */}
                 <div className="flex flex-col flex-1 min-h-0 gap-2">
 
-                    {/* Row 1: KPI Cards & Activity Feed - Horizontal Scroll Wrapper */}
-                    <div className="flex gap-4 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
-                        {/* KPI Cards - Fixed Min Width */}
-                        <div className="min-w-[800px] h-auto">
-                            <DealHealthWidget deals={deals} />
-                        </div>
-
-                        {/* Activity Feed - Fixed Min Width with 100px Height */}
-                        <div className="min-w-[320px] h-[100px] max-h-[100px]">
+                    {/* Row 1: KPI Cards & Activity Feed - Full width nav to chat, activity 2.5x one card */}
+                    <div className="flex w-full gap-4 pb-2 shrink-0 min-h-[100px]">
+                        <DashboardKpiCards deals={deals} />
+                        {/* Activity Feed - 2.5x width of one KPI card */}
+                        <div className="flex-[2.5] min-w-0 h-[100px] max-h-[100px]">
                             <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
-                                <ActivityFeed workspaceId={workspace.id} className="h-full overflow-y-auto" compact={true} />
+                                <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-2 shrink-0">
+                                    Activity
+                                </span>
+                                <ActivityFeed workspaceId={workspace.id} className="flex-1 min-h-0 overflow-y-auto" compact={true} />
                             </div>
                         </div>
                     </div>

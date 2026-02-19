@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -22,48 +22,24 @@ import {
 } from "@dnd-kit/sortable"
 
 import { DealCard } from "./deal-card"
+import { DealDetailModal } from "./deal-detail-modal"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DealView, updateDealStage } from "@/actions/deal-actions"
 import { toast } from "sonner"
-import { LossReasonModal } from "./loss-reason-modal"
 
-// Define Column ID type to match Prisma enum / frontend map
-type ColumnId = "new" | "contacted" | "negotiation" | "won" | "lost"
+// 6 pipeline columns + Deleted jobs (autoclears after 30 days)
+type ColumnId = "new_request" | "quote_sent" | "scheduled" | "pipeline" | "ready_to_invoice" | "completed" | "deleted"
 
 const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
-  { id: "new", title: "New Lead", color: "bg-blue-500" },
-  { id: "contacted", title: "Contacted", color: "bg-indigo-500" },
-  { id: "negotiation", title: "Negotiation", color: "bg-amber-500" },
-  { id: "won", title: "Won", color: "bg-primary" },
-  { id: "lost", title: "Lost", color: "bg-muted-foreground" },
+  { id: "new_request", title: "New request", color: "bg-blue-500" },
+  { id: "quote_sent", title: "Quote sent", color: "bg-indigo-500" },
+  { id: "scheduled", title: "Scheduled", color: "bg-amber-500" },
+  { id: "pipeline", title: "Pipeline", color: "bg-slate-500" },
+  { id: "ready_to_invoice", title: "Ready to be invoiced", color: "bg-violet-500" },
+  { id: "completed", title: "Completed", color: "bg-primary" },
+  { id: "deleted", title: "Deleted jobs", color: "bg-slate-400" },
 ]
-
-
-// Mapping for industry-specific column titles
-const LABELS = {
-  TRADES: {
-    new: "New Jobs",
-    contacted: "Quoted",
-    negotiation: "In Progress",
-    won: "Completed",
-    lost: "Lost"
-  },
-  REAL_ESTATE: {
-    new: "New Listings",
-    contacted: "Appraised",
-    negotiation: "Under Offer",
-    won: "Settled",
-    lost: "Withdrawn"
-  },
-  DEFAULT: {
-    new: "New Lead",
-    contacted: "Contacted",
-    negotiation: "Negotiation",
-    won: "Won",
-    lost: "Lost"
-  }
-}
 
 interface KanbanBoardProps {
   deals: DealView[]
@@ -76,7 +52,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[150px] flex flex-col gap-3 transition-colors ${isOver ? "bg-emerald-50 border-emerald-300 shadow-inner" : "hover:bg-white hover:shadow-inner"}`}
+      className={`flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[200px] flex flex-col gap-3 transition-colors ${isOver ? "bg-emerald-50 border-emerald-300 shadow-inner" : "hover:bg-white hover:shadow-inner"}`}
     >
       {children}
     </div>
@@ -86,9 +62,9 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
   const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const hasDragged = useRef(false)
-  const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false)
-  const [pendingDeal, setPendingDeal] = useState<DealView | null>(null)
 
   // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {
@@ -101,34 +77,28 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8 // Increased to better distinguish click vs drag
-      }
+      activationConstraint: { distance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
 
-  // Memoize deals by column for the SortableContext
   const columns = useMemo(() => {
     const cols: Record<string, DealView[]> = {
-      new: [],
-      contacted: [],
-      negotiation: [],
-      won: [],
-      lost: []
+      new_request: [],
+      quote_sent: [],
+      scheduled: [],
+      pipeline: [],
+      ready_to_invoice: [],
+      completed: [],
+      deleted: [],
     };
-    deals.forEach(deal => {
-      const stage = deal.stage.toLowerCase()
-      if (cols[stage]) {
-        cols[stage].push(deal)
-      } else {
-        // Fallback for unexpected stages
-        cols["new"].push(deal)
-      }
-    })
-    return cols
+    deals.forEach((deal) => {
+      if (cols[deal.stage]) cols[deal.stage].push(deal);
+      else cols["new_request"].push(deal);
+    });
+    return cols;
   }, [deals])
 
   const activeDeal = useMemo(() =>
@@ -137,10 +107,10 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
   function findColumnForItem(itemId: string): string | undefined {
     // Check if it's a column ID
-    if (COLUMNS.find(c => c.id === itemId)) return itemId
+    if (COLUMNS.some(c => c.id === itemId)) return itemId
     // Otherwise find which column the deal belongs to
     const deal = deals.find(d => d.id === itemId)
-    return deal?.stage.toLowerCase()
+    return deal?.stage ?? undefined
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -181,75 +151,50 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
     const { active, over } = event
     const draggedId = active.id as string
 
+    setActiveId(null)
     if (!over) {
-      setActiveId(null)
+      setTimeout(() => { hasDragged.current = false }, 300)
       return
     }
 
-    const overId = over.id as string
-    const draggedDeal = deals.find(d => d.id === draggedId)
+    const overId = String(over.id)
+    const draggedDeal = deals.find((d) => d.id === draggedId)
     const targetColumn = findColumnForItem(overId)
 
-    if (draggedDeal && targetColumn) {
-      const originalStage = initialDeals.find(d => d.id === draggedId)?.stage.toLowerCase()
-
-      if (originalStage && originalStage !== targetColumn) {
-        // If dragging to Lost column, show reason modal first
-        if (targetColumn === "lost") {
-          setPendingDeal(draggedDeal)
-          setLossReasonModalOpen(true)
-          setActiveId(null)
-          return
-        }
-
-        try {
-          const result = await updateDealStage(draggedId, targetColumn)
-          if (result.success) {
-            toast.success(`Moved to ${targetColumn}`)
-          } else {
-            throw new Error(result.error)
-          }
-        } catch (err) {
-          console.error("Failed to update stage:", err)
-          toast.error("Failed to save changes")
-          // Revert to original state
-          setDeals(initialDeals)
-        }
-      }
+    if (!draggedDeal || !targetColumn) {
+      setTimeout(() => { hasDragged.current = false }, 300)
+      return
     }
 
-    setActiveId(null)
-    // Reset hasDragged after a short delay so the next prop sync works
-    setTimeout(() => { hasDragged.current = false }, 500)
-  }
-
-  const handleLossReasonConfirm = async (reason: string) => {
-    if (!pendingDeal) return
+    const originalStage = deals.find((d) => d.id === draggedId)?.stage
+    if (originalStage === targetColumn) {
+      setTimeout(() => { hasDragged.current = false }, 300)
+      return
+    }
 
     try {
-      const result = await updateDealStage(pendingDeal.id, "lost")
+      const result = await updateDealStage(draggedId, targetColumn)
       if (result.success) {
-        toast.success("Deal marked as lost")
-        // Update the local state to reflect the change
-        setDeals(prev => prev.map(deal =>
-          deal.id === pendingDeal.id
-            ? { ...deal, stage: "lost" }
-            : deal
-        ))
+        setDeals((prev) =>
+          prev.map((d) => (d.id === draggedId ? { ...d, stage: targetColumn } : d))
+        )
+        const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
+        toast.success(`Moved to ${colTitle}`)
       } else {
         throw new Error(result.error)
       }
     } catch (err) {
       console.error("Failed to update stage:", err)
       toast.error("Failed to save changes")
-      throw err
+      setDeals(initialDeals)
     }
+    setTimeout(() => { hasDragged.current = false }, 300)
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -259,33 +204,32 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
           const colDeals = columns[col.id] || []
 
           // Determine label based on industry
-          const mapping = industryType ? LABELS[industryType] : LABELS.DEFAULT
-          const title = mapping[col.id as keyof typeof mapping] || col.title
-
           return (
-            <div key={col.id} className="w-80 flex-shrink-0 flex flex-col h-full max-h-full">
+            <div key={col.id} className="w-60 flex-shrink-0 flex flex-col h-full max-h-full">
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                  <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{title}</h3>
+                  <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{col.title}</h3>
                   <span className="text-xs text-[#475569] font-bold bg-[#F1F5F9] px-2 py-0.5 rounded-full">
                     {colDeals.length}
                   </span>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]"
-                    onClick={() => document.getElementById('new-deal-btn')?.click()}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {col.id !== "deleted" && (
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]"
+                      onClick={() => document.getElementById("new-deal-btn")?.click()}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              {/* Column Body / Drop Zone - useDroppable wrapper ensures empty columns accept drops */}
+              {/* Column Body / Drop Zone */}
               <SortableContext
                 id={col.id}
                 items={colDeals.map(d => d.id)}
@@ -294,7 +238,26 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                 <DroppableColumn id={col.id}>
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
-                      <DealCard key={deal.id} deal={deal} />
+                      <DealCard 
+                        key={deal.id} 
+                        deal={deal} 
+                        onOpenModal={() => {
+                          setSelectedDealId(deal.id)
+                          setModalOpen(true)
+                        }}
+                        onDelete={async () => {
+                          if (!confirm("Move to Deleted jobs? It will be removed after 30 days.")) return
+                          try {
+                            const result = await updateDealStage(deal.id, "deleted")
+                            if (result.success) {
+                              setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: "deleted" } : d)))
+                              toast.success("Moved to Deleted jobs")
+                            } else throw new Error(result.error)
+                          } catch {
+                            toast.error("Failed to move")
+                          }
+                        }}
+                      />
                     ))
                   ) : (
                     // Empty state
@@ -317,25 +280,17 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
       <DragOverlay>
         {activeId && activeDeal ? (
-          <div className="w-80">
+          <div className="w-60">
             <DealCard deal={activeDeal} overlay />
           </div>
         ) : null}
       </DragOverlay>
 
-      {/* Loss Reason Modal */}
-      {pendingDeal && (
-        <LossReasonModal
-          open={lossReasonModalOpen}
-          onOpenChange={setLossReasonModalOpen}
-          deal={{
-            id: pendingDeal.id,
-            title: pendingDeal.title,
-            contactName: pendingDeal.contactName || "Unknown"
-          }}
-          onConfirm={handleLossReasonConfirm}
-        />
-      )}
+      <DealDetailModal
+        dealId={selectedDealId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </DndContext>
   )
 }
