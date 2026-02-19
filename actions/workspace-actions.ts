@@ -114,6 +114,56 @@ export async function getWorkspace(workspaceId: string): Promise<WorkspaceView |
   }
 }
 
+/** Pipeline health thresholds stored in workspace.settings */
+export interface PipelineHealthSettings {
+  followUpDays?: number;
+  urgentDays?: number;
+}
+
+/**
+ * Get workspace including pipeline health settings (for settings page).
+ */
+export async function getWorkspaceWithSettings(
+  workspaceId: string
+): Promise<(WorkspaceView & { settings: PipelineHealthSettings }) | null> {
+  try {
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+    });
+    if (!workspace) return null;
+    const settings = (workspace.settings as PipelineHealthSettings) ?? {};
+    return { ...toWorkspaceView(workspace), settings };
+  } catch (error) {
+    console.error("Database Error in getWorkspaceWithSettings:", error);
+    return null;
+  }
+}
+
+/**
+ * Update pipeline health thresholds (days until Follow up / Urgent).
+ */
+export async function updateWorkspacePipelineSettings(
+  workspaceId: string,
+  data: PipelineHealthSettings
+) {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { settings: true },
+  });
+  const current = (workspace?.settings as PipelineHealthSettings) ?? {};
+  await db.workspace.update({
+    where: { id: workspaceId },
+    data: {
+      settings: {
+        ...current,
+        ...(data.followUpDays !== undefined && { followUpDays: data.followUpDays }),
+        ...(data.urgentDays !== undefined && { urgentDays: data.urgentDays }),
+      },
+    },
+  });
+  return { success: true };
+}
+
 /**
  * Update workspace settings (including industry and location from onboarding).
  */

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -26,7 +26,16 @@ export async function GET(
       include: { contact: true },
     })
 
-    return NextResponse.json({ deal, contactDeals })
+    function replacer(_key: string, v: unknown): unknown {
+      if (v instanceof Date) return v.toISOString()
+      if (typeof v === "bigint") return Number(v)
+      if (v && typeof v === "object" && typeof (v as { toNumber?: () => number }).toNumber === "function")
+        return (v as { toNumber: () => number }).toNumber()
+      return v
+    }
+    const dealJson = JSON.parse(JSON.stringify(deal, replacer))
+    const contactDealsJson = JSON.parse(JSON.stringify(contactDeals, replacer))
+    return NextResponse.json({ deal: dealJson, contactDeals: contactDealsJson })
   } catch (error) {
     console.error("Error fetching deal:", error)
     return NextResponse.json({ error: "Failed to fetch deal" }, { status: 500 })

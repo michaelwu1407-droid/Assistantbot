@@ -110,9 +110,19 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
     }
     const filtered = deals.filter((d) => !toDelete.find((t) => t.id === d.id));
 
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { settings: true },
+    });
+    const pipelineSettings = (workspace?.settings as { followUpDays?: number; urgentDays?: number }) ?? {};
+    const healthOptions = {
+      daysUntilStale: pipelineSettings.followUpDays,
+      daysUntilRotting: pipelineSettings.urgentDays,
+    };
+
     return filtered.map((deal) => {
       const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
-      const health = getDealHealth(lastActivityDate);
+      const health = getDealHealth(lastActivityDate, healthOptions);
 
       const daysInStage = Math.floor(
         (Date.now() - new Date(deal.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)

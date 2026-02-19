@@ -20,6 +20,7 @@ const STAGE_LABELS: Record<string, string> = {
   INVOICED: "Ready to be invoiced",
   WON: "Completed",
   LOST: "Lost",
+  DELETED: "Deleted jobs",
 }
 
 interface DealDetailModalProps {
@@ -32,34 +33,56 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
   const [deal, setDeal] = useState<any>(null)
   const [contactDeals, setContactDeals] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!dealId || !open) return
-
+    if (!dealId || !open) {
+      setDeal(null)
+      setContactDeals([])
+      setError(null)
+      return
+    }
     setLoading(true)
+    setError(null)
     fetch(`/api/deals/${dealId}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(res.status === 404 ? "Deal not found" : "Failed to load")
+        return res.json()
+      })
       .then((data) => {
         setDeal(data.deal)
         setContactDeals(data.contactDeals || [])
       })
-      .catch(console.error)
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load")
+        setDeal(null)
+      })
       .finally(() => setLoading(false))
   }, [dealId, open])
 
-  if (loading) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl h-[90vh]">
-          <div className="flex items-center justify-center h-full">
+  if (!open) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+        {loading && (
+          <div className="flex items-center justify-center flex-1 min-h-[200px]">
             <p className="text-slate-500">Loading...</p>
           </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
+        )}
+        {error && !loading && (
+          <div className="flex flex-col items-center justify-center flex-1 min-h-[200px] gap-2">
+            <p className="text-red-600 font-medium">{error}</p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          </div>
+        )}
+        {!loading && !error && deal && <DealDetailContent deal={deal} contactDeals={contactDeals} onOpenChange={onOpenChange} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-  if (!deal) return null
+function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; contactDeals: any[]; onOpenChange: (open: boolean) => void }) {
 
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
@@ -67,8 +90,7 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
   const stageLabel = STAGE_LABELS[deal.stage] ?? deal.stage
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+    <>
         {/* Header */}
         <div className="flex items-center justify-between shrink-0 p-4 md:p-6 border-b">
           <div className="flex items-center gap-4">
@@ -237,7 +259,6 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </>
   )
 }

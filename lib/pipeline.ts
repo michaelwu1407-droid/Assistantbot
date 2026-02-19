@@ -1,18 +1,31 @@
-import { differenceInDays } from 'date-fns'; // Assuming date-fns is installed
+import { differenceInDays } from 'date-fns';
 
 export interface DealHealth {
   status: 'FRESH' | 'STALE' | 'ROTTING';
   daysSinceActivity: number;
 }
 
-export function getDealHealth(lastActivityAt: Date): DealHealth {
+const DEFAULT_DAYS_UNTIL_STALE = 7;
+const DEFAULT_DAYS_UNTIL_ROTTING = 14;
+
+export interface DealHealthOptions {
+  daysUntilStale?: number;
+  daysUntilRotting?: number;
+}
+
+export function getDealHealth(
+  lastActivityAt: Date,
+  options?: DealHealthOptions
+): DealHealth {
   const daysSinceActivity = differenceInDays(new Date(), lastActivityAt);
+  const daysUntilStale = options?.daysUntilStale ?? DEFAULT_DAYS_UNTIL_STALE;
+  const daysUntilRotting = options?.daysUntilRotting ?? DEFAULT_DAYS_UNTIL_ROTTING;
 
   let status: 'FRESH' | 'STALE' | 'ROTTING' = 'FRESH';
-  if (daysSinceActivity >= 7 && daysSinceActivity <= 14) {
-    status = 'STALE';
-  } else if (daysSinceActivity > 14) {
+  if (daysSinceActivity >= daysUntilRotting) {
     status = 'ROTTING';
+  } else if (daysSinceActivity >= daysUntilStale) {
+    status = 'STALE';
   }
 
   return { status, daysSinceActivity };

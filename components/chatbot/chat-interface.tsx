@@ -2,333 +2,164 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, MapPin, DollarSign, Wrench } from 'lucide-react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, isToolUIPart, getToolName } from 'ai';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getChatHistory, clearChatHistoryAction } from '@/actions/chat-actions';
+import { getChatHistory, saveAssistantMessage } from '@/actions/chat-actions';
 
 interface ChatInterfaceProps {
   workspaceId?: string;
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  action?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: Record<string, any>;
 }
 
 const QUICK_ACTIONS = [
   { icon: Calendar, label: "Schedule a meeting", prompt: "Help me schedule a meeting with a client" },
   { icon: FileText, label: "Create a quote", prompt: "Help me create a quote for a new job" },
   { icon: Phone, label: "Follow up call", prompt: "Help me prepare for a follow-up call" },
-  { icon: Sparkles, label: "General help", prompt: "What can you help me with?" },
+  { icon: Sparkles, label: "Move a deal", prompt: "Show my deals" },
 ];
 
-/* ── Draft Job Confirmation Card ────────────────────────── */
-function DraftJobCard({
-  data,
-  onConfirm,
-  onCancel,
-  isConfirming,
-}: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>;
-  onConfirm: () => void;
-  onCancel: () => void;
-  isConfirming: boolean;
-}) {
-  const fields = [
-    { icon: User, label: "Client", value: data.clientName || data.company || "—" },
-    { icon: Wrench, label: "Work", value: data.workDescription || data.title || "—" },
-    { icon: DollarSign, label: "Price", value: data.price || data.value ? `$${Number(data.price || data.value).toLocaleString()}` : "—" },
-    { icon: Calendar, label: "Schedule", value: data.schedule || "—" },
-    { icon: MapPin, label: "Address", value: data.address || "—" },
-  ].filter(f => f.value !== "—");
-
-  return (
-    <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm space-y-3 max-w-sm backdrop-blur-sm">
-      <div className="space-y-2">
-        {fields.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-start gap-2.5">
-            <Icon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-              <p className="text-sm font-medium text-foreground leading-tight">{value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2 pt-1">
-        <Button
-          size="sm"
-          onClick={onConfirm}
-          disabled={isConfirming}
-          className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg h-9 text-sm font-medium shadow-sm"
-        >
-          {isConfirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          {isConfirming ? "Creating..." : "Confirm"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isConfirming}
-          className="gap-1.5 rounded-lg h-9 text-sm border-border/50 hover:bg-background/50"
-        >
-          <X className="w-3.5 h-3.5" />
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
+/** Convert DB chat history to UIMessage[] (chronological). */
+function historyToInitialMessages(
+  history: { id: string; role: string; content: string }[]
+): { id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[] {
+  const chronological = [...history].reverse();
+  return chronological.map((msg) => ({
+    id: msg.id,
+    role: msg.role as 'user' | 'assistant',
+    parts: [{ type: 'text' as const, text: msg.content || '' }],
+  }));
 }
 
-// Actions that mutate data and should trigger a UI refresh
-const MUTATION_ACTIONS = new Set([
-  'move_deal', 'create_deal', 'create_job_natural', 'add_contact',
-  'create_task', 'log_activity', 'create_invoice', 'confirmed',
-]);
+/** Extract plain text from the last assistant message (for persistence). */
+function getMessageTextFromParts(parts: { type?: string; text?: string }[] | undefined): string {
+  if (!parts) return '';
+  const textPart = parts.find((p) => p.type === 'text' && p.text);
+  return (textPart && 'text' in textPart ? textPart.text : '') || '';
+}
 
-export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+function ChatWithHistory({
+  workspaceId,
+  initialMessages,
+}: {
+  workspaceId: string;
+  initialMessages: { id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[];
+}) {
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [confirmingIndex, setConfirmingIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Load chat history on mount
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: { workspaceId },
+    }),
+    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+    onFinish: ({ message }) => {
+      router.refresh();
+      const content = getMessageTextFromParts(message.parts);
+      if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => {});
+    },
+  });
+
+  const isLoading = status === 'submitted' || status === 'streaming';
+
   useEffect(() => {
-    const loadHistory = async () => {
-      if (!workspaceId) return;
-      try {
-        setIsLoadingHistory(true);
-        const history = await getChatHistory(workspaceId);
-        if (history && history.length > 0) {
-          // Convert history to Message format — also restore action/data from metadata
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const formattedMessages: Message[] = history.map((msg: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const meta = msg.metadata as Record<string, any> | null;
-            return {
-              role: msg.role as 'user' | 'assistant',
-              content: msg.content,
-              timestamp: new Date(msg.createdAt),
-              action: meta?.action,
-              data: meta?.data,
-            };
-          });
-          setMessages(formattedMessages);
-        } else {
-          setMessages([{
-            role: 'assistant',
-            content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
-            timestamp: new Date()
-          }]);
-        }
-      } catch (error) {
-        console.error('Failed to load chat history:', error);
-        setMessages([{
-          role: 'assistant',
-          content: 'Hello! I\'m your Pj Buddy assistant. How can I help you today?',
-          timestamp: new Date()
-        }]);
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    };
-
-    loadHistory();
-  }, [workspaceId]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || !workspaceId) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMessage]);
+    if (!input.trim() || isLoading) return;
+    sendMessage({ text: input });
     setInput('');
-    setIsLoading(true);
-
-    try {
-      const { processChat } = await import('@/actions/chat-actions');
-      const response = await processChat(input, workspaceId);
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response.message,
-        timestamp: new Date(),
-        action: response.action,
-        data: response.data,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Refresh the page data if the action mutated something
-      if (response.action && MUTATION_ACTIONS.has(response.action)) {
-        router.refresh();
-      }
-    } catch (error) {
-      console.error('Chat processing error:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleConfirmDraft = async (index: number, data: Record<string, any>) => {
-    if (!workspaceId) return;
-    setConfirmingIndex(index);
-
-    try {
-      const { processChat } = await import('@/actions/chat-actions');
-      const intent = messages[index].action === 'draft_job_natural' ? 'create_job_natural' : 'create_deal';
-      const response = await processChat('', workspaceId, {
-        intent,
-        confirmed: 'true',
-        ...data,
-      });
-
-      // Replace the draft message's action so the card disappears
-      setMessages(prev => prev.map((m, i) =>
-        i === index ? { ...m, action: 'confirmed', data: undefined } : m
-      ));
-
-      // Add confirmation response
-      const confirmMsg: Message = {
-        role: 'assistant',
-        content: response.message,
-        timestamp: new Date(),
-        action: response.action,
-        data: response.data,
-      };
-      setMessages(prev => [...prev, confirmMsg]);
-
-      // Refresh the page data after confirmation
-      router.refresh();
-    } catch (error) {
-      console.error('Confirm error:', error);
-      const errMsg: Message = {
-        role: 'assistant',
-        content: 'Sorry, something went wrong creating the job. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errMsg]);
-    } finally {
-      setConfirmingIndex(null);
-    }
-  };
-
-  const handleCancelDraft = (index: number) => {
-    setMessages(prev => prev.map((m, i) =>
-      i === index ? { ...m, action: 'cancelled', data: undefined } : m
-    ));
-    const cancelMsg: Message = {
-      role: 'assistant',
-      content: 'No worries — cancelled. Just tell me whenever you want to try again.',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, cancelMsg]);
   };
 
   const handleQuickAction = (prompt: string) => {
     setInput(prompt);
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const isDifferentDay = (date1: Date, date2: Date) => {
-    return date1.toDateString() !== date2.toDateString();
-  };
-
-  const isDraftAction = (action?: string) =>
-    action === 'draft_job_natural' || action === 'draft_deal';
-
-  const isOnlyWelcomeMessage = messages.length === 1;
+  const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date: Date) => date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const isOnlyWelcomeMessage = messages.length <= 1;
 
   return (
     <div className="flex flex-col h-full bg-background/50 backdrop-blur-sm">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
-        {messages.map((message, index) => {
-          const showDateSeparator = index === 0 || isDifferentDay(message.timestamp, messages[index - 1].timestamp);
+        {messages.length === 0 && !isLoading && (
+          <div className="flex gap-3 max-w-3xl mx-auto">
+            <div className="rounded-2xl px-3 py-2.5 bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-sm">
+              <p className="text-xs leading-relaxed font-medium">Hello! I&apos;m your CRM assistant. You can ask me to move deals (e.g. &quot;move Kitchen Reno to completed&quot;) or ask what I can do.</p>
+            </div>
+          </div>
+        )}
 
+        {messages.map((message) => {
+          const isUser = message.role === 'user';
+          const date = new Date();
           return (
-            <div key={index}>
-              {/* Date Separator */}
-              {showDateSeparator && (
-                <div className="flex items-center justify-center my-4">
-                  <div className="bg-muted/50 text-muted-foreground text-xs px-3 py-1 rounded-full border border-border/50">
-                    {formatDate(message.timestamp)}
-                  </div>
-                </div>
-              )}
-
+            <div key={message.id}>
               <div
                 className={cn(
                   "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
-                  message.role === "user" ? "flex-row-reverse" : "flex-row"
+                  isUser ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                {/* Avatar Removed */}
-
-                {/* Message Content */}
                 <div className="flex flex-col gap-1 max-w-[85%]">
                   <div
                     className={cn(
                       "rounded-2xl px-3 py-2.5 shadow-sm",
-                      message.role === "user"
+                      isUser
                         ? "bg-[#0F172A] text-white rounded-br-sm"
                         : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                     )}
                   >
-                    <p className="text-xs leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
-
-                    {/* Draft Confirmation Card */}
-                    {isDraftAction(message.action) && message.data && (
-                      <DraftJobCard
-                        data={message.data}
-                        onConfirm={() => handleConfirmDraft(index, message.data!)}
-                        onCancel={() => handleCancelDraft(index)}
-                        isConfirming={confirmingIndex === index}
-                      />
-                    )}
+                    {message.parts?.map((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string }; toolName?: string }, idx: number) => {
+                      if (part.type === 'text' && 'text' in part && part.text) {
+                        return (
+                          <p key={idx} className="text-xs leading-relaxed whitespace-pre-line font-medium">
+                            {part.text}
+                          </p>
+                        );
+                      }
+                      if (isToolUIPart(part)) {
+                        const inv = part as { state?: string; output?: { success?: boolean; message?: string }; errorText?: string };
+                        if (inv.state === 'output-available' && inv.output?.message) {
+                          const isSuccess = inv.output.success !== false;
+                          return (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium",
+                                isSuccess
+                                  ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                                  : "bg-amber-50 border border-amber-200 text-amber-800"
+                              )}
+                            >
+                              <Check className="w-4 h-4 shrink-0" />
+                              <span>{inv.output.message}</span>
+                            </div>
+                          );
+                        }
+                        if (inv.state === 'output-error' && inv.errorText) {
+                          return (
+                            <div key={idx} className="mt-2 text-xs text-red-600">
+                              {inv.errorText}
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })}
                   </div>
                   <span className={cn(
-                    "text-xs flex items-center gap-1",
-                    message.role === "user" ? "text-muted-foreground justify-end" : "text-muted-foreground"
+                    "text-xs flex items-center gap-1 text-muted-foreground",
+                    isUser && "justify-end"
                   )}>
                     <Clock className="w-3 h-3" />
-                    {formatTime(message.timestamp)}
+                    {formatTime(date)}
                   </span>
                 </div>
               </div>
@@ -336,11 +167,9 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
           );
         })}
 
-        {/* Loading State */}
         {isLoading && (
           <div className="flex gap-3 max-w-3xl mx-auto animate-in fade-in">
-            {/* Avatar Removed */}
-            <div className="glass-card rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50">
+            <div className="rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50 bg-white/80">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 <span className="text-sm text-muted-foreground">Thinking...</span>
@@ -349,10 +178,9 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
           </div>
         )}
 
-        {/* Quick Actions - Only show when empty */}
-        {isOnlyWelcomeMessage && !isLoading && (
+        {isOnlyWelcomeMessage && !isLoading && messages.length <= 1 && (
           <div className="max-w-3xl mx-auto mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <p className="text-sm text-muted-foreground mb-3 text-center">Quick actions to get started:</p>
+            <p className="text-sm text-muted-foreground mb-3 text-center">Quick actions:</p>
             <div className="grid grid-cols-2 gap-3">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
@@ -423,5 +251,41 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         </p>
       </div>
     </div>
+  );
+}
+
+export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
+  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[] | null>(null);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      setInitialMessages([]);
+      return;
+    }
+    let cancelled = false;
+    getChatHistory(workspaceId)
+      .then((history) => {
+        if (!cancelled) setInitialMessages(historyToInitialMessages(history ?? []));
+      })
+      .catch(() => {
+        if (!cancelled) setInitialMessages([]);
+      });
+    return () => { cancelled = true; };
+  }, [workspaceId]);
+
+  if (initialMessages === null) {
+    return (
+      <div className="flex flex-col h-full bg-background/50 items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground mt-2">Loading chat...</p>
+      </div>
+    );
+  }
+
+  return (
+    <ChatWithHistory
+      workspaceId={workspaceId}
+      initialMessages={initialMessages}
+    />
   );
 }

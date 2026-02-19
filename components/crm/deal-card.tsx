@@ -45,8 +45,8 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
   const pointerStart = React.useRef<{ x: number; y: number } | null>(null)
 
   let cardClasses = "ott-card bg-white hover:border-[#00D28B] p-4"
-  let statusLabel = "Active"
-  let statusClass = "bg-slate-100 text-slate-600 border-slate-200"
+  let statusLabel = ""
+  let statusClass = ""
 
   if (deal.health?.status === "ROTTING") {
     cardClasses = "ott-card bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-4"
@@ -57,6 +57,7 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
     statusLabel = "Follow up"
     statusClass = "bg-amber-100 text-amber-700 border-amber-200"
   }
+  const showHealthBadge = statusLabel !== ""
 
   if (overlay) {
     cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-[#00D28B]/20"
@@ -94,17 +95,19 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
       }}
     >
       <div className={cn("relative overflow-hidden", cardClasses)}>
-        {/* Status + Bin – top RHS, same row */}
+        {/* Health badge only when Follow up or Urgent; bin always when not overlay */}
         <div className="absolute top-3 right-3 flex items-start gap-2">
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[9px] font-semibold text-[#64748B] uppercase tracking-wider">Status</span>
-            <span className={cn(
-              "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
-              statusClass
-            )}>
-              {statusLabel}
-            </span>
-          </div>
+          {showHealthBadge && (
+            <div className="flex flex-col items-end gap-0.5" title="Follow up = no activity for a while; Urgent = needs attention now">
+              <span className="text-[9px] font-semibold text-[#64748B] uppercase tracking-wider">Health</span>
+              <span className={cn(
+                "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
+                statusClass
+              )}>
+                {statusLabel}
+              </span>
+            </div>
+          )}
           {onDelete && !overlay && (
             <button
               type="button"

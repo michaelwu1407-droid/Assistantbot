@@ -65,6 +65,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const hasDragged = useRef(false)
+  const dragStartStageRef = useRef<string | null>(null)
 
   // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {
@@ -114,8 +115,11 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string)
+    const id = event.active.id as string
+    setActiveId(id)
     hasDragged.current = true
+    const deal = deals.find((d) => d.id === id)
+    dragStartStageRef.current = deal?.stage ?? null
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -166,7 +170,8 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       return
     }
 
-    const originalStage = deals.find((d) => d.id === draggedId)?.stage
+    const originalStage = dragStartStageRef.current
+    dragStartStageRef.current = null
     if (originalStage === targetColumn) {
       setTimeout(() => { hasDragged.current = false }, 300)
       return

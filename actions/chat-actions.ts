@@ -837,6 +837,173 @@ function getIndustryContext(industryType: string | null): IndustryContext {
 }
 
 /**
+ * Execute "move deal" by title and stage alias. Used by the AI chat route tool.
+ * Returns a short message for the assistant to confirm to the user.
+ */
+export async function runMoveDeal(
+  workspaceId: string,
+  dealTitle: string,
+  stageAlias: string
+): Promise<{ success: boolean; message: string; dealId?: string; stage?: string }> {
+  const deals = await getDeals(workspaceId);
+  const deal = findDealByTitle(deals, dealTitle);
+  if (!deal) {
+    const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
+    return {
+      success: false,
+      message: `Couldn't find a deal matching "${dealTitle}".${deals.length > 0 ? ` Current deals: ${suggestions}` : " No deals yet."}`,
+    };
+  }
+  const resolvedStage = resolveStage(stageAlias);
+  if (!resolvedStage) {
+    const validStages = Object.keys(STAGE_ALIASES).filter(k => k.length > 3).slice(0, 10).join(", ");
+    return { success: false, message: `Unknown stage "${stageAlias}". Try: ${validStages}` };
+  }
+  const result = await updateDealStage(deal.id, resolvedStage);
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Failed to move deal." };
+  }
+  let industryType: string | null = null;
+  try {
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { industryType: true },
+    });
+    industryType = workspace?.industryType ?? null;
+  } catch {
+    // ignore
+  }
+  const ctx = getIndustryContext(industryType);
+  const stageLabel = ctx.stageLabels[resolvedStage.toUpperCase() as keyof typeof ctx.stageLabels] ?? resolvedStage;
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return {
+    success: true,
+    message: `Moved "${deal.title}" to ${stageLabel}.`,
+    dealId: deal.id,
+    stage: resolvedStage,
+  };
+}
+
+/**
+ * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
+ */
+export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
+  const deals = await getDeals(workspaceId);
+  return {
+    deals: deals.map((d) => ({
+      id: d.id,
+      title: d.title,
+      stage: d.stage,
+      value: d.value,
+    })),
+  };
+}
+
+/**
+ * Create a deal by title and optional company/value. Finds or creates contact. Used by chat createDeal tool.
+ */
+export async function runCreateDeal(
+  workspaceId: string,
+  params: { title: string; company?: string; value?: number }
+): Promise<{ success: boolean; message: string; dealId?: string }> {
+  let contactId: string | undefined;
+  const company = (params.company ?? params.title).trim() || "Unknown";
+  const contacts = await searchContacts(workspaceId, company);
+  contactId = contacts[0]?.id;
+  if (!contactId) {
+    const result = await createContact({ name: company, workspaceId });
+    if (result.success) contactId = result.contactId;
+  }
+  if (!contactId) {
+    return { success: false, message: "Could not find or create a contact for this deal." };
+  }
+  const result = await createDeal({
+    title: params.title.trim(),
+    company,
+    value: params.value ?? 0,
+    stage: "new",
+    contactId,
+    workspaceId,
+  });
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Failed to create deal." };
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return {
+    success: true,
+    message: `Created deal "${params.title}"${params.value != null && params.value > 0 ? ` worth $${params.value.toLocaleString()}` : ""}.`,
+    dealId: result.dealId,
+  };
+}
+
+/**
+ * Create a job from natural language (client, address, work, price, schedule). Used by chat createJobNatural tool.
+ */
+export async function runCreateJobNatural(
+  workspaceId: string,
+  params: { clientName: string; address?: string; workDescription: string; price: number; schedule?: string }
+): Promise<{ success: boolean; message: string; dealId?: string }> {
+  const clientName = params.clientName?.trim() || "Unknown";
+  const contactResult = await createContact({ name: clientName, workspaceId });
+  if (!contactResult.success) {
+    return { success: false, message: `Failed to create contact: ${contactResult.error}` };
+  }
+  const dealResult = await createDeal({
+    title: params.workDescription.trim() || "Job",
+    company: clientName,
+    value: params.price ?? 0,
+    stage: "new",
+    contactId: contactResult.contactId!,
+    workspaceId,
+    address: params.address?.trim(),
+    metadata: {
+      address: params.address,
+      schedule: params.schedule,
+      workDescription: params.workDescription,
+    },
+  });
+  if (!dealResult.success) {
+    return { success: false, message: dealResult.error ?? "Failed to create job." };
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  const schedule = params.schedule ? ` Scheduled: ${params.schedule}.` : "";
+  return {
+    success: true,
+    message: `Job created: ${params.workDescription} for ${clientName}, $${(params.price ?? 0).toLocaleString()}.${schedule}`,
+    dealId: dealResult.dealId,
+  };
+}
+
+/**
+ * Save a user chat message (for AI chat route persistence).
+ */
+export async function saveUserMessage(workspaceId: string, content: string) {
+  try {
+    await db.chatMessage.create({
+      data: { role: "user", content, workspaceId },
+    });
+  } catch (e) {
+    console.error("saveUserMessage:", e);
+  }
+}
+
+/**
+ * Save an assistant chat message (for AI chat route persistence).
+ */
+export async function saveAssistantMessage(workspaceId: string, content: string) {
+  try {
+    await db.chatMessage.create({
+      data: { role: "assistant", content, workspaceId },
+    });
+  } catch (e) {
+    console.error("saveAssistantMessage:", e);
+  }
+}
+
+/**
  * Process a chat message and execute CRM actions.
  * This is the primary interface — users message the chatbot
  * and the system updates the CRM automatically.
