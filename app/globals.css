@@ -273,4 +273,10 @@
   .ott-layout-grid {
     @apply grid grid-cols-1 md:grid-cols-12 gap-8 max-w-[1600px] mx-auto;
   }
+
+  /* Map: custom pin icons (no default Leaflet border/background) */
+  .leaflet-div-icon.custom-marker {
+    background: none !important;
+    border: none !important;
+  }
 }

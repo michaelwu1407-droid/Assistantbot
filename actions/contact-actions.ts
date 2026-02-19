@@ -19,6 +19,12 @@ export interface ContactView {
   metadata?: Record<string, unknown>;
   dealCount: number;
   lastActivityDate: Date | null;
+  /** Primary job/deal status for table (e.g. "Scheduled", "Completed"). */
+  primaryDealStage: string | null;
+  /** Raw deal stage for filtering (e.g. "NEW", "SCHEDULED"). */
+  primaryDealStageKey: string | null;
+  /** Balance summary for table (e.g. "$120 owed", "Paid", "—"). */
+  balanceLabel: string;
   deals?: { title: string; address?: string; stage: string; value: number }[];
 }
 
@@ -51,11 +57,31 @@ const UpdateContactSchema = z.object({
 /**
  * Fetch all contacts for a workspace.
  */
+const DEAL_STAGE_LABELS: Record<string, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  NEGOTIATION: "Negotiation",
+  SCHEDULED: "Scheduled",
+  PIPELINE: "Pipeline",
+  INVOICED: "Invoiced",
+  WON: "Completed",
+  LOST: "Lost",
+  DELETED: "Deleted",
+  ARCHIVED: "Archived",
+};
+
 export async function getContacts(workspaceId: string): Promise<ContactView[]> {
   const contacts = await db.contact.findMany({
     where: { workspaceId },
     include: {
-      deals: { select: { id: true } },
+      deals: {
+        orderBy: { lastActivityAt: "desc" },
+        select: {
+          id: true,
+          stage: true,
+          invoices: { select: { total: true, status: true } },
+        },
+      },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -63,14 +89,29 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
       },
     },
     orderBy: { createdAt: "desc" },
-
   });
 
   return contacts.map((c: any) => {
     const contactWithRelations = c as typeof c & {
-      deals: any[];
-      activities: any[];
+      deals: { id: string; stage: string; invoices: { total: any; status: string }[] }[];
+      activities: { createdAt: Date }[];
     };
+    const deals = contactWithRelations.deals ?? [];
+    const primaryDeal = deals[0];
+    const primaryDealStage = primaryDeal
+      ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
+      : null;
+    const primaryDealStageKey = primaryDeal?.stage ?? null;
+    let owed = 0;
+    for (const d of deals) {
+      for (const inv of d.invoices ?? []) {
+        if (inv.status !== "PAID" && inv.status !== "VOID") {
+          owed += Number(inv.total ?? 0);
+        }
+      }
+    }
+    const balanceLabel =
+      owed > 0 ? `$${owed.toFixed(0)} owed` : deals.length > 0 ? "Paid" : "—";
 
     return {
       id: c.id,
@@ -81,8 +122,11 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
       avatarUrl: c.avatarUrl,
       address: c.address,
       metadata: (c.metadata as Record<string, unknown>) ?? undefined,
-      dealCount: contactWithRelations.deals.length,
+      dealCount: deals.length,
       lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
+      primaryDealStage,
+      primaryDealStageKey,
+      balanceLabel,
     };
   });
 }
@@ -94,17 +138,36 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   const contact = await db.contact.findUnique({
     where: { id: contactId },
     include: {
-      deals: { orderBy: { createdAt: "desc" } },
-      activities: { orderBy: { createdAt: "desc" } }
+      deals: {
+        orderBy: { lastActivityAt: "desc" },
+        include: { invoices: { select: { total: true, status: true } } },
+      },
+      activities: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!contact) return null;
 
   const contactWithRelations = contact as typeof contact & {
-    deals: any[];
-    activities: any[];
+    deals: { stage: string; invoices: { total: any; status: string }[] }[];
+    activities: { createdAt: Date }[];
   };
+  const deals = contactWithRelations.deals ?? [];
+  const primaryDeal = deals[0];
+  const primaryDealStage = primaryDeal
+    ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
+    : null;
+  const primaryDealStageKey = primaryDeal?.stage ?? null;
+  let owed = 0;
+  for (const d of deals) {
+    for (const inv of d.invoices ?? []) {
+      if (inv.status !== "PAID" && inv.status !== "VOID") {
+        owed += Number(inv.total ?? 0);
+      }
+    }
+  }
+  const balanceLabel =
+    owed > 0 ? `$${owed.toFixed(0)} owed` : deals.length > 0 ? "Paid" : "—";
 
   return {
     id: contact.id,
@@ -115,14 +178,20 @@ export async function getContact(contactId: string): Promise<ContactView | null>
     avatarUrl: contact.avatarUrl,
     address: contact.address,
     metadata: (contact.metadata as Record<string, unknown>) ?? undefined,
-    dealCount: contactWithRelations.deals.length,
+    dealCount: deals.length,
     lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
-    deals: contactWithRelations.deals.map((d: any) => ({
-      title: d.title,
-      address: (d.metadata as any)?.address || d.address,
-      stage: d.stage,
-      value: Number(d.value),
-    })),
+    primaryDealStage,
+    primaryDealStageKey,
+    balanceLabel,
+    deals: deals.map((d) => {
+      const deal = d as { title?: string; address?: string; metadata?: { address?: string }; value?: unknown };
+      return {
+        title: deal.title ?? "",
+        address: (deal.metadata as { address?: string } | undefined)?.address || deal.address,
+        stage: d.stage,
+        value: Number(deal.value ?? 0),
+      };
+    }),
   };
 }
 

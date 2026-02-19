@@ -24,6 +24,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const [mounted, setMounted] = useState(false)
   const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
   const [chatbotExpanded, setChatbotExpanded] = useState(false)
+  const didDragRef = useRef(false)
 
   useEffect(() => {
     setMounted(true)
@@ -50,32 +51,35 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       <TutorialOverlay />
 
       {isBasicView ? (
-        <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative">
+        <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative min-h-0">
+          {/* Background: subtle gradient + glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50/80 via-white to-primary/5 dark:from-slate-950/80 dark:via-background dark:to-primary/10 pointer-events-none" />
+          <div className="absolute inset-0 ott-glow opacity-30 pointer-events-none" />
 
-          <div className="absolute inset-0 ott-glow opacity-40 pointer-events-none" />
-
-          {/* Mode Toggle Button - Floating Switch */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-3 px-4 py-2.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border rounded-full shadow-ott hover:shadow-ott-hover transition-all">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Chat</span>
-            </div>
-            <Switch
-              id="mode-toggle"
-              checked={false}
-              onCheckedChange={() => setViewMode("ADVANCED")}
-              className="data-[state=checked]:bg-primary"
-            />
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Advanced</span>
-            </div>
-          </div>
-
-          {/* Main Chat Container - Large & Immersive */}
-          <div className="z-10 w-full max-w-5xl h-[100dvh] md:h-[92dvh] shadow-ott-elevated rounded-none md:rounded-[24px] overflow-hidden border-0 md:border border-border/60 bg-white/80 dark:bg-card/80 backdrop-blur-2xl relative flex flex-col">
-            {/* ID for Spotlight */}
-            <div id="assistant-pane" className="h-full w-full">
+          {/* Main Chat Container - with in-card header so toggle doesn't overlap */}
+          <div className="z-10 w-full max-w-4xl h-[100dvh] md:h-[90dvh] flex flex-col rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/60 bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-xl md:shadow-2xl relative">
+            {/* Header inside card: title + mode toggle */}
+            <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-3 border-b border-border/50 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+                  <span className="font-extrabold italic text-sm text-white tracking-tighter">Pj</span>
+                </div>
+                <span className="font-semibold text-slate-900 dark:text-foreground">Chat</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-border/50">
+                <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-xs font-medium text-primary">Chat</span>
+                <Switch
+                  id="mode-toggle"
+                  checked={false}
+                  onCheckedChange={() => setViewMode("ADVANCED")}
+                  className="data-[state=checked]:bg-primary scale-90"
+                />
+                <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs font-medium text-muted-foreground">Advanced</span>
+              </div>
+            </header>
+            <div id="assistant-pane" className="flex-1 min-h-0 flex flex-col">
               {chatbot}
             </div>
           </div>
@@ -96,13 +100,24 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-1" />
+            <ResizableHandle
+              withHandle
+              className="hidden md:flex"
+              onPointerDown={() => { didDragRef.current = false }}
+              onPointerMove={() => { didDragRef.current = true }}
+              onClick={() => {
+                if (!didDragRef.current && !chatbotExpanded) {
+                  chatbotPanelRef.current?.expand()
+                  setChatbotExpanded(true)
+                }
+              }}
+            />
 
-            {/* Right Chatbot - Collapsed by default; when expanded, minimum 15% width so formatting doesn't break */}
+            {/* Right Chatbot - Collapsed by default; when expanded, minimum width so messages aren't squeezed (user can expand further) */}
             <ResizablePanel
               ref={chatbotPanelRef}
               defaultSize={0}
-              minSize={15}
+              minSize={28}
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
@@ -130,7 +145,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </div>
               <div 
                 id="assistant-pane" 
-                className="h-[calc(100%-57px)] w-full border-l border-border/50 bg-background/50 backdrop-blur-sm"
+                className="h-[calc(100%-57px)] w-full min-w-[320px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
                 onClick={() => {
                   if (!chatbotExpanded) {
                     chatbotPanelRef.current?.expand()
@@ -143,19 +158,22 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             </ResizablePanel>
           </ResizablePanelGroup>
 
-          {/* Floating Chatbot Button - Show when collapsed */}
+          {/* Icon-only chat trigger: bottom RHS when panel collapsed (e.g. when card modal open and side panel not available). */}
           {chatbot && !chatbotExpanded && (
-            <Button
-              onClick={() => {
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 chatbotPanelRef.current?.expand()
                 setChatbotExpanded(true)
               }}
-              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-white"
-              size="icon"
-              title="Open chatbot (opens panel on the right; button hides when panel is open)"
+              className="fixed bottom-5 right-5 z-[10000] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              title="Open chat"
+              aria-label="Open chat"
             >
-              <MessageSquare className="h-6 w-6" />
-            </Button>
+              <MessageSquare className="h-5 w-5 text-primary" />
+            </button>
           )}
         </div>
       )}

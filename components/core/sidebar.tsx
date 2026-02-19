@@ -14,7 +14,9 @@ import {
     UserCircle,
     MessageSquare,
     PieChart,
-    Inbox
+    Inbox,
+    PanelLeftClose,
+    PanelRightOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -25,6 +27,8 @@ import {
 } from "@/components/ui/tooltip"
 import { logout } from "@/actions/auth-actions"
 import { useShellStore } from "@/lib/store"
+
+const SIDEBAR_WIDTH = 45
 
 const navItems = [
     { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link" },
@@ -43,7 +47,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
     const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode } = useShellStore()
+    const { setViewMode, viewMode, sidebarMinimized, toggleSidebarMinimized } = useShellStore()
 
     useEffect(() => {
         setMounted(true)
@@ -53,12 +57,36 @@ export function Sidebar({ className }: SidebarProps) {
         await logout()
     }
 
+    if (sidebarMinimized) {
+        return (
+            <TooltipProvider delayDuration={0}>
+                <aside className={cn("flex h-full w-10 flex-shrink-0 flex-col items-center border-r border-border bg-white py-4 z-20 transition-all duration-300", className)}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                onClick={toggleSidebarMinimized}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
+                                aria-label="Expand sidebar"
+                            >
+                                <PanelRightOpen className="h-5 w-5" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">
+                            Expand sidebar
+                        </TooltipContent>
+                    </Tooltip>
+                </aside>
+            </TooltipProvider>
+        )
+    }
+
     return (
         <TooltipProvider delayDuration={0}>
-            <aside className={cn("flex h-full w-[60px] flex-col items-center border-r border-border bg-white py-6 z-20 transition-all duration-300", className)}>
+            <aside className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={{ width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
-                <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                    <span className="font-extrabold italic text-lg tracking-tighter">Pj</span>
+                <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                    <span className="font-extrabold italic text-base tracking-tighter">Pj</span>
                 </div>
 
                 {/* Mode Toggle (Advanced/Basic) */}
@@ -68,16 +96,16 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="mode-toggle-btn"
                                 onClick={() => setViewMode("BASIC")}
-                                className="mb-4 flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
+                                className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
                             >
-                                <MessageSquare className="h-4 w-4" />
+                                <MessageSquare className="h-3.5 w-3.5" />
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Switch to Basic Mode</TooltipContent>
                     </Tooltip>
                 )}
 
-                <nav className="flex flex-1 flex-col gap-2 w-full px-2">
+                <nav className="flex flex-1 flex-col gap-1.5 w-full px-1.5">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
                         return (
@@ -88,13 +116,13 @@ export function Sidebar({ className }: SidebarProps) {
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             className={cn(
-                                                "flex h-10 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                                "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                 isActive
                                                     ? "bg-mint-50 text-primary shadow-sm"
                                                     : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                             )}
                                         >
-                                            <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                                            <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
                                         </motion.div>
                                     </Link>
                                 </TooltipTrigger>
@@ -107,8 +135,22 @@ export function Sidebar({ className }: SidebarProps) {
                 </nav>
 
                 {/* Bottom Actions */}
-                <div className="flex flex-col gap-2 px-2 w-full">
+                <div className="flex flex-col gap-1.5 px-1.5 w-full">
                     <div className="h-px bg-border w-full" />
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                onClick={toggleSidebarMinimized}
+                                className="flex h-9 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
+                                aria-label="Minimise sidebar"
+                            >
+                                <PanelLeftClose className="h-4 w-4" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Minimise sidebar</TooltipContent>
+                    </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -117,13 +159,13 @@ export function Sidebar({ className }: SidebarProps) {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     className={cn(
-                                        "flex h-10 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                         pathname.startsWith("/dashboard/settings")
                                             ? "bg-mint-50 text-primary"
                                             : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                     )}
                                 >
-                                    <Settings className="h-5 w-5" />
+                                    <Settings className="h-4 w-4" />
                                 </motion.div>
                             </Link>
                         </TooltipTrigger>
@@ -135,9 +177,9 @@ export function Sidebar({ className }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-10 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all duration-300"
+                                className="flex h-9 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all duration-300"
                             >
-                                <LogOut className="h-5 w-5" />
+                                <LogOut className="h-4 w-4" />
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Sign Out</TooltipContent>

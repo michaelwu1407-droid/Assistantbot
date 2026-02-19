@@ -3,269 +3,369 @@
 import { useState, useMemo } from "react"
 import { ContactView } from "@/actions/contact-actions"
 import { sendBulkSMS } from "@/actions/messaging-actions"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Search, Send, Filter, X, Clock, AlertTriangle, Undo2 } from "lucide-react"
+import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 interface ContactsClientProps {
-    contacts: ContactView[]
+  contacts: ContactView[]
 }
 
-type FilterPreset = "all" | "service_due" | "stale_30" | "win_back"
+// Same stages as kanban board (see kanban-board.tsx COLUMNS)
+const KANBAN_STAGES: { id: string; title: string }[] = [
+  { id: "new_request", title: "New request" },
+  { id: "quote_sent", title: "Quote sent" },
+  { id: "scheduled", title: "Scheduled" },
+  { id: "pipeline", title: "Pipeline" },
+  { id: "ready_to_invoice", title: "Ready to be invoiced" },
+  { id: "completed", title: "Completed" },
+  { id: "deleted", title: "Deleted jobs" },
+]
 
-const FILTER_LABELS: Record<FilterPreset, { label: string; icon: React.ReactNode; description: string }> = {
-    all: { label: "All", icon: null, description: "All contacts" },
-    service_due: { label: "Service Due", icon: <Clock className="w-3.5 h-3.5" />, description: "Last activity 10-14 months ago" },
-    stale_30: { label: "Stale > 30d", icon: <AlertTriangle className="w-3.5 h-3.5" />, description: "No activity in 30+ days" },
-    win_back: { label: "Win-Back", icon: <Undo2 className="w-3.5 h-3.5" />, description: "No activity in 24+ months" },
+// Prisma DealStage -> kanban column id (matches deal-actions STAGE_MAP)
+function prismaStageToColumnId(prismaStage: string | null): string | null {
+  if (!prismaStage) return null
+  const map: Record<string, string> = {
+    NEW: "new_request",
+    CONTACTED: "quote_sent",
+    NEGOTIATION: "scheduled",
+    SCHEDULED: "scheduled",
+    PIPELINE: "pipeline",
+    INVOICED: "ready_to_invoice",
+    WON: "completed",
+    LOST: "lost",
+    DELETED: "deleted",
+    ARCHIVED: "archived",
+  }
+  return map[prismaStage] ?? null
+}
+
+function formatLastInteracted(date: Date | null): string {
+  if (!date) return "—"
+  const d = new Date(date)
+  const now = new Date()
+  const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+  if (days === 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  if (days < 365) return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
 }
 
 export function ContactsClient({ contacts }: ContactsClientProps) {
-    const [search, setSearch] = useState("")
-    const [filter, setFilter] = useState<FilterPreset>("all")
-    const [selected, setSelected] = useState<Set<string>>(new Set())
-    const [bulkMessage, setBulkMessage] = useState("")
-    const [showBulkModal, setShowBulkModal] = useState(false)
-    const [sending, setSending] = useState(false)
+  const [search, setSearch] = useState("")
+  const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((s) => s.id)), [])
+  const [selectedStageIds, setSelectedStageIds] = useState<Set<string>>(new Set(allStageIds))
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkMessage, setBulkMessage] = useState("")
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [sending, setSending] = useState(false)
 
-    const now = Date.now()
-
-    const filtered = useMemo(() => {
-        let result = contacts
-
-        // Search
-        if (search) {
-            const q = search.toLowerCase()
-            result = result.filter(c =>
-                c.name.toLowerCase().includes(q) ||
-                c.email?.toLowerCase().includes(q) ||
-                c.phone?.includes(q) ||
-                c.company?.toLowerCase().includes(q)
-            )
-        }
-
-        // Preset filters
-        if (filter === "service_due") {
-            result = result.filter(c => {
-                if (!c.lastActivityDate) return false
-                const months = (now - new Date(c.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24 * 30)
-                return months >= 10 && months <= 14
-            })
-        } else if (filter === "stale_30") {
-            result = result.filter(c => {
-                if (!c.lastActivityDate) return true
-                const days = (now - new Date(c.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)
-                return days > 30
-            })
-        } else if (filter === "win_back") {
-            result = result.filter(c => {
-                if (!c.lastActivityDate) return true
-                const months = (now - new Date(c.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24 * 30)
-                return months >= 24
-            })
-        }
-
-        return result
-    }, [contacts, search, filter, now])
-
-    const toggleSelect = (id: string) => {
-        const next = new Set(selected)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-        setSelected(next)
+  const filtered = useMemo(() => {
+    let result = contacts
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q) ||
+          c.phone?.includes(q) ||
+          c.company?.toLowerCase().includes(q)
+      )
     }
+    if (selectedStageIds.size === 0) return []
+    result = result.filter((c) => {
+      const columnId = prismaStageToColumnId(c.primaryDealStageKey ?? null)
+      return columnId != null && selectedStageIds.has(columnId)
+    })
+    return result
+  }, [contacts, search, selectedStageIds])
 
-    const selectAll = () => {
-        if (selected.size === filtered.length) {
-            setSelected(new Set())
-        } else {
-            setSelected(new Set(filtered.map(c => c.id)))
-        }
+  const toggleStage = (stageId: string) => {
+    setSelectedStageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(stageId)) next.delete(stageId)
+      else next.add(stageId)
+      return next
+    })
+  }
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelected(next)
+  }
+
+  const selectAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set())
+    else setSelected(new Set(filtered.map((c) => c.id)))
+  }
+
+  const handleBulkSMS = async () => {
+    if (!bulkMessage.trim() || selected.size === 0) return
+    setSending(true)
+    try {
+      const result = await sendBulkSMS(Array.from(selected), bulkMessage)
+      toast.success(`Sent ${result.sent} SMS. ${result.failed} failed.`)
+      if (result.errors.length > 0) toast.error(result.errors.slice(0, 3).join(", "))
+      setShowBulkModal(false)
+      setBulkMessage("")
+      setSelected(new Set())
+    } catch {
+      toast.error("Failed to send bulk SMS")
+    } finally {
+      setSending(false)
     }
+  }
 
-    const handleBulkSMS = async () => {
-        if (!bulkMessage.trim() || selected.size === 0) return
-        setSending(true)
-        try {
-            const result = await sendBulkSMS(Array.from(selected), bulkMessage)
-            toast.success(`Sent ${result.sent} SMS. ${result.failed} failed.`)
-            if (result.errors.length > 0) {
-                toast.error(result.errors.slice(0, 3).join(", "))
-            }
-            setShowBulkModal(false)
-            setBulkMessage("")
-            setSelected(new Set())
-        } catch {
-            toast.error("Failed to send bulk SMS")
-        } finally {
-            setSending(false)
-        }
-    }
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Contacts</h1>
+        {selected.size > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{selected.size} selected</span>
+            <Button size="sm" className="gap-1.5" onClick={() => setShowBulkModal(true)}>
+              <Send className="w-3.5 h-3.5" />
+              Send SMS
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
 
-    const getDaysAgo = (date: Date | null) => {
-        if (!date) return "Never"
-        const days = Math.floor((now - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
-        if (days === 0) return "Today"
-        if (days === 1) return "Yesterday"
-        if (days < 30) return `${days}d ago`
-        if (days < 365) return `${Math.floor(days / 30)}mo ago`
-        return `${Math.floor(days / 365)}yr ago`
-    }
-
-    return (
-        <div className="p-6 space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Contacts</h1>
-                {selected.size > 0 && (
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground">{selected.size} selected</span>
-                        <Button
-                            size="sm"
-                            className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
-                            onClick={() => setShowBulkModal(true)}
-                        >
-                            <Send className="w-3.5 h-3.5" />
-                            Send SMS
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setSelected(new Set())}
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </Button>
-                    </div>
-                )}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search contacts..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "gap-1.5 text-xs min-w-[120px] justify-between",
+                selectedStageIds.size < allStageIds.size && "border-primary/50 bg-primary/5"
+              )}
+            >
+              <Filter className="h-3.5 w-3.5 shrink-0" />
+              Stages
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <div className="p-2 border-b border-border">
+              <p className="text-xs font-medium text-muted-foreground px-2 py-1">Show contacts in:</p>
             </div>
-
-            {/* Filter Bar */}
-            <div className="flex items-center gap-3 flex-wrap">
-                <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search contacts..."
-                        className="pl-9 bg-background/50 border-border/50 focus:bg-background transition-colors"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                    {(Object.keys(FILTER_LABELS) as FilterPreset[]).map(key => (
-                        <Button
-                            key={key}
-                            variant={filter === key ? "default" : "outline"}
-                            size="sm"
-                            className={filter === key ? "gap-1.5 text-xs bg-primary text-primary-foreground" : "gap-1.5 text-xs bg-background/50 border-border/50 hover:bg-background"}
-                            onClick={() => setFilter(key)}
-                        >
-                            {FILTER_LABELS[key].icon}
-                            {FILTER_LABELS[key].label}
-                        </Button>
-                    ))}
-                </div>
-                {filtered.length > 0 && (
-                    <Button variant="ghost" size="sm" className="text-xs ml-auto text-muted-foreground hover:text-foreground" onClick={selectAll}>
-                        {selected.size === filtered.length ? "Deselect All" : "Select All"}
-                    </Button>
-                )}
+            <div className="max-h-[280px] overflow-y-auto py-1">
+              {KANBAN_STAGES.map((col) => (
+                <label
+                  key={col.id}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50 cursor-pointer rounded-sm"
+                >
+                  <Checkbox
+                    checked={selectedStageIds.has(col.id)}
+                    onCheckedChange={() => toggleStage(col.id)}
+                  />
+                  <span className="text-sm">{col.title}</span>
+                </label>
+              ))}
             </div>
-
-            {/* Results count */}
-            <p className="text-xs text-muted-foreground">
-                {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
-                {filter !== "all" && ` matching "${FILTER_LABELS[filter].description}"`}
-            </p>
-
-            {/* Contact Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filtered.map(contact => (
-                    <Card
-                        key={contact.id}
-                        className={`transition-all cursor-pointer glass-card border-border/50 ${selected.has(contact.id) ? "ring-2 ring-primary bg-primary/5" : "hover:border-primary/50 hover:shadow-md"}`}
-                    >
-                        <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    checked={selected.has(contact.id)}
-                                    onCheckedChange={() => toggleSelect(contact.id)}
-                                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                />
-                                <Avatar className="border border-border/50">
-                                    <AvatarImage src={contact.avatarUrl || undefined} />
-                                    <AvatarFallback className="bg-primary/10 text-primary">{contact.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                            </div>
-                            <div className="flex flex-col flex-1 min-w-0">
-                                <Link href={`/dashboard/contacts/${contact.id}`}>
-                                    <CardTitle className="text-base font-medium leading-none hover:text-primary transition-colors truncate text-foreground">
-                                        {contact.name}
-                                    </CardTitle>
-                                </Link>
-                                <span className="text-sm text-muted-foreground">{contact.company || "Individual"}</span>
-                            </div>
-                            <Badge variant="secondary" className="text-[10px] shrink-0 bg-muted text-muted-foreground">
-                                {getDaysAgo(contact.lastActivityDate)}
-                            </Badge>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                                {contact.email && <div className="flex items-center gap-2 truncate">{contact.email}</div>}
-                                {contact.phone && <div className="flex items-center gap-2">{contact.phone}</div>}
-                                {contact.dealCount > 0 && (
-                                    <Badge variant="outline" className="text-[10px] mt-1 border-border/50">
-                                        {contact.dealCount} deal{contact.dealCount !== 1 ? "s" : ""}
-                                    </Badge>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+            <div className="p-2 border-t border-border flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setSelectedStageIds(new Set(allStageIds))}
+              >
+                All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setSelectedStageIds(new Set())}
+              >
+                None
+              </Button>
             </div>
+          </PopoverContent>
+        </Popover>
+        <Button asChild size="sm">
+          <Link href="/dashboard/contacts/new">Add contact</Link>
+        </Button>
+      </div>
 
-            {/* Bulk SMS Modal */}
-            {showBulkModal && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="glass-card border border-border/50 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-lg text-foreground">Send Bulk SMS</h3>
-                            <Button variant="ghost" size="sm" onClick={() => setShowBulkModal(false)}>
-                                <X className="w-4 h-4" />
-                            </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                            Sending to <strong>{selected.size}</strong> contact{selected.size !== 1 ? "s" : ""}.
-                            Use {"{{contactName}}"} for personalization.
-                        </p>
-                        <textarea
-                            className="w-full bg-background/50 border border-border/50 rounded-lg p-3 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
-                            placeholder="Hi {{contactName}}, just checking in..."
-                            value={bulkMessage}
-                            onChange={(e) => setBulkMessage(e.target.value)}
-                        />
-                        <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={() => setShowBulkModal(false)} className="bg-transparent border-border/50">
-                                Cancel
+      <p className="text-xs text-muted-foreground">
+        {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
+      </p>
+
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground w-10">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selected.size === filtered.length}
+                    onChange={selectAll}
+                    className="rounded border-input"
+                  />
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Last interacted</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Job status</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Balance</th>
+                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    No contacts found. Add your first contact or try a different search.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((contact) => (
+                  <tr
+                    key={contact.id}
+                    className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="py-2.5 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(contact.id)}
+                        onChange={() => toggleSelect(contact.id)}
+                        className="rounded border-input"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <Link
+                        href={`/dashboard/contacts/${contact.id}`}
+                        className="font-medium text-foreground hover:text-primary hover:underline"
+                      >
+                        {contact.name}
+                      </Link>
+                      {contact.company && (
+                        <span className="block text-xs text-muted-foreground truncate max-w-[180px]">
+                          {contact.company}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">
+                      {formatLastInteracted(contact.lastActivityDate)}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <span className="text-foreground">
+                        {contact.primaryDealStage ?? "—"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-4 text-muted-foreground">
+                      {contact.balanceLabel}
+                    </td>
+                    <td className="py-2.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {contact.phone && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              asChild
+                              title="Call"
+                            >
+                              <a href={`tel:${contact.phone}`}>
+                                <Phone className="h-4 w-4" />
+                              </a>
                             </Button>
                             <Button
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-lg shadow-primary/20"
-                                disabled={!bulkMessage.trim() || sending}
-                                onClick={handleBulkSMS}
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              asChild
+                              title="Text"
                             >
-                                <Send className="w-3.5 h-3.5" />
-                                {sending ? "Sending..." : `Send to ${selected.size}`}
+                              <a href={`sms:${contact.phone}`}>
+                                <MessageSquare className="h-4 w-4" />
+                              </a>
                             </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                          </>
+                        )}
+                        {contact.email && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 shrink-0"
+                            asChild
+                            title="Email"
+                          >
+                            <a href={`mailto:${contact.email}`}>
+                              <Mail className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        {!contact.phone && !contact.email && (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-    )
+      </div>
+
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="rounded-xl border bg-card shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Send bulk SMS</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowBulkModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Sending to <strong>{selected.size}</strong> contact{selected.size !== 1 ? "s" : ""}. Use {"{{contactName}}"} for personalization.
+            </p>
+            <textarea
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Hi {{contactName}}, just checking in..."
+              value={bulkMessage}
+              onChange={(e) => setBulkMessage(e.target.value)}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowBulkModal(false)}>
+                Cancel
+              </Button>
+              <Button disabled={!bulkMessage.trim() || sending} onClick={handleBulkSMS}>
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                {sending ? "Sending…" : `Send to ${selected.size}`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

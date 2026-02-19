@@ -54,7 +54,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const monthLabel = MONTHS[currentMonth]
 
   const cardClass =
-    "ott-card p-2 flex flex-col justify-center h-full min-h-[50px] bg-white shadow-sm relative"
+    "ott-card rounded-[20px] p-2 flex flex-col justify-center h-full min-h-[50px] bg-white shadow-sm relative border border-slate-200/60 dark:border-slate-700/50"
 
   return (
     <div className="grid grid-cols-4 gap-2 h-full flex-[4] min-w-0">
@@ -82,14 +82,25 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </div>
 
-      {/* 3. Follow-up */}
+      {/* 3. Follow-up — label top, number left, 2w selector bottom-right */}
       <div className={cardClass}>
-        <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5 block">
+          Follow-up
+        </span>
+        <div className="flex items-end justify-between gap-1">
+          <span
+            className={cn(
+              "text-lg font-extrabold tracking-tighter leading-none",
+              followUpCount > 0 ? "text-amber-600" : "text-[#0F172A]"
+            )}
+          >
+            {followUpCount}
+          </span>
           <Select
             value={String(staleWeeks)}
             onValueChange={(v) => setStaleWeeks(Number(v))}
           >
-            <SelectTrigger className="h-5 w-[56px] text-[10px] font-medium px-1 border-slate-200">
+            <SelectTrigger className="h-5 w-[48px] text-[10px] font-medium px-1 border-slate-200 shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -101,17 +112,6 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
             </SelectContent>
           </Select>
         </div>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none block mb-0.5">
-          Follow-up
-        </span>
-        <span
-          className={cn(
-            "text-lg font-extrabold tracking-tighter leading-none",
-            followUpCount > 0 ? "text-amber-600" : "text-[#0F172A]"
-          )}
-        >
-          {followUpCount}
-        </span>
       </div>
 
       {/* 4. Critical */}

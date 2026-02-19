@@ -32,16 +32,15 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                     onNewDeal={() => setIsNewDealModalOpen(true)}
                 />
 
-                {/* Dashboard Content Grid - Tight gap (12px) */}
-                <div className="flex flex-col flex-1 min-h-0 gap-2">
+                {/* Dashboard Content Grid — no containment; shape + colour separate the two zones */}
+                <div className="flex flex-col flex-1 min-h-0 gap-0">
 
-                    {/* Row 1: KPI Cards & Activity Feed - Squeezed height by 30% */}
-                    <div className="flex w-full gap-4 pb-2 shrink-0 min-h-[70px]">
+                    {/* Top row: pill-shaped cards, distinct background */}
+                    <div className="shrink-0 flex w-full gap-4 min-h-[70px] px-1 pt-1 pb-4 bg-slate-100/70 dark:bg-slate-800/40">
                         <DashboardKpiCards deals={deals} />
-                        {/* Activity Feed - 2.5x width of one KPI card */}
                         <div className="flex-[2.5] min-w-0 h-[70px] max-h-[70px]">
-                            <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
-                                <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-2 shrink-0">
+                            <div className="ott-card rounded-[20px] w-full h-full p-3 flex flex-col bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm border border-slate-200/60 dark:border-slate-700/50">
+                                <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 tracking-tight uppercase leading-none mb-2 shrink-0">
                                     Activity
                                 </span>
                                 <ActivityFeed workspaceId={workspace.id} className="flex-1 min-h-0 overflow-y-auto" compact={true} />
@@ -49,9 +48,9 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                         </div>
                     </div>
 
-                    {/* Row 2: Kanban Board - Full Width (Cols 1-12) */}
-                    <div className="xl:col-span-12 flex-1 min-h-0 overflow-hidden flex flex-col pt-1">
-                        <div className="h-full w-full overflow-hidden">
+                    {/* Kanban: different shape (moderate container radius), different zone colour */}
+                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-4">
+                        <div className="h-full w-full overflow-hidden min-h-0 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-700/50">
                             <KanbanBoard deals={deals} industryType={workspace.industryType} />
                         </div>
                     </div>

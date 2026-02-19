@@ -53,6 +53,7 @@ export interface DealView {
   value: number;
   stage: string;
   lastActivityDate: Date;
+  createdAt: Date;
   contactName: string;
   contactAvatar?: string;
   health: DealHealth;
@@ -149,6 +150,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         value: deal.value ? deal.value.toNumber() : 0,
         stage: STAGE_MAP[deal.stage] ?? "new_request",
         lastActivityDate,
+        createdAt: deal.createdAt,
         contactName: deal.contact.name,
         contactAvatar: deal.contact.avatarUrl ?? undefined,
         health,
@@ -235,7 +237,11 @@ export async function updateDealStage(dealId: string, stage: string) {
     try {
       const auth = await getAuthUser();
       userName = auth.name;
-      userId = auth.id;
+      const dbUser = await db.user.findFirst({
+        where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+        select: { id: true },
+      });
+      if (dbUser) userId = dbUser.id;
     } catch {
       // not authenticated (e.g. automation)
     }
@@ -247,7 +253,7 @@ export async function updateDealStage(dealId: string, stage: string) {
         description: `— ${userName}`,
         dealId: parsed.data.dealId,
         contactId: deal.contactId ?? undefined,
-        userId,
+        ...(userId && { userId }),
       },
     });
 
@@ -294,7 +300,11 @@ export async function updateDealMetadata(
   try {
     const auth = await getAuthUser();
     userName = auth.name;
-    userId = auth.id;
+    const dbUser = await db.user.findFirst({
+      where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+      select: { id: true },
+    });
+    if (dbUser) userId = dbUser.id;
   } catch {
     // not authenticated
   }
@@ -307,7 +317,7 @@ export async function updateDealMetadata(
       description: `— ${userName}`,
       dealId,
       contactId: deal.contactId ?? undefined,
-      userId,
+      ...(userId && { userId }),
     },
   });
 
@@ -345,7 +355,11 @@ export async function updateDeal(
   try {
     const auth = await getAuthUser();
     userName = auth.name;
-    userId = auth.id;
+    const dbUser = await db.user.findFirst({
+      where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+      select: { id: true },
+    });
+    if (dbUser) userId = dbUser.id;
   } catch {
     // not authenticated
   }
@@ -357,7 +371,7 @@ export async function updateDeal(
       description: `— ${userName}`,
       dealId,
       contactId: deal.contactId ?? undefined,
-      userId,
+      ...(userId && { userId }),
     },
   });
 

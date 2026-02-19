@@ -52,7 +52,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 bg-[#F8FAFC] rounded-[24px] border border-[#E2E8F0] p-3 overflow-y-auto min-h-[200px] flex flex-col gap-3 transition-colors ${isOver ? "bg-emerald-50 border-emerald-300 shadow-inner" : "hover:bg-white hover:shadow-inner"}`}
+      className={`flex-1 bg-[#F8FAFC] dark:bg-slate-800/40 rounded-xl border border-[#E2E8F0] dark:border-slate-700/60 p-3 overflow-y-auto min-h-[200px] flex flex-col gap-3 transition-colors ${isOver ? "bg-slate-200/60 dark:bg-slate-700/40 border-slate-300 dark:border-slate-600 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:shadow-inner"}`}
     >
       {children}
     </div>
@@ -210,7 +210,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
           // Determine label based on industry
           return (
-            <div key={col.id} className="w-60 flex-shrink-0 flex flex-col h-full max-h-full">
+            <div key={col.id} className="w-72 flex-shrink-0 flex flex-col h-full max-h-full">
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
       <DragOverlay>
         {activeId && activeDeal ? (
-          <div className="w-60">
+          <div className="w-72">
             <DealCard deal={activeDeal} overlay />
           </div>
         ) : null}

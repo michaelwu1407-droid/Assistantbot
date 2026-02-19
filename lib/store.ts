@@ -10,6 +10,7 @@ interface ShellState {
   workspaceId: string | null
   userId: string | null
   mobileMenuOpen: boolean
+  sidebarMinimized: boolean
   _hydrated: boolean
   setViewMode: (mode: ViewMode) => void
   setPersona: (persona: Persona) => void
@@ -17,6 +18,8 @@ interface ShellState {
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
   setMobileMenuOpen: (open: boolean) => void
+  setSidebarMinimized: (minimized: boolean) => void
+  toggleSidebarMinimized: () => void
   _hydrate: () => void
 }
 
@@ -27,6 +30,7 @@ export const useShellStore = create<ShellState>((set, get) => ({
   workspaceId: null,
   userId: null,
   mobileMenuOpen: false,
+  sidebarMinimized: false,
   _hydrated: false,
   setViewMode: (mode: ViewMode) => {
     try { localStorage.setItem('pj_view_mode', mode) } catch { }
@@ -43,16 +47,27 @@ export const useShellStore = create<ShellState>((set, get) => ({
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
   setUserId: (id: string) => set({ userId: id }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
+  setSidebarMinimized: (minimized: boolean) => {
+    try { localStorage.setItem('pj_sidebar_minimized', minimized ? 'true' : 'false') } catch { }
+    set({ sidebarMinimized: minimized })
+  },
+  toggleSidebarMinimized: () => {
+    const next = !get().sidebarMinimized
+    try { localStorage.setItem('pj_sidebar_minimized', next ? 'true' : 'false') } catch { }
+    set({ sidebarMinimized: next })
+  },
   _hydrate: () => {
     if (get()._hydrated) return
     try {
       const vm = localStorage.getItem('pj_view_mode')
       const p = localStorage.getItem('pj_persona')
       const tc = localStorage.getItem('pj_tutorial_complete')
+      const sm = localStorage.getItem('pj_sidebar_minimized')
       set({
         viewMode: (vm as ViewMode) || 'BASIC',
         persona: (p as Persona) || 'TRADIE',
         tutorialComplete: tc === 'true',
+        sidebarMinimized: sm === 'true',
         _hydrated: true,
       })
     } catch {

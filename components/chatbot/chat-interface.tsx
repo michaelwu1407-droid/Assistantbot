@@ -86,13 +86,16 @@ function ChatWithHistory({
   const isOnlyWelcomeMessage = messages.length <= 1;
 
   return (
-    <div className="flex flex-col h-full bg-background/50 backdrop-blur-sm">
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
+    <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-950/30">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar">
         {messages.length === 0 && !isLoading && (
-          <div className="flex gap-3 max-w-3xl mx-auto">
-            <div className="rounded-2xl px-3 py-2.5 bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-sm">
-              <p className="text-xs leading-relaxed font-medium">Hello! I&apos;m your CRM assistant. You can ask me to move deals (e.g. &quot;move Kitchen Reno to completed&quot;) or ask what I can do.</p>
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+            <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-white dark:bg-card border border-slate-200 dark:border-border shadow-sm">
+              <p className="text-sm leading-relaxed text-slate-800 dark:text-foreground">
+                Hello! I&apos;m your CRM assistant. Ask me to move deals, look up contacts, or schedule jobs — or type &quot;what can you do?&quot; to see more.
+              </p>
             </div>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
           </div>
         )}
 
@@ -179,19 +182,19 @@ function ChatWithHistory({
         )}
 
         {isOnlyWelcomeMessage && !isLoading && messages.length <= 1 && (
-          <div className="max-w-3xl mx-auto mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <p className="text-sm text-muted-foreground mb-3 text-center">Quick actions:</p>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="max-w-2xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground mb-3">Quick actions</p>
+            <div className="grid grid-cols-2 gap-2">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prompt)}
-                  className="flex items-center gap-3 px-4 py-3 glass-card rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-border bg-white dark:bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group shadow-sm hover:shadow"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
-                    <action.icon className="w-5 h-5 text-primary" />
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                    <action.icon className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  <span className="text-sm font-medium text-slate-800 dark:text-foreground">
                     {action.label}
                   </span>
                 </button>
@@ -204,9 +207,9 @@ function ChatWithHistory({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/40 bg-background/80 backdrop-blur-md p-4">
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
-          <div className="relative flex items-end gap-2 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-2 focus-within:ring-2 focus-within:ring-[#00D28B]/20 transition-all">
+      <div className="shrink-0 border-t border-border/50 bg-white/80 dark:bg-card/80 backdrop-blur-md p-4 md:px-6">
+        <form onSubmit={handleSubmit} className="flex w-full max-w-3xl mx-auto gap-3">
+          <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-2 focus-within:ring-2 focus-within:ring-[#00D28B]/20 transition-all">
             <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
