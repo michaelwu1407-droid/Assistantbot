@@ -25,6 +25,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
   const [chatbotExpanded, setChatbotExpanded] = useState(false)
   const didDragRef = useRef(false)
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -102,9 +103,23 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
             <ResizableHandle
               withHandle
-              className="hidden md:flex"
-              onPointerDown={() => { didDragRef.current = false }}
-              onPointerMove={() => { didDragRef.current = true }}
+              className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-2 min-w-2 shrink-0"
+              onPointerDown={(e) => {
+                didDragRef.current = false
+                pointerDownRef.current = { x: e.clientX, y: e.clientY }
+              }}
+              onPointerMove={(e) => {
+                if (pointerDownRef.current && (Math.abs(e.clientX - pointerDownRef.current.x) > 5 || Math.abs(e.clientY - pointerDownRef.current.y) > 5)) {
+                  didDragRef.current = true
+                }
+              }}
+              onPointerUp={() => {
+                if (!didDragRef.current && !chatbotExpanded) {
+                  chatbotPanelRef.current?.expand()
+                  setChatbotExpanded(true)
+                }
+                pointerDownRef.current = null
+              }}
               onClick={() => {
                 if (!didDragRef.current && !chatbotExpanded) {
                   chatbotPanelRef.current?.expand()
