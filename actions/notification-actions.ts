@@ -60,6 +60,8 @@ export async function markAllAsRead(userId: string) {
 
 /**
  * Create a notification (Internal use).
+ * Triggers: (1) Tradie job status changes (e.g. Traveling, On site), (2) Automations
+ * when a rule runs the "Create Notification" action (e.g. deal goes stale, stage change).
  */
 export async function createNotification(data: {
   userId: string;

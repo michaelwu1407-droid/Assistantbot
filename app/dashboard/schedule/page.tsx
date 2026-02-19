@@ -2,10 +2,7 @@ import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUser } from "@/lib/auth"
 import { getDeals } from "@/actions/deal-actions"
-import { Calendar, Clock, MapPin, DollarSign, CheckCircle2, HelpCircle, HardHat } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { ScheduleCalendar } from "./schedule-calendar"
 
 export const dynamic = "force-dynamic"
 
@@ -28,101 +25,12 @@ export default async function SchedulePage() {
         )
     }
 
-    // Group deals by stage for a schedule-like view
-    const activeDeals = deals.filter(d => !["won", "lost"].includes(d.stage))
-    const today = new Date()
-    const todayStr = today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-
     return (
-        <div className="h-full flex flex-col p-4 md:p-6 overflow-auto">
-            <div className="mb-6 shrink-0">
-                <div className="flex items-center gap-3 mb-1">
-                    <Calendar className="w-6 h-6 text-primary" />
-                    <h1 className="text-2xl font-bold text-midnight">Schedule</h1>
-                </div>
-                <p className="text-sm text-slate-body ml-9">{todayStr}</p>
+        <div className="h-full flex flex-col p-4 md:p-6 overflow-hidden">
+            <h1 className="text-xl font-bold text-midnight mb-3 shrink-0">Schedule</h1>
+            <div className="flex-1 min-h-0">
+                <ScheduleCalendar deals={deals} />
             </div>
-
-            {activeDeals.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-                            <Calendar className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <h3 className="font-semibold text-slate-700">No active jobs</h3>
-                        <p className="text-sm text-slate-500">Create a new deal to see it in your schedule.</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {activeDeals.map((deal) => {
-                        const meta = deal.metadata as Record<string, unknown> | undefined
-                        const schedule = meta?.schedule as string | undefined
-                        const address = deal.address || (meta?.address as string | undefined)
-
-                        const isConfirmed = meta?.status === "CONFIRMED";
-                        const isTentative = meta?.status === "TENTATIVE";
-
-                        // Tradie View Link Mechanism:
-                        // If it's today or a mobile context, we prefer the "Tradie View" (Bottom Sheet)
-                        // For now, we'll make the main card click go to the standard deal view, 
-                        // but add a specific "Open Tradie Mode" action.
-                        const tradieLink = `/dashboard/tradie?jobId=${deal.id}`;
-
-                        return (
-                            <div key={deal.id} className="relative group">
-                                <Link href={tradieLink}>
-                                    <div className="p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">
-                                        <div className="flex items-start justify-between">
-                                            <div className="space-y-1.5">
-                                                <h3 className="font-semibold text-midnight group-hover:text-primary transition-colors">
-                                                    {deal.title}
-                                                </h3>
-                                                <p className="text-sm text-slate-body">{deal.contactName} {deal.company ? `• ${deal.company}` : ''}</p>
-                                                {address && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                        <MapPin className="w-3 h-3" />
-                                                        <span>{address}</span>
-                                                    </div>
-                                                )}
-                                                {schedule && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                        <Clock className="w-3 h-3" />
-                                                        <span>{schedule}</span>
-                                                    </div>
-                                                )}
-                                                <div className="flex gap-2">
-                                                    {isConfirmed && <div className="ott-badge-mint flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Confirmed</div>}
-                                                    {isTentative && <div className="ott-badge-blue flex items-center gap-1"><HelpCircle className="w-3 h-3" /> Tentative</div>}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary text-slate-body capitalize">
-                                                    {deal.stage}
-                                                </span>
-                                                <div className="flex items-center text-sm font-bold text-primary">
-                                                    <DollarSign className="w-3.5 h-3.5" />
-                                                    {deal.value.toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-
-                                {/* Quick Action for Tradie Workflow */}
-                                <div className="absolute top-4 right-4 hidden group-hover:block transition-all">
-                                    <Button size="sm" variant="secondary" className="h-8 shadow-sm" asChild>
-                                        <Link href={tradieLink}>
-                                            <HardHat className="w-3 h-3 mr-2" />
-                                            Open Job Mode
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div >
-            )}
-        </div >
+        </div>
     )
 }

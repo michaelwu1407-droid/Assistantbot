@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, isToolUIPart, getToolName } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
@@ -56,7 +56,7 @@ function ChatWithHistory({
       api: '/api/chat',
       body: { workspaceId },
     }),
-    initialMessages: initialMessages.length > 0 ? initialMessages : undefined,
+    messages: initialMessages.length > 0 ? initialMessages : undefined,
     onFinish: ({ message }) => {
       router.refresh();
       const content = getMessageTextFromParts(message.parts);
@@ -116,18 +116,18 @@ function ChatWithHistory({
                         : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                     )}
                   >
-                    {message.parts?.map((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string }; toolName?: string }, idx: number) => {
-                      if (part.type === 'text' && 'text' in part && part.text) {
+                    {message.parts?.map((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string }; errorText?: string }, idx: number) => {
+                      if (part.type === 'text' && part.text) {
                         return (
                           <p key={idx} className="text-xs leading-relaxed whitespace-pre-line font-medium">
                             {part.text}
                           </p>
                         );
                       }
-                      if (isToolUIPart(part)) {
-                        const inv = part as { state?: string; output?: { success?: boolean; message?: string }; errorText?: string };
-                        if (inv.state === 'output-available' && inv.output?.message) {
-                          const isSuccess = inv.output.success !== false;
+                      const isTool = part.type?.startsWith('tool-') || part.type === 'dynamic-tool';
+                      if (isTool) {
+                        if (part.state === 'output-available' && part.output?.message) {
+                          const isSuccess = part.output.success !== false;
                           return (
                             <div
                               key={idx}
@@ -139,14 +139,14 @@ function ChatWithHistory({
                               )}
                             >
                               <Check className="w-4 h-4 shrink-0" />
-                              <span>{inv.output.message}</span>
+                              <span>{part.output.message}</span>
                             </div>
                           );
                         }
-                        if (inv.state === 'output-error' && inv.errorText) {
+                        if (part.state === 'output-error' && part.errorText) {
                           return (
                             <div key={idx} className="mt-2 text-xs text-red-600">
-                              {inv.errorText}
+                              {part.errorText}
                             </div>
                           );
                         }
@@ -246,9 +246,6 @@ function ChatWithHistory({
             </Button>
           </div>
         </form>
-        <p className="text-xs text-muted-foreground text-center mt-2 opacity-70">
-          Pj Buddy AI can make mistakes. Please verify important information.
-        </p>
       </div>
     </div>
   );
@@ -284,7 +281,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
 
   return (
     <ChatWithHistory
-      workspaceId={workspaceId}
+      workspaceId={workspaceId ?? ''}
       initialMessages={initialMessages}
     />
   );

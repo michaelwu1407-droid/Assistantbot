@@ -35,11 +35,11 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                 {/* Dashboard Content Grid - Tight gap (12px) */}
                 <div className="flex flex-col flex-1 min-h-0 gap-2">
 
-                    {/* Row 1: KPI Cards & Activity Feed - Full width nav to chat, activity 2.5x one card */}
-                    <div className="flex w-full gap-4 pb-2 shrink-0 min-h-[100px]">
+                    {/* Row 1: KPI Cards & Activity Feed - Squeezed height by 30% */}
+                    <div className="flex w-full gap-4 pb-2 shrink-0 min-h-[70px]">
                         <DashboardKpiCards deals={deals} />
                         {/* Activity Feed - 2.5x width of one KPI card */}
-                        <div className="flex-[2.5] min-w-0 h-[100px] max-h-[100px]">
+                        <div className="flex-[2.5] min-w-0 h-[70px] max-h-[70px]">
                             <div className="ott-card w-full h-full p-3 flex flex-col bg-white overflow-hidden shadow-sm">
                                 <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-2 shrink-0">
                                     Activity

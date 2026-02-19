@@ -98,11 +98,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
             <ResizableHandle withHandle className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-1" />
 
-            {/* Right Chatbot - Collapsed by default, expand on click */}
+            {/* Right Chatbot - Collapsed by default; when expanded, minimum 15% width so formatting doesn't break */}
             <ResizablePanel
               ref={chatbotPanelRef}
               defaultSize={0}
-              minSize={0}
+              minSize={15}
               maxSize={50}
               collapsible={true}
               collapsedSize={0}
@@ -152,7 +152,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               }}
               className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-white"
               size="icon"
-              title="Open chatbot"
+              title="Open chatbot (opens panel on the right; button hides when panel is open)"
             >
               <MessageSquare className="h-6 w-6" />
             </Button>

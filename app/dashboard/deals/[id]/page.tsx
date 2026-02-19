@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Edit, Camera, MessageSquare, FileText, Images, MapPin, Calendar, DollarSign, Briefcase } from "lucide-react"
+import { ChevronLeft, Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -71,9 +71,11 @@ export default async function DealDetailPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm">
-          <Edit className="w-4 h-4 mr-2" />
-          Edit
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/dashboard/deals/${id}/edit`}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Link>
         </Button>
       </div>
 

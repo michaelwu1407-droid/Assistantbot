@@ -110,7 +110,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                 <div className="flex-1 space-y-0.5 min-w-0">
                                     <div className="flex justify-between items-start gap-2">
                                         <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 pr-1">
-                                            {activity.title}
+                                            {activity.contactName ? `${activity.contactName} — ${activity.title}` : activity.title}
                                         </p>
                                         <span className="text-[9px] text-muted-foreground whitespace-nowrap flex-shrink-0">
                                             {activity.time}

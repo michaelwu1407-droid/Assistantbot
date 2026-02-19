@@ -14,6 +14,7 @@ export interface ActivityView {
   createdAt: Date;
   dealId?: string;
   contactId?: string;
+  contactName?: string | null; // for display: "Contact Name — Change"
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -53,32 +54,49 @@ export async function getActivities(options?: {
   contactId?: string;
   workspaceId?: string;
   limit?: number;
+  /** For inbox: only return these activity types (e.g. CALL, EMAIL, NOTE). */
+  typeIn?: ("CALL" | "EMAIL" | "NOTE" | "TASK")[];
 }): Promise<ActivityView[]> {
   try {
     const where: Record<string, unknown> = {};
 
     if (options?.dealId) where.dealId = options.dealId;
     if (options?.contactId) where.contactId = options.contactId;
-    if (options?.workspaceId) {
-      where.deal = { workspaceId: options.workspaceId };
+    if (options?.workspaceId && !options.dealId && !options.contactId) {
+      where.OR = [
+        { deal: { workspaceId: options.workspaceId } },
+        { contact: { workspaceId: options.workspaceId } },
+      ];
+    }
+    if (options?.typeIn?.length) {
+      where.type = { in: options.typeIn };
     }
 
     const activities = await db.activity.findMany({
       where,
       orderBy: { createdAt: "desc" },
       take: options?.limit ?? 20,
+      include: {
+        contact: { select: { name: true } },
+        deal: { select: { contact: { select: { name: true } } } },
+      },
     });
 
-    return activities.map((a) => ({
-      id: a.id,
-      type: a.type.toLowerCase(),
-      title: a.title,
-      description: a.description,
-      time: relativeTime(a.createdAt),
-      createdAt: a.createdAt,
-      dealId: a.dealId ?? undefined,
-      contactId: a.contactId ?? undefined,
-    }));
+    return activities.map((a) => {
+      const contactName =
+        a.contact?.name ?? a.deal?.contact?.name ?? null;
+      return {
+        id: a.id,
+        type: a.type.toLowerCase(),
+        title: a.title,
+        description: a.description,
+        time: relativeTime(a.createdAt),
+        createdAt: a.createdAt,
+        dealId: a.dealId ?? undefined,
+        contactId: a.contactId ?? undefined,
+        contactName: contactName ?? undefined,
+      };
+    });
   } catch (error) {
     console.error("Database Error in getActivities:", error);
     return [];

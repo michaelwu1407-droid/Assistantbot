@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react"
 import { DealView } from "@/actions/deal-actions"
-import { DollarSign, Briefcase, AlertTriangle, Clock } from "lucide-react"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import {
@@ -28,7 +27,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const { revenue, activeCount, totalCount, criticalCount, followUpCount } = useMemo(() => {
+  const { revenue, scheduledCount, criticalCount, followUpCount } = useMemo(() => {
     const wonThisMonth = deals.filter(
       (d) =>
         d.stage === "completed" &&
@@ -36,10 +35,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         new Date(d.stageChangedAt).getFullYear() === currentYear
     )
     const revenue = wonThisMonth.reduce((sum, d) => sum + d.value, 0)
-    const activeCount = deals.filter(
-      (d) => d.stage !== "completed" && d.stage !== "lost"
-    ).length
-    const totalCount = deals.length
+    const scheduledCount = deals.filter((d) => d.stage === "scheduled").length
     const criticalCount = deals.filter((d) => d.health.status === "ROTTING").length
     const staleDays = staleWeeks * 7
     const followUpCount = deals.filter((d) => {
@@ -49,8 +45,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
 
     return {
       revenue,
-      activeCount,
-      totalCount,
+      scheduledCount,
       criticalCount,
       followUpCount,
     }
@@ -59,68 +54,42 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const monthLabel = MONTHS[currentMonth]
 
   const cardClass =
-    "ott-card p-3 flex flex-col justify-center h-full min-h-[72px] bg-white shadow-sm relative"
+    "ott-card p-2 flex flex-col justify-center h-full min-h-[50px] bg-white shadow-sm relative"
 
   return (
     <div className="grid grid-cols-4 gap-2 h-full flex-[4] min-w-0">
-      {/* [Month] Revenue */}
+      {/* 1. Revenue */}
       <div className={cardClass}>
-        <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
-          <DollarSign className="w-4 h-4 text-[#0F172A]" />
-        </div>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
           {monthLabel} Revenue
         </span>
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-extrabold text-[#0F172A] tracking-tighter leading-none">
+          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
             ${revenue.toLocaleString()}
           </span>
         </div>
       </div>
 
-      {/* Active jobs */}
+      {/* 2. Scheduled jobs */}
       <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">
-          Active jobs
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
+          Scheduled jobs
         </span>
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-extrabold text-[#0F172A] tracking-tighter leading-none">
-            {activeCount}/{totalCount}
+          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
+            {scheduledCount}
           </span>
-        </div>
-        <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
-          <Briefcase className="w-4 h-4 text-[#0F172A]" />
         </div>
       </div>
 
-      {/* Critical */}
+      {/* 3. Follow-up */}
       <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">
-          Critical
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span
-            className={cn(
-              "text-xl font-extrabold tracking-tighter leading-none",
-              criticalCount > 0 ? "text-red-500" : "text-[#0F172A]"
-            )}
-          >
-            {criticalCount}
-          </span>
-        </div>
-        <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#FEF2F2] flex items-center justify-center">
-          <AlertTriangle className="w-4 h-4 text-red-600" />
-        </div>
-      </div>
-
-      {/* Follow-up */}
-      <div className={cardClass}>
-        <div className="absolute top-2 right-2 flex items-center gap-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <Select
             value={String(staleWeeks)}
             onValueChange={(v) => setStaleWeeks(Number(v))}
           >
-            <SelectTrigger className="h-6 w-[64px] text-[10px] font-medium px-1.5 border-slate-200">
+            <SelectTrigger className="h-5 w-[56px] text-[10px] font-medium px-1 border-slate-200">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -131,21 +100,33 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
               ))}
             </SelectContent>
           </Select>
-          <div className="w-8 h-8 rounded-full bg-[#FFFBEB] flex items-center justify-center shrink-0">
-            <Clock className="w-4 h-4 text-amber-600" />
-          </div>
         </div>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none block mb-0.5">
           Follow-up
+        </span>
+        <span
+          className={cn(
+            "text-lg font-extrabold tracking-tighter leading-none",
+            followUpCount > 0 ? "text-amber-600" : "text-[#0F172A]"
+          )}
+        >
+          {followUpCount}
+        </span>
+      </div>
+
+      {/* 4. Critical */}
+      <div className={cardClass}>
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
+          Critical
         </span>
         <div className="flex items-baseline gap-2">
           <span
             className={cn(
-              "text-xl font-extrabold tracking-tighter leading-none",
-              followUpCount > 0 ? "text-amber-600" : "text-[#0F172A]"
+              "text-lg font-extrabold tracking-tighter leading-none",
+              criticalCount > 0 ? "text-red-500" : "text-[#0F172A]"
             )}
           >
-            {followUpCount}
+            {criticalCount}
           </span>
         </div>
       </div>

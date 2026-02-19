@@ -1,6 +1,6 @@
 # AceCap Log — All Issues Flagged To Date
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-19
 **Project**: PJ Buddy (Assistantbot)
 
 ---
@@ -85,6 +85,8 @@
 | UI-15 | Activity feed broken navigation (window.location) | ✅ FIXED | Replaced with `router.push()` |
 | UI-16 | Tradie Map/Schedule/Estimator 404 errors | ✅ FIXED | Fixed sidebar links, created missing routes |
 | UI-17 | DealView vs TradieJob type mismatch | ✅ FIXED | Using `as any` casts at boundaries; TradieJob interface defined locally in client |
+| UI-18 | Map view not in nav (user: "What happened to my map view?") | ✅ FIXED | Added `/dashboard/map` page and Map link in sidebar (2026-02-19) |
+| UI-19 | Sidebar Tradie/Agent toggles and real estate pages | ✅ FIXED | Removed toggles and agent sub-items; Deals → Contacts; tradie-only focus (2026-02-19) |
 
 ---
 

@@ -42,8 +42,6 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
     transition,
   }
 
-  const pointerStart = React.useRef<{ x: number; y: number } | null>(null)
-
   let cardClasses = "ott-card bg-white hover:border-[#00D28B] p-4"
   let statusLabel = ""
   let statusClass = ""
@@ -68,35 +66,28 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="relative group touch-none"
-      onPointerDown={(e) => { pointerStart.current = { x: e.clientX, y: e.clientY } }}
-      onClick={(e) => {
-        if (pointerStart.current) {
-          const dx = Math.abs(e.clientX - pointerStart.current.x)
-          const dy = Math.abs(e.clientY - pointerStart.current.y)
-          if (dx > 5 || dy > 5) {
+    <div ref={setNodeRef} style={style} className="relative group touch-none">
+      {/* Draggable area: whole card. Bin is a sibling so it doesn't start drag. Activation distance (in Kanban) turns small moves into click. */}
+      <div
+        className={cn("relative overflow-hidden", cardClasses)}
+        {...(!overlay ? { ...attributes, ...listeners } : {})}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('[data-no-card-click]')) return
+          if (onOpenModal) onOpenModal()
+          else window.location.href = `/dashboard/deals/${deal.id}`
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()
-            e.stopPropagation()
-            pointerStart.current = null
-            return
+            if (onOpenModal) onOpenModal()
+            else window.location.href = `/dashboard/deals/${deal.id}`
           }
-        }
-        pointerStart.current = null
-        if (onOpenModal) {
-          onOpenModal()
-        } else {
-          window.location.href = `/dashboard/deals/${deal.id}`
-        }
-      }}
-    >
-      <div className={cn("relative overflow-hidden", cardClasses)}>
-        {/* Health badge only when Follow up or Urgent; bin always when not overlay */}
-        <div className="absolute top-3 right-3 flex items-start gap-2">
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        {/* Health badge only when Follow up or Urgent */}
+        <div className="absolute top-3 right-12 flex items-start gap-2">
           {showHealthBadge && (
             <div className="flex flex-col items-end gap-0.5" title="Follow up = no activity for a while; Urgent = needs attention now">
               <span className="text-[9px] font-semibold text-[#64748B] uppercase tracking-wider">Health</span>
@@ -107,20 +98,6 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
                 {statusLabel}
               </span>
             </div>
-          )}
-          {onDelete && !overlay && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                onDelete()
-              }}
-              className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors mt-0.5"
-              title="Move to Deleted jobs"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
           )}
         </div>
 
@@ -158,6 +135,22 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
           </div>
         </div>
       </div>
+      {/* Bin outside draggable area so clicking/dragging it never moves the card */}
+      {onDelete && !overlay && (
+        <button
+          type="button"
+          data-no-card-click
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onDelete()
+          }}
+          className="absolute top-3 right-3 z-20 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Move to Deleted jobs"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </div>
   )
 }

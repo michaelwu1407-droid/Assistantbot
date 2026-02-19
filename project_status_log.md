@@ -1,5 +1,25 @@
 # Project Status Log
 
+## 2026-02-19: Sidebar, Dashboard, Inbox, Schedule, Reports & Map
+- **Chatbox (all pages)**: Right-hand chatbot panel now has a minimum width of 15% when expanded (`minSize={15}` on `ResizablePanel`) so dragging the slider cannot make the chat area too narrow and break formatting.
+- **Home / Dashboard**:
+  - Removed all icons from the top KPI row (Revenue, Scheduled jobs, Follow-up, Critical). Squeezed KPI card height by ~30% (`min-h-[72px]` → `min-h-[50px]`, row `min-h-[100px]` → `min-h-[70px]`).
+  - Activity feed cards now show **contact name + change** (e.g. "John Smith — Moved to Scheduled"). `getActivities` returns `contactName` (from contact or deal.contact); ActivityFeed displays `contactName — title`.
+- **Inbox**: Rebuilt as an email-style interactions log. Fetches activities with `typeIn: ["CALL", "EMAIL", "NOTE"]` via `getActivities({ workspaceId, typeIn, limit })`. Left list: type icon (Call/Email/Text), contact name, subject/preview, time. Right detail: for Calls shows "Call summary" + content; for Email shows subject + body; for Note/Text shows message content. "Open" links to deal or contact. Added `typeIn` and workspace `OR` (deal or contact in workspace) in `actions/activity-actions.ts`.
+- **Schedule**: Replaced list view with a **month calendar** (`ScheduleCalendar`). Deals with `scheduledAt` appear on the correct day; clicking a job opens `DealDetailModal`. Previous/next month controls. File: `app/dashboard/schedule/schedule-calendar.tsx`.
+- **Sidebar**:
+  - Replaced "Deals" with **Contacts** (pipeline stays on Home Kanban). Removed **Tradie** and **Agent** menu toggles and all expandable sub-menus (Tradie sub-items, Agent sub-items including Estimator, Open House). Tradie-only focus; real estate–specific nav removed.
+  - Added **Map** link to `/dashboard/map`. New page `app/dashboard/map/page.tsx` (same behaviour as tradie map: `getTradieJobs`, `MapView`).
+  - Team icon set to `UserCircle` to distinguish from Contacts (`Users`).
+- **Reports / Analytics**: Replaced mock data with **real pipeline data**. New `actions/analytics-actions.ts`: `getReportsData(workspaceId, monthsBack)` returns real revenue (from won deals by `stageChangedAt`), deals by stage (real pipeline stage labels), contact counts, new contacts this month, completed vs in-progress jobs, avg time to win. Analytics page uses `useShellStore(workspaceId)` and fetches via `getReportsData`; time range drives `monthsBack`. Team Performance card only shown when data exists.
+- **Files touched**: `components/layout/Shell.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/dashboard/dashboard-client.tsx`, `components/crm/activity-feed.tsx`, `actions/activity-actions.ts`, `components/core/sidebar.tsx`, `app/dashboard/inbox/page.tsx`, `components/crm/inbox-view.tsx`, `app/dashboard/schedule/page.tsx`, `app/dashboard/schedule/schedule-calendar.tsx`, `app/dashboard/analytics/page.tsx`, `actions/analytics-actions.ts` (new), `app/dashboard/map/page.tsx` (new).
+
+## 2026-02-19: Voice AI (Retell) – Agent, Tools & Webhook
+- **Script**: `scripts/create-retell-agent.ts` — programmatic Retell agent creation (Gemini 2.5 Flash, MiniMax TTS, fallback voice). Env: `RETELL_API_KEY`, `RETELL_RESPONSE_ENGINE_ID`, `RETELL_PRIMARY_VOICE_ID`, `RETELL_FALLBACK_VOICE_ID`. Comments describe MiniMax custom voice and `check_calendar` tool URL. npm script: `retell:create-agent`.
+- **Live tool (read-only)**: `app/api/retell/tools/calendar/route.ts` — POST with raw body, `Retell.verify(rawBody, apiKey, x-retell-signature)`, then Prisma `findMany` on `deal` by `scheduledAt` and `workspaceId`. Returns JSON `{ date, workspace_id, scheduled_jobs }`. No writes.
+- **Post-call webhook**: `app/api/retell/webhook/route.ts` — POST with raw body and signature verification. Handles `event === "call_analyzed"`; reads `kanban_action` and `contact_name`; finds contact and latest deal, maps action to stage, calls `updateDealStage`; returns 204 on success.
+- **Dependency**: `retell-sdk` added to `package.json`.
+
 ## 2026-02-18: Stress Test & Critical Fixes (Phase 11-12)
 - **Feature**: Added `Address` support to `createDeal` action and `NewDealModal`.
 - **UX**: Replaced `window.location.reload()` with `router.refresh()` for smoother deal creation.

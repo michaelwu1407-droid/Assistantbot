@@ -1,13 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DealNotes } from "@/components/crm/deal-notes"
-import { Edit, Camera, MessageSquare, FileText, Images, MapPin, Calendar, DollarSign, Briefcase } from "lucide-react"
+import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 
@@ -42,8 +42,10 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
       setError(null)
       return
     }
-    setLoading(true)
+    setDeal(null)
+    setContactDeals([])
     setError(null)
+    setLoading(true)
     fetch(`/api/deals/${dealId}`)
       .then((res) => {
         if (!res.ok) throw new Error(res.status === 404 ? "Deal not found" : "Failed to load")
@@ -60,11 +62,10 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
       .finally(() => setLoading(false))
   }, [dealId, open])
 
-  if (!open) return null
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
             <p className="text-slate-500">Loading...</p>
@@ -83,11 +84,16 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
 }
 
 function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; contactDeals: any[]; onOpenChange: (open: boolean) => void }) {
-
+  const router = useRouter()
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
   const stageLabel = STAGE_LABELS[deal.stage] ?? deal.stage
+
+  const handleEdit = () => {
+    onOpenChange(false)
+    router.push(`/dashboard/deals/${deal.id}`)
+  }
 
   return (
     <>
@@ -106,7 +112,7 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getDealHealth, type DealHealth } from "@/lib/pipeline";
 import { evaluateAutomations } from "./automation-actions";
+import { getAuthUser } from "@/lib/auth";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -30,6 +31,19 @@ const STAGE_REVERSE: Record<string, string> = {
   completed: "WON",
   lost: "LOST",
   deleted: "DELETED",
+};
+
+// Human-readable labels for activity log (e.g. "Moved to Deleted jobs")
+const STAGE_ACTIVITY_LABELS: Record<string, string> = {
+  new: "New request",
+  new_request: "New request",
+  quote_sent: "Quote sent",
+  scheduled: "Scheduled",
+  pipeline: "Pipeline",
+  ready_to_invoice: "Ready to invoice",
+  completed: "Completed",
+  lost: "Lost",
+  deleted: "Deleted jobs",
 };
 
 export interface DealView {
@@ -195,43 +209,65 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
  * Persist a Kanban drag-and-drop stage change.
  */
 export async function updateDealStage(dealId: string, stage: string) {
-  const parsed = UpdateStageSchema.safeParse({ dealId, stage });
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0].message };
+  try {
+    const parsed = UpdateStageSchema.safeParse({ dealId, stage });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
+    const prismaStage = STAGE_REVERSE[parsed.data.stage];
+    if (!prismaStage) {
+      return { success: false, error: `Invalid stage: ${stage}` };
+    }
+
+    const deal = await db.deal.update({
+      where: { id: parsed.data.dealId },
+      data: {
+        stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
+        stageChangedAt: new Date(),
+      },
+    });
+
+    // Activity: who did it + specific change (e.g. "Moved to Deleted jobs")
+    const stageLabel = STAGE_ACTIVITY_LABELS[parsed.data.stage] ?? parsed.data.stage;
+    let userName = "Someone";
+    let userId: string | undefined;
+    try {
+      const auth = await getAuthUser();
+      userName = auth.name;
+      userId = auth.id;
+    } catch {
+      // not authenticated (e.g. automation)
+    }
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: `Moved to ${stageLabel}`,
+        content: `Stage changed to ${stageLabel}.`,
+        description: `— ${userName}`,
+        dealId: parsed.data.dealId,
+        contactId: deal.contactId ?? undefined,
+        userId,
+      },
+    });
+
+    // Trigger Automation (non-blocking; don't fail the move if automations error)
+    try {
+      await evaluateAutomations(deal.workspaceId, {
+        type: "stage_change",
+        dealId: deal.id,
+        stage: prismaStage,
+      });
+    } catch (automationErr) {
+      console.warn("Automation evaluation failed after stage update:", automationErr);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("updateDealStage error:", err);
+    const message = err instanceof Error ? err.message : "Failed to update stage";
+    return { success: false, error: message };
   }
-
-  const prismaStage = STAGE_REVERSE[parsed.data.stage];
-  if (!prismaStage) {
-    return { success: false, error: `Invalid stage: ${stage}` };
-  }
-
-  const deal = await db.deal.update({
-    where: { id: parsed.data.dealId },
-    data: {
-      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
-      stageChangedAt: new Date(),
-    },
-  });
-
-  // Auto-log the stage change
-  await db.activity.create({
-    data: {
-      type: "NOTE",
-      title: "Stage changed",
-      content: `Deal moved to ${parsed.data.stage}`,
-      dealId: parsed.data.dealId,
-    },
-  });
-
-  // Trigger Automation
-  // We pass the UPPERCASE stage because that's what is stored in the DB and Automation config
-  await evaluateAutomations(deal.workspaceId, {
-    type: "stage_change",
-    dealId: deal.id,
-    stage: prismaStage
-  });
-
-  return { success: true };
 }
 
 /**
@@ -245,10 +281,84 @@ export async function updateDealMetadata(
   if (!deal) return { success: false, error: "Deal not found" };
 
   const existing = (deal.metadata as Record<string, unknown>) ?? {};
+  const hasNotes = "notes" in metadata && metadata.notes !== existing.notes;
 
   await db.deal.update({
     where: { id: dealId },
     data: { metadata: JSON.parse(JSON.stringify({ ...existing, ...metadata })) },
+  });
+
+  // Log activity when card is edited (e.g. notes updated)
+  let userName = "Someone";
+  let userId: string | undefined;
+  try {
+    const auth = await getAuthUser();
+    userName = auth.name;
+    userId = auth.id;
+  } catch {
+    // not authenticated
+  }
+  const changeTitle = hasNotes ? "Notes updated" : "Details updated";
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: changeTitle,
+      content: hasNotes ? "Deal notes were updated." : "Deal details were updated.",
+      description: `— ${userName}`,
+      dealId,
+      contactId: deal.contactId ?? undefined,
+      userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update deal core fields (title, value, stage). Used by the deal edit page.
+ */
+export async function updateDeal(
+  dealId: string,
+  data: { title?: string; value?: number; stage?: string }
+) {
+  const deal = await db.deal.findUnique({ where: { id: dealId } });
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  type DealUpdate = Parameters<typeof db.deal.update>[0]["data"];
+  const update: DealUpdate = {};
+  if (data.title !== undefined) update.title = data.title;
+  if (data.value !== undefined) update.value = data.value;
+  if (data.stage !== undefined) {
+    const prismaStage = STAGE_REVERSE[data.stage];
+    if (!prismaStage) return { success: false, error: `Invalid stage: ${data.stage}` };
+    update.stage = prismaStage as DealUpdate["stage"];
+    update.stageChangedAt = new Date();
+  }
+
+  await db.deal.update({
+    where: { id: dealId },
+    data: update,
+  });
+
+  let userName = "Someone";
+  let userId: string | undefined;
+  try {
+    const auth = await getAuthUser();
+    userName = auth.name;
+    userId = auth.id;
+  } catch {
+    // not authenticated
+  }
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Deal updated",
+      content: "Title, value or stage was changed.",
+      description: `— ${userName}`,
+      dealId,
+      contactId: deal.contactId ?? undefined,
+      userId,
+    },
   });
 
   return { success: true };

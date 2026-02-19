@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "db:fix-deal-stage": "prisma db execute --file prisma/migrations/20250219_add_deal_stage_deleted/migration.sql",
     "db:seed": "npx tsx prisma/seed.ts",
+    "retell:create-agent": "npx tsx scripts/create-retell-agent.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -65,7 +67,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "zod": "^4.3.6",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.11",
+    "retell-sdk": "^4.66.0"
   },
   "devDependencies": {
     "@prisma/client": "^5.21.1",

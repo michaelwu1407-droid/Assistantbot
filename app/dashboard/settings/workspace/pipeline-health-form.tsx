@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -39,7 +39,7 @@ const DEFAULT_URGENT = 14
 export function PipelineHealthForm({ workspaceId, initialSettings }: PipelineHealthFormProps) {
   const router = useRouter()
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       followUpDays: initialSettings.followUpDays ?? DEFAULT_FOLLOW_UP,
       urgentDays: initialSettings.urgentDays ?? DEFAULT_URGENT,

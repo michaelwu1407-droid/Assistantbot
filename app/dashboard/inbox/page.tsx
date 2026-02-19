@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUser } from "@/lib/auth"
 import { InboxView } from "@/components/crm/inbox-view"
-import { getInboxThreads } from "@/actions/messaging-actions"
+import { getActivities } from "@/actions/activity-actions"
 
 export const dynamic = "force-dynamic"
 
@@ -10,10 +10,14 @@ export default async function InboxPage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
 
-    let threads
+    let interactions
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
-        threads = await getInboxThreads(workspace.id)
+        interactions = await getActivities({
+            workspaceId: workspace.id,
+            typeIn: ["CALL", "EMAIL", "NOTE"],
+            limit: 80,
+        })
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">
@@ -27,7 +31,7 @@ export default async function InboxPage() {
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <InboxView initialThreads={threads} />
+            <InboxView initialInteractions={interactions} />
         </div>
     )
 }

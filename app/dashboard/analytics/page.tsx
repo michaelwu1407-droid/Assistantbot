@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
@@ -19,93 +18,27 @@ import {
   Clock,
   CheckCircle
 } from "lucide-react"
-
-interface AnalyticsData {
-  revenue: {
-    total: number
-    growth: number
-    monthly: Array<{ month: string; revenue: number }>
-  }
-  deals: {
-    total: number
-    conversion: number
-    byStage: Array<{ stage: string; count: number }>
-  }
-  customers: {
-    total: number
-    new: number
-    satisfaction: number
-  }
-  jobs: {
-    completed: number
-    inProgress: number
-    avgCompletionTime: number
-  }
-  team: {
-    members: number
-    productivity: number
-    performance: Array<{ name: string; jobs: number; revenue: number }>
-  }
-}
+import { useShellStore } from "@/lib/store"
+import { getReportsData, type ReportsData } from "@/actions/analytics-actions"
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("30d")
-  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [data, setData] = useState<ReportsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const workspaceId = useShellStore((s) => s.workspaceId)
 
   useEffect(() => {
-    // Simulate loading analytics data
-    const mockData: AnalyticsData = {
-      revenue: {
-        total: 245680,
-        growth: 12.5,
-        monthly: [
-          { month: "Jan", revenue: 18000 },
-          { month: "Feb", revenue: 22000 },
-          { month: "Mar", revenue: 25000 },
-          { month: "Apr", revenue: 28000 },
-          { month: "May", revenue: 32000 },
-          { month: "Jun", revenue: 35000 }
-        ]
-      },
-      deals: {
-        total: 156,
-        conversion: 68.5,
-        byStage: [
-          { stage: "Lead", count: 45 },
-          { stage: "Qualified", count: 32 },
-          { stage: "Proposal", count: 28 },
-          { stage: "Negotiation", count: 18 },
-          { stage: "Closed Won", count: 33 }
-        ]
-      },
-      customers: {
-        total: 89,
-        new: 12,
-        satisfaction: 8.7
-      },
-      jobs: {
-        completed: 142,
-        inProgress: 8,
-        avgCompletionTime: 4.2
-      },
-      team: {
-        members: 5,
-        productivity: 92,
-        performance: [
-          { name: "John Smith", jobs: 45, revenue: 67800 },
-          { name: "Sarah Johnson", jobs: 38, revenue: 54200 },
-          { name: "Mike Wilson", jobs: 32, revenue: 48500 },
-          { name: "Emily Brown", jobs: 27, revenue: 41200 }
-        ]
-      }
-    }
-
-    setTimeout(() => {
-      setData(mockData)
+    if (!workspaceId) {
       setLoading(false)
-    }, 1000)
-  }, [timeRange])
+      return
+    }
+    setLoading(true)
+    const months = timeRange === "7d" ? 1 : timeRange === "30d" ? 3 : timeRange === "90d" ? 4 : 12
+    getReportsData(workspaceId, months)
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [workspaceId, timeRange])
 
   if (loading) {
     return (
@@ -122,6 +55,13 @@ export default function AnalyticsPage() {
     )
   }
 
+  if (!loading && !data) {
+    return (
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <p className="text-muted-foreground">No workspace or unable to load reports.</p>
+      </div>
+    )
+  }
   if (!data) return null
 
   return (
@@ -237,7 +177,7 @@ export default function AnalyticsPage() {
                   <div className="flex-1 bg-secondary rounded-full h-6 relative overflow-hidden">
                     <div 
                       className="absolute left-0 top-0 h-full bg-primary rounded-full"
-                      style={{ width: `${(month.revenue / Math.max(...data.revenue.monthly.map(m => m.revenue))) * 100}%` }}
+                      style={{ width: `${(Math.max(...data.revenue.monthly.map(m => m.revenue)) > 0 ? (month.revenue / Math.max(...data.revenue.monthly.map(m => m.revenue))) * 100 : 0)}%` }}
                     />
                   </div>
                   <span className="text-sm font-medium text-slate-900 w-20 text-right">
@@ -265,14 +205,8 @@ export default function AnalyticsPage() {
                   <span className="text-sm text-slate-600 w-24">{stage.stage}</span>
                   <div className="flex-1 bg-secondary rounded-full h-6 relative overflow-hidden">
                     <div 
-                      className={`absolute left-0 top-0 h-full rounded-full ${
-                        stage.stage === 'Closed Won' ? 'bg-primary' :
-                        stage.stage === 'Negotiation' ? 'bg-blue-500' :
-                        stage.stage === 'Proposal' ? 'bg-blue-400' :
-                        stage.stage === 'Qualified' ? 'bg-primary/60' :
-                        'bg-muted-foreground'
-                      }`}
-                      style={{ width: `${(stage.count / Math.max(...data.deals.byStage.map(s => s.count))) * 100}%` }}
+                      className="absolute left-0 top-0 h-full rounded-full bg-primary/80"
+                      style={{ width: `${(data.deals.byStage.length && Math.max(...data.deals.byStage.map(s => s.count)) > 0 ? (stage.count / Math.max(...data.deals.byStage.map(s => s.count))) * 100 : 0)}%` }}
                     />
                   </div>
                   <span className="text-sm font-medium text-slate-900 w-12 text-right">
@@ -320,32 +254,34 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Team Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Team Performance
-            </CardTitle>
-            <CardDescription>Individual team member metrics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data.team.performance.map((member, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-2xl">
-                  <div>
-                    <p className="font-medium text-midnight">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">{member.jobs} jobs completed</p>
+        {/* Team Performance - shown when we have team data */}
+        {data.team.performance.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Team Performance
+              </CardTitle>
+              <CardDescription>Individual team member metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {data.team.performance.map((member, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-2xl">
+                    <div>
+                      <p className="font-medium text-midnight">{member.name}</p>
+                      <p className="text-sm text-muted-foreground">{member.jobs} jobs completed</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-primary">${member.revenue.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">revenue</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-primary">${member.revenue.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">revenue</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Export Options */}

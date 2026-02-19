@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import {
   DndContext,
   DragOverlay,
-  rectIntersection,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -78,7 +78,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 10 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -199,7 +199,7 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={rectIntersection}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -257,9 +257,11 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                             if (result.success) {
                               setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: "deleted" } : d)))
                               toast.success("Moved to Deleted jobs")
-                            } else throw new Error(result.error)
-                          } catch {
-                            toast.error("Failed to move")
+                            } else {
+                              toast.error(result.error ?? "Failed to move")
+                            }
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Failed to move")
                           }
                         }}
                       />

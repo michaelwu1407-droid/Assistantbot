@@ -1,21 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
     Home,
-    Hammer,
-    Briefcase,
     Settings,
     LogOut,
     Map,
     Calendar,
     Users,
+    UserCircle,
     MessageSquare,
-    LayoutTemplate,
-    FileText,
     PieChart,
     Inbox
 } from "lucide-react"
@@ -26,32 +23,17 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import { logout } from "@/actions/auth-actions"
-import { Switch } from "@/components/ui/switch"
 import { useShellStore } from "@/lib/store"
-import { useIndustry } from "@/components/providers/industry-provider"
 
 const navItems = [
     { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link" },
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
-    { icon: FileText, label: "Deals", href: "/dashboard/deals", id: "deals-link" },
-    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
-    { icon: Users, label: "Team", href: "/dashboard/team", id: "team-link" },
-    // Toggle Sections
-    { icon: Hammer, label: "Tradie", href: "/dashboard/tradie", id: "tradie-menu-toggle", isToggle: true },
-    { icon: Briefcase, label: "Agent", href: "/dashboard/agent", id: "agent-menu-toggle", isToggle: true },
-]
-
-const tradieSubItems = [
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
-]
-
-const agentSubItems = [
-    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "agent-contacts-link" },
-    { icon: FileText, label: "Estimator", href: "/dashboard/estimator", id: "agent-estimator-link" },
-    { icon: LayoutTemplate, label: "Open House", href: "/kiosk/open-house", id: "kiosk-link" },
+    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
+    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
+    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
 ]
 
 interface SidebarProps {
@@ -62,8 +44,6 @@ export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
     const [mounted, setMounted] = useState(false)
     const { setViewMode, viewMode } = useShellStore()
-    const { industry, setIndustry } = useIndustry()
-    const router = useRouter()
 
     useEffect(() => {
         setMounted(true)
@@ -71,19 +51,6 @@ export function Sidebar({ className }: SidebarProps) {
 
     const handleSignOut = async () => {
         await logout()
-    }
-
-    const isTradie = industry === "TRADES" || (industry === null && pathname.includes("/tradie"))
-    const isAgent = industry === "REAL_ESTATE" || (industry === null && pathname.includes("/agent"))
-
-    const handleNavClick = (label: string) => {
-        if (label === "Tradie") {
-            setIndustry(industry === "TRADES" ? null : "TRADES")
-        }
-        else if (label === "Agent") {
-            setIndustry(industry === "REAL_ESTATE" ? null : "REAL_ESTATE")
-        }
-        else if (label === "Hub") setIndustry(null)
     }
 
     return (
@@ -112,22 +79,11 @@ export function Sidebar({ className }: SidebarProps) {
 
                 <nav className="flex flex-1 flex-col gap-2 w-full px-2">
                     {navItems.map((item) => {
-                        // Special handling for toggle items vs navigation items
-                        const isActive = item.isToggle
-                            ? (item.label === "Tradie" && isTradie) || (item.label === "Agent" && isAgent)
-                            : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
-
-                        const LinkComponent = item.isToggle ? 'div' : Link
-
+                        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
                         return (
                             <Tooltip key={item.label}>
                                 <TooltipTrigger asChild>
-                                    <LinkComponent
-                                        href={item.href}
-                                        id={item.id}
-                                        onClick={() => handleNavClick(item.label)}
-                                        className="cursor-pointer"
-                                    >
+                                    <Link href={item.href} id={item.id} className="cursor-pointer">
                                         <motion.div
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
@@ -140,78 +96,14 @@ export function Sidebar({ className }: SidebarProps) {
                                         >
                                             <item.icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-2")} />
                                         </motion.div>
-                                    </LinkComponent>
+                                    </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">
-                                    {item.isToggle ? `Toggle ${item.label} Menu` : item.label}
+                                    {item.label}
                                 </TooltipContent>
                             </Tooltip>
                         )
                     })}
-
-                    {/* Tradie Sub-items */}
-                    {isTradie && (
-                        <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-4 duration-300 w-full pt-1">
-                            <div className="h-px bg-border w-6 mx-auto my-1" />
-                            {tradieSubItems.map((item) => {
-                                const isActive = pathname === item.href
-
-                                return (
-                                    <Tooltip key={item.href}>
-                                        <TooltipTrigger asChild>
-                                            <Link href={item.href} id={item.id}>
-                                                <motion.div
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    className={cn(
-                                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
-                                                        isActive
-                                                            ? "bg-mint-50 text-primary ring-1 ring-primary/20"
-                                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
-                                                    )}
-                                                >
-                                                    <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
-                                                </motion.div>
-                                            </Link>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
-                                    </Tooltip>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {/* Agent Sub-items */}
-                    {isAgent && (
-                        <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-4 duration-300 w-full pt-1">
-                            <div className="h-px bg-border w-6 mx-auto my-1" />
-                            {agentSubItems.map((item) => {
-                                const isActive = pathname === item.href
-
-                                return (
-                                    <Tooltip key={item.href}>
-                                        <TooltipTrigger asChild>
-                                            <Link href={item.href} id={item.id}>
-                                                <motion.div
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    className={cn(
-                                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
-                                                        isActive
-                                                            ? "bg-mint-50 text-primary ring-1 ring-primary/20"
-                                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
-                                                    )}
-                                                >
-                                                    <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
-                                                </motion.div>
-                                            </Link>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">{item.label}</TooltipContent>
-                                    </Tooltip>
-                                )
-                            })}
-                        </div>
-                    )}
                 </nav>
 
                 {/* Bottom Actions */}
