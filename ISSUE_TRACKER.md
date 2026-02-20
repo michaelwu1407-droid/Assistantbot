@@ -13,14 +13,14 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/tradie`** | ⚠️ Partial | - Bottom sheet UX needs swipe polish (FE-8) |
 | **`/dashboard/contacts`** | ✅ Functional | None |
 | **`/dashboard/pipeline`** | ✅ Functional | None |
-| **`/dashboard/map`** | ✅ Functional | None |
+| **`/dashboard/map`** | ✅ Functional | None (sidebar icon moved above Contacts) |
 | **`/dashboard/schedule`** | ✅ Functional | None |
 | **`/dashboard/team`** | ✅ Functional | None |
 | **`/dashboard/reports`** | ✅ Functional | None |
 | **`/dashboard/settings`** | ✅ Functional | None |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
-| **Chatbot Interface** | ✅ Functional | - UI calls `/api/chat` (Gemini SDK with 13 tool functions).<br>- `getWorkspaceSettingsById()` now used (no session auth dependency).<br>- Chat-1 "parts field" crash hardened with deep content validation.<br>- Legacy `processChat()` in chat-actions.ts is dead code (cleanup pending). |
+| **Chatbot Interface** | ✅ Functional | - UI calls `/api/chat` (Gemini SDK with 13 tool functions).<br>- `getWorkspaceSettingsById()` now used (no session auth dependency).<br>- Chat-1 "parts field" crash hardened with deep content validation.<br>- Legacy `processChat()` + ~1300 lines of regex parsing removed. All CRM tool functions retained. |
 | **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
 | **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
 | **Vapi Webhook** | ⚠️ Partial | - Workspace resolution is weak; defaults to first workspace safely. Needs strict phone matching.<br>- Recording URL not persisted. |
@@ -52,9 +52,9 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Inbox-1 (Conversation History):** Redesign the Inbox view. Categorize system events ("moved to deleted jobs, stage changed") into a scrolling "Recent activity" box. Below that, create a unified conversation history box (email, text, call) that is visually distinct and UX-friendly.
 - **Schedule-1 (Calendar Views):** Add ability to toggle the calendar between Month, Week, and Day views.
 - **Reports-1 (Data Accuracy):** Verify what data is driving the analytics, ensure the tracking is correct, and confirm proper setup for metrics.
-- **Maps-1 (Sidebar Order):** Move the map sidebar nav icon above the contacts icon.
+- **Maps-1 (Sidebar Order):** ✅ FIXED — Map icon now sits above Contacts in sidebar nav.
 - **Maps-2 (Job Plotting):** Map is not displaying active jobs. Verify if Address/Geo-coordinates are working.
-- **Sidebar-1 (Minimize Button):** Remove the minimize sidebar button completely.
+- **Sidebar-1 (Minimize Button):** ✅ FIXED — Minimize button and collapsed sidebar state removed entirely.
 
 ### Settings Page
 - **Settings-1 (Layout):** LHS content is cramped and overlaps with the sidebar nav.
@@ -63,7 +63,7 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Settings-4 (Advanced Mode):** Build out the Advanced Mode toggles and features.
 - **Settings-5 (Account Deletion):** Fix the "Delete Account" button. Make it small (bottom right corner), trigger a confirmation popup, and require selecting a reason (with an "other" option) before deleting. Remove redundant email fields.
 - **Settings-6 (Billing Integration):** Set up a billing/invoicing integration section for users to collect payments (likely 3rd party Stripe/MYOB).
-- **Settings-7 (Appearance):** Remove the "Dark" and "Premium" options. Default solely to Light mode, or rebuild Appearance into a comprehensive "Display" tab and sunset the old Appearance tab.
+- **Settings-7 (Appearance):** ✅ REDESIGNED — All three themes (Light, Dark, Premium) kept with redesigned preview cards, proper CSS variables for Premium (deep indigo), and ThemeProvider unlocked to support theme switching.
 - **Settings-8 (Notifications):** Make the notifications hub robust. Verify it catches AI-generated alerts.
 - **Settings-9 (Workspace Fields):** Remove redundant "Workspace Name" and "Location" fields from the Workspace tab if they belong in the Profile/Knowledge Base.
 - **Settings-10 (Automations):** Verify the Automations engine works (e.g., AI prompting "if I make $100 this week, let me know" should generate a functional rule).

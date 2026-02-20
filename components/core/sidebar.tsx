@@ -15,8 +15,6 @@ import {
     MessageSquare,
     PieChart,
     Inbox,
-    PanelLeftClose,
-    PanelRightOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -34,10 +32,10 @@ const navItems = [
     { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link" },
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
+    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
     { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
     { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
-    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
 ]
 
 interface SidebarProps {
@@ -47,7 +45,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
     const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode, sidebarMinimized, toggleSidebarMinimized } = useShellStore()
+    const { setViewMode, viewMode } = useShellStore()
 
     useEffect(() => {
         setMounted(true)
@@ -55,30 +53,6 @@ export function Sidebar({ className }: SidebarProps) {
 
     const handleSignOut = async () => {
         await logout()
-    }
-
-    if (sidebarMinimized) {
-        return (
-            <TooltipProvider delayDuration={0}>
-                <aside className={cn("flex h-full w-10 flex-shrink-0 flex-col items-center border-r border-border bg-white py-4 z-20 transition-all duration-300", className)}>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                type="button"
-                                onClick={toggleSidebarMinimized}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
-                                aria-label="Expand sidebar"
-                            >
-                                <PanelRightOpen className="h-5 w-5" />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">
-                            Expand sidebar
-                        </TooltipContent>
-                    </Tooltip>
-                </aside>
-            </TooltipProvider>
-        )
     }
 
     return (
@@ -137,20 +111,6 @@ export function Sidebar({ className }: SidebarProps) {
                 {/* Bottom Actions */}
                 <div className="flex flex-col gap-1.5 px-1.5 w-full">
                     <div className="h-px bg-border w-full" />
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                type="button"
-                                onClick={toggleSidebarMinimized}
-                                className="flex h-9 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
-                                aria-label="Minimise sidebar"
-                            >
-                                <PanelLeftClose className="h-4 w-4" />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Minimise sidebar</TooltipContent>
-                    </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
