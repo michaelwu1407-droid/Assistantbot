@@ -48,29 +48,18 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        // 2. Create Interaction Record
-        const interaction = await prisma.interaction.create({
+        // 2. Create Activity Record
+        const interaction = await prisma.activity.create({
             data: {
                 type: "CALL",
-                direction: "INBOUND", // Vapi mostly handles inbound for now
-                status: call.status || "completed",
-                summary: summary || analysis?.summary || "No summary provided",
+                title: "Inbound Vapi Call", // Vapi mostly handles inbound for now
+                description: call.status || "completed",
+                content: `Duration: ${Math.round(call.durationSeconds || 0)}s\n\n${summary || analysis?.summary || "No summary provided"}`,
                 contactId: contact.id,
             }
         })
 
-        // 3. Create Call Log
-        await prisma.callLog.create({
-            data: {
-                interactionId: interaction.id,
-                duration: Math.round(call.durationSeconds || 0),
-                recordingUrl: recordingUrl || artifact?.recordingUrl,
-                transcript: artifact?.transcript || analysis?.transcript,
-                externalId: call.id
-            }
-        })
-
-        return NextResponse.json({ status: "success", interactionId: interaction.id })
+        return NextResponse.json({ status: "success", activityId: interaction.id })
 
     } catch (error) {
         console.error("Vapi Webhook Error:", error)

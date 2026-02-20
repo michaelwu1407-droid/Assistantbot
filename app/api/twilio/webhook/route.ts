@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db as prisma } from "@/lib/db"
-import MessagingResponse from "twilio/lib/twiml/MessagingResponse"
+// @ts-ignore - Requires npm install twilio later
+import pkg from 'twilio';
+const { twiml: { MessagingResponse } } = pkg;
+
 import { generateSMSResponse } from "@/lib/ai/sms-agent"
 
 export async function POST(req: NextRequest) {
@@ -34,36 +37,36 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        // 2. Find or Create Recent Interaction (Session)
-        // Rule: If an active SMS interaction exists within last 24h, append to it. Else create new.
-        let interaction = await prisma.interaction.findFirst({
+        // 2. Find or Create Recent Activity (Session)
+        // Rule: If an active SMS activity exists within last 24h, append to it. Else create new.
+        let interaction = await prisma.activity.findFirst({
             where: {
                 contactId: contact.id,
-                type: "SMS",
-                updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                type: "NOTE", // Mapping SMS to Note
+                createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
             },
-            orderBy: { updatedAt: "desc" }
+            orderBy: { createdAt: "desc" }
         })
 
         if (!interaction) {
-            interaction = await prisma.interaction.create({
+            interaction = await prisma.activity.create({
                 data: {
-                    type: "SMS",
-                    direction: "INBOUND",
-                    status: "active",
+                    type: "NOTE",
+                    title: "SMS Conversation",
+                    description: "Active",
                     contactId: contact.id,
-                    summary: "New SMS conversation"
+                    content: "New SMS conversation"
                 }
             })
         }
 
         // 3. Log User Message
-        await prisma.message.create({
+        await prisma.chatMessage.create({
             data: {
                 content: Body,
                 role: "user",
-                externalId: MessageSid,
-                interactionId: interaction.id
+                workspaceId: defaultWorkspace.id,
+                metadata: { externalId: MessageSid, activityId: interaction.id }
             }
         })
 
@@ -71,11 +74,12 @@ export async function POST(req: NextRequest) {
         const aiResponseText = await generateSMSResponse(interaction.id, Body, defaultWorkspace.id)
 
         // 5. Log Assistant Message
-        await prisma.message.create({
+        await prisma.chatMessage.create({
             data: {
                 content: aiResponseText,
                 role: "assistant",
-                interactionId: interaction.id
+                workspaceId: defaultWorkspace.id,
+                metadata: { activityId: interaction.id }
             }
         })
 

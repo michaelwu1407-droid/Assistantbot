@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, Images } from "lucide-react"
+import { ChevronLeft, Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, ImageIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -209,7 +209,7 @@ export default async function DealDetailPage({ params }: PageProps) {
         <Tabs defaultValue="photos" className="w-full">
           <TabsList className="h-9">
             <TabsTrigger value="photos" className="gap-2 text-xs">
-              <Images className="w-3.5 h-3.5" />
+              <ImageIcon className="w-3.5 h-3.5" />
               Photos {deal.jobPhotos?.length ? `(${deal.jobPhotos.length})` : ""}
             </TabsTrigger>
           </TabsList>

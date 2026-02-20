@@ -118,6 +118,14 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
+                {selected.contactId && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`tel:${selected.contactId}`}>
+                      <Phone className="h-3.5 w-3.5 mr-1" />
+                      Call
+                    </a>
+                  </Button>
+                )}
                 {(selected.dealId || selected.contactId) && (
                   <Button variant="outline" size="sm" asChild>
                     <Link href={selected.dealId ? `/dashboard/deals/${selected.dealId}` : `/dashboard/contacts/${selected.contactId}`}>

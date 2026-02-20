@@ -70,10 +70,10 @@ This document lists every recorded issue and outstanding task, sorted by the Pag
 | **Dashboard** | FE-3 | 75/25 split polish | Advanced mode responsive polish. | 🚧 Task |
 | **Dashboard** | FE-4 | Mobile responsive pass | Sidebar/panels mobile improvements. | 🚧 Task |
 | **Dashboard** | T-1 | Interactive Tutorial | Build overlay tutorial. | 🚧 Task |
-| **Dashboard / Inbox** | UI-21 | Missing "Call" button | "Sticky header" with call button missing from Inbox. | ❌ Open |
+| **Dashboard / Inbox** | UI-21 | Missing "Call" button | Added Phone/Call icon to sticky header. | ✅ Fixed |
 | **Dashboard / Kanban** | FE-9 | Kanban card background | Change background color for stale/rotting deals. | 🚧 Task |
 | **Dashboard / Kanban** | SH-1 | Industry-aware kanban | Dynamic column headers via `pipeline-actions.ts`. | 🚧 Task |
-| **Deal Detail Page** | UI-20 | Crash (Images not defined) | `ReferenceError: Images is not defined`. | ❌ Open |
+| **Deal Detail Page** | UI-20 | Crash (Images not defined) | Replaced `Images` with `ImageIcon` from `lucide-react`. | ✅ Fixed |
 | **Global / UI** | NAV-01 | Global search broken | Integrated via Header. | ✅ Fixed |
 | **Global / UI** | NAV-02 | Hardcoded workspace ID | Uses `useShellStore`. | ✅ Fixed |
 | **Global / UI** | NAV-03 | Workspace ID TODO | Uses `useShellStore`. | ✅ Fixed |
@@ -112,8 +112,8 @@ This document lists every recorded issue and outstanding task, sorted by the Pag
 | **Tradie** | TRADE-06 | Next job calculation | Server actions implemented. | ✅ Fixed |
 | **Tradie** | TRADE-07 | Today's jobs filter | Filtering added. | ✅ Fixed |
 | **Tradie** | TRADE-08 | Financial stats | Wired to dashboard. | ✅ Fixed |
-| **Tradie** | TRADE-09 | Job Scheduling Failed | `DealStage` enum mismatch. | ❌ Open |
-| **Tradie** | TRADE-10 | Start Travel button | Not visible on desktop. | ❌ Open |
+| **Tradie** | TRADE-09 | Job Scheduling Failed | Fixed by adding `SCHEDULED` to `DealStage` enum. | ✅ Fixed |
+| **Tradie** | TRADE-10 | Start Travel button | Fixed `fixed` viewport positioning on desktop. | ✅ Fixed |
 | **Tradie** | UI-16 | Tradie Map/Schedule 404 | Link fixes. | ✅ Fixed |
 | **Tradie** | UI-17 | DealView type mismatch | Fixed with casting. | ✅ Fixed |
 | **Tradie** | J-3 | Travel workflow UI | Safety Check UI (START -> ARRIVED -> ON SITE). | 🚧 Task |

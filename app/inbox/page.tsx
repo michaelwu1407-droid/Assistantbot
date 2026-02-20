@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
-import { getInboxThreads } from "@/actions/messaging-actions";
+import { getActivities } from "@/actions/activity-actions";
 import { InboxView } from "@/components/crm/inbox-view";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -9,12 +9,12 @@ import { getAuthUserId } from "@/lib/auth";
 export const dynamic = 'force-dynamic';
 
 export default async function InboxPage() {
-  let workspace, threads;
+  let workspace, interactions;
   let dbError = false;
   try {
     const userId = await getAuthUserId();
     workspace = await getOrCreateWorkspace(userId);
-    threads = await getInboxThreads(workspace.id);
+    interactions = await getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE"] });
   } catch {
     dbError = true;
   }
@@ -23,7 +23,7 @@ export default async function InboxPage() {
     redirect("/setup");
   }
 
-  if (dbError || !workspace || !threads) {
+  if (dbError || !workspace || !interactions) {
     return (
       <div className="h-screen flex items-center justify-center">
         <p className="text-slate-500">Database not initialized. Please push the schema first.</p>
@@ -44,7 +44,7 @@ export default async function InboxPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <InboxView initialThreads={threads} />
+        <InboxView initialInteractions={interactions} />
       </div>
     </div>
   );

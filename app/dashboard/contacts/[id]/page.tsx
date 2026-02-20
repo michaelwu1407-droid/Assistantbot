@@ -156,17 +156,21 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   <p className="text-slate-500 text-xs">Job</p>
                   <p className="font-medium text-slate-900 dark:text-foreground">{currentDeal.title}</p>
                 </div>
-                {contactType === "BUSINESS" && (currentDeal.address || (currentDeal.metadata as Record<string, unknown>)?.address) && (
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-slate-500 text-xs">Job address</p>
-                      <p className="font-medium text-slate-900 dark:text-foreground">
-                        {currentDeal.address || String((currentDeal.metadata as Record<string, unknown>)?.address ?? "")}
-                      </p>
+                {(() => {
+                  const hasAddress = currentDeal.address || (currentDeal.metadata as Record<string, unknown>)?.address;
+                  if (contactType !== "BUSINESS" || !hasAddress) return null;
+                  return (
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-slate-500 text-xs">Job address</p>
+                        <p className="font-medium text-slate-900 dark:text-foreground">
+                          {currentDeal.address || String((currentDeal.metadata as Record<string, unknown>)?.address ?? "")}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 <div>
                   <p className="text-slate-500 text-xs">Value</p>
                   <p className="font-medium text-emerald-600">${Number(currentDeal.value).toLocaleString()}</p>
