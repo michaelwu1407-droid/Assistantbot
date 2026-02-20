@@ -102,6 +102,13 @@ This document tracks the functional status of each page and feature, explicitly 
 - **FE-10 / SET-01 (Settings Refine):** ✅ FIXED - GitHub OAuth button was verified to already be entirely removed from code. Wired up Supabase `updateUser` for the newly built password change interface.
 - **J-8 (Chatbot Voice Control):** ✅ FIXED - Tied the `@/hooks/use-speech-recognition` to a new pulsing Mic button attached to the primary chat interface to allow hands-free communication.
 
+### Chatbot & SMS Agent (Sprint 19)
+- **BE-4 (Gemini SDK Chatbot):** ✅ FIXED — `/api/chat` route now uses `@ai-sdk/google` with `gemini-2.0-flash-lite`, 13 tool functions (listDeals, moveDeal, createDeal, createJobNatural, proposeReschedule, updateInvoiceAmount, updateAiPreferences, logActivity, createTask, searchContacts, createContact), streaming via `createUIMessageStreamResponse`, and `convertToModelMessages` for history.
+- **Chat-1 (Parts Field Crash):** ✅ HARDENED — Added deep content validation that checks array internals (not just length), identifies tool-call/tool-result parts, and falls back to raw content extraction. Added secondary empty-fallback stream if all messages are filtered.
+- **Chat-5 (Auth in API Route):** ✅ FIXED — Created `getWorkspaceSettingsById(workspaceId)` in `actions/settings-actions.ts` that queries workspace directly by ID without session auth. Chat route switched from `getWorkspaceSettings()` to `getWorkspaceSettingsById()`.
+- **SMS-1 (SMS Agent AI):** ✅ FIXED — Rewrote `lib/ai/sms-agent.ts` from keyword-matching to Gemini 2.0 Flash. Now fetches workspace context (name, agentMode, hours, callOutFee, aiPreferences), loads recent conversation history from ChatMessage table, and generates context-aware SMS replies. Falls back gracefully if API key missing.
+- **CLEANUP-1 (Dead Code):** ✅ FIXED — Legacy `processChat()` and ~750 lines of regex intent parsing helpers removed from `chat-actions.ts`. UI confirmed to use `/api/chat` route exclusively.
+
 ### Self-Learning AI & Webhooks (Sprint 18)
 - **AI-01 (Behavioral Memory):** ✅ FIXED - Replaced static system prompts with a dynamically updatable `aiPreferences` setting that correctly saves and injects user behavioral constraints.
 - **AI-02 (Pricing Feedback Loop):** ✅ FIXED - Engineered an autonomous background loop that captures finalized `invoicedAmount` edits on Kanban Deals to seamlessly update and average the `RepairItem` pricing glossary dictionaries.
