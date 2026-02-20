@@ -67,6 +67,10 @@ model Workspace {
   brandingColor      String?
   settings           Json? @default("{}")
   
+  // Twilio SaaS Subaccount details for dynamic AI agent phone numbers
+  twilioSubaccountId String?
+  twilioPhoneNumber  String?
+  
   users              User[]
   deals              Deal[]
   contacts           Contact[]

@@ -10,17 +10,22 @@ export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData()
         const From = formData.get("From") as string
+        const To = formData.get("To") as string
         const Body = formData.get("Body") as string
         const MessageSid = formData.get("MessageSid") as string
 
-        if (!From || !Body) {
-            return NextResponse.json({ error: "Missing From or Body" }, { status: 400 })
+        if (!From || !Body || !To) {
+            return NextResponse.json({ error: "Missing From, To, or Body" }, { status: 400 })
         }
 
-        // 1. Find or Create Contact
-        const defaultWorkspace = await prisma.workspace.findFirst()
-        if (!defaultWorkspace) {
-            return NextResponse.json({ error: "No workspace" }, { status: 500 })
+        // 1. Identify Workspace via the Twilio Number (Multi-Tenant Routing)
+        const workspace = await prisma.workspace.findFirst({
+            where: { twilioPhoneNumber: To }
+        })
+
+        if (!workspace) {
+            console.error(`Received SMS to ${To} but no matching Workspace was found in the DB.`)
+            return NextResponse.json({ error: "Workspace not found for this number" }, { status: 404 })
         }
 
         let contact = await prisma.contact.findFirst({
@@ -32,7 +37,7 @@ export async function POST(req: NextRequest) {
                 data: {
                     name: "Unknown Sender",
                     phone: From,
-                    workspaceId: defaultWorkspace.id
+                    workspaceId: workspace.id
                 }
             })
         }
@@ -65,20 +70,20 @@ export async function POST(req: NextRequest) {
             data: {
                 content: Body,
                 role: "user",
-                workspaceId: defaultWorkspace.id,
+                workspaceId: workspace.id,
                 metadata: { externalId: MessageSid, activityId: interaction.id }
             }
         })
 
         // 4. Generate AI Response
-        const aiResponseText = await generateSMSResponse(interaction.id, Body, defaultWorkspace.id)
+        const aiResponseText = await generateSMSResponse(interaction.id, Body, workspace.id)
 
         // 5. Log Assistant Message
         await prisma.chatMessage.create({
             data: {
                 content: aiResponseText,
                 role: "assistant",
-                workspaceId: defaultWorkspace.id,
+                workspaceId: workspace.id,
                 metadata: { activityId: interaction.id }
             }
         })

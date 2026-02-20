@@ -20,7 +20,7 @@ export default async function AgentPage() {
     financialStats = await getFinancialStats(workspace.id);
 
     // Pre-fetch matches for active listings
-    const activeListings = listings.filter(l => l.stage === 'new' || l.stage === 'contacted');
+    const activeListings = listings.filter(l => l.stage === 'NEW' || l.stage === 'CONTACTED');
 
     // Fetch Vendor Report for the first active listing
     const featuredListingId = activeListings[0]?.id;

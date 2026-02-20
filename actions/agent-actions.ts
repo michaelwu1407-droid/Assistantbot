@@ -364,7 +364,7 @@ export async function getVendorReportData(dealId: string): Promise<{
     const hotCount = feedback.filter(f => f.interestLevel === "HOT").length;
     const warmCount = feedback.filter(f => f.interestLevel === "WARM").length;
     const totalFeedback = feedback.length;
-    const hotWarmRatio = (hotCount + warmCount) / totalFeedback;
+    const hotWarmRatio = totalFeedback > 0 ? (hotCount + warmCount) / totalFeedback : 0;
 
     let interestLevel: "High" | "Medium" | "Low";
     if (hotWarmRatio >= 0.6) interestLevel = "High";

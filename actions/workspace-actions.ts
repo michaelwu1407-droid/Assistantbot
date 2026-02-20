@@ -210,15 +210,32 @@ export async function completeOnboarding(data: {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
   const userId = await getAuthUserId();
-  
+
   if (!userId) {
     throw new Error("User not authenticated");
   }
-  
+
   const workspace = await getOrCreateWorkspace(userId);
 
   // Map industry to workspace type
   const type = data.industryType === "REAL_ESTATE" ? "AGENT" : "TRADIE";
+
+  // If they are a Tradie, dynamically provision a dedicated Twilio Subaccount for their AI
+  let twilioData = {};
+  if (type === "TRADIE") {
+    const { createTwilioSubaccount } = await import("@/lib/twilio");
+    const subaccount = await createTwilioSubaccount(data.businessName);
+    if (subaccount) {
+      twilioData = {
+        twilioSubaccountId: subaccount.subaccountId,
+      };
+
+      // Note: Full architectural implementation requires securely storing 'subaccountAuthToken'
+      // somewhere encrypted, or re-fetching it on demand using the master API.
+      // We will rely on retrieving the Auth Token dynamically from the master account via the SID
+      // in production routing to preserve security.
+    }
+  }
 
   await db.workspace.update({
     where: { id: workspace.id },
@@ -228,6 +245,7 @@ export async function completeOnboarding(data: {
       industryType: data.industryType,
       location: data.location,
       onboardingComplete: true,
+      ...twilioData,
     },
   });
 

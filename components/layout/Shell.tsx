@@ -57,10 +57,10 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <div className="absolute inset-0 bg-gradient-to-br from-slate-50/80 via-white to-primary/5 dark:from-slate-950/80 dark:via-background dark:to-primary/10 pointer-events-none" />
           <div className="absolute inset-0 ott-glow opacity-30 pointer-events-none" />
 
-          {/* Main Chat Container - with in-card header so toggle doesn't overlap */}
-          <div className="z-10 w-full max-w-4xl h-[100dvh] md:h-[90dvh] flex flex-col rounded-none md:rounded-2xl overflow-hidden border-0 md:border border-border/60 bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-xl md:shadow-2xl relative">
+          {/* Main Chat Container - seamless glassmorphism */}
+          <div className="z-10 w-full max-w-4xl h-[100dvh] md:h-[95dvh] flex flex-col rounded-none md:rounded-3xl overflow-hidden bg-white/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl relative border border-white/20 dark:border-white/5">
             {/* Header inside card: title + mode toggle */}
-            <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-3 border-b border-border/50 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
+            <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-transparent border-b border-border/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
                   <span className="font-extrabold italic text-sm text-white tracking-tighter">Pj</span>
@@ -158,8 +158,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   <span className="text-sm font-medium text-primary">Advanced</span>
                 </div>
               </div>
-              <div 
-                id="assistant-pane" 
+              <div
+                id="assistant-pane"
                 className="h-[calc(100%-57px)] w-full min-w-[320px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
                 onClick={() => {
                   if (!chatbotExpanded) {

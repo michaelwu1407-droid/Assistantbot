@@ -258,12 +258,12 @@ function ChatWithHistory({
   const isOnlyWelcomeMessage = messages.length <= 1;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-950/30">
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar">
+    <div className="flex flex-col h-full bg-transparent">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar pb-32">
         {messages.length === 0 && !isLoading && (
-          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
-            <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-white dark:bg-card border border-slate-200 dark:border-border shadow-sm">
-              <p className="text-sm leading-relaxed text-slate-800 dark:text-foreground">
+          <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
+            <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
+              <p className="text-sm md:text-base leading-relaxed text-slate-800 dark:text-foreground">
                 Hello! I&apos;m your CRM assistant. Ask me to move deals, look up contacts, or schedule jobs — or type &quot;what can you do?&quot; to see more.
               </p>
             </div>
@@ -285,10 +285,10 @@ function ChatWithHistory({
                 <div className="flex flex-col gap-1 max-w-[85%]">
                   <div
                     className={cn(
-                      "rounded-2xl px-3 py-2.5 shadow-sm",
+                      "rounded-3xl px-4 py-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)]",
                       isUser
-                        ? "bg-[#0F172A] text-white rounded-br-sm"
-                        : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
+                        ? "bg-[#00D28B] text-white rounded-br-sm"
+                        : "bg-white/80 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md"
                     )}
                   >
                     {(() => {
@@ -298,7 +298,7 @@ function ChatWithHistory({
                         const partText = part.type === 'text' && part.text ? part.text : (part as { text?: string }).text;
                         if (partText && typeof partText === 'string') {
                           rendered.push(
-                            <p key={idx} className="text-xs leading-relaxed whitespace-pre-line font-medium">
+                            <p key={idx} className="text-sm md:text-[15px] leading-relaxed whitespace-pre-line font-medium">
                               {partText}
                             </p>
                           );
@@ -370,7 +370,7 @@ function ChatWithHistory({
                       }
                       if (content.trim()) {
                         return (
-                          <p className="text-xs leading-relaxed whitespace-pre-line font-medium">
+                          <p className="text-sm md:text-[15px] leading-relaxed whitespace-pre-line font-medium">
                             {content}
                           </p>
                         );
@@ -428,9 +428,9 @@ function ChatWithHistory({
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 border-t border-border/50 bg-white/80 dark:bg-card/80 backdrop-blur-md p-4 md:px-6">
+      <div className="shrink-0 pt-4 pb-6 px-4 border-t border-border/10 bg-gradient-to-t from-background via-background to-transparent md:px-6 absolute bottom-0 left-0 right-0 z-20">
         <form onSubmit={handleSubmit} className="flex w-full max-w-3xl mx-auto gap-3">
-          <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-2 focus-within:ring-2 focus-within:ring-[#00D28B]/20 transition-all">
+          <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
             <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
@@ -441,7 +441,7 @@ function ChatWithHistory({
                 }
               }}
               placeholder="Type your message..."
-              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 scrollbar-hide"
+              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-sm md:text-base py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 scrollbar-hide"
               rows={1}
               ref={(ref) => {
                 if (ref) {
