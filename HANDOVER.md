@@ -1,9 +1,23 @@
-## Last Updated: 2026-02-10 10:40 AEST
-**Session**: Antigravity (Frontend) — Bug Fix Session
+## Last Updated: 2026-02-20
+**Session**: Antigravity — Verification & Issue Logging
 **Branch**: `main`
-**Latest Commit**: `f34066e`
+**Status**: Reverted unstable changes, issues logged in `ACECAP_LOG.md`
 
-## What Was Done This Session — Auth & Stability Fixes
+## What Was Done This Session — Verification & Logging
+
+### Batch 1: Verification & Revert
+- Verified Tradie Workflow (Scheduling works backend, button missing frontend)
+- Verified Feedback Page (Fixed crash)
+- Verified Inbox (Call button missing)
+- **Action**: Reverted code changes to `app/dashboard/deals/[id]/page.tsx` and `prisma/schema.prisma` to leave codebase clean.
+- **Logging**: All findings documented in `ACECAP_LOG.md`.
+
+### Open Issues for Next Session (See `ACECAP_LOG.md`)
+- **UI-20**: Deal Detail Page Crash (`ReferenceError: Images`)
+- **TRADE-09**: Job Scheduling Enum Mismatch (`SCHEDULED`)
+- **UI-21**: Missing "Call" button in Inbox
+- **TRADE-10**: "Start Travel" button visibility
+
 
 ### Batch 1: React Error #310 Fix (commit `b445f95`)
 - Added `<Suspense>` boundary around `Shell` component (uses `useSearchParams`)
