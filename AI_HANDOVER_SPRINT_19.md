@@ -29,6 +29,7 @@ Please implement, fix, or clarify the following items logically and sequentially
 - **Voice-to-Text:** Add a working voice-to-text mic in the chatbox.
 - **Basic Query Crashes:** The bot currently crashes with "Unable to submit request because it must include at least one parts field" on basic queries (e.g., "What jobs do I have tomorrow?" or "Delete X card"). This needs immediate fixing.
 - **Conversation Retrieval:** The chatbox must be able to process requests like: "Show me my text history with Steven" or "Text Steven I'm omw".
+- **Basic Task Management:** Chatbot must handle setting reminders and follow-ups effectively (e.g., "Call John next Tuesday").
 
 ### 4. Inbox Page
 - **Customer Section Layout:**
@@ -101,6 +102,9 @@ These modes must strictly dictate the AI's boundaries:
 
 ### 12. Tutorial Constraints
 - The interactive tutorial heavily misses: *Map View*, *Start Your Day*, and a run-through of *Every Sidebar Button & features inside*. This needs significant expansion.
+
+### 13. System-Wide Search & Filtering
+- **Search & Filtering:** Implement fast, fuzzy search across the application (e.g., finding "Jhon" when a user searches for "John") so the tradie can quickly locate customers, jobs, or repair items even with typos.
 
 ---
 
