@@ -87,6 +87,8 @@
 | UI-17 | DealView vs TradieJob type mismatch | ✅ FIXED | Using `as any` casts at boundaries; TradieJob interface defined locally in client |
 | UI-18 | Map view not in nav (user: "What happened to my map view?") | ✅ FIXED | Added `/dashboard/map` page and Map link in sidebar (2026-02-19) |
 | UI-19 | Sidebar Tradie/Agent toggles and real estate pages | ✅ FIXED | Removed toggles and agent sub-items; Deals → Contacts; tradie-only focus (2026-02-19) |
+| UI-20 | Deal Detail Page Crash (Images not defined) | ❌ OPEN | `ReferenceError: Images is not defined` in `app/dashboard/deals/[id]/page.tsx`. Needs import. |
+| UI-21 | Missing "Call" button in Inbox | ❌ OPEN | "Sticky header" with call button missing from Inbox view. |
 
 ---
 
@@ -102,6 +104,8 @@
 | TRADE-06 | Next job calculation missing | ✅ FIXED | `getNextJob` and `getTodaySchedule` server actions implemented |
 | TRADE-07 | Today's jobs filter not working | ✅ FIXED | Filtering and visual indicators added |
 | TRADE-08 | Financial stats not wired to dashboard | ✅ FIXED | Wired `getFinancialStats()` to tradie page, passed through to PulseWidget |
+| TRADE-09 | Job Scheduling Failed (Enum) | ❌ OPEN | `DealStage` enum `SCHEDULED` exists in schema but DB rejects it. Needs `db push` or migration. |
+| TRADE-10 | "Start Travel" button visibility | ❌ OPEN | Button not visible on desktop view even when job is scheduled for today. |
 
 ---
 
@@ -155,11 +159,11 @@
 | Chatbot | 18 | 18 | 0 | 0 | 0 |
 | Auth | 5 | 5 | 0 | 0 | 0 |
 | Build | 6 | 6 | 0 | 0 | 0 |
-| UI | 17 | 17 | 0 | 0 | 0 |
-| Tradie | 8 | 8 | 0 | 0 | 0 |
+| UI | 19 | 17 | 0 | 2 | 0 |
+| Tradie | 10 | 8 | 0 | 2 | 0 |
 | Search/Nav | 3 | 3 | 0 | 0 | 0 |
 | API | 5 | 5 | 0 | 0 | 0 |
 | Infra | 3 | 3 | 0 | 0 | 0 |
 | Deferred | 4 | 0 | 0 | 0 | 4 |
 | INFRA-04 | Vercel 500 Error (Missing Env Vars) | ✅ FIXED | Added `DATABASE_URL`, `DIRECT_URL` etc. to Vercel Project Settings (Source: PRODUCTION_FIX.md) |
-| **TOTAL** | **70** | **66** | **0** | **0** | **4** |
+| **TOTAL** | **76** | **66** | **0** | **6** | **4** |
