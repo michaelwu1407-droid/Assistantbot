@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2 } from "lucide-react"
@@ -22,6 +23,7 @@ function formatScheduledTime(scheduledAt: Date | null | undefined): string {
 }
 
 export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps) {
+  const router = useRouter()
   const {
     setNodeRef,
     attributes,
@@ -74,13 +76,15 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('[data-no-card-click]')) return
           if (onOpenModal) onOpenModal()
-          else window.location.href = `/dashboard/deals/${deal.id}`
+          else if (deal.contactId) router.push(`/dashboard/contacts/${deal.contactId}`)
+          else router.push(`/dashboard/deals/${deal.id}`)
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()
             if (onOpenModal) onOpenModal()
-            else window.location.href = `/dashboard/deals/${deal.id}`
+            else if (deal.contactId) router.push(`/dashboard/contacts/${deal.contactId}`)
+            else router.push(`/dashboard/deals/${deal.id}`)
           }
         }}
         role="button"
@@ -105,35 +109,35 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
           )}
         </div>
 
-        <div className="space-y-2.5 relative z-10 pr-20">
+        <div className="space-y-2.5 relative z-10 pr-12">
           {/* Customer name */}
-          <div className="flex items-center gap-1.5 text-[#0F172A] font-semibold text-sm">
+          <div className="flex items-center gap-1.5 text-[#0F172A] font-semibold text-xs">
             <User className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
             <span className="truncate">{deal.contactName || "No name"}</span>
           </div>
 
           {/* Address */}
           {deal.address && (
-            <div className="flex items-start gap-1.5 text-[11px] text-[#64748B]">
+            <div className="flex items-start gap-1.5 text-xs text-[#64748B] dark:text-slate-400">
               <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span className="truncate line-clamp-2">{deal.address}</span>
             </div>
           )}
 
           {/* Job (title) */}
-          <div className="flex items-center gap-1.5 text-[#0F172A] font-medium text-sm">
+          <div className="flex items-center gap-1.5 text-[#0F172A] font-medium text-xs">
             <Briefcase className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
             <span className="truncate">{deal.title}</span>
           </div>
 
-          {/* Bottom row: value LHS, scheduled time RHS when set */}
+          {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
-            <div className="flex items-center text-[#0F172A] font-bold text-sm bg-[#F8FAFC] dark:bg-slate-800/50 px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-slate-600/50">
+            <div className="flex items-center text-xs text-[#0F172A] font-bold bg-[#F8FAFC] dark:bg-slate-800/50 px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-slate-600/50">
               <DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" />
               {deal.value.toLocaleString()}
             </div>
             {deal.scheduledAt ? (
-              <div className="flex items-center text-[10px] text-[#64748B] dark:text-slate-400">
+              <div className="flex items-center text-xs text-[#64748B] dark:text-slate-400">
                 <Calendar className="w-3 h-3 mr-1 shrink-0" />
                 {formatScheduledTime(deal.scheduledAt)}
               </div>

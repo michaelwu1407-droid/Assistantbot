@@ -55,6 +55,7 @@ export interface DealView {
   lastActivityDate: Date;
   createdAt: Date;
   contactName: string;
+  contactId?: string;
   contactAvatar?: string;
   health: DealHealth;
   daysInStage: number;
@@ -153,6 +154,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         lastActivityDate,
         createdAt: deal.createdAt,
         contactName: deal.contact.name,
+        contactId: deal.contactId ?? undefined,
         contactAvatar: deal.contact.avatarUrl ?? undefined,
         health,
         daysInStage,

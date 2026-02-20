@@ -208,19 +208,13 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
                 <Link href={`/dashboard/inbox?contact=${deal.contactId}`}>
                   <Button size="sm" variant="outline" className="gap-1 text-xs">
                     <MessageSquare className="w-3 h-3" />
-                    Quick reply
+                    Contact them
                   </Button>
                 </Link>
               </div>
               <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0 min-h-0">
                 <div className="border-b md:border-b-0 md:border-r border-slate-100 flex flex-col min-h-0">
-                  <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">This job</p>
-                  <div className="flex-1 overflow-y-auto">
-                    <ActivityFeed dealId={deal.id} />
-                  </div>
-                </div>
-                <div className="flex flex-col min-h-0">
-                  <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Prior jobs with customer</p>
+                  <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Past jobs</p>
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {contactDeals.length === 0 ? (
                       <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
@@ -229,7 +223,7 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
                         <button
                           key={d.id}
                           onClick={() => {
-                            // Could open another modal or navigate
+                            onOpenChange(false)
                             window.location.href = `/dashboard/deals/${d.id}`
                           }}
                           className="block w-full text-left p-2 rounded-lg border border-slate-100 hover:bg-slate-50 text-sm"
@@ -242,13 +236,13 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
                     )}
                   </div>
                 </div>
+                <div className="flex flex-col min-h-0">
+                  <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Notes</p>
+                  <div className="flex-1 overflow-y-auto p-3">
+                    <DealNotes dealId={deal.id} initialNotes={notes} />
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Notes – bottom RHS */}
-            <div className="shrink-0 p-4 border border-slate-200 rounded-xl bg-white shadow-sm">
-              <h3 className="font-semibold text-slate-900 mb-2">Notes</h3>
-              <DealNotes dealId={deal.id} initialNotes={notes} />
             </div>
           </div>
         </div>

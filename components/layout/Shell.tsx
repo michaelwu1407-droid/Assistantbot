@@ -93,7 +93,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {/* Mobile Sidebar - Drawer */}
           <MobileSidebar />
 
-          <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+          <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full">
             {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
             <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
               <div id="main-canvas" className="h-full w-full overflow-y-auto relative bg-background">

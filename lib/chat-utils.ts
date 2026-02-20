@@ -61,12 +61,16 @@ export function parseJobOneLiner(text: string): JobOneLinerParsed | null {
     /\b(st|street|rd|road|ave|dr|ln)\b/i.test(t);
   if (!hasPrice || !hasWork) return null;
 
+  // Prefer the last $ amount (agreed price); avoid capturing street numbers like "10" from "10 Wyndham St".
   let price = 0;
-  const priceMatch = t.match(/\$?\s*(\d+)\s*(?:dollars?|price|agreed)?|price\s*agreed\s*\$?\s*(\d+)/i) ?? t.match(/\$(\d+)/);
-  if (priceMatch) price = parseInt(priceMatch[1] ?? priceMatch[2] ?? "0", 10);
+  const dollarMatches = [...t.matchAll(/\$([\d,]+)/g)];
+  if (dollarMatches.length > 0) {
+    const lastMatch = dollarMatches[dollarMatches.length - 1][1];
+    price = parseInt(lastMatch.replace(/,/g, ""), 10);
+  }
   if (!price && /\d{2,}/.test(t)) {
-    const anyNum = t.match(/\$?(\d{2,})/);
-    if (anyNum) price = parseInt(anyNum[1], 10);
+    const agreedMatch = t.match(/(?:price\s*agreed|agreed)\s*\$?\s*([\d,]+)/i);
+    if (agreedMatch) price = parseInt(agreedMatch[1].replace(/,/g, ""), 10);
   }
   if (price <= 0) return null;
 
@@ -89,26 +93,54 @@ export function parseJobOneLiner(text: string): JobOneLinerParsed | null {
   }
 
   const scheduleMatch = t.match(
-    /(?:tomorrow|today|tmrw|ymrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\s+(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/gi
+    /(?:tomorrow|today|tmrw|ymrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\s+(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
   );
-  if (scheduleMatch) schedule = scheduleMatch[0].trim();
+  if (scheduleMatch) schedule = scheduleMatch[0].trim().replace(/\.\s*$/, "");
   else {
-    const simpleSchedule = t.match(/(?:tomorrow|today|tmrw|ymrw|\b(?:mon|tue|wed|thu|fri|sat|sun)\b)\s*(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)?/gi);
-    if (simpleSchedule) schedule = simpleSchedule[0].trim();
+    const simpleSchedule = t.match(/(?:tomorrow|today|tmrw|ymrw|\b(?:mon|tue|wed|thu|fri|sat|sun)\b)\s*(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)?/i);
+    if (simpleSchedule) schedule = simpleSchedule[0].trim().replace(/\.\s*$/, "");
   }
 
   const needsIndex = lower.search(/\s+needs?\s+/);
   if (needsIndex >= 0) {
     const afterNeeds = t.slice(needsIndex).replace(/^\s+needs?\s+/i, "").trim();
     const beforeSchedule = schedule ? afterNeeds.split(schedule)[0].trim() : afterNeeds;
-    const beforePrice = beforeSchedule.replace(/\$?\d+.*$/i, "").trim().replace(/\.\s*$/, "");
+    const beforePrice = beforeSchedule.replace(/\$?[\d,]+.*$/i, "").trim().replace(/\.\s*$/, "");
     workDescription = beforePrice || "Job";
   }
 
   if (!clientName || clientName.length < 2) clientName = "Unknown";
   if (!workDescription || workDescription.length < 2) workDescription = "Job";
+  workDescription = normalizeJobTitle(workDescription);
 
   return { clientName, workDescription, price, address, schedule };
+}
+
+/**
+ * Normalise a raw work description to a short job title (e.g. "her sink fixed" → "Sink repair").
+ */
+export function normalizeJobTitle(raw: string): string {
+  if (!raw || raw.length < 2) return "Job";
+  let s = raw.trim().toLowerCase();
+  const possessives = /\b(her|his|their|the|my|our)\s+/gi;
+  s = s.replace(possessives, " ").replace(/\s+/g, " ").trim();
+  const verbToNoun: Record<string, string> = {
+    fixed: "repair", fix: "repair", fixing: "repair", repaired: "repair", repair: "repair",
+    leaking: "repair", leak: "repair", blocked: "unblock", unblock: "unblock", unblocked: "unblock",
+    install: "install", installed: "install", installing: "install",
+    replace: "replacement", replaced: "replacement", replacing: "replacement",
+    clean: "clean", cleaned: "clean", cleaning: "clean",
+  };
+  const words = s.split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (/\b(needs?|need|wants?|want|get|got|has|have)\b/i.test(w)) continue;
+    out.push(verbToNoun[w] ?? w);
+  }
+  const trimmed = out.join(" ").replace(/\s+/g, " ").trim();
+  if (!trimmed) return "Job";
+  return titleCase(trimmed);
 }
 
 /** Categorise work description by keyword matching */
@@ -193,4 +225,71 @@ export function enrichAddress(raw: string): string {
     }
   }
   return enriched.join(" ").replace(/,\s*$/, "");
+}
+
+/**
+ * Build draft job data from parsed one-liner params (for draft card UI).
+ * Same shape as processChat's draft_job_natural data.
+ */
+export function buildJobDraftFromParams(params: {
+  clientName: string;
+  workDescription: string;
+  price: number | string;
+  address?: string;
+  schedule?: string;
+}): {
+  firstName: string;
+  lastName: string;
+  clientName: string;
+  address: string;
+  workDescription: string;
+  workCategory: string;
+  price: string;
+  schedule: string;
+  scheduleISO: string;
+  rawSchedule: string;
+  phone: string;
+  email: string;
+  customerType: string;
+} {
+  const clientName = (params.clientName ?? "").trim() || "Unknown";
+  const workDescription = (params.workDescription ?? "").trim() || "Job";
+  const priceStr = String(params.price ?? "0").replace(/,/g, "");
+  const address = params.address?.trim() ?? "";
+  const rawSchedule = params.schedule?.trim() ?? "";
+
+  const nameParts = titleCase(clientName).split(/\s+/);
+  const firstName = nameParts[0] ?? "";
+  const lastName = nameParts.slice(1).join(" ") ?? "";
+  const category = categoriseWork(workDescription);
+  const enrichedAddress = address ? enrichAddress(address) : "";
+
+  let scheduleDisplay = "";
+  let scheduleISO = "";
+  if (rawSchedule) {
+    try {
+      const resolved = resolveSchedule(rawSchedule);
+      scheduleDisplay = resolved.display;
+      scheduleISO = resolved.iso;
+    } catch {
+      scheduleDisplay = rawSchedule;
+      scheduleISO = "";
+    }
+  }
+
+  return {
+    firstName,
+    lastName,
+    clientName: `${firstName}${lastName ? " " + lastName : ""}`.trim() || "Unknown",
+    address: enrichedAddress,
+    workDescription: normalizeJobTitle(workDescription),
+    workCategory: category,
+    price: priceStr,
+    schedule: scheduleDisplay,
+    scheduleISO,
+    rawSchedule,
+    phone: "",
+    email: "",
+    customerType: "Person",
+  };
 }

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getDeals, createDeal, updateDealStage } from "./deal-actions";
+import { getDeals, createDeal, updateDealStage, updateDealMetadata } from "./deal-actions";
 import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { createTask } from "./task-actions";
@@ -881,7 +881,71 @@ export async function runMoveDeal(
     success: true,
     message: `Moved "${deal.title}" to ${stageLabel}.`,
     dealId: deal.id,
-    stage: resolvedStage,
+  };
+}
+
+/**
+ * Propose a new time for a job: log it on the deal, log activity, and create a follow-up task to confirm with the customer.
+ * Use when the user says e.g. "let's propose 3pm instead" or "propose scheduling at Y time" for a specific job.
+ */
+export async function runProposeReschedule(
+  workspaceId: string,
+  params: { dealTitle: string; proposedSchedule: string }
+): Promise<{ success: boolean; message: string }> {
+  const deals = await getDeals(workspaceId);
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
+    return {
+      success: false,
+      message: `Couldn't find a job matching "${params.dealTitle}".${deals.length > 0 ? ` Current jobs: ${suggestions}` : " No jobs yet."}`,
+    };
+  }
+  let display: string;
+  let iso: string;
+  try {
+    const resolved = resolveSchedule(params.proposedSchedule.trim());
+    display = resolved.display;
+    iso = resolved.iso;
+  } catch {
+    display = params.proposedSchedule.trim();
+    iso = "";
+  }
+  const metaResult = await updateDealMetadata(deal.id, {
+    proposedSchedule: iso,
+    proposedScheduleDisplay: display,
+  });
+  if (!metaResult.success) {
+    return { success: false, message: metaResult.error ?? "Failed to save proposed time." };
+  }
+  const fullDeal = await db.deal.findUnique({
+    where: { id: deal.id },
+    include: { contact: true },
+  });
+  const contactName = fullDeal?.contact?.name ?? "customer";
+  const contactId = fullDeal?.contactId ?? undefined;
+  await logActivity({
+    type: "NOTE",
+    title: "Proposed reschedule",
+    content: `Proposed new time: ${display}. Reach out to customer to lock it down.`,
+    dealId: deal.id,
+    contactId: contactId ?? undefined,
+  });
+  const tomorrow9am = new Date();
+  tomorrow9am.setDate(tomorrow9am.getDate() + 1);
+  tomorrow9am.setHours(9, 0, 0, 0);
+  await createTask({
+    title: `Confirm new time with ${contactName}`,
+    description: `Proposed: ${display}. Contact them to confirm the new time.`,
+    dueAt: tomorrow9am,
+    dealId: deal.id,
+    contactId: contactId ?? undefined,
+  });
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return {
+    success: true,
+    message: `Proposed ${display} for "${deal.title}". I’ve logged it and added a task to confirm with ${contactName} (due tomorrow 9am).`,
   };
 }
 
@@ -943,10 +1007,25 @@ export async function runCreateDeal(
  */
 export async function runCreateJobNatural(
   workspaceId: string,
-  params: { clientName: string; address?: string; workDescription: string; price: number; schedule?: string }
+  params: {
+    clientName: string;
+    address?: string;
+    workDescription: string;
+    price: number;
+    schedule?: string;
+    phone?: string;
+    email?: string;
+    contactType?: "PERSON" | "BUSINESS";
+  }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
   const clientName = params.clientName?.trim() || "Unknown";
-  const contactResult = await createContact({ name: clientName, workspaceId });
+  const contactResult = await createContact({
+    name: clientName,
+    workspaceId,
+    phone: params.phone?.trim() || undefined,
+    email: params.email?.trim() || undefined,
+    contactType: params.contactType ?? "PERSON",
+  });
   if (!contactResult.success) {
     return { success: false, message: `Failed to create contact: ${contactResult.error}` };
   }
@@ -988,6 +1067,41 @@ export async function runCreateJobNatural(
     success: true,
     message: `Job created: ${params.workDescription} for ${clientName}, $${(params.price ?? 0).toLocaleString()}.${scheduleSuffix}`,
     dealId: dealResult.dealId,
+  };
+}
+
+/**
+ * Confirm a job draft and create the deal (used when user clicks "Create Job" on the draft card).
+ */
+export async function confirmJobDraft(
+  workspaceId: string,
+  draft: {
+    clientName: string;
+    workDescription: string;
+    price: string | number;
+    address?: string;
+    schedule?: string;
+    rawSchedule?: string;
+    phone?: string;
+    email?: string;
+    contactType?: "PERSON" | "BUSINESS";
+  }
+): Promise<{ success: boolean; message: string; dealId?: string }> {
+  const schedule = draft.rawSchedule ?? draft.schedule ?? "";
+  const result = await runCreateJobNatural(workspaceId, {
+    clientName: draft.clientName.trim(),
+    workDescription: draft.workDescription.trim(),
+    price: Number(String(draft.price).replace(/,/g, "")) || 0,
+    address: draft.address?.trim(),
+    schedule: schedule.trim() || undefined,
+    phone: draft.phone?.trim(),
+    email: draft.email?.trim(),
+    contactType: draft.contactType ?? "PERSON",
+  });
+  return {
+    success: result.success,
+    message: result.message,
+    dealId: result.dealId,
   };
 }
 

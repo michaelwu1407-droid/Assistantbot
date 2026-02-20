@@ -36,17 +36,19 @@ interface SearchableContact extends SearchableItem {
 
 const CreateContactSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   company: z.string().optional(),
   workspaceId: z.string(),
+  /** PERSON | BUSINESS; stored in metadata. Default PERSON. */
+  contactType: z.enum(["PERSON", "BUSINESS"]).optional(),
 });
 
 const UpdateContactSchema = z.object({
   contactId: z.string(),
   name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   company: z.string().optional(),
@@ -217,21 +219,19 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
   });
 
   if (existingContact) {
-    // Merge Strategy: Update missing fields only (except Name/Company might be override?)
-    // For now, we'll only fill in blanks to be safe, or update if provided explicitly?
-    // Let's go with: Update provided fields if they are currently null on the record. 
-    // AND update the latest info if provided strings are longer/newer? 
-    // Simple Merge: Overwrite with new data if provided.
-
+    const existingMeta = (existingContact.metadata as Record<string, unknown>) ?? {};
     await db.contact.update({
       where: { id: existingContact.id },
       data: {
-        name: parsed.data.name, // Accept new name as "latest"
-        email: parsed.data.email || existingContact.email,
+        name: parsed.data.name,
+        email: (parsed.data.email && parsed.data.email.trim()) || existingContact.email,
         phone: parsed.data.phone || existingContact.phone,
         company: parsed.data.company || existingContact.company,
         address: parsed.data.address || existingContact.address,
-      }
+        metadata: parsed.data.contactType
+          ? { ...existingMeta, contactType: parsed.data.contactType }
+          : undefined,
+      },
     });
 
     return {
@@ -248,24 +248,20 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     enriched = await enrichFromEmail(parsed.data.email);
   }
 
+  const emailVal = parsed.data.email?.trim();
+  const metadata: Record<string, unknown> = { ...(enriched ? { enriched: true, domain: enriched.domain, industry: enriched.industry, size: enriched.size, linkedinUrl: enriched.linkedinUrl } : {}) };
+  if (parsed.data.contactType) metadata.contactType = parsed.data.contactType;
+
   const contact = await db.contact.create({
     data: {
       name: parsed.data.name,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      address: parsed.data.address,
+      email: emailVal || null,
+      phone: parsed.data.phone || null,
+      address: parsed.data.address || null,
       company: parsed.data.company ?? enriched?.name ?? null,
       avatarUrl: enriched?.logoUrl ?? null,
       workspaceId: parsed.data.workspaceId,
-      metadata: enriched
-        ? JSON.parse(JSON.stringify({
-          enriched: true,
-          domain: enriched.domain,
-          industry: enriched.industry,
-          size: enriched.size,
-          linkedinUrl: enriched.linkedinUrl,
-        }))
-        : undefined,
+      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     },
   });
 
@@ -295,6 +291,23 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
   });
 
   return { success: true };
+}
+
+/**
+ * Update contact metadata (e.g. notes). Merges with existing metadata.
+ */
+export async function updateContactMetadata(
+  contactId: string,
+  metadata: Record<string, unknown>
+) {
+  const contact = await db.contact.findUnique({ where: { id: contactId } });
+  if (!contact) return { success: false as const, error: "Contact not found" };
+  const existing = (contact.metadata as Record<string, unknown>) ?? {};
+  await db.contact.update({
+    where: { id: contactId },
+    data: { metadata: { ...existing, ...metadata } },
+  });
+  return { success: true as const };
 }
 
 /**

@@ -4,11 +4,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check } from 'lucide-react';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
-import { getChatHistory, saveAssistantMessage } from '@/actions/chat-actions';
+import { Input } from '@/components/ui/input';
+import { getChatHistory, saveAssistantMessage, confirmJobDraft } from '@/actions/chat-actions';
+import { toast } from 'sonner';
 
 interface ChatInterfaceProps {
   workspaceId?: string;
@@ -33,11 +35,173 @@ function historyToInitialMessages(
   }));
 }
 
-/** Extract plain text from the last assistant message (for persistence). */
+/** Extract plain text from message parts (for persistence and display fallback). */
 function getMessageTextFromParts(parts: { type?: string; text?: string }[] | undefined): string {
-  if (!parts) return '';
-  const textPart = parts.find((p) => p.type === 'text' && p.text);
-  return (textPart && 'text' in textPart ? textPart.text : '') || '';
+  if (!parts?.length) return '';
+  const textPart = parts.find((p) => p.type === 'text' && (p as { text?: string }).text);
+  if (textPart && (textPart as { text?: string }).text) return (textPart as { text: string }).text;
+  const anyText = parts.map((p) => (p as { text?: string }).text).find((t) => typeof t === 'string' && t.length > 0);
+  return typeof anyText === 'string' ? anyText : '';
+}
+
+/** Draft job card data (from showJobDraft tool or draft_job_natural). */
+interface JobDraftData {
+  firstName?: string;
+  lastName?: string;
+  clientName?: string;
+  address?: string;
+  workDescription?: string;
+  workCategory?: string;
+  price?: string;
+  schedule?: string;
+  scheduleISO?: string;
+  rawSchedule?: string;
+  warnings?: string[];
+  phone?: string;
+  email?: string;
+  customerType?: string;
+}
+
+function JobDraftCard({
+  data,
+  workspaceId,
+  onCancel,
+  onConfirmSuccess,
+}: {
+  data: JobDraftData;
+  workspaceId: string;
+  onCancel: () => void;
+  onConfirmSuccess?: (confirmationMessage: string) => void;
+}) {
+  const [firstName, setFirstName] = useState(data.firstName ?? '');
+  const [lastName, setLastName] = useState(data.lastName ?? '');
+  const [workDescription, setWorkDescription] = useState(data.workDescription ?? '');
+  const [price, setPrice] = useState(data.price ?? '0');
+  const [schedule, setSchedule] = useState(data.schedule ?? data.rawSchedule ?? '');
+  const [address, setAddress] = useState(data.address ?? '');
+  const [phone, setPhone] = useState(data.phone ?? '');
+  const [email, setEmail] = useState(data.email ?? '');
+  const [customerType, setCustomerType] = useState<'Person' | 'Business'>(() =>
+    (data.customerType === 'Business' ? 'Business' : 'Person')
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const category = data.workCategory ?? 'General';
+  const warnings = data.warnings ?? [];
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      const result = await confirmJobDraft(workspaceId, {
+        clientName: `${firstName}${lastName ? ' ' + lastName : ''}`.trim() || 'Unknown',
+        workDescription,
+        price,
+        schedule,
+        address: address || undefined,
+        rawSchedule: schedule,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        contactType: customerType === 'Business' ? 'BUSINESS' : 'PERSON',
+      });
+      if (result.success) {
+        toast.success(result.message);
+        onConfirmSuccess?.(result.message);
+        onCancel();
+      } else {
+        toast.error(result.message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30 overflow-hidden">
+      <div className="bg-emerald-100/60 dark:bg-emerald-900/40 px-4 py-2 border-b border-emerald-200 dark:border-emerald-800 flex justify-between items-center">
+        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          New job — review & confirm
+        </span>
+        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">{category}</span>
+      </div>
+      <div className="p-4 space-y-3 bg-white dark:bg-card">
+        {warnings.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 space-y-1">
+            {warnings.map((w, i) => (
+              <p key={i} className="text-xs text-amber-800 dark:text-amber-200 font-medium flex items-center gap-1.5">
+                <span className="text-amber-500">⚠</span> {w}
+              </p>
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">First name</label>
+            <Input className="h-8 text-xs" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Last name</label>
+            <Input className="h-8 text-xs" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="(optional)" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Work description</label>
+          <Input className="h-8 text-xs" value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Quoted ($)</label>
+            <Input className="h-8 text-xs" value={price} onChange={(e) => setPrice(e.target.value)} type="text" inputMode="numeric" />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Schedule</label>
+            <Input className="h-8 text-xs" value={schedule} onChange={(e) => setSchedule(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Address</label>
+          <Input className="h-8 text-xs" value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Phone</label>
+            <Input className="h-8 text-xs" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" placeholder="Optional" />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Email</label>
+            <Input className="h-8 text-xs" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Optional" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Type</label>
+          <select
+            className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs"
+            value={customerType}
+            onChange={(e) => setCustomerType(e.target.value as 'Person' | 'Business')}
+          >
+            <option value="Person">Person</option>
+            <option value="Business">Business</option>
+          </select>
+        </div>
+      </div>
+      <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 border-t border-emerald-200 dark:border-emerald-800 flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-3 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground text-xs py-2 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1"
+        >
+          <X className="w-3 h-3" /> Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={submitting}
+          className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+        >
+          {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Create job
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ChatWithHistory({
@@ -50,6 +214,8 @@ function ChatWithHistory({
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
+  const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -59,8 +225,14 @@ function ChatWithHistory({
     messages: initialMessages.length > 0 ? initialMessages : undefined,
     onFinish: ({ message }) => {
       router.refresh();
-      const content = getMessageTextFromParts(message.parts);
+      let content = getMessageTextFromParts(message.parts);
+      if (!content.trim() && typeof (message as { content?: string }).content === 'string')
+        content = (message as { content: string }).content;
       if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => {});
+    },
+    onError: (err) => {
+      console.error("Chat error:", err);
+      toast.error(err?.message ?? "Couldn't get a response. Check your connection and try again.");
     },
   });
 
@@ -119,43 +291,92 @@ function ChatWithHistory({
                         : "bg-white text-[#0F172A] rounded-bl-sm border border-slate-200 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                     )}
                   >
-                    {message.parts?.map((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string }; errorText?: string }, idx: number) => {
-                      if (part.type === 'text' && part.text) {
+                    {(() => {
+                      const parts = message.parts ?? [];
+                      const rendered: React.ReactNode[] = [];
+                      parts.forEach((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string; draft?: JobDraftData }; errorText?: string }, idx: number) => {
+                        const partText = part.type === 'text' && part.text ? part.text : (part as { text?: string }).text;
+                        if (partText && typeof partText === 'string') {
+                          rendered.push(
+                            <p key={idx} className="text-xs leading-relaxed whitespace-pre-line font-medium">
+                              {partText}
+                            </p>
+                          );
+                          return;
+                        }
+                        const isTool = part.type?.startsWith('tool-') || part.type === 'dynamic-tool';
+                        if (isTool) {
+                          if (part.state === 'output-available' && part.output?.draft) {
+                            const confirmation = confirmedDrafts[message.id];
+                            if (confirmation) {
+                              rendered.push(
+                                <div
+                                  key={idx}
+                                  className="mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200"
+                                >
+                                  <Check className="w-4 h-4 shrink-0" />
+                                  <span>{confirmation}</span>
+                                </div>
+                              );
+                            } else {
+                              rendered.push(
+                                <JobDraftCard
+                                  key={idx}
+                                  data={part.output.draft}
+                                  workspaceId={workspaceId}
+                                  onCancel={() => {}}
+                                  onConfirmSuccess={(msg) => setConfirmedDrafts((prev) => ({ ...prev, [message.id]: msg }))}
+                                />
+                              );
+                            }
+                            return;
+                          }
+                          if (part.state === 'output-available' && part.output?.message) {
+                            const isSuccess = part.output.success !== false;
+                            rendered.push(
+                              <div
+                                key={idx}
+                                className={cn(
+                                  "mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium",
+                                  isSuccess
+                                    ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                                    : "bg-amber-50 border border-amber-200 text-amber-800"
+                                )}
+                              >
+                                <Check className="w-4 h-4 shrink-0" />
+                                <span>{part.output.message}</span>
+                              </div>
+                            );
+                            return;
+                          }
+                          if (part.state === 'output-error' && part.errorText) {
+                            rendered.push(
+                              <div key={idx} className="mt-2 text-xs text-red-600">
+                                {part.errorText}
+                              </div>
+                            );
+                          }
+                        }
+                      });
+                      if (rendered.length > 0) return rendered;
+                      let content = typeof (message as { content?: string }).content === 'string'
+                        ? (message as { content: string }).content
+                        : '';
+                      if (!content.trim() && parts.length > 0) {
+                        const fromParts = parts
+                          .map((p: { text?: string; content?: string }) => (p as { text?: string }).text ?? (p as { content?: string }).content)
+                          .filter((t): t is string => typeof t === 'string' && t.length > 0);
+                        if (fromParts.length) content = fromParts.join('\n');
+                      }
+                      if (content.trim()) {
                         return (
-                          <p key={idx} className="text-xs leading-relaxed whitespace-pre-line font-medium">
-                            {part.text}
+                          <p className="text-xs leading-relaxed whitespace-pre-line font-medium">
+                            {content}
                           </p>
                         );
                       }
-                      const isTool = part.type?.startsWith('tool-') || part.type === 'dynamic-tool';
-                      if (isTool) {
-                        if (part.state === 'output-available' && part.output?.message) {
-                          const isSuccess = part.output.success !== false;
-                          return (
-                            <div
-                              key={idx}
-                              className={cn(
-                                "mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium",
-                                isSuccess
-                                  ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
-                                  : "bg-amber-50 border border-amber-200 text-amber-800"
-                              )}
-                            >
-                              <Check className="w-4 h-4 shrink-0" />
-                              <span>{part.output.message}</span>
-                            </div>
-                          );
-                        }
-                        if (part.state === 'output-error' && part.errorText) {
-                          return (
-                            <div key={idx} className="mt-2 text-xs text-red-600">
-                              {part.errorText}
-                            </div>
-                          );
-                        }
-                      }
                       return null;
-                    })}
+                    })()}
                   </div>
                   <span className={cn(
                     "text-xs flex items-center gap-1 text-muted-foreground",
@@ -282,9 +503,19 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     );
   }
 
+  if (!workspaceId) {
+    return (
+      <div className="flex flex-col h-full bg-background/50 items-center justify-center px-4">
+        <p className="text-sm text-muted-foreground text-center">
+          Chat needs your workspace to load. Refresh the page or sign in again.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <ChatWithHistory
-      workspaceId={workspaceId ?? ''}
+      workspaceId={workspaceId}
       initialMessages={initialMessages}
     />
   );
