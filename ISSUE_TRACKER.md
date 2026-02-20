@@ -53,19 +53,19 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Schedule-1 (Calendar Views):** Add ability to toggle the calendar between Month, Week, and Day views.
 - **Reports-1 (Data Accuracy):** Verify what data is driving the analytics, ensure the tracking is correct, and confirm proper setup for metrics.
 - **Maps-1 (Sidebar Order):** ✅ FIXED — Map icon now sits above Contacts in sidebar nav.
-- **Maps-2 (Job Plotting):** Map is not displaying active jobs. Verify if Address/Geo-coordinates are working.
+- **Maps-2 (Job Plotting):** ✅ FIXED — `getTradieJobs()` was missing `lat`/`lng` in return. Added `deal.latitude`/`deal.longitude` and fixed address to prefer deal address over contact address.
 - **Sidebar-1 (Minimize Button):** ✅ FIXED — Minimize button and collapsed sidebar state removed entirely.
 
 ### Settings Page
-- **Settings-1 (Layout):** LHS content is cramped and overlaps with the sidebar nav.
+- **Settings-1 (Layout):** ✅ FIXED — Increased left padding on settings container (`pl-6`/`md:pl-10`/`lg:pl-14`) to clear the sidebar nav.
 - **Settings-2 (Email Modification):** Allow users to change their account email. Implement/Verify email pulling from customers into the CRM.
-- **Settings-3 (Bio & Links):** Clarify or remove the "Bio" and "Links" entries if they serve no purpose.
+- **Settings-3 (Bio & Links):** ✅ FIXED — Removed unused `bio` and `urls` from ProfileForm interface and page props. Fields were already absent from UI.
 - **Settings-4 (Advanced Mode):** Build out the Advanced Mode toggles and features.
-- **Settings-5 (Account Deletion):** Fix the "Delete Account" button. Make it small (bottom right corner), trigger a confirmation popup, and require selecting a reason (with an "other" option) before deleting. Remove redundant email fields.
+- **Settings-5 (Account Deletion):** ✅ FIXED — Replaced large red card with small right-aligned text link. Confirmation dialog now requires selecting a reason from dropdown (6 options + "Other") before delete is enabled.
 - **Settings-6 (Billing Integration):** Set up a billing/invoicing integration section for users to collect payments (likely 3rd party Stripe/MYOB).
 - **Settings-7 (Appearance):** ✅ REDESIGNED — All three themes (Light, Dark, Premium) kept with redesigned preview cards, proper CSS variables for Premium (deep indigo), and ThemeProvider unlocked to support theme switching.
 - **Settings-8 (Notifications):** Make the notifications hub robust. Verify it catches AI-generated alerts.
-- **Settings-9 (Workspace Fields):** Remove redundant "Workspace Name" and "Location" fields from the Workspace tab if they belong in the Profile/Knowledge Base.
+- **Settings-9 (Workspace Fields):** ✅ FIXED — Relabeled "Workspace Name" to "Business Name" (used by AI agent) and "Location" to "Service Area" (used for geolocation routing) with clarifying descriptions.
 - **Settings-10 (Automations):** Verify the Automations engine works (e.g., AI prompting "if I make $100 this week, let me know" should generate a functional rule).
 - **Settings-11 (Integrations):** Ensure the Integrations page is fully functional.
 

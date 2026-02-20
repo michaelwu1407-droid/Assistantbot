@@ -85,12 +85,12 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Workspace Name</FormLabel>
+                            <FormLabel>Business Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Acme Inc." {...field} />
+                                <Input placeholder="Acme Plumbing" {...field} />
                             </FormControl>
                             <FormDescription>
-                                This is the name of your organization visible to clients.
+                                Your AI agent uses this when texting, calling, and emailing customers.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -126,10 +126,13 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                     name="location"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Location</FormLabel>
+                            <FormLabel>Service Area</FormLabel>
                             <FormControl>
                                 <Input placeholder="Sydney, AU" {...field} />
                             </FormControl>
+                            <FormDescription>
+                                Used for smart scheduling and geolocation routing.
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
