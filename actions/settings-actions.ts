@@ -83,6 +83,33 @@ export async function updateAiPreferences(workspaceId: string, rule: string) {
     return { success: true }
 }
 
+/**
+ * Fetch workspace settings by workspaceId directly (no session auth needed).
+ * Used by API routes where cookies may not be available.
+ */
+export async function getWorkspaceSettingsById(workspaceId: string) {
+    const workspace = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: {
+            agentMode: true,
+            workingHoursStart: true,
+            workingHoursEnd: true,
+            agendaNotifyTime: true,
+            wrapupNotifyTime: true,
+            aiPreferences: true,
+            autoUpdateGlossary: true,
+            callOutFee: true,
+            inboundEmail: true,
+        }
+    })
+
+    if (workspace && workspace.callOutFee) {
+        return { ...workspace, callOutFee: Number(workspace.callOutFee) }
+    }
+
+    return workspace ? { ...workspace, callOutFee: 0 } : null
+}
+
 export async function getOrAllocateInboundEmail() {
     const authUser = await getAuthUser()
     if (!authUser || !authUser.email) throw new Error("Unauthorized")

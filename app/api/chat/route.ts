@@ -16,7 +16,7 @@ import {
   runCreateContact,
 } from "@/actions/chat-actions";
 import { getDeals } from "@/actions/deal-actions";
-import { getWorkspaceSettings } from "@/actions/settings-actions";
+import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { parseJobOneLiner, buildJobDraftFromParams } from "@/lib/chat-utils";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
       draft.warnings = [];
       try {
-        const settings = await getWorkspaceSettings();
+        const settings = await getWorkspaceSettingsById(workspaceId);
         if (settings?.agentMode === "FILTER") {
           return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 })
         }
@@ -173,19 +173,47 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
-    // CRITICAL API FIX: Google SDK crashes with "must include at least one parts field" 
-    // if ANY message in the history contains an empty string without tool calls.
+    // CRITICAL API FIX: Google SDK crashes with "must include at least one parts field"
+    // if ANY message in the history has empty content and no tool calls.
+    // We must deep-check arrays for actual text content, not just array length.
     modelMessages = modelMessages.filter((msg: any) => {
       if (msg.role === "system") return true;
-      const msgHasText = typeof msg.content === "string"
-        ? msg.content.trim().length > 0
-        : Array.isArray(msg.content) && msg.content.length > 0;
-      const msgHasTools = (msg.toolInvocations?.length > 0) || (msg.toolCalls?.length > 0);
-      // Assistant responses must have content or a tool activity to be valid.
+      let msgHasText = false;
+      if (typeof msg.content === "string") {
+        msgHasText = msg.content.trim().length > 0;
+      } else if (Array.isArray(msg.content)) {
+        msgHasText = msg.content.some((p: any) => {
+          if (!p || typeof p !== "object") return false;
+          if ("text" in p && typeof p.text === "string" && p.text.trim().length > 0) return true;
+          if ("type" in p && p.type === "text" && "text" in p && String(p.text ?? "").trim().length > 0) return true;
+          if ("type" in p && (p.type === "tool-call" || p.type === "tool-result")) return true;
+          return false;
+        });
+      }
+      const msgHasTools = !!(msg.toolInvocations?.length || msg.toolCalls?.length);
       return msgHasText || msgHasTools;
     });
 
-    const settings = await getWorkspaceSettings();
+    // Final safety: ensure last message is user with content. If history was entirely
+    // filtered away, create a minimal user message from the extracted content.
+    if (!modelMessages.length && content?.trim()) {
+      modelMessages = [{ role: "user", content }];
+    }
+    if (!modelMessages.length) {
+      const textId = "empty-fallback-2";
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: "I didn't quite catch that. Could you rephrase?" });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
+
+    const settings = await getWorkspaceSettingsById(workspaceId);
     const deals = await getDeals(workspaceId);
 
     // Build context strings

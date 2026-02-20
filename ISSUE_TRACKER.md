@@ -1,6 +1,6 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-20 (Sprint 19 Audit)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
 
@@ -20,10 +20,12 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/settings`** | ✅ Functional | None |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
-| **Chatbot Interface** | ⚠️ Partial | - ProcessChat not connected to Gemini SDK, currently regex (BE-4). |
-| **Twilio Webhook** | ✅ Functional | None |
-| **Vapi Webhook** | ⚠️ Partial | - Workspace resolution is weak; defaults to first workspace safely. Needs strict phone matching. |
-| **Retell Webhook/SMS** | ⚠️ Partial | - Requires real OpenAI / LangChain integration rather than keyword matching logic. |
+| **Chatbot Interface** | ✅ Functional | - UI calls `/api/chat` (Gemini SDK with 13 tool functions).<br>- `getWorkspaceSettingsById()` now used (no session auth dependency).<br>- Chat-1 "parts field" crash hardened with deep content validation.<br>- Legacy `processChat()` in chat-actions.ts is dead code (cleanup pending). |
+| **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
+| **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
+| **Vapi Webhook** | ⚠️ Partial | - Workspace resolution is weak; defaults to first workspace safely. Needs strict phone matching.<br>- Recording URL not persisted. |
+| **Retell Webhook/SMS** | ⚠️ Partial | - Infrastructure is solid (signature verification, workspace routing, stage mapping).<br>- Requires Retell dashboard setup (Response Engine, Voice, Tools).<br>- Env vars not documented. User has API key & identity ID — setup deferred. |
+| **Google Calendar Integration** | ❌ Scaffolding | - "Connect" button is a fake `setTimeout` mock — no OAuth. |
 | **MYOB / Auth / Mail** | ✅ Functional | None |
 
 ---
@@ -39,10 +41,12 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Home-5 (Contact Actions):** Clicking "contact them" takes the user to the Inbox but only shows a "call" button. Add "text" and "email" action buttons.
 
 ### Chatbox & AI Agent
-- **Chat-1 (Basic Queries):** The chatbot fails to answer simple CRM queries (e.g., "What jobs do I have tomorrow" or "delete x card") and returns a Google Vertex AI error (`must include at least one parts field`).
+- **Chat-1 (Basic Queries):** ✅ HARDENED — Deep message content validation added. Empty/malformed messages are filtered with proper fallbacks. Edge cases covered for arrays with empty objects.
 - **Chat-2 (History & Actions):** The chatbot cannot process requests like "Show me my text history with Steven" or "Text Steven I'm omw".
 - **Chat-3 (Agent Knowledge Base):** The AI lacks business context. Create a settings section to provide knowledge (Business name, address, website) that feeds the agent for texting, calling, and emailing.
 - **Chat-4 (Notification Creation):** Ensure the agent can create scheduled notifications (e.g., "notify me when we are 2 days out for Wendy's repair job") and confirm generation in the calendar.
+- **Chat-5 (Auth in API Route):** ✅ FIXED — Created `getWorkspaceSettingsById(workspaceId)` in settings-actions.ts. Chat route now uses workspaceId from request body directly, bypassing session auth dependency.
+- **SMS-1 (SMS Agent AI):** ✅ FIXED — Rewired `lib/ai/sms-agent.ts` to use Gemini 2.0 Flash with workspace context (business name, agent mode, working hours, call-out fee, AI preferences, conversation history). Falls back gracefully if API key missing.
 
 ### Dashboard Pages
 - **Inbox-1 (Conversation History):** Redesign the Inbox view. Categorize system events ("moved to deleted jobs, stage changed") into a scrolling "Recent activity" box. Below that, create a unified conversation history box (email, text, call) that is visually distinct and UX-friendly.
