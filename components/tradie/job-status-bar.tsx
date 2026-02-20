@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Navigation, MapPin, HardHat, CheckCircle2 } from "lucide-react";
-import { updateJobStatus, sendOnMyWaySMS } from "@/actions/tradie-actions";
+import { updateJobStatus } from "@/actions/tradie-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SafetyModal } from "./safety-modal";
 import { JobCompletionModal } from "./job-completion-modal";
-import { cn } from "@/lib/utils";
+import { MessageActionSheet } from "@/components/sms/message-action-sheet";
 
 type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED";
 
@@ -24,6 +24,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
     const [loading, setLoading] = useState(false);
     const [safetyModalOpen, setSafetyModalOpen] = useState(false);
     const [completionModalOpen, setCompletionModalOpen] = useState(false);
+    const [onMyWaySheetOpen, setOnMyWaySheetOpen] = useState(false);
     const router = useRouter();
 
     const handleStatusChange = async (newStatus: JobStatus) => {
@@ -34,13 +35,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
                 setStatus(newStatus);
                 toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
                 if (newStatus === "TRAVELING") {
-                    // Send actual SMS
-                    const smsResult = await sendOnMyWaySMS(dealId);
-                    if (smsResult.success) {
-                        toast.success(`SMS sent to ${contactName}: "On my way!"`);
-                    } else {
-                        toast.error(`Failed to send SMS: ${smsResult.error}`);
-                    }
+                    setOnMyWaySheetOpen(true);
                 }
                 router.refresh();
             } else {
@@ -133,6 +128,13 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
                     setStatus("COMPLETED");
                     router.refresh();
                 }}
+            />
+
+            <MessageActionSheet
+                open={onMyWaySheetOpen}
+                onOpenChange={setOnMyWaySheetOpen}
+                jobId={dealId}
+                triggerEvent="ON_MY_WAY"
             />
         </>
     );

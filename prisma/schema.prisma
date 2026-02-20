@@ -119,9 +119,14 @@ model User {
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   activities  Activity[]
   notifications Notification[]
-  
+
   // View preference
   viewMode    String?   @default("BASIC") // BASIC, ADVANCED
+
+  // Onboarding & Templates
+  businessProfile  BusinessProfile?
+  pricingSettings  PricingSettings?
+  smsTemplates     SmsTemplate[]
 }
 
 model Deal {
@@ -398,10 +403,72 @@ model RepairItem {
   id          String   @id @default(cuid())
   title       String
   description String?
-  
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  
+
   createdAt   DateTime @default(now())
+}
+
+// ─── Onboarding Wizard ──────────────────────────────────────────────
+
+enum PricingMode {
+  BOOK_ONLY
+  CALL_OUT
+  STANDARD
+}
+
+model BusinessProfile {
+  id                 String   @id @default(cuid())
+  tradeType          String   // Plumber, Sparky, HVAC, etc.
+  website            String?
+  baseSuburb         String
+  serviceRadius      Int      @default(20)
+  standardWorkHours  String   @default("Mon-Fri, 07:00-15:30")
+  emergencyService   Boolean  @default(false)
+  emergencySurcharge Float?
+
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PricingSettings {
+  id          String      @id @default(cuid())
+  mode        PricingMode @default(STANDARD)
+  callOutFee  Float?      @default(89.0)
+  waiveFee    Boolean     @default(true)
+  menuItems   Json?       // Array of { name: string, price: number }
+
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// ─── One-Tap SMS / Email Templates ──────────────────────────────────
+
+enum TriggerEvent {
+  JOB_COMPLETE
+  ON_MY_WAY
+  LATE
+}
+
+model SmsTemplate {
+  id           String       @id @default(cuid())
+  triggerEvent TriggerEvent
+  content      String
+  isActive     Boolean      @default(true)
+
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([userId, triggerEvent])
 }
 

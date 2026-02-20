@@ -30,6 +30,10 @@ const sidebarNavItems = [
         href: "/dashboard/settings/display",
     },
     {
+        title: "One-Tap Messages",
+        href: "/dashboard/settings/sms-templates",
+    },
+    {
         title: "Automations",
         href: "/dashboard/settings/automations",
     },
