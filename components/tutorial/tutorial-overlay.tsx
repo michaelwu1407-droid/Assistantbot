@@ -8,143 +8,37 @@ import { Card } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronRight, ChevronLeft, SkipForward, X } from "lucide-react"
 
-// Complete Tutorial Steps - emphasizing chat-first simplicity
 const STEPS = [
     // === INTRO SECTION - PROMOTING CHAT-FIRST ===
     {
         id: "welcome",
         targetId: null,
         title: "Welcome to Pj Buddy! 🎉",
-        message: "I'm Pj, your AI business assistant. Unlike other CRM apps, you can just TALK to me — like texting a friend. No learning buttons or menus!",
+        message: "I'm Pj, your AI business assistant. My goal is to handle the heavy lifting of CRM management so you can focus on the tools, not the tech. Let's take a quick tour!",
         actionLabel: "Let's Go",
     },
     {
         id: "chat-first-intro",
         targetId: null,
         title: "💬 Just Chat — That's It!",
-        message: "The EASIEST way to use Pj Buddy:\n\n📱 Type: \"New job for John Smith\"\n📱 Type: \"Show stale deals\"\n📱 Type: \"Send a quote for $500\"\n\nI'll do the rest! No buttons, no menus, no learning curve.",
+        message: "The EASIEST way to use Pj Buddy is to just talk to me like texting a friend.\n\n📱 Type: \"New job for John Smith\"\n📱 Type: \"Show stale deals\"\n📱 Type: \"Send a quote for $500\"\n\nI'll parse exactly what you mean and update the database instantly.",
         actionLabel: "Cool!",
-    },
-    {
-        id: "modes-intro",
-        targetId: null,
-        title: "Two Ways to Work",
-        message: "✨ **Basic Mode** (Recommended)\nJust you and me chatting. Perfect for busy tradies!\n\n🖥️ **Advanced Mode**\nFull dashboard for power users who want extra control.\n\nMost users ONLY need Basic Mode!",
-        actionLabel: "Show Me",
     },
 
     // === BASIC MODE SECTION ===
     {
         id: "basic-mode",
         targetId: "assistant-pane",
-        title: "Basic Mode — Just Chat!",
-        message: "This is where the magic happens. Just type what you need in plain English. I understand context and remember your conversation.",
+        title: "Basic Mode — Your AI Companion",
+        message: "This is where the magic happens. Basic Mode hides all the complex dashboard widgets and leaves you with an intelligent chat interface. You can type commands in plain English here.",
         position: "left",
         actionLabel: "Next",
     },
-
-    // === ADVANCED MODE FEATURES ===
-    {
-        id: "mode-toggle",
-        targetId: "mode-toggle-btn",
-        title: "Switch Modes Anytime",
-        message: "Click this button to toggle between Basic (chat) and Advanced (dashboard) mode. Try it out!",
-        position: "bottom",
-        actionLabel: "Next",
-    },
-    {
-        id: "canvas-overview",
-        targetId: "main-canvas",
-        title: "The Dashboard Canvas",
-        message: "This is your workspace in Advanced Mode. It shows your jobs, pipeline, map, and more.",
-        position: "bottom",
-        actionLabel: "Next",
-    },
-    {
-        id: "sidebar",
-        targetId: "sidebar-nav",
-        title: "Navigation Sidebar",
-        message: "Jump between different views: Dashboard, Calendar, Contacts, Settings, and more.",
-        position: "right",
-        actionLabel: "Next",
-    },
-
-    // === DASHBOARD FEATURES ===
-    {
-        id: "kanban",
-        targetId: "kanban-board",
-        title: "Your Pipeline",
-        message: "Drag jobs between stages as they progress. Red borders mean a job needs attention (over 7 days old).",
-        position: "right",
-        actionLabel: "Next",
-    },
-    {
-        id: "new-deal",
-        targetId: "new-deal-btn",
-        title: "Create New Jobs",
-        message: "Click here to add a new job, quote, or listing. I'll help you fill in the details!",
-        position: "bottom",
-        actionLabel: "Next",
-    },
-    {
-        id: "search",
-        targetId: "search-btn",
-        title: "Quick Search",
-        message: "Press Cmd+K (or Ctrl+K) anytime to search for jobs, contacts, or actions.",
-        position: "bottom",
-        actionLabel: "Next",
-    },
-    {
-        id: "notifications",
-        targetId: "notifications-btn",
-        title: "Notifications",
-        message: "Stay on top of reminders, follow-ups, and important updates right here.",
-        position: "bottom",
-        actionLabel: "Next",
-    },
-
-    // === TRADIE FEATURES ===
-    {
-        id: "map-view",
-        targetId: "map-link",
-        title: "Map View",
-        message: "See all your jobs on a map with routes. Perfect for planning your day efficiently.",
-        position: "right",
-        actionLabel: "Next",
-    },
-    {
-        id: "calendar",
-        targetId: "schedule-link",
-        title: "Smart Scheduler",
-        message: "Drag and drop jobs onto your calendar. I'll help you optimize travel time.",
-        position: "right",
-        actionLabel: "Next",
-    },
-    {
-        id: "estimator",
-        targetId: "estimator-link",
-        title: "Quote Builder",
-        message: "Build professional quotes in seconds. Add line items and I'll handle the math.",
-        position: "right",
-        actionLabel: "Next",
-    },
-
-    // === AGENT FEATURES ===
-    {
-        id: "contacts",
-        targetId: "contacts-link",
-        title: "Contact Database",
-        message: "All your clients and leads in one place. Track preferences, notes, and history.",
-        position: "right",
-        actionLabel: "Next",
-    },
-
-    // === CHAT FEATURES ===
     {
         id: "voice-input",
         targetId: "voice-btn",
-        title: "Voice Commands",
-        message: "Click the microphone to talk to me. Great for hands-free operation on the job site!",
+        title: "Voice Commands (Hands-Free)",
+        message: "Dirty hands? No problem. Click the microphone to dictate your instructions directly to me. I'll translate your voice into text and execute the request.",
         position: "left",
         actionLabel: "Next",
     },
@@ -152,25 +46,145 @@ const STEPS = [
         id: "chat-examples",
         targetId: "chat-input",
         title: "What You Can Say",
-        message: "Try commands like:\n• \"Show stale deals\"\n• \"Create a job for plumbing\"\n• \"Find buyers for 12 Smith St\"\n• \"Start my day\"",
+        message: "You can create jobs, ask for directions, or follow up on quotes simply by typing it out here. Give it a try when we finish the tour!",
         position: "left",
         actionLabel: "Next",
     },
 
-    // === SETTINGS & WRAP UP ===
+    // === ADVANCED MODE & DASHBOARD (START YOUR DAY) ===
     {
-        id: "settings",
-        targetId: "settings-link",
-        title: "Settings",
-        message: "Customize your workspace, update your profile, and configure preferences here.",
+        id: "mode-toggle",
+        targetId: "mode-toggle-btn",
+        title: "Toggle Advanced Mode",
+        message: "Sometimes you need the big picture. Click this button at any time to toggle between Basic (chat) and Advanced (full dashboard) modes.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+    {
+        id: "start-your-day",
+        targetId: "dashboard-link",
+        title: "Start Your Day: The Dashboard",
+        message: "When you grab your coffee in the morning, start here. The Home Dashboard gives you an immediate bird's-eye view of your business pipeline so you know exactly what needs attention.",
+        position: "right",
+        actionLabel: "Got it",
+    },
+    {
+        id: "kpi-cards",
+        targetId: "kpi-cards",
+        title: "Business Metrics",
+        message: "Track your real-time total revenue, win rates, and pending jobs at a glance.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+
+    // === DASHBOARD UTILITIES ===
+    {
+        id: "search",
+        targetId: "search-btn",
+        title: "Global Search",
+        message: "Lost a client's number? Use the Global Search (or press Cmd+K) to instantly scan all your deals, contacts, and reports.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+    {
+        id: "notifications",
+        targetId: "notifications-btn",
+        title: "Notifications Hub",
+        message: "Important alerts (like incoming quote approvals or scheduled reminders) will pop up right here.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+
+    // === SIDEBAR DEEP DIVE ===
+    {
+        id: "sidebar",
+        targetId: "sidebar-nav",
+        title: "The Command Center",
+        message: "The left sidebar is your master navigation. Let's walk through the core tools you have access to.",
+        position: "right",
+        actionLabel: "Let's look",
+    },
+    {
+        id: "kanban",
+        targetId: "kanban-link",
+        title: "1. Pipeline (Kanban)",
+        message: "Manage your active jobs visually here. Drag a deal from 'Quote Sent' to 'Scheduled', and Pj Buddy can automatically trigger SMS confirmations to the client.",
         position: "right",
         actionLabel: "Next",
     },
     {
+        id: "schedule",
+        targetId: "schedule-link",
+        title: "2. Smart Schedule",
+        message: "View your entire week visually. When the AI creates a job for 'Tomorrow at 2pm', it automatically slots into this calendar.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "contacts",
+        targetId: "contacts-link",
+        title: "3. Contact Directory",
+        message: "Every person you interact with is saved to the CRM automatically. View their job history, phone numbers, and internal notes here.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "inbox",
+        targetId: "inbox-link",
+        title: "4. Unified Inbox",
+        message: "Pj Buddy intercepts SMS replies from your clients and routes them directly into this Inbox, just like email. You can reply straight from here!",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "team",
+        targetId: "team-link",
+        title: "5. Team Management",
+        message: "Have subcontractors or employees? Manage their access and assign them specifically to different jobs via the Team portal.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "reports",
+        targetId: "reports-link",
+        title: "6. Reports & Analytics",
+        message: "Dive deep into your margins. See which postal codes generate the most revenue and monitor month-over-month growth.",
+        position: "right",
+        actionLabel: "Next",
+    },
+    {
+        id: "map-view",
+        targetId: "map-link",
+        title: "7. Interactive Route Map",
+        message: "Crucial for Tradies! Pj Buddy plots the addresses of all your active jobs onto a live map, making it extremely easy to plan efficient driving routes for the day.",
+        position: "right",
+        actionLabel: "Awesome",
+    },
+    {
+        id: "settings",
+        targetId: "settings-link",
+        title: "8. Workspace Settings",
+        message: "Update your logo, configure your business industry, or customize your AI Assistant's voice responses.",
+        position: "right",
+        actionLabel: "Next",
+    },
+
+    // === MANUAL ENTRY ===
+    {
+        id: "new-deal",
+        targetId: "new-deal-btn",
+        title: "Manual Entry Shortcut",
+        message: "Prefer doing things the old-fashioned way? Click the 'New Deal' button up here to manually fill out job request forms without using the AI.",
+        position: "bottom",
+        actionLabel: "Next",
+    },
+
+    // === WRAP UP ===
+    {
         id: "finish",
         targetId: null,
-        title: "You're All Set! 🚀",
-        message: "That's the tour! Start by telling me about your business, or jump into Advanced Mode to explore.\n\nTip: You can replay this tutorial anytime from Settings.",
+        title: "You're Ready to Roll! 🚀",
+        message: "That concludes the tour. To get started, try asking the AI to 'Create a new test job'.\n\nIf you ever need a refresher, you can replay this tutorial anytime from the top-right Help menu in Settings.",
         actionLabel: "Start Using Pj Buddy",
     },
 ]

@@ -3,8 +3,6 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
@@ -18,10 +16,6 @@ const sidebarNavItems = [
     {
         title: "Account",
         href: "/dashboard/settings/account",
-    },
-    {
-        title: "Appearance",
-        href: "/dashboard/settings/appearance",
     },
     {
         title: "Notifications",
@@ -48,9 +42,13 @@ const sidebarNavItems = [
         href: "/dashboard/settings/ai-voice",
     },
     {
-        title: "After Hours",
-        href: "/dashboard/settings/after-hours",
+        title: "Agent Capabilities",
+        href: "/dashboard/settings/agent",
     },
+    {
+        title: "Repair Glossary",
+        href: "/dashboard/settings/glossary",
+    }
 ]
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -66,7 +64,7 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
     return (
         <nav
             className={cn(
-                "flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1",
+                "flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1 overflow-x-auto pb-4 lg:pb-0 custom-scrollbar",
                 className
             )}
             {...props}
@@ -76,10 +74,10 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                        "justify-start text-left",
+                        "justify-start text-left whitespace-nowrap",
                         pathname === item.href
-                            ? "bg-mint-50 font-medium text-primary"
-                            : "hover:bg-secondary hover:text-midnight text-slate-body",
+                            ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                            : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 text-slate-500",
                         "inline-flex h-10 items-center rounded-xl px-4 py-2 text-sm transition-colors"
                     )}
                 >
@@ -92,19 +90,21 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
     return (
-        <div className="space-y-6 p-4 pb-16 md:p-10">
-            <div className="space-y-0.5">
-                <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-                <p className="text-muted-foreground">
-                    Manage your account settings and set e-mail preferences.
+        <div className="space-y-6 p-4 pb-16 md:p-8 lg:p-10 max-w-6xl mx-auto w-full">
+            <div className="space-y-1.5">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h2>
+                <p className="text-slate-500 text-sm">
+                    Manage your CRM preferences, team structures, and AI agent configuration.
                 </p>
             </div>
             <div className="my-6 border-t border-slate-200 dark:border-slate-800" />
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-                <aside className="-mx-4 lg:w-1/5">
+                <aside className="w-full lg:w-[250px] shrink-0">
                     <SidebarNav items={sidebarNavItems} />
                 </aside>
-                <div className="flex-1 lg:max-w-2xl">{children}</div>
+                <div className="flex-1 min-w-0 max-w-full lg:max-w-3xl border-slate-100 dark:border-slate-800 lg:border-l lg:pl-10">
+                    {children}
+                </div>
             </div>
         </div>
     )

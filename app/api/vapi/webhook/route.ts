@@ -22,28 +22,36 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ status: "ignored", reason: "No customer number" })
         }
 
-        // 1. Find or Create Contact
-        // In a real app, we'd scope this by Workspace (maybe via Vapi Org ID map or phone number map)
-        // For now, we'll search across all contracts or assume a default workspace if none found
-        // TODO: Improve Workspace resolution. defaulting to first workspace for safety or just searching by phone.
+        // Vapi payload includes the number that the customer called (our system number)
+        const systemNumber = call.phoneNumber?.number
+        if (!systemNumber) {
+            return NextResponse.json({ status: "error", reason: "Could not identify inbound system phone number" }, { status: 400 })
+        }
 
+        // 1. Find Workspace by matching the dialed System Number
+        const workspace = await prisma.workspace.findFirst({
+            where: { twilioPhoneNumber: systemNumber }
+        })
+
+        if (!workspace) {
+            console.error(`[Vapi Webhook] No workspace found for inbound number: ${systemNumber}`)
+            return NextResponse.json({ status: "error", reason: "Invalid Workspace Routing" }, { status: 404 })
+        }
+
+        // 2. Find or Create Contact scoped strictly to this Workspace
         let contact = await prisma.contact.findFirst({
-            where: { phone: customerNumber }
+            where: {
+                phone: customerNumber,
+                workspaceId: workspace.id
+            }
         })
 
         if (!contact) {
-            // Find a default workspace to attach to (e.g. the first one)
-            const defaultWorkspace = await prisma.workspace.findFirst()
-            if (!defaultWorkspace) {
-                console.error("No workspace found to create contact")
-                return NextResponse.json({ status: "error", reason: "No workspace" }, { status: 500 })
-            }
-
             contact = await prisma.contact.create({
                 data: {
                     name: "Unknown Caller",
                     phone: customerNumber,
-                    workspaceId: defaultWorkspace.id
+                    workspaceId: workspace.id
                 }
             })
         }

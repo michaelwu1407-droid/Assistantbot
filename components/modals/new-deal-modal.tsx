@@ -29,7 +29,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [contacts, setContacts] = useState<ContactView[]>([])
 
     // New Contact Mode State
-    const [mode, setMode] = useState<"select" | "create">("select")
+    const [mode, setMode] = useState<"select" | "create">("create")
     const [newContactName, setNewContactName] = useState("")
     const [newContactEmail, setNewContactEmail] = useState("")
     const [newContactPhone, setNewContactPhone] = useState("")

@@ -56,7 +56,15 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
     cardClasses = "ott-card rounded-[20px] bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4 dark:border-amber-500/40"
     statusLabel = "Follow up"
     statusClass = "bg-amber-100 text-amber-700 border-amber-200"
+    statusClass = "bg-amber-100 text-amber-700 border-amber-200"
   }
+
+  if (deal.isDraft) {
+    cardClasses = "ott-card rounded-[20px] bg-indigo-50/50 border-indigo-300 border-dashed p-4 dark:border-indigo-500/40"
+    statusLabel = "Draft"
+    statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
+  }
+
   const showHealthBadge = statusLabel !== ""
 
   if (overlay) {
@@ -132,9 +140,18 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
 
           {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
-            <div className="flex items-center text-xs text-[#0F172A] font-bold bg-[#F8FAFC] dark:bg-slate-800/50 px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-slate-600/50">
-              <DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" />
-              {deal.value.toLocaleString()}
+            <div className="flex items-center text-[11px] text-[#0F172A] font-bold bg-[#F8FAFC] dark:bg-slate-800/50 px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-slate-600/50">
+              {deal.invoicedAmount !== undefined ? (
+                <>
+                  <span className="text-emerald-600 mr-1 flex items-center"><DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" /> Inv:</span>
+                  ${deal.invoicedAmount.toLocaleString()}
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" />
+                  {deal.value.toLocaleString()}
+                </>
+              )}
             </div>
             {deal.scheduledAt ? (
               <div className="flex items-center text-xs text-[#64748B] dark:text-slate-400">

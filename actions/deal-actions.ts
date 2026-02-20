@@ -62,6 +62,8 @@ export interface DealView {
   stageChangedAt: Date;
   metadata?: Record<string, unknown>;
   address?: string;
+  isDraft: boolean;
+  invoicedAmount?: number;
   latitude?: number;
   longitude?: number;
   contactPhone?: string;
@@ -69,6 +71,7 @@ export interface DealView {
   jobStatus?: string;
   status?: string;
   scheduledAt?: Date | null;
+  workspaceId: string;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -123,7 +126,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
       (d) => d.stage === "DELETED" && new Date(d.stageChangedAt) < cutoff
     );
     for (const d of toDelete) {
-      await db.deal.delete({ where: { id: d.id } }).catch(() => {});
+      await db.deal.delete({ where: { id: d.id } }).catch(() => { });
     }
     const filtered = deals.filter((d) => !toDelete.find((t) => t.id === d.id));
 
@@ -161,9 +164,12 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         stageChangedAt: deal.stageChangedAt,
         metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
         address: deal.address ?? undefined,
+        isDraft: deal.isDraft,
+        invoicedAmount: deal.invoicedAmount ?? undefined,
         latitude: deal.latitude ?? undefined,
         longitude: deal.longitude ?? undefined,
         scheduledAt: deal.scheduledAt ?? undefined,
+        workspaceId: deal.workspaceId,
       };
     });
   } catch (error) {
@@ -333,9 +339,12 @@ export async function updateDealMetadata(
  */
 export async function updateDeal(
   dealId: string,
-  data: { title?: string; value?: number; stage?: string }
+  data: { title?: string; value?: number; stage?: string; isDraft?: boolean; invoicedAmount?: number | null }
 ) {
-  const deal = await db.deal.findUnique({ where: { id: dealId } });
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: { workspace: { select: { autoUpdateGlossary: true } } }
+  });
   if (!deal) return { success: false, error: "Deal not found" };
 
   type DealUpdate = Parameters<typeof db.deal.update>[0]["data"];
@@ -347,6 +356,10 @@ export async function updateDeal(
     if (!prismaStage) return { success: false, error: `Invalid stage: ${data.stage}` };
     update.stage = prismaStage as DealUpdate["stage"];
     update.stageChangedAt = new Date();
+  }
+  if (data.isDraft !== undefined) update.isDraft = data.isDraft;
+  if (data.invoicedAmount !== undefined) {
+    update.invoicedAmount = data.invoicedAmount;
   }
 
   await db.deal.update({

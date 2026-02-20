@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -117,14 +117,28 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {selected.contactId && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`tel:${selected.contactId}`}>
-                      <Phone className="h-3.5 w-3.5 mr-1" />
-                      Call
-                    </a>
-                  </Button>
+                  <>
+                    <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Call Contact">
+                      <a href={`tel:${selected.contactId}`}>
+                        <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                        <span className="text-xs">Call</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Text Contact">
+                      <a href={`sms:${selected.contactId}`}>
+                        <MessageSquare className="h-3.5 w-3.5 mr-1 text-emerald-500" />
+                        <span className="text-xs">Text</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 px-2 hidden sm:flex" title="Email Contact">
+                      <a href={`mailto:${selected.contactId}`}>
+                        <Mail className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                        <span className="text-xs">Email</span>
+                      </a>
+                    </Button>
+                  </>
                 )}
                 {(selected.dealId || selected.contactId) && (
                   <Button variant="outline" size="sm" asChild>

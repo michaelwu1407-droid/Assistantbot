@@ -1,0 +1,2 @@
+﻿app/api/chat/route.ts(69,32): error TS2304: Cannot find name 'getWorkspaceSettings'.
+app/api/chat/route.ts(187,28): error TS2304: Cannot find name 'getWorkspaceSettings'.

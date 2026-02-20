@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { updateUserProfile } from "@/actions/user-actions";
+import { toast } from "sonner";
 
 interface ProfileFormProps {
   userId: string;
@@ -16,7 +16,8 @@ interface ProfileFormProps {
     username: string;
     email: string;
     bio?: string;
-    urls: { value: string }[];
+    urls?: { value: string }[];
+    viewMode?: "BASIC" | "ADVANCED";
   };
 }
 
@@ -24,11 +25,8 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: initialData?.username || "",
-    bio: initialData?.bio || "",
-    urls: initialData?.urls || [],
-    viewMode: "BASIC" as "BASIC" | "ADVANCED",
+    viewMode: initialData?.viewMode || "BASIC" as "BASIC" | "ADVANCED",
   });
-  const [newUrl, setNewUrl] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,40 +35,21 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
     try {
       const updateData = {
         username: formData.username,
-        bio: formData.bio,
-        urls: formData.urls,
         viewMode: formData.viewMode,
       };
 
       await updateUserProfile(userId, updateData);
 
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!");
     } catch (error) {
-      alert("Failed to update profile. Please try again.");
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const addUrl = () => {
-    if (newUrl.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        urls: [...prev.urls, { value: newUrl.trim() }]
-      }));
-      setNewUrl("");
-    }
-  };
-
-  const removeUrl = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      urls: prev.urls.filter((_, i) => i !== index)
-    }));
-  };
-
   return (
-    <Card>
+    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle>Profile Settings</CardTitle>
         <CardDescription>
@@ -78,7 +57,7 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
             <div>
@@ -88,9 +67,10 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
                 value={formData.username}
                 onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
                 placeholder="Your display name"
+                className="mt-1.5"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -98,98 +78,38 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
                 type="email"
                 value={initialData?.email}
                 disabled
-                className="bg-muted"
+                className="bg-slate-50 text-slate-500 mt-1.5"
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-slate-500 mt-1.5">
                 Email cannot be changed here. Contact support if needed.
               </p>
             </div>
-            
-            <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                placeholder="Tell us about yourself..."
-                rows={3}
-              />
-            </div>
           </div>
 
-          <Separator />
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
 
           {/* Advanced Mode Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="advanced-mode">Advanced Mode</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable advanced features and additional interface options
+              <Label htmlFor="advanced-mode" className="text-base font-medium">Advanced Mode</Label>
+              <p className="text-sm text-slate-500">
+                Enable advanced features, reports, and team views.
               </p>
             </div>
             <Switch
               id="advanced-mode"
               checked={formData.viewMode === "ADVANCED"}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setFormData(prev => ({ ...prev, viewMode: checked ? "ADVANCED" : "BASIC" }))
               }
             />
           </div>
 
-          <Separator />
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-          {/* URLs */}
-          <div>
-            <Label>Links</Label>
-            <div className="space-y-2">
-              {formData.urls.map((url, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={url.value}
-                    onChange={(e) => {
-                      const newUrls = [...formData.urls];
-                      newUrls[index] = { value: e.target.value };
-                      setFormData(prev => ({ ...prev, urls: newUrls }));
-                    }}
-                    placeholder="https://example.com"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeUrl(index)}
-                  >
-                    ×
-                  </Button>
-                </div>
-              ))}
-              
-              <div className="flex gap-2">
-                <Input
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addUrl();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addUrl}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
             disabled={isLoading}
           >
             {isLoading ? "Saving..." : "Save Changes"}

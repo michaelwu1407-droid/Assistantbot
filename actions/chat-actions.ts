@@ -267,9 +267,9 @@ function parseCommandRegex(message: string): ParsedCommand {
   }
 
   // When/what questions about schedule
-  if (msg.match(/(?:when|what time|what's|whats)\s+(?:do|am|is)\s+(?:I|i)\s+(?:have|got|scheduled|booked)/i) || 
-      msg.match(/(?:what's|whats)\s+(?:on|for)\s+(?:my|the)\s+(?:schedule|calendar|plate)/i) ||
-      msg.match(/(?:any|some)\s+(?:jobs|tasks|appointments|bookings)\s+(?:today|tomorrow|this week|next week)/i)) {
+  if (msg.match(/(?:when|what time|what's|whats)\s+(?:do|am|is)\s+(?:I|i)\s+(?:have|got|scheduled|booked)/i) ||
+    msg.match(/(?:what's|whats)\s+(?:on|for)\s+(?:my|the)\s+(?:schedule|calendar|plate)/i) ||
+    msg.match(/(?:any|some)\s+(?:jobs|tasks|appointments|bookings)\s+(?:today|tomorrow|this week|next week)/i)) {
     return { intent: "show_schedule", params: {} };
   }
 
@@ -447,7 +447,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (materialsMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Order materials for ${materialsMatch[1].trim()}`,
         type: "MATERIALS"
       }
@@ -458,8 +458,8 @@ function parseCommandRegex(message: string): ParsedCommand {
   const toolsMatch = msg.match(/(?:need|borrow|rent|hire|get)\s+(?:tools|equipment|machinery|scaffolding|ladder|drill|saw|hammer)\s+(?:for|to)\s+(.+?)/i);
   if (toolsMatch) {
     return {
-      intent: "create_task", 
-      params: { 
+      intent: "create_task",
+      params: {
         title: `Arrange tools: ${toolsMatch[1].trim()}`,
         type: "EQUIPMENT"
       }
@@ -471,7 +471,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (crewMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Arrange crew: ${crewMatch[1].trim()}`,
         type: "CREW"
       }
@@ -483,7 +483,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (vehicleMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Arrange vehicle: ${vehicleMatch[1].trim()}`,
         type: "VEHICLE"
       }
@@ -495,7 +495,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (permitMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Arrange permit: ${permitMatch[1].trim()}`,
         type: "PERMIT"
       }
@@ -507,7 +507,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (quoteRequestMatch) {
     return {
       intent: "create_invoice",
-      params: { 
+      params: {
         title: quoteRequestMatch[1].trim(),
         requestType: "QUOTE_REQUEST"
       }
@@ -519,7 +519,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (scheduleChangeMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Reschedule: ${scheduleChangeMatch[1].trim()} to ${scheduleChangeMatch[2].trim()}`,
         type: "RESCHEDULE"
       }
@@ -531,7 +531,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (clientCommMatch) {
     return {
       intent: "log_activity",
-      params: { 
+      params: {
         type: "NOTE",
         content: `Contact client regarding: ${clientCommMatch[1].trim()}`
       }
@@ -543,7 +543,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (directionsMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Get directions to: ${directionsMatch[1].trim()}`,
         type: "DIRECTIONS"
       }
@@ -555,7 +555,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (measureMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         title: `Measure/assess: ${measureMatch[1].trim()}`,
         type: "MEASUREMENT"
       }
@@ -567,7 +567,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (timeTrackMatch) {
     return {
       intent: "log_activity",
-      params: { 
+      params: {
         type: "NOTE",
         content: `Time tracking: ${timeTrackMatch[1].trim()}`
       }
@@ -579,7 +579,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (weatherMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         type: "NOTE",
         content: `Weather delay: ${weatherMatch[0].trim()}`
       }
@@ -591,7 +591,7 @@ function parseCommandRegex(message: string): ParsedCommand {
   if (supplierMatch) {
     return {
       intent: "create_task",
-      params: { 
+      params: {
         type: "CALL",
         content: `Contact supplier: ${supplierMatch[1].trim()}`
       }
@@ -727,7 +727,7 @@ User message: "${message}"`;
     }
 
     const data = await response.json();
-    
+
     if (!data.candidates?.[0]?.content) {
       console.error("No content returned from Gemini API");
       return null;
@@ -736,7 +736,7 @@ User message: "${message}"`;
     try {
       const text = data.candidates[0].content.parts[0].text;
       const parsed = JSON.parse(text);
-      
+
       // Validate that this is a proper JSON response
       if (!parsed || typeof parsed !== 'object') {
         console.error("Invalid JSON from Gemini API");
@@ -792,7 +792,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
         contactLabel: "buyer",
         stageLabels: {
           NEW: "New",
-          CONTACTED: "Contacted", 
+          CONTACTED: "Contacted",
           NEGOTIATION: "Under Offer",
           WON: "Under Contract",
           LOST: "Lost"
@@ -804,7 +804,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
     case "CONSTRUCTION":
       return {
         dealLabel: "project",
-        dealsLabel: "projects", 
+        dealsLabel: "projects",
         contactLabel: "client",
         stageLabels: {
           NEW: "Lead",
@@ -821,11 +821,11 @@ function getIndustryContext(industryType: string | null): IndustryContext {
       return {
         dealLabel: "job",
         dealsLabel: "jobs",
-        contactLabel: "client", 
+        contactLabel: "client",
         stageLabels: {
           NEW: "Lead",
           CONTACTED: "Quoting",
-          NEGOTIATION: "Negotiation", 
+          NEGOTIATION: "Negotiation",
           WON: "Scheduled",
           LOST: "Lost"
         },
@@ -1274,7 +1274,7 @@ export async function processChat(
     case "show_schedule": {
       const deals = await getDeals(workspaceId);
       const scheduledDeals = deals.filter(d => d.stage === "CONTACTED" || d.stage === "NEGOTIATION");
-      
+
       if (scheduledDeals.length === 0) {
         response = { message: `You don't have any scheduled ${ctx.dealsLabel} right now. Your schedule is clear!` };
       } else {
@@ -1804,3 +1804,115 @@ export async function clearChatHistoryAction(workspaceId: string) {
     return { success: false };
   }
 }
+
+/**
+ * AI Tool Action: Update Invoice Amount
+ */
+export async function runUpdateInvoiceAmount(
+  workspaceId: string,
+  params: { dealTitle: string; amount: number }
+) {
+  try {
+    const deals = await getDeals(workspaceId);
+    const target = findDealByTitle(deals, params.dealTitle);
+    if (!target) return `Could not find a job matching "${params.dealTitle}". Try asking for the list of jobs.`;
+
+    const { updateDeal } = await import("./deal-actions");
+    await updateDeal(target.id, { invoicedAmount: params.amount });
+    return `Successfully updated the invoiced amount for "${target.title}" to $${params.amount}.`;
+  } catch (err) {
+    return `Error updating invoice amount: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+export async function runUpdateAiPreferences(workspaceId: string, rule: string) {
+  try {
+    const { updateAiPreferences } = await import("./settings-actions");
+    await updateAiPreferences(workspaceId, rule);
+    return `Successfully saved the rule: "${rule}". I will remember this for future conversations.`;
+  } catch (err) {
+    return `Error updating preferences: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Log an Activity (Call, Note, etc)
+ */
+export async function runLogActivity(params: { type: string, content: string, dealId?: string, contactId?: string }) {
+  try {
+    const result = await logActivity({
+      type: params.type.toUpperCase() as any,
+      title: `${params.type} logged via Assistant`,
+      content: params.content,
+      dealId: params.dealId,
+      contactId: params.contactId
+    });
+    if (!result.success) throw new Error(result.error);
+    return `Successfully logged ${params.type}: "${params.content}"`;
+  } catch (err) {
+    return `Error logging activity: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Create a Task/Reminder
+ */
+export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
+  try {
+    // Default due tomorrow 9AM if nothing specified
+    let dueAt = new Date();
+    dueAt.setDate(dueAt.getDate() + 1);
+    dueAt.setHours(9, 0, 0, 0);
+
+    if (params.dueAtISO) {
+      dueAt = new Date(params.dueAtISO);
+    }
+
+    const result = await createTask({
+      title: params.title,
+      description: params.description,
+      dueAt,
+      dealId: params.dealId,
+      contactId: params.contactId
+    });
+
+    if (!result.success) throw new Error(result.error);
+    return `Successfully created task: "${params.title}" due at ${dueAt.toLocaleString()}`;
+  } catch (err) {
+    return `Error creating task: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Search for Contacts
+ */
+export async function runSearchContacts(workspaceId: string, query: string) {
+  try {
+    const contacts = await searchContacts(workspaceId, query);
+    if (!contacts.length) return `No contacts found matching "${query}".`;
+
+    return `Found ${contacts.length} matches:\n` + contacts.map(c => `- ${c.name} ${c.company ? `(${c.company})` : ''} ${c.phone ? `Ph: ${c.phone}` : ''}`).join("\n");
+  } catch (err) {
+    return `Error searching contacts: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Create/Add a Contact
+ */
+export async function runCreateContact(workspaceId: string, params: { name: string, email?: string, phone?: string }) {
+  try {
+    const result = await createContact({
+      name: params.name,
+      email: params.email,
+      phone: params.phone,
+      workspaceId
+    });
+
+    if (!result.success) throw new Error(result.error);
+    return `Successfully added contact "${params.name}". ${result.enriched ? "Data was automatically enriched." : ""}`;
+  } catch (err) {
+    return `Error creating contact: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+

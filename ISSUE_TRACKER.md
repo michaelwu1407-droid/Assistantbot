@@ -1,0 +1,111 @@
+# ISSUE TRACKER
+
+**Last Updated:** 2026-02-20
+
+This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
+
+## Application Pages & Features Matrix
+
+| Route / Feature | Status | Unresolved Issues / TODOs |
+|-----------------|--------|---------------------------|
+| **`/dashboard`** | ⚠️ Partial | - Mobile responsive pass (FE-4)<br>- Build interactive tutorial overlay (T-1) |
+| **`/dashboard/agent`** | 📦 Archived | Real estate features sunsetted. |
+| **`/dashboard/tradie`** | ⚠️ Partial | - Bottom sheet UX needs swipe polish (FE-8) |
+| **`/dashboard/contacts`** | ✅ Functional | None |
+| **`/dashboard/pipeline`** | ✅ Functional | None |
+| **`/dashboard/map`** | ✅ Functional | None |
+| **`/dashboard/schedule`** | ✅ Functional | None |
+| **`/dashboard/team`** | ✅ Functional | None |
+| **`/dashboard/reports`** | ✅ Functional | None |
+| **`/dashboard/settings`** | ✅ Functional | None |
+| **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
+| **`/setup`** | ✅ Functional | None |
+| **Chatbot Interface** | ⚠️ Partial | - ProcessChat not connected to Gemini SDK, currently regex (BE-4). |
+| **Twilio Webhook** | ✅ Functional | None |
+| **Vapi Webhook** | ⚠️ Partial | - Workspace resolution is weak; defaults to first workspace safely. Needs strict phone matching. |
+| **Retell Webhook/SMS** | ⚠️ Partial | - Requires real OpenAI / LangChain integration rather than keyword matching logic. |
+| **MYOB / Auth / Mail** | ✅ Functional | None |
+
+---
+
+## Unresolved UX/UI & Feature Audit (Pending)
+*The following issues have been logged from a comprehensive user review on 2026-02-20 and are pending future development.*
+
+### Home Page
+- **Home-1 (Activity Card):** Add ability to click the Activity card to open a window (similar to Kanban cards) for a detailed view of entries.
+- **Home-2 (New Deal Button):** Default functionality should toggle to "create new" rather than "select".
+- **Home-3 (Kanban Card Notes):** When clicking into a card, the note entry bubble is too large. Drastically reduce its height and anchor it to the bottom RHS of the Customer and job history card.
+- **Home-4 (Note Logging):** When a note is submitted, log entries above the bubble formatted as `*Date: Note*` with an "edit" button on the RHS.
+- **Home-5 (Contact Actions):** Clicking "contact them" takes the user to the Inbox but only shows a "call" button. Add "text" and "email" action buttons.
+
+### Chatbox & AI Agent
+- **Chat-1 (Basic Queries):** The chatbot fails to answer simple CRM queries (e.g., "What jobs do I have tomorrow" or "delete x card") and returns a Google Vertex AI error (`must include at least one parts field`).
+- **Chat-2 (History & Actions):** The chatbot cannot process requests like "Show me my text history with Steven" or "Text Steven I'm omw".
+- **Chat-3 (Agent Knowledge Base):** The AI lacks business context. Create a settings section to provide knowledge (Business name, address, website) that feeds the agent for texting, calling, and emailing.
+- **Chat-4 (Notification Creation):** Ensure the agent can create scheduled notifications (e.g., "notify me when we are 2 days out for Wendy's repair job") and confirm generation in the calendar.
+
+### Dashboard Pages
+- **Inbox-1 (Conversation History):** Redesign the Inbox view. Categorize system events ("moved to deleted jobs, stage changed") into a scrolling "Recent activity" box. Below that, create a unified conversation history box (email, text, call) that is visually distinct and UX-friendly.
+- **Schedule-1 (Calendar Views):** Add ability to toggle the calendar between Month, Week, and Day views.
+- **Reports-1 (Data Accuracy):** Verify what data is driving the analytics, ensure the tracking is correct, and confirm proper setup for metrics.
+- **Maps-1 (Sidebar Order):** Move the map sidebar nav icon above the contacts icon.
+- **Maps-2 (Job Plotting):** Map is not displaying active jobs. Verify if Address/Geo-coordinates are working.
+- **Sidebar-1 (Minimize Button):** Remove the minimize sidebar button completely.
+
+### Settings Page
+- **Settings-1 (Layout):** LHS content is cramped and overlaps with the sidebar nav.
+- **Settings-2 (Email Modification):** Allow users to change their account email. Implement/Verify email pulling from customers into the CRM.
+- **Settings-3 (Bio & Links):** Clarify or remove the "Bio" and "Links" entries if they serve no purpose.
+- **Settings-4 (Advanced Mode):** Build out the Advanced Mode toggles and features.
+- **Settings-5 (Account Deletion):** Fix the "Delete Account" button. Make it small (bottom right corner), trigger a confirmation popup, and require selecting a reason (with an "other" option) before deleting. Remove redundant email fields.
+- **Settings-6 (Billing Integration):** Set up a billing/invoicing integration section for users to collect payments (likely 3rd party Stripe/MYOB).
+- **Settings-7 (Appearance):** Remove the "Dark" and "Premium" options. Default solely to Light mode, or rebuild Appearance into a comprehensive "Display" tab and sunset the old Appearance tab.
+- **Settings-8 (Notifications):** Make the notifications hub robust. Verify it catches AI-generated alerts.
+- **Settings-9 (Workspace Fields):** Remove redundant "Workspace Name" and "Location" fields from the Workspace tab if they belong in the Profile/Knowledge Base.
+- **Settings-10 (Automations):** Verify the Automations engine works (e.g., AI prompting "if I make $100 this week, let me know" should generate a functional rule).
+- **Settings-11 (Integrations):** Ensure the Integrations page is fully functional.
+
+### General Workflows
+- **Gen-1 (Post-Job Alert):** Once a job is marked 'Completed', trigger an alert/survey to check in on how the job went (e.g., "Was it resolved?", "How much was invoiced?"). Build a logical CRM logging flow for these outstanding details.
+
+---
+
+## Issue Archive (Resolved Issues)
+*This section retains the history of previously encountered issues, their status, and how they were resolved to establish a learning base for future AI agents.*
+
+### Chatbot / NLP
+- **CB-01 ($ sign regex):** ✅ FIXED - Shorthand regex blocked `$` symbol in prices. Fixed with input normalization.
+- **CB-02 (200$ price):** ✅ FIXED - Added `$` stripping normalization.
+- **CB-03 (ymrw day lost):** ✅ FIXED - Extracted from `workDesc` to `schedule`.
+- **CB-04 (Draft price/address):** ✅ FIXED - Fixed capture groups.
+- **CB-06 (History not loading):** ✅ FIXED - Replaced with imported `getChatHistory`.
+- **CB-07 (Clear history crashes):** ✅ FIXED - Replaced client DB call with server action.
+- **CB-10 (422/500 errors):** ✅ FIXED - Made `processChat` DB-resilient.
+- **CB-13/18 (Draft card data/editable):** ✅ FIXED - Added formatting/categorization and converted to editable `JobDraftCard`.
+- **FE-2 (Basic Mode Chat UI):** ✅ FIXED - Replaced bare dashboard with full-page, clean ChatGPT-styled frosted container.
+
+### Architecture & Workflows
+- **INFRA-01/04 (Vercel Fixes & Tests):** ✅ FIXED - Verified env vars config on Vercel and introduced Vitest for chat-utils test suite.
+- **Twilio Orchestration:** ✅ FIXED - Rebuilt `Workspace` DB with `twilioSubaccountId`, wired `Workspace Onboarding` to auto-provision isolated subaccounts. Webhooks now strictly route by matching incoming `To` integers.
+- **BE-2 (Vendor Report):** ✅ FIXED - Wired real feedback averages mapped from `BuyerFeedback` table to replace static UI integers. 
+- **J-11 (Signature Pad):** ✅ FIXED - Added canvas signature capture into Job Completion payload.
+- **API-01/02/03 (Gmail, Outlook, MYOB):** ✅ FIXED - Replaced stubs with full production-grade fetching, token storage, and matching algorithms.
+
+### Auth & UI Fixes
+- **AUTH-01/02 (Infinite Redirect loops):** ✅ FIXED - Eliminated demo user hardcoding and centralized auth checks in Middleware to push explicitly to `/dashboard`.
+- **UI-12/13/20 (React Crashes):** ✅ FIXED - Wrapped suspense boundaries, downgraded resizable-panels dynamically to `2.1.7`, replaced missing `Images` import with `lucide-react`. 
+- **TRADE-01..10 (Tradie specific bugs):** ✅ FIXED - Repaired Travel workflow calculations, voice-to-text hook, Schedule grid alignment, and Map marker popups.
+- **FE-10 / SET-01 (Settings Refine):** ✅ FIXED - GitHub OAuth button was verified to already be entirely removed from code. Wired up Supabase `updateUser` for the newly built password change interface.
+- **J-8 (Chatbot Voice Control):** ✅ FIXED - Tied the `@/hooks/use-speech-recognition` to a new pulsing Mic button attached to the primary chat interface to allow hands-free communication.
+
+### Self-Learning AI & Webhooks (Sprint 18)
+- **AI-01 (Behavioral Memory):** ✅ FIXED - Replaced static system prompts with a dynamically updatable `aiPreferences` setting that correctly saves and injects user behavioral constraints.
+- **AI-02 (Pricing Feedback Loop):** ✅ FIXED - Engineered an autonomous background loop that captures finalized `invoicedAmount` edits on Kanban Deals to seamlessly update and average the `RepairItem` pricing glossary dictionaries.
+- **AI-03 (Agent Modes / Constraints):** ✅ FIXED - Strictly enforced the new `callOutFee` value in `Settings`, actively constraining the AI to quote base-rates until confirming a job schedule.
+- **INT-01 (Hipages Email Parses):** ✅ FIXED - Spun up a `/api/webhooks/email` REST endpoint intercepting Hipages/external payloads, correctly parsing unstructured raw strings via Gemini, and gracefully routing parsed Leads into the Kanban backlog.
+
+### Deprecated / Archived Features
+- **FE-3 / FE-9 (Stale Deal Colors & 75/25 Split):** 📦 ARCHIVED - The UI has pivoted to a fluid layout rendering these specific aesthetic requirements obsolete.
+- **J-3 / J-5 (Safety Check Modal):** 📦 ARCHIVED - Deprecated from the start-travel workflow to reduce friction.
+- **AG-2 / BE-3 / BE-5 / KIOSK (Real Estate Modules):** 📦 ARCHIVED - Project pivoted to focus entirely on Tradie workflows; the commission calculators, open house kiosks, and Vendor Report PDF generators are no longer priorities.
+- **SH-1 (Industry-Aware Pipeline Headers):** 📦 ARCHIVED - Redundant, since the application is now strictly hardcoded to the Tradie pipeline terminology (New Request -> Quote -> Scheduled -> Invoice -> Completed).

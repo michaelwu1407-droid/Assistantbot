@@ -81,3 +81,66 @@ export async function createNotification(data: {
   });
   return { success: true };
 }
+
+/**
+ * Automatically triggers the Morning Agenda and Evening Wrap-Up notifications
+ * if the current time has passed the configured user preferences and they haven't fired today.
+ */
+export async function ensureDailyNotifications(workspaceId: string) {
+  const { getAuthUser } = await import("@/lib/auth");
+  let user;
+  try {
+    user = await getAuthUser();
+  } catch { return; }
+
+  const dbUser = await db.user.findFirst({ where: { email: user.email ?? "", workspaceId } });
+  if (!dbUser) return;
+
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
+  if (!workspace) return;
+
+  const { agendaNotifyTime, wrapupNotifyTime } = workspace;
+  if (!agendaNotifyTime && !wrapupNotifyTime) return;
+
+  const now = new Date();
+  const getMinutes = (timeStr: string) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Helper date bounding for "today"
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  if (agendaNotifyTime && currentMinutes >= getMinutes(agendaNotifyTime)) {
+    const existing = await db.notification.findFirst({
+      where: { userId: dbUser.id, title: { contains: "Morning Agenda" }, createdAt: { gte: startOfDay } }
+    });
+    if (!existing) {
+      await createNotification({
+        userId: dbUser.id,
+        title: "☀️ Morning Agenda",
+        message: "Good morning! Your daily AI schedule optimization has run. Click to view your dashboard.",
+        type: "INFO",
+        link: "/dashboard"
+      });
+    }
+  }
+
+  if (wrapupNotifyTime && currentMinutes >= getMinutes(wrapupNotifyTime)) {
+    const existing = await db.notification.findFirst({
+      where: { userId: dbUser.id, title: { contains: "Evening Wrap-Up" }, createdAt: { gte: startOfDay } }
+    });
+    if (!existing) {
+      await createNotification({
+        userId: dbUser.id,
+        title: "🌙 Evening Wrap-Up",
+        message: "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.",
+        type: "SUCCESS",
+        link: "/dashboard/inbox"
+      });
+    }
+  }
+}

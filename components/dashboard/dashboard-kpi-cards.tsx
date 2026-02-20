@@ -57,7 +57,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
     "ott-card rounded-[20px] p-2 flex flex-col justify-center h-full min-h-[50px] bg-white shadow-sm relative border border-slate-200/60 dark:border-slate-700/50"
 
   return (
-    <div className="grid grid-cols-4 gap-2 h-full flex-[4] min-w-0">
+    <div id="kpi-cards" className="grid grid-cols-4 gap-2 h-full flex-[4] min-w-0">
       {/* 1. Revenue */}
       <div className={cardClass}>
         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">

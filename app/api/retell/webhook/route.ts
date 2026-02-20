@@ -39,17 +39,36 @@ export async function POST(req: Request) {
   const kanbanAction: string | undefined = analysis?.kanban_action;
   const contactName: string | undefined = analysis?.contact_name;
 
+  // Retell includes the call details in the webhook. Find the number the user dialed.
+  const callContext = body.call ?? {};
+  const systemNumber = callContext.to_number || callContext.from_number;
+
   if (!kanbanAction || !contactName) {
     // Nothing to do if we don't know what to update.
     return new NextResponse(null, { status: 204 });
   }
 
+  if (!systemNumber) {
+    console.warn("[Retell webhook] No system number found in payload to route workspace.");
+    return new NextResponse("Bad Request: Missing routing number", { status: 400 });
+  }
+
   try {
-    // 1. Find the contact by name. In production, you may want to
-    //    also include workspaceId or phone/email to disambiguate.
+    // 1. Strictly resolve the Workspace by matching the Retell dialed number
+    const workspace = await db.workspace.findFirst({
+      where: { twilioPhoneNumber: systemNumber }
+    });
+
+    if (!workspace) {
+      console.warn(`[Retell webhook] No workspace matched with number: ${systemNumber}`);
+      return new NextResponse("Workspace Not Found", { status: 404 });
+    }
+
+    // 2. Find the contact by name, strictly within this workspace.
     const contact = await db.contact.findFirst({
       where: {
         name: contactName,
+        workspaceId: workspace.id
       },
       select: {
         id: true,
@@ -57,11 +76,11 @@ export async function POST(req: Request) {
     });
 
     if (!contact) {
-      console.warn("[Retell webhook] Contact not found for name:", contactName);
+      console.warn(`[Retell webhook] Contact '${contactName}' not found in workspace ${workspace.id}`);
       return new NextResponse(null, { status: 204 });
     }
 
-    // 2. Find the most recent active deal/job for this contact.
+    // 3. Find the most recent active deal/job for this contact.
     const deal = await db.deal.findFirst({
       where: {
         contactId: contact.id,

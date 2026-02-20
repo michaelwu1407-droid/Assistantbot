@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
 import { NewDealModal } from "@/components/modals/new-deal-modal"
+import { ActivityModal } from "@/components/modals/activity-modal"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
+import { ensureDailyNotifications } from "@/actions/notification-actions"
 import { Header } from "./header"
 
 interface DashboardClientProps {
@@ -18,6 +20,11 @@ interface DashboardClientProps {
 
 export function DashboardClient({ workspace, deals, userName, userId }: DashboardClientProps) {
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
+    const [isActivityModalOpen, setIsActivityModalOpen] = useState(false)
+
+    useEffect(() => {
+        ensureDailyNotifications(workspace.id).catch(() => { })
+    }, [workspace.id])
 
     return (
         <div className="h-full flex flex-col overflow-hidden relative bg-background">
@@ -39,11 +46,16 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
                     <div className="shrink-0 flex w-full gap-4 min-h-[70px] px-1 pt-1 pb-4 bg-slate-100/70 dark:bg-slate-800/40">
                         <DashboardKpiCards deals={deals} />
                         <div className="flex-[2.5] min-w-0 h-[70px] max-h-[70px]">
-                            <div className="ott-card rounded-[20px] w-full h-full p-3 flex flex-col bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm border border-slate-200/60 dark:border-slate-700/50">
-                                <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 tracking-tight uppercase leading-none mb-2 shrink-0">
-                                    Activity
+                            <div
+                                className="ott-card rounded-[20px] w-full h-full p-3 flex flex-col bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm border border-slate-200/60 dark:border-slate-700/50 cursor-pointer hover:border-primary/50 transition-colors group"
+                                onClick={() => setIsActivityModalOpen(true)}
+                            >
+                                <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 tracking-tight uppercase leading-none mb-2 shrink-0 group-hover:text-primary transition-colors">
+                                    Activity (Click to Expand)
                                 </span>
-                                <ActivityFeed workspaceId={workspace.id} className="flex-1 min-h-0 overflow-y-auto" compact={true} />
+                                <div className="pointer-events-none flex-1 overflow-hidden min-h-0">
+                                    <ActivityFeed workspaceId={workspace.id} className="h-full w-full" compact={true} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -60,6 +72,12 @@ export function DashboardClient({ workspace, deals, userName, userId }: Dashboar
             <NewDealModal
                 isOpen={isNewDealModalOpen}
                 onClose={() => setIsNewDealModalOpen(false)}
+                workspaceId={workspace.id}
+            />
+
+            <ActivityModal
+                isOpen={isActivityModalOpen}
+                onClose={() => setIsActivityModalOpen(false)}
                 workspaceId={workspace.id}
             />
         </div>

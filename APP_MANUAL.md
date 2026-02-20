@@ -699,4 +699,80 @@ This section maps the **exact user journey** (clicks, screens, inputs) for 17 co
 
 ---
 
+## 9. The 50 Chatbot & CRM Use Cases
+
+Pj Buddy’s AI Assistant is designed to replace manual clicking with natural language commands. Here are 50 specific ways you can interact with the system.
+
+### Category A: Direct CRM Interactions (25 Use Cases)
+
+**Job Creation & Pipeline Management**
+1. **Create Job**: "I have a new job for John Smith tomorrow at 2pm, quote him $250 to fix a leaking pipe."
+2. **Move Deal**: "Move John's deal to the Scheduled column."
+3. **Change Stage Status**: "Mark the Kensington bathroom reno as Completed."
+4. **Draft a Deal**: "Draft a new quote for Sarah at 12 Maple St, but don't schedule it yet."
+5. **Add Contact**: "Create a new contact for Mike Stevenson, his number is 0412 345 678."
+6. **Lookup Contact**: "What is Mike Stevenson's address?"
+7. **Find Stale Deals**: "Show me all pipeline deals that haven't moved in 7 days."
+8. **Pipeline Value**: "How much revenue is sitting in the 'Quote Sent' column right now?"
+9. **Log Activity**: "Add a note to John's job that I called him and left a voicemail."
+10. **Assign Value**: "Update the estimate for Sarah's kitchen to $4,500."
+
+**Scheduling & Routing**
+11. **Check Schedule**: "What jobs do I have on tomorrow?"
+12. **Find Gaps**: "Do I have any free time on Thursday afternoon?"
+13. **Reschedule**: "Reschedule my 2pm job with Wendy to Friday at 10am."
+14. **Pre-Arrival SMS**: "Text Wendy I'm on my way and will be there in 15 mins."
+15. **Route Planning**: "Show me the map for today's jobs."
+16. **Proximity Search**: "Find any past clients who live within 5km of my current location."
+17. **Cancellations**: "Cancel the 3pm job with Bob."
+18. **Delay Alerts**: "Text all my afternoon clients that I'm running 30 minutes behind schedule."
+19. **Schedule Lock**: "Block out next Wednesday morning for maintenance."
+20. **Job Details Retrieval**: "What did I quote for the 9am job today?"
+
+**Notifications & Reporting**
+21. **Performance Check**: "How many jobs did I complete last week?"
+22. **Set Reminders**: "Remind me tomorrow at 8am to order the copper pipes for Sarah."
+23. **Win Rate**: "What is my quote win-rate for this month?"
+24. **Follow-up Trigger**: "Send a follow-up text to everyone in the 'Quote Sent' column."
+25. **Review Request**: "Send a Google Review link to the client I just finished with."
+
+### Category B: General Assistant Utilities & Voice Actions (25 Use Cases)
+
+**Communication & Drafting**
+26. **Draft Email**: "Draft a polite email to John explaining that the parts are delayed until next week."
+27. **SMS Template**: "Write a text message offering 10% off air conditioning services before summer starts."
+28. **Reply Suggestion**: "Suggest a reply to this customer complaining about the price being too high."
+29. **Translation**: "Translate 'The water will be turned off for two hours' into Spanish."
+30. **Summarize Thread**: "Summarize the last 5 text messages between me and Bob."
+
+**Business Intelligence & Estimating**
+31. **Material Calculation**: "I need to tile a 4m by 5m room, assuming 10% wastage, how many square meters of tiles do I need to order?"
+32. **Margin Check**: "If materials cost $400 and labor is $300, what should I charge to hit a 40% gross margin?"
+33. **Tax Quick-Math**: "What is $1,250 plus 10% GST?"
+34. **Unit Conversion**: "Convert 1.5 inches to millimeters."
+35. **Invoice Drafting**: "Draft the line items for an invoice: 2 hours labor at $80/hr, and $120 for parts."
+
+**Troubleshooting & Knowledge Base**
+36. **Code Check**: "What is the standard clearance required for a gas cooktop installation?"
+37. **Manual Lookup**: "Find the error code E4 on a Daikin split system."
+38. **Safety Brief**: "Generate a quick safety checklist for operating a scissor lift."
+39. **Material Suggestions**: "What's the best type of sealant to use around an outdoor pool area?"
+40. **Tool Check**: "List the specialized tools I'll need to bleed a hydronic heating system."
+
+**Admin & Voice Logging (Hands-Free)**
+41. **Voice Note (Site Condition)**: "Log a note: The switchboard at the Kensington property is illegal and needs an upgrade."
+42. **Voice Note (Client Warning)**: "Log a note: The client has a large aggressive dog, call before opening the gate next time."
+43. **Voice Note (Part Number)**: "Log a note: I need to order a Rheem element part number 12345."
+44. **Voice Note (Purchase Log)**: "Log that I just spent $150 at Bunnings on PVC glue and fittings."
+45. **Generate Checklist**: "Create a 5-step checklist for shutting down the mains water pressure."
+
+**System Control**
+46. **Change Theme/Appearance**: "Switch the app to Light Mode." (Though locked, intent implies system control).
+47. **Switch Modes**: "Toggle Advanced Mode so I can see the Kanban board."
+48. **Replay Walkthrough**: "Restart the interactive tutorial."
+49. **Open Settings**: "Take me to the workspace settings page."
+50. **Sign Out**: "Log me out of the app."
+
+---
+
 **End of Manual**

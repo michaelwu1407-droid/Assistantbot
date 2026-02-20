@@ -4,13 +4,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X } from 'lucide-react';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getChatHistory, saveAssistantMessage, confirmJobDraft } from '@/actions/chat-actions';
 import { toast } from 'sonner';
+import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 
 interface ChatInterfaceProps {
   workspaceId?: string;
@@ -216,6 +217,15 @@ function ChatWithHistory({
   const router = useRouter();
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
+
+  const { isListening, transcript, toggleListening } = useSpeechRecognition();
+
+  // Update input text natively as voice-to-text transcribes
+  useEffect(() => {
+    if (transcript) {
+      setInput((prev) => prev ? `${prev} ${transcript}` : transcript);
+    }
+  }, [transcript]);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -432,6 +442,7 @@ function ChatWithHistory({
         <form onSubmit={handleSubmit} className="flex w-full max-w-3xl mx-auto gap-3">
           <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
             <Textarea
+              id="chat-input"
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -463,10 +474,24 @@ function ChatWithHistory({
                 "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1",
                 input.trim()
                   ? "bg-[#00D28B] hover:bg-[#00D28B]/90 text-white shadow-md shadow-[#00D28B]/20"
-                  : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                  : "bg-slate-100 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500 hover:bg-slate-200 dark:hover:bg-zinc-700"
               )}
             >
               <Send className="h-3.5 w-3.5 ml-0.5" />
+            </Button>
+            <Button
+              type="button"
+              id="voice-btn"
+              size="icon"
+              onClick={toggleListening}
+              className={cn(
+                "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1 border",
+                isListening
+                  ? "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20 border-red-500 animate-pulse"
+                  : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-300"
+              )}
+            >
+              <Mic className="h-4 w-4" />
             </Button>
           </div>
         </form>

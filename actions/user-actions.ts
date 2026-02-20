@@ -77,7 +77,7 @@ export async function updateUserProfile(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const parsed = UpdateProfileSchema.safeParse(data);
-  
+
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
@@ -115,5 +115,24 @@ export async function completeUserOnboarding(userId: string) {
   } catch (error) {
     console.error("Failed to complete onboarding:", error);
     return { success: false, error: "Failed to update status" };
+  }
+}
+
+/**
+ * Delete user account and log reason.
+ */
+export async function deleteUserAccount(userId: string, reason: string) {
+  try {
+    console.log(`[ACCOUNT DELETION] User ${userId} requested deletion. Reason: ${reason}`);
+
+    // In a full production app you'd use supabase admin to purge auth.users here
+    await db.user.delete({
+      where: { id: userId }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete account:", error);
+    return { success: false, error: "Failed to delete account. You may have dependent records." };
   }
 }

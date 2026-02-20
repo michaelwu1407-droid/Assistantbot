@@ -8,11 +8,18 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspaceType {
   TRADIE
   AGENT
+}
+
+enum AgentMode {
+  EXECUTE
+  ORGANIZE
+  FILTER
 }
 
 enum IndustryType {
@@ -71,6 +78,13 @@ model Workspace {
   twilioSubaccountId String?
   twilioPhoneNumber  String?
   
+  // Agent & Automation Settings
+  agentMode          AgentMode @default(ORGANIZE)
+  workingHoursStart  String?   @default("08:00")
+  workingHoursEnd    String?   @default("17:00")
+  agendaNotifyTime   String?   @default("07:30")
+  wrapupNotifyTime   String?   @default("17:30")
+  
   users              User[]
   deals              Deal[]
   contacts           Contact[]
@@ -79,6 +93,15 @@ model Workspace {
   chatMessages       ChatMessage[]
   materials          Material[]
   keys               Key[]
+  repairItems        RepairItem[]
+  
+  // Self-Learning & NLP Behavioral State
+  aiPreferences      String?     @db.Text
+  autoUpdateGlossary Boolean     @default(true)
+
+  // Integrations & Billing Directives
+  callOutFee         Decimal?    @default(0)
+  inboundEmail       String?     @unique
   
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -106,6 +129,8 @@ model Deal {
   title          String
   stage          DealStage @default(NEW)
   value          Decimal?
+  invoicedAmount Float?
+  isDraft        Boolean   @default(false)
   
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
   metadata       Json?     
@@ -368,3 +393,15 @@ model CustomerFeedback {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model RepairItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+}
+

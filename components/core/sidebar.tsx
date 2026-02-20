@@ -83,7 +83,7 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={{ width: SIDEBAR_WIDTH }}>
+            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={{ width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                     <span className="font-extrabold italic text-base tracking-tighter">Pj</span>
@@ -154,7 +154,7 @@ export function Sidebar({ className }: SidebarProps) {
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Link href="/dashboard/settings">
+                            <Link href="/dashboard/settings" id="settings-link">
                                 <motion.div
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}

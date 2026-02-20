@@ -1,5 +1,20 @@
 # Project Status Log
 
+### Summary of Latest AI Agent (Antigravity):
+- **Self-Learning AI (Preferences):** Implemented an auto-updating memory bank (`aiPreferences`) that strictly governs AI constraints (e.g. padding times, working hours) dynamically via chat.
+- **Strict Pricing & Call-Out Loop:** Enforced Call-Out fee prioritization unless a query perfectly matches a dynamically-averaging `RepairItem` glossary.
+- **Hipages Ingestion Webhook:** Built an email parser via Google Gemini that autonomously ingests third-party lead formats and drops drafted Kanban cards onto the board.
+- **Twilio Multi-Tenant Orchestration:** Rebuilt DB schema for `twilioSubaccountId` and `twilioPhoneNumber`, implemented creation on Tradie setup, and securely mapped webhooks routing directly to their individual numbers.
+- **Basic Mode Chat UI (FE-2):** Fully rebuilt `Shell.tsx` and Chat layout into a premium, transparent ChatGPT-like frosted glass UI, expanding natively.
+- **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
+- **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
+
+## 2026-02-21: Sprint 18 - Self-Learning AI & Webhooks
+- **Self-Learning Architecture**: Added a new visual interface in `Settings > Agent Capabilities` so users can manually intervene with the AI's learned `aiPreferences` and adjust global `callOutFee` logic.
+- **Pricing Feedback Engine**: Refactored the Kanban `updateDeal` action to monitor when users enter a final `invoicedAmount`. It subsequently finds the closest matching Glossary `RepairItem` and stamps an aggregated "Learned Sys Rate" to optimize future Gemini quotes.
+- **Hipages Lead Webhook**: Built `/api/webhooks/email` logic mapping raw HTML/Text payloads from forwarding aliases instantly into structured contact DB entries. Drafts new Deals instantly inside the "NEW" column.
+- **Files Touched**: `actions/chat-actions.ts`, `actions/deal-actions.ts`, `app/api/chat/route.ts`, `app/api/webhooks/email/route.ts`, `app/dashboard/settings/agent/page.tsx`, `app/dashboard/settings/integrations/page.tsx`, `prisma/schema.prisma`.
+
 ## 2026-02-19: Sidebar, Dashboard, Inbox, Schedule, Reports & Map
 - **Chatbox (all pages)**: Right-hand chatbot panel now has a minimum width of 15% when expanded (`minSize={15}` on `ResizablePanel`) so dragging the slider cannot make the chat area too narrow and break formatting.
 - **Home / Dashboard**:
