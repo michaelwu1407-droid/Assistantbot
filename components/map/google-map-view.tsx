@@ -140,7 +140,7 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
             { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
           ],
         }}
-        className="rounded-xl"
+        mapContainerClassName="rounded-xl"
       >
         {markers.map(({ job, isToday }) => {
           const pos = getJobPosition(job)
@@ -153,13 +153,13 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
                 isToday
                   ? undefined
                   : {
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 10,
-                      fillColor: "#64748B",
-                      fillOpacity: 0.9,
-                      strokeColor: "#475569",
-                      strokeWeight: 2,
-                    }
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#64748B",
+                    fillOpacity: 0.9,
+                    strokeColor: "#475569",
+                    strokeWeight: 2,
+                  }
               }
               zIndex={isToday ? 2 : 1}
             >

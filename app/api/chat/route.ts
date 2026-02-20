@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     if (!content && typeof body.input === "string") content = body.input.trim();
     if (!content && typeof body.message === "string") content = body.message.trim();
 
-    if (content) saveUserMessage(workspaceId, content).catch(() => {});
+    if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
     const parsed = parseJobOneLiner(content);
     if (parsed) {
@@ -159,7 +159,7 @@ TOOLS:
 - proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after seeing a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time. It logs the proposed time on the job, adds a note, and creates a follow-up task to contact the customer to confirm.
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
-      messages: modelMessages as Parameters<typeof streamText>[0]["messages"],
+      messages: modelMessages as any,
       tools: {
         listDeals: tool({
           description:

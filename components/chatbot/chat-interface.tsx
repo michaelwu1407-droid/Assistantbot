@@ -227,8 +227,8 @@ function ChatWithHistory({
       router.refresh();
       let content = getMessageTextFromParts(message.parts);
       if (!content.trim() && typeof (message as { content?: string }).content === 'string')
-        content = (message as { content: string }).content;
-      if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => {});
+        content = (message as any).content;
+      if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => { });
     },
     onError: (err) => {
       console.error("Chat error:", err);
@@ -324,7 +324,7 @@ function ChatWithHistory({
                                   key={idx}
                                   data={part.output.draft}
                                   workspaceId={workspaceId}
-                                  onCancel={() => {}}
+                                  onCancel={() => { }}
                                   onConfirmSuccess={(msg) => setConfirmedDrafts((prev) => ({ ...prev, [message.id]: msg }))}
                                 />
                               );
@@ -360,7 +360,7 @@ function ChatWithHistory({
                       });
                       if (rendered.length > 0) return rendered;
                       let content = typeof (message as { content?: string }).content === 'string'
-                        ? (message as { content: string }).content
+                        ? (message as any).content
                         : '';
                       if (!content.trim() && parts.length > 0) {
                         const fromParts = parts

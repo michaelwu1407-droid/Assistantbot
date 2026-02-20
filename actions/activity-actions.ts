@@ -15,6 +15,7 @@ export interface ActivityView {
   dealId?: string;
   contactId?: string;
   contactName?: string | null; // for display: "Contact Name — Change"
+  content?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ export async function getActivities(options?: {
         type: a.type.toLowerCase(),
         title: a.title,
         description: a.description,
+        content: a.content,
         time: relativeTime(a.createdAt),
         createdAt: a.createdAt,
         dealId: a.dealId ?? undefined,

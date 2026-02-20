@@ -261,7 +261,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
       company: parsed.data.company ?? enriched?.name ?? null,
       avatarUrl: enriched?.logoUrl ?? null,
       workspaceId: parsed.data.workspaceId,
-      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      metadata: Object.keys(metadata).length > 0 ? (metadata as any) : undefined,
     },
   });
 
@@ -305,7 +305,7 @@ export async function updateContactMetadata(
   const existing = (contact.metadata as Record<string, unknown>) ?? {};
   await db.contact.update({
     where: { id: contactId },
-    data: { metadata: { ...existing, ...metadata } },
+    data: { metadata: { ...existing, ...metadata } as any },
   });
   return { success: true as const };
 }
