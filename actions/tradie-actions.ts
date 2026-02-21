@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { sendSMS } from "./messaging-actions";
 import { createNotification } from "./notification-actions";
+import { MonitoringService } from "@/lib/monitoring";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -306,11 +307,13 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
     });
   } catch (e) {
     console.error("Error updating job status", e);
+    MonitoringService.logError(e as Error, { action: "updateJobStatus", jobId, targetStatus: status });
     return { success: false, error: "Failed to update status" };
   }
 
   // 2. Trigger Side Effects
   if (status === 'TRAVELING') {
+    MonitoringService.trackEvent("workflow_start_travel", { jobId });
     await sendOnMyWaySMS(jobId);
   }
 
@@ -397,6 +400,7 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
     return { success: true, scheduledAt: deal.scheduledAt };
   } catch (error) {
     console.error("Failed to update schedule:", error);
+    MonitoringService.logError(error as Error, { action: "updateJobSchedule", jobId });
     return { success: false, error: "Failed to update schedule" };
   }
 }

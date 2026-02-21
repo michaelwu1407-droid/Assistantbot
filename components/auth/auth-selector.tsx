@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { MonitoringService } from "@/lib/monitoring";
 
 export function AuthSelector() {
   const [email, setEmail] = useState("");
@@ -60,6 +61,11 @@ export function AuthSelector() {
       if (signInError) {
         setMessage("Account created! Please sign in with your credentials.");
       } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          MonitoringService.identifyUser(user.id, { email: user.email, name });
+          MonitoringService.trackEvent("user_signed_up", { provider: "email" });
+        }
         router.push("/setup");
         router.refresh();
       }
@@ -86,6 +92,11 @@ export function AuthSelector() {
         setMessage(error.message);
       }
     } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        MonitoringService.identifyUser(user.id, { email: user.email });
+        MonitoringService.trackEvent("user_signed_in", { provider: "email" });
+      }
       router.push("/setup");
       router.refresh();
     }

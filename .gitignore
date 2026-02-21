@@ -60,3 +60,6 @@ next-env.d.ts
 # Allow access to Prisma types for development
 !node_modules/@prisma/client
 .env*.local
+
+# Sentry Config File
+.env.sentry-build-plugin

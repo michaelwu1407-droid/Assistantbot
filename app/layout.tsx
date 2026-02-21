@@ -7,6 +7,7 @@ import { IndustryProvider } from "@/components/providers/industry-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -39,11 +40,13 @@ export default function RootLayout({
         <AccessibilityProvider>
           <ClientThemeProvider>
             <IndustryProvider>
-              {children}
-              <CommandPalette />
-              <OfflineBanner />
-              <ServiceWorkerProvider />
-              <Toaster />
+              <PostHogProvider>
+                {children}
+                <CommandPalette />
+                <OfflineBanner />
+                <ServiceWorkerProvider />
+                <Toaster />
+              </PostHogProvider>
             </IndustryProvider>
           </ClientThemeProvider>
         </AccessibilityProvider>
