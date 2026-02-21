@@ -4,12 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic } from 'lucide-react';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getChatHistory, saveAssistantMessage, confirmJobDraft } from '@/actions/chat-actions';
+import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 
@@ -354,7 +354,20 @@ function ChatWithHistory({
                                 )}
                               >
                                 <Check className="w-4 h-4 shrink-0" />
-                                <span>{part.output.message}</span>
+                                <span className="flex-1">{part.output.message}</span>
+                                {isSuccess && workspaceId && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const result = await runUndoLastAction(workspaceId);
+                                      toast.info(result);
+                                    }}
+                                    className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-700 transition-colors flex items-center gap-0.5 shrink-0"
+                                    title="Undo this action"
+                                  >
+                                    <Undo2 className="w-3 h-3" /> Undo
+                                  </button>
+                                )}
                               </div>
                             );
                             return;

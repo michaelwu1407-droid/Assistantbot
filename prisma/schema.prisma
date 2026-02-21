@@ -122,7 +122,8 @@ model User {
   bio         String?
   urls        Json?     // Stores array of { value: string }
   hasOnboarded Boolean  @default(false)
-  
+  role        UserRole  @default(OWNER)
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   activities  Activity[]
@@ -463,6 +464,53 @@ enum TriggerEvent {
   JOB_COMPLETE
   ON_MY_WAY
   LATE
+  BOOKING_REMINDER_24H
+}
+
+// ─── Team Roles & Invites ───────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  MANAGER
+  TEAM_MEMBER
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  token       String    @unique @default(cuid())
+  email       String?
+  role        UserRole  @default(TEAM_MEMBER)
+
+  workspaceId String
+  invitedById String
+
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+
+  createdAt   DateTime  @default(now())
+
+  @@index([token])
+  @@index([workspaceId])
+}
+
+// ─── Automated Communication Rules ─────────────────────────────────
+
+model AutomatedMessageRule {
+  id              String    @id @default(cuid())
+  name            String
+  enabled         Boolean   @default(true)
+  triggerType     String    // "booking_reminder_24h", "booking_confirmation", "follow_up_after_job", "no_show_alert"
+  channel         String    @default("sms") // "sms", "email", "both"
+  messageTemplate String    @db.Text
+
+  hoursOffset     Int       @default(-24) // negative = before event, positive = after event
+
+  workspaceId     String
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([workspaceId])
 }
 
 model SmsTemplate {

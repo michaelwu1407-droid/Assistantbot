@@ -3,8 +3,9 @@
 import { ContactView } from "@/actions/contact-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home } from "lucide-react"
+import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home, MessageSquare, Bot } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 interface ContactProfileProps {
     contact: ContactView
@@ -58,14 +59,58 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
                             </Button>
-                            <Button className="flex-1 md:flex-none">
-                                <Phone className="w-4 h-4 mr-2" />
-                                Call
-                            </Button>
-                            <Button className="flex-1 md:flex-none bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                                <Mail className="w-4 h-4 mr-2" />
-                                Email
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button className="flex-1 md:flex-none">
+                                        <Phone className="w-4 h-4 mr-2" />
+                                        Call / Text
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {contact.phone && (
+                                        <>
+                                            <DropdownMenuItem asChild>
+                                                <a href={`tel:${contact.phone}`}>
+                                                    <Phone className="mr-2 h-4 w-4" /> Call from my phone
+                                                </a>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                                <a href={`sms:${contact.phone}`}>
+                                                    <MessageSquare className="mr-2 h-4 w-4" /> Text from my phone
+                                                </a>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                        </>
+                                    )}
+                                    <DropdownMenuItem onClick={() => {
+                                        window.location.href = `/dashboard/inbox?contact=${contact.id}`
+                                    }}>
+                                        <Bot className="mr-2 h-4 w-4" /> Send SMS via Twilio
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button className="flex-1 md:flex-none bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                        <Mail className="w-4 h-4 mr-2" />
+                                        Email
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {contact.email && (
+                                        <DropdownMenuItem asChild>
+                                            <a href={`mailto:${contact.email}`}>
+                                                <Mail className="mr-2 h-4 w-4" /> Open in email app
+                                            </a>
+                                        </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => {
+                                        window.location.href = `/dashboard/inbox?contact=${contact.id}`
+                                    }}>
+                                        <Bot className="mr-2 h-4 w-4" /> Send via Agent (Resend)
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                 </div>

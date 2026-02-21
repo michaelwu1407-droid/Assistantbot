@@ -3,9 +3,12 @@
 import { useState } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft, Bot } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { sendSMS } from "@/actions/messaging-actions"
+import { toast } from "sonner"
 import Link from "next/link"
 
 interface InboxViewProps {
@@ -30,6 +33,26 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
   const [search, setSearch] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
   const [tab, setTab] = useState<InboxTab>("conversations")
+  const [twilioSms, setTwilioSms] = useState("")
+  const [twilioSending, setTwilioSending] = useState(false)
+
+  const handleTwilioSms = async (contactId: string) => {
+    if (!twilioSms.trim()) return
+    setTwilioSending(true)
+    try {
+      const result = await sendSMS(contactId, twilioSms)
+      if (result.success) {
+        toast.success("SMS sent via Twilio")
+        setTwilioSms("")
+      } else {
+        toast.error(result.error || "Failed to send")
+      }
+    } catch {
+      toast.error("Failed to send SMS")
+    } finally {
+      setTwilioSending(false)
+    }
+  }
 
   const searchFiltered = initialInteractions.filter(
     (a) =>
@@ -183,27 +206,73 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
               <div className="flex items-center gap-1.5 shrink-0">
                 {selected.contactPhone && (
                   <>
-                    <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Call Contact">
-                      <a href={`tel:${selected.contactPhone}`}>
-                        <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
-                        <span className="text-xs">Call</span>
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Text Contact">
-                      <a href={`sms:${selected.contactPhone}`}>
-                        <MessageSquare className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-                        <span className="text-xs">Text</span>
-                      </a>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 px-2" title="Call Contact">
+                          <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                          <span className="text-xs">Call</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <a href={`tel:${selected.contactPhone}`}>
+                            <Phone className="mr-2 h-4 w-4" /> Call from my phone
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <a href={`sms:${selected.contactPhone}`}>
+                            <MessageSquare className="mr-2 h-4 w-4" /> Text from my phone
+                          </a>
+                        </DropdownMenuItem>
+                        {selected.contactId && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-2">
+                              <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                <Bot className="h-3 w-3" /> SMS via Twilio
+                              </p>
+                              <textarea
+                                className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                                rows={2}
+                                placeholder="Message..."
+                                value={twilioSms}
+                                onChange={(e) => setTwilioSms(e.target.value)}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                              <Button
+                                size="sm"
+                                className="w-full mt-1 h-7 text-xs"
+                                disabled={!twilioSms.trim() || twilioSending}
+                                onClick={() => handleTwilioSms(selected.contactId!)}
+                              >
+                                {twilioSending ? "Sending..." : "Send via Twilio"}
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 )}
                 {selected.contactEmail && (
-                  <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Email Contact">
-                    <a href={`mailto:${selected.contactEmail}`}>
-                      <Mail className="h-3.5 w-3.5 mr-1 text-slate-500" />
-                      <span className="text-xs">Email</span>
-                    </a>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 px-2" title="Email Contact">
+                        <Mail className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                        <span className="text-xs">Email</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <a href={`mailto:${selected.contactEmail}`}>
+                          <Mail className="mr-2 h-4 w-4" /> Open in email app
+                        </a>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast.info("Use the AI chat to send emails via Resend")}>
+                        <Bot className="mr-2 h-4 w-4" /> Send via Agent (Resend)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 {(selected.dealId || selected.contactId) && (
                   <Button variant="outline" size="sm" asChild>

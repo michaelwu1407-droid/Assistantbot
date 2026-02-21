@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
-import { Compass, CalendarClock, Layers, MapPin, Clock, Navigation, ChevronDown, ChevronUp, Route, CheckCircle2 } from "lucide-react"
+import { Compass, CalendarClock, Layers, MapPin, Clock, Navigation, ChevronDown, ChevronUp, Route, CheckCircle2, LocateFixed } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
@@ -51,6 +51,8 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
   const [isCompleting, setIsCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
 
   const mapRef = useRef<google.maps.Map | null>(null)
 
@@ -130,6 +132,24 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
     setIsCompletionModalOpen(false)
     setJobToComplete(null)
     setStartedJobId(null)
+  }, [])
+
+  const locateMe = useCallback(() => {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setUserPosition(coords)
+        setLocating(false)
+        if (mapRef.current) {
+          mapRef.current.panTo(coords)
+          mapRef.current.setZoom(15)
+        }
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }, [])
 
   useEffect(() => {
@@ -461,7 +481,35 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
               </Marker>
             )
           })}
+          {/* User position marker */}
+          {userPosition && (
+            <Marker
+              position={userPosition}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#4285F4",
+                fillOpacity: 1,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 3,
+              }}
+              zIndex={10}
+              title="Your location"
+            />
+          )}
         </GoogleMap>
+
+        {/* Locate Me button */}
+        <button
+          type="button"
+          onClick={locateMe}
+          disabled={locating}
+          className="absolute top-4 right-4 z-[1000] rounded-xl border border-slate-200 bg-white/95 shadow-lg px-3 py-2 flex items-center gap-2 hover:bg-slate-50 transition-all disabled:opacity-50"
+          title="Find my location"
+        >
+          <LocateFixed className={cn("h-4 w-4 text-blue-600", locating && "animate-spin")} />
+          <span className="text-xs font-semibold text-slate-600">{locating ? "Locating..." : "My Location"}</span>
+        </button>
 
         {/* Legend (Hidden in Route Mode) */}
         {!isRouteMode && (
