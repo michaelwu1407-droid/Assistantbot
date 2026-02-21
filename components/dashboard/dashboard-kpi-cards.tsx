@@ -27,7 +27,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const { revenue, travisWonRevenue, scheduledCount, followUpCount } = useMemo(() => {
+  const { revenue, travisWonRevenue, upcomingCount, followUpCount } = useMemo(() => {
     const wonThisMonth = deals.filter(
       (d) =>
         d.stage === "completed" &&
@@ -39,7 +39,14 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
     )
     const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
-    const scheduledCount = deals.filter((d) => d.stage === "scheduled").length
+    // Upcoming jobs: scheduled stage with scheduledAt within the next 7 days (or no date set)
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const upcomingCount = deals.filter((d) => {
+      if (d.stage !== "scheduled") return false
+      if (!d.scheduledAt) return true
+      const scheduled = new Date(d.scheduledAt)
+      return scheduled >= now && scheduled <= sevenDaysFromNow
+    }).length
     const staleDays = staleWeeks * 7
     const followUpCount = deals.filter((d) => {
       const days = differenceInDays(now, new Date(d.lastActivityDate))
@@ -49,7 +56,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
     return {
       revenue,
       travisWonRevenue,
-      scheduledCount,
+      upcomingCount,
       followUpCount,
     }
   }, [deals, currentMonth, currentYear, staleWeeks])
@@ -85,15 +92,16 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </div>
 
-      {/* 3. Scheduled jobs */}
+      {/* 3. Upcoming jobs (next 7 days) */}
       <div className={cardClass}>
         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          Scheduled jobs
+          Upcoming jobs
         </span>
         <div className="flex items-baseline gap-2">
           <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
-            {scheduledCount}
+            {upcomingCount}
           </span>
+          <span className="text-[9px] text-[#94A3B8] font-medium leading-none">7 days</span>
         </div>
       </div>
 

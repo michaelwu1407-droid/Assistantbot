@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Plus, Shield, Users } from "lucide-react"
+import { MoreHorizontal, Plus, Shield, Users, AlertTriangle } from "lucide-react"
 
 export default async function TeamPage() {
     const authUser = await getAuthUser()
@@ -48,6 +48,13 @@ export default async function TeamPage() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
+            {/* WIP Banner */}
+            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+                <p className="text-sm font-medium">
+                    Team Management is a work in progress and needs further development. Features shown are placeholders only.
+                </p>
+            </div>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-midnight">Team Management</h1>

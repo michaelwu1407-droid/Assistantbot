@@ -5,7 +5,7 @@ import { ContactView } from "@/actions/contact-actions"
 import { sendBulkSMS } from "@/actions/messaging-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
+import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown, ArrowUpDown } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -21,11 +21,12 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
   { id: "new_request", title: "New request" },
   { id: "quote_sent", title: "Quote sent" },
   { id: "scheduled", title: "Scheduled" },
-  { id: "pipeline", title: "Pipeline" },
-  { id: "ready_to_invoice", title: "Ready to be invoiced" },
+  { id: "ready_to_invoice", title: "Awaiting payment" },
   { id: "completed", title: "Completed" },
   { id: "deleted", title: "Deleted jobs" },
 ]
+
+type SortMode = "alpha" | "last_interacted"
 
 // Prisma DealStage -> kanban column id (matches deal-actions STAGE_MAP)
 function prismaStageToColumnId(prismaStage: string | null): string | null {
@@ -35,7 +36,7 @@ function prismaStageToColumnId(prismaStage: string | null): string | null {
     CONTACTED: "quote_sent",
     NEGOTIATION: "scheduled",
     SCHEDULED: "scheduled",
-    PIPELINE: "pipeline",
+    PIPELINE: "quote_sent",
     INVOICED: "ready_to_invoice",
     WON: "completed",
     LOST: "lost",
@@ -67,6 +68,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
   const [bulkMessage, setBulkMessage] = useState("")
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [sending, setSending] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>("last_interacted")
 
   const filtered = useMemo(() => {
     let result = contacts
@@ -85,8 +87,18 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
       const columnId = prismaStageToColumnId(c.primaryDealStageKey ?? null)
       return columnId != null && selectedStageIds.has(columnId)
     })
+    // Sort
+    if (sortMode === "alpha") {
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name))
+    } else {
+      result = [...result].sort((a, b) => {
+        const aDate = a.lastActivityDate ? new Date(a.lastActivityDate).getTime() : 0
+        const bDate = b.lastActivityDate ? new Date(b.lastActivityDate).getTime() : 0
+        return bDate - aDate
+      })
+    }
     return result
-  }, [contacts, search, selectedStageIds])
+  }, [contacts, search, selectedStageIds, sortMode])
 
   const toggleStage = (stageId: string) => {
     setSelectedStageIds((prev) => {
@@ -207,6 +219,17 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
             </div>
           </PopoverContent>
         </Popover>
+        {/* Sort toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setSortMode(sortMode === "alpha" ? "last_interacted" : "alpha")}
+          title={sortMode === "alpha" ? "Sorted A–Z (click for recent first)" : "Sorted by recent (click for A–Z)"}
+        >
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+          {sortMode === "alpha" ? "A–Z" : "Recent first"}
+        </Button>
         <Button asChild size="sm">
           <Link href="/dashboard/contacts/new">Add contact</Link>
         </Button>
@@ -229,8 +252,18 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
                     className="rounded border-input"
                   />
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">Last interacted</th>
+                <th
+                  className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none whitespace-nowrap"
+                  onClick={() => setSortMode("alpha")}
+                >
+                  Name {sortMode === "alpha" && <span className="text-primary text-xs">↑</span>}
+                </th>
+                <th
+                  className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground select-none"
+                  onClick={() => setSortMode("last_interacted")}
+                >
+                  Last interacted {sortMode === "last_interacted" && <span className="text-primary text-xs">↓</span>}
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Job status</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Balance</th>
                 <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
