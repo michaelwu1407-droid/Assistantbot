@@ -28,15 +28,15 @@ import { Button } from "@/components/ui/button"
 import { DealView, updateDealStage } from "@/actions/deal-actions"
 import { toast } from "sonner"
 
-// 6 pipeline columns + Deleted jobs (autoclears after 30 days)
-type ColumnId = "new_request" | "quote_sent" | "scheduled" | "pipeline" | "ready_to_invoice" | "completed" | "deleted"
+// 5 pipeline columns + Deleted jobs (autoclears after 30 days)
+// Note: "pipeline" stage is merged into "quote_sent"
+type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
 
 const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
   { id: "new_request", title: "New request", color: "bg-blue-500" },
   { id: "quote_sent", title: "Quote sent", color: "bg-indigo-500" },
   { id: "scheduled", title: "Scheduled", color: "bg-amber-500" },
-  { id: "pipeline", title: "Pipeline", color: "bg-slate-500" },
-  { id: "ready_to_invoice", title: "Ready to be invoiced", color: "bg-violet-500" },
+  { id: "ready_to_invoice", title: "Awaiting payment", color: "bg-violet-500" },
   { id: "completed", title: "Completed", color: "bg-primary" },
   { id: "deleted", title: "Deleted jobs", color: "bg-slate-400" },
 ]
@@ -78,7 +78,8 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 10 },
+      // Require longer hold on touch devices so users can scroll without accidentally grabbing a card
+      activationConstraint: { delay: 250, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -90,13 +91,14 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       new_request: [],
       quote_sent: [],
       scheduled: [],
-      pipeline: [],
       ready_to_invoice: [],
       completed: [],
       deleted: [],
     };
     deals.forEach((deal) => {
-      if (cols[deal.stage]) cols[deal.stage].push(deal);
+      // Merge legacy "pipeline" stage into "quote_sent"
+      const stage = deal.stage === "pipeline" ? "quote_sent" : deal.stage
+      if (cols[stage]) cols[stage].push(deal);
       else cols["new_request"].push(deal);
     });
     return cols;

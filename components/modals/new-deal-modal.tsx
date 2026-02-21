@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
-import { Plus, User, Mail, Phone, MapPin } from "lucide-react"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Plus, User, Mail, Phone, MapPin, AlertCircle } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface NewDealModalProps {
     isOpen: boolean
@@ -36,12 +36,18 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
 
     const [isLoading, setIsLoading] = useState(false)
     const [isFetchingContacts, setIsFetchingContacts] = useState(false)
+    const [contactError, setContactError] = useState("")
 
     useEffect(() => {
         if (isOpen && workspaceId) {
             fetchContacts()
         }
     }, [isOpen, workspaceId])
+
+    // Reset error when contact fields change
+    useEffect(() => {
+        if (newContactEmail || newContactPhone) setContactError("")
+    }, [newContactEmail, newContactPhone])
 
     const fetchContacts = () => {
         setIsFetchingContacts(true)
@@ -55,7 +61,14 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
         e.preventDefault()
         if (!title) return
         if (mode === "select" && !contactId) return
-        if (mode === "create" && !newContactName) return
+        if (mode === "create") {
+            if (!newContactName) return
+            // Require at least email or phone
+            if (!newContactEmail && !newContactPhone) {
+                setContactError("Please provide at least an email or phone number.")
+                return
+            }
+        }
 
         setIsLoading(true)
         try {
@@ -90,7 +103,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
             })
 
             if (result.success) {
-                toast.success("Deal created successfully!")
+                toast.success("Job created successfully!")
                 setTitle("")
                 setValue("")
                 setAddress("")
@@ -100,12 +113,13 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 setNewContactEmail("")
                 setNewContactPhone("")
                 setMode("create")
+                setContactError("")
 
                 onClose()
                 router.refresh()
             } else {
                 console.error(result.error)
-                toast.error("Failed to create deal: " + result.error)
+                toast.error("Failed to create job: " + result.error)
             }
         } catch (error) {
             console.error(error)
@@ -115,22 +129,26 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
         }
     }
 
+    const isCreateDisabled = isLoading ||
+        !title ||
+        (mode === "select" ? !contactId : !newContactName)
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Create New Deal</DialogTitle>
+                    <DialogTitle>Create New Job</DialogTitle>
                     <DialogDescription>
-                        Add a new deal to your pipeline.
+                        Add a new job to your pipeline. First name, job description, and a contact method are required.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
-                    {/* Deal Details */}
+                    {/* Job Details */}
                     <div className="grid gap-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="title" className="text-right">
-                                Title *
+                                Job description *
                             </Label>
                             <Input
                                 id="title"
@@ -181,8 +199,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                     <SelectItem value="new_request">New request</SelectItem>
                                     <SelectItem value="quote_sent">Quote sent</SelectItem>
                                     <SelectItem value="scheduled">Scheduled</SelectItem>
-                                    <SelectItem value="pipeline">Pipeline</SelectItem>
-                                    <SelectItem value="ready_to_invoice">Ready to be invoiced</SelectItem>
+                                    <SelectItem value="ready_to_invoice">Awaiting payment</SelectItem>
                                     <SelectItem value="completed">Completed</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -195,7 +212,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <Label>Client / Contact *</Label>
-                            <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-[200px]">
+                            <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[200px]">
                                 <TabsList className="grid w-full grid-cols-2 h-8">
                                     <TabsTrigger value="select" className="text-xs">Select</TabsTrigger>
                                     <TabsTrigger value="create" className="text-xs">Create New</TabsTrigger>
@@ -227,7 +244,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                         ) : (
                             <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-name" className="text-right text-xs">Name *</Label>
+                                    <Label htmlFor="new-name" className="text-right text-xs">First name *</Label>
                                     <div className="col-span-3 relative">
                                         <User className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
@@ -236,11 +253,14 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                             className="pl-9"
                                             value={newContactName}
                                             onChange={e => setNewContactName(e.target.value)}
+                                            required
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-email" className="text-right text-xs">Email</Label>
+                                    <Label htmlFor="new-email" className="text-right text-xs">
+                                        Email *
+                                    </Label>
                                     <div className="col-span-3 relative">
                                         <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
@@ -254,7 +274,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-phone" className="text-right text-xs">Phone</Label>
+                                    <Label htmlFor="new-phone" className="text-right text-xs">Phone *</Label>
                                     <div className="col-span-3 relative">
                                         <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
@@ -267,6 +287,13 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                         />
                                     </div>
                                 </div>
+                                <p className="text-[11px] text-slate-500 text-right">* Email or phone required</p>
+                                {contactError && (
+                                    <div className="flex items-center gap-1.5 text-red-600 text-xs mt-1">
+                                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                        {contactError}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -275,8 +302,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading || (mode === "select" ? !contactId : !newContactName) || !title}>
-                            {isLoading ? "Creating..." : "Create Deal"}
+                        <Button type="submit" disabled={isCreateDisabled}>
+                            {isLoading ? "Creating..." : "Create Job"}
                         </Button>
                     </DialogFooter>
                 </form>

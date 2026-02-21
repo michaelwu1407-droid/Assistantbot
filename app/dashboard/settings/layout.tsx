@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { AlertTriangle } from "lucide-react"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
@@ -95,6 +96,13 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
     return (
         <div className="space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
+            {/* WIP Banner */}
+            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+                <p className="text-sm font-medium">
+                    Settings is a work in progress (WIP). Some options may not be fully functional yet.
+                </p>
+            </div>
             <div className="space-y-1.5">
                 <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h2>
                 <p className="text-slate-500 text-sm">
