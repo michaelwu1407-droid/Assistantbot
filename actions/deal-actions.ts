@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getDealHealth, type DealHealth } from "@/lib/pipeline";
 import { evaluateAutomations } from "./automation-actions";
 import { getAuthUser } from "@/lib/auth";
+import { MonitoringService } from "@/lib/monitoring";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -174,6 +175,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
     });
   } catch (error) {
     console.error("Database Error in getDeals:", error);
+    MonitoringService.logError(error as Error, { action: "getDeals", workspaceId });
     throw error;
   }
 }
@@ -212,6 +214,13 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       dealId: deal.id,
       contactId,
     },
+  });
+
+  MonitoringService.trackEvent("deal_created", {
+    dealId: deal.id,
+    workspaceId,
+    value,
+    stage: prismaStage,
   });
 
   return { success: true, dealId: deal.id };
@@ -281,6 +290,7 @@ export async function updateDealStage(dealId: string, stage: string) {
     return { success: true };
   } catch (err) {
     console.error("updateDealStage error:", err);
+    MonitoringService.logError(err as Error, { action: "updateDealStage", dealId });
     const message = err instanceof Error ? err.message : "Failed to update stage";
     return { success: false, error: message };
   }

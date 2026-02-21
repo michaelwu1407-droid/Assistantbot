@@ -9,6 +9,12 @@
 - **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
 - **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
 
+## 2026-02-21: Sprint 20 - Pre-Launch Monitoring (Sentry & PostHog)
+- **Unified Telemetry**: Engineered an abstracted `MonitoringService` mapping unified `logError`, `trackEvent`, and `identifyUser` capabilities cleanly across both `@sentry/nextjs` and `posthog-js`.
+- **Active PII Scrubbing**: Hardened the entire pipeline by injecting global `beforeSend` interceptors on the Client, Server, and Edge `sentry.*.config` files to actively strip payload strings matching `password`, `ssn`, or `creditcard`.
+- **Application Instrumentation**: Directly tracked `workflow_start_travel` mechanics within `tradie-actions`, `deal_created` inside Kanban operations, and tightly mapped authentication session UUIDs inside `auth-selector.tsx`.
+- **Files Touched**: `lib/monitoring.ts`, `components/providers/posthog-provider.tsx`, `app/layout.tsx`, `actions/deal-actions.ts`, `actions/tradie-actions.ts`, `components/auth/auth-selector.tsx`, `instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`.
+
 ## 2026-02-21: Sprint 18 - Self-Learning AI & Webhooks
 - **Self-Learning Architecture**: Added a new visual interface in `Settings > Agent Capabilities` so users can manually intervene with the AI's learned `aiPreferences` and adjust global `callOutFee` logic.
 - **Pricing Feedback Engine**: Refactored the Kanban `updateDeal` action to monitor when users enter a final `invoicedAmount`. It subsequently finds the closest matching Glossary `RepairItem` and stamps an aggregated "Learned Sys Rate" to optimize future Gemini quotes.

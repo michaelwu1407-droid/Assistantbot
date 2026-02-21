@@ -24,7 +24,7 @@ This document tracks the functional status of each page and feature, explicitly 
 | **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
 | **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
 | **Vapi Webhook** | ✅ Functional | - Workspace resolution now uses strict `twilioPhoneNumber` matching on the dialed system number.<br>- Recording URL persisted in activity content (from `recordingUrl` or `artifact.recordingUrl`). |
-| **Retell Webhook/SMS** | ⚠️ Partial | - Infrastructure is solid (signature verification, workspace routing, stage mapping).<br>- Requires Retell dashboard setup (Response Engine, Voice, Tools).<br>- Env vars not documented. User has API key & identity ID — setup deferred. |
+| **Retell Webhook/SMS** | ⚠️ Partial | - Infrastructure is solid (signature verification, workspace routing, stage mapping).<br>- Requires Retell dashboard setup (Response Engine, Voice, Tools).<br>- Env vars not documented. User has API key & identity ID — setup deferred.<br>- **Feature Request**: Must configure Retell AI gracefully to handle multi-languages natively. |
 | **Google Calendar Integration** | ❌ Scaffolding | - "Connect" button is a fake `setTimeout` mock — no OAuth. |
 | **MYOB / Auth / Mail** | ✅ Functional | None |
 
