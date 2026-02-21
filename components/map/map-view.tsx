@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo, useCallback } from "react"
 import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronDown, ChevronUp, Route, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
+import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -35,13 +36,14 @@ function createIcon(opts: { isToday: boolean; isActive?: boolean; isStarted?: bo
 
 const defaultIconUpcoming = createIcon({ isToday: false })
 
-interface Job {
+export interface Job {
   id: string
   title: string
   clientName: string
   address: string
   status: string
-  scheduledAt?: Date
+  value: number
+  scheduledAt: Date
   lat?: number
   lng?: number
 }
@@ -91,6 +93,8 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const [jobListExpanded, setJobListExpanded] = useState(true)
   const [isRouteMode, setIsRouteMode] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
 
   const { jobsToday, jobsUpcoming } = useMemo(() => {
     const today: Job[] = []
@@ -137,12 +141,14 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   }, [])
 
   const finishJob = useCallback(async (job: Job) => {
-    setIsCompleting(true)
-    await updateJobStatus(job.id, "COMPLETED")
+    setJobToComplete(job)
+    setIsCompletionModalOpen(true)
+  }, [])
+
+  const handleModalSuccess = useCallback(() => {
+    setIsCompletionModalOpen(false)
+    setJobToComplete(null)
     setStartedJobId(null)
-    setIsCompleting(false)
-    // The activeTargetJob useMemo will automatically recalculate and fly the map
-    // because the backend state has changed and Next.js revalidates the cache.
   }, [])
 
   useEffect(() => { setIsMounted(true) }, [])
@@ -482,6 +488,20 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
           </div>
         )}
       </div>
+
+      {/* Completion Modal Integration */}
+      {jobToComplete && (
+        <JobCompletionModal
+          open={isCompletionModalOpen}
+          onOpenChange={(open) => {
+            setIsCompletionModalOpen(open)
+            if (!open) setJobToComplete(null)
+          }}
+          dealId={jobToComplete.id}
+          job={jobToComplete}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </div>
   )
 }

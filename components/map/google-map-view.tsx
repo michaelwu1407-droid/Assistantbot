@@ -5,6 +5,7 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-map
 import { Compass, CalendarClock, Layers, MapPin, Clock, Navigation, ChevronDown, ChevronUp, Route, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
+import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 
 export interface Job {
   id: string
@@ -12,7 +13,8 @@ export interface Job {
   clientName: string
   address: string
   status: string
-  scheduledAt?: Date
+  value: number
+  scheduledAt: Date
   lat?: number
   lng?: number
 }
@@ -47,6 +49,9 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
   const [jobListExpanded, setJobListExpanded] = useState(true)
   const [isRouteMode, setIsRouteMode] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
+
   const mapRef = useRef<google.maps.Map | null>(null)
 
   const apiKey = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "") : ""
@@ -117,10 +122,14 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
   }, [])
 
   const finishJob = useCallback(async (job: Job) => {
-    setIsCompleting(true)
-    await updateJobStatus(job.id, "COMPLETED")
+    setJobToComplete(job)
+    setIsCompletionModalOpen(true)
+  }, [])
+
+  const handleModalSuccess = useCallback(() => {
+    setIsCompletionModalOpen(false)
+    setJobToComplete(null)
     setStartedJobId(null)
-    setIsCompleting(false)
   }, [])
 
   useEffect(() => {
@@ -487,6 +496,20 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
           </div>
         )}
       </div>
+
+      {/* Completion Modal Integration */}
+      {jobToComplete && (
+        <JobCompletionModal
+          open={isCompletionModalOpen}
+          onOpenChange={(open) => {
+            setIsCompletionModalOpen(open)
+            if (!open) setJobToComplete(null)
+          }}
+          dealId={jobToComplete.id}
+          job={jobToComplete}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </div>
   )
 }

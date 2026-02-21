@@ -778,3 +778,64 @@ export async function sendReviewRequestSMS(dealId: string) {
 
   return result;
 }
+
+/**
+ * Handle Job Completion with customer confirmation payload.
+ * Invoked by the Map Route Mode "Finish Job" modal.
+ */
+export async function finalizeJobCompletion(jobId: string, payload: { isPaid: boolean; notes: string }) {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: jobId },
+      select: { metadata: true, contactId: true, value: true }
+    });
+
+    if (!deal) {
+      return { success: false, error: "Job not found" };
+    }
+
+    const currentMetadata = (deal.metadata as Record<string, any>) || {};
+
+    // 1. Structure the updates
+    const updates: any = {
+      metadata: {
+        ...currentMetadata,
+        completedAt: new Date().toISOString(),
+      }
+    };
+
+    // If marked paid on site, update invoiced amount to match value (or simply store the flag)
+    if (payload.isPaid) {
+      updates.invoicedAmount = deal.value ? Number(deal.value) : 0;
+      updates.metadata.paymentConfirmedOnSite = true;
+    }
+
+    // 2. Commit the Deal updates
+    await db.deal.update({
+      where: { id: jobId },
+      data: updates
+    });
+
+    // 3. Log the Completion Notes to the CRM Activity timeline
+    if (payload.notes.trim().length > 0) {
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Completion Notes",
+          content: payload.notes,
+          dealId: jobId,
+          contactId: deal.contactId
+        }
+      });
+    }
+
+    // 4. Trigger the base COMPLETED workflow (which handles metrics, SMS, real-time push)
+    const result = await updateJobStatus(jobId, "COMPLETED");
+    return result;
+
+  } catch (error) {
+    console.error("Failed to finalize job completion:", error);
+    MonitoringService.logError(error as Error, { action: "finalizeJobCompletion", jobId });
+    return { success: false, error: "Encountered a server error." };
+  }
+}

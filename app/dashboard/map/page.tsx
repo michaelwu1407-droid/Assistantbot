@@ -22,7 +22,8 @@ export default async function DashboardMapPage() {
 
         const jobsWithDate = jobs.map((j) => ({
             ...j,
-            scheduledAt: j.scheduledAt instanceof Date ? j.scheduledAt : j.scheduledAt ? new Date(j.scheduledAt as unknown as string) : undefined,
+            value: Number(j.value) || 0,
+            scheduledAt: j.scheduledAt instanceof Date ? j.scheduledAt : j.scheduledAt ? new Date(j.scheduledAt as unknown as string) : new Date(),
         }))
 
         return (
