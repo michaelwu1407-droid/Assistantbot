@@ -14,10 +14,16 @@ import {
   runCreateTask,
   runSearchContacts,
   runCreateContact,
+  runSendSms,
+  runSendEmail,
+  runMakeCall,
+  runGetConversationHistory,
+  runCreateScheduledNotification,
 } from "@/actions/chat-actions";
 import { getDeals } from "@/actions/deal-actions";
-import { getWorkspaceSettings } from "@/actions/settings-actions";
+import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { parseJobOneLiner, buildJobDraftFromParams } from "@/lib/chat-utils";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -67,7 +73,7 @@ export async function POST(req: Request) {
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
       draft.warnings = [];
       try {
-        const settings = await getWorkspaceSettings();
+        const settings = await getWorkspaceSettingsById(workspaceId);
         if (settings?.agentMode === "FILTER") {
           return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 })
         }
@@ -173,20 +179,77 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
-    // CRITICAL API FIX: Google SDK crashes with "must include at least one parts field" 
-    // if ANY message in the history contains an empty string without tool calls.
+    // CRITICAL API FIX: Google SDK crashes with "must include at least one parts field"
+    // if ANY message in the history has empty content and no tool calls.
+    // We must deep-check arrays for actual text content, not just array length.
     modelMessages = modelMessages.filter((msg: any) => {
       if (msg.role === "system") return true;
-      const msgHasText = typeof msg.content === "string"
-        ? msg.content.trim().length > 0
-        : Array.isArray(msg.content) && msg.content.length > 0;
-      const msgHasTools = (msg.toolInvocations?.length > 0) || (msg.toolCalls?.length > 0);
-      // Assistant responses must have content or a tool activity to be valid.
+      let msgHasText = false;
+      if (typeof msg.content === "string") {
+        msgHasText = msg.content.trim().length > 0;
+      } else if (Array.isArray(msg.content)) {
+        msgHasText = msg.content.some((p: any) => {
+          if (!p || typeof p !== "object") return false;
+          if ("text" in p && typeof p.text === "string" && p.text.trim().length > 0) return true;
+          if ("type" in p && p.type === "text" && "text" in p && String(p.text ?? "").trim().length > 0) return true;
+          if ("type" in p && (p.type === "tool-call" || p.type === "tool-result")) return true;
+          return false;
+        });
+      }
+      const msgHasTools = !!(msg.toolInvocations?.length || msg.toolCalls?.length);
       return msgHasText || msgHasTools;
     });
 
-    const settings = await getWorkspaceSettings();
+    // Final safety: ensure last message is user with content. If history was entirely
+    // filtered away, create a minimal user message from the extracted content.
+    if (!modelMessages.length && content?.trim()) {
+      modelMessages = [{ role: "user", content }];
+    }
+    if (!modelMessages.length) {
+      const textId = "empty-fallback-2";
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: "I didn't quite catch that. Could you rephrase?" });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
+
+    const settings = await getWorkspaceSettingsById(workspaceId);
     const deals = await getDeals(workspaceId);
+
+    // Fetch business profile for knowledge base context (Chat-3)
+    const workspaceInfo = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { name: true, location: true, twilioPhoneNumber: true },
+    });
+    let businessProfile: { tradeType: string; website: string | null; baseSuburb: string; serviceRadius: number; standardWorkHours: string; emergencyService: boolean; emergencySurcharge: number | null } | null = null;
+    try {
+      businessProfile = await db.businessProfile.findFirst({
+        where: { user: { workspaceId } },
+        select: { tradeType: true, website: true, baseSuburb: true, serviceRadius: true, standardWorkHours: true, emergencyService: true, emergencySurcharge: true },
+      });
+    } catch {
+      // BusinessProfile table may not exist yet if migration hasn't been run
+    }
+
+    let knowledgeBaseStr = "\nBUSINESS IDENTITY:";
+    if (workspaceInfo?.name) knowledgeBaseStr += `\n- Business Name: ${workspaceInfo.name}`;
+    if (workspaceInfo?.location) knowledgeBaseStr += `\n- Service Area: ${workspaceInfo.location}`;
+    if (workspaceInfo?.twilioPhoneNumber) knowledgeBaseStr += `\n- Business Phone: ${workspaceInfo.twilioPhoneNumber}`;
+    if (businessProfile) {
+      if (businessProfile.tradeType) knowledgeBaseStr += `\n- Trade: ${businessProfile.tradeType}`;
+      if (businessProfile.website) knowledgeBaseStr += `\n- Website: ${businessProfile.website}`;
+      if (businessProfile.baseSuburb) knowledgeBaseStr += `\n- Base Location: ${businessProfile.baseSuburb}`;
+      if (businessProfile.serviceRadius) knowledgeBaseStr += `\n- Service Radius: ${businessProfile.serviceRadius}km`;
+      if (businessProfile.standardWorkHours) knowledgeBaseStr += `\n- Standard Hours: ${businessProfile.standardWorkHours}`;
+      if (businessProfile.emergencyService) knowledgeBaseStr += `\n- Emergency Service: Available${businessProfile.emergencySurcharge ? ` (+$${businessProfile.emergencySurcharge} surcharge)` : ""}`;
+    }
+    knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
 
     // Build context strings
     const agentModeStr = settings?.agentMode === "EXECUTE"
@@ -220,7 +283,8 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      system: `You are a helpful CRM assistant. You manage deals, jobs, and pipeline stages.
+      system: `You are a helpful CRM assistant. You manage deals, jobs, pipeline stages, and customer communications.
+${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}
 ${preferencesStr}
@@ -233,12 +297,17 @@ TOOLS:
 - moveDeal: Move a deal to another stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
 - createDeal: Create a new deal. Needs title; optional company/client name and value. Creates or finds a contact by company name.
 - createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. USE THIS whenever the user sends a single message that describes a job: a person/client name, what work is needed, and optionally address, time, and price. Examples: "Sally at 12 Wyndham St Alexandria needs her sink fixed tomorrow at 2pm. $200 price agreed" or "Sharon from 17 Alexandria St needs sink fixed quoted $200 for tomorrow 2pm". You MUST call createJobNatural with the extracted clientName, workDescription, price, and if mentioned address and schedule—do not only acknowledge. If they mention a date or time (e.g. tomorrow 2pm), always pass it in the schedule parameter so the job is created in the Scheduled column.
-- proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after seeing a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time. It logs the proposed time on the job, adds a note, and creates a follow-up task to contact the customer to confirm.
+- proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time. It logs the proposed time on the job, adds a note, and creates a follow-up task to contact the customer to confirm.
 - updateInvoiceAmount: Modifies the final invoiced amount for a job, independent of the initial quote/value. Use when a user says "Invoice John for $300" or "Change the final invoice for Kitchen Reno to $500".
 - logActivity: Record a call, meeting, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
 - createTask: Create a reminder or to-do task. e.g "Remind me tomorrow to order pipes", "Schedule a task to check up on Mary".
 - searchContacts: Look up people or companies in the database CRM.
 - createContact: Add a new person or company to the database CRM explicitly.
+- sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3". Searches for the contact by name and sends via their phone number.
+- sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote" or "Send John an email about his appointment". Finds the contact by name and uses their email address.
+- makeCall: Initiate an outbound phone call to a contact via the AI voice agent. Use when the user says "Call John" or "Ring Mary about the quote" or "Phone Steven to confirm the appointment". The AI agent will handle the conversation.
+- getConversationHistory: Retrieve text/call/email history with a specific contact. Use when the user asks "Show me my text history with Steven" or "What have we discussed with Mary?".
+- createNotification: Create a scheduled notification or reminder alert. Use when the user says "Notify me when we are 2 days out from Wendy's repair job" or "Alert me if no response from John by Friday".
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
       messages: modelMessages as any,
@@ -340,6 +409,54 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
             phone: z.string().optional().describe("The contact's phone number"),
           }),
           execute: async (params) => runCreateContact(workspaceId, params),
+        }),
+        sendSms: tool({
+          description: "Send an SMS text message to a contact. Use when the user says 'Text Steven I'm on my way' or 'Send a message to Mary saying we'll be there at 3pm'. Finds the contact by name and sends via their phone number.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to text"),
+            message: z.string().describe("The SMS message to send"),
+          }),
+          execute: async ({ contactName, message }) =>
+            runSendSms(workspaceId, { contactName, message }),
+        }),
+        sendEmail: tool({
+          description: "Send an email to a contact. Use when the user says 'Email Mary the quote' or 'Send John an email confirming his appointment'. Finds the contact by name and uses their email address.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to email"),
+            subject: z.string().describe("Email subject line"),
+            body: z.string().describe("Email body content"),
+          }),
+          execute: async ({ contactName, subject, body }) =>
+            runSendEmail(workspaceId, { contactName, subject, body }),
+        }),
+        makeCall: tool({
+          description: "Initiate an outbound phone call to a contact via the AI voice agent (Retell AI). Use when the user says 'Call John', 'Ring Mary about the quote', or 'Phone Steven to confirm'. The AI voice agent will handle the conversation.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to call"),
+            purpose: z.string().optional().describe("Brief purpose of the call, e.g. 'confirm appointment for Thursday' or 'follow up on quote'"),
+          }),
+          execute: async ({ contactName, purpose }) =>
+            runMakeCall(workspaceId, { contactName, purpose }),
+        }),
+        getConversationHistory: tool({
+          description: "Retrieve text/call/email history with a specific contact. Use when the user asks 'Show me my texts with Steven' or 'What's my history with Mary?' or 'Show me my conversation with John'.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to look up history for"),
+            limit: z.number().optional().describe("How many recent items to return (default 20)"),
+          }),
+          execute: async ({ contactName, limit }) =>
+            runGetConversationHistory(workspaceId, { contactName, limit }),
+        }),
+        createNotification: tool({
+          description: "Create a scheduled notification or reminder alert. Use when the user says 'Notify me 2 days before Wendy's job' or 'Alert me Friday if John hasn't responded' or 'Remind me to follow up with the plumber'.",
+          inputSchema: z.object({
+            title: z.string().describe("Short notification title"),
+            message: z.string().describe("Notification details/body"),
+            scheduledAtISO: z.string().optional().describe("ISO date for when to trigger (e.g. 2026-02-25T09:00:00). Omit for immediate."),
+            link: z.string().optional().describe("Optional URL to navigate to when clicked"),
+          }),
+          execute: async (params) =>
+            runCreateScheduledNotification(workspaceId, params),
         }),
       },
       stopWhen: stepCountIs(5),

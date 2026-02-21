@@ -27,7 +27,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const { revenue, scheduledCount, criticalCount, followUpCount } = useMemo(() => {
+  const { revenue, travisWonRevenue, scheduledCount, followUpCount } = useMemo(() => {
     const wonThisMonth = deals.filter(
       (d) =>
         d.stage === "completed" &&
@@ -35,8 +35,11 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         new Date(d.stageChangedAt).getFullYear() === currentYear
     )
     const revenue = wonThisMonth.reduce((sum, d) => sum + d.value, 0)
+    const travisWon = wonThisMonth.filter(
+      (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
+    )
+    const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
     const scheduledCount = deals.filter((d) => d.stage === "scheduled").length
-    const criticalCount = deals.filter((d) => d.health.status === "ROTTING").length
     const staleDays = staleWeeks * 7
     const followUpCount = deals.filter((d) => {
       const days = differenceInDays(now, new Date(d.lastActivityDate))
@@ -45,8 +48,8 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
 
     return {
       revenue,
+      travisWonRevenue,
       scheduledCount,
-      criticalCount,
       followUpCount,
     }
   }, [deals, currentMonth, currentYear, staleWeeks])
@@ -70,7 +73,19 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </div>
 
-      {/* 2. Scheduled jobs */}
+      {/* 2. Jobs won with Travis */}
+      <div className={cardClass}>
+        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
+          Jobs won with Travis
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
+            ${travisWonRevenue.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Scheduled jobs */}
       <div className={cardClass}>
         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
           Scheduled jobs
@@ -82,7 +97,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </div>
 
-      {/* 3. Follow-up — label top, number left, 2w selector bottom-right */}
+      {/* 4. Follow-up — label top, number left, 2w selector bottom-right */}
       <div className={cardClass}>
         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5 block">
           Follow-up
@@ -111,23 +126,6 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      {/* 4. Critical */}
-      <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          Critical
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span
-            className={cn(
-              "text-lg font-extrabold tracking-tighter leading-none",
-              criticalCount > 0 ? "text-red-500" : "text-[#0F172A]"
-            )}
-          >
-            {criticalCount}
-          </span>
         </div>
       </div>
     </div>

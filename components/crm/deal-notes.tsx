@@ -90,7 +90,7 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
       {/* Scrollable History inside the bubble area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar min-h-[150px] pb-24"
+        className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar min-h-[60px] pb-16"
       >
         {notesList.length === 0 ? (
           <p className="text-slate-400 text-xs italic text-center mt-4">No notes yet. Add one below.</p>
@@ -129,7 +129,7 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
             value={currentText}
             onChange={(e) => setCurrentText(e.target.value)}
             placeholder={editingId ? "Update note..." : "Add a quick note..."}
-            className="min-h-[40px] max-h-[120px] resize-none text-sm border-0 focus-visible:ring-0 px-3 py-2.5 bg-transparent scrollbar-hide pr-12 rounded-none shadow-none"
+            className="min-h-[32px] max-h-[80px] resize-none text-xs border-0 focus-visible:ring-0 px-3 py-2 bg-transparent scrollbar-hide pr-12 rounded-none shadow-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +22,8 @@ export function AccountForm({ userId, email }: AccountFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -148,31 +149,53 @@ export function AccountForm({ userId, email }: AccountFormProps) {
             <Label>Current Email</Label>
             <Input value={email || "Not set"} disabled className="bg-slate-50 text-slate-500" />
           </div>
-          <p className="text-sm text-slate-500">
-            To change your email, please contact support.
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newEmail.trim()) return;
+            setIsEmailLoading(true);
+            try {
+              const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
+              if (error) throw error;
+              toast.success("Confirmation email sent to your new address. Please check your inbox.");
+              setNewEmail("");
+            } catch (err: any) {
+              toast.error(err.message || "Failed to update email.");
+            } finally {
+              setIsEmailLoading(false);
+            }
+          }} className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="new-email">New Email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                placeholder="Enter new email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={isEmailLoading || !newEmail.trim()} size="sm">
+              {isEmailLoading ? "Sending..." : "Change Email"}
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground">
+            A confirmation link will be sent to both your current and new email address.
           </p>
         </CardContent>
       </Card>
 
       <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-      {/* Delete Account Section */}
-      <Card className="border-red-200 bg-red-50/50 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-red-700 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Delete Account
-          </CardTitle>
-          <CardDescription className="text-red-600/80">
-            Permanently delete your account and all associated data. This action cannot be undone.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
-            Delete Account
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Delete Account */}
+      <div className="flex justify-end pt-4">
+        <button
+          type="button"
+          onClick={() => setIsDeleteDialogOpen(true)}
+          className="text-xs text-red-400 hover:text-red-600 underline underline-offset-2 transition-colors"
+        >
+          Delete my account
+        </button>
+      </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -187,20 +210,26 @@ export function AccountForm({ userId, email }: AccountFormProps) {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="reason">Why are you leaving? (Optional)</Label>
-              <Textarea
+              <Label htmlFor="reason">Why are you leaving?</Label>
+              <select
                 id="reason"
-                placeholder="Please let us know how we can improve..."
                 value={deleteReason}
                 onChange={(e) => setDeleteReason(e.target.value)}
-                className="resize-none"
-                rows={3}
-              />
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select a reason...</option>
+                <option value="not-useful">Not useful for my business</option>
+                <option value="too-expensive">Too expensive</option>
+                <option value="switching">Switching to another tool</option>
+                <option value="missing-features">Missing features I need</option>
+                <option value="too-complex">Too complex to use</option>
+                <option value="other">Other</option>
+              </select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount} disabled={isDeleting}>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAccount} disabled={isDeleting || !deleteReason}>
               {isDeleting ? "Deleting..." : "Permanently Delete"}
             </Button>
           </DialogFooter>

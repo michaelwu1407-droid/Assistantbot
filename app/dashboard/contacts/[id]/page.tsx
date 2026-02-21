@@ -198,12 +198,29 @@ export default async function ContactDetailPage({ params }: PageProps) {
                 <MessageSquare className="w-4 h-4" />
                 Past jobs & notes
               </span>
-              <Link href={`/dashboard/inbox?contact=${id}`}>
-                <Button size="sm" variant="outline" className="gap-1 text-xs">
-                  <MessageSquare className="w-3 h-3" />
-                  Contact them
-                </Button>
-              </Link>
+              <div className="flex items-center gap-1.5">
+                {contact.phone && (
+                  <>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs h-7 px-2" asChild>
+                      <a href={`tel:${contact.phone}`}>
+                        <Phone className="w-3 h-3 text-blue-500" /> Call
+                      </a>
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs h-7 px-2" asChild>
+                      <a href={`sms:${contact.phone}`}>
+                        <MessageSquare className="w-3 h-3 text-emerald-500" /> Text
+                      </a>
+                    </Button>
+                  </>
+                )}
+                {contact.email && (
+                  <Button size="sm" variant="outline" className="gap-1 text-xs h-7 px-2" asChild>
+                    <a href={`mailto:${contact.email}`}>
+                      <Mail className="w-3 h-3 text-slate-500" /> Email
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0 min-h-0">
               <div className="border-b md:border-b-0 md:border-r border-slate-100 dark:border-border flex flex-col min-h-0">

@@ -59,11 +59,13 @@ export async function getTradieJobs(workspaceId: string) {
     id: deal.id,
     title: deal.title,
     clientName: deal.contact.name,
-    address: deal.contact.address || "No Address", // Fallback
-    status: deal.jobStatus || deal.stage, // Use jobStatus if available, else stage
+    address: deal.address || deal.contact.address || "No Address",
+    status: deal.jobStatus || deal.stage,
     value: deal.value ? Number(deal.value) : 0,
-    scheduledAt: deal.scheduledAt || deal.updatedAt, // Use scheduledAt if available
-    description: (deal.metadata as any)?.description || "No description provided."
+    scheduledAt: deal.scheduledAt || deal.updatedAt,
+    description: (deal.metadata as any)?.description || "No description provided.",
+    lat: deal.latitude ?? undefined,
+    lng: deal.longitude ?? undefined,
   }));
 }
 
@@ -117,8 +119,8 @@ export async function getTodaySchedule(workspaceId: string) {
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,
-    lat: job.latitude,
-    lng: job.longitude
+    lat: job.latitude ?? undefined,
+    lng: job.longitude ?? undefined,
   }));
 }
 
@@ -147,8 +149,8 @@ export async function getTradieJobById(jobId: string) {
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,
-    lat: job.latitude,
-    lng: job.longitude
+    lat: job.latitude ?? undefined,
+    lng: job.longitude ?? undefined,
   };
 }
 

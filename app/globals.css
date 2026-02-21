@@ -2,7 +2,7 @@
 
 @plugin "tailwindcss-animate";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, .premium *));
 
 @theme {
   --font-sans: var(--font-sans);
@@ -167,6 +167,46 @@
   --sidebar-accent: #1E293B;
   --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: #1E293B;
+  --sidebar-ring: #00D28B;
+}
+
+.premium {
+  /* PREMIUM THEME - Deep indigo with mint accents */
+  --background: #0C0A1D;
+  --foreground: #E0DEF7;
+
+  --card: #161331;
+  --card-foreground: #F0EEFF;
+
+  --popover: #161331;
+  --popover-foreground: #F0EEFF;
+
+  --primary: #00D28B;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #1E1845;
+  --secondary-foreground: #F0EEFF;
+
+  --muted: #1E1845;
+  --muted-foreground: #8B85B1;
+
+  --accent: #1E1845;
+  --accent-foreground: #00D28B;
+
+  --destructive: #7F1D1D;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #2A2456;
+  --input: #0C0A1D;
+  --ring: #00D28B;
+
+  --sidebar: #0C0A1D;
+  --sidebar-foreground: #F0EEFF;
+  --sidebar-primary: #00D28B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E1845;
+  --sidebar-accent-foreground: #F0EEFF;
+  --sidebar-border: #2A2456;
   --sidebar-ring: #00D28B;
 }
 

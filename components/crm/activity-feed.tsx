@@ -7,6 +7,7 @@ import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lu
 import { getActivities, ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 
 interface ActivityFeedProps {
     contactId?: string
@@ -37,6 +38,7 @@ const COLOR_MAP: Record<string, string> = {
 export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId, compact = false }: ActivityFeedProps) {
     const [activities, setActivities] = useState<ActivityView[]>(initialData || [])
     const [loading, setLoading] = useState(!initialData)
+    const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
     const router = useRouter()
 
     useEffect(() => {
@@ -100,7 +102,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                 key={activity.id}
                                 className="flex gap-3 items-start group cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-border/50"
                                 onClick={() => {
-                                    if (activity.dealId) router.push(`/dashboard/deals/${activity.dealId}`)
+                                    if (activity.dealId) setSelectedDealId(activity.dealId)
                                     else if (activity.contactId) router.push(`/dashboard/contacts/${activity.contactId}`)
                                 }}
                             >
@@ -130,8 +132,16 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
         </div>
     )
 
+    const Modal = (
+        <DealDetailModal
+            dealId={selectedDealId}
+            open={!!selectedDealId}
+            onOpenChange={(open) => !open && setSelectedDealId(null)}
+        />
+    )
+
     if (compact) {
-        return Content
+        return <>{Content}{Modal}</>
     }
 
     return (
@@ -147,6 +157,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
             <div className="flex-1 overflow-hidden min-h-0 bg-background/20 backdrop-blur-sm">
                 {Content}
             </div>
+            {Modal}
         </div>
     )
 }

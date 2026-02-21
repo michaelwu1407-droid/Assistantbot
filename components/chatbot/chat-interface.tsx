@@ -273,7 +273,7 @@ function ChatWithHistory({
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
-              <p className="text-sm md:text-base leading-relaxed text-slate-800 dark:text-foreground">
+              <p className="text-xs md:text-sm leading-relaxed text-slate-800 dark:text-foreground">
                 Hello! I&apos;m your CRM assistant. Ask me to move deals, look up contacts, or schedule jobs — or type &quot;what can you do?&quot; to see more.
               </p>
             </div>
@@ -308,7 +308,7 @@ function ChatWithHistory({
                         const partText = part.type === 'text' && part.text ? part.text : (part as { text?: string }).text;
                         if (partText && typeof partText === 'string') {
                           rendered.push(
-                            <p key={idx} className="text-sm md:text-[15px] leading-relaxed whitespace-pre-line font-medium">
+                            <p key={idx} className="text-xs md:text-[13px] leading-relaxed whitespace-pre-line font-medium">
                               {partText}
                             </p>
                           );
@@ -380,7 +380,7 @@ function ChatWithHistory({
                       }
                       if (content.trim()) {
                         return (
-                          <p className="text-sm md:text-[15px] leading-relaxed whitespace-pre-line font-medium">
+                          <p className="text-xs md:text-[13px] leading-relaxed whitespace-pre-line font-medium">
                             {content}
                           </p>
                         );

@@ -16,12 +16,55 @@ import {
 } from "@/components/ui/form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const appearanceFormSchema = z.object({
     theme: z.enum(["light", "dark", "premium"]),
 })
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>
+
+const themes = [
+    {
+        value: "light" as const,
+        label: "Light",
+        description: "Clean and bright",
+        preview: {
+            bg: "bg-[#F8FAFC]",
+            card: "bg-white",
+            cardBorder: "border-[#E2E8F0]",
+            text: "bg-[#E2E8F0]",
+            accent: "bg-[#00D28B]",
+            dot: "bg-[#E2E8F0]",
+        },
+    },
+    {
+        value: "dark" as const,
+        label: "Dark",
+        description: "Easy on the eyes",
+        preview: {
+            bg: "bg-[#020617]",
+            card: "bg-[#0F172A]",
+            cardBorder: "border-[#1E293B]",
+            text: "bg-slate-600",
+            accent: "bg-[#00D28B]",
+            dot: "bg-slate-600",
+        },
+    },
+    {
+        value: "premium" as const,
+        label: "Premium",
+        description: "Deep indigo vibes",
+        preview: {
+            bg: "bg-[#0C0A1D]",
+            card: "bg-[#161331]",
+            cardBorder: "border-[#2A2456]",
+            text: "bg-indigo-700",
+            accent: "bg-[#00D28B]",
+            dot: "bg-indigo-700",
+        },
+    },
+]
 
 export function AppearanceForm() {
     const { theme, setTheme } = useTheme()
@@ -54,86 +97,37 @@ export function AppearanceForm() {
                             <RadioGroup
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
-                                className="grid max-w-md grid-cols-3 gap-8 pt-2"
+                                className="grid max-w-lg grid-cols-3 gap-4 pt-2"
                             >
-                                <FormItem>
-                                    <FormLabel className="[&:has([data-state=checked])>div]:border-primary">
-                                        <FormControl>
-                                            <RadioGroupItem value="light" className="sr-only" />
-                                        </FormControl>
-                                        <div className="items-center rounded-md border-2 border-muted p-1 hover:border-accent">
-                                            <div className="space-y-2 rounded-sm bg-[#ecedef] p-2">
-                                                <div className="space-y-2 rounded-md bg-white p-2 shadow-sm">
-                                                    <div className="h-2 w-[80px] rounded-lg bg-[#ecedef]" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm">
-                                                    <div className="h-4 w-4 rounded-full bg-[#ecedef]" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm">
-                                                    <div className="h-4 w-4 rounded-full bg-[#ecedef]" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <span className="block w-full p-2 text-center font-normal">
-                                            Light
-                                        </span>
-                                    </FormLabel>
-                                </FormItem>
-                                <FormItem>
-                                    <FormLabel className="[&:has([data-state=checked])>div]:border-primary">
-                                        <FormControl>
-                                            <RadioGroupItem value="dark" className="sr-only" />
-                                        </FormControl>
-                                        <div className="items-center rounded-md border-2 border-muted bg-popover p-1 hover:bg-accent hover:text-accent-foreground">
-                                            <div className="space-y-2 rounded-sm bg-slate-950 p-2">
-                                                <div className="space-y-2 rounded-md bg-slate-800 p-2 shadow-sm">
-                                                    <div className="h-2 w-[80px] rounded-lg bg-slate-400" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-slate-400" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm">
-                                                    <div className="h-4 w-4 rounded-full bg-slate-400" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-slate-400" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm">
-                                                    <div className="h-4 w-4 rounded-full bg-slate-400" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-slate-400" />
+                                {themes.map((t) => (
+                                    <FormItem key={t.value}>
+                                        <FormLabel className="[&:has([data-state=checked])>div]:border-primary [&:has([data-state=checked])>div]:ring-2 [&:has([data-state=checked])>div]:ring-primary/20 cursor-pointer">
+                                            <FormControl>
+                                                <RadioGroupItem value={t.value} className="sr-only" />
+                                            </FormControl>
+                                            <div className="rounded-xl border-2 border-muted p-1.5 hover:border-accent transition-all">
+                                                <div className={cn("space-y-2 rounded-lg p-2.5", t.preview.bg)}>
+                                                    <div className={cn("space-y-2 rounded-md p-2.5 shadow-sm border", t.preview.card, t.preview.cardBorder)}>
+                                                        <div className={cn("h-2 w-3/4 rounded-full", t.preview.accent)} />
+                                                        <div className={cn("h-2 w-full rounded-full", t.preview.text)} />
+                                                    </div>
+                                                    <div className={cn("flex items-center gap-2 rounded-md p-2.5 shadow-sm border", t.preview.card, t.preview.cardBorder)}>
+                                                        <div className={cn("h-4 w-4 rounded-full shrink-0", t.preview.dot)} />
+                                                        <div className={cn("h-2 w-full rounded-full", t.preview.text)} />
+                                                    </div>
+                                                    <div className={cn("flex items-center gap-2 rounded-md p-2.5 shadow-sm border", t.preview.card, t.preview.cardBorder)}>
+                                                        <div className={cn("h-4 w-4 rounded-full shrink-0", t.preview.dot)} />
+                                                        <div className={cn("h-2 w-full rounded-full", t.preview.text)} />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <span className="block w-full p-2 text-center font-normal">
-                                            Dark
-                                        </span>
-                                    </FormLabel>
-                                </FormItem>
-                                <FormItem>
-                                    <FormLabel className="[&:has([data-state=checked])>div]:border-primary">
-                                        <FormControl>
-                                            <RadioGroupItem value="premium" className="sr-only" />
-                                        </FormControl>
-                                        <div className="items-center rounded-md border-2 border-muted bg-popover p-1 hover:bg-accent hover:text-accent-foreground">
-                                            <div className="space-y-2 rounded-sm bg-[#1a0b44] p-2">
-                                                <div className="space-y-2 rounded-md bg-[#2d1b69] p-2 shadow-sm border border-indigo-500/30">
-                                                    <div className="h-2 w-[80px] rounded-lg bg-indigo-400" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-indigo-400" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-[#2d1b69] p-2 shadow-sm border border-indigo-500/30">
-                                                    <div className="h-4 w-4 rounded-full bg-indigo-500" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-indigo-400" />
-                                                </div>
-                                                <div className="flex items-center space-x-2 rounded-md bg-[#2d1b69] p-2 shadow-sm border border-indigo-500/30">
-                                                    <div className="h-4 w-4 rounded-full bg-indigo-500" />
-                                                    <div className="h-2 w-[100px] rounded-lg bg-indigo-400" />
-                                                </div>
+                                            <div className="pt-2 pb-1 text-center">
+                                                <span className="block text-sm font-medium">{t.label}</span>
+                                                <span className="block text-xs text-muted-foreground">{t.description}</span>
                                             </div>
-                                        </div>
-                                        <span className="block w-full p-2 text-center font-normal">
-                                            Premium
-                                        </span>
-                                    </FormLabel>
-                                </FormItem>
+                                        </FormLabel>
+                                    </FormItem>
+                                ))}
                             </RadioGroup>
                         </FormItem>
                     )}
