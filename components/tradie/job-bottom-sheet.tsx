@@ -66,16 +66,17 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
         <>
             <motion.div
                 className="absolute bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-30 flex flex-col"
+                style={{ touchAction: "none" }}
                 initial={{ height: "15%" }}
                 animate={{ height: isOpen ? "92%" : "15%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                transition={{ type: "spring", damping: 30, stiffness: 260 }}
                 drag="y"
                 dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={0.2}
+                dragElastic={0.15}
                 onDragEnd={(_, info) => {
-                    if (info.offset.y > 100 || info.velocity.y > 500) {
+                    if (info.offset.y > 60 || info.velocity.y > 300) {
                         setIsOpen(false)
-                    } else if (info.offset.y < -100 || info.velocity.y < -500) {
+                    } else if (info.offset.y < -60 || info.velocity.y < -300) {
                         setIsOpen(true)
                     }
                 }}

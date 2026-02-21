@@ -15,6 +15,8 @@ export interface ActivityView {
   dealId?: string;
   contactId?: string;
   contactName?: string | null; // for display: "Contact Name — Change"
+  contactPhone?: string | null;
+  contactEmail?: string | null;
   content?: string | null;
 }
 
@@ -78,14 +80,16 @@ export async function getActivities(options?: {
       orderBy: { createdAt: "desc" },
       take: options?.limit ?? 20,
       include: {
-        contact: { select: { name: true } },
-        deal: { select: { contact: { select: { name: true } } } },
+        contact: { select: { name: true, phone: true, email: true } },
+        deal: { select: { contact: { select: { name: true, phone: true, email: true } } } },
       },
     });
 
     return activities.map((a) => {
       const contactName =
         a.contact?.name ?? a.deal?.contact?.name ?? null;
+      const contactPhone = a.contact?.phone ?? a.deal?.contact?.phone ?? null;
+      const contactEmail = a.contact?.email ?? a.deal?.contact?.email ?? null;
       return {
         id: a.id,
         type: a.type.toLowerCase(),
@@ -97,6 +101,8 @@ export async function getActivities(options?: {
         dealId: a.dealId ?? undefined,
         contactId: a.contactId ?? undefined,
         contactName: contactName ?? undefined,
+        contactPhone,
+        contactEmail,
       };
     });
   } catch (error) {

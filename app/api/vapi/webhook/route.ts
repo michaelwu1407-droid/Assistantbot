@@ -56,13 +56,23 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        // 2. Create Activity Record
+        // 3. Build content with recording URL if available
+        const recUrl = recordingUrl || artifact?.recordingUrl || null
+        const contentParts = [
+            `Duration: ${Math.round(call.durationSeconds || 0)}s`,
+            summary || analysis?.summary || "No summary provided",
+        ]
+        if (recUrl) {
+            contentParts.push(`\nRecording: ${recUrl}`)
+        }
+
+        // 4. Create Activity Record
         const interaction = await prisma.activity.create({
             data: {
                 type: "CALL",
-                title: "Inbound Vapi Call", // Vapi mostly handles inbound for now
+                title: "Inbound Vapi Call",
                 description: call.status || "completed",
-                content: `Duration: ${Math.round(call.durationSeconds || 0)}s\n\n${summary || analysis?.summary || "No summary provided"}`,
+                content: contentParts.join("\n\n"),
                 contactId: contact.id,
             }
         })

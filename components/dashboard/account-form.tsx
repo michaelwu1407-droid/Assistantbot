@@ -22,6 +22,8 @@ export function AccountForm({ userId, email }: AccountFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -147,8 +149,37 @@ export function AccountForm({ userId, email }: AccountFormProps) {
             <Label>Current Email</Label>
             <Input value={email || "Not set"} disabled className="bg-slate-50 text-slate-500" />
           </div>
-          <p className="text-sm text-slate-500">
-            To change your email, please contact support.
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newEmail.trim()) return;
+            setIsEmailLoading(true);
+            try {
+              const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
+              if (error) throw error;
+              toast.success("Confirmation email sent to your new address. Please check your inbox.");
+              setNewEmail("");
+            } catch (err: any) {
+              toast.error(err.message || "Failed to update email.");
+            } finally {
+              setIsEmailLoading(false);
+            }
+          }} className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="new-email">New Email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                placeholder="Enter new email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={isEmailLoading || !newEmail.trim()} size="sm">
+              {isEmailLoading ? "Sending..." : "Change Email"}
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground">
+            A confirmation link will be sent to both your current and new email address.
           </p>
         </CardContent>
       </Card>

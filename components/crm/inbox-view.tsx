@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -18,16 +18,28 @@ const typeLabel: Record<string, string> = {
   note: "Text / Note",
 }
 
+type InboxTab = "conversations" | "activity"
+
+function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
+  const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way"]
+  return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
+}
+
 export function InboxView({ initialInteractions }: InboxViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialInteractions[0]?.id ?? null)
   const [search, setSearch] = useState("")
+  const [tab, setTab] = useState<InboxTab>("conversations")
 
-  const filtered = initialInteractions.filter(
+  const searchFiltered = initialInteractions.filter(
     (a) =>
       (a.contactName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       (a.title?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       (a.content?.toLowerCase().includes(search.toLowerCase()) ?? false)
   )
+
+  const filtered = tab === "conversations"
+    ? searchFiltered.filter(a => !isSystemEvent(a))
+    : searchFiltered.filter(a => isSystemEvent(a))
 
   const selected = initialInteractions.find((a) => a.id === selectedId)
 
@@ -43,10 +55,24 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
   }
 
   return (
-    <div className="flex h-full glass-card rounded-2xl overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
       {/* List: email-like */}
-      <div className="w-96 border-r border-border/40 flex flex-col bg-muted/10 shrink-0">
-        <div className="p-3 border-b border-border/40">
+      <div className={cn("w-full md:w-96 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selected && selectedId ? "hidden md:flex" : "flex")}>
+        <div className="p-3 border-b border-border/40 space-y-2">
+          <div className="flex bg-muted/30 rounded-lg p-0.5">
+            <button
+              onClick={() => setTab("conversations")}
+              className={cn("flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors", tab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}
+            >
+              Conversations
+            </button>
+            <button
+              onClick={() => setTab("activity")}
+              className={cn("flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors", tab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}
+            >
+              System Activity
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -100,11 +126,14 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
       </div>
 
       {/* Detail: messages for text, body for email, summary for call */}
-      <div className="flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0">
+      <div className={cn("flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0", !selected || !selectedId ? "hidden md:flex" : "flex")}>
         {selected ? (
           <>
             <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-white/5">
               <div className="flex items-center gap-3 min-w-0">
+                <button onClick={() => setSelectedId(null)} className="md:hidden h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
                 <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   {iconFor(selected.type)}
                 </div>
@@ -118,27 +147,29 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {selected.contactId && (
+                {selected.contactPhone && (
                   <>
                     <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Call Contact">
-                      <a href={`tel:${selected.contactId}`}>
+                      <a href={`tel:${selected.contactPhone}`}>
                         <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
                         <span className="text-xs">Call</span>
                       </a>
                     </Button>
                     <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Text Contact">
-                      <a href={`sms:${selected.contactId}`}>
+                      <a href={`sms:${selected.contactPhone}`}>
                         <MessageSquare className="h-3.5 w-3.5 mr-1 text-emerald-500" />
                         <span className="text-xs">Text</span>
                       </a>
                     </Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 px-2 hidden sm:flex" title="Email Contact">
-                      <a href={`mailto:${selected.contactId}`}>
-                        <Mail className="h-3.5 w-3.5 mr-1 text-slate-500" />
-                        <span className="text-xs">Email</span>
-                      </a>
-                    </Button>
                   </>
+                )}
+                {selected.contactEmail && (
+                  <Button variant="outline" size="sm" asChild className="h-8 px-2" title="Email Contact">
+                    <a href={`mailto:${selected.contactEmail}`}>
+                      <Mail className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                      <span className="text-xs">Email</span>
+                    </a>
+                  </Button>
                 )}
                 {(selected.dealId || selected.contactId) && (
                   <Button variant="outline" size="sm" asChild>

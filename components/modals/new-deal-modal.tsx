@@ -99,7 +99,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 setNewContactName("")
                 setNewContactEmail("")
                 setNewContactPhone("")
-                setMode("select")
+                setMode("create")
 
                 onClose()
                 router.refresh()
