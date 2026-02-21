@@ -8,7 +8,7 @@ This document tracks the functional status of each page and feature, explicitly 
 
 | Route / Feature | Status | Unresolved Issues / TODOs |
 |-----------------|--------|---------------------------|
-| **`/dashboard`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) |
+| **`/dashboard`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) ✅ FIXED |
 | **`/dashboard/agent`** | 📦 Archived | Real estate features sunsetted. |
 | **`/dashboard/tradie`** | ✅ Functional | - FE-8 bottom sheet swipe polished (lower threshold, tighter spring, touch-action: none). |
 | **`/dashboard/contacts`** | ✅ Functional | None |

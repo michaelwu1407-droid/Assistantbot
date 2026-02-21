@@ -13,6 +13,7 @@ import { Layers, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { ImperativePanelHandle } from "react-resizable-panels"
+import { completeTutorial } from "@/actions/workspace-actions"
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode } = useShellStore()
@@ -46,10 +47,17 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     }
   }, [searchParams, setViewMode, router, pathname])
 
+  const handleTutorialComplete = async () => {
+    const workspaceId = useShellStore.getState().workspaceId;
+    if (workspaceId) {
+      await completeTutorial(workspaceId);
+    }
+  };
+
   return (
     <div className="h-screen w-full bg-background relative flex flex-col overflow-hidden">
       {/* Tutorial Overlay always mounted, handles its own visibility */}
-      <TutorialOverlay />
+      <TutorialOverlay onComplete={handleTutorialComplete} />
 
       {isBasicView ? (
         <div className="flex-1 flex items-center justify-center p-0 md:p-6 relative min-h-0">
