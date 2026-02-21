@@ -227,10 +227,15 @@ export async function POST(req: Request) {
       where: { id: workspaceId },
       select: { name: true, location: true, twilioPhoneNumber: true },
     });
-    const businessProfile = await db.businessProfile.findFirst({
-      where: { user: { workspaceId } },
-      select: { tradeType: true, website: true, baseSuburb: true, serviceRadius: true, standardWorkHours: true, emergencyService: true, emergencySurcharge: true },
-    });
+    let businessProfile: { tradeType: string; website: string | null; baseSuburb: string; serviceRadius: number; standardWorkHours: string; emergencyService: boolean; emergencySurcharge: number | null } | null = null;
+    try {
+      businessProfile = await db.businessProfile.findFirst({
+        where: { user: { workspaceId } },
+        select: { tradeType: true, website: true, baseSuburb: true, serviceRadius: true, standardWorkHours: true, emergencyService: true, emergencySurcharge: true },
+      });
+    } catch {
+      // BusinessProfile table may not exist yet if migration hasn't been run
+    }
 
     let knowledgeBaseStr = "\nBUSINESS IDENTITY:";
     if (workspaceInfo?.name) knowledgeBaseStr += `\n- Business Name: ${workspaceInfo.name}`;
