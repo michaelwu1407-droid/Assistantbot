@@ -949,3 +949,270 @@ export async function runCreateScheduledNotification(
   }
 }
 
+// ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────────
+
+/**
+ * Tool 1: get_schedule
+ * Fetches scheduled jobs for a specific date range.
+ * Use when the user asks "What am I doing next week?" or "Do I have space on Tuesday?"
+ */
+export async function runGetSchedule(
+  workspaceId: string,
+  params: { startDate: string; endDate: string }
+): Promise<string> {
+  try {
+    const start = new Date(params.startDate);
+    const end = new Date(params.endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return `Invalid date range. Please provide valid ISO date strings (e.g. "2026-02-21T00:00:00").`;
+    }
+
+    const jobs = await db.deal.findMany({
+      where: {
+        workspaceId,
+        scheduledAt: { gte: start, lte: end },
+        stage: { notIn: ["DELETED", "LOST", "ARCHIVED"] },
+      },
+      include: { contact: { select: { name: true, phone: true } } },
+      orderBy: { scheduledAt: "asc" },
+    });
+
+    if (!jobs.length) {
+      return `No jobs scheduled between ${start.toLocaleDateString("en-AU")} and ${end.toLocaleDateString("en-AU")}.`;
+    }
+
+    const lines = jobs.map((j) => {
+      const dt = j.scheduledAt!;
+      const dateStr = dt.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+      const timeStr = dt.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true });
+      const addr = j.address || "No address";
+      const client = j.contact?.name || "Unknown";
+      const status = j.jobStatus || j.stage;
+      return `- ${dateStr} ${timeStr}: ${j.title} for ${client} at ${addr} [${status}]`;
+    });
+
+    return `${jobs.length} job(s) scheduled between ${start.toLocaleDateString("en-AU")} and ${end.toLocaleDateString("en-AU")}:\n${lines.join("\n")}\n\nSMART ROUTING: When scheduling a non-urgent job, consider grouping nearby locations on the same day to minimise travel time.`;
+  } catch (err) {
+    return `Error fetching schedule: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * Tool 2: search_job_history
+ * Searches past jobs (completed/cancelled) based on keywords.
+ * Use for queries like "When was the last time I visited Mrs. Jones?" or "Jobs at 10 Henderson St."
+ */
+export async function runSearchJobHistory(
+  workspaceId: string,
+  params: { query: string; limit?: number }
+): Promise<string> {
+  try {
+    const take = params.limit ?? 5;
+    const q = params.query.trim();
+    if (!q) return "Please provide a search query.";
+
+    // Search across title, address, contact name, and work description in metadata
+    const jobs = await db.deal.findMany({
+      where: {
+        workspaceId,
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { address: { contains: q, mode: "insensitive" } },
+          { contact: { name: { contains: q, mode: "insensitive" } } },
+        ],
+      },
+      include: { contact: { select: { name: true, phone: true } } },
+      orderBy: { createdAt: "desc" },
+      take: take + 10, // Fetch extra for fuzzy filtering below
+    });
+
+    // Also do fuzzy matching on the results for better recall
+    type JobWithContact = typeof jobs[number];
+    let results: JobWithContact[] = jobs;
+
+    // If no exact matches, try fuzzy matching
+    if (!results.length) {
+      const allJobs = await db.deal.findMany({
+        where: { workspaceId },
+        include: { contact: { select: { name: true, phone: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      });
+      results = allJobs.filter((j) => {
+        const fields = [
+          j.title,
+          j.address ?? "",
+          j.contact?.name ?? "",
+          (j.metadata as any)?.workDescription ?? "",
+        ].join(" ").toLowerCase();
+        return fuzzyScore(q.toLowerCase(), fields) >= 0.4;
+      });
+    }
+
+    const limited = results.slice(0, take);
+    if (!limited.length) return `No jobs found matching "${q}".`;
+
+    const lines = limited.map((j) => {
+      const date = j.scheduledAt
+        ? j.scheduledAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+        : j.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+      const client = j.contact?.name || "Unknown";
+      const addr = j.address || "No address";
+      const price = j.value ? `$${Number(j.value).toLocaleString()}` : "No price";
+      const status = j.jobStatus || j.stage;
+      return `- [${date}] ${j.title} for ${client} at ${addr} — ${price} [${status}]`;
+    });
+
+    return `Found ${limited.length} job(s) matching "${q}":\n${lines.join("\n")}`;
+  } catch (err) {
+    return `Error searching job history: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * Tool 3: get_financial_report
+ * Calculates revenue or job count for a date range.
+ */
+export async function runGetFinancialReport(
+  workspaceId: string,
+  params: { startDate: string; endDate: string }
+): Promise<string> {
+  try {
+    const start = new Date(params.startDate);
+    const end = new Date(params.endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return `Invalid date range. Please provide valid ISO date strings.`;
+    }
+
+    const dateFilter = {
+      workspaceId,
+      createdAt: { gte: start, lte: end },
+      stage: { notIn: ["DELETED", "LOST"] as const },
+    };
+
+    // Aggregate total revenue (sum of value) and count
+    const [aggregate, completedAggregate, jobCount, completedCount] = await Promise.all([
+      db.deal.aggregate({
+        where: dateFilter,
+        _sum: { value: true },
+      }),
+      db.deal.aggregate({
+        where: { ...dateFilter, stage: { in: ["WON", "INVOICED"] } },
+        _sum: { value: true, invoicedAmount: true },
+      }),
+      db.deal.count({ where: dateFilter }),
+      db.deal.count({ where: { ...dateFilter, stage: { in: ["WON", "INVOICED"] } } }),
+    ]);
+
+    const totalValue = aggregate._sum.value ? Number(aggregate._sum.value) : 0;
+    const completedValue = completedAggregate._sum.value ? Number(completedAggregate._sum.value) : 0;
+    const invoicedValue = completedAggregate._sum.invoicedAmount ?? 0;
+
+    const startStr = start.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+    const endStr = end.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+
+    return [
+      `Financial Report: ${startStr} — ${endStr}`,
+      `Total Jobs: ${jobCount}`,
+      `Completed Jobs: ${completedCount}`,
+      `Total Quoted Value: $${totalValue.toLocaleString()}`,
+      `Completed/Invoiced Value: $${completedValue.toLocaleString()}`,
+      invoicedValue ? `Total Invoiced Amount: $${Number(invoicedValue).toLocaleString()}` : null,
+      `Completion Rate: ${jobCount > 0 ? ((completedCount / jobCount) * 100).toFixed(1) : 0}%`,
+    ].filter(Boolean).join("\n");
+  } catch (err) {
+    return `Error generating financial report: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * Tool 4: get_client_context
+ * Fetches recent notes, messages, and jobs for a specific client.
+ * Uses fuzzy matching to find the client by name.
+ */
+export async function runGetClientContext(
+  workspaceId: string,
+  params: { clientName: string }
+): Promise<string> {
+  try {
+    const q = params.clientName.trim();
+    if (!q) return "Please provide a client name.";
+
+    // Fuzzy match the client
+    const contacts = await searchContacts(workspaceId, q);
+    if (!contacts.length) return `No client found matching "${q}".`;
+
+    const contact = contacts[0];
+
+    // Fetch last 5 notes/activities, last 5 messages, last 3 jobs in parallel
+    const [activities, messages, jobs] = await Promise.all([
+      db.activity.findMany({
+        where: { contactId: contact.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { type: true, title: true, content: true, createdAt: true },
+      }),
+      db.chatMessage.findMany({
+        where: {
+          workspaceId,
+          metadata: { path: ["contactId"], equals: contact.id },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { role: true, content: true, createdAt: true, metadata: true },
+      }),
+      db.deal.findMany({
+        where: { contactId: contact.id, workspaceId },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: {
+          title: true, stage: true, value: true, address: true,
+          scheduledAt: true, jobStatus: true, createdAt: true,
+        },
+      }),
+    ]);
+
+    const sections: string[] = [];
+    sections.push(`Client: ${contact.name}${contact.phone ? ` | Phone: ${contact.phone}` : ""}${contact.email ? ` | Email: ${contact.email}` : ""}${contact.company ? ` | Company: ${contact.company}` : ""}`);
+
+    if (jobs.length) {
+      sections.push("\nRecent Jobs:");
+      for (const j of jobs) {
+        const date = j.scheduledAt
+          ? j.scheduledAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+          : j.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+        const price = j.value ? `$${Number(j.value).toLocaleString()}` : "No price";
+        sections.push(`  - [${date}] ${j.title} at ${j.address || "No address"} — ${price} [${j.jobStatus || j.stage}]`);
+      }
+    } else {
+      sections.push("\nNo recent jobs for this client.");
+    }
+
+    if (activities.length) {
+      sections.push("\nRecent Activities/Notes:");
+      for (const a of activities) {
+        const date = a.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+        sections.push(`  - [${date}] ${a.type}: ${a.title}${a.content ? ` — ${a.content.substring(0, 150)}` : ""}`);
+      }
+    }
+
+    if (messages.length) {
+      sections.push("\nRecent Messages:");
+      for (const m of messages) {
+        const date = m.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+        const direction = (m.metadata as any)?.direction === "outbound" ? "Sent" : "Received";
+        const channel = (m.metadata as any)?.channel ?? "chat";
+        sections.push(`  - [${date}] ${direction} (${channel}): ${m.content.substring(0, 150)}`);
+      }
+    }
+
+    if (!activities.length && !messages.length) {
+      sections.push("\nNo recent activities or messages for this client.");
+    }
+
+    return sections.join("\n");
+  } catch (err) {
+    return `Error fetching client context: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
