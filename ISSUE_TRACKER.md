@@ -42,9 +42,9 @@ This document tracks the functional status of each page and feature, explicitly 
 
 ### Chatbox & AI Agent
 - **Chat-1 (Basic Queries):** ✅ HARDENED — Deep message content validation added. Empty/malformed messages are filtered with proper fallbacks. Edge cases covered for arrays with empty objects.
-- **Chat-2 (History & Actions):** The chatbot cannot process requests like "Show me my text history with Steven" or "Text Steven I'm omw".
-- **Chat-3 (Agent Knowledge Base):** The AI lacks business context. Create a settings section to provide knowledge (Business name, address, website) that feeds the agent for texting, calling, and emailing.
-- **Chat-4 (Notification Creation):** Ensure the agent can create scheduled notifications (e.g., "notify me when we are 2 days out for Wendy's repair job") and confirm generation in the calendar.
+- **Chat-2 (History & Actions):** ✅ FIXED — Added `sendSms` tool (sends SMS via Twilio or logs if not configured) and `getConversationHistory` tool (retrieves merged SMS/call/email history for a contact). Chatbot can now process "Text Steven I'm on my way" and "Show me my text history with Steven".
+- **Chat-3 (Agent Knowledge Base):** ✅ FIXED — System prompt now injects business identity from Workspace (name, location, phone) and BusinessProfile (trade type, website, suburb, service radius, hours, emergency service). The AI uses this when communicating with customers.
+- **Chat-4 (Notification Creation):** ✅ FIXED — Added `createNotification` tool that creates immediate or scheduled notifications + calendar tasks. Chatbot can process "Notify me 2 days before Wendy's repair job" or "Alert me Friday if John hasn't responded".
 - **Chat-5 (Auth in API Route):** ✅ FIXED — Created `getWorkspaceSettingsById(workspaceId)` in settings-actions.ts. Chat route now uses workspaceId from request body directly, bypassing session auth dependency.
 - **SMS-1 (SMS Agent AI):** ✅ FIXED — Rewired `lib/ai/sms-agent.ts` to use Gemini 2.0 Flash with workspace context (business name, agent mode, working hours, call-out fee, AI preferences, conversation history). Falls back gracefully if API key missing.
 

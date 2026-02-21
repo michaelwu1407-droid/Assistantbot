@@ -6,6 +6,7 @@ import { getDeals, createDeal, updateDealStage, updateDealMetadata } from "./dea
 import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { createTask } from "./task-actions";
+import { createNotification } from "./notification-actions";
 import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
@@ -609,6 +610,214 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
     return `Successfully added contact "${params.name}". ${result.enriched ? "Data was automatically enriched." : ""}`;
   } catch (err) {
     return `Error creating contact: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Send SMS to a contact.
+ * Looks up the contact by name, finds or creates a Twilio subaccount client,
+ * and sends the message via the workspace's Twilio phone number.
+ */
+export async function runSendSms(
+  workspaceId: string,
+  params: { contactName: string; message: string }
+): Promise<string> {
+  try {
+    const contacts = await searchContacts(workspaceId, params.contactName);
+    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+
+    const contact = contacts[0];
+    if (!contact.phone) return `Contact "${contact.name}" has no phone number on file. Add one first.`;
+
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { twilioPhoneNumber: true, twilioSubaccountId: true, name: true },
+    });
+
+    if (!workspace?.twilioPhoneNumber || !workspace.twilioSubaccountId) {
+      // Fallback: log as activity instead of sending
+      await logActivity({
+        type: "NOTE",
+        title: `SMS to ${contact.name}`,
+        content: `Message: "${params.message}" (Not sent — Twilio not configured for this workspace)`,
+        contactId: contact.id,
+      });
+      await db.chatMessage.create({
+        data: {
+          role: "assistant",
+          content: params.message,
+          workspaceId,
+          metadata: { contactId: contact.id, channel: "sms", direction: "outbound" },
+        },
+      });
+      return `Logged SMS to ${contact.name} (${contact.phone}): "${params.message}". Note: Twilio is not yet configured so the message was recorded but not delivered.`;
+    }
+
+    // Send via Twilio
+    const { getSubaccountClient } = await import("@/lib/twilio");
+    // Fetch subaccount auth token from env or re-derive from master
+    const twilioClient = getSubaccountClient(
+      workspace.twilioSubaccountId,
+      process.env.TWILIO_SUBACCOUNT_AUTH_TOKEN || process.env.TWILIO_AUTH_TOKEN || ""
+    );
+    await twilioClient.messages.create({
+      to: contact.phone,
+      from: workspace.twilioPhoneNumber,
+      body: params.message,
+    });
+
+    // Log the outbound message
+    await db.chatMessage.create({
+      data: {
+        role: "assistant",
+        content: params.message,
+        workspaceId,
+        metadata: { contactId: contact.id, channel: "sms", direction: "outbound" },
+      },
+    });
+    await logActivity({
+      type: "NOTE",
+      title: `SMS sent to ${contact.name}`,
+      content: params.message,
+      contactId: contact.id,
+    });
+
+    return `SMS sent to ${contact.name} (${contact.phone}): "${params.message}"`;
+  } catch (err) {
+    return `Error sending SMS: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Get conversation history with a contact (SMS, calls, emails).
+ * Returns recent ChatMessages and Activities involving this contact.
+ */
+export async function runGetConversationHistory(
+  workspaceId: string,
+  params: { contactName: string; limit?: number }
+): Promise<string> {
+  try {
+    const contacts = await searchContacts(workspaceId, params.contactName);
+    if (!contacts.length) return `No contact found matching "${params.contactName}".`;
+
+    const contact = contacts[0];
+    const take = params.limit ?? 20;
+
+    // Get activity records (calls, emails, notes) for this contact
+    const activities = await db.activity.findMany({
+      where: { contactId: contact.id },
+      orderBy: { createdAt: "desc" },
+      take,
+      select: { type: true, title: true, content: true, createdAt: true },
+    });
+
+    // Get SMS chat messages tied to this contact via metadata
+    const chatMessages = await db.chatMessage.findMany({
+      where: {
+        workspaceId,
+        metadata: { path: ["contactId"], equals: contact.id },
+      },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+
+    if (!activities.length && !chatMessages.length) {
+      return `No conversation history found for ${contact.name}.`;
+    }
+
+    // Merge and sort by date
+    type HistoryItem = { date: Date; text: string };
+    const items: HistoryItem[] = [];
+
+    for (const a of activities) {
+      const dateStr = a.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      items.push({
+        date: a.createdAt,
+        text: `[${dateStr}] ${a.type}: ${a.title}${a.content ? ` — ${a.content.substring(0, 200)}` : ""}`,
+      });
+    }
+
+    for (const m of chatMessages) {
+      const dateStr = m.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      const direction = (m.metadata as any)?.direction === "outbound" ? "You" : contact.name;
+      items.push({
+        date: m.createdAt,
+        text: `[${dateStr}] SMS ${direction}: ${m.content.substring(0, 200)}`,
+      });
+    }
+
+    items.sort((a, b) => b.date.getTime() - a.date.getTime());
+    const limited = items.slice(0, take);
+
+    return `Conversation history with ${contact.name} (${contact.phone || "no phone"}):\n${limited.map(i => i.text).join("\n")}`;
+  } catch (err) {
+    return `Error fetching history: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Create a scheduled notification for the user.
+ * Used when the user says "notify me when X" or "remind me 2 days before Y".
+ */
+export async function runCreateScheduledNotification(
+  workspaceId: string,
+  params: { title: string; message: string; scheduledAtISO?: string; link?: string }
+): Promise<string> {
+  try {
+    // Find the workspace owner
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { ownerId: true },
+    });
+    let targetUserId = workspace?.ownerId;
+    if (!targetUserId) {
+      // Fallback: find first user in workspace
+      const user = await db.user.findFirst({
+        where: { workspaceId },
+        select: { id: true },
+      });
+      if (!user) return "Could not find a user to notify in this workspace.";
+      targetUserId = user.id;
+    }
+
+    // For immediate notifications
+    if (!params.scheduledAtISO) {
+      await createNotification({
+        userId: targetUserId,
+        title: params.title,
+        message: params.message,
+        type: "INFO",
+        link: params.link,
+      });
+      return `Notification created: "${params.title}" — ${params.message}`;
+    }
+
+    // For scheduled notifications, create a Task with a notification trigger
+    const dueAt = new Date(params.scheduledAtISO);
+    if (isNaN(dueAt.getTime())) {
+      return `Invalid date: "${params.scheduledAtISO}". Try something like "tomorrow 9am" or "2026-02-25T14:00:00".`;
+    }
+
+    // Create both a task (for calendar visibility) and a notification
+    await createTask({
+      title: params.title,
+      description: params.message,
+      dueAt,
+    });
+    await createNotification({
+      userId: targetUserId,
+      title: params.title,
+      message: params.message,
+      type: "INFO",
+      link: params.link || "/dashboard/schedule",
+    });
+
+    const dateStr = dueAt.toLocaleDateString("en-AU", {
+      weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
+    });
+    return `Scheduled notification: "${params.title}" for ${dateStr}. A task has also been added to your calendar.`;
+  } catch (err) {
+    return `Error creating notification: ${err instanceof Error ? err.message : String(err)}`;
   }
 }
 
