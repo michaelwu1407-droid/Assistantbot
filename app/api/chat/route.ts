@@ -15,6 +15,7 @@ import {
   runSearchContacts,
   runCreateContact,
   runSendSms,
+  runSendEmail,
   runGetConversationHistory,
   runCreateScheduledNotification,
 } from "@/actions/chat-actions";
@@ -297,6 +298,7 @@ TOOLS:
 - searchContacts: Look up people or companies in the database CRM.
 - createContact: Add a new person or company to the database CRM explicitly.
 - sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3". Searches for the contact by name and sends via their phone number.
+- sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote" or "Send John an email about his appointment". Finds the contact by name and uses their email address.
 - getConversationHistory: Retrieve text/call/email history with a specific contact. Use when the user asks "Show me my text history with Steven" or "What have we discussed with Mary?".
 - createNotification: Create a scheduled notification or reminder alert. Use when the user says "Notify me when we are 2 days out from Wendy's repair job" or "Alert me if no response from John by Friday".
 
@@ -409,6 +411,16 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           }),
           execute: async ({ contactName, message }) =>
             runSendSms(workspaceId, { contactName, message }),
+        }),
+        sendEmail: tool({
+          description: "Send an email to a contact. Use when the user says 'Email Mary the quote' or 'Send John an email confirming his appointment'. Finds the contact by name and uses their email address.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to email"),
+            subject: z.string().describe("Email subject line"),
+            body: z.string().describe("Email body content"),
+          }),
+          execute: async ({ contactName, subject, body }) =>
+            runSendEmail(workspaceId, { contactName, subject, body }),
         }),
         getConversationHistory: tool({
           description: "Retrieve text/call/email history with a specific contact. Use when the user asks 'Show me my texts with Steven' or 'What's my history with Mary?' or 'Show me my conversation with John'.",

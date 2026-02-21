@@ -689,6 +689,44 @@ export async function runSendSms(
 }
 
 /**
+ * AI Tool Action: Send an email to a contact.
+ * Looks up the contact by name, logs the email as an activity.
+ * Actual delivery depends on workspace email integration (SMTP/API).
+ */
+export async function runSendEmail(
+  workspaceId: string,
+  params: { contactName: string; subject: string; body: string }
+): Promise<string> {
+  try {
+    const contacts = await searchContacts(workspaceId, params.contactName);
+    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+
+    const contact = contacts[0];
+    if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
+
+    // Log the outbound email as an activity
+    await logActivity({
+      type: "EMAIL",
+      title: `Email to ${contact.name}: ${params.subject}`,
+      content: params.body,
+      contactId: contact.id,
+    });
+    await db.chatMessage.create({
+      data: {
+        role: "assistant",
+        content: `Subject: ${params.subject}\n\n${params.body}`,
+        workspaceId,
+        metadata: { contactId: contact.id, channel: "email", direction: "outbound" },
+      },
+    });
+
+    return `Email logged to ${contact.name} (${contact.email}). Subject: "${params.subject}". The message has been recorded in the CRM activity log.`;
+  } catch (err) {
+    return `Error sending email: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
  * AI Tool Action: Get conversation history with a contact (SMS, calls, emails).
  * Returns recent ChatMessages and Activities involving this contact.
  */

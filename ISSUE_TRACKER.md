@@ -13,7 +13,7 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/tradie`** | ✅ Functional | - FE-8 bottom sheet swipe polished (lower threshold, tighter spring, touch-action: none). |
 | **`/dashboard/contacts`** | ✅ Functional | None |
 | **`/dashboard/pipeline`** | ✅ Functional | None |
-| **`/dashboard/map`** | ✅ Functional | None (sidebar icon moved above Contacts) |
+| **`/dashboard/map`** | ✅ Functional | - Route mode: "Start Route" button shows sequenced stops sidebar, dashed route line, per-stop Navigate buttons (opens Google Maps), Navigate Full Route (multi-waypoint), numbered markers, fly-to animation. |
 | **`/dashboard/schedule`** | ✅ Functional | None |
 | **`/dashboard/team`** | ✅ Functional | None |
 | **`/dashboard/reports`** | ✅ Functional | None |
