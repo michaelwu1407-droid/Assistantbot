@@ -689,9 +689,8 @@ export async function runSendSms(
 }
 
 /**
- * AI Tool Action: Send an email to a contact.
- * Looks up the contact by name, logs the email as an activity.
- * Actual delivery depends on workspace email integration (SMTP/API).
+ * AI Tool Action: Send an email to a contact via Resend.
+ * Looks up the contact by name, sends the email, and logs it as an activity.
  */
 export async function runSendEmail(
   workspaceId: string,
@@ -703,6 +702,30 @@ export async function runSendEmail(
 
     const contact = contacts[0];
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
+
+    // Look up workspace for sender identity
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
+    const senderName = workspace?.name ?? "Pj Buddy";
+
+    // Send via Resend if configured
+    let delivered = false;
+    const resendKey = process.env.RESEND_API_KEY;
+    const fromDomain = process.env.RESEND_FROM_DOMAIN;
+    if (resendKey && fromDomain) {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: `${senderName} <noreply@${fromDomain}>`,
+        to: [contact.email],
+        subject: params.subject,
+        text: params.body,
+      });
+      if (error) {
+        console.error("[sendEmail] Resend error:", error);
+        return `Failed to send email to ${contact.name}: ${error.message}`;
+      }
+      delivered = true;
+    }
 
     // Log the outbound email as an activity
     await logActivity({
@@ -720,9 +743,76 @@ export async function runSendEmail(
       },
     });
 
-    return `Email logged to ${contact.name} (${contact.email}). Subject: "${params.subject}". The message has been recorded in the CRM activity log.`;
+    if (delivered) {
+      return `Email sent to ${contact.name} (${contact.email}). Subject: "${params.subject}".`;
+    }
+    return `Email logged to ${contact.name} (${contact.email}) but not delivered (Resend not configured). Subject: "${params.subject}".`;
   } catch (err) {
     return `Error sending email: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * AI Tool Action: Initiate an outbound phone call to a contact via Retell AI.
+ * Creates a call using the Retell SDK that connects the AI voice agent to the client.
+ */
+export async function runMakeCall(
+  workspaceId: string,
+  params: { contactName: string; purpose?: string }
+): Promise<string> {
+  try {
+    const contacts = await searchContacts(workspaceId, params.contactName);
+    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+
+    const contact = contacts[0];
+    if (!contact.phone) return `Contact "${contact.name}" has no phone number on file. Add one first.`;
+
+    const retellKey = process.env.RETELL_API_KEY;
+    const retellAgentId = process.env.RETELL_AGENT_ID;
+    if (!retellKey || !retellAgentId) {
+      // Log the intent even if Retell isn't configured
+      await logActivity({
+        type: "CALL",
+        title: `Outbound call attempted to ${contact.name}`,
+        content: params.purpose ?? "Call initiated by AI assistant",
+        contactId: contact.id,
+      });
+      return `Call to ${contact.name} (${contact.phone}) logged but not placed (Retell AI not configured). Configure RETELL_API_KEY and RETELL_AGENT_ID.`;
+    }
+
+    // Look up the workspace's Twilio number for caller ID
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { twilioPhoneNumber: true } });
+    const fromNumber = workspace?.twilioPhoneNumber;
+    if (!fromNumber) {
+      return `No phone number configured for this workspace. Set up a Twilio number in workspace settings first.`;
+    }
+
+    // Create the outbound call via Retell
+    const Retell = (await import("retell-sdk")).default;
+    const retell = new Retell({ apiKey: retellKey });
+    const call = await retell.call.createPhoneCall({
+      from_number: fromNumber,
+      to_number: contact.phone,
+      metadata: {
+        workspace_id: workspaceId,
+        contact_id: contact.id,
+        contact_name: contact.name,
+        purpose: params.purpose ?? "general",
+      },
+      override_agent_id: retellAgentId,
+    } as any);
+
+    // Log the outbound call as an activity
+    await logActivity({
+      type: "CALL",
+      title: `Outbound call to ${contact.name}`,
+      content: params.purpose ?? "Call placed by AI assistant",
+      contactId: contact.id,
+    });
+
+    return `Call initiated to ${contact.name} (${contact.phone}). The Retell AI agent is now handling the call. Call ID: ${call.call_id}`;
+  } catch (err) {
+    return `Error making call: ${err instanceof Error ? err.message : String(err)}`;
   }
 }
 

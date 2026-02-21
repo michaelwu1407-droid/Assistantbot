@@ -16,6 +16,7 @@ import {
   runCreateContact,
   runSendSms,
   runSendEmail,
+  runMakeCall,
   runGetConversationHistory,
   runCreateScheduledNotification,
 } from "@/actions/chat-actions";
@@ -299,6 +300,7 @@ TOOLS:
 - createContact: Add a new person or company to the database CRM explicitly.
 - sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3". Searches for the contact by name and sends via their phone number.
 - sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote" or "Send John an email about his appointment". Finds the contact by name and uses their email address.
+- makeCall: Initiate an outbound phone call to a contact via the AI voice agent. Use when the user says "Call John" or "Ring Mary about the quote" or "Phone Steven to confirm the appointment". The AI agent will handle the conversation.
 - getConversationHistory: Retrieve text/call/email history with a specific contact. Use when the user asks "Show me my text history with Steven" or "What have we discussed with Mary?".
 - createNotification: Create a scheduled notification or reminder alert. Use when the user says "Notify me when we are 2 days out from Wendy's repair job" or "Alert me if no response from John by Friday".
 
@@ -421,6 +423,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           }),
           execute: async ({ contactName, subject, body }) =>
             runSendEmail(workspaceId, { contactName, subject, body }),
+        }),
+        makeCall: tool({
+          description: "Initiate an outbound phone call to a contact via the AI voice agent (Retell AI). Use when the user says 'Call John', 'Ring Mary about the quote', or 'Phone Steven to confirm'. The AI voice agent will handle the conversation.",
+          inputSchema: z.object({
+            contactName: z.string().describe("Name of the contact to call"),
+            purpose: z.string().optional().describe("Brief purpose of the call, e.g. 'confirm appointment for Thursday' or 'follow up on quote'"),
+          }),
+          execute: async ({ contactName, purpose }) =>
+            runMakeCall(workspaceId, { contactName, purpose }),
         }),
         getConversationHistory: tool({
           description: "Retrieve text/call/email history with a specific contact. Use when the user asks 'Show me my texts with Steven' or 'What's my history with Mary?' or 'Show me my conversation with John'.",

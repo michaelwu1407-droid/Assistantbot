@@ -1,32 +1,28 @@
 "use client"
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { Compass, CalendarClock, Layers, Navigation, ChevronRight, MapPin, Clock, Phone, CheckCircle2 } from "lucide-react"
+import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
-function createIcon(opts: { isToday: boolean; index?: number; isActive?: boolean }) {
-  const color = opts.isActive ? "#059669" : opts.isToday ? "#0D9488" : "#64748B"
+function createIcon(opts: { isToday: boolean; isActive?: boolean; isStarted?: boolean }) {
+  const color = opts.isStarted ? "#059669" : opts.isActive ? "#2563EB" : opts.isToday ? "#0D9488" : "#64748B"
   const fill = opts.isToday ? color : "transparent"
   const stroke = color
   const size = opts.isActive ? 36 : 28
-  const showNumber = opts.isToday && opts.index != null
-  const svg = showNumber
-    ? `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${fill}" stroke="${stroke}" stroke-width="0"/>
-        <text x="12" y="11" text-anchor="middle" font-size="8" font-weight="bold" fill="white" font-family="Arial">${opts.index! + 1}</text>
-      </svg>`
-    : `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-          fill="${fill}" stroke="${stroke}" stroke-width="${opts.isToday ? "0" : "2"}"
-          stroke-dasharray="${opts.isToday ? "0" : "4 2"}"/>
-        <circle cx="12" cy="9" r="2.5" fill="${opts.isToday ? "white" : stroke}"/>
-      </svg>`
+  const svg = `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+        fill="${fill}" stroke="${stroke}" stroke-width="${opts.isToday ? "0" : "2"}"
+        stroke-dasharray="${opts.isToday ? "0" : "4 2"}"/>
+      <circle cx="12" cy="9" r="2.5" fill="${opts.isToday ? "white" : stroke}"/>
+    </svg>
+  `
   return L.divIcon({
     html: svg,
     className: "custom-marker",
@@ -88,9 +84,10 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const [showToday, setShowToday] = useState(true)
   const [showUpcoming, setShowUpcoming] = useState(true)
   const [legendOpen, setLegendOpen] = useState(false)
-  const [routeMode, setRouteMode] = useState(false)
-  const [activeJobIndex, setActiveJobIndex] = useState(0)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [startedJobId, setStartedJobId] = useState<string | null>(null)
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null)
+  const [jobListExpanded, setJobListExpanded] = useState(true)
 
   const { jobsToday, jobsUpcoming } = useMemo(() => {
     const today: Job[] = []
@@ -102,7 +99,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
       if (isToday) today.push(j)
       else upcoming.push(j)
     })
-    // Sort today's jobs by scheduled time
     today.sort((a, b) => {
       const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0
       const tb = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0
@@ -111,19 +107,18 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     return { jobsToday: today, jobsUpcoming: upcoming }
   }, [jobs, todayIds])
 
-  // Route line positions for today's jobs
-  const routePositions = useMemo(() => jobsToday.map(getJobPosition), [jobsToday])
-
-  const navigateToJob = useCallback((address: string) => {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, "_blank")
+  const selectJob = useCallback((job: Job) => {
+    setSelectedJobId(job.id)
+    setFlyTarget(getJobPosition(job))
   }, [])
 
-  const focusJob = useCallback((index: number) => {
-    setActiveJobIndex(index)
-    if (jobsToday[index]) {
-      setFlyTarget(getJobPosition(jobsToday[index]))
-    }
-  }, [jobsToday])
+  const startJob = useCallback((job: Job) => {
+    setStartedJobId(job.id)
+    setSelectedJobId(job.id)
+    setFlyTarget(getJobPosition(job))
+    // Open Google Maps navigation to this job
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")
+  }, [])
 
   useEffect(() => { setIsMounted(true) }, [])
 
@@ -135,7 +130,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     )
   }
 
-  // All visible positions for FitBounds
   const visiblePositions: [number, number][] = [
     ...(showToday ? jobsToday.map(getJobPosition) : []),
     ...(showUpcoming ? jobsUpcoming.map(getJobPosition) : []),
@@ -143,107 +137,102 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
 
   return (
     <div className="h-full w-full relative flex">
-      {/* Route Sidebar — only in route mode */}
-      {routeMode && jobsToday.length > 0 && (
+      {/* Job List Sidebar */}
+      {jobsToday.length > 0 && (
         <div className="w-80 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10">
-          <div className="p-3 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between">
+          {/* Header */}
+          <button
+            onClick={() => setJobListExpanded((e) => !e)}
+            className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between"
+          >
+            <div>
               <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                <Navigation className="h-4 w-4 text-emerald-600" />
-                Today&apos;s Route
+                <MapPin className="h-4 w-4 text-teal-600" />
+                Today&apos;s Jobs
               </h3>
-              <button
-                onClick={() => setRouteMode(false)}
-                className="text-xs text-slate-500 hover:text-slate-700 font-medium"
-              >
-                Close
-              </button>
+              <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""} — tap a job to view, then start</p>
             </div>
-            <p className="text-xs text-slate-500 mt-1">{jobsToday.length} stops in order</p>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {jobsToday.map((job, i) => {
-              const time = job.scheduledAt
-                ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
-                : "No time"
-              const isActive = i === activeJobIndex
-              return (
-                <div key={job.id}>
-                  <button
-                    onClick={() => focusJob(i)}
-                    className={cn(
-                      "w-full text-left p-3 transition-all border-l-4",
-                      isActive
-                        ? "bg-emerald-50 border-l-emerald-500"
-                        : "bg-white border-l-transparent hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5",
-                        isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
-                      )}>
-                        {i + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{job.clientName}</p>
-                        <p className="text-xs text-slate-600 truncate">{job.title}</p>
-                        <p className="text-xs text-slate-400 truncate mt-0.5 flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />{job.address}
-                        </p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Clock className="h-3 w-3" />{time}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                  {isActive && (
-                    <div className="px-3 pb-3 flex gap-2">
-                      <button
-                        onClick={() => navigateToJob(job.address)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
-                      >
-                        <Navigation className="h-3.5 w-3.5" />
-                        Navigate
-                      </button>
-                      {i < jobsToday.length - 1 && (
-                        <button
-                          onClick={() => focusJob(i + 1)}
-                          className="flex items-center justify-center gap-1 py-2 px-3 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200 transition-colors"
-                        >
-                          Next <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
+            {jobListExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          </button>
+
+          {/* Job Cards */}
+          {jobListExpanded && (
+            <div className="flex-1 overflow-y-auto">
+              {jobsToday.map((job) => {
+                const time = job.scheduledAt
+                  ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+                  : "No time set"
+                const isSelected = job.id === selectedJobId
+                const isStarted = job.id === startedJobId
+                return (
+                  <div key={job.id} className={cn(
+                    "border-b border-slate-100 transition-all",
+                    isSelected && "bg-blue-50",
+                    isStarted && "bg-emerald-50"
+                  )}>
+                    <button
+                      onClick={() => selectJob(job)}
+                      className={cn(
+                        "w-full text-left p-3 border-l-4 transition-all",
+                        isStarted
+                          ? "border-l-emerald-500"
+                          : isSelected
+                            ? "border-l-blue-500"
+                            : "border-l-transparent hover:bg-slate-50"
                       )}
-                    </div>
-                  )}
-                  {i < jobsToday.length - 1 && (
-                    <div className="flex items-center gap-2 px-3 py-1">
-                      <div className="w-7 flex justify-center">
-                        <div className="w-0.5 h-4 bg-slate-200" />
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "w-2.5 h-2.5 rounded-full shrink-0 mt-1.5",
+                          isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{job.clientName}</p>
+                            {isStarted && (
+                              <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                                In Progress
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 truncate">{job.title}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-slate-400 flex items-center gap-1 truncate">
+                              <MapPin className="h-3 w-3 shrink-0" />{job.address}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                            <Clock className="h-3 w-3 shrink-0" />{time}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-slate-400">↓</span>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-          {/* Navigate all button */}
-          {jobsToday.length > 1 && (
-            <div className="p-3 border-t border-slate-200 bg-slate-50">
-              <button
-                onClick={() => {
-                  const waypoints = jobsToday.map(j => encodeURIComponent(j.address))
-                  const origin = waypoints.shift()
-                  const dest = waypoints.pop()
-                  const waypointsStr = waypoints.length > 0 ? `&waypoints=${waypoints.join("|")}` : ""
-                  window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypointsStr}`, "_blank")
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Navigation className="h-4 w-4" />
-                Navigate Full Route
-              </button>
+                    </button>
+
+                    {/* Start Job / Navigate buttons — only shown when selected */}
+                    {isSelected && (
+                      <div className="px-3 pb-3 flex gap-2">
+                        {!isStarted ? (
+                          <button
+                            onClick={() => startJob(job)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Navigation className="h-3.5 w-3.5" />
+                            Start Job
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                          >
+                            <Navigation className="h-3.5 w-3.5" />
+                            Navigate Again
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -259,34 +248,24 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer attribution={TILE_ATTR} url={TILE_URL} />
-          {!routeMode && <FitBounds positions={visiblePositions} />}
-          {routeMode && <FlyToJob position={flyTarget} />}
-
-          {/* Route line connecting today's jobs */}
-          {routeMode && routePositions.length > 1 && (
-            <Polyline
-              positions={routePositions}
-              pathOptions={{ color: "#059669", weight: 3, dashArray: "8 6", opacity: 0.7 }}
-            />
-          )}
+          {!selectedJobId && <FitBounds positions={visiblePositions} />}
+          <FlyToJob position={flyTarget} />
 
           {/* Today's markers */}
-          {showToday && jobsToday.map((job, i) => {
+          {showToday && jobsToday.map((job) => {
             const [lat, lng] = getJobPosition(job)
-            const isActive = routeMode && i === activeJobIndex
+            const isSelected = job.id === selectedJobId
+            const isStarted = job.id === startedJobId
             return (
               <Marker
                 key={job.id}
                 position={[lat, lng]}
-                icon={createIcon({ isToday: true, index: i, isActive })}
-                eventHandlers={routeMode ? { click: () => focusJob(i) } : undefined}
+                icon={createIcon({ isToday: true, isActive: isSelected, isStarted })}
+                eventHandlers={{ click: () => selectJob(job) }}
               >
                 <Popup>
                   <div className="text-slate-900 min-w-[180px]">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-5 h-5 rounded-full bg-teal-500 text-white text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
-                      <strong className="text-sm font-bold">{job.clientName}</strong>
-                    </div>
+                    <strong className="block text-sm font-bold">{job.clientName}</strong>
                     <span className="text-xs text-slate-600">{job.title}</span>
                     <br />
                     <span className="text-xs text-slate-500">{job.address}</span>
@@ -298,10 +277,10 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                       </p>
                     )}
                     <button
-                      onClick={() => navigateToJob(job.address)}
-                      className="mt-2 w-full py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-md hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1"
+                      onClick={() => startJob(job)}
+                      className="mt-2 w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
                     >
-                      <Navigation className="h-3 w-3" /> Navigate
+                      <Navigation className="h-3 w-3" /> {job.id === startedJobId ? "Navigate" : "Start Job"}
                     </button>
                   </div>
                 </Popup>
@@ -333,17 +312,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
             )
           })}
         </MapContainer>
-
-        {/* Route mode toggle */}
-        {jobsToday.length > 0 && !routeMode && (
-          <button
-            onClick={() => { setRouteMode(true); setActiveJobIndex(0); setFlyTarget(getJobPosition(jobsToday[0])); }}
-            className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl shadow-lg hover:bg-emerald-600 transition-all font-semibold text-sm"
-          >
-            <Navigation className="h-4 w-4" />
-            Start Route ({jobsToday.length} stops)
-          </button>
-        )}
 
         {/* Legend */}
         <div className="absolute bottom-4 left-4 z-[1000]">
