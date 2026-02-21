@@ -13,7 +13,10 @@ export interface WorkspaceView {
   ownerId: string | null;
   location: string | null;
   onboardingComplete: boolean;
+  tutorialComplete: boolean;
   brandingColor: string | null;
+  stripeCustomerId?: string | null;
+  subscriptionStatus?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -34,7 +37,10 @@ function toWorkspaceView(w: {
   ownerId: string | null;
   location: string | null;
   onboardingComplete: boolean;
+  tutorialComplete: boolean;
   brandingColor: string | null;
+  stripeCustomerId?: string | null;
+  subscriptionStatus?: string | null;
 }): WorkspaceView {
   return {
     id: w.id,
@@ -44,7 +50,10 @@ function toWorkspaceView(w: {
     ownerId: w.ownerId,
     location: w.location,
     onboardingComplete: w.onboardingComplete,
+    tutorialComplete: w.tutorialComplete,
     brandingColor: w.brandingColor || "",
+    stripeCustomerId: w.stripeCustomerId,
+    subscriptionStatus: w.subscriptionStatus,
   };
 }
 
@@ -250,4 +259,16 @@ export async function completeOnboarding(data: {
   });
 
   return { success: true, workspaceId: workspace.id };
+}
+
+/**
+ * Mark the interactive guided tutorial as permanently completed for the workspace.
+ */
+export async function completeTutorial(workspaceId: string) {
+  await db.workspace.update({
+    where: { id: workspaceId },
+    data: { tutorialComplete: true },
+  });
+
+  return { success: true };
 }

@@ -12,17 +12,7 @@ const LeafletMapView = dynamic(() => import("@/components/map/map-view"), {
   ),
 })
 
-interface Job {
-  id: string
-  title: string
-  clientName: string
-  address: string
-  status: string
-  scheduledAt?: Date
-  lat?: number
-  lng?: number
-}
-
+import { Job } from "@/components/map/map-view"
 export function MapPageClient({ jobs }: { jobs: Job[] }) {
   const useGoogleMaps = !!(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim()
   return (

@@ -71,6 +71,7 @@ model Workspace {
   ownerId            String?
   location           String?
   onboardingComplete Boolean       @default(false)
+  tutorialComplete   Boolean       @default(false)
   brandingColor      String?
   settings           Json? @default("{}")
   
@@ -78,6 +79,13 @@ model Workspace {
   twilioSubaccountId String?
   twilioPhoneNumber  String?
   
+  // Stripe Billing & Subscriptions
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  subscriptionStatus     String?   @default("inactive")
+
   // Agent & Automation Settings
   agentMode          AgentMode @default(ORGANIZE)
   workingHoursStart  String?   @default("08:00")
