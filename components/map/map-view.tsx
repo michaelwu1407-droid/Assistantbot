@@ -52,9 +52,12 @@ interface MapViewProps {
 
 const DEFAULT_CENTER: [number, number] = [-37.8136, 144.9631]
 
+function hasRealPosition(job: Job): boolean {
+  return job.lat != null && job.lng != null
+}
+
 function getJobPosition(job: Job): [number, number] {
-  const offset = (job.id.charCodeAt(0) % 10 - 5) * 0.004
-  return [job.lat ?? DEFAULT_CENTER[0] + offset, job.lng ?? DEFAULT_CENTER[1] + offset]
+  return [job.lat!, job.lng!]
 }
 
 function FitBounds({ positions }: { positions: [number, number][] }) {
@@ -93,7 +96,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     const today: Job[] = []
     const upcoming: Job[] = []
     const now = new Date()
-    jobs.forEach((j) => {
+    jobs.filter(hasRealPosition).forEach((j) => {
       const d = j.scheduledAt ? new Date(j.scheduledAt) : null
       const isToday = todayIds ? todayIds.has(j.id) : d ? isSameDay(d, now) : false
       if (isToday) today.push(j)
