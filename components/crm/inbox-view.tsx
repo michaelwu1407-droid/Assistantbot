@@ -28,6 +28,7 @@ function isSystemEvent(a: { title?: string | null; description?: string | null }
 export function InboxView({ initialInteractions }: InboxViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialInteractions[0]?.id ?? null)
   const [search, setSearch] = useState("")
+  const [searchFocused, setSearchFocused] = useState(false)
   const [tab, setTab] = useState<InboxTab>("conversations")
 
   const searchFiltered = initialInteractions.filter(
@@ -36,6 +37,18 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
       (a.title?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       (a.content?.toLowerCase().includes(search.toLowerCase()) ?? false)
   )
+
+  // Deduplicated contact suggestions for the search dropdown
+  const contactSuggestions = search.trim().length > 0
+    ? Array.from(
+        searchFiltered.reduce((map, a) => {
+          if (a.contactId && a.contactName && !map.has(a.contactId)) {
+            map.set(a.contactId, { id: a.contactId, name: a.contactName })
+          }
+          return map
+        }, new Map<string, { id: string; name: string }>())
+      .values())
+    : []
 
   const filtered = tab === "conversations"
     ? searchFiltered.filter(a => !isSystemEvent(a))
@@ -80,7 +93,28 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
               className="pl-9 bg-background/50 border-border/50"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
             />
+            {/* Contact suggestions dropdown */}
+            {searchFocused && contactSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border/60 rounded-lg shadow-lg overflow-hidden z-50">
+                <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30">Contacts</p>
+                {contactSuggestions.slice(0, 5).map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/dashboard/contacts/${c.id}`}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-semibold">
+                      {c.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate text-foreground">{c.name}</span>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
