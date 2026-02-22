@@ -76,8 +76,13 @@ model Workspace {
   settings           Json? @default("{}")
   
   // Twilio SaaS Subaccount details for dynamic AI agent phone numbers
-  twilioSubaccountId String?
-  twilioPhoneNumber  String?
+  twilioSubaccountId    String?
+  twilioPhoneNumber     String?
+  twilioPhoneNumberSid  String?
+  twilioSipTrunkSid     String?
+
+  // Retell AI Voice Agent
+  retellAgentId         String?
   
   // Stripe Billing & Subscriptions
   stripeCustomerId       String?   @unique

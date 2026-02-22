@@ -215,6 +215,7 @@ export async function completeOnboarding(data: {
   businessName: string;
   industryType: "TRADES" | "REAL_ESTATE";
   location: string;
+  ownerPhone?: string;
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -229,23 +230,7 @@ export async function completeOnboarding(data: {
   // Map industry to workspace type
   const type = data.industryType === "REAL_ESTATE" ? "AGENT" : "TRADIE";
 
-  // If they are a Tradie, dynamically provision a dedicated Twilio Subaccount for their AI
-  let twilioData = {};
-  if (type === "TRADIE") {
-    const { createTwilioSubaccount } = await import("@/lib/twilio");
-    const subaccount = await createTwilioSubaccount(data.businessName);
-    if (subaccount) {
-      twilioData = {
-        twilioSubaccountId: subaccount.subaccountId,
-      };
-
-      // Note: Full architectural implementation requires securely storing 'subaccountAuthToken'
-      // somewhere encrypted, or re-fetching it on demand using the master API.
-      // We will rely on retrieving the Auth Token dynamically from the master account via the SID
-      // in production routing to preserve security.
-    }
-  }
-
+  // Persist onboarding data immediately (don't block on comms provisioning)
   await db.workspace.update({
     where: { id: workspace.id },
     data: {
@@ -254,9 +239,22 @@ export async function completeOnboarding(data: {
       industryType: data.industryType,
       location: data.location,
       onboardingComplete: true,
-      ...twilioData,
     },
   });
+
+  // For Tradies: provision dedicated phone number, SIP trunk, and Retell voice agent.
+  // This runs async and won't block the onboarding redirect — progress is tracked
+  // in the Activity Feed so the user can see setup status from their dashboard.
+  if (type === "TRADIE") {
+    const { initializeTradieComms } = await import("@/lib/comms");
+    initializeTradieComms(
+      workspace.id,
+      data.businessName,
+      data.ownerPhone || ""
+    ).catch((err) => {
+      console.error("[completeOnboarding] Comms provisioning failed:", err);
+    });
+  }
 
   return { success: true, workspaceId: workspace.id };
 }
