@@ -133,6 +133,7 @@ model User {
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   activities  Activity[]
   notifications Notification[]
+  emailIntegrations EmailIntegration[]
 
   // View preference
   viewMode    String?   @default("BASIC") // BASIC, ADVANCED
@@ -141,6 +142,32 @@ model User {
   businessProfile  BusinessProfile?
   pricingSettings  PricingSettings?
   smsTemplates     SmsTemplate[]
+}
+
+// ─── Email Integration Model ─────────────────────────────────────────────
+
+model EmailIntegration {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  provider     String   // "gmail" or "outlook"
+  emailAddress String   // User's email address
+  
+  // OAuth tokens (encrypted at rest)
+  accessToken  String   // Encrypted access token
+  refreshToken String?  // Encrypted refresh token
+  tokenExpiry DateTime? // When access token expires
+  
+  // Integration status
+  isActive     Boolean  @default(true)
+  lastSyncAt   DateTime?
+  webhookId    String?  // Gmail watch ID or Graph subscription ID
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, provider])
 }
 
 model Deal {

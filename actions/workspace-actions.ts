@@ -213,15 +213,15 @@ export async function listWorkspaces(ownerId: string): Promise<WorkspaceView[]> 
  */
 export async function completeOnboarding(data: {
   businessName: string;
-  industryType: "TRADES" | "REAL_ESTATE";
+  industryType: "TRADES";
   location: string;
-  ownerPhone?: string;
-  tradeType?: string;
-  serviceRadius?: number;
-  workHours?: string;
-  emergencyService?: boolean;
-  callOutFee?: number;
-  pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
+  ownerPhone: string;
+  tradeType: string;
+  serviceRadius: number;
+  workHours: string;
+  emergencyService: boolean;
+  callOutFee: number;
+  pricingMode: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -233,8 +233,8 @@ export async function completeOnboarding(data: {
 
   const workspace = await getOrCreateWorkspace(userId);
 
-  // Map industry to workspace type
-  const type = data.industryType === "REAL_ESTATE" ? "AGENT" : "TRADIE";
+  // Map industry to workspace type (always TRADIE now)
+  const type = "TRADIE";
 
   // Persist onboarding data immediately (don't block on comms provisioning)
   await db.workspace.update({
@@ -248,31 +248,29 @@ export async function completeOnboarding(data: {
     },
   });
 
-  // Create or update Business Profile for Tradies
-  if (data.industryType === "TRADES" && data.tradeType) {
-    await db.businessProfile.upsert({
-      where: { userId },
-      update: {
-        tradeType: data.tradeType,
-        baseSuburb: data.location,
-        serviceRadius: data.serviceRadius || 20,
-        standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
-        emergencyService: data.emergencyService || false,
-        emergencySurcharge: data.emergencyService ? data.callOutFee : null,
-      },
-      create: {
-        userId,
-        tradeType: data.tradeType,
-        baseSuburb: data.location,
-        serviceRadius: data.serviceRadius || 20,
-        standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
-        emergencyService: data.emergencyService || false,
-        emergencySurcharge: data.emergencyService ? data.callOutFee : null,
-      },
-    });
-  }
+  // Create Business Profile for Tradies
+  await db.businessProfile.upsert({
+    where: { userId },
+    update: {
+      tradeType: data.tradeType,
+      baseSuburb: data.location,
+      serviceRadius: data.serviceRadius || 20,
+      standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
+      emergencyService: data.emergencyService || false,
+      emergencySurcharge: data.emergencyService ? data.callOutFee : null,
+    },
+    create: {
+      userId,
+      tradeType: data.tradeType,
+      baseSuburb: data.location,
+      serviceRadius: data.serviceRadius || 20,
+      standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
+      emergencyService: data.emergencyService || false,
+      emergencySurcharge: data.emergencyService ? data.callOutFee : null,
+    },
+  });
 
-  // Create or update Pricing Settings
+  // Create Pricing Settings
   await db.pricingSettings.upsert({
     where: { userId },
     update: {
@@ -291,16 +289,14 @@ export async function completeOnboarding(data: {
   // For Tradies: provision dedicated phone number, SIP trunk, and Retell voice agent.
   // This runs async and won't block the onboarding redirect — progress is tracked
   // in the Activity Feed so the user can see setup status from their dashboard.
-  if (type === "TRADIE") {
-    const { initializeTradieComms } = await import("@/lib/comms");
-    initializeTradieComms(
-      workspace.id,
-      data.businessName,
-      data.ownerPhone || ""
-    ).catch((err) => {
-      console.error("[completeOnboarding] Comms provisioning failed:", err);
-    });
-  }
+  const { initializeTradieComms } = await import("@/lib/comms");
+  initializeTradieComms(
+    workspace.id,
+    data.businessName,
+    data.ownerPhone
+  ).catch((err) => {
+    console.error("[completeOnboarding] Comms provisioning failed:", err);
+  });
 
   return { success: true, workspaceId: workspace.id };
 }

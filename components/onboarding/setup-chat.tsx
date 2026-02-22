@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, Briefcase, Building, Phone, Clock, DollarSign, Mail, Settings } from "lucide-react"
+import { Send, Briefcase, Phone, Clock, DollarSign, Settings, Wrench } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
 
@@ -33,7 +33,7 @@ export function SetupChat() {
     const [isTyping, setIsTyping] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [businessName, setBusinessName] = useState("")
-    const [industryType, setIndustryType] = useState<"TRADES" | "REAL_ESTATE">("TRADES")
+    const [industryType, setIndustryType] = useState<"TRADES">("TRADES")
     const [location, setLocation] = useState("")
     const [ownerPhone, setOwnerPhone] = useState("")
     const [tradeType, setTradeType] = useState("")
@@ -84,7 +84,7 @@ export function SetupChat() {
     }
 
     const processStep = (validInput: string) => {
-        // Step 0: Business Name -> Ask Industry
+        // Step 0: Business Name -> Ask Location
         if (step === 0) {
             setBusinessName(validInput)
             setTimeout(() => {
@@ -94,24 +94,17 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `Nice to meet you! To customize your experience, tell me: are you in Trades or Real Estate?`,
-                        type: "choice",
-                        choices: [
-                            { label: "Trades", value: "TRADES", icon: Briefcase },
-                            { label: "Real Estate", value: "REAL_ESTATE", icon: Building }
-                        ]
+                        content: "Perfect! I'll set up your workspace for trades. Where are you located? (e.g., Sydney, NSW)",
+                        type: "text"
                     }
                 ])
                 setStep(1)
             }, 1500) // 1.5s delay for natural feel
         }
-        // Step 1: Industry -> Ask Location
+        // Step 1: Location -> Ask Owner Phone
         else if (step === 1) {
-            // Save to localStorage context + local state
-            if (validInput === "TRADES" || validInput === "REAL_ESTATE") {
-                setIndustry(validInput)
-                setIndustryType(validInput)
-            }
+            const location = validInput
+            setLocation(location)
 
             setTimeout(() => {
                 setIsTyping(false)
@@ -120,51 +113,15 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "Got it. I've adjusted your workspace for that. One last thing: Where are you located? (e.g., Sydney, NSW)",
+                        content: "Perfect! For your AI agent to handle calls and SMS, I'll need your mobile number. What's the best phone number for clients to reach you?",
                         type: "text"
                     }
                 ])
                 setStep(2)
             }, 1500)
         }
-        // Step 2: Location -> Ask Owner Phone (Tradies only)
+        // Step 2: Owner Phone -> Ask Trade Type
         else if (step === 2) {
-            const location = validInput
-            setLocation(location)
-
-            if (industryType === "TRADES") {
-                setTimeout(() => {
-                    setIsTyping(false)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: "Perfect! For your AI agent to handle calls and SMS, I'll need your mobile number. What's the best phone number for clients to reach you?",
-                            type: "text"
-                        }
-                    ])
-                    setStep(3)
-                }, 1500)
-            } else {
-                // Real Estate skips to business details
-                setTimeout(() => {
-                    setIsTyping(false)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: "Great! Let's set up your business details. What type of real estate services do you offer?",
-                            type: "text"
-                        }
-                    ])
-                    setStep(5)
-                }, 1500)
-            }
-        }
-        // Step 3: Owner Phone -> Ask Trade Type (Tradies only)
-        else if (step === 3) {
             const phone = validInput.replace(/[^0-9+]/g, '') // Clean phone number
             setOwnerPhone(phone)
 
@@ -179,11 +136,11 @@ export function SetupChat() {
                         type: "text"
                     }
                 ])
-                setStep(4)
+                setStep(3)
             }, 1500)
         }
-        // Step 4: Trade Type -> Ask Service Details (Tradies only)
-        else if (step === 4) {
+        // Step 3: Trade Type -> Ask Service Details
+        else if (step === 3) {
             const trade = validInput
             setTradeType(trade)
 
@@ -198,97 +155,35 @@ export function SetupChat() {
                         type: "text"
                     }
                 ])
+                setStep(4)
+            }, 1500)
+        }
+        // Step 4: Service Details -> Ask Pricing
+        else if (step === 4) {
+            const radius = parseInt(validInput)
+            setServiceRadius(isNaN(radius) ? 20 : radius)
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Perfect! Now let's set up your pricing. Do you charge a call-out fee, or do free quotes?",
+                        type: "choice",
+                        choices: [
+                            { label: "Free Quotes", value: "BOOK_ONLY", icon: Settings },
+                            { label: "Call-out Fee ($89)", value: "CALL_OUT", icon: DollarSign },
+                            { label: "Standard Pricing", value: "STANDARD", icon: Settings }
+                        ]
+                    }
+                ])
                 setStep(5)
             }, 1500)
         }
-        // Step 5: Service Details -> Ask Pricing (Tradies) / Business Type (Real Estate)
+        // Step 5: Pricing -> Ask Work Hours
         else if (step === 5) {
-            if (industryType === "TRADES") {
-                const radius = parseInt(validInput)
-                setServiceRadius(isNaN(radius) ? 20 : radius)
-
-                setTimeout(() => {
-                    setIsTyping(false)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: "Perfect! Now let's set up your pricing. Do you charge a call-out fee, or do free quotes?",
-                            type: "choice",
-                            choices: [
-                                { label: "Free Quotes", value: "BOOK_ONLY", icon: Settings },
-                                { label: "Call-out Fee ($89)", value: "CALL_OUT", icon: DollarSign },
-                                { label: "Standard Pricing", value: "STANDARD", icon: Settings }
-                            ]
-                        }
-                    ])
-                    setStep(6)
-                }, 1500)
-            } else {
-                // Real Estate business type
-                const businessType = validInput
-                setTradeType(businessType)
-
-                setTimeout(() => {
-                    setIsTyping(false)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: "Excellent! Your workspace is configured. Let's get you subscribed...",
-                            type: "text"
-                        }
-                    ])
-                }, 1500)
-                setTimeout(() => {
-                    const isTradies = (industryType as string) === "TRADES";
-                    completeOnboarding({
-                        businessName,
-                        industryType,
-                        location,
-                        ownerPhone: isTradies ? ownerPhone : "",
-                        tradeType: isTradies ? tradeType : "",
-                        serviceRadius: isTradies ? serviceRadius : 0,
-                        workHours: isTradies ? workHours : "",
-                        emergencyService: isTradies ? emergencyService : false,
-                        callOutFee: isTradies ? callOutFee : 0,
-                        pricingMode: isTradies ? pricingMode : "BOOK_ONLY"
-                    }).then(() => {
-                        setIsTyping(false)
-                        setMessages(prev => [
-                            ...prev,
-                            {
-                                id: crypto.randomUUID(),
-                                role: "assistant",
-                                content: "Perfect! Your workspace is all set up. Let's get you subscribed...",
-                                type: "text"
-                            }
-                        ])
-                        setTimeout(() => {
-                            router.push("/billing")
-                        }, 2500)
-                    }).catch(() => {
-                        setIsTyping(false)
-                        setMessages(prev => [
-                            ...prev,
-                            {
-                                id: crypto.randomUUID(),
-                                role: "assistant",
-                                content: "I've saved your preferences locally. Let's get you subscribed...",
-                                type: "text"
-                            }
-                        ])
-                        setTimeout(() => {
-                            router.push("/billing")
-                        }, 2500)
-                    })
-                }, 1500)
-            }
-        }
-        // Step 6: Pricing -> Ask Work Hours (Tradies) or Complete
-        else if (step === 6) {
             const pricing = validInput
             setPricingMode(pricing as "BOOK_ONLY" | "CALL_OUT" | "STANDARD")
 
@@ -309,11 +204,11 @@ export function SetupChat() {
                         type: "text"
                     }
                 ])
-                setStep(7)
+                setStep(6)
             }, 1500)
         }
-        // Step 7: Work Hours -> Ask Emergency Service (Tradies)
-        else if (step === 7) {
+        // Step 6: Work Hours -> Ask Emergency Service
+        else if (step === 6) {
             const hours = validInput
             setWorkHours(hours)
 
@@ -332,11 +227,11 @@ export function SetupChat() {
                         ]
                     }
                 ])
-                setStep(8)
+                setStep(7)
             }, 1500)
         }
-        // Step 8: Emergency Service -> Complete Onboarding
-        else if (step === 8) {
+        // Step 7: Emergency Service -> Complete Onboarding
+        else if (step === 7) {
             const emergency = validInput === "true"
             setEmergencyService(emergency)
 
