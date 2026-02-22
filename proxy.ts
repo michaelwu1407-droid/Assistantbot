@@ -1,6 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+/**
+ * Next.js 16 Middleware (renamed to 'proxy' function)
+ * Handles authentication and route protection using Supabase
+ * Replaces the deprecated 'middleware' export from Next.js 15
+ */
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {

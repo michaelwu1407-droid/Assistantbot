@@ -6,22 +6,22 @@ Welcome to Pj Buddy! This document serves as the master onboarding guide, outlin
 Pj Buddy is an AI-first CRM and workflow management tool purpose-built exclusively for **Tradies** (Tradespeople and local service businesses). 
 Our goal is to eliminate administrative overhead by providing a conversational, intelligent platform where jobs can be quoted, scheduled, and invoiced entirely through natural language (voice and text) alongside a powerful but simplified Kanban dashboard. 
 
-*(Note: While the platform previously explored Real Estate Agent modules, we have officially pivoted and sunsetted/archived those features. The platform is strictly scoped for Tradies).*
+*(Note: While the platform previously explored Real Estate Agent modules, those features remain available but are not actively developed. The primary focus is on Tradies).*
 
 ## 2. Tech Stack & Telephony
 Pj Buddy is built on a modern, high-performance edge tech stack:
 
-- **Framework:** Next.js 14 (App Router format for server-side rendering and API routes).
+- **Framework:** Next.js 16.1.6 (App Router format for server-side rendering and API routes).
 - **Language:** TypeScript across the entire stack.
 - **Styling (The "Ottorize" Design System):** Tailwind CSS + shadcn/ui. The UI explicitly uses a premium "Glassmorphism" aesthetic with `.ott-card` utilities, corner-layout metrics, soft drop-shadows, and a clean light/dark mode switch.
-- **Database & Auth:** Supabase (PostgreSQL database, Row Level Security, and Authentication).
+- **Database & Auth:** Supabase (PostgreSQL database, Row Level Security, and Authentication) - **NOT** Clerk as documented elsewhere.
 - **ORM:** Prisma (for type-safe database queries and schema management).
-- **AI & NLP:** Vercel AI SDK (`@ai-sdk/react`) integrated with **Google Gemini 2.5 Flash**. Includes deep integration for intent mapping, memory updating, and functional tool-calling.
-- **Voice / Telephony:** Native integration with Twilio subaccounts per tenant, routing voice calls into Retell AI / Vapi, dumping live transcripts dynamically back to the Inbox.
+- **AI & NLP:** Vercel AI SDK (`@ai-sdk/react`) integrated with **Google Gemini 2.0 Flash Lite**. Includes deep integration for intent mapping, memory updating, and functional tool-calling.
+- **Voice / Telephony:** Native integration with Twilio subaccounts per tenant, routing voice calls into **Retell AI**, dumping live transcripts dynamically back to the Inbox.
 
 ## 3. Generative Artificial Intelligence
 Rather than clicking through forms, Tradies use the "Chat-First" interface as the primary navigation engine:
-- **Natural Language Parsing**: Uses a 13-tool Gemini array. The chatbot autonomously maps "Remind me next Friday" to calendar tasks, or handles queries like "Show me my text history with Steven" by running a fuzzy history retrieve.
+- **Natural Language Parsing**: Uses a comprehensive Gemini tool array. The chatbot autonomously maps "Remind me next Friday" to calendar tasks, or handles queries like "Show me my text history with Steven" by running a fuzzy history retrieve.
 - **Microphone Integration**: Supports raw voice-to-text dictation dynamically fed directly into the Chat payload.
 - **Self-Learning Guardrails**: The AI checks `Workspace Settings` and dynamically injects "Business Identity" and "Call Out Fee" limits to prevent over-quoting without first securing an appointment. 
 

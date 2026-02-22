@@ -24,7 +24,7 @@ Available to all users regardless of role.
 ### 2.1. AI Assistant & Chatbot
 The heart of the application. Pj Buddy uses a "Chat First" design philosophy.
 - **Natural Language Parsing**: Identify intent from unstructured text (e.g., "Job for John Smith tomorrow at 2pm 500$").
-- **Gemini Integration**: Uses Google's Gemini Flash model for advanced reasoning and response generation.
+- **Gemini Integration**: Uses Google's Gemini 2.0 Flash Lite model for advanced reasoning and response generation.
 - **Context Awareness**: The bot knows which page you are on and suggests relevant actions.
 - **Magic Commands**:
     - `/draft`: Create a new job/deal from a prompt.
@@ -87,17 +87,15 @@ Enforces a strict status progression to ensure data quality:
 Designed for: Real Estate Agents.
 **Key UX**: Speed, High-density data, Reporting.
 
+*Note: Agent mode features are available but not actively developed. The primary focus is on Tradie mode.*
+
 ### 4.1. Speed-to-Lead Tracker
 - **Visual Gauge**: Shows average response time to new enquiries.
 - **Goal Setting**: Set targets (e.g., "< 5 mins") and track performance.
 
-### 4.2. Vendor Reporting
-- **Automated Reports**: Aggregates feedback from open houses.
-- **Price Feedback Gauge**: Visualizes what buyers are saying vs Vendor's asking price.
-- **WhatsApp Integration**: One-click "Send Report via WhatsApp" button to keep vendors in the loop.
-
-### 4.3. Commission Calculator
-- **Forecasting**: Slider-based calculator to project earnings based on pipeline value and commission rate.
+### 4.2. Basic Reporting
+- **Pipeline Analytics**: Basic reporting on deal flow and conversion rates.
+- **Performance Metrics**: Track key agent productivity indicators.
 
 ### 4.4. Matchmaker Feed
 - **AI Matching**: Automatically suggests "Buyers" from your database who match a new "Listing".
@@ -119,7 +117,7 @@ Designed for: Open House Visitor Registration.
 ## 6. Backend & Integrations
 
 ### 6.1. Authentication
-- **Clerk Auth**: Secure Identity Management.
+- **Supabase Auth**: Secure Identity Management with Row Level Security.
 - **Profile Persistence**: User settings sync to Database (PostgreSQL).
 
 ### 6.2. Calendar Sync

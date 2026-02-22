@@ -3,8 +3,8 @@
 ## ✅ **Pre-Deployment Requirements - ALL COMPLETED**
 
 ### 🔐 **Authentication Setup**
-- [ ] Get Clerk API keys from [dashboard.clerk.com](https://dashboard.clerk.com)
-- [ ] Update `.env.local` with actual Clerk keys
+- [ ] Get Supabase API keys from [supabase.com/dashboard](https://supabase.com/dashboard)
+- [ ] Update `.env.local` with actual Supabase keys
 - [ ] Test authentication flow locally
 - [ ] Verify user sessions work correctly
 
@@ -48,12 +48,20 @@
 ### 🔧 **Environment Variables for Production**
 ```env
 # Required (replace with actual values)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_live_publishable_key
-CLERK_SECRET_KEY=your_live_secret_key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_live_anon_key
 
 # Database (already configured)
 DATABASE_URL=your_production_db_url
 DIRECT_URL=your_production_db_direct_url
+
+# Required for AI features
+GEMINI_API_KEY=your_gemini_api_key
+
+# Required for payments
+STRIPE_SECRET_KEY=sk_live_your_stripe_key
+STRIPE_PRO_PRICE_ID=price_live_your_price_id
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Optional
 NEXT_PUBLIC_APP_URL=https://your-domain.com
@@ -79,9 +87,9 @@ If deployment fails:
 ## 🎯 **Quick Start Commands**
 
 ```bash
-# 1. Setup Clerk keys (replace with your actual keys)
-# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_your_key
-# CLERK_SECRET_KEY=sk_live_your_secret
+# 1. Setup Supabase keys (replace with your actual keys)
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_live_anon_key
 
 # 2. Test everything works
 npm run dev
@@ -93,7 +101,7 @@ vercel --prod
 ```
 
 ## 📞 **Support**
-- Clerk documentation: [clerk.com/docs](https://clerk.com/docs)
+- Supabase documentation: [supabase.com/docs](https://supabase.com/docs)
 - Vercel deployment: [vercel.com/docs](https://vercel.com/docs)
 - Database issues: Check Prisma docs
 

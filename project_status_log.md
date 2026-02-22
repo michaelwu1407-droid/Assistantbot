@@ -9,6 +9,15 @@
 - **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
 - **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
 
+## 2026-02-22: Documentation Audit & Corrections
+- **Auth System Correction:** Updated all documentation to reflect **Supabase Auth** (not Clerk) as the actual authentication system in use. Fixed README.md, APP_MANUAL.md, DEPLOYMENT_CHECKLIST.md, and .env.example.
+- **Tech Stack Updates:** Corrected Next.js version from 14 to 16.1.6, Gemini model from "2.5 Flash" to "2.0 Flash Lite", and clarified Retell AI as the sole voice integration.
+- **Environment Variables:** Added missing variables (PostHog, CRON_SECRET, Google Maps API) and removed deprecated Clerk references. Updated deployment checklist with actual required env vars.
+- **Code Comments:** Added clarifying comments to proxy.ts explaining Next.js 16 middleware changes.
+- **Logging Patterns:** Documented actual console.log usage patterns (minimal, structured logging in billing success page and webhook handlers).
+- **Architecture Notes:** Clarified that Agent mode features exist but are not actively developed, with primary focus on Tradie mode.
+- **Files Touched**: `README.md`, `APP_MANUAL.md`, `DEPLOYMENT_CHECKLIST.md`, `.env.example`, `proxy.ts`, `project_status_log.md`.
+
 ## 2026-02-22: Sprint 21 - Team Roles, Automated Comms & AI Tool-Use Refactor
 - **Team Roles & Invites**: Added `UserRole` enum (`OWNER`/`MANAGER`/`TEAM_MEMBER`) and role field to User model. New `WorkspaceInvite` model for invite-link-based team onboarding. Built `/invite/join?token=xxx` page for team member sign-up. Rebuilt team management page (`/dashboard/team`) with real DB data, invite creation dialog, and pending invite management.
 - **Automated Communication Rules**: New `AutomatedMessageRule` model for configurable SMS/email triggers. Added automated communications settings UI in notifications settings. Built `/api/cron/booking-reminders` cron endpoint. Seeded default rules: 24h booking reminder, booking confirmation, post-job follow-up.
