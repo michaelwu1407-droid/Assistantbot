@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createQuoteVariation } from '@/actions/tradie-actions';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Map } from "lucide-react";
 // Removed unused DealView import
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
@@ -72,7 +73,13 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
       <div className="h-full w-full bg-slate-950 text-slate-50 flex items-center justify-center">
         <div className="text-center p-6">
           <h2 className="text-xl font-bold mb-2">All Caught Up!</h2>
-          <p className="text-slate-400">No scheduled jobs for today.</p>
+          <p className="text-slate-400 mb-4">No scheduled jobs for today.</p>
+          <Button variant="outline" asChild className="mt-4">
+            <Link href="/dashboard/map" className="gap-2">
+              <Map className="mr-2 h-4 w-4" />
+              Return to Map
+            </Link>
+          </Button>
         </div>
       </div>
     );
