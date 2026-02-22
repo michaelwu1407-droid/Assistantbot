@@ -360,11 +360,11 @@ export async function completeSafetyCheck(
     where: { id: jobId },
     data: {
       safetyCheckCompleted: true,
-      metadata: {
+      metadata: JSON.parse(JSON.stringify({
         ...currentMetadata,
         safetyChecks: checks,
         safetyCheckTime: new Date().toISOString()
-      }
+      }))
     }
   });
 
@@ -712,11 +712,11 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
       data: {
         jobStatus: "COMPLETED", // Use string literal matching definition
         stage: "WON",
-        metadata: {
+        metadata: JSON.parse(JSON.stringify({
           ...currentMetadata,
           signature: signatureDataUrl,
           completedAt: new Date().toISOString()
-        }
+        }))
       }
     });
 
@@ -811,6 +811,7 @@ export async function finalizeJobCompletion(jobId: string, payload: { isPaid: bo
     }
 
     // 2. Commit the Deal updates
+    updates.metadata = JSON.parse(JSON.stringify(updates.metadata));
     await db.deal.update({
       where: { id: jobId },
       data: updates

@@ -339,11 +339,11 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
       await db.deal.update({
         where: { id: dealId },
         data: {
-          metadata: {
+          metadata: JSON.parse(JSON.stringify({
             ...(deal.metadata as Record<string, any> || {}),
             confirmationSent: new Date().toISOString(),
             confirmationStatus: "pending"
-          }
+          }))
         }
       });
 
@@ -388,10 +388,10 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
       await db.deal.update({
         where: { id: dealId },
         data: {
-          metadata: {
+          metadata: JSON.parse(JSON.stringify({
             ...(deal.metadata as Record<string, any> || {}),
             lastNudgeSent: new Date().toISOString()
-          }
+          }))
         }
       });
 
