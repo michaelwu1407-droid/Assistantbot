@@ -253,7 +253,7 @@ export async function updateDealStage(dealId: string, stage: string) {
       data: {
         stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
         stageChangedAt: new Date(),
-        metadata: { ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" },
+        metadata: JSON.parse(JSON.stringify({ ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" })),
       },
     });
 

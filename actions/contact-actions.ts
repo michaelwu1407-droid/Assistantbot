@@ -229,7 +229,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
         company: parsed.data.company || existingContact.company,
         address: parsed.data.address || existingContact.address,
         metadata: parsed.data.contactType
-          ? { ...existingMeta, contactType: parsed.data.contactType }
+          ? JSON.parse(JSON.stringify({ ...existingMeta, contactType: parsed.data.contactType }))
           : undefined,
       },
     });

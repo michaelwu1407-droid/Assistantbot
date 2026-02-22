@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Loader2, Users, Shield } from "lucide-react";
 import { validateInviteToken, acceptInvite } from "@/actions/invite-actions";
 import { toast } from "sonner";
 
-export default function JoinByInvitePage() {
+function JoinByInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
@@ -228,5 +228,19 @@ export default function JoinByInvitePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function JoinByInvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <JoinByInviteContent />
+    </Suspense>
   );
 }
