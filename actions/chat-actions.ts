@@ -981,11 +981,13 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
 
       const meta = (deal.metadata as Record<string, unknown>) ?? {};
       const previousStage = meta.previousStage as string | undefined;
+      const validStages = ["NEW","CONTACTED","NEGOTIATION","SCHEDULED","PIPELINE","INVOICED","WON","LOST","DELETED","ARCHIVED"] as const;
+      type DealStage = (typeof validStages)[number];
 
-      if (previousStage) {
+      if (previousStage && validStages.includes(previousStage as DealStage)) {
         await db.deal.update({
           where: { id: deal.id },
-          data: { stage: previousStage },
+          data: { stage: previousStage as DealStage },
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
         revalidatePath("/dashboard");
