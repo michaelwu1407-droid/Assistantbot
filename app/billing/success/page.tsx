@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +22,6 @@ export default async function BillingSuccessPage({
     }
 
     try {
-        const userId = await getAuthUserId();
-
         // Retrieve the checkout session from Stripe
         const session = await stripe.checkout.sessions.retrieve(session_id, {
             expand: ["subscription"],
@@ -36,30 +33,29 @@ export default async function BillingSuccessPage({
         ) {
             const subscription = session.subscription as import("stripe").Stripe.Subscription;
 
-            // Verify the workspace belongs to the authenticated user
-            const workspace = await db.workspace.findUnique({
+            // The client_reference_id is the workspace ID — set by our own
+            // createCheckoutSession() which already validated ownership.
+            // Update the workspace directly without an additional ownership
+            // check, since a user can only reach this page via a checkout
+            // session that was scoped to their workspace.
+            await db.workspace.update({
                 where: { id: session.client_reference_id },
-                select: { ownerId: true },
+                data: {
+                    stripeCustomerId: session.customer as string,
+                    stripeSubscriptionId: subscription.id,
+                    subscriptionStatus: subscription.status,
+                    stripePriceId: subscription.items.data[0].price.id,
+                    stripeCurrentPeriodEnd: new Date(
+                        (subscription as any).current_period_end * 1000
+                    ),
+                },
             });
-
-            if (workspace?.ownerId === userId) {
-                await db.workspace.update({
-                    where: { id: session.client_reference_id },
-                    data: {
-                        stripeCustomerId: session.customer as string,
-                        stripeSubscriptionId: subscription.id,
-                        subscriptionStatus: subscription.status,
-                        stripePriceId: subscription.items.data[0].price.id,
-                        stripeCurrentPeriodEnd: new Date(
-                            (subscription as any).current_period_end * 1000
-                        ),
-                    },
-                });
-            }
         }
     } catch (error) {
         console.error("Billing success verification failed:", error);
-        // Fall through to redirect — the webhook will eventually catch up
+        // Redirect back to /billing so the user can retry — NOT to
+        // /dashboard, which would redirect back to /billing creating a loop.
+        redirect("/billing");
     }
 
     redirect("/dashboard");
