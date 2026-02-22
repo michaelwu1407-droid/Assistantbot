@@ -1,19 +1,22 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2 } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
+import { checkIfDealIsOverdue, getOverdueStyling } from "@/lib/deal-utils"
+import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
 
 interface DealCardProps {
   deal: DealView
   overlay?: boolean
   onOpenModal?: () => void
   onDelete?: () => void | Promise<void>
+  onReconcile?: (dealId: string) => void
 }
 
 function formatScheduledTime(scheduledAt: Date | null | undefined): string {
@@ -22,7 +25,15 @@ function formatScheduledTime(scheduledAt: Date | null | undefined): string {
   return format(d, "MMM d, h:mm a")
 }
 
-export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps) {
+export function DealCard({ deal, overlay, onOpenModal, onDelete, onReconcile }: DealCardProps) {
+  const [showReconciliationModal, setShowReconciliationModal] = useState(false)
+  
+  // Check if deal is overdue
+  const overdueStyling = getOverdueStyling({
+    stage: deal.stage as any,
+    scheduledAt: deal.scheduledAt || null,
+    actualOutcome: deal.actualOutcome || null
+  })
   const router = useRouter()
   const {
     setNodeRef,
@@ -47,6 +58,11 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
   let cardClasses = "ott-card rounded-[20px] bg-white hover:border-[#00D28B] p-4 border border-slate-200/60 dark:border-slate-700/50"
   let statusLabel = ""
   let statusClass = ""
+  
+  // Add overdue styling
+  if (overdueStyling.borderClass) {
+    cardClasses += ` ${overdueStyling.borderClass}`
+  }
 
   if (deal.health?.status === "ROTTING") {
     cardClasses = "ott-card rounded-[20px] bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-4 dark:border-red-500/40"
@@ -65,7 +81,7 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
     statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
   }
 
-  const showHealthBadge = statusLabel !== ""
+  const showHealthBadge = statusLabel !== "" || overdueStyling.badgeText !== ""
 
   if (overlay) {
     cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-[#00D28B]/20"
@@ -100,7 +116,39 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
       >
         {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
         <div className="absolute top-3 right-3 z-10 text-right">
-          {showHealthBadge ? (
+          {overdueStyling.badgeText ? (
+            <div className="flex flex-col gap-1">
+              <span
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border flex items-center gap-1 cursor-pointer hover:opacity-80",
+                  overdueStyling.badgeClass
+                )}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onReconcile) {
+                    onReconcile(deal.id)
+                  } else {
+                    setShowReconciliationModal(true)
+                  }
+                }}
+                title="Click to reconcile this overdue job"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {overdueStyling.badgeText}
+              </span>
+              {statusLabel && (
+                <span
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
+                    statusClass
+                  )}
+                  title="Follow up = no activity for a while; Urgent = needs attention now"
+                >
+                  {statusLabel}
+                </span>
+              )}
+            </div>
+          ) : showHealthBadge ? (
             <span
               className={cn(
                 "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
@@ -179,6 +227,19 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete }: DealCardProps
         >
           <Trash2 className="w-4 h-4" />
         </button>
+      )}
+      
+      {/* Stale Job Reconciliation Modal */}
+      {showReconciliationModal && (
+        <StaleJobReconciliationModal
+          deal={deal}
+          onClose={() => setShowReconciliationModal(false)}
+          onSuccess={() => {
+            setShowReconciliationModal(false)
+            // Trigger a refresh of the deals data
+            window.location.reload()
+          }}
+        />
       )}
     </div>
   )

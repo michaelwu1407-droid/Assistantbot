@@ -164,6 +164,11 @@ model Deal {
   jobStatus      JobStatus? // For Tradie workflow
   safetyCheckCompleted Boolean   @default(false)
   
+  // Stale Job Recovery System
+  isStale        Boolean   @default(false)
+  actualOutcome  String?   // "COMPLETED", "NO_SHOW", "RESCHEDULED"
+  outcomeNotes   String?   @db.Text
+  
   lastActivityAt DateTime  @default(now())
   stageChangedAt DateTime  @default(now())
   createdAt      DateTime  @default(now())

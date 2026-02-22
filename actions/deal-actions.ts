@@ -73,6 +73,10 @@ export interface DealView {
   status?: string;
   scheduledAt?: Date | null;
   workspaceId: string;
+  // Stale Job Recovery System fields
+  isStale?: boolean;
+  actualOutcome?: string | null;
+  outcomeNotes?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -173,6 +177,10 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         longitude: deal.longitude ?? undefined,
         scheduledAt: deal.scheduledAt ?? undefined,
         workspaceId: deal.workspaceId,
+        // Stale Job Recovery System fields
+        isStale: deal.isStale,
+        actualOutcome: deal.actualOutcome,
+        outcomeNotes: deal.outcomeNotes,
       };
     });
   } catch (error) {
