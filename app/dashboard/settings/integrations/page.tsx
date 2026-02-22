@@ -1,15 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Calendar, Check, Loader2, RefreshCcw, Mail, ExternalLink, Copy } from "lucide-react"
+import { Calendar, Check, Loader2, RefreshCcw, Mail, ExternalLink, Copy, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { getOrAllocateInboundEmail } from "@/actions/settings-actions"
+import { connectXero } from "@/actions/integration-actions"
 
 export default function IntegrationsPage() {
+    const searchParams = useSearchParams()
     const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle")
+    const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [email, setEmail] = useState<string>("")
 
     useEffect(() => {
@@ -23,6 +27,35 @@ export default function IntegrationsPage() {
         }
         fetchEmail()
     }, [])
+
+    // Handle OAuth redirects
+    useEffect(() => {
+        const success = searchParams.get("success")
+        const error = searchParams.get("error")
+        if (success === "xero_connected") {
+            setXeroStatus("connected")
+            toast.success("Xero connected successfully!")
+        }
+        if (error) {
+            toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)
+        }
+    }, [searchParams])
+
+    const handleConnectXero = async () => {
+        setXeroStatus("connecting")
+        try {
+            const result = await connectXero()
+            if (result.url) {
+                window.location.href = result.url
+            } else {
+                toast.error("Failed to generate Xero authorization URL")
+                setXeroStatus("idle")
+            }
+        } catch {
+            toast.error("Failed to start Xero connection")
+            setXeroStatus("idle")
+        }
+    }
 
     const handleConnect = () => {
         setStatus("connecting")
@@ -141,19 +174,57 @@ export default function IntegrationsPage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="opacity-60 grayscale cursor-not-allowed relative">
-                    <div className="absolute inset-0 bg-white/40 z-10" />
+                <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <RefreshCcw className="h-5 w-5 text-slate-500" />
-                            Xero / QuickBooks
+                            <FileText className="h-5 w-5 text-[#13B5EA]" />
+                            Xero Accounting
                         </CardTitle>
                         <CardDescription>
-                            Sync invoices and payments automatically.
+                            Automatically create draft invoices in Xero when jobs are completed. Your AI agent can invoice on your behalf.
                         </CardDescription>
                     </CardHeader>
-                    <CardFooter className="border-t px-6 py-4">
-                        <Button variant="secondary" disabled>Coming Soon</Button>
+                    <CardContent>
+                        <div className="flex items-center gap-4">
+                            <div className="bg-slate-100 p-4 rounded-full">
+                                <FileText className="h-8 w-8 text-[#13B5EA]" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-medium">Invoice Sync</h4>
+                                <p className="text-sm text-slate-500">
+                                    {xeroStatus === "connected"
+                                        ? "Connected. Draft invoices will be created automatically when jobs move to the invoicing stage."
+                                        : "Connect your Xero account to enable automatic draft invoicing from job quotes."}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
+                        {xeroStatus === "connected" ? (
+                            <div className="flex items-center text-sm text-emerald-600 font-medium">
+                                <Check className="h-4 w-4 mr-2" />
+                                Xero Connected
+                            </div>
+                        ) : (
+                            <div className="text-xs text-slate-500">
+                                Permissions: Invoices, Contacts (read/write)
+                            </div>
+                        )}
+
+                        {xeroStatus === "idle" && (
+                            <Button onClick={handleConnectXero}>Connect Xero</Button>
+                        )}
+                        {xeroStatus === "connecting" && (
+                            <Button disabled>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Connecting...
+                            </Button>
+                        )}
+                        {xeroStatus === "connected" && (
+                            <Button variant="outline" onClick={() => setXeroStatus("idle")}>
+                                Disconnect
+                            </Button>
+                        )}
                     </CardFooter>
                 </Card>
             </div>
