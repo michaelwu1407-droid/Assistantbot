@@ -12,7 +12,7 @@ import { getContacts, createContact, type ContactView } from "@/actions/contact-
 import { toast } from "sonner"
 import { Plus, User, Mail, Phone, MapPin, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { AddressAutocomplete, type PlaceResult } from "@/components/ui/address-autocomplete"
 
 interface NewDealModalProps {
     isOpen: boolean
@@ -25,6 +25,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
     const [address, setAddress] = useState("")
+    const [latitude, setLatitude] = useState<number | null>(null)
+    const [longitude, setLongitude] = useState<number | null>(null)
     const [scheduledAt, setScheduledAt] = useState("")
     const [stage, setStage] = useState("new_request")
     const [contactId, setContactId] = useState("")
@@ -102,6 +104,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 stage,
                 workspaceId,
                 address: address || undefined,
+                latitude: latitude ?? undefined,
+                longitude: longitude ?? undefined,
                 scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
             })
 
@@ -110,6 +114,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 setTitle("")
                 setValue("")
                 setAddress("")
+                setLatitude(null)
+                setLongitude(null)
                 setScheduledAt("")
                 setStage("new_request")
                 setContactId("")
@@ -185,6 +191,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                     id="address"
                                     value={address}
                                     onChange={setAddress}
+                                    onPlaceSelect={(place) => {
+                                        setAddress(place.address)
+                                        setLatitude(place.latitude)
+                                        setLongitude(place.longitude)
+                                    }}
                                     placeholder="Start typing an address..."
                                 />
                             </div>

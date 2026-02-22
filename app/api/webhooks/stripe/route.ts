@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
+import * as Sentry from "@sentry/nextjs";
 import Stripe from "stripe";
 
 export async function POST(req: Request) {
@@ -17,7 +18,20 @@ export async function POST(req: Request) {
             process.env.STRIPE_WEBHOOK_SECRET!
         );
     } catch (error: any) {
-        console.error("Stripe webhook verification failed:", error.message);
+        Sentry.captureException(error, {
+            tags: { webhook: "stripe", stage: "verification" },
+        });
+
+        // Log the verification failure
+        await db.webhookEvent.create({
+            data: {
+                provider: "stripe",
+                eventType: "verification_failed",
+                status: "error",
+                error: error.message,
+            },
+        }).catch(() => {}); // Don't fail the response if logging fails
+
         return new NextResponse("Webhook signature verification failed", { status: 400 });
     }
 
@@ -69,8 +83,32 @@ export async function POST(req: Request) {
             default:
                 console.log(`Unhandled Stripe event type: ${event.type}`);
         }
+
+        // Log the successful webhook event
+        await db.webhookEvent.create({
+            data: {
+                provider: "stripe",
+                eventType: event.type,
+                status: "success",
+                payload: JSON.parse(JSON.stringify({ id: event.id, type: event.type })),
+            },
+        }).catch(() => {});
+
     } catch (err: any) {
-        console.error("Error handling Stripe event:", err);
+        Sentry.captureException(err, {
+            tags: { webhook: "stripe", stage: "processing" },
+            extra: { eventType: event.type, eventId: event.id },
+        });
+
+        await db.webhookEvent.create({
+            data: {
+                provider: "stripe",
+                eventType: event.type,
+                status: "error",
+                error: err.message,
+            },
+        }).catch(() => {});
+
         return new NextResponse("Internal server error", { status: 500 });
     }
 

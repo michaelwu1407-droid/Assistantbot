@@ -76,8 +76,13 @@ model Workspace {
   settings           Json? @default("{}")
   
   // Twilio SaaS Subaccount details for dynamic AI agent phone numbers
-  twilioSubaccountId String?
-  twilioPhoneNumber  String?
+  twilioSubaccountId    String?
+  twilioPhoneNumber     String?
+  twilioPhoneNumberSid  String?
+  twilioSipTrunkSid     String?
+
+  // Retell AI Voice Agent
+  retellAgentId         String?
   
   // Stripe Billing & Subscriptions
   stripeCustomerId       String?   @unique
@@ -526,5 +531,21 @@ model SmsTemplate {
   updatedAt    DateTime     @updatedAt
 
   @@unique([userId, triggerEvent])
+}
+
+// ─── Webhook Audit Log ──────────────────────────────────────────────
+// Tracks the last successful webhook event per provider for diagnostics.
+
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String   // "stripe" | "resend" | "twilio" | "retell"
+  eventType String   // e.g. "checkout.session.completed", "email.delivered"
+  status    String   @default("success") // "success" | "error"
+  payload   Json?    // Sanitised event summary (no secrets)
+  error     String?  // Error message if status is "error"
+
+  createdAt DateTime @default(now())
+
+  @@index([provider, createdAt])
 }
 
