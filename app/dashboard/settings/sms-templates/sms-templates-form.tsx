@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { upsertSmsTemplate } from "@/actions/sms-templates";
 import { toast } from "sonner";
-import { MessageSquare, Navigation, Clock, Loader2, Save } from "lucide-react";
+import { MessageSquare, Navigation, Clock, Bell, Loader2, Save } from "lucide-react";
 import type { TriggerEvent } from "@prisma/client";
 
 interface Template {
@@ -36,6 +36,11 @@ const TRIGGER_META: Record<TriggerEvent, { label: string; description: string; i
     label: "Running Late",
     description: "Quick heads-up when you're stuck in traffic.",
     icon: Clock,
+  },
+  BOOKING_REMINDER_24H: {
+    label: "Booking Reminder (24h)",
+    description: "Sent 24 hours before a scheduled booking.",
+    icon: Bell,
   },
 };
 

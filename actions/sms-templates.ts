@@ -12,6 +12,8 @@ const DEFAULT_TEMPLATES: Record<TriggerEvent, string> = {
     "Hi [Name], thanks for today! A review helps us heaps: [Link]",
   ON_MY_WAY: "Hi [Name], I'm 20 mins away.",
   LATE: "Hi [Name], stuck in traffic. 15 mins late.",
+  BOOKING_REMINDER_24H:
+    "Hi [Name], just a reminder you have a booking tomorrow.",
 };
 
 // ─── Get all templates for current user ─────────────────────────────
@@ -24,7 +26,7 @@ export async function getUserSmsTemplates() {
   });
 
   // Fill in defaults for any missing triggers
-  const events: TriggerEvent[] = ["JOB_COMPLETE", "ON_MY_WAY", "LATE"];
+  const events: TriggerEvent[] = ["JOB_COMPLETE", "ON_MY_WAY", "LATE", "BOOKING_REMINDER_24H"];
   return events.map((event) => {
     const existing = templates.find((t) => t.triggerEvent === event);
     return {
