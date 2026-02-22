@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
+import * as Sentry from "@sentry/nextjs";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Resend signs webhook payloads using a shared secret (configured in
@@ -112,6 +113,20 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
 
     if (!verifyResendWebhook(rawBody, req.headers)) {
+      const verifyError = new Error("Resend webhook signature verification failed");
+      Sentry.captureException(verifyError, {
+        tags: { webhook: "resend", stage: "verification" },
+      });
+
+      await db.webhookEvent.create({
+        data: {
+          provider: "resend",
+          eventType: "verification_failed",
+          status: "error",
+          error: "Invalid webhook signature",
+        },
+      }).catch(() => {});
+
       return NextResponse.json(
         { error: "Invalid webhook signature" },
         { status: 401 }
@@ -303,6 +318,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Log the successful webhook event
+    await db.webhookEvent.create({
+      data: {
+        provider: "resend",
+        eventType: "email.received",
+        status: "success",
+        payload: JSON.parse(JSON.stringify({
+          from: sender.email,
+          to: toAddress.email,
+          subject,
+          workspaceId: workspace.id,
+        })),
+      },
+    }).catch(() => {});
+
     return NextResponse.json({
       success: true,
       workspaceId: workspace.id,
@@ -313,6 +343,19 @@ export async function POST(req: NextRequest) {
       leadQuality: geminiResult?.isGenuineLead ? "genuine" : "tire_kicker",
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { webhook: "resend", stage: "processing" },
+    });
+
+    await db.webhookEvent.create({
+      data: {
+        provider: "resend",
+        eventType: "email.received",
+        status: "error",
+        error: err instanceof Error ? err.message : String(err),
+      },
+    }).catch(() => {});
+
     console.error("[inbound-email] Webhook error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
