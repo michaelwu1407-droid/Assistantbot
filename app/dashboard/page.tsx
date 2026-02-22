@@ -33,6 +33,11 @@ export default async function DashboardPage() {
         redirect("/setup")
     }
 
+    // Billing gate: redirect unpaid users to /billing paywall
+    if (!dbError && workspace && workspace.subscriptionStatus !== "active") {
+        redirect("/billing")
+    }
+
     if (dbError || !workspace || !deals) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 gap-4">

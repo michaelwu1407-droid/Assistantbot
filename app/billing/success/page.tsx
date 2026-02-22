@@ -27,11 +27,20 @@ export default async function BillingSuccessPage({
             expand: ["subscription"],
         });
 
+        console.log("[billing/success] Session retrieved:", {
+            payment_status: session.payment_status,
+            client_reference_id: session.client_reference_id,
+            subscription: session.subscription ? "present" : "missing",
+        });
+
         if (
             session.payment_status === "paid" &&
             session.client_reference_id
         ) {
             const subscription = session.subscription as import("stripe").Stripe.Subscription;
+
+            // Safely extract current_period_end — field name varies by Stripe API version
+            const periodEnd = (subscription as any).current_period_end;
 
             // The client_reference_id is the workspace ID — set by our own
             // createCheckoutSession() which already validated ownership.
@@ -45,11 +54,13 @@ export default async function BillingSuccessPage({
                     stripeSubscriptionId: subscription.id,
                     subscriptionStatus: subscription.status,
                     stripePriceId: subscription.items.data[0].price.id,
-                    stripeCurrentPeriodEnd: new Date(
-                        (subscription as any).current_period_end * 1000
-                    ),
+                    ...(periodEnd
+                        ? { stripeCurrentPeriodEnd: new Date(periodEnd * 1000) }
+                        : {}),
                 },
             });
+
+            console.log("[billing/success] Workspace updated successfully:", session.client_reference_id);
         }
     } catch (error) {
         console.error("Billing success verification failed:", error);
@@ -58,5 +69,5 @@ export default async function BillingSuccessPage({
         redirect("/billing");
     }
 
-    redirect("/dashboard");
+    redirect("/dashboard?tutorial=true");
 }

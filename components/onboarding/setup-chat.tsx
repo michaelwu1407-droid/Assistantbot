@@ -135,12 +135,12 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "Perfect! Your workspace is all set up. Taking you to the tutorial now...",
+                        content: "Perfect! Your workspace is all set up. Let's get you subscribed...",
                         type: "text"
                     }
                 ])
                 setTimeout(() => {
-                    router.push("/dashboard?tutorial=true")
+                    router.push("/billing")
                 }, 2500)
             }).catch(() => {
                 setIsTyping(false)
@@ -149,12 +149,12 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "I've saved your preferences locally. Taking you to the tutorial now...",
+                        content: "I've saved your preferences locally. Let's get you subscribed...",
                         type: "text"
                     }
                 ])
                 setTimeout(() => {
-                    router.push("/dashboard?tutorial=true")
+                    router.push("/billing")
                 }, 2500)
             })
         }
