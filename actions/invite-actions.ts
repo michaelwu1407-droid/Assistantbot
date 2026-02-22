@@ -174,6 +174,6 @@ export async function getTeamMembers() {
       email: true,
       role: true,
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { id: "asc" },
   });
 }
