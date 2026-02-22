@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         );
     } catch (error: any) {
         console.error("Stripe webhook verification failed:", error.message);
-        return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
+        return new NextResponse("Webhook signature verification failed", { status: 400 });
     }
 
     try {
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         }
     } catch (err: any) {
         console.error("Error handling Stripe event:", err);
-        return new NextResponse(`Webhook Error: ${err.message}`, { status: 500 });
+        return new NextResponse("Internal server error", { status: 500 });
     }
 
     return new NextResponse(null, { status: 200 });

@@ -241,11 +241,19 @@ export async function updateDealStage(dealId: string, stage: string) {
       return { success: false, error: `Invalid stage: ${stage}` };
     }
 
+    // Save previous stage for undo support
+    const currentDeal = await db.deal.findUnique({
+      where: { id: parsed.data.dealId },
+      select: { stage: true, metadata: true },
+    });
+    const currentMeta = (currentDeal?.metadata as Record<string, unknown>) ?? {};
+
     const deal = await db.deal.update({
       where: { id: parsed.data.dealId },
       data: {
         stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
         stageChangedAt: new Date(),
+        metadata: { ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" },
       },
     });
 

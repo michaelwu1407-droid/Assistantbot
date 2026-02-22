@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export interface NotificationView {
@@ -80,6 +81,68 @@ export async function createNotification(data: {
     },
   });
   return { success: true };
+}
+
+/** Notification preference keys stored in workspace.settings JSON */
+export interface NotificationPreferences {
+  emailDealUpdates: boolean
+  emailNewContacts: boolean
+  emailWeeklySummary: boolean
+  inAppTaskReminders: boolean
+  inAppStaleDealAlerts: boolean
+}
+
+const DEFAULT_PREFS: NotificationPreferences = {
+  emailDealUpdates: true,
+  emailNewContacts: true,
+  emailWeeklySummary: true,
+  inAppTaskReminders: true,
+  inAppStaleDealAlerts: true,
+}
+
+/**
+ * Get notification preferences from workspace settings JSON.
+ */
+export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+  const authUser = await getAuthUser()
+  if (!authUser?.email) return DEFAULT_PREFS
+  const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
+  if (!user) return DEFAULT_PREFS
+
+  const workspace = await db.workspace.findUnique({
+    where: { id: user.workspaceId },
+    select: { settings: true },
+  })
+
+  const settings = (workspace?.settings as Record<string, unknown>) ?? {}
+  const prefs = (settings.notificationPreferences as Partial<NotificationPreferences>) ?? {}
+  return { ...DEFAULT_PREFS, ...prefs }
+}
+
+/**
+ * Save notification preferences to workspace settings JSON.
+ */
+export async function saveNotificationPreferences(prefs: NotificationPreferences) {
+  const authUser = await getAuthUser()
+  if (!authUser?.email) throw new Error("Unauthorized")
+  const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
+  if (!user) throw new Error("Unauthorized")
+
+  const workspace = await db.workspace.findUnique({
+    where: { id: user.workspaceId },
+    select: { settings: true },
+  })
+
+  const currentSettings = (workspace?.settings as Record<string, unknown>) ?? {}
+  await db.workspace.update({
+    where: { id: user.workspaceId },
+    data: {
+      settings: { ...currentSettings, notificationPreferences: prefs },
+    },
+  })
+
+  revalidatePath("/dashboard/settings/notifications")
+  return { success: true }
 }
 
 /**

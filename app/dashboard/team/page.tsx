@@ -1,116 +1,290 @@
-import { getAuthUser } from "@/lib/auth"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Plus, Shield, Users, AlertTriangle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2 } from "lucide-react"
+import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite } from "@/actions/invite-actions"
+import { toast } from "sonner"
 
-export default async function TeamPage() {
-    const authUser = await getAuthUser()
-    if (!authUser) redirect("/login")
+interface TeamMember {
+    id: string
+    name: string | null
+    email: string
+    role: string
+}
 
-    // Mock data for now - could fetch from DB later
-    const teamMembers = [
-        {
-            id: "1",
-            name: authUser.name || "You",
-            email: authUser.email,
-            role: "Owner",
-            avatar: authUser.image,
-            status: "Active"
-        },
-        {
-            id: "2",
-            name: "Sarah Johnson",
-            email: "sarah@example.com",
-            role: "Admin",
-            avatar: null,
-            status: "Active"
-        },
-        {
-            id: "3",
-            name: "Mike Wilson",
-            email: "mike@example.com",
-            role: "Field Worker",
-            avatar: null,
-            status: "Active"
-        },
-        {
-            id: "4",
-            name: "Subbie Steve",
-            email: "steve@subbie.com",
-            role: "Subcontractor",
-            avatar: null,
-            status: "Invited"
+interface Invite {
+    id: string
+    token: string
+    email: string | null
+    role: string
+    expiresAt: Date
+}
+
+export default function TeamPage() {
+    const [members, setMembers] = useState<TeamMember[]>([])
+    const [invites, setInvites] = useState<Invite[]>([])
+    const [loading, setLoading] = useState(true)
+    const [inviteOpen, setInviteOpen] = useState(false)
+    const [inviteRole, setInviteRole] = useState<"TEAM_MEMBER" | "MANAGER">("TEAM_MEMBER")
+    const [inviteEmail, setInviteEmail] = useState("")
+    const [generatedLink, setGeneratedLink] = useState("")
+    const [creating, setCreating] = useState(false)
+
+    useEffect(() => {
+        Promise.all([getTeamMembers(), getWorkspaceInvites()])
+            .then(([m, i]) => {
+                setMembers(m)
+                setInvites(i as Invite[])
+            })
+            .finally(() => setLoading(false))
+    }, [])
+
+    const handleCreateInvite = async () => {
+        setCreating(true)
+        const result = await createInvite({
+            role: inviteRole,
+            email: inviteEmail || undefined,
+        })
+        if (result.success && result.token) {
+            const link = `${window.location.origin}/invite/join?token=${result.token}`
+            setGeneratedLink(link)
+            toast.success("Invite link created!")
+            const newInvites = await getWorkspaceInvites()
+            setInvites(newInvites as Invite[])
+        } else {
+            toast.error(result.error || "Failed to create invite")
         }
-    ]
+        setCreating(false)
+    }
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(generatedLink)
+        toast.success("Link copied to clipboard!")
+    }
+
+    const handleRevoke = async (inviteId: string) => {
+        const result = await revokeInvite(inviteId)
+        if (result.success) {
+            setInvites((prev) => prev.filter((i) => i.id !== inviteId))
+            toast.success("Invite revoked")
+        } else {
+            toast.error(result.error || "Failed to revoke invite")
+        }
+    }
+
+    const getRoleBadgeClass = (role: string) => {
+        switch (role) {
+            case "OWNER":
+                return "bg-purple-50 text-purple-700 border-purple-200 rounded-full"
+            case "MANAGER":
+                return "bg-blue-50 text-blue-700 border-blue-200 rounded-full"
+            default:
+                return "bg-slate-100 text-slate-600 border-slate-200 rounded-full"
+        }
+    }
+
+    const getRoleLabel = (role: string) => {
+        switch (role) {
+            case "OWNER": return "Owner"
+            case "MANAGER": return "Manager"
+            case "TEAM_MEMBER": return "Team Member"
+            default: return role
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
-            {/* WIP Banner */}
-            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
-                <p className="text-sm font-medium">
-                    Team Management is a work in progress and needs further development. Features shown are placeholders only.
-                </p>
-            </div>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-midnight">Team Management</h1>
                     <p className="text-slate-body">Manage access and permissions for your workspace.</p>
                 </div>
-                <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Invite Member
-                </Button>
+
+                <Dialog open={inviteOpen} onOpenChange={(open) => {
+                    setInviteOpen(open)
+                    if (!open) {
+                        setGeneratedLink("")
+                        setInviteEmail("")
+                        setInviteRole("TEAM_MEMBER")
+                    }
+                }}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Invite Member
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Invite a Team Member</DialogTitle>
+                            <DialogDescription>
+                                Generate an invite link to share. They&apos;ll sign up and automatically join your workspace.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-2">
+                                <Label>Role</Label>
+                                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+                                        <SelectItem value="MANAGER">Manager</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    {inviteRole === "MANAGER"
+                                        ? "Managers can view everything and invite others."
+                                        : "Team members have a simplified view focused on their assigned jobs."}
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Email (optional)</Label>
+                                <Input
+                                    placeholder="team@example.com"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Pre-fill their email, or leave blank for an open invite link.
+                                </p>
+                            </div>
+
+                            {!generatedLink ? (
+                                <Button onClick={handleCreateInvite} className="w-full" disabled={creating}>
+                                    {creating ? (
+                                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                                    ) : (
+                                        <><Link2 className="h-4 w-4 mr-2" /> Generate Invite Link</>
+                                    )}
+                                </Button>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="flex gap-2">
+                                        <Input value={generatedLink} readOnly className="font-mono text-xs" />
+                                        <Button variant="outline" size="icon" onClick={handleCopyLink}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        This link expires in 7 days.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
+            {/* Active Members */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-slate-500" />
-                        Members
+                        Members ({members.length})
                     </CardTitle>
                     <CardDescription>
                         People with access to your workspace.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        {teamMembers.map((member) => (
+                    <div className="space-y-3">
+                        {members.map((member) => (
                             <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-border/50">
                                 <div className="flex items-center gap-4">
                                     <Avatar>
-                                        <AvatarImage src={member.avatar || ""} />
-                                        <AvatarFallback>{member.name[0]}</AvatarFallback>
+                                        <AvatarFallback>{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-medium text-midnight">{member.name}</p>
+                                        <p className="font-medium text-midnight">{member.name || "Unnamed"}</p>
                                         <p className="text-sm text-slate-body">{member.email}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <Badge variant="outline" className={
-                                        member.role === "Owner" ? "bg-purple-50 text-purple-700 border-purple-200 rounded-full" :
-                                            member.role === "Admin" ? "bg-blue-50 text-blue-700 border-blue-200 rounded-full" :
-                                                "bg-slate-100 text-slate-600 border-slate-200 rounded-full"
-                                    }>
-                                        {member.role === "Owner" && <Shield className="w-3 h-3 mr-1" />}
-                                        {member.role}
-                                    </Badge>
-                                    <span className={`text-xs ${member.status === "Active" ? "text-primary font-medium" : "text-amber-600 font-medium"}`}>
-                                        {member.status}
-                                    </span>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                        <MoreHorizontal className="w-4 h-4 text-slate-400" />
-                                    </Button>
-                                </div>
+                                <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
+                                    {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
+                                    {getRoleLabel(member.role)}
+                                </Badge>
                             </div>
                         ))}
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Pending Invites */}
+            {invites.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Link2 className="w-5 h-5 text-slate-500" />
+                            Pending Invites ({invites.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {invites.map((invite) => (
+                                <div key={invite.id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-2xl border border-amber-200/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                            <Link2 className="h-5 w-5 text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-midnight">
+                                                {invite.email || "Open invite link"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant="outline" className={getRoleBadgeClass(invite.role)}>
+                                            {getRoleLabel(invite.role)}
+                                        </Badge>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-400 hover:text-red-600"
+                                            onClick={() => handleRevoke(invite.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }

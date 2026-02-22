@@ -22,7 +22,7 @@ export function MobileSidebar() {
 
     return (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="p-0 w-[80px] border-r border-border bg-white">
+            <SheetContent side="left" className="p-0 w-[200px] border-r border-border bg-white">
                 <SheetHeader className="sr-only">
                     <SheetTitle>Navigation Menu</SheetTitle>
                 </SheetHeader>

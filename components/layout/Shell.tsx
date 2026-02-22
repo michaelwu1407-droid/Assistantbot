@@ -190,7 +190,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               <button
                 type="button"
                 onClick={() => setMobileChatOpen(true)}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
                 title="Open chat"
                 aria-label="Open chat"
               >
@@ -209,7 +209,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 chatbotPanelRef.current?.expand()
                 setChatbotExpanded(true)
               }}
-              className="hidden md:flex fixed bottom-5 right-5 z-[10000] h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="hidden md:flex fixed bottom-5 right-5 z-[10000] h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
               title="Open chat"
               aria-label="Open chat"
             >

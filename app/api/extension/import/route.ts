@@ -40,10 +40,11 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (err) {
+    console.error("Extension import error:", err);
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Internal error",
+        error: "Internal server error",
       },
       { status: 500 }
     );

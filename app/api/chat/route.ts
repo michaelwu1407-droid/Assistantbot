@@ -19,7 +19,16 @@ import {
   runMakeCall,
   runGetConversationHistory,
   runCreateScheduledNotification,
+  runUndoLastAction,
 } from "@/actions/chat-actions";
+import {
+  runGetSchedule,
+  runSearchJobHistory,
+  runGetFinancialReport,
+  runGetClientContext,
+  runGetTodaySummary,
+  runGetAvailability,
+} from "@/actions/agent-tools";
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { parseJobOneLiner, buildJobDraftFromParams } from "@/lib/chat-utils";
@@ -220,9 +229,8 @@ export async function POST(req: Request) {
     }
 
     const settings = await getWorkspaceSettingsById(workspaceId);
-    const deals = await getDeals(workspaceId);
 
-    // Fetch business profile for knowledge base context (Chat-3)
+    // Keep BusinessProfile and WorkspaceSettings in system prompt (small & static)
     const workspaceInfo = await db.workspace.findUnique({
       where: { id: workspaceId },
       select: { name: true, location: true, twilioPhoneNumber: true },
@@ -251,7 +259,7 @@ export async function POST(req: Request) {
     }
     knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
 
-    // Build context strings
+    // Build context strings (static workspace settings only — no data stuffing)
     const agentModeStr = settings?.agentMode === "EXECUTE"
       ? "\nAGENT OVERRIDE MODE: EXECUTE. You have full autonomy. Calculate the price based on standard glossary pricing below. If no exact match, make an educated estimate. You may execute creation, moving, scheduling, or proposing of jobs directly based on smart geolocation."
       : settings?.agentMode === "ORGANIZE"
@@ -271,16 +279,6 @@ export async function POST(req: Request) {
 3. If asked for general pricing, quote the standard Call-Out Fee of $${callOutFee}. You can say something like "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
 4. If the user requests a common task that exists in the Glossary, you may quote that specific price range instead of the call-out fee.`;
 
-    let glossaryStr = "";
-
-    const nextWeekTimestamp = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).getTime();
-    const futureJobs = deals.filter(d => d.scheduledAt && new Date(d.scheduledAt).getTime() > Date.now() && new Date(d.scheduledAt).getTime() < nextWeekTimestamp);
-    let scheduleStr = "";
-    if (futureJobs.length > 0) {
-      scheduleStr = "\nUPCOMING SCHEDULE OVER NEXT 7 DAYS (Use this for Smart Geolocation Routing within ~15km radius):\n" + futureJobs.map(d => `- ${d.title} for ${d.contactName} at ${new Date(d.scheduledAt!).toLocaleString()} (${d.address || 'No address'})`).join("\n");
-      scheduleStr += "\nSMART ROUTING RULES: When the user requests to schedule a non-urgent job, check the schedule above. If a job exists within the next 7 days in a nearby location, strongly suggest logically scheduling adjacent to it to minimise travel time.";
-    }
-
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
       system: `You are a helpful CRM assistant. You manage deals, jobs, pipeline stages, and customer communications.
@@ -289,25 +287,37 @@ ${agentModeStr}
 ${workingHoursStr}
 ${preferencesStr}
 ${pricingRulesStr}
-${glossaryStr}
-${scheduleStr}
 
-TOOLS:
+IMPORTANT: You have access to tools for checking the schedule, job history, finances, and client details. If a user asks a question you don't have the answer to in your immediate context, USE THE TOOLS. Do not guess. Always call the appropriate tool to retrieve real data before answering.
+
+TOOLS — DATA RETRIEVAL (use these to look up information on demand):
+- getSchedule: Fetches jobs for a date range. ALWAYS call this when the user asks about their schedule, availability, or upcoming/past appointments. Also use before scheduling new jobs to check for conflicts and suggest smart geolocation routing (group nearby jobs).
+- searchJobHistory: Search past jobs by keyword (client name, address, description). Use for "When did I last visit X?", "Jobs at Y address", or any historical question.
+- getFinancialReport: Revenue, job counts, and completion rates for a date range. Use for "How much did I earn?", "Monthly revenue?", "How many jobs this quarter?".
+- getClientContext: Full client profile — contact info, recent jobs, notes, messages. Use for "Tell me about X", "What's the history with Y?", or before contacting a client.
+- getTodaySummary: Quick snapshot of today's jobs, overdue tasks, and message count. Use for "What's on today?", "Give me my daily summary", "Morning brief".
+- getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?".
+
+TOOLS — CRM ACTIONS:
 - listDeals: Call when the user asks to see deals, pipeline, jobs, or what they have. Use it to get exact deal names before moving or describing.
-- moveDeal: Move a deal to another stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
+- moveDeal: Move a deal to a different stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
 - createDeal: Create a new deal. Needs title; optional company/client name and value. Creates or finds a contact by company name.
-- createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. USE THIS whenever the user sends a single message that describes a job: a person/client name, what work is needed, and optionally address, time, and price. Examples: "Sally at 12 Wyndham St Alexandria needs her sink fixed tomorrow at 2pm. $200 price agreed" or "Sharon from 17 Alexandria St needs sink fixed quoted $200 for tomorrow 2pm". You MUST call createJobNatural with the extracted clientName, workDescription, price, and if mentioned address and schedule—do not only acknowledge. If they mention a date or time (e.g. tomorrow 2pm), always pass it in the schedule parameter so the job is created in the Scheduled column.
-- proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time. It logs the proposed time on the job, adds a note, and creates a follow-up task to contact the customer to confirm.
-- updateInvoiceAmount: Modifies the final invoiced amount for a job, independent of the initial quote/value. Use when a user says "Invoice John for $300" or "Change the final invoice for Kitchen Reno to $500".
+- createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. USE THIS whenever the user sends a single message that describes a job: a person/client name, what work is needed, and optionally address, time, and price. IMPORTANT: Before creating a scheduled job, call getSchedule first to check for conflicts and nearby jobs for smart routing.
+- proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time.
+- updateInvoiceAmount: Modifies the final invoiced amount for a job. Use when a user says "Invoice John for $300".
+
+TOOLS — COMMUNICATION & LOGGING:
 - logActivity: Record a call, meeting, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
 - createTask: Create a reminder or to-do task. e.g "Remind me tomorrow to order pipes", "Schedule a task to check up on Mary".
 - searchContacts: Look up people or companies in the database CRM.
 - createContact: Add a new person or company to the database CRM explicitly.
-- sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3". Searches for the contact by name and sends via their phone number.
-- sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote" or "Send John an email about his appointment". Finds the contact by name and uses their email address.
-- makeCall: Initiate an outbound phone call to a contact via the AI voice agent. Use when the user says "Call John" or "Ring Mary about the quote" or "Phone Steven to confirm the appointment". The AI agent will handle the conversation.
-- getConversationHistory: Retrieve text/call/email history with a specific contact. Use when the user asks "Show me my text history with Steven" or "What have we discussed with Mary?".
-- createNotification: Create a scheduled notification or reminder alert. Use when the user says "Notify me when we are 2 days out from Wendy's repair job" or "Alert me if no response from John by Friday".
+- sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3".
+- sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote".
+- makeCall: Initiate an outbound phone call to a contact via the AI voice agent.
+- getConversationHistory: Retrieve text/call/email history with a specific contact.
+- createNotification: Create a scheduled notification or reminder alert.
+- updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays".
+- undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
       messages: modelMessages as any,
@@ -458,6 +468,65 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           execute: async (params) =>
             runCreateScheduledNotification(workspaceId, params),
         }),
+        undoLastAction: tool({
+          description: "Undo the most recent action. Use when the user says 'Undo that', 'Revert', 'Take that back', or 'Oops undo'. Reverses the last deal creation, stage move, or other reversible action.",
+          inputSchema: z.object({}),
+          execute: async () => runUndoLastAction(workspaceId),
+        }),
+
+        // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────
+        getSchedule: tool({
+          description: "Fetches scheduled jobs for a specific date range. Use this when the user asks 'What am I doing next week?', 'Do I have space on Tuesday?', 'What's my schedule for March?', or any question about upcoming or past appointments. Also use before scheduling new jobs to check for conflicts and nearby jobs for smart geolocation routing.",
+          inputSchema: z.object({
+            startDate: z.string().describe("Start of date range as ISO string (e.g. 2026-02-21T00:00:00)"),
+            endDate: z.string().describe("End of date range as ISO string (e.g. 2026-02-28T23:59:59)"),
+          }),
+          execute: async ({ startDate, endDate }) =>
+            runGetSchedule(workspaceId, { startDate, endDate }),
+        }),
+        searchJobHistory: tool({
+          description: "Searches for past jobs (completed, cancelled, or any status) based on keywords. Use for queries like 'When was the last time I visited Mrs. Jones?', 'Jobs at 10 Henderson St', 'Have I done work for Acme Corp before?', or any question about past job history.",
+          inputSchema: z.object({
+            query: z.string().describe("Search keywords — client name, address, or job description"),
+            limit: z.number().optional().describe("Max results to return (default 5)"),
+          }),
+          execute: async ({ query, limit }) =>
+            runSearchJobHistory(workspaceId, { query, limit }),
+        }),
+        getFinancialReport: tool({
+          description: "Calculates revenue, job count, and completion rates for a date range. Use when the user asks 'How much did I earn this month?', 'What's my revenue for February?', 'How many jobs did I complete last quarter?', or any financial/performance question.",
+          inputSchema: z.object({
+            startDate: z.string().describe("Start of date range as ISO string"),
+            endDate: z.string().describe("End of date range as ISO string"),
+          }),
+          execute: async ({ startDate, endDate }) =>
+            runGetFinancialReport(workspaceId, { startDate, endDate }),
+        }),
+        getClientContext: tool({
+          description: "Fetches a complete profile for a specific client: their contact info, recent jobs, notes, and message history. Use when the user asks 'Tell me about Mrs. Jones', 'What's the history with John Smith?', 'Pull up Steven's details', or needs context about a client before a call/visit.",
+          inputSchema: z.object({
+            clientName: z.string().describe("The client name to look up (fuzzy matched)"),
+          }),
+          execute: async ({ clientName }) =>
+            runGetClientContext(workspaceId, { clientName }),
+        }),
+        getTodaySummary: tool({
+          description: "Quick snapshot of today's scheduled jobs, overdue tasks, and recent message count. Use for 'What's on today?', 'Give me my daily summary', 'Morning brief', or when the user opens the chat without a specific question.",
+          inputSchema: z.object({}),
+          execute: async () => runGetTodaySummary(workspaceId),
+        }),
+        getAvailability: tool({
+          description: "Check available time slots on a specific date given existing scheduled jobs and working hours. Use for 'Am I free on Tuesday?', 'What slots are open next Monday?', 'When can I fit in a job this week?'.",
+          inputSchema: z.object({
+            date: z.string().describe("The target date as ISO string (e.g. 2026-02-25)"),
+          }),
+          execute: async ({ date }) =>
+            runGetAvailability(workspaceId, {
+              date,
+              workingHoursStart: settings?.workingHoursStart || "08:00",
+              workingHoursEnd: settings?.workingHoursEnd || "17:00",
+            }),
+        }),
       },
       stopWhen: stepCountIs(5),
     });
@@ -467,8 +536,7 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
     console.error("Chat API error:", error);
     return new Response(
       JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "Something went wrong",
+        error: "Something went wrong. Please try again.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );

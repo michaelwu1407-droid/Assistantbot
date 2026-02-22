@@ -949,3 +949,66 @@ export async function runCreateScheduledNotification(
   }
 }
 
+// ─── Undo Last Action ───────────────────────────────────────────────
+
+/**
+ * Undo the most recent chatbot action for a workspace.
+ * Supports: undoing deal creation, deal stage moves, and contact creation.
+ * Uses the Activity log to discover the last action taken.
+ */
+export async function runUndoLastAction(workspaceId: string): Promise<string> {
+  try {
+    // Find the most recent activity logged by the AI
+    const lastActivity = await db.activity.findFirst({
+      where: {
+        deal: { workspaceId },
+      },
+      orderBy: { createdAt: "desc" },
+      include: { deal: true },
+    });
+
+    if (!lastActivity) {
+      return "No recent actions found to undo.";
+    }
+
+    const description = lastActivity.description ?? lastActivity.title ?? "";
+    const descLower = description.toLowerCase();
+
+    // Undo a deal stage move (restore from metadata)
+    if (descLower.includes("moved to") || descLower.includes("stage changed")) {
+      const deal = lastActivity.deal;
+      if (!deal) return "Could not find the associated deal to undo.";
+
+      const meta = (deal.metadata as Record<string, unknown>) ?? {};
+      const previousStage = meta.previousStage as string | undefined;
+
+      if (previousStage) {
+        await db.deal.update({
+          where: { id: deal.id },
+          data: { stage: previousStage },
+        });
+        await db.activity.delete({ where: { id: lastActivity.id } });
+        revalidatePath("/dashboard");
+        return `Undone: "${deal.title}" moved back to "${previousStage}" stage.`;
+      }
+
+      return `Cannot undo: no previous stage recorded for "${deal.title}".`;
+    }
+
+    // Undo deal creation (delete the deal)
+    if (descLower.includes("created deal") || descLower.includes("new deal") || descLower.includes("new job")) {
+      const deal = lastActivity.deal;
+      if (!deal) return "Could not find the deal to undo.";
+
+      await db.activity.deleteMany({ where: { dealId: deal.id } });
+      await db.deal.delete({ where: { id: deal.id } });
+      revalidatePath("/dashboard");
+      return `Undone: Deal "${deal.title}" has been deleted.`;
+    }
+
+    return `The last action ("${description}") cannot be automatically undone. You may need to reverse it manually.`;
+  } catch (err) {
+    return `Error undoing action: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+

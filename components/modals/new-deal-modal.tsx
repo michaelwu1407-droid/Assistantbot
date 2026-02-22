@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
-import { Plus, User, Mail, Phone, MapPin, AlertCircle } from "lucide-react"
+import { Plus, User, Mail, Phone, MapPin, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 
 interface NewDealModalProps {
     isOpen: boolean
@@ -24,6 +25,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
     const [address, setAddress] = useState("")
+    const [scheduledAt, setScheduledAt] = useState("")
     const [stage, setStage] = useState("new_request")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
@@ -99,7 +101,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 contactId: finalContactId,
                 stage,
                 workspaceId,
-                address: address || undefined
+                address: address || undefined,
+                scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
             })
 
             if (result.success) {
@@ -107,6 +110,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                 setTitle("")
                 setValue("")
                 setAddress("")
+                setScheduledAt("")
                 setStage("new_request")
                 setContactId("")
                 setNewContactName("")
@@ -176,13 +180,26 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                             <Label htmlFor="address" className="text-right">
                                 Address
                             </Label>
-                            <div className="col-span-3 relative">
-                                <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                                <Input
+                            <div className="col-span-3">
+                                <AddressAutocomplete
                                     id="address"
-                                    placeholder="123 Main St"
                                     value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
+                                    onChange={setAddress}
+                                    placeholder="Start typing an address..."
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="scheduledAt" className="text-right">
+                                Schedule
+                            </Label>
+                            <div className="col-span-3 relative">
+                                <CalendarClock className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="scheduledAt"
+                                    type="datetime-local"
+                                    value={scheduledAt}
+                                    onChange={(e) => setScheduledAt(e.target.value)}
                                     className="pl-9"
                                 />
                             </div>
