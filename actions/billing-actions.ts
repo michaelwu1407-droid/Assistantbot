@@ -37,7 +37,7 @@ export async function createCheckoutSession(workspaceId: string) {
         ],
         mode: "subscription",
         client_reference_id: workspaceId,
-        success_url: `${origin}/dashboard?payment=success`,
+        success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/dashboard/settings`,
     });
 
