@@ -209,13 +209,19 @@ export async function listWorkspaces(ownerId: string): Promise<WorkspaceView[]> 
 /**
  * Complete onboarding for a workspace.
  * Called at the end of the setup chat flow to persist
- * business name, industry type, and location.
+ * business name, industry type, location, and additional business details.
  */
 export async function completeOnboarding(data: {
   businessName: string;
   industryType: "TRADES" | "REAL_ESTATE";
   location: string;
   ownerPhone?: string;
+  tradeType?: string;
+  serviceRadius?: number;
+  workHours?: string;
+  emergencyService?: boolean;
+  callOutFee?: number;
+  pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -239,6 +245,46 @@ export async function completeOnboarding(data: {
       industryType: data.industryType,
       location: data.location,
       onboardingComplete: true,
+    },
+  });
+
+  // Create or update Business Profile for Tradies
+  if (data.industryType === "TRADES" && data.tradeType) {
+    await db.businessProfile.upsert({
+      where: { userId },
+      update: {
+        tradeType: data.tradeType,
+        baseSuburb: data.location,
+        serviceRadius: data.serviceRadius || 20,
+        standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
+        emergencyService: data.emergencyService || false,
+        emergencySurcharge: data.emergencyService ? data.callOutFee : null,
+      },
+      create: {
+        userId,
+        tradeType: data.tradeType,
+        baseSuburb: data.location,
+        serviceRadius: data.serviceRadius || 20,
+        standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
+        emergencyService: data.emergencyService || false,
+        emergencySurcharge: data.emergencyService ? data.callOutFee : null,
+      },
+    });
+  }
+
+  // Create or update Pricing Settings
+  await db.pricingSettings.upsert({
+    where: { userId },
+    update: {
+      mode: data.pricingMode || "STANDARD",
+      callOutFee: data.callOutFee || 89.0,
+      waiveFee: data.pricingMode === "BOOK_ONLY",
+    },
+    create: {
+      userId,
+      mode: data.pricingMode || "STANDARD",
+      callOutFee: data.callOutFee || 89.0,
+      waiveFee: data.pricingMode === "BOOK_ONLY",
     },
   });
 

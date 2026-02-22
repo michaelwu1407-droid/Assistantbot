@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, Briefcase, Building } from "lucide-react"
+import { Send, Briefcase, Building, Phone, Clock, DollarSign, Mail, Settings } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
 
@@ -34,6 +34,14 @@ export function SetupChat() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [businessName, setBusinessName] = useState("")
     const [industryType, setIndustryType] = useState<"TRADES" | "REAL_ESTATE">("TRADES")
+    const [location, setLocation] = useState("")
+    const [ownerPhone, setOwnerPhone] = useState("")
+    const [tradeType, setTradeType] = useState("")
+    const [serviceRadius, setServiceRadius] = useState(20)
+    const [workHours, setWorkHours] = useState("Mon-Fri, 07:00-15:30")
+    const [emergencyService, setEmergencyService] = useState(false)
+    const [callOutFee, setCallOutFee] = useState(89)
+    const [pricingMode, setPricingMode] = useState<"BOOK_ONLY" | "CALL_OUT" | "STANDARD">("STANDARD")
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -119,15 +127,231 @@ export function SetupChat() {
                 setStep(2)
             }, 1500)
         }
-        // Step 2: Location -> Persist to DB & Finish
+        // Step 2: Location -> Ask Owner Phone (Tradies only)
         else if (step === 2) {
             const location = validInput
+            setLocation(location)
+
+            if (industryType === "TRADES") {
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "Perfect! For your AI agent to handle calls and SMS, I'll need your mobile number. What's the best phone number for clients to reach you?",
+                            type: "text"
+                        }
+                    ])
+                    setStep(3)
+                }, 1500)
+            } else {
+                // Real Estate skips to business details
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "Great! Let's set up your business details. What type of real estate services do you offer?",
+                            type: "text"
+                        }
+                    ])
+                    setStep(5)
+                }, 1500)
+            }
+        }
+        // Step 3: Owner Phone -> Ask Trade Type (Tradies only)
+        else if (step === 3) {
+            const phone = validInput.replace(/[^0-9+]/g, '') // Clean phone number
+            setOwnerPhone(phone)
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Thanks! Now, what's your trade? (e.g., Plumber, Electrician, HVAC, etc.)",
+                        type: "text"
+                    }
+                ])
+                setStep(4)
+            }, 1500)
+        }
+        // Step 4: Trade Type -> Ask Service Details (Tradies only)
+        else if (step === 4) {
+            const trade = validInput
+            setTradeType(trade)
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `Great! A ${trade} needs the right setup. What's your standard service radius (in km)? The default is 20km.`,
+                        type: "text"
+                    }
+                ])
+                setStep(5)
+            }, 1500)
+        }
+        // Step 5: Service Details -> Ask Pricing (Tradies) / Business Type (Real Estate)
+        else if (step === 5) {
+            if (industryType === "TRADES") {
+                const radius = parseInt(validInput)
+                setServiceRadius(isNaN(radius) ? 20 : radius)
+
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "Perfect! Now let's set up your pricing. Do you charge a call-out fee, or do free quotes?",
+                            type: "choice",
+                            choices: [
+                                { label: "Free Quotes", value: "BOOK_ONLY", icon: Settings },
+                                { label: "Call-out Fee ($89)", value: "CALL_OUT", icon: DollarSign },
+                                { label: "Standard Pricing", value: "STANDARD", icon: Settings }
+                            ]
+                        }
+                    ])
+                    setStep(6)
+                }, 1500)
+            } else {
+                // Real Estate business type
+                const businessType = validInput
+                setTradeType(businessType)
+
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "Excellent! Your workspace is configured. Let's get you subscribed...",
+                            type: "text"
+                        }
+                    ])
+                }, 1500)
+                setTimeout(() => {
+                    const isTradies = (industryType as string) === "TRADES";
+                    completeOnboarding({
+                        businessName,
+                        industryType,
+                        location,
+                        ownerPhone: isTradies ? ownerPhone : "",
+                        tradeType: isTradies ? tradeType : "",
+                        serviceRadius: isTradies ? serviceRadius : 0,
+                        workHours: isTradies ? workHours : "",
+                        emergencyService: isTradies ? emergencyService : false,
+                        callOutFee: isTradies ? callOutFee : 0,
+                        pricingMode: isTradies ? pricingMode : "BOOK_ONLY"
+                    }).then(() => {
+                        setIsTyping(false)
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "assistant",
+                                content: "Perfect! Your workspace is all set up. Let's get you subscribed...",
+                                type: "text"
+                            }
+                        ])
+                        setTimeout(() => {
+                            router.push("/billing")
+                        }, 2500)
+                    }).catch(() => {
+                        setIsTyping(false)
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "assistant",
+                                content: "I've saved your preferences locally. Let's get you subscribed...",
+                                type: "text"
+                            }
+                        ])
+                        setTimeout(() => {
+                            router.push("/billing")
+                        }, 2500)
+                    })
+                }, 1500)
+            }
+        }
+        // Step 6: Pricing -> Ask Work Hours (Tradies) or Complete
+        else if (step === 6) {
+            const pricing = validInput
+            setPricingMode(pricing as "BOOK_ONLY" | "CALL_OUT" | "STANDARD")
+
+            if (pricing === "CALL_OUT") {
+                setCallOutFee(89)
+            } else if (pricing === "BOOK_ONLY") {
+                setCallOutFee(0)
+            }
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Got it! What are your standard work hours? (e.g., Mon-Fri, 07:00-15:30)",
+                        type: "text"
+                    }
+                ])
+                setStep(7)
+            }, 1500)
+        }
+        // Step 7: Work Hours -> Ask Emergency Service (Tradies)
+        else if (step === 7) {
+            const hours = validInput
+            setWorkHours(hours)
+
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "One last question: Do you offer emergency service outside standard hours?",
+                        type: "choice",
+                        choices: [
+                            { label: "No, standard hours only", value: "false", icon: Clock },
+                            { label: "Yes, 24/7 emergency", value: "true", icon: Phone }
+                        ]
+                    }
+                ])
+                setStep(8)
+            }, 1500)
+        }
+        // Step 8: Emergency Service -> Complete Onboarding
+        else if (step === 8) {
+            const emergency = validInput === "true"
+            setEmergencyService(emergency)
 
             // Persist all onboarding data to the database
             completeOnboarding({
                 businessName,
                 industryType,
                 location,
+                ownerPhone,
+                tradeType,
+                serviceRadius,
+                workHours,
+                emergencyService,
+                callOutFee,
+                pricingMode
             }).then(() => {
                 setIsTyping(false)
                 setMessages(prev => [
