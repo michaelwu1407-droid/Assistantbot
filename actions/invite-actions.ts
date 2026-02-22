@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Create an invite link for a workspace.
@@ -37,18 +40,71 @@ export async function createInvite(params: {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
 
-  const invite = await db.workspaceInvite.create({
-    data: {
-      workspaceId: user.workspaceId,
-      invitedById: user.id,
-      role: params.role as UserRole,
-      email: params.email || null,
-      expiresAt,
-    },
-  });
+  try {
+    const invite = await db.workspaceInvite.create({
+      data: {
+        workspaceId: user.workspaceId,
+        invitedById: user.id,
+        role: params.role as UserRole,
+        email: params.email || null,
+        expiresAt,
+      },
+    });
 
-  revalidatePath("/dashboard/team");
-  return { success: true, token: invite.token };
+    // Send email if email is provided
+    if (params.email && params.email.trim()) {
+      try {
+        const workspace = await db.workspace.findUnique({
+          where: { id: user.workspaceId },
+          select: { name: true },
+        });
+
+        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pj-buddy.com'}/invite/join?token=${invite.token}`;
+        
+        await resend.emails.send({
+          from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'pj-buddy.com'}`,
+          to: [params.email],
+          subject: `You're invited to join ${workspace?.name || 'Pj Buddy'}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
+              <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <h2 style="color: #1e293b; margin-bottom: 8px;">You're Invited!</h2>
+                <p style="color: #475569; margin-bottom: 20px;">
+                  You've been invited to join <strong>${workspace?.name || 'Pj Buddy'}</strong> as a ${params.role.toLowerCase().replace('_', ' ')}.
+                </p>
+                <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <p style="color: #64748b; margin: 0 0 10px 0;">Click the link below to accept the invitation:</p>
+                  <a 
+                    href="${inviteLink}" 
+                    style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;"
+                  >
+                    Accept Invitation
+                  </a>
+                </div>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+                  This invitation expires in 7 days.
+                </p>
+              </div>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send invite email:", emailError);
+        // Don't fail the whole operation if email fails
+      }
+    }
+
+    revalidatePath("/dashboard/team");
+    return { success: true, token: invite.token };
+  } catch (error) {
+    console.error("Error creating invite:", error);
+    
+    if (error instanceof Error && error.message.includes("Unique constraint")) {
+      return { success: false, error: "This email has already been invited" };
+    }
+    
+    return { success: false, error: "Failed to create invite" };
+  }
 }
 
 /**

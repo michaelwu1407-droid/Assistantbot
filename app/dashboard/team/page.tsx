@@ -22,7 +22,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2 } from "lucide-react"
+import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2, CheckCircle, Mail } from "lucide-react"
 import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite } from "@/actions/invite-actions"
 import { toast } from "sonner"
 
@@ -50,6 +50,9 @@ export default function TeamPage() {
     const [inviteEmail, setInviteEmail] = useState("")
     const [generatedLink, setGeneratedLink] = useState("")
     const [creating, setCreating] = useState(false)
+    const [inviteSuccess, setInviteSuccess] = useState(false)
+    const [inviteError, setInviteError] = useState("")
+    const [sentEmail, setSentEmail] = useState("")
 
     useEffect(() => {
         Promise.all([getTeamMembers(), getWorkspaceInvites()])
@@ -62,17 +65,55 @@ export default function TeamPage() {
 
     const handleCreateInvite = async () => {
         setCreating(true)
+        setInviteError("")
+        
+        // Validate email is provided for "Send Invitation"
+        if (!inviteEmail.trim()) {
+            setInviteError("Email is required to send an invitation")
+            setCreating(false)
+            return
+        }
+
+        const result = await createInvite({
+            role: inviteRole,
+            email: inviteEmail,
+        })
+        
+        if (result.success && result.token) {
+            const link = `${window.location.origin}/invite/join?token=${result.token}`
+            setGeneratedLink(link)
+            setSentEmail(inviteEmail)
+            setInviteSuccess(true)
+            toast.success(`Invite sent to ${inviteEmail}!`)
+            
+            const newInvites = await getWorkspaceInvites()
+            setInvites(newInvites as Invite[])
+        } else {
+            setInviteError(result.error || "Failed to create invite")
+            toast.error(result.error || "Failed to create invite")
+        }
+        setCreating(false)
+    }
+
+    const handleGenerateLink = async () => {
+        setCreating(true)
+        setInviteError("")
+        
         const result = await createInvite({
             role: inviteRole,
             email: inviteEmail || undefined,
         })
+        
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
+            setInviteSuccess(true)
             toast.success("Invite link created!")
+            
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
         } else {
+            setInviteError(result.error || "Failed to create invite")
             toast.error(result.error || "Failed to create invite")
         }
         setCreating(false)
@@ -135,6 +176,9 @@ export default function TeamPage() {
                         setGeneratedLink("")
                         setInviteEmail("")
                         setInviteRole("TEAM_MEMBER")
+                        setInviteSuccess(false)
+                        setInviteError("")
+                        setSentEmail("")
                     }
                 }}>
                     <DialogTrigger asChild>
@@ -147,10 +191,10 @@ export default function TeamPage() {
                         <DialogHeader>
                             <DialogTitle>Invite a Team Member</DialogTitle>
                             <DialogDescription>
-                                Generate an invite link to share. They&apos;ll sign up and automatically join your workspace.
+                                Send an invitation email or generate a shareable link. They&apos;ll sign up and automatically join your workspace.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-2">
+                        <div className="space-y-4 py-2 ott-card rounded-xl bg-white/80 backdrop-blur border border-slate-200/60 shadow-lg">
                             <div className="space-y-2">
                                 <Label>Role</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
@@ -169,36 +213,81 @@ export default function TeamPage() {
                                 </p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Email (optional)</Label>
+                                <Label>Email *</Label>
                                 <Input
                                     placeholder="team@example.com"
                                     value={inviteEmail}
                                     onChange={(e) => setInviteEmail(e.target.value)}
+                                    disabled={inviteSuccess}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Pre-fill their email, or leave blank for an open invite link.
+                                    Required to send invitation email.
                                 </p>
                             </div>
 
-                            {!generatedLink ? (
-                                <Button onClick={handleCreateInvite} className="w-full" disabled={creating}>
-                                    {creating ? (
-                                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
-                                    ) : (
-                                        <><Link2 className="h-4 w-4 mr-2" /> Generate Invite Link</>
-                                    )}
-                                </Button>
-                            ) : (
+                            {inviteError && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-sm text-red-600">{inviteError}</p>
+                                </div>
+                            )}
+                            
+                            {!inviteSuccess ? (
                                 <div className="space-y-3">
-                                    <div className="flex gap-2">
-                                        <Input value={generatedLink} readOnly className="font-mono text-xs" />
-                                        <Button variant="outline" size="icon" onClick={handleCopyLink}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
+                                    <Button 
+                                        onClick={handleCreateInvite} 
+                                        className="w-full" 
+                                        disabled={creating || !inviteEmail.trim()}
+                                    >
+                                        {creating ? (
+                                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</>
+                                        ) : (
+                                            <><Mail className="h-4 w-4 mr-2" /> Send Invitation</>
+                                        )}
+                                    </Button>
+                                    <Button 
+                                        onClick={handleGenerateLink} 
+                                        variant="outline" 
+                                        className="w-full" 
+                                        disabled={creating}
+                                    >
+                                        {creating ? (
+                                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                                        ) : (
+                                            <><Link2 className="h-4 w-4 mr-2" /> Generate Invite Link</>
+                                        )}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 py-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                            <CheckCircle className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-slate-900">Invite sent to {sentEmail}!</h3>
+                                            <p className="text-sm text-slate-600 mt-1">They can join your workspace using the link below.</p>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground text-center">
-                                        This link expires in 7 days.
-                                    </p>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium text-slate-700">Manual sharing link</Label>
+                                        <div className="flex gap-2">
+                                            <Input 
+                                                value={generatedLink} 
+                                                readOnly 
+                                                className="font-mono text-xs" 
+                                            />
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                onClick={handleCopyLink}
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            This link expires in 7 days.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
