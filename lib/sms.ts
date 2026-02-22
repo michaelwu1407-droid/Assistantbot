@@ -26,7 +26,7 @@ export async function sendIntroSms(options: {
 
   // Get owner details
   const owner = await db.user.findUnique({
-    where: { id: workspace.ownerId },
+    where: { id: workspace.ownerId || "" },
     select: { name: true },
   });
 

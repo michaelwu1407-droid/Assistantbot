@@ -98,10 +98,10 @@ async function processLeadEmail(email: any, integration: any) {
       contact = await db.contact.create({
         data: {
           workspaceId: integration.user.workspace.id,
-          name: leadData.customerName,
-          email: leadData.customerEmail,
-          phone: leadData.customerPhone,
-          address: leadData.customerAddress,
+          name: leadData.customerName || "Unknown Customer",
+          email: leadData.customerEmail || "",
+          phone: leadData.customerPhone || "",
+          address: leadData.customerAddress || "",
         },
       });
     }
