@@ -33,6 +33,11 @@ This document tracks the functional status of each page and feature, explicitly 
 ## Unresolved UX/UI & Feature Audit (Pending)
 *The following issues have been logged from a comprehensive user review on 2026-02-20 and are pending future development.*
 
+### Pending Config Changes
+- **TWILIO-1 (AU Number Swap):** 🔜 PENDING — Currently using US trial number `+12624390786` for Supabase Phone Auth OTP. Once the Australia Mobile Business Regulatory Bundle is approved by Twilio, swap to an AU `+61` number in **both** Supabase (Authentication → Providers → Phone) and the `.env` config. See Twilio Console for Account SID.
+- **CHAT-6 (Conciseness):** 🔜 TODO — AI chatbot responses are too verbose. Update system prompt to enforce short, punchy replies. Tradies want quick answers, not essays.
+- **CHAT-7 (Jobs not Meetings):** 🔜 TODO — Replace all references to "meetings" with "jobs" across AI system prompts, tool descriptions, and UI copy.
+
 ### Home Page
 - **Home-1 (Activity Card):** ✅ FIXED — Activity card clicks now open a DealDetailModal instead of navigating away.
 - **Home-2 (New Deal Button):** ✅ FIXED — Default mode reset to "create" tab after submission.

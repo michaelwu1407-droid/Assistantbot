@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, Briefcase, Building } from "lucide-react"
+import { Send } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
 
@@ -193,9 +193,10 @@ export function SetupChat() {
     }
 
     const processStep = (validInput: string) => {
-        // Step 0: First Name -> Go straight to tutorial
+        // Step 0: First Name → ask for trade type
         if (step === 0) {
             setUserName(validInput)
+            setStep(1)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -203,23 +204,101 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `Nice to meet you, ${validInput}! 🎉 Let me show you around Pj Buddy. I'll take you on a quick walkthrough so you can see everything I can do for you.`,
+                        content: `Nice to meet you, ${validInput}! 👋 What type of trade do you do? (e.g. Plumber, Electrician, Carpenter, HVAC, Painter, Roofer)`,
                         type: "text"
                     }
                 ])
-                // Save minimal data and go to walkthrough/tutorial
+            }, 1200)
+        }
+
+        // Step 1: Trade type → ask for business name
+        else if (step === 1) {
+            const resolved = resolveTradeType(validInput)
+            setTradeType(resolved)
+            setIndustryType("TRADES")
+            setIndustry("TRADES")
+            setStep(2)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `${resolved} — solid! 🔧 What's your business name?`,
+                        type: "text"
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 2: Business name → ask for location
+        else if (step === 2) {
+            setBusinessName(validInput)
+            setStep(3)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `"${validInput}" — love it! Where are you based? (e.g. Sydney, Melbourne, Brisbane)`,
+                        type: "text"
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 3: Location → ask for phone
+        else if (step === 3) {
+            const resolved = resolveLocation(validInput)
+            setLocation(resolved)
+            setStep(4)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `${resolved} — great spot! Last one: what's your mobile number? (We'll use it for your business line. Type "skip" to do this later.)`,
+                        type: "text"
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 4: Phone → save & redirect to tutorial
+        else if (step === 4) {
+            const phone = validInput.toLowerCase() === "skip" || validInput.trim() === "" ? "" : validInput.trim()
+            setStep(5)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `All set! 🎉 Setting up ${businessName || `${userName}'s Workspace`} now — I'll show you around in a quick walkthrough.`,
+                        type: "text"
+                    }
+                ])
+                // Save all onboarding data and go to tutorial
                 completeOnboarding({
-                    businessName: `${validInput}'s Workspace`,
+                    businessName: businessName || `${userName}'s Workspace`,
                     industryType: "TRADES",
-                    location: "",
+                    location: location,
+                    tradeType: tradeType,
+                    ownerPhone: phone,
                 }).then(() => {
                     setTimeout(() => {
                         router.push("/dashboard?tutorial=true")
-                    }, 2000)
+                    }, 2500)
                 }).catch(() => {
                     setTimeout(() => {
                         router.push("/dashboard?tutorial=true")
-                    }, 2000)
+                    }, 2500)
                 })
             }, 1500)
         }

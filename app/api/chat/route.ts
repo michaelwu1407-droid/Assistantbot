@@ -20,6 +20,7 @@ import {
   runGetConversationHistory,
   runCreateScheduledNotification,
   runUndoLastAction,
+  runAssignTeamMember,
 } from "@/actions/chat-actions";
 import {
   runGetSchedule,
@@ -31,7 +32,8 @@ import {
 } from "@/actions/agent-tools";
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
-import { parseJobOneLiner, buildJobDraftFromParams } from "@/lib/chat-utils";
+import { buildJobDraftFromParams } from "@/lib/chat-utils";
+import { parseJobWithAI } from "@/lib/ai/job-parser";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
 
     if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
-    const parsed = parseJobOneLiner(content);
+    const parsed = await parseJobWithAI(content);
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
@@ -281,7 +283,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      system: `You are a helpful CRM assistant. You manage deals, jobs, pipeline stages, and customer communications.
+      system: `You are Travis, a concise CRM assistant for tradies. Keep responses SHORT and punchy — tradies are busy. No essays. Use "jobs" not "meetings".
 ${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}
@@ -307,7 +309,7 @@ TOOLS — CRM ACTIONS:
 - updateInvoiceAmount: Modifies the final invoiced amount for a job. Use when a user says "Invoice John for $300".
 
 TOOLS — COMMUNICATION & LOGGING:
-- logActivity: Record a call, meeting, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
+- logActivity: Record a call, job site visit, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
 - createTask: Create a reminder or to-do task. e.g "Remind me tomorrow to order pipes", "Schedule a task to check up on Mary".
 - searchContacts: Look up people or companies in the database CRM.
 - createContact: Add a new person or company to the database CRM explicitly.
@@ -318,6 +320,7 @@ TOOLS — COMMUNICATION & LOGGING:
 - createNotification: Create a scheduled notification or reminder alert.
 - updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays".
 - undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
+- assignTeamMember: Assign a team member to a job. Use when the user says "Assign Dave to the Henderson job" or "Put Sarah on the plumbing repair".
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
       messages: modelMessages as any,
@@ -351,13 +354,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
         }),
         createJobNatural: tool({
           description:
-            "Create a job from a one-liner: extract clientName, workDescription, price; optional address and schedule. REQUIRED when the user pastes a single message describing a job (person + work + optional address/time/price). Always pass schedule when a date or time is mentioned so the job goes to the Scheduled column.",
+            "Create a job from a one-liner: extract clientName, workDescription, price; optional address, schedule, phone, email. REQUIRED when the user pastes a single message describing a job (person + work + optional address/time/price/phone). Always extract the client's phone number if included. Always pass schedule when a date or time is mentioned so the job goes to the Scheduled column.",
           inputSchema: z.object({
-            clientName: z.string().describe("Client name"),
+            clientName: z.string().describe("Client full name (first and last)"),
             workDescription: z.string().describe("What work is needed"),
             price: z.number().describe("Price in dollars"),
-            address: z.string().optional().describe("Address"),
+            address: z.string().optional().describe("Street address for the job"),
             schedule: z.string().optional().describe("When e.g. tomorrow 2pm"),
+            phone: z.string().optional().describe("Client phone number if provided (e.g. 0434955958 or +61434955958)"),
+            email: z.string().optional().describe("Client email if provided"),
           }),
           execute: async (params) => runCreateJobNatural(workspaceId, params),
         }),
@@ -472,6 +477,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           description: "Undo the most recent action. Use when the user says 'Undo that', 'Revert', 'Take that back', or 'Oops undo'. Reverses the last deal creation, stage move, or other reversible action.",
           inputSchema: z.object({}),
           execute: async () => runUndoLastAction(workspaceId),
+        }),
+        assignTeamMember: tool({
+          description: "Assign a team member to a job/deal. Use when the user says 'Assign Dave to the Henderson job', 'Put Sarah on the plumbing repair', or 'Give the roof job to Mike'. Fuzzy-matches both the job title and team member name.",
+          inputSchema: z.object({
+            dealTitle: z.string().describe("The job/deal title or description to assign"),
+            teamMemberName: z.string().describe("The team member's name (or email) to assign the job to"),
+          }),
+          execute: async ({ dealTitle, teamMemberName }) =>
+            runAssignTeamMember(workspaceId, { dealTitle, teamMemberName }),
         }),
 
         // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────
