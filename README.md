@@ -1,6 +1,6 @@
 # Pj Buddy - AI-Powered Tradie CRM Platform
 
-**Version**: 2.0 (February 2026)  
+**Version**: 2.1 (February 2026)  
 **Target**: Australian Tradespeople & Service Businesses  
 **Architecture**: Next.js 16.1.6 + Supabase + Gemini AI + Twilio
 
@@ -37,6 +37,42 @@ Our revolutionary **Instant Lead Capture** automatically detects and responds to
 
 ---
 
+## 📞 **Phone Management System** ⭐ (NEW)
+
+Dual-number architecture for complete communication control:
+
+### 📱 **Personal Phone Number** (User Management)
+- **Purpose**: App-to-user communication (verification, urgent messages)
+- **Management**: Changeable via Settings with SMS verification
+- **Features**: 6-digit codes, 10-minute expiry, first-time setup
+- **Location**: `/dashboard/settings/phone-settings`
+
+### 🤖 **AI Agent Business Number** (Customer-Facing)
+- **Purpose**: Customer communications via AI assistant
+- **Management**: Support-only (security-focused)
+- **Features**: Twilio subaccounts, voice agent integration
+- **Changes**: Via support ticket system
+
+---
+
+## 🛠️ **Support System** ⭐ (NEW)
+
+Multi-channel support with AI-powered assistance:
+
+### 🤖 **AI Assistant Support**
+- **24/7 Availability**: Instant help and ticket creation
+- **Smart Categorization**: Phone, billing, features, bugs, accounts
+- **Priority Detection**: Urgent, high, medium, low
+- **Immediate Help**: Diagnostics and next steps
+
+### 📞 **Human Support Channels**
+- **Email**: support@pjbuddy.com (24-hour response)
+- **Phone**: 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST)
+- **Tickets**: Integrated support system in settings
+- **Website**: Contact section with all channels
+
+---
+
 ## 🏗️ **Technical Architecture**
 
 ### **Frontend Stack**
@@ -56,9 +92,10 @@ Our revolutionary **Instant Lead Capture** automatically detects and responds to
 - **SMS**: Twilio (multi-tenant subaccounts)
 - **Email**: Resend (transactional)
 - **Webhooks**: Real-time lead processing
+- **Phone Verification**: Master Twilio number for codes
 
 ### **Infrastructure**
-- **Hosting**: Vercil (Edge functions)
+- **Hosting**: Vercel (Edge functions)
 - **Monitoring**: Sentry + PostHog
 - **Storage**: Supabase Storage (files/docs)
 - **Security**: End-to-end encryption for OAuth tokens
@@ -78,6 +115,7 @@ Our revolutionary **Instant Lead Capture** automatically detects and responds to
 - **Voice Input**: Microphone for hands-free commands
 - **Context Awareness**: Knows current page and suggests actions
 - **Magic Commands**: `/draft`, `/summarize`, `/schedule`
+- **Support Handling**: Automatic ticket creation and categorization
 
 ### **📅 Schedule** (`/dashboard/schedule`)
 - **Calendar View**: Month/Week/Day views

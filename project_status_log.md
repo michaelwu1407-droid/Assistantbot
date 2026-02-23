@@ -9,6 +9,18 @@
 - **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
 - **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
 
+## 2026-02-24: Sprint 22 - Phone Management & Support System
+- **Dual-Number Architecture:** Implemented complete separation between personal phone numbers (user management) and AI agent business numbers (customer-facing).
+- **Personal Phone Management:** Added `/dashboard/settings/phone-settings` with SMS verification for personal number changes. Features 6-digit codes, 10-minute expiry, and first-time setup flow.
+- **AI Agent Number Security:** Made AI agent business numbers read-only and support-managed for security. Users must contact support to change AI agent numbers.
+- **Enhanced Error Logging:** Fixed silent failures in `initializeTradieComms` by adding Activity Feed logging with user-friendly error messages.
+- **Comprehensive Support System:** Built multi-channel support with AI assistant handling, email (support@pjbuddy.com), phone (1300 PJ BUDDY), and integrated ticket system.
+- **Chatbot Support Integration:** Added `contactSupport` tool to AI assistant with automatic categorization (phone, billing, features, bugs, accounts) and priority detection.
+- **Website Contact Section:** Updated homepage with professional support section featuring all contact channels and business hours.
+- **Database Schema Updates:** Added `phone` field to User model and `VerificationCode` model for SMS verification workflow.
+- **Documentation Updates:** Updated README.md to v2.1 with new phone management and support features. Added comprehensive tutorial (185 steps) covering all features.
+- **Files Touched:** `actions/phone-settings.ts` (new), `actions/chat-actions.ts`, `app/dashboard/settings/phone-settings/page.tsx` (new), `app/dashboard/settings/support/page.tsx` (new), `app/api/support/contact/route.ts` (new), `app/api/chat/route.ts`, `app/page.tsx`, `lib/sms-verification.ts` (new), `prisma/schema.prisma`, `docs/COMPREHENSIVE_TUTORIAL.md`, `README.md`.
+
 ## 2026-02-22: Documentation Audit & Corrections
 - **Auth System Correction:** Updated all documentation to reflect **Supabase Auth** (not Clerk) as the actual authentication system in use. Fixed README.md, APP_MANUAL.md, DEPLOYMENT_CHECKLIST.md, and .env.example.
 - **Tech Stack Updates:** Corrected Next.js version from 14 to 16.1.6, Gemini model from "2.5 Flash" to "2.0 Flash Lite", and clarified Retell AI as the sole voice integration.

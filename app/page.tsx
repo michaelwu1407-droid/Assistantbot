@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Check, ArrowRight, Hammer, Smartphone, BarChart3, Users, MessageSquare, Zap, Shield, Clock } from "lucide-react"
+import { Check, ArrowRight, Hammer, Smartphone, BarChart3, Users, MessageSquare, Zap, Shield, Clock, Mail, Phone } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {
@@ -266,13 +266,68 @@ export default function Home() {
 
       {/* CTA / Contact Section */}
       <section id="contact" className="py-20 px-6 bg-midnight text-white">
-        <div className="container mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
+        <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8">
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] leading-[1.2] text-white text-balance">
-            Start Using Pj Buddy!
+            Need Help? We're Here for You!
           </h2>
-          <p className="text-white/60 max-w-lg leading-relaxed">
-            Join thousands of SMEs using Pj Buddy to streamline their workflow and grow their business.
+          <p className="text-white/60 max-w-2xl leading-relaxed">
+            Get support from our team via multiple channels. We're committed to helping you succeed with Pj Buddy.
           </p>
+          
+          {/* Contact Options Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Live Chat</h3>
+              <p className="text-white/60 text-sm mb-4">
+                Get instant help from our AI assistant 24/7
+              </p>
+              <Link href="/auth">
+                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white hover:text-midnight w-full">
+                  Start Chat
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Email Support</h3>
+              <p className="text-white/60 text-sm mb-2">
+                support@pjbuddy.com
+              </p>
+              <p className="text-white/60 text-sm mb-4">
+                Response within 24 hours
+              </p>
+              <a href="mailto:support@pjbuddy.com">
+                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white hover:text-midnight w-full">
+                  Send Email
+                </Button>
+              </a>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Phone className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Phone Support</h3>
+              <p className="text-white/60 text-sm mb-2">
+                1300 PJ BUDDY
+              </p>
+              <p className="text-white/60 text-sm mb-4">
+                Mon-Fri 9am-5pm AEST
+              </p>
+              <a href="tel:13007528339">
+                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white hover:text-midnight w-full">
+                  Call Now
+                </Button>
+              </a>
+            </div>
+          </div>
+          
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <Link href="/auth">
               <Button variant="outline" size="lg" className="border-white/20 text-white hover:bg-white hover:text-midnight bg-transparent">

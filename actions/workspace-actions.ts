@@ -287,15 +287,28 @@ export async function completeOnboarding(data: {
   });
 
   // For Tradies: provision dedicated phone number, SIP trunk, and Retell voice agent.
-  // This runs async and won't block the onboarding redirect — progress is tracked
-  // in the Activity Feed so the user can see setup status from their dashboard.
+  // This runs async and logs errors to activity feed for visibility
   const { initializeTradieComms } = await import("@/lib/comms");
   initializeTradieComms(
     workspace.id,
     data.businessName,
     data.ownerPhone || ""
-  ).catch((err) => {
+  ).catch(async (err) => {
     console.error("[completeOnboarding] Comms provisioning failed:", err);
+    
+    // Log the failure to activity feed so user can see it
+    try {
+      const { db } = await import("@/lib/db");
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Phone Number Setup Failed",
+          content: `AI agent phone number setup failed: ${err instanceof Error ? err.message : "Unknown error"}. Please contact support or try setting up manually in settings.`,
+        },
+      });
+    } catch (logErr) {
+      console.error("[completeOnboarding] Failed to log error to activity feed:", logErr);
+    }
   });
 
   return { success: true, workspaceId: workspace.id };

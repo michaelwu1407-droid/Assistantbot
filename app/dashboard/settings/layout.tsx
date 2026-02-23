@@ -15,6 +15,14 @@ const sidebarNavItems = [
         href: "/dashboard/settings",
     },
     {
+        title: "Phone Settings",
+        href: "/dashboard/settings/phone-settings",
+    },
+    {
+        title: "Support",
+        href: "/dashboard/settings/support",
+    },
+    {
         title: "Account",
         href: "/dashboard/settings/account",
     },

@@ -22,6 +22,67 @@ import {
   DAY_ABBREVS,
 } from "@/lib/chat-utils";
 
+/**
+ * Find similar contact names using fuzzy matching
+ * Returns contacts sorted by similarity score (highest first)
+ */
+function findSimilarNames<T extends { id: string; name: string | null; createdAt: Date }>(
+  query: string,
+  contacts: T[],
+  threshold: number = 0.4
+): (T & { score: number })[] {
+  const queryLower = query.toLowerCase().trim();
+  
+  const scored = contacts
+    .filter(c => c.name) // Only check contacts with names
+    .map(c => {
+      const nameLower = c.name!.toLowerCase();
+      let score = 0;
+      
+      // Exact match (should have been caught earlier, but just in case)
+      if (nameLower === queryLower) score = 1.0;
+      // Contains match
+      else if (nameLower.includes(queryLower) || queryLower.includes(nameLower)) score = 0.9;
+      // Fuzzy match using Levenshtein distance
+      else {
+        score = fuzzyScore(queryLower, nameLower);
+      }
+      
+      return {
+        ...c,
+        score
+      };
+    })
+    .filter(c => c.score >= threshold)
+    .sort((a, b) => b.score - a.score);
+  
+  return scored;
+}
+
+/**
+ * Format a date as a friendly time ago string
+ */
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffDays > 30) {
+    return date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+  } else if (diffDays > 0) {
+    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  } else if (diffMins > 0) {
+    return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+  } else {
+    return "just now";
+  }
+}
+
 // ─── Stage Alias Mapping ─────────────────────────────────────────────
 // Maps any user-facing stage name (industry-specific or generic) to the
 // internal lowercase stage key used by the Kanban board and DB.
@@ -617,6 +678,8 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
  * AI Tool Action: Send SMS to a contact.
  * Looks up the contact by name, finds or creates a Twilio subaccount client,
  * and sends the message via the workspace's Twilio phone number.
+ * 
+ * IMPROVED: Graceful handling of name mismatches with fuzzy matching suggestions
  */
 export async function runSendSms(
   workspaceId: string,
@@ -624,8 +687,33 @@ export async function runSendSms(
 ): Promise<string> {
   try {
     const contacts = await searchContacts(workspaceId, params.contactName);
-    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+    
+    // If no exact match, try fuzzy matching for similar names
+    if (!contacts.length) {
+      const allContacts = await db.contact.findMany({
+        where: { workspaceId },
+        select: { id: true, name: true, phone: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+      
+      // Find similar names using fuzzy matching
+      const similarContacts = findSimilarNames(params.contactName, allContacts);
+      
+      if (similarContacts.length > 0) {
+        // Format suggestions for user
+        const suggestions = similarContacts.slice(0, 3).map((c, i) => 
+          `${i + 1}. ${c.name}${c.phone ? ` (${c.phone})` : ""} - added ${formatTimeAgo(c.createdAt)}`
+        ).join("\n");
+        
+        return `I couldn't find "${params.contactName}" in your contacts. Did you mean one of these?\n\n${suggestions}\n\nReply with the number (1, 2, or 3) to message them, or say "create new" to add "${params.contactName}" as a new contact.`;
+      }
+      
+      // No similar contacts found - offer to create new
+      return `I couldn't find "${params.contactName}" in your contacts, and I don't see any similar names.\n\nWould you like me to:\n1. Create a new contact "${params.contactName}" and then send the message\n2. Show you a list of all your contacts\n3. Try a different spelling\n\nJust let me know which option you'd prefer!`;
+    }
 
+    // Rest of the existing SMS sending logic...
     const contact = contacts[0];
     if (!contact.phone) return `Contact "${contact.name}" has no phone number on file. Add one first.`;
 
@@ -691,6 +779,8 @@ export async function runSendSms(
 /**
  * AI Tool Action: Send an email to a contact via Resend.
  * Looks up the contact by name, sends the email, and logs it as an activity.
+ * 
+ * IMPROVED: Graceful handling of name mismatches with fuzzy matching suggestions
  */
 export async function runSendEmail(
   workspaceId: string,
@@ -698,16 +788,37 @@ export async function runSendEmail(
 ): Promise<string> {
   try {
     const contacts = await searchContacts(workspaceId, params.contactName);
-    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+    
+    // If no exact match, try fuzzy matching for similar names
+    if (!contacts.length) {
+      const allContacts = await db.contact.findMany({
+        where: { workspaceId },
+        select: { id: true, name: true, email: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+      
+      // Find similar names using fuzzy matching
+      const similarContacts = findSimilarNames(params.contactName, allContacts);
+      
+      if (similarContacts.length > 0) {
+        const suggestions = similarContacts.slice(0, 3).map((c, i) => 
+          `${i + 1}. ${c.name}${c.email ? ` (${c.email})` : ""} - added ${formatTimeAgo(c.createdAt)}`
+        ).join("\n");
+        
+        return `I couldn't find "${params.contactName}" in your contacts. Did you mean one of these?\n\n${suggestions}\n\nReply with the number (1, 2, or 3) to email them, or say "create new" to add "${params.contactName}" as a new contact.`;
+      }
+      
+      return `I couldn't find "${params.contactName}" in your contacts, and I don't see any similar names.\n\nWould you like me to:\n1. Create a new contact "${params.contactName}" and then send the email\n2. Show you a list of all your contacts\n3. Try a different spelling\n\nJust let me know which option you'd prefer!`;
+    }
 
     const contact = contacts[0];
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
 
-    // Look up workspace for sender identity
+    // Rest of the email sending logic...
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
     const senderName = workspace?.name ?? "Pj Buddy";
 
-    // Send via Resend if configured
     let delivered = false;
     const resendKey = process.env.RESEND_API_KEY;
     const fromDomain = process.env.RESEND_FROM_DOMAIN;
@@ -727,7 +838,6 @@ export async function runSendEmail(
       delivered = true;
     }
 
-    // Log the outbound email as an activity
     await logActivity({
       type: "EMAIL",
       title: `Email to ${contact.name}: ${params.subject}`,
@@ -755,6 +865,8 @@ export async function runSendEmail(
 /**
  * AI Tool Action: Initiate an outbound phone call to a contact via Retell AI.
  * Creates a call using the Retell SDK that connects the AI voice agent to the client.
+ * 
+ * IMPROVED: Graceful handling of name mismatches with fuzzy matching suggestions
  */
 export async function runMakeCall(
   workspaceId: string,
@@ -762,7 +874,29 @@ export async function runMakeCall(
 ): Promise<string> {
   try {
     const contacts = await searchContacts(workspaceId, params.contactName);
-    if (!contacts.length) return `No contact found matching "${params.contactName}". Try searching first.`;
+    
+    // If no exact match, try fuzzy matching for similar names
+    if (!contacts.length) {
+      const allContacts = await db.contact.findMany({
+        where: { workspaceId },
+        select: { id: true, name: true, phone: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+      
+      // Find similar names using fuzzy matching
+      const similarContacts = findSimilarNames(params.contactName, allContacts);
+      
+      if (similarContacts.length > 0) {
+        const suggestions = similarContacts.slice(0, 3).map((c, i) => 
+          `${i + 1}. ${c.name}${c.phone ? ` (${c.phone})` : ""} - added ${formatTimeAgo(c.createdAt)}`
+        ).join("\n");
+        
+        return `I couldn't find "${params.contactName}" in your contacts. Did you mean one of these?\n\n${suggestions}\n\nReply with the number (1, 2, or 3) to call them, or say "create new" to add "${params.contactName}" as a new contact.`;
+      }
+      
+      return `I couldn't find "${params.contactName}" in your contacts, and I don't see any similar names.\n\nWould you like me to:\n1. Create a new contact "${params.contactName}" and then call them\n2. Show you a list of all your contacts\n3. Try a different spelling\n\nJust let me know which option you'd prefer!`;
+    }
 
     const contact = contacts[0];
     if (!contact.phone) return `Contact "${contact.name}" has no phone number on file. Add one first.`;
@@ -1101,5 +1235,89 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
   } catch (err) {
     return `Error undoing action: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+/**
+ * Handle support requests from chatbot
+ */
+export async function handleSupportRequest(
+  message: string,
+  userId: string,
+  workspaceId: string
+): Promise<string> {
+  const lowerMessage = message.toLowerCase();
+  
+  // Extract support details
+  const subject = extractSupportSubject(lowerMessage);
+  const priority = extractPriority(lowerMessage);
+  
+  // Get user and workspace context
+  const [user, workspace] = await Promise.all([
+    db.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true, phone: true }
+    }),
+    db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { 
+        name: true, 
+        twilioPhoneNumber: true, 
+        type: true,
+        twilioSubaccountId: true,
+        retellAgentId: true
+      }
+    })
+  ]);
+
+  if (!user || !workspace) {
+    return "I'm having trouble accessing your account details. Please try again or contact support directly.";
+  }
+
+  // Log support request to activity feed
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: `Chatbot Support Request: ${subject}`,
+      content: `Priority: ${priority}\n\nOriginal message: "${message}"\n\nUser: ${user.email}\nPhone: ${user.phone || "Not provided"}\nWorkspace: ${workspace.name}\nAI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}`,
+    },
+  });
+
+  // Categorize and provide immediate help
+  if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
+    return `I've logged your support request about phone/AI agent issues. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours to fix this.\n\nFor immediate help, you can also:\n• Call 1300 PJ BUDDY (Mon-Fri 9am-5pm)\n• Email support@pjbuddy.com`;
+  }
+
+  if (lowerMessage.includes("billing") || lowerMessage.includes("payment") || lowerMessage.includes("subscription")) {
+    return `I've logged your billing support request. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email billing@pjbuddy.com\n• Call 1300 PJ BUDDY and select billing option`;
+  }
+
+  if (lowerMessage.includes("feature") || lowerMessage.includes("request") || lowerMessage.includes("suggestion")) {
+    return `Great! I've logged your feature request. Our product team reviews all suggestions weekly.\n\nYour request has been tagged as "${priority}" priority and will be considered for future updates. We'll email you at ${user.email} when there's an update.`;
+  }
+
+  // General support
+  return `I've created a support ticket for you with subject: "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST).\n\nIs there anything else I can help you with while you wait?`;
+}
+
+/**
+ * Extract support subject from message
+ */
+function extractSupportSubject(message: string): string {
+  if (message.includes("phone") || message.includes("twilio") || message.includes("ai agent")) return "Phone/AI Agent Issue";
+  if (message.includes("billing") || message.includes("payment") || message.includes("subscription")) return "Billing Question";
+  if (message.includes("feature") || message.includes("request") || message.includes("suggestion")) return "Feature Request";
+  if (message.includes("bug") || message.includes("error") || message.includes("broken")) return "Bug Report";
+  if (message.includes("account") || message.includes("login") || message.includes("password")) return "Account Issue";
+  return "General Support";
+}
+
+/**
+ * Extract priority from message
+ */
+function extractPriority(message: string): string {
+  if (message.includes("urgent") || message.includes("emergency") || message.includes("critical")) return "urgent";
+  if (message.includes("important") || message.includes("high") || message.includes("asap")) return "high";
+  if (message.includes("low") || message.includes("minor") || message.includes("whenever")) return "low";
+  return "medium";
 }
 

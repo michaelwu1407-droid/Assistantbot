@@ -1,6 +1,6 @@
 # Pj Buddy — Comprehensive Operational Manual
 
-**Version**: 1.0 (Feb 2026)
+**Version**: 2.1 (Feb 2026)
 **Target Audience**: Developers, Product Managers, and Power Users.
 
 ---
@@ -31,24 +31,63 @@ The heart of the application. Pj Buddy uses a "Chat First" design philosophy.
     - `/summarize`: Summarize the current view (e.g., a long email thread).
     - `/schedule`: Check availability.
 - **Voice Input**: Dedicated microphone button for voice-to-text commands.
+- **Support Integration**: Automatic support ticket creation and categorization for help requests.
 
-### 2.2. Global Search (`Cmd+K`)
+### 2.2. Phone Management System ⭐ (NEW)
+Dual-number architecture for complete communication control:
+
+#### Personal Phone Number (User Management)
+- **Purpose**: App-to-user communication (verification, urgent messages)
+- **Location**: `/dashboard/settings/phone-settings`
+- **Features**:
+  - SMS verification for number changes (6-digit codes, 10-minute expiry)
+  - First-time setup without verification
+  - Real-time status display
+  - Change history tracking
+
+#### AI Agent Business Number (Customer-Facing)
+- **Purpose**: Customer communications via AI assistant
+- **Management**: Support-only (security-focused)
+- **Features**:
+  - Read-only display in settings
+  - Twilio subaccount provisioning
+  - Voice agent integration
+  - Changes via support ticket system
+
+### 2.3. Support System ⭐ (NEW)
+Multi-channel support with AI-powered assistance:
+
+#### AI Assistant Support
+- **24/7 Availability**: Instant help and ticket creation
+- **Smart Categorization**: Phone, billing, features, bugs, accounts
+- **Priority Detection**: Urgent, high, medium, low
+- **Immediate Help**: Diagnostics and next steps
+- **Activity Logging**: All requests logged to feed
+
+#### Human Support Channels
+- **Email**: support@pjbuddy.com (24-hour response)
+- **Phone**: 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST)
+- **Tickets**: Integrated support system in settings
+- **Website**: Contact section with all channels
+
+### 2.4. Global Search (`Cmd+K`)
 A unified search bar accessible from anywhere.
 - **Fuzzy Search**: Finds contacts, deals, and jobs even with partial matches.
 - **Deep Linking**: Navigates directly to the record (e.g., clicking a Deal result goes to `/dashboard/deals/[id]`).
 - **Quick Actions**: Run commands directly from search (e.g., "New Contact").
 
-### 2.3. Kanban Pipeline
+### 2.5. Kanban Pipeline
 Visual workflow management for Deals.
 - **Drag-and-Drop**: Move deals between stages (New -> Contacted -> Negotiation -> Won).
 - **Stale Deal warnings**: Visual indicators (Amber border) for deals untouched for 7+ days.
 - **Rotting Deal warnings**: Red border for deals untouched for 14+ days.
 - **Industry Logic**: Different columns for **Trades** (Quote Sent, Job Booked) vs **Real Estate** (Appraisal, Listed).
 
-### 2.4. Activity Feed
+### 2.6. Activity Feed
 A unified timeline of all interactions.
-- **Aggregated Events**: Emails, Calls, SMS, Note changes, Status changes.
+- **Aggregated Events**: Emails, Calls, SMS, Note changes, Status changes, Support requests.
 - **Rich Media**: Displays snippets of emails and transcriptions of voice notes.
+- **Error Visibility**: Failed phone setup and other issues clearly displayed.
 
 ---
 

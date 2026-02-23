@@ -21,6 +21,7 @@ import {
   runCreateScheduledNotification,
   runUndoLastAction,
   runAssignTeamMember,
+  handleSupportRequest,
 } from "@/actions/chat-actions";
 import {
   runGetSchedule,
@@ -292,37 +293,50 @@ ${pricingRulesStr}
 
 IMPORTANT: You have access to tools for checking the schedule, job history, finances, and client details. If a user asks a question you don't have the answer to in your immediate context, USE THE TOOLS. Do not guess. Always call the appropriate tool to retrieve real data before answering.
 
+UNCERTAINTY & ERROR HANDLING — CRITICAL:
+When you don't understand, aren't sure, or encounter problems, follow these rules:
+
+1. UNCLEAR INTENT: If you don't understand what the user wants, say: "I'm not sure what you'd like me to do. Could you clarify? For example, you could say 'Schedule a job for John tomorrow' or 'Show me this week's jobs'."
+
+2. AMBIGUOUS COMMAND: If a request could mean multiple things, ask for clarification: "I can interpret this a few ways:
+• Option 1: [interpretation]
+• Option 2: [interpretation]  
+Which did you mean?"
+
+3. MISSING INFORMATION: If you need more details to complete a task: "To [do action], I need a bit more info:
+• [missing info 1]
+• [missing info 2]
+Could you provide these?"
+
+4. CONTACT NAME MISMATCH: If you can't find a contact, the tools will suggest similar names. Never return blank responses.
+
+5. OUT OF SCOPE: If the user asks for something you can't do: "I can't [do specific thing], but I can help you with [related things I can do]. Would any of those work?"
+
+6. TECHNICAL ERRORS: If a tool fails: "I ran into an issue [brief description]. This might be because [possible reason]. Want to try again, or should I log this for support?"
+
+7. VAGUE REQUESTS: If the request is too vague: "I want to help, but I need more specifics. Could you tell me [what you need to know]?"
+
+8. CONFIRMATION UNCERTAINTY: When proposing actions, always ask: "Should I go ahead and [action], or would you like to adjust anything first?"
+
+9. DATA RETRIEVAL FAILURE: If tools return no data: "I checked [what you checked] but didn't find [what you expected]. This could mean [possible explanations]. What would you like to do?"
+
+10. ALWAYS RESPOND: Never return empty/blank responses. Always provide helpful guidance even when uncertain.
+
 TOOLS — DATA RETRIEVAL (use these to look up information on demand):
-- getSchedule: Fetches jobs for a date range. ALWAYS call this when the user asks about their schedule, availability, or upcoming/past appointments. Also use before scheduling new jobs to check for conflicts and suggest smart geolocation routing (group nearby jobs).
+- getSchedule: Fetches jobs for a date range. ALWAYS call this when the user asks about their schedule, availability, or upcoming/past appointments. Also use before scheduling new jobs to check for conflicts and nearby jobs for smart routing.
 - searchJobHistory: Search past jobs by keyword (client name, address, description). Use for "When did I last visit X?", "Jobs at Y address", or any historical question.
-- getFinancialReport: Revenue, job counts, and completion rates for a date range. Use for "How much did I earn?", "Monthly revenue?", "How many jobs this quarter?".
+- getFinancialReport: Revenue, job counts, and completion rates for a date range. Use for "How much did I earn?", "Monthly revenue?", "How many jobs this quarter?"
 - getClientContext: Full client profile — contact info, recent jobs, notes, messages. Use for "Tell me about X", "What's the history with Y?", or before contacting a client.
 - getTodaySummary: Quick snapshot of today's jobs, overdue tasks, and message count. Use for "What's on today?", "Give me my daily summary", "Morning brief".
-- getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?".
-
-TOOLS — CRM ACTIONS:
-- listDeals: Call when the user asks to see deals, pipeline, jobs, or what they have. Use it to get exact deal names before moving or describing.
-- moveDeal: Move a deal to a different stage. Use the deal's title (from listDeals if needed) and target stage (e.g. completed, quoted, scheduled, in progress, new request, deleted).
-- createDeal: Create a new deal. Needs title; optional company/client name and value. Creates or finds a contact by company name.
-- createJobNatural: Create a job from full details: clientName, workDescription, price; optional address and schedule. USE THIS whenever the user sends a single message that describes a job: a person/client name, what work is needed, and optionally address, time, and price. IMPORTANT: Before creating a scheduled job, call getSchedule first to check for conflicts and nearby jobs for smart routing.
-- proposeReschedule: When the user wants to propose a different time for an existing job (e.g. after a clash warning, or "let's propose 3pm instead", "propose scheduling at Tuesday 10am"), call this with the job title and the new proposed time.
-- updateInvoiceAmount: Modifies the final invoiced amount for a job. Use when a user says "Invoice John for $300".
-
-TOOLS — COMMUNICATION & LOGGING:
-- logActivity: Record a call, job site visit, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
-- createTask: Create a reminder or to-do task. e.g "Remind me tomorrow to order pipes", "Schedule a task to check up on Mary".
-- searchContacts: Look up people or companies in the database CRM.
-- createContact: Add a new person or company to the database CRM explicitly.
-- sendSms: Send an SMS text message to a contact. Use when the user says "Text Steven I'm on my way" or "Send Steven a message saying we'll be there at 3".
-- sendEmail: Send an email to a contact. Use when the user says "Email Mary the quote".
-- makeCall: Initiate an outbound phone call to a contact via the AI voice agent.
+- getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?"
 - getConversationHistory: Retrieve text/call/email history with a specific contact.
 - createNotification: Create a scheduled notification or reminder alert.
 - updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays".
 - undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
 - assignTeamMember: Assign a team member to a job. Use when the user says "Assign Dave to the Henderson job" or "Put Sarah on the plumbing repair".
+- contactSupport: Create a support ticket when the user asks for help, reports issues, or needs assistance.
 
-After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
+After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try. Never return empty responses.`,
       messages: modelMessages as any,
       tools: {
         listDeals: tool({
@@ -486,6 +500,18 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           }),
           execute: async ({ dealTitle, teamMemberName }) =>
             runAssignTeamMember(workspaceId, { dealTitle, teamMemberName }),
+        }),
+        contactSupport: tool({
+          description: "Create a support ticket when the user asks for help, reports issues, or needs assistance. Use for phrases like 'I need help', 'support', 'contact support', 'something is broken', 'phone number not working', 'billing issue', etc. Automatically categorizes and prioritizes the request.",
+          inputSchema: z.object({
+            message: z.string().describe("The user's support request or issue description"),
+          }),
+          execute: async ({ message }) => {
+            const { getAuthUserId } = await import("@/lib/auth");
+            const userId = await getAuthUserId();
+            if (!userId) return "Unable to identify user for support request.";
+            return handleSupportRequest(message, userId, workspaceId);
+          },
         }),
 
         // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────
