@@ -266,7 +266,7 @@ export async function runProposeReschedule(
   const contactId = fullDeal?.contactId ?? undefined;
   await logActivity({
     type: "NOTE",
-    title: "Proposed reschedule",
+    title: "Proposed Job Time",
     content: `Proposed new time: ${display}. Reach out to customer to lock it down.`,
     dealId: deal.id,
     contactId: contactId ?? undefined,
