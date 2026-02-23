@@ -120,30 +120,92 @@ export async function completeUserOnboarding(userId: string) {
 
 /**
  * Delete user account and log reason.
- * Manually cleans up dependent records that don't have onDelete: Cascade.
+ * Manually cleans up ALL dependent records before deleting the user.
  */
 export async function deleteUserAccount(userId: string, reason: string) {
   try {
     console.log(`[ACCOUNT DELETION] User ${userId} requested deletion. Reason: ${reason}`);
 
-    // Clean up records that reference this user without cascade delete
+    // 1. Find the user's workspace
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { workspaceId: true },
+    });
+
+    if (!user) {
+      return { success: false, error: "User not found." };
+    }
+
+    const workspaceId = user.workspaceId;
+
+    // 2. Clean up user-level records without cascade delete
     await db.activity.deleteMany({ where: { userId } });
     await db.notification.deleteMany({ where: { userId } });
-    // Unassign deals (don't delete them, just remove the user assignment)
+
+    // 3. Unassign deals from this user
     await db.$executeRawUnsafe(
       `UPDATE "Deal" SET "assignedToId" = NULL WHERE "assignedToId" = $1`,
       userId
     );
 
-    // Now delete user — BusinessProfile, PricingSettings, EmailIntegration,
-    // SmsTemplates will cascade-delete via the schema
-    await db.user.delete({
-      where: { id: userId }
-    });
+    // 4. Delete user (cascades: BusinessProfile, PricingSettings, EmailIntegration, SmsTemplates)
+    await db.user.delete({ where: { id: userId } });
+
+    // 5. Check if workspace has other users — if not, clean up the whole workspace
+    const remainingUsers = await db.user.count({ where: { workspaceId } });
+    if (remainingUsers === 0) {
+      // Delete all workspace-level data
+      // First delete deeply nested records (activities, tasks on deals, etc.)
+      const deals = await db.deal.findMany({ where: { workspaceId }, select: { id: true } });
+      const dealIds = deals.map(d => d.id);
+
+      if (dealIds.length > 0) {
+        await db.activity.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.task.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.invoice.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.openHouseLog.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.buyerFeedback.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.jobPhoto.deleteMany({ where: { dealId: { in: dealIds } } });
+        await db.customerFeedback.deleteMany({ where: { dealId: { in: dealIds } } });
+      }
+
+      // Delete contacts' remaining activities and tasks
+      const contacts = await db.contact.findMany({ where: { workspaceId }, select: { id: true } });
+      const contactIds = contacts.map(c => c.id);
+      if (contactIds.length > 0) {
+        await db.activity.deleteMany({ where: { contactId: { in: contactIds } } });
+        await db.task.deleteMany({ where: { contactId: { in: contactIds } } });
+        await db.customerFeedback.deleteMany({ where: { contactId: { in: contactIds } } });
+      }
+
+      // Delete deals and contacts
+      await db.deal.deleteMany({ where: { workspaceId } });
+      await db.contact.deleteMany({ where: { workspaceId } });
+
+      // Delete workspace-level resources
+      await db.chatMessage.deleteMany({ where: { workspaceId } });
+      await db.messageTemplate.deleteMany({ where: { workspaceId } });
+      await db.automation.deleteMany({ where: { workspaceId } });
+      await db.material.deleteMany({ where: { workspaceId } });
+      await db.key.deleteMany({ where: { workspaceId } });
+      await db.repairItem.deleteMany({ where: { workspaceId } });
+      await db.$executeRawUnsafe(
+        `DELETE FROM "AutomatedMessageRule" WHERE "workspaceId" = $1`,
+        workspaceId
+      );
+      await db.$executeRawUnsafe(
+        `DELETE FROM "WorkspaceInvite" WHERE "workspaceId" = $1`,
+        workspaceId
+      );
+
+      // Finally delete the workspace itself
+      await db.workspace.delete({ where: { id: workspaceId } });
+    }
 
     return { success: true };
-  } catch (error) {
-    console.error("Failed to delete account:", error);
-    return { success: false, error: "Failed to delete account. Please try again or contact support." };
+  } catch (error: any) {
+    console.error("Failed to delete account:", error?.message || error);
+    console.error("Full error:", JSON.stringify(error, null, 2));
+    return { success: false, error: `Failed to delete account: ${error?.message || "Unknown error"}. Please contact support.` };
   }
 }
