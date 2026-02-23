@@ -949,6 +949,95 @@ export async function runCreateScheduledNotification(
   }
 }
 
+// ─── Assign Team Member ─────────────────────────────────────────────
+
+/**
+ * AI Tool Action: Assign a team member to a job/deal.
+ * Fuzzy-matches both the deal title and team member name within the workspace.
+ */
+export async function runAssignTeamMember(
+  workspaceId: string,
+  params: { dealTitle: string; teamMemberName: string }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Find the deal
+    const deals = await getDeals(workspaceId);
+    const deal = findDealByTitle(deals, params.dealTitle.trim());
+    if (!deal) {
+      const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
+      return {
+        success: false,
+        message: `Couldn't find a job matching "${params.dealTitle}".${deals.length > 0 ? ` Current jobs: ${suggestions}` : " No jobs yet."}`,
+      };
+    }
+
+    // Find the team member in this workspace
+    const members = await db.user.findMany({
+      where: { workspaceId },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    if (!members.length) {
+      return { success: false, message: "No team members found in this workspace." };
+    }
+
+    const query = params.teamMemberName.toLowerCase().trim();
+    // Exact name match first
+    let member = members.find(m => m.name?.toLowerCase() === query);
+    // Contains match
+    if (!member) member = members.find(m => m.name?.toLowerCase().includes(query) || query.includes(m.name?.toLowerCase() ?? ""));
+    // Email match
+    if (!member) member = members.find(m => m.email.toLowerCase().includes(query));
+    // Fuzzy match
+    if (!member) {
+      let bestMember: typeof members[0] | null = null;
+      let bestScore = 0;
+      for (const m of members) {
+        const score = fuzzyScore(query, (m.name ?? m.email).toLowerCase());
+        if (score > bestScore && score >= 0.4) {
+          bestScore = score;
+          bestMember = m;
+        }
+      }
+      member = bestMember ?? undefined;
+    }
+
+    if (!member) {
+      const memberList = members.map(m => m.name || m.email).join(", ");
+      return {
+        success: false,
+        message: `No team member matching "${params.teamMemberName}". Available: ${memberList}`,
+      };
+    }
+
+    // Assign the team member to the deal
+    await db.deal.update({
+      where: { id: deal.id },
+      data: { assignedToId: member.id },
+    });
+
+    // Log the assignment as an activity
+    await logActivity({
+      type: "NOTE",
+      title: `Assigned to ${member.name || member.email}`,
+      content: `Job "${deal.title}" assigned to ${member.name || member.email} by AI assistant.`,
+      dealId: deal.id,
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/deals");
+    return {
+      success: true,
+      message: `Assigned "${deal.title}" to ${member.name || member.email}.`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `Error assigning team member: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 // ─── Undo Last Action ───────────────────────────────────────────────
 
 /**

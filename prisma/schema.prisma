@@ -142,6 +142,8 @@ model User {
   businessProfile  BusinessProfile?
   pricingSettings  PricingSettings?
   smsTemplates     SmsTemplate[]
+
+  assignedDeals    Deal[]   @relation("AssignedDeals")
 }
 
 // ─── Email Integration Model ─────────────────────────────────────────────
@@ -203,9 +205,13 @@ model Deal {
   
   workspaceId    String
   workspace      Workspace @relation(fields: [workspaceId], references: [id])
-  
+
   contactId      String
   contact        Contact   @relation(fields: [contactId], references: [id])
+
+  // Team member assignment
+  assignedToId   String?
+  assignedTo     User?     @relation("AssignedDeals", fields: [assignedToId], references: [id])
   
   activities     Activity[]
   tasks          Task[]
