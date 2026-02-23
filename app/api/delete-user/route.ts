@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create admin client to delete user
-    const supabaseAdmin = await createClient();
+    const supabaseAdmin = createAdminClient();
     
     // Try to delete the user from Supabase auth
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);

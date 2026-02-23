@@ -63,15 +63,20 @@ export function AccountForm({ userId, email }: AccountFormProps) {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
+      console.log(`[ACCOUNT DELETION] Starting deletion for user: ${userId}`);
       const result = await deleteUserAccount(userId, deleteReason);
+      
       if (result.success) {
+        console.log(`[ACCOUNT DELETION] Database deletion successful`);
         await supabase.auth.signOut();
         toast.success("Account deleted successfully.");
         router.push("/login");
       } else {
+        console.error(`[ACCOUNT DELETION] Database deletion failed:`, result.error);
+        
         // If the error indicates a database sync issue, try to delete from Supabase only
         if (result.error?.includes("data synchronization issue")) {
-          console.log("Attempting to delete from Supabase only due to database sync issue...");
+          console.log(`[ACCOUNT DELETION] Attempting Supabase-only deletion due to sync issue...`);
           try {
             const response = await fetch("/api/delete-user", {
               method: "POST",
@@ -81,15 +86,19 @@ export function AccountForm({ userId, email }: AccountFormProps) {
               body: JSON.stringify({ userId }),
             });
             
+            const responseData = await response.json();
+            
             if (!response.ok) {
-              throw new Error("Failed to delete user from authentication system");
+              console.error(`[ACCOUNT DELETION] Supabase deletion failed:`, responseData.error);
+              throw new Error(responseData.error || "Failed to delete user from authentication system");
             }
             
+            console.log(`[ACCOUNT DELETION] Supabase deletion successful`);
             await supabase.auth.signOut();
             toast.success("Account deleted successfully.");
             router.push("/login");
           } catch (supabaseDeleteError: any) {
-            console.error("Failed to delete from Supabase:", supabaseDeleteError);
+            console.error(`[ACCOUNT DELETION] Complete deletion failed:`, supabaseDeleteError);
             toast.error("Account deletion failed. Please contact support for assistance.");
           }
         } else {
@@ -97,8 +106,8 @@ export function AccountForm({ userId, email }: AccountFormProps) {
         }
       }
     } catch (error) {
-      console.error("Delete account error:", error);
-      toast.error("An unexpected error occurred.");
+      console.error("[ACCOUNT DELETION] Unexpected error:", error);
+      toast.error("An unexpected error occurred. Please try again or contact support.");
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
