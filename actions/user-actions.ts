@@ -120,12 +120,23 @@ export async function completeUserOnboarding(userId: string) {
 
 /**
  * Delete user account and log reason.
+ * Manually cleans up dependent records that don't have onDelete: Cascade.
  */
 export async function deleteUserAccount(userId: string, reason: string) {
   try {
     console.log(`[ACCOUNT DELETION] User ${userId} requested deletion. Reason: ${reason}`);
 
-    // In a full production app you'd use supabase admin to purge auth.users here
+    // Clean up records that reference this user without cascade delete
+    await db.activity.deleteMany({ where: { userId } });
+    await db.notification.deleteMany({ where: { userId } });
+    // Unassign deals (don't delete them, just remove the user assignment)
+    await db.$executeRawUnsafe(
+      `UPDATE "Deal" SET "assignedToId" = NULL WHERE "assignedToId" = $1`,
+      userId
+    );
+
+    // Now delete user — BusinessProfile, PricingSettings, EmailIntegration,
+    // SmsTemplates will cascade-delete via the schema
     await db.user.delete({
       where: { id: userId }
     });
@@ -133,6 +144,6 @@ export async function deleteUserAccount(userId: string, reason: string) {
     return { success: true };
   } catch (error) {
     console.error("Failed to delete account:", error);
-    return { success: false, error: "Failed to delete account. You may have dependent records." };
+    return { success: false, error: "Failed to delete account. Please try again or contact support." };
   }
 }

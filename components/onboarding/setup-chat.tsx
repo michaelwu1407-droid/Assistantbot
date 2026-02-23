@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, Briefcase, Building } from "lucide-react"
+import { Send } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
 
@@ -193,7 +193,7 @@ export function SetupChat() {
     }
 
     const processStep = (validInput: string) => {
-        // Step 0: First Name → ask for industry
+        // Step 0: First Name → ask for trade type
         if (step === 0) {
             setUserName(validInput)
             setStep(1)
@@ -204,56 +204,20 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `Nice to meet you, ${validInput}! 👋 What industry are you in?`,
-                        type: "choice",
-                        choices: [
-                            { label: "Trades", value: "TRADES", icon: Briefcase },
-                            { label: "Real Estate", value: "REAL_ESTATE", icon: Building },
-                        ]
+                        content: `Nice to meet you, ${validInput}! 👋 What type of trade do you do? (e.g. Plumber, Electrician, Carpenter, HVAC, Painter, Roofer)`,
+                        type: "text"
                     }
                 ])
             }, 1200)
         }
 
-        // Step 1: Industry → ask for trade type
+        // Step 1: Trade type → ask for business name
         else if (step === 1) {
-            const industry = validInput === "REAL_ESTATE" ? "REAL_ESTATE" : "TRADES"
-            setIndustryType(industry as "TRADES" | "REAL_ESTATE")
-            setIndustry(industry === "REAL_ESTATE" ? "real_estate" : "trades")
-            setStep(2)
-            setTimeout(() => {
-                setIsTyping(false)
-                if (industry === "TRADES") {
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: `Great choice! What type of trade do you do? (e.g. Plumber, Electrician, Carpenter, HVAC, Painter, etc.)`,
-                            type: "text"
-                        }
-                    ])
-                } else {
-                    setTradeType("Real Estate")
-                    setStep(3)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: `Awesome! What's your business or agency name?`,
-                            type: "text"
-                        }
-                    ])
-                }
-            }, 1200)
-        }
-
-        // Step 2: Trade type → ask for business name
-        else if (step === 2) {
             const resolved = resolveTradeType(validInput)
             setTradeType(resolved)
-            setStep(3)
+            setIndustryType("TRADES")
+            setIndustry("TRADES")
+            setStep(2)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -268,10 +232,10 @@ export function SetupChat() {
             }, 1200)
         }
 
-        // Step 3: Business name → ask for location
-        else if (step === 3) {
+        // Step 2: Business name → ask for location
+        else if (step === 2) {
             setBusinessName(validInput)
-            setStep(4)
+            setStep(3)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -286,11 +250,11 @@ export function SetupChat() {
             }, 1200)
         }
 
-        // Step 4: Location → ask for phone (optional)
-        else if (step === 4) {
+        // Step 3: Location → ask for phone
+        else if (step === 3) {
             const resolved = resolveLocation(validInput)
             setLocation(resolved)
-            setStep(5)
+            setStep(4)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -298,17 +262,17 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `${resolved} — great spot! Last one: what's your mobile number? (We'll use it for your business line — you can skip this for now.)`,
+                        content: `${resolved} — great spot! Last one: what's your mobile number? (We'll use it for your business line. Type "skip" to do this later.)`,
                         type: "text"
                     }
                 ])
             }, 1200)
         }
 
-        // Step 5: Phone → save & redirect to tutorial
-        else if (step === 5) {
+        // Step 4: Phone → save & redirect to tutorial
+        else if (step === 4) {
             const phone = validInput.toLowerCase() === "skip" || validInput.trim() === "" ? "" : validInput.trim()
-            setStep(6)
+            setStep(5)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -320,10 +284,10 @@ export function SetupChat() {
                         type: "text"
                     }
                 ])
-                // Save all data and go to tutorial
+                // Save all onboarding data and go to tutorial
                 completeOnboarding({
                     businessName: businessName || `${userName}'s Workspace`,
-                    industryType: industryType,
+                    industryType: "TRADES",
                     location: location,
                     tradeType: tradeType,
                     ownerPhone: phone,
