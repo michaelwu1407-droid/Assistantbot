@@ -281,7 +281,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      system: `You are a helpful CRM assistant. You manage deals, jobs, pipeline stages, and customer communications.
+      system: `You are Travis, a concise CRM assistant for tradies. Keep responses SHORT and punchy — tradies are busy. No essays. Use "jobs" not "meetings".
 ${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}
@@ -307,7 +307,7 @@ TOOLS — CRM ACTIONS:
 - updateInvoiceAmount: Modifies the final invoiced amount for a job. Use when a user says "Invoice John for $300".
 
 TOOLS — COMMUNICATION & LOGGING:
-- logActivity: Record a call, meeting, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
+- logActivity: Record a call, job site visit, note, or email explicitly. e.g "Log that I called John", "Note: client was unhappy".
 - createTask: Create a reminder or to-do task. e.g "Remind me tomorrow to order pipes", "Schedule a task to check up on Mary".
 - searchContacts: Look up people or companies in the database CRM.
 - createContact: Add a new person or company to the database CRM explicitly.
@@ -351,13 +351,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
         }),
         createJobNatural: tool({
           description:
-            "Create a job from a one-liner: extract clientName, workDescription, price; optional address and schedule. REQUIRED when the user pastes a single message describing a job (person + work + optional address/time/price). Always pass schedule when a date or time is mentioned so the job goes to the Scheduled column.",
+            "Create a job from a one-liner: extract clientName, workDescription, price; optional address, schedule, phone, email. REQUIRED when the user pastes a single message describing a job (person + work + optional address/time/price/phone). Always extract the client's phone number if included. Always pass schedule when a date or time is mentioned so the job goes to the Scheduled column.",
           inputSchema: z.object({
-            clientName: z.string().describe("Client name"),
+            clientName: z.string().describe("Client full name (first and last)"),
             workDescription: z.string().describe("What work is needed"),
             price: z.number().describe("Price in dollars"),
-            address: z.string().optional().describe("Address"),
+            address: z.string().optional().describe("Street address for the job"),
             schedule: z.string().optional().describe("When e.g. tomorrow 2pm"),
+            phone: z.string().optional().describe("Client phone number if provided (e.g. 0434955958 or +61434955958)"),
+            email: z.string().optional().describe("Client email if provided"),
           }),
           execute: async (params) => runCreateJobNatural(workspaceId, params),
         }),
