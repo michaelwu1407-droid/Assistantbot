@@ -12,8 +12,7 @@ const DEFAULT_TEMPLATES: Record<TriggerEvent, string> = {
     "Hi [Name], thanks for today! A review helps us heaps: [Link]",
   ON_MY_WAY: "Hi [Name], I'm 20 mins away.",
   LATE: "Hi [Name], stuck in traffic. 15 mins late.",
-  BOOKING_REMINDER_24H:
-    "Hi [Name], just a reminder you have a booking tomorrow.",
+  BOOKING_REMINDER_24H: "Hi [Name], just a reminder about your appointment tomorrow. Reply YES to confirm.",
 };
 
 // ─── Get all templates for current user ─────────────────────────────
@@ -120,8 +119,7 @@ export async function sendTemplateMessage(
 
     // TODO: Wire to Twilio for SMS / SendGrid for Email
     console.log(
-      `[MESSAGE] Sending ${channel.toUpperCase()} to ${
-        channel === "sms" ? preview.contactPhone : preview.contactEmail
+      `[MESSAGE] Sending ${channel.toUpperCase()} to ${channel === "sms" ? preview.contactPhone : preview.contactEmail
       }: ${preview.messageBody}`
     );
 

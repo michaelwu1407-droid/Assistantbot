@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send, Briefcase, Phone, Clock, DollarSign, Settings, Wrench } from "lucide-react"
+import { Send, Briefcase, Building } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
 
@@ -13,8 +13,102 @@ type Message = {
     id: string
     role: "assistant" | "user"
     content: string
-    type?: "text" | "choice"
+    type?: "text" | "choice" | "draft-card"
     choices?: { label: string; value: string; icon?: React.ElementType }[]
+    draftCard?: DraftCardData
+}
+
+type DraftCardData = {
+    kind: "pricing" | "hours" | "autonomy"
+    fields: DraftField[]
+}
+
+type DraftField = {
+    key: string
+    label: string
+    type: "text" | "number" | "select" | "time" | "toggle"
+    defaultValue: string | number | boolean
+    placeholder?: string
+    options?: { label: string; value: string }[]
+    suffix?: string
+}
+
+// ─── Fuzzy Matching Helpers ────────────────────────────────────────
+const TRADE_ALIASES: Record<string, string> = {
+    sparkie: "Electrician",
+    sparky: "Electrician",
+    chippie: "Carpenter",
+    chippy: "Carpenter",
+    brickie: "Bricklayer",
+    bricky: "Bricklayer",
+    plumber: "Plumber",
+    plumbo: "Plumber",
+    tiler: "Tiler",
+    painter: "Painter",
+    roofer: "Roofer",
+    hvac: "HVAC Technician",
+    aircon: "HVAC Technician",
+    "air con": "HVAC Technician",
+    locksmith: "Locksmith",
+    landscaper: "Landscaper",
+    concreter: "Concreter",
+    glazier: "Glazier",
+    plasterer: "Plasterer",
+    fencer: "Fencer",
+    gutter: "Gutter Specialist",
+    "pest control": "Pest Control",
+    cleaner: "Cleaner",
+    handyman: "Handyman",
+}
+
+function resolveTradeType(input: string): string {
+    const lower = input.toLowerCase().trim()
+    if (TRADE_ALIASES[lower]) return TRADE_ALIASES[lower]
+    // Partial match
+    for (const [alias, canonical] of Object.entries(TRADE_ALIASES)) {
+        if (lower.includes(alias) || alias.includes(lower)) return canonical
+    }
+    // Return as-is with title case
+    return input.charAt(0).toUpperCase() + input.slice(1)
+}
+
+// Common Australian city typos/abbreviations
+const CITY_CORRECTIONS: Record<string, string> = {
+    syndey: "Sydney, NSW",
+    sydeny: "Sydney, NSW",
+    syd: "Sydney, NSW",
+    melb: "Melbourne, VIC",
+    melbounre: "Melbourne, VIC",
+    melborne: "Melbourne, VIC",
+    brissy: "Brisbane, QLD",
+    brisbne: "Brisbane, QLD",
+    brisabne: "Brisbane, QLD",
+    perht: "Perth, WA",
+    adeliade: "Adelaide, SA",
+    adelaid: "Adelaide, SA",
+    canberrra: "Canberra, ACT",
+    camberra: "Canberra, ACT",
+    dariwn: "Darwin, NT",
+    hoabrt: "Hobart, TAS",
+    goldy: "Gold Coast, QLD",
+    "gold coast": "Gold Coast, QLD",
+    newie: "Newcastle, NSW",
+    wollongong: "Wollongong, NSW",
+    gong: "Wollongong, NSW",
+}
+
+function resolveLocation(input: string): string {
+    const lower = input.toLowerCase().trim()
+    if (CITY_CORRECTIONS[lower]) return CITY_CORRECTIONS[lower]
+    // Partial match
+    for (const [typo, correct] of Object.entries(CITY_CORRECTIONS)) {
+        if (lower.includes(typo) || typo.includes(lower)) return correct
+    }
+    // Return as-is with proper casing
+    return input
+        .split(/\s+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
 }
 
 export function SetupChat() {
@@ -24,7 +118,7 @@ export function SetupChat() {
         {
             id: "1",
             role: "assistant",
-            content: "Hi! I'm Pj Buddy, your new AI partner. Let's get your workspace ready. What's the name of your business?",
+            content: "Hi! I'm Pj Buddy, your new AI partner. What's your first name?",
             type: "text"
         }
     ])
@@ -32,16 +126,12 @@ export function SetupChat() {
     const [step, setStep] = useState(0)
     const [isTyping, setIsTyping] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [userName, setUserName] = useState("")
     const [businessName, setBusinessName] = useState("")
-    const [industryType, setIndustryType] = useState<"TRADES">("TRADES")
+    const [industryType, setIndustryType] = useState<"TRADES" | "REAL_ESTATE">("TRADES")
     const [location, setLocation] = useState("")
-    const [ownerPhone, setOwnerPhone] = useState("")
     const [tradeType, setTradeType] = useState("")
-    const [serviceRadius, setServiceRadius] = useState(20)
-    const [workHours, setWorkHours] = useState("Mon-Fri, 07:00-15:30")
-    const [emergencyService, setEmergencyService] = useState(false)
-    const [callOutFee, setCallOutFee] = useState(89)
-    const [pricingMode, setPricingMode] = useState<"BOOK_ONLY" | "CALL_OUT" | "STANDARD">("STANDARD")
+    const [draftValues, setDraftValues] = useState<Record<string, string | number | boolean>>({})
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -83,10 +173,29 @@ export function SetupChat() {
         }, 1000)
     }
 
+    const handleDraftConfirm = (values: Record<string, string | number | boolean>) => {
+        setDraftValues(prev => ({ ...prev, ...values }))
+        const summary = Object.entries(values)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ")
+        const userMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: `✅ Confirmed: ${summary}`,
+        }
+        setMessages(prev => [...prev, userMsg])
+        setIsTyping(true
+
+        )
+        setTimeout(() => {
+            processStep("DRAFT_CONFIRMED")
+        }, 1000)
+    }
+
     const processStep = (validInput: string) => {
-        // Step 0: Business Name -> Ask Location
+        // Step 0: First Name -> Go straight to tutorial
         if (step === 0) {
-            setBusinessName(validInput)
+            setUserName(validInput)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -94,190 +203,31 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "Perfect! I'll set up your workspace for trades. Where are you located? (e.g., Sydney, NSW)",
+                        content: `Nice to meet you, ${validInput}! 🎉 Let me show you around Pj Buddy. I'll take you on a quick walkthrough so you can see everything I can do for you.`,
                         type: "text"
                     }
                 ])
-                setStep(1)
-            }, 1500) // 1.5s delay for natural feel
-        }
-        // Step 1: Location -> Ask Owner Phone
-        else if (step === 1) {
-            const location = validInput
-            setLocation(location)
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Perfect! For your AI agent to handle calls and SMS, I'll need your mobile number. What's the best phone number for clients to reach you?",
-                        type: "text"
-                    }
-                ])
-                setStep(2)
+                // Save minimal data and go to walkthrough/tutorial
+                completeOnboarding({
+                    businessName: `${validInput}'s Workspace`,
+                    industryType: "TRADES",
+                    location: "",
+                }).then(() => {
+                    setTimeout(() => {
+                        router.push("/dashboard?tutorial=true")
+                    }, 2000)
+                }).catch(() => {
+                    setTimeout(() => {
+                        router.push("/dashboard?tutorial=true")
+                    }, 2000)
+                })
             }, 1500)
-        }
-        // Step 2: Owner Phone -> Ask Trade Type
-        else if (step === 2) {
-            const phone = validInput.replace(/[^0-9+]/g, '') // Clean phone number
-            setOwnerPhone(phone)
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Thanks! Now, what's your trade? (e.g., Plumber, Electrician, HVAC, etc.)",
-                        type: "text"
-                    }
-                ])
-                setStep(3)
-            }, 1500)
-        }
-        // Step 3: Trade Type -> Ask Service Details
-        else if (step === 3) {
-            const trade = validInput
-            setTradeType(trade)
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: `Great! A ${trade} needs the right setup. What's your standard service radius (in km)? The default is 20km.`,
-                        type: "text"
-                    }
-                ])
-                setStep(4)
-            }, 1500)
-        }
-        // Step 4: Service Details -> Ask Pricing
-        else if (step === 4) {
-            const radius = parseInt(validInput)
-            setServiceRadius(isNaN(radius) ? 20 : radius)
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Perfect! Now let's set up your pricing. Do you charge a call-out fee, or do free quotes?",
-                        type: "choice",
-                        choices: [
-                            { label: "Free Quotes", value: "BOOK_ONLY", icon: Settings },
-                            { label: "Call-out Fee ($89)", value: "CALL_OUT", icon: DollarSign },
-                            { label: "Standard Pricing", value: "STANDARD", icon: Settings }
-                        ]
-                    }
-                ])
-                setStep(5)
-            }, 1500)
-        }
-        // Step 5: Pricing -> Ask Work Hours
-        else if (step === 5) {
-            const pricing = validInput
-            setPricingMode(pricing as "BOOK_ONLY" | "CALL_OUT" | "STANDARD")
-
-            if (pricing === "CALL_OUT") {
-                setCallOutFee(89)
-            } else if (pricing === "BOOK_ONLY") {
-                setCallOutFee(0)
-            }
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Got it! What are your standard work hours? (e.g., Mon-Fri, 07:00-15:30)",
-                        type: "text"
-                    }
-                ])
-                setStep(6)
-            }, 1500)
-        }
-        // Step 6: Work Hours -> Ask Emergency Service
-        else if (step === 6) {
-            const hours = validInput
-            setWorkHours(hours)
-
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "One last question: Do you offer emergency service outside standard hours?",
-                        type: "choice",
-                        choices: [
-                            { label: "No, standard hours only", value: "false", icon: Clock },
-                            { label: "Yes, 24/7 emergency", value: "true", icon: Phone }
-                        ]
-                    }
-                ])
-                setStep(7)
-            }, 1500)
-        }
-        // Step 7: Emergency Service -> Complete Onboarding
-        else if (step === 7) {
-            const emergency = validInput === "true"
-            setEmergencyService(emergency)
-
-            // Persist all onboarding data to the database
-            completeOnboarding({
-                businessName,
-                industryType,
-                location,
-                ownerPhone,
-                tradeType,
-                serviceRadius,
-                workHours,
-                emergencyService,
-                callOutFee,
-                pricingMode
-            }).then(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Perfect! Your workspace is all set up. Let's get you subscribed...",
-                        type: "text"
-                    }
-                ])
-                setTimeout(() => {
-                    router.push("/billing")
-                }, 2500)
-            }).catch(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "I've saved your preferences locally. Let's get you subscribed...",
-                        type: "text"
-                    }
-                ])
-                setTimeout(() => {
-                    router.push("/billing")
-                }, 2500)
-            })
         }
     }
+
+    const isLastMsgChoice = messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "choice"
+    const isLastMsgDraft = messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "draft-card"
+    const inputDisabled = isTyping || isLastMsgChoice || isLastMsgDraft
 
     return (
         <div className="flex flex-col h-[600px] w-full max-w-2xl mx-auto glass-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
@@ -337,6 +287,14 @@ export function SetupChat() {
                     </motion.div>
                 )}
 
+                {/* Draft Cards */}
+                {messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "draft-card" && !isTyping && (
+                    <DraftCardUI
+                        data={messages[messages.length - 1].draftCard!}
+                        onConfirm={handleDraftConfirm}
+                    />
+                )}
+
                 <div ref={messagesEndRef} />
             </div>
 
@@ -354,12 +312,12 @@ export function SetupChat() {
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Type your answer..."
                         className="flex-1 bg-background/50 border-border/50 focus-visible:ring-primary/20 focus-visible:border-primary/50 transition-all"
-                        disabled={isTyping || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "choice")}
+                        disabled={inputDisabled}
                     />
                     <Button
                         type="submit"
                         size="icon"
-                        disabled={!inputValue.trim() || isTyping || (messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "choice")}
+                        disabled={!inputValue.trim() || inputDisabled}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all"
                     >
                         <Send className="h-4 w-4" />
@@ -367,5 +325,103 @@ export function SetupChat() {
                 </form>
             </div>
         </div>
+    )
+}
+
+// ─── Draft Card Component ────────────────────────────────────────
+function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (values: Record<string, string | number | boolean>) => void }) {
+    const [values, setValues] = useState<Record<string, string | number | boolean>>(() => {
+        const init: Record<string, string | number | boolean> = {}
+        data.fields.forEach(f => {
+            init[f.key] = f.defaultValue
+        })
+        return init
+    })
+
+    const updateValue = (key: string, value: string | number | boolean) => {
+        setValues(prev => ({ ...prev, [key]: value }))
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-border shadow-lg p-5 space-y-4 max-w-sm"
+        >
+            <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                {data.kind === "pricing" && "💰 Pricing Setup"}
+                {data.kind === "hours" && "🕐 Working Hours"}
+                {data.kind === "autonomy" && "🤖 AI Autonomy Level"}
+            </h3>
+
+            {data.fields.map((field) => (
+                <div key={field.key} className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
+                    {field.type === "number" && (
+                        <div className="flex items-center gap-2">
+                            {field.suffix === "$" && <span className="text-sm text-muted-foreground">$</span>}
+                            <Input
+                                type="number"
+                                value={values[field.key] as number}
+                                onChange={(e) => updateValue(field.key, parseFloat(e.target.value) || 0)}
+                                placeholder={field.placeholder}
+                                className="h-9 text-sm"
+                            />
+                            {field.suffix && field.suffix !== "$" && (
+                                <span className="text-xs text-muted-foreground">{field.suffix}</span>
+                            )}
+                        </div>
+                    )}
+                    {field.type === "text" && (
+                        <Input
+                            type="text"
+                            value={values[field.key] as string}
+                            onChange={(e) => updateValue(field.key, e.target.value)}
+                            placeholder={field.placeholder}
+                            className="h-9 text-sm"
+                        />
+                    )}
+                    {field.type === "time" && (
+                        <Input
+                            type="time"
+                            value={values[field.key] as string}
+                            onChange={(e) => updateValue(field.key, e.target.value)}
+                            className="h-9 text-sm"
+                        />
+                    )}
+                    {field.type === "select" && (
+                        <select
+                            value={values[field.key] as string}
+                            onChange={(e) => updateValue(field.key, e.target.value)}
+                            className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+                        >
+                            {field.options?.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    )}
+                    {field.type === "toggle" && (
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => updateValue(field.key, !(values[field.key] as boolean))}
+                                className={`w-10 h-5 rounded-full transition-colors ${values[field.key] ? "bg-primary" : "bg-muted"}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${values[field.key] ? "translate-x-5" : "translate-x-0.5"}`} />
+                            </button>
+                            <span className="text-xs text-muted-foreground">{values[field.key] ? "Yes" : "No"}</span>
+                        </div>
+                    )}
+                </div>
+            ))}
+
+            <Button
+                size="sm"
+                className="w-full"
+                onClick={() => onConfirm(values)}
+            >
+                ✅ Confirm
+            </Button>
+        </motion.div>
     )
 }

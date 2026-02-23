@@ -137,7 +137,7 @@ export async function saveNotificationPreferences(prefs: NotificationPreferences
   await db.workspace.update({
     where: { id: user.workspaceId },
     data: {
-      settings: JSON.parse(JSON.stringify({ ...currentSettings, notificationPreferences: prefs })),
+      settings: { ...currentSettings, notificationPreferences: prefs } as any,
     },
   })
 

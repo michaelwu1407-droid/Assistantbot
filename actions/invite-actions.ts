@@ -230,6 +230,10 @@ export async function getTeamMembers() {
       email: true,
       role: true,
     },
+<<<<<<< HEAD
     orderBy: { id: "asc" },
+=======
+    orderBy: { email: "asc" },
+>>>>>>> 4af9e70 (expanded tutorial (187 steps), sign-up flow overhaul, billing-first, phone auth, fix TS errors)
   });
 }
