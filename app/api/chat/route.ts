@@ -31,7 +31,8 @@ import {
 } from "@/actions/agent-tools";
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
-import { parseJobOneLiner, buildJobDraftFromParams } from "@/lib/chat-utils";
+import { buildJobDraftFromParams } from "@/lib/chat-utils";
+import { parseJobWithAI } from "@/lib/ai/job-parser";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
 
     if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
-    const parsed = parseJobOneLiner(content);
+    const parsed = await parseJobWithAI(content);
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };

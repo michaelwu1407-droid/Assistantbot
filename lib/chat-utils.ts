@@ -37,7 +37,7 @@ export function titleCase(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Result of parsing a job one-liner */
+/** Result of parsing a job one-liner (returned by AI parser in lib/ai/job-parser.ts) */
 export type JobOneLinerParsed = {
   clientName: string;
   workDescription: string;
@@ -47,166 +47,6 @@ export type JobOneLinerParsed = {
   phone?: string;
   email?: string;
 };
-
-/**
- * Detect if message looks like a job one-liner and parse out client, work, price, address, schedule, phone.
- * Handles these common tradie patterns:
- *   "Sally Smith, 10 Wyndham Street needs her sink fixed tomorrow 12pm for $123. Her number is 0434955958"
- *   "Sally Smith at 10 Wyndham Street needs sink fixed tomorrow 12pm $123"
- *   "Fix sink at 10 Wyndham St for Sally Smith, tomorrow 2pm, $200"
- * Returns null if it doesn't look like a job or parsing fails.
- */
-export function parseJobOneLiner(text: string): JobOneLinerParsed | null {
-  const t = text.trim();
-  if (t.length < 15) return null;
-
-  // ── Extract price ──
-  const hasPrice = /\$\s*[\d,]+/i.test(t) || /\b\d{2,}\s*(dollars?|price|agreed)\b/i.test(t) || /(?:for|price|agreed)\s*\$?\s*[\d,]+/i.test(t);
-  const hasWork =
-    /\b(need|needs|fix|fixed|repair|install|replace|unblock|clean|patch|service|check)\b/i.test(t) ||
-    /\b(sink|tap|toilet|shower|pipe|drain|fan|light|switch|door|window|roof|tile|aircon|paint|leak)\b/i.test(t);
-  if (!hasPrice && !hasWork) return null;
-
-  let price = 0;
-  const dollarMatches = [...t.matchAll(/\$\s*([\d,]+)/g)];
-  if (dollarMatches.length > 0) {
-    const lastMatch = dollarMatches[dollarMatches.length - 1][1];
-    price = parseInt(lastMatch.replace(/,/g, ""), 10);
-  }
-  if (!price) {
-    const forMatch = t.match(/(?:for|price|agreed)\s*\$?\s*([\d,]+)/i);
-    if (forMatch) price = parseInt(forMatch[1].replace(/,/g, ""), 10);
-  }
-
-  // ── Extract phone number (AU mobile: 04xx xxx xxx or +614xxxxxxxx) ──
-  let phone: string | undefined;
-  const phoneMatch = t.match(/(?:\+?61\s*|0)4\d{2}\s*\d{3}\s*\d{3}/);
-  if (phoneMatch) {
-    phone = phoneMatch[0].replace(/\s+/g, "");
-  }
-
-  // ── Extract email ──
-  let email: string | undefined;
-  const emailMatch = t.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
-  if (emailMatch) {
-    email = emailMatch[0];
-  }
-
-  // ── Extract schedule ──
-  let schedule: string | undefined;
-  // Match patterns like "tomorrow 12pm", "monday at 2pm", "today 9:30am"
-  const schedulePatterns = [
-    /\b(tomorrow|today|tmrw|ymrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\s+(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i,
-    /\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+(?:on\s+)?(tomorrow|today|tmrw|ymrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)/i,
-    /\b(tomorrow|today|tmrw|ymrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
-  ];
-  for (const pat of schedulePatterns) {
-    const m = t.match(pat);
-    if (m) {
-      schedule = m[0].trim();
-      break;
-    }
-  }
-
-  // ── Extract client name ──
-  // Strategy: try multiple common patterns
-  let clientName = "";
-  let address: string | undefined;
-  let workDescription = "Job";
-
-  // Clean text for extraction (remove phone, email, price parts, schedule)
-  let cleaned = t;
-  if (phone) cleaned = cleaned.replace(phoneMatch![0], "");
-  if (email) cleaned = cleaned.replace(emailMatch![0], "");
-  // Remove "Her/His number is" type phrases
-  cleaned = cleaned.replace(/(?:her|his|their|my)\s+(?:number|phone|mobile|cell)\s+(?:is|:)\s*/gi, "");
-  // Remove "for $123" type price references
-  cleaned = cleaned.replace(/(?:for|price|agreed)\s*\$\s*[\d,]+/gi, "");
-  cleaned = cleaned.replace(/\$\s*[\d,]+/g, "");
-  // Remove trailing dots and extra whitespace
-  cleaned = cleaned.replace(/\.\s*$/, "").replace(/\s+/g, " ").trim();
-
-  // Pattern 1: "Name, Address needs work" (comma separator)
-  const commaPattern = cleaned.match(/^([A-Za-z][A-Za-z'\s]+?),\s*(\d+\s+[A-Za-z].*?)(?:\s+needs?\s+|\s+need\s+|\s+wants?\s+|\s+requires?\s+)/i);
-  // Pattern 2: "Name at Address needs work"
-  const atPattern = cleaned.match(/^([A-Za-z][A-Za-z'\s]+?)\s+at\s+(\d+\s+[A-Za-z].*?)(?:\s+needs?\s+|\s+need\s+|\s+wants?\s+|\s+requires?\s+)/i);
-  // Pattern 3: "Name from Address needs work"
-  const fromPattern = cleaned.match(/^([A-Za-z][A-Za-z'\s]+?)\s+from\s+(\d+\s+[A-Za-z].*?)(?:\s+needs?\s+|\s+need\s+|\s+wants?\s+|\s+requires?\s+)/i);
-  // Pattern 4: "Name needs work" (no address)
-  const nameNeedsPattern = cleaned.match(/^([A-Za-z][A-Za-z'\s]+?)(?:\s+needs?\s+|\s+need\s+|\s+wants?\s+|\s+requires?\s+)/i);
-
-  if (commaPattern) {
-    clientName = commaPattern[1].trim();
-    address = commaPattern[2].trim();
-  } else if (atPattern) {
-    clientName = atPattern[1].trim();
-    address = atPattern[2].trim();
-  } else if (fromPattern) {
-    clientName = fromPattern[1].trim();
-    address = fromPattern[2].trim();
-  } else if (nameNeedsPattern) {
-    clientName = nameNeedsPattern[1].trim();
-  }
-
-  // ── Extract work description ──
-  const needsMatch = cleaned.match(/\b(?:needs?|need|wants?|requires?)\s+(.+)/i);
-  if (needsMatch) {
-    let workRaw = needsMatch[1].trim();
-    // Remove schedule from the work description
-    if (schedule) {
-      workRaw = workRaw.replace(new RegExp(schedule.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").trim();
-    }
-    // Remove trailing "for" and extra markers
-    workRaw = workRaw
-      .replace(/\bfor\s*$/i, "")
-      .replace(/\.\s*$/g, "")
-      .trim();
-    if (workRaw.length >= 2) workDescription = workRaw;
-  }
-
-  // Validation: must have a name or work description
-  if (!clientName && !hasWork) return null;
-  if (!clientName || clientName.length < 2) clientName = "Unknown";
-
-  workDescription = normalizeJobTitle(workDescription);
-
-  return {
-    clientName: titleCase(clientName),
-    workDescription,
-    price: price > 0 ? price : 0,
-    address,
-    schedule,
-    phone,
-    email,
-  };
-}
-
-/**
- * Normalise a raw work description to a short job title (e.g. "her sink fixed" → "Sink Repair").
- */
-export function normalizeJobTitle(raw: string): string {
-  if (!raw || raw.length < 2) return "Job";
-  let s = raw.trim().toLowerCase();
-  const possessives = /\b(her|his|their|the|my|our)\s+/gi;
-  s = s.replace(possessives, " ").replace(/\s+/g, " ").trim();
-  const verbToNoun: Record<string, string> = {
-    fixed: "repair", fix: "repair", fixing: "repair", repaired: "repair", repair: "repair",
-    leaking: "repair", leak: "repair", blocked: "unblock", unblock: "unblock", unblocked: "unblock",
-    install: "install", installed: "install", installing: "install",
-    replace: "replacement", replaced: "replacement", replacing: "replacement",
-    clean: "clean", cleaned: "clean", cleaning: "clean",
-  };
-  const words = s.split(/\s+/).filter(Boolean);
-  const out: string[] = [];
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    if (/\b(needs?|need|wants?|want|get|got|has|have)\b/i.test(w)) continue;
-    out.push(verbToNoun[w] ?? w);
-  }
-  const trimmed = out.join(" ").replace(/\s+/g, " ").trim();
-  if (!trimmed) return "Job";
-  return titleCase(trimmed);
-}
 
 /** Categorise work description by keyword matching */
 export function categoriseWork(desc: string): string {
@@ -348,7 +188,7 @@ export function buildJobDraftFromParams(params: {
     lastName,
     clientName: `${firstName}${lastName ? " " + lastName : ""}`.trim() || "Unknown",
     address: enrichedAddress,
-    workDescription: normalizeJobTitle(workDescription),
+    workDescription: titleCase(workDescription),
     workCategory: category,
     price: priceStr,
     schedule: scheduleDisplay,
