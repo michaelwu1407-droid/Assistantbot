@@ -129,12 +129,30 @@ export async function deleteUserAccount(userId: string, reason: string) {
     // 1. Find the user's workspace
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { workspaceId: true },
+      select: { 
+        id: true, 
+        name: true,
+        email: true,
+        workspaceId: true 
+      },
     });
 
     if (!user) {
-      return { success: false, error: "User not found." };
+      console.error(`[ACCOUNT DELETION] User not found in database. Supabase ID: ${userId}`);
+      
+      // Check if there are any users in the database to debug
+      const totalUsers = await db.user.count();
+      console.error(`[ACCOUNT DELETION] Total users in database: ${totalUsers}`);
+      
+      // If user doesn't exist in database but exists in Supabase, we should still clean up Supabase
+      // This handles the case where database was corrupted but Supabase still has the user
+      return { 
+        success: false, 
+        error: "User account not found in our database. This might indicate a data synchronization issue. Please contact support for assistance." 
+      };
     }
+
+    console.log(`[ACCOUNT DELETION] Found user: ${user.name} (${user.email}) in workspace ${user.workspaceId}`);
 
     const workspaceId = user.workspaceId;
 
@@ -202,6 +220,7 @@ export async function deleteUserAccount(userId: string, reason: string) {
       await db.workspace.delete({ where: { id: workspaceId } });
     }
 
+    console.log(`[ACCOUNT DELETION] Successfully deleted user ${userId} and cleaned up data`);
     return { success: true };
   } catch (error: any) {
     console.error("Failed to delete account:", error?.message || error);
