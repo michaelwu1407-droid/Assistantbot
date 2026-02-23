@@ -215,13 +215,13 @@ export async function completeOnboarding(data: {
   businessName: string;
   industryType: "TRADES";
   location: string;
-  ownerPhone: string;
-  tradeType: string;
-  serviceRadius: number;
-  workHours: string;
-  emergencyService: boolean;
-  callOutFee: number;
-  pricingMode: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
+  ownerPhone?: string;
+  tradeType?: string;
+  serviceRadius?: number;
+  workHours?: string;
+  emergencyService?: boolean;
+  callOutFee?: number;
+  pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -252,7 +252,7 @@ export async function completeOnboarding(data: {
   await db.businessProfile.upsert({
     where: { userId },
     update: {
-      tradeType: data.tradeType,
+      tradeType: data.tradeType || "General",
       baseSuburb: data.location,
       serviceRadius: data.serviceRadius || 20,
       standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
@@ -261,7 +261,7 @@ export async function completeOnboarding(data: {
     },
     create: {
       userId,
-      tradeType: data.tradeType,
+      tradeType: data.tradeType || "General",
       baseSuburb: data.location,
       serviceRadius: data.serviceRadius || 20,
       standardWorkHours: data.workHours || "Mon-Fri, 07:00-15:30",
@@ -293,7 +293,7 @@ export async function completeOnboarding(data: {
   initializeTradieComms(
     workspace.id,
     data.businessName,
-    data.ownerPhone
+    data.ownerPhone || ""
   ).catch((err) => {
     console.error("[completeOnboarding] Comms provisioning failed:", err);
   });

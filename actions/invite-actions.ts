@@ -60,7 +60,7 @@ export async function createInvite(params: {
         });
 
         const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pj-buddy.com'}/invite/join?token=${invite.token}`;
-        
+
         await resend.emails.send({
           from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'pj-buddy.com'}`,
           to: [params.email],
@@ -98,11 +98,11 @@ export async function createInvite(params: {
     return { success: true, token: invite.token };
   } catch (error) {
     console.error("Error creating invite:", error);
-    
+
     if (error instanceof Error && error.message.includes("Unique constraint")) {
       return { success: false, error: "This email has already been invited" };
     }
-    
+
     return { success: false, error: "Failed to create invite" };
   }
 }
@@ -230,10 +230,6 @@ export async function getTeamMembers() {
       email: true,
       role: true,
     },
-<<<<<<< HEAD
-    orderBy: { id: "asc" },
-=======
     orderBy: { email: "asc" },
->>>>>>> 4af9e70 (expanded tutorial (187 steps), sign-up flow overhaul, billing-first, phone auth, fix TS errors)
   });
 }
