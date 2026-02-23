@@ -1,4 +1,5 @@
-// ─── Comprehensive Tutorial Steps (185+) ────────────────────────────
+// ─── Comprehensive Tutorial Steps (187+) ────────────────────────────
+// Optimized for streamlined onboarding flow.
 // Each step spotlights a feature/button/area and shows a chat example
 
 export interface TutorialStep {
