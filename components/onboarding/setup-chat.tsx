@@ -193,9 +193,10 @@ export function SetupChat() {
     }
 
     const processStep = (validInput: string) => {
-        // Step 0: First Name -> Go straight to tutorial
+        // Step 0: First Name → ask for industry
         if (step === 0) {
             setUserName(validInput)
+            setStep(1)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -203,23 +204,137 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `Nice to meet you, ${validInput}! 🎉 Let me show you around Pj Buddy. I'll take you on a quick walkthrough so you can see everything I can do for you.`,
+                        content: `Nice to meet you, ${validInput}! 👋 What industry are you in?`,
+                        type: "choice",
+                        choices: [
+                            { label: "Trades", value: "TRADES", icon: Briefcase },
+                            { label: "Real Estate", value: "REAL_ESTATE", icon: Building },
+                        ]
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 1: Industry → ask for trade type
+        else if (step === 1) {
+            const industry = validInput === "REAL_ESTATE" ? "REAL_ESTATE" : "TRADES"
+            setIndustryType(industry as "TRADES" | "REAL_ESTATE")
+            setIndustry(industry === "REAL_ESTATE" ? "real_estate" : "trades")
+            setStep(2)
+            setTimeout(() => {
+                setIsTyping(false)
+                if (industry === "TRADES") {
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: `Great choice! What type of trade do you do? (e.g. Plumber, Electrician, Carpenter, HVAC, Painter, etc.)`,
+                            type: "text"
+                        }
+                    ])
+                } else {
+                    setTradeType("Real Estate")
+                    setStep(3)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: `Awesome! What's your business or agency name?`,
+                            type: "text"
+                        }
+                    ])
+                }
+            }, 1200)
+        }
+
+        // Step 2: Trade type → ask for business name
+        else if (step === 2) {
+            const resolved = resolveTradeType(validInput)
+            setTradeType(resolved)
+            setStep(3)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `${resolved} — solid! 🔧 What's your business name?`,
                         type: "text"
                     }
                 ])
-                // Save minimal data and go to walkthrough/tutorial
+            }, 1200)
+        }
+
+        // Step 3: Business name → ask for location
+        else if (step === 3) {
+            setBusinessName(validInput)
+            setStep(4)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `"${validInput}" — love it! Where are you based? (e.g. Sydney, Melbourne, Brisbane)`,
+                        type: "text"
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 4: Location → ask for phone (optional)
+        else if (step === 4) {
+            const resolved = resolveLocation(validInput)
+            setLocation(resolved)
+            setStep(5)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `${resolved} — great spot! Last one: what's your mobile number? (We'll use it for your business line — you can skip this for now.)`,
+                        type: "text"
+                    }
+                ])
+            }, 1200)
+        }
+
+        // Step 5: Phone → save & redirect to tutorial
+        else if (step === 5) {
+            const phone = validInput.toLowerCase() === "skip" || validInput.trim() === "" ? "" : validInput.trim()
+            setStep(6)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `All set! 🎉 Setting up ${businessName || `${userName}'s Workspace`} now — I'll show you around in a quick walkthrough.`,
+                        type: "text"
+                    }
+                ])
+                // Save all data and go to tutorial
                 completeOnboarding({
-                    businessName: `${validInput}'s Workspace`,
-                    industryType: "TRADES",
-                    location: "",
+                    businessName: businessName || `${userName}'s Workspace`,
+                    industryType: industryType,
+                    location: location,
+                    tradeType: tradeType,
+                    ownerPhone: phone,
                 }).then(() => {
                     setTimeout(() => {
                         router.push("/dashboard?tutorial=true")
-                    }, 2000)
+                    }, 2500)
                 }).catch(() => {
                     setTimeout(() => {
                         router.push("/dashboard?tutorial=true")
-                    }, 2000)
+                    }, 2500)
                 })
             }, 1500)
         }
