@@ -9,6 +9,14 @@
 - **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
 - **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
 
+## 2026-02-24: Account Deletion Bug Fix
+- **Enhanced Error Handling**: Improved `deleteUserAccount` function with detailed logging and debugging information for "user not found" scenarios.
+- **Fallback Mechanism**: Created `/api/delete-user` endpoint to handle orphaned Supabase users that exist in auth but not in database.
+- **Data Sync Recovery**: Added graceful handling for data synchronization issues between Supabase auth and database.
+- **User Experience**: Replaced generic "user not found" error with specific guidance about data synchronization issues and support contact information.
+- **Automatic Cleanup**: System now attempts to delete from Supabase auth when database user is missing, maintaining account deletion functionality.
+- **Files Touched**: `actions/user-actions.ts`, `components/dashboard/account-form.tsx`, `app/api/delete-user/route.ts` (new).
+
 ## 2026-02-24: Sprint 22 - Phone Management & Support System
 - **Dual-Number Architecture:** Implemented complete separation between personal phone numbers (user management) and AI agent business numbers (customer-facing).
 - **Personal Phone Management:** Added `/dashboard/settings/phone-settings` with SMS verification for personal number changes. Features 6-digit codes, 10-minute expiry, and first-time setup flow.
