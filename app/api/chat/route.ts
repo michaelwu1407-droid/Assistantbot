@@ -20,6 +20,7 @@ import {
   runGetConversationHistory,
   runCreateScheduledNotification,
   runUndoLastAction,
+  runAssignTeamMember,
 } from "@/actions/chat-actions";
 import {
   runGetSchedule,
@@ -319,6 +320,7 @@ TOOLS — COMMUNICATION & LOGGING:
 - createNotification: Create a scheduled notification or reminder alert.
 - updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays".
 - undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
+- assignTeamMember: Assign a team member to a job. Use when the user says "Assign Dave to the Henderson job" or "Put Sarah on the plumbing repair".
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try.`,
       messages: modelMessages as any,
@@ -475,6 +477,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           description: "Undo the most recent action. Use when the user says 'Undo that', 'Revert', 'Take that back', or 'Oops undo'. Reverses the last deal creation, stage move, or other reversible action.",
           inputSchema: z.object({}),
           execute: async () => runUndoLastAction(workspaceId),
+        }),
+        assignTeamMember: tool({
+          description: "Assign a team member to a job/deal. Use when the user says 'Assign Dave to the Henderson job', 'Put Sarah on the plumbing repair', or 'Give the roof job to Mike'. Fuzzy-matches both the job title and team member name.",
+          inputSchema: z.object({
+            dealTitle: z.string().describe("The job/deal title or description to assign"),
+            teamMemberName: z.string().describe("The team member's name (or email) to assign the job to"),
+          }),
+          execute: async ({ dealTitle, teamMemberName }) =>
+            runAssignTeamMember(workspaceId, { dealTitle, teamMemberName }),
         }),
 
         // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────
