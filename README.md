@@ -66,7 +66,7 @@ Multi-channel support with AI-powered assistance:
 - **Immediate Help**: Diagnostics and next steps
 
 ### 📞 **Human Support Channels**
-- **Email**: support@earlymark.com (24-hour response)
+- **Email**: support@earlymark.ai (24-hour response)
 - **Phone**: 1300 EARLYMARK (Mon-Fri 9am-5pm AEST)
 - **Tickets**: Integrated support system in settings
 - **Website**: Contact section with all channels
@@ -232,7 +232,7 @@ ENCRYPTION_KEY=your-32-byte-key
 
 - **Issues**: GitHub Issues for bug reports
 - **Documentation**: See `/docs` folder for detailed guides
-- **Status**: Real-time status at status.earlymark.com
+- **Status**: Real-time status at status.earlymark.ai
 - **Updates**: Follow @earlymark on Twitter for updates
 
 ---

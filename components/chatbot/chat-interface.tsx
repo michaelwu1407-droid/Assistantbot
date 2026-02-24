@@ -288,7 +288,7 @@ function ChatWithHistory({
           <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
               <p className="text-xs md:text-sm leading-relaxed text-slate-800 dark:text-foreground">
-                Hello! I&apos;m your CRM assistant. Ask me to move deals, look up contacts, or schedule jobs — or type &quot;what can you do?&quot; to see more.
+                Hi! I&apos;m Travis, your personal assistant. Here to give you an earlymark!
               </p>
             </div>
             <p className="text-xs text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
