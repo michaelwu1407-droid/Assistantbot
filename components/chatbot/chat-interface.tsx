@@ -61,6 +61,7 @@ interface JobDraftData {
   phone?: string;
   email?: string;
   customerType?: string;
+  notes?: string; // New notes field for language preferences
 }
 
 function JobDraftCard({
@@ -82,6 +83,7 @@ function JobDraftCard({
   const [address, setAddress] = useState(data.address ?? '');
   const [phone, setPhone] = useState(data.phone ?? '');
   const [email, setEmail] = useState(data.email ?? '');
+  const [notes, setNotes] = useState(''); // New notes field for language preferences
   const [customerType, setCustomerType] = useState<'Person' | 'Business'>(() =>
     (data.customerType === 'Business' ? 'Business' : 'Person')
   );
@@ -102,6 +104,7 @@ function JobDraftCard({
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         contactType: customerType === 'Business' ? 'BUSINESS' : 'PERSON',
+        notes: notes.trim() || undefined, // Pass language preferences and other notes
       });
       if (result.success) {
         toast.success(result.message);
@@ -171,6 +174,17 @@ function JobDraftCard({
             <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Email</label>
             <Input className="h-8 text-xs" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Optional" />
           </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">
+            Notes <span className="text-amber-600 font-normal">(language preferences, etc.)</span>
+          </label>
+          <textarea
+            className="w-full h-16 text-xs rounded-md border border-input bg-background px-3 py-2 resize-none"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g., speaks Chinese, prefers Mandarin, hard of hearing, etc."
+          />
         </div>
         <div>
           <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Type</label>

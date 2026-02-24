@@ -417,6 +417,7 @@ export async function runCreateJobNatural(
     phone?: string;
     email?: string;
     contactType?: "PERSON" | "BUSINESS";
+    notes?: string; // New notes field for language preferences
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
   const clientName = params.clientName?.trim() || "Unknown";
@@ -456,6 +457,7 @@ export async function runCreateJobNatural(
       schedule: params.schedule,
       scheduleDisplay,
       workDescription: params.workDescription,
+      notes: params.notes, // Store language preferences and other notes
     },
   });
   if (!dealResult.success) {
@@ -486,6 +488,7 @@ export async function confirmJobDraft(
     phone?: string;
     email?: string;
     contactType?: "PERSON" | "BUSINESS";
+    notes?: string; // New notes field for language preferences
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
   const schedule = draft.rawSchedule ?? draft.schedule ?? "";
@@ -498,6 +501,7 @@ export async function confirmJobDraft(
     phone: draft.phone?.trim(),
     email: draft.email?.trim(),
     contactType: draft.contactType ?? "PERSON",
+    notes: draft.notes?.trim(), // Pass notes for language preferences
   });
   return {
     success: result.success,
