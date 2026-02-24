@@ -19,7 +19,7 @@ import {
 import { createJobNote, deleteJobNote, updateJobNote, getJobNotes } from "@/actions/job-media-actions";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth-client";
 
 interface JobNotesProps {
   dealId: string;

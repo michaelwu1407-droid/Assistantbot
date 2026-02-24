@@ -614,6 +614,8 @@ export async function runLogActivity(params: { type: string, content: string, de
   } catch (err) {
     return `Error logging activity: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
 /**
  * AI Tool Action: Create a Task/Reminder
  */
