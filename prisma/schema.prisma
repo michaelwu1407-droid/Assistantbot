@@ -80,6 +80,7 @@ model Workspace {
   twilioPhoneNumber     String?
   twilioPhoneNumberSid  String?
   twilioSipTrunkSid     String?
+  twilioSubaccountAuthToken String?
 
   // Retell AI Voice Agent
   retellAgentId         String?
@@ -97,6 +98,11 @@ model Workspace {
   workingHoursEnd    String?   @default("17:00")
   agendaNotifyTime   String?   @default("07:30")
   wrapupNotifyTime   String?   @default("17:30")
+  
+  // Job Reminder Settings
+  jobReminderHours   Int?      @default(24)
+  enableJobReminders Boolean   @default(true)
+  enableTripSms      Boolean   @default(true)
   
   users              User[]
   deals              Deal[]

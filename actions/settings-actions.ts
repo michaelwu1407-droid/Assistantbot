@@ -24,6 +24,9 @@ export async function getWorkspaceSettings() {
             autoUpdateGlossary: true,
             callOutFee: true,
             inboundEmail: true,
+            jobReminderHours: true,
+            enableJobReminders: true,
+            enableTripSms: true,
         }
     })
 
@@ -43,6 +46,9 @@ export async function updateWorkspaceSettings(input: {
     aiPreferences?: string
     autoUpdateGlossary?: boolean
     callOutFee?: number
+    jobReminderHours?: number
+    enableJobReminders?: boolean
+    enableTripSms?: boolean
 }) {
     const authUser = await getAuthUser()
     if (!authUser || !authUser.email) throw new Error("Unauthorized")
@@ -61,6 +67,9 @@ export async function updateWorkspaceSettings(input: {
             ...(input.aiPreferences !== undefined && { aiPreferences: input.aiPreferences }),
             ...(input.autoUpdateGlossary !== undefined && { autoUpdateGlossary: input.autoUpdateGlossary }),
             ...(input.callOutFee !== undefined && { callOutFee: input.callOutFee }),
+            ...(input.jobReminderHours !== undefined && { jobReminderHours: input.jobReminderHours }),
+            ...(input.enableJobReminders !== undefined && { enableJobReminders: input.enableJobReminders }),
+            ...(input.enableTripSms !== undefined && { enableTripSms: input.enableTripSms }),
         }
     })
 

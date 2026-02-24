@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
+import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
 import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -254,9 +255,23 @@ function ChatWithHistory({
         content = (message as any).content;
       if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => { });
     },
-    onError: (err) => {
+    onError: async (err) => {
       console.error("Chat error:", err);
       toast.error(err?.message ?? "Couldn't get a response. Check your connection and try again.");
+      
+      // Send fallback alert to support
+      try {
+        await handleChatFallback(
+          err?.message || "Unknown chat error",
+          {
+            workspaceId,
+            error: err?.message,
+            timestamp: new Date().toISOString(),
+          }
+        );
+      } catch (fallbackError) {
+        console.error("Failed to send fallback alert:", fallbackError);
+      }
     },
   });
 
