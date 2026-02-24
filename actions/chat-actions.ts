@@ -614,12 +614,15 @@ export async function runLogActivity(params: { type: string, content: string, de
   } catch (err) {
     return `Error logging activity: ${err instanceof Error ? err.message : String(err)}`;
   }
-}
-
 /**
  * AI Tool Action: Create a Task/Reminder
  */
 export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
+  // 🎯 AI AGENT COMMUNICATION - IMPORTANT:
+  // This function creates a task/reminder in the CRM system
+  // It does not initiate any external communication (calls, emails, etc.)
+  // For manual communication, user clicks Call/Text buttons on contact cards
+  // DO NOT confuse AI agent with manual communication methods
   try {
     // Default due tomorrow 9AM if nothing specified
     let dueAt = new Date();
@@ -682,6 +685,12 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
  * AI Tool Action: Send SMS to a contact.
  * Looks up the contact by name, finds or creates a Twilio subaccount client,
  * and sends the message via the workspace's Twilio phone number.
+ * 
+ * 🎯 AI AGENT COMMUNICATION - IMPORTANT:
+ * This function uses the PROVISIONED TWILIO NUMBER (app's number)
+ * User's personal number is NEVER used here
+ * For manual communication, user clicks Call/Text buttons on contact cards
+ * DO NOT confuse AI agent with manual communication methods
  * 
  * IMPROVED: Graceful handling of name mismatches with fuzzy matching suggestions
  */
