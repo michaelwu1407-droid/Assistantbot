@@ -9,20 +9,20 @@ import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
-export default async function DealsPage() {
+export default async function JobsPage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
 
-    let workspace, deals
+    let workspace, jobs
     try {
         workspace = await getOrCreateWorkspace(authUser.id)
-        deals = await getDeals(workspace.id)
+        jobs = await getDeals(workspace.id)
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">
                 <div className="max-w-sm w-full rounded-xl border border-amber-200 bg-amber-50 p-5 text-center space-y-2">
                     <h3 className="text-sm font-semibold text-amber-800">Database connection unavailable</h3>
-                    <p className="text-xs text-amber-600">Could not load deals. Please try again later.</p>
+                    <p className="text-xs text-amber-600">Could not load jobs. Please try again later.</p>
                 </div>
             </div>
         )
@@ -33,14 +33,14 @@ export default async function DealsPage() {
             <div className="flex items-center justify-between mb-4 shrink-0">
                 <div>
                     <h1 className="text-2xl font-bold text-midnight">Pipeline</h1>
-                    <p className="text-sm text-slate-body">{deals.length} deals worth ${deals.reduce((s, d) => s + d.value, 0).toLocaleString()}</p>
+                    <p className="text-sm text-slate-body">{jobs.length} jobs worth ${jobs.reduce((s: number, d: any) => s + d.value, 0).toLocaleString()}</p>
                 </div>
                 <Link href="/dashboard">
                     <Button variant="outline" size="sm">Back to Dashboard</Button>
                 </Link>
             </div>
             <div className="flex-1 min-h-0 overflow-hidden">
-                <KanbanBoard deals={deals} industryType={workspace.industryType} />
+                <KanbanBoard deals={jobs} industryType={workspace.industryType} />
             </div>
         </div>
     )

@@ -62,7 +62,7 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { label: "Total Leads", value: "1,098", change: "+16.2%" },
-                  { label: "Active Deals", value: "$4,304", change: "+12.8%" },
+                  { label: "Active Jobs", value: "$4,304", change: "+12.8%" },
                   { label: "Work Hours", value: "120.8 Hrs", change: "+8.1%" },
                   { label: "Close Rate", value: "50.1%", change: "+3.2%" },
                 ].map((kpi) => (

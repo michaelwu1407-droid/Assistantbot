@@ -15,6 +15,7 @@ import {
     MessageSquare,
     PieChart,
     Inbox,
+    Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -33,6 +34,7 @@ const navItems = [
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
     { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
+    { icon: Briefcase, label: "Jobs", href: "/dashboard/deals", id: "jobs-link" },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
     { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
     { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
