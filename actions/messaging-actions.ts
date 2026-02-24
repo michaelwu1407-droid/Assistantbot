@@ -37,36 +37,56 @@ const SendMessageSchema = z.object({
 // ─── Twilio Client ──────────────────────────────────────────────────
 
 /**
- * Send an SMS via Twilio.
- *
- * Requires environment variables:
- * - TWILIO_ACCOUNT_SID
- * - TWILIO_AUTH_TOKEN
- * - TWILIO_PHONE_NUMBER (for SMS)
- * - TWILIO_WHATSAPP_NUMBER (for WhatsApp, format: whatsapp:+14155238886)
+ * Look up the workspace's Twilio subaccount credentials from the database.
+ * Each workspace gets a provisioned Twilio subaccount + phone number during onboarding.
+ */
+async function getWorkspaceTwilioCreds(workspaceId: string) {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: {
+      twilioSubaccountId: true,
+      twilioPhoneNumber: true,
+    },
+  });
+  return workspace;
+}
+
+/**
+ * Send an SMS via Twilio using the workspace's provisioned subaccount.
+ * Falls back to env vars if workspace credentials aren't available.
  */
 async function sendViaTwilio(
   to: string,
   body: string,
-  channel: "sms" | "whatsapp"
+  channel: "sms" | "whatsapp",
+  workspaceId?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber =
-    channel === "whatsapp"
-      ? process.env.TWILIO_WHATSAPP_NUMBER
-      : process.env.TWILIO_PHONE_NUMBER;
+  let accountSid = process.env.TWILIO_ACCOUNT_SID;
+  let authToken = process.env.TWILIO_AUTH_TOKEN;
+  let fromNumber = channel === "whatsapp"
+    ? process.env.TWILIO_WHATSAPP_NUMBER
+    : process.env.TWILIO_PHONE_NUMBER;
+
+  // Try workspace-specific Twilio credentials first
+  if (workspaceId) {
+    const wsCreds = await getWorkspaceTwilioCreds(workspaceId);
+    if (wsCreds?.twilioSubaccountId && wsCreds?.twilioPhoneNumber) {
+      accountSid = wsCreds.twilioSubaccountId;
+      // Subaccount auth token — stored as env var keyed by subaccount SID
+      // or use the master account's auth token (Twilio allows parent auth on subaccounts)
+      authToken = process.env.TWILIO_AUTH_TOKEN || authToken;
+      fromNumber = wsCreds.twilioPhoneNumber;
+    }
+  }
 
   if (!accountSid || !authToken || !fromNumber) {
     return {
       success: false,
-      error: `Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and ${channel === "whatsapp" ? "TWILIO_WHATSAPP_NUMBER" : "TWILIO_PHONE_NUMBER"
-        } in .env`,
+      error: "SMS not configured yet. Complete onboarding to provision your business number, or contact support.",
     };
   }
 
   const toFormatted = channel === "whatsapp" ? `whatsapp:${to}` : to;
-  const fromFormatted = channel === "whatsapp" ? fromNumber : fromNumber;
 
   try {
     const res = await fetch(
@@ -79,7 +99,7 @@ async function sendViaTwilio(
         },
         body: new URLSearchParams({
           To: toFormatted,
-          From: fromFormatted,
+          From: fromNumber,
           Body: body,
         }),
       }
@@ -181,11 +201,15 @@ export async function sendSMS(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const contact = await db.contact.findUnique({ where: { id: contactId } });
+  const contact = await db.contact.findUnique({
+    where: { id: contactId },
+    select: { id: true, name: true, phone: true, workspaceId: true },
+  });
   if (!contact) return { success: false, error: "Contact not found" };
   if (!contact.phone) return { success: false, error: "Contact has no phone number" };
 
-  const result = await sendViaTwilio(contact.phone, message, "sms");
+  // Use workspace's Twilio subaccount
+  const result = await sendViaTwilio(contact.phone, message, "sms", contact.workspaceId);
 
   if (result.success) {
     // Log as activity
@@ -195,7 +219,7 @@ export async function sendSMS(
         title: "SMS sent",
         content: `SMS to ${contact.name}: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
         contactId,
-        dealId, // Associate with deal if provided
+        dealId,
       },
     });
   }

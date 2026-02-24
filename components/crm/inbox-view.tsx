@@ -35,7 +35,7 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
 
   // RHS detail panel state
   const [detailTab, setDetailTab] = useState<DetailTab>("conversations")
-  const [messageMode, setMessageMode] = useState<MessageMode>("travis")
+  const [messageMode, setMessageMode] = useState<MessageMode>("direct")
   const [messageText, setMessageText] = useState("")
   const [sending, setSending] = useState(false)
 
@@ -115,8 +115,25 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
           toast.error(result.error || "Failed to send")
         }
       } else {
-        // Ask Travis - send to chatbot API
-        toast.info(`Travis will handle: "${messageText}" for ${selectedContact.name}`)
+        // Ask Travis — route through chatbot API
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                { role: "user", content: `Tell ${selectedContact.name}: ${messageText}` }
+              ],
+            }),
+          })
+          if (res.ok) {
+            toast.success(`Travis is sending to ${selectedContact.name}`)
+          } else {
+            toast.error("Travis couldn't send that message")
+          }
+        } catch {
+          toast.error("Failed to reach Travis")
+        }
         setMessageText("")
       }
     } catch {
