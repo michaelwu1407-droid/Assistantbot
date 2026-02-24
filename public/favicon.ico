@@ -1,5 +1,15 @@
-<!-- Earlymark Favicon - Green Circle with White Inside -->
+<!-- Earlymark Favicon - Photo with Green Circle Frame -->
 <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Green circle frame -->
   <circle cx="50" cy="50" r="45" fill="#00D28B"/>
-  <circle cx="50" cy="50" r="35" fill="white"/>
+  
+  <!-- Inner circle for photo -->
+  <circle cx="50" cy="50" r="38" fill="none" stroke="white" stroke-width="3"/>
+  
+  <!-- Photo placeholder area -->
+  <circle cx="50" cy="50" r="35" fill="white" opacity="0.9"/>
+  
+  <!-- Simple icon to represent photo -->
+  <circle cx="50" cy="40" r="8" fill="#00D28B"/>
+  <path d="M 30 65 Q 50 55 70 65 L 70 75 L 30 75 Z" fill="#00D28B"/>
 </svg>
