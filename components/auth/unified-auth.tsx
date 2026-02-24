@@ -309,12 +309,17 @@ export function UnifiedAuth() {
             variant={state.method === "google" ? "default" : "outline"}
             size="lg"
             className="w-full relative overflow-hidden group"
-            onClick={() => { updateState({ method: "google" }); resetForm(); }}
+            onClick={async () => { 
+              updateState({ method: "google" }); 
+              resetForm(); 
+              await handleGoogleAuth(); 
+            }}
+            disabled={state.loading}
           >
             <Chrome className="h-5 w-5 mr-3" />
-            Continue with Google
+            {state.loading && state.method === "google" ? "Connecting..." : "Continue with Google"}
             {state.method === "google" && (
-              <div className="absolute inset-0 bg-primary/20 animate-pulse" />
+              <div className="absolute inset-0 bg-primary/20 animate-pulse pointer-events-none" />
             )}
           </Button>
 
@@ -433,20 +438,21 @@ export function UnifiedAuth() {
             </>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full mt-2" 
-            size="lg" 
-            disabled={state.loading}
-          >
-            {state.loading ? (
-              state.method === "google" ? "Connecting..." : 
-              state.method === "phone" && !state.phoneOtpSent ? "Sending Code..." : "Signing in..."
-            ) : (
-              state.method === "google" ? "Connect with Google" :
-              state.method === "phone" && !state.phoneOtpSent ? "Send Code" : "Sign In"
-            )}
-          </Button>
+          {/* Only show submit button for phone and email methods */}
+          {state.method !== "google" && (
+            <Button 
+              type="submit" 
+              className="w-full mt-2" 
+              size="lg" 
+              disabled={state.loading}
+            >
+              {state.loading ? (
+                state.method === "phone" && !state.phoneOtpSent ? "Sending Code..." : "Signing in..."
+              ) : (
+                state.method === "phone" && !state.phoneOtpSent ? "Send Code" : "Sign In"
+              )}
+            </Button>
+          )}
 
           {state.needsConfirmation && (
             <Button
