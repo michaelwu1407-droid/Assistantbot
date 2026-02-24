@@ -8,6 +8,7 @@ import { ServiceWorkerProvider } from "@/components/providers/service-worker-pro
 import { Toaster } from "@/components/ui/sonner";
 import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
+import { ReferralProvider } from "@/components/providers/referral-provider";
 import { Footer } from "@/components/layout/footer";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
@@ -46,12 +47,14 @@ export default function RootLayout({
           <ClientThemeProvider>
             <IndustryProvider>
               <PostHogProvider>
-                {children}
-                <Footer />
-                <CommandPalette />
-                <OfflineBanner />
-                <ServiceWorkerProvider />
-                <Toaster />
+                <ReferralProvider>
+                  {children}
+                  <Footer />
+                  <CommandPalette />
+                  <OfflineBanner />
+                  <ServiceWorkerProvider />
+                  <Toaster />
+                </ReferralProvider>
               </PostHogProvider>
             </IndustryProvider>
           </ClientThemeProvider>

@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "db:fix-deal-stage": "prisma db execute --file prisma/migrations/20250219_add_deal_stage_deleted/migration.sql",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:referral": "npx tsx prisma/seed-referral.ts",
     "retell:create-agent": "npx tsx scripts/create-retell-agent.ts",
     "twilio:list-bundles": "npx tsx scripts/list-regulatory-bundles.ts",
     "test": "vitest run",
