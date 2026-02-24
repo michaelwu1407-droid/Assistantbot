@@ -19,8 +19,12 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Pj Buddy — CRM for SMEs",
+  title: "Earlymark — CRM for SMEs",
   description: "High-velocity CRM platform with Hub and Spoke architecture",
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export const viewport: Viewport = {
