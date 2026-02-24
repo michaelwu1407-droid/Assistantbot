@@ -12,6 +12,7 @@ import { updateJobStatus } from "@/actions/tradie-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { InvoiceGenerator } from "@/components/invoicing/invoice-generator"
+import { JobMedia } from "./job-media"
 
 // Define types locally or import (ideally import shared types)
 interface JobDetail {
@@ -134,33 +135,10 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                     </TabsContent>
 
                     <TabsContent value="diary" className="space-y-4 mt-4">
-                        <div className="flex gap-2">
-                            <Button className="flex-1" variant="outline">
-                                <Camera className="mr-2 h-4 w-4" /> Add Photo
-                            </Button>
-                            <Button className="flex-1" variant="outline">
-                                <Plus className="mr-2 h-4 w-4" /> Add Note
-                            </Button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {job.activities.length === 0 ? (
-                                <p className="text-center text-muted-foreground py-8">No diary entries yet.</p>
-                            ) : (
-                                job.activities.map((activity) => (
-                                    <div key={activity.id} className="flex gap-3">
-                                        <div className="mt-1">
-                                            <div className="h-2 w-2 rounded-full bg-slate-400" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium">{activity.title}</p>
-                                            <p className="text-xs text-muted-foreground">{new Date(activity.createdAt).toLocaleString()}</p>
-                                            {activity.content && <p className="text-sm mt-1">{activity.content}</p>}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                        <JobMedia 
+                            dealId={job.id} 
+                            isPastJob={job.status === 'COMPLETED' || job.status === 'WON'}
+                        />
                     </TabsContent>
 
                     <TabsContent value="billing" className="space-y-4 mt-4">
