@@ -33,27 +33,23 @@ The heart of the application. Pj Buddy uses a "Chat First" design philosophy.
 - **Voice Input**: Dedicated microphone button for voice-to-text commands.
 - **Support Integration**: Automatic support ticket creation and categorization for help requests.
 
-### 2.2. Phone Management System ⭐ (NEW)
-Dual-number architecture for complete communication control:
+### 2.2. Phone Management System ⭐ (UPDATED)
+The platform uses a dedicated **Dual-Number Architecture** to separate personal user communications from automated business interactions:
 
-#### Personal Phone Number (User Management)
-- **Purpose**: App-to-user communication (verification, urgent messages)
-- **Location**: `/dashboard/settings/phone-settings`
-- **Features**:
-  - SMS verification for number changes (6-digit codes, 10-minute expiry)
-  - First-time setup without verification
-  - Real-time status display
-  - Change history tracking
+#### 📱 Personal Phone Number (User Management)
+- **Collection**: Entered by the user during initial signup/onboarding.
+- **Purpose**: Internal app-to-user communication ONLY (e.g., account verification, multi-factor auth, urgent system alerts).
+- **Location**: Managed via `/dashboard/settings/phone-settings`.
+- **Change Logic**: Users can update their personal number at any time. This triggers a verification process where a 6-digit code is sent to the **new** number to ensure ownership before the change is finalized.
+- **Verification**: Codes expire after 10 minutes.
 
-#### AI Agent Business Number (Customer-Facing)
-- **Purpose**: Customer communications via AI assistant
-- **Management**: Support-only (security-focused)
-- **Features**:
-  - Read-only display in settings
-  - Twilio subaccount provisioning
-  - Voice agent integration
-  - Changes via support ticket system
-
+#### 🤖 AI Agent Business Number (Customer-Facing)
+- **Provisioning**: Automatically provisioned by the system via **Twilio Subaccounts** once onboarding is complete. Each workspace receives its own unique, dedicated phone number.
+- **Purpose**: All outward-facing communication between the AI Agent (Travis/Voice Agent) and end customers. 
+- **Ownership**: The user does NOT have this number on their physical phone. They interact with customers using this number exclusively through the Pj Buddy web/mobile app interface.
+- **Management**: This number is **READ-ONLY** for the user. It is set during account creation and should not be changed by the user. 
+- **Changes**: If a business number change is required, the user must contact support. This is a security measure to prevent unauthorized communication hijacking.
+- **Features**: Supports SMS, WhatsApp (where configured), and SIP-based voice calls via Retell AI.
 ### 2.3. Support System ⭐ (NEW)
 Multi-channel support with AI-powered assistance:
 

@@ -43,8 +43,8 @@ Dual-number architecture for complete communication control:
 
 ### 📱 **Personal Phone Number** (User Management)
 - **Purpose**: App-to-user communication (verification, urgent messages)
-- **Management**: Changeable via Settings with SMS verification
-- **Features**: 6-digit codes, 10-minute expiry, first-time setup
+- **Management**: Changeable via Settings with SMS verification (code sent to the **new** number)
+- **Features**: 6-digit codes, 10-minute expiry, first-time setup (no verification required for first entry)
 - **Location**: `/dashboard/settings/phone-settings`
 
 ### 🤖 **AI Agent Business Number** (Customer-Facing)
@@ -246,8 +246,8 @@ ENCRYPTION_KEY=your-32-byte-key
 
 ---
 
-**Last Updated**: February 22, 2026  
-**Version**: 2.0 - Instant Lead Capture Edition  
+**Last Updated**: February 24, 2026  
+**Version**: 2.1 - Communication Clarification Edition  
 **Maintained by**: Pj Buddy Engineering Team
 
 ---

@@ -1564,3 +1564,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 3.  Wire `AssistantPane` chat input to `processChat(message, workspaceId)` — now supports templates + dedup commands
 4.  Wire Kanban drag-drop to `updateDealStage(dealId, newStage)` — now also sets `stageChangedAt`
 5.  Call `getOrCreateWorkspace(userId)` on app load to get `workspaceId`
+
+## [2026-02-24] Communication Infrastructure Clarification
+- **Personal vs. Business Numbers**: Documented the dual-number architecture in APP_MANUAL.md.
+- **User Personal Number**: Entered at signup; used for system alerts/verification; changeable via SMS code to the NEW number.
+- **AI Agent Number**: Provisioned via Twilio Subaccounts; customer-facing; app-only (not on user phone); read-only for users (changes via support only).
+- **Status**: Pushed fixes for immediate messaging and workspace-specific Twilio credentials.
