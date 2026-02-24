@@ -302,11 +302,11 @@ function ChatWithHistory({
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
-              <p className="text-xs md:text-sm leading-relaxed text-slate-800 dark:text-foreground">
+              <p className="text-[10px] md:text-xs leading-relaxed text-slate-800 dark:text-foreground">
                 Hi! I&apos;m Travis, your personal assistant. Here to give you an earlymark!
               </p>
             </div>
-            <p className="text-xs text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
+            <p className="text-[10px] text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
           </div>
         )}
 
@@ -337,7 +337,7 @@ function ChatWithHistory({
                         const partText = part.type === 'text' && part.text ? part.text : (part as { text?: string }).text;
                         if (partText && typeof partText === 'string') {
                           rendered.push(
-                            <p key={idx} className="text-xs md:text-[13px] leading-relaxed whitespace-pre-line font-medium">
+                            <p key={idx} className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
                               {partText}
                             </p>
                           );
@@ -351,7 +351,7 @@ function ChatWithHistory({
                               rendered.push(
                                 <div
                                   key={idx}
-                                  className="mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200"
+                                  className="mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] font-medium bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200"
                                 >
                                   <Check className="w-4 h-4 shrink-0" />
                                   <span>{confirmation}</span>
@@ -376,7 +376,7 @@ function ChatWithHistory({
                               <div
                                 key={idx}
                                 className={cn(
-                                  "mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium",
+                                  "mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] font-medium",
                                   isSuccess
                                     ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
                                     : "bg-amber-50 border border-amber-200 text-amber-800"
@@ -403,7 +403,7 @@ function ChatWithHistory({
                           }
                           if (part.state === 'output-error' && part.errorText) {
                             rendered.push(
-                              <div key={idx} className="mt-2 text-xs text-red-600">
+                              <div key={idx} className="mt-2 text-[10px] text-red-600">
                                 {part.errorText}
                               </div>
                             );
@@ -422,7 +422,7 @@ function ChatWithHistory({
                       }
                       if (content.trim()) {
                         return (
-                          <p className="text-xs md:text-[13px] leading-relaxed whitespace-pre-line font-medium">
+                          <p className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
                             {content}
                           </p>
                         );
@@ -431,7 +431,7 @@ function ChatWithHistory({
                     })()}
                   </div>
                   <span className={cn(
-                    "text-xs flex items-center gap-1 text-muted-foreground",
+                    "text-[10px] flex items-center gap-1 text-muted-foreground",
                     isUser && "justify-end"
                   )}>
                     <Clock className="w-3 h-3" />
@@ -448,7 +448,7 @@ function ChatWithHistory({
             <div className="rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50 bg-white/80">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Thinking...</span>
+                <span className="text-xs text-muted-foreground">Thinking...</span>
               </div>
             </div>
           </div>
@@ -456,7 +456,7 @@ function ChatWithHistory({
 
         {isOnlyWelcomeMessage && !isLoading && messages.length <= 1 && (
           <div className="max-w-2xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground mb-3">Quick actions</p>
+            <p className="text-[10px] font-medium text-slate-500 dark:text-muted-foreground mb-3">Quick actions</p>
             <div className="grid grid-cols-2 gap-2">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
@@ -467,7 +467,7 @@ function ChatWithHistory({
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
                     <action.icon className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-foreground">
+                  <span className="text-[10px] md:text-xs font-medium text-slate-800 dark:text-foreground">
                     {action.label}
                   </span>
                 </button>
@@ -494,7 +494,7 @@ function ChatWithHistory({
                 }
               }}
               placeholder="Type your message..."
-              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-sm md:text-base py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 scrollbar-hide"
+              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs md:text-sm py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 placeholder:text-[10px] md:placeholder:text-xs scrollbar-hide"
               rows={1}
               ref={(ref) => {
                 if (ref) {
@@ -565,7 +565,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     return (
       <div className="flex flex-col h-full bg-background/50 items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mt-2">Loading chat...</p>
+        <p className="text-xs text-muted-foreground mt-2">Loading chat...</p>
       </div>
     );
   }
@@ -573,7 +573,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   if (!workspaceId) {
     return (
       <div className="flex flex-col h-full bg-background/50 items-center justify-center px-4">
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center">
           Chat needs your workspace to load. Refresh the page or sign in again.
         </p>
       </div>

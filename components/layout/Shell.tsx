@@ -16,14 +16,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import { completeTutorial } from "@/actions/workspace-actions"
 
+const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
+
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
-  const { viewMode, setViewMode } = useShellStore()
+  const { viewMode, setViewMode, tutorialStepIndex } = useShellStore()
   const { theme } = useTheme()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const tutorialTriggered = useRef(false)
   const [mounted, setMounted] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(true) // md and up; assume desktop for SSR
   const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
   const [chatbotExpanded, setChatbotExpanded] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
@@ -34,10 +37,20 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     setMounted(true)
   }, [])
 
-  // Determine if we should show the simplified Basic (Chat) view
-  // Only show Basic view if user is in BASIC mode AND on the main dashboard page
+  // Track desktop vs mobile (md = 768px) so we can default chat panel by viewport
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    setIsDesktop(mq.matches)
+    const fn = () => setIsDesktop(mq.matches)
+    mq.addEventListener("change", fn)
+    return () => mq.removeEventListener("change", fn)
+  }, [])
+
+  // Determine if we should show the simplified Chat view
+  // Show Chat view when: BASIC mode, or during tutorial steps 1–2 (welcome + two modes) so step 2 is shown in chat mode
   const isDashboardRoot = pathname === "/dashboard"
-  const isBasicView = mounted && viewMode === "BASIC" && isDashboardRoot
+  const isTutorialStep1Or2 = viewMode === "TUTORIAL" && (tutorialStepIndex === 0 || tutorialStepIndex === 1)
+  const isBasicView = mounted && isDashboardRoot && (viewMode === "BASIC" || isTutorialStep1Or2)
 
   // Verify tutorial trigger
   useEffect(() => {
@@ -48,6 +61,39 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       router.replace(pathname, { scroll: false })
     }
   }, [searchParams, setViewMode, router, pathname])
+
+  // Keep steps 1–2 in chat mode: if we're on those steps, ensure viewMode is TUTORIAL (and user should be on /dashboard via overlay redirect)
+  useEffect(() => {
+    if ((tutorialStepIndex === 0 || tutorialStepIndex === 1) && viewMode !== "TUTORIAL") {
+      setViewMode("TUTORIAL")
+    }
+  }, [tutorialStepIndex, viewMode, setViewMode])
+
+  // When tutorial reaches the chat step (4), open the side chatbot panel so it can be highlighted
+  useEffect(() => {
+    if (viewMode !== "TUTORIAL" || tutorialStepIndex !== CHAT_STEP_INDEX) return
+    const t = setTimeout(() => {
+      chatbotPanelRef.current?.expand()
+      setChatbotExpanded(true)
+    }, 100)
+    return () => clearTimeout(t)
+  }, [viewMode, tutorialStepIndex])
+
+  // Default chat panel: open on home (desktop only), closed on other pages; on mobile always closed
+  useEffect(() => {
+    if (!mounted || isBasicView) return
+    const openOnHome = pathname === "/dashboard" && isDesktop
+    if (openOnHome) {
+      const t = setTimeout(() => {
+        chatbotPanelRef.current?.expand()
+        setChatbotExpanded(true)
+      }, 50)
+      return () => clearTimeout(t)
+    } else {
+      chatbotPanelRef.current?.collapse()
+      setChatbotExpanded(false)
+    }
+  }, [pathname, isDesktop, mounted, isBasicView])
 
   const handleTutorialComplete = async () => {
     const workspaceId = useShellStore.getState().workspaceId;
@@ -67,13 +113,13 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <div className="absolute inset-0 bg-gradient-to-br from-slate-50/80 via-white to-primary/5 dark:from-slate-950/80 dark:via-background dark:to-primary/10 pointer-events-none" />
           <div className="absolute inset-0 ott-glow opacity-30 pointer-events-none" />
 
-          {/* Main Chat Container - seamless glassmorphism */}
-          <div className="z-10 w-full max-w-4xl h-[100dvh] md:h-[95dvh] flex flex-col rounded-none md:rounded-3xl overflow-hidden bg-white/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl relative border border-white/20 dark:border-white/5">
+          {/* Main Chat Container - seamless glassmorphism (id for tutorial spotlight so whole window + toggle is visible) */}
+          <div id="chat-mode-window" className="z-10 w-full max-w-4xl h-[100dvh] md:h-[95dvh] flex flex-col rounded-none md:rounded-3xl overflow-hidden bg-white/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl relative border border-white/20 dark:border-white/5">
             {/* Header inside card: title + mode toggle */}
             <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-transparent border-b border-border/10">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-                  <span className="font-extrabold italic text-sm text-white tracking-tighter">Pj</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden bg-primary">
+                  <img src="/Latest logo.png" alt="Earlymark" className="h-8 w-8 object-contain" />
                 </div>
                 <span className="font-semibold text-slate-900 dark:text-foreground">Chat</span>
               </div>
@@ -111,9 +157,10 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </div>
             </ResizablePanel>
 
-            <ResizableHandle
+            <div id="assistant-resize-handle" className="hidden md:flex shrink-0">
+              <ResizableHandle
               withHandle
-              className="hidden md:flex bg-border/50 hover:bg-primary/50 transition-colors w-2 min-w-2 shrink-0"
+              className="bg-border/50 hover:bg-primary/50 transition-colors w-2 min-w-2 shrink-0"
               onPointerDown={(e) => {
                 didDragRef.current = false
                 pointerDownRef.current = { x: e.clientX, y: e.clientY }
@@ -137,6 +184,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 }
               }}
             />
+            </div>
 
             {/* Right Chatbot - Collapsed by default; when expanded, minimum width so messages aren't squeezed (user can expand further) */}
             <ResizablePanel

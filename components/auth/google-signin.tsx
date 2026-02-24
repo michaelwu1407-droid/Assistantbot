@@ -15,24 +15,16 @@ export function GoogleSignIn() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        router.push("/setup");
+        router.push("/auth/next");
       }
     };
     checkUser();
   }, [router, supabase]);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      console.error("Error signing in with Google:", error.message);
-      setLoading(false);
-    }
+    // Use our OAuth flow so Google shows "Earlymark.ai" instead of the Supabase URL
+    window.location.href = "/api/auth/google-signin";
   };
 
   return (

@@ -32,7 +32,7 @@ export function AuthSelector() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        router.push("/billing");
+        router.push("/auth/next");
       }
       setUser(user);
     };
@@ -84,7 +84,7 @@ export function AuthSelector() {
         } else if (data.user) {
           MonitoringService.identifyUser(data.user.id, { name });
           MonitoringService.trackEvent("user_signed_up", { provider: "phone" });
-          router.push("/billing");
+          router.push("/auth/next");
           router.refresh();
         }
       }
@@ -119,7 +119,7 @@ export function AuthSelector() {
             MonitoringService.identifyUser(user.id, { email: user.email, name });
             MonitoringService.trackEvent("user_signed_up", { provider: "email" });
           }
-          router.push("/billing");
+          router.push("/auth/next");
           router.refresh();
         }
       }
@@ -157,7 +157,7 @@ export function AuthSelector() {
         } else if (data.user) {
           MonitoringService.identifyUser(data.user.id, {});
           MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
-          router.push("/billing");
+          router.push("/auth/next");
           router.refresh();
         }
       }
@@ -180,7 +180,7 @@ export function AuthSelector() {
           MonitoringService.identifyUser(user.id, { email: user.email });
           MonitoringService.trackEvent("user_signed_in", { provider: "email" });
         }
-        router.push("/billing");
+        router.push("/auth/next");
         router.refresh();
       }
     }

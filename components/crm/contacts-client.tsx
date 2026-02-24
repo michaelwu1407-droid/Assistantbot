@@ -5,7 +5,7 @@ import { ContactView } from "@/actions/contact-actions"
 import { sendBulkSMS } from "@/actions/messaging-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown, ArrowUpDown } from "lucide-react"
+import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -27,6 +27,7 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
 ]
 
 type SortMode = "alpha" | "last_interacted"
+type TypeFilter = "all" | "individual" | "business"
 
 // Prisma DealStage -> kanban column id (matches deal-actions STAGE_MAP)
 function prismaStageToColumnId(prismaStage: string | null): string | null {
@@ -69,6 +70,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [sending, setSending] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("last_interacted")
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
 
   const filtered = useMemo(() => {
     let result = contacts
@@ -87,6 +89,12 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
       const columnId = prismaStageToColumnId(c.primaryDealStageKey ?? null)
       return columnId != null && selectedStageIds.has(columnId)
     })
+    // Type filter: individual (no company) vs business (has company)
+    if (typeFilter === "individual") {
+      result = result.filter((c) => !c.company || c.company.trim() === "")
+    } else if (typeFilter === "business") {
+      result = result.filter((c) => c.company && c.company.trim() !== "")
+    }
     // Sort
     if (sortMode === "alpha") {
       result = [...result].sort((a, b) => a.name.localeCompare(b.name))
@@ -98,7 +106,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
       })
     }
     return result
-  }, [contacts, search, selectedStageIds, sortMode])
+  }, [contacts, search, selectedStageIds, sortMode, typeFilter])
 
   const toggleStage = (stageId: string) => {
     setSelectedStageIds((prev) => {
@@ -219,17 +227,44 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
             </div>
           </PopoverContent>
         </Popover>
-        {/* Sort toggle */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => setSortMode(sortMode === "alpha" ? "last_interacted" : "alpha")}
-          title={sortMode === "alpha" ? "Sorted A–Z (click for recent first)" : "Sorted by recent (click for A–Z)"}
-        >
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
-          {sortMode === "alpha" ? "A–Z" : "Recent first"}
-        </Button>
+        {/* Type filter: Individual / Business */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs min-w-[100px] justify-between"
+            >
+              <span className="truncate">
+                {typeFilter === "all" ? "Type: All" : typeFilter === "individual" ? "Individual" : "Business"}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-1" align="start">
+            <button
+              type="button"
+              onClick={() => { setTypeFilter("all"); }}
+              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "all" && "bg-muted font-medium")}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTypeFilter("individual"); }}
+              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "individual" && "bg-muted font-medium")}
+            >
+              Individual
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTypeFilter("business"); }}
+              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "business" && "bg-muted font-medium")}
+            >
+              Business
+            </button>
+          </PopoverContent>
+        </Popover>
         <Button asChild size="sm">
           <Link href="/dashboard/contacts/new">Add contact</Link>
         </Button>
@@ -256,13 +291,13 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
                   className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none whitespace-nowrap"
                   onClick={() => setSortMode("alpha")}
                 >
-                  Name {sortMode === "alpha" && <span className="text-primary text-xs">↑</span>}
+                  Name {sortMode === "alpha" && <span className="text-primary text-xs ml-0.5">↓</span>}
                 </th>
                 <th
                   className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground select-none"
                   onClick={() => setSortMode("last_interacted")}
                 >
-                  Last interacted {sortMode === "last_interacted" && <span className="text-primary text-xs">↓</span>}
+                  Last interacted {sortMode === "last_interacted" && <span className="text-primary text-xs ml-0.5">↓</span>}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Job status</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Balance</th>

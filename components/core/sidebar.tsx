@@ -15,7 +15,6 @@ import {
     MessageSquare,
     PieChart,
     Inbox,
-    Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -34,7 +33,6 @@ const navItems = [
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
     { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
     { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
-    { icon: Briefcase, label: "Jobs", href: "/dashboard/deals", id: "jobs-link" },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
     { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
     { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
@@ -65,7 +63,7 @@ export function Sidebar({ className }: SidebarProps) {
                     <img src="/Latest logo.png" alt="Earlymark" className="h-9 w-9 object-contain transition-all hover:scale-105 active:scale-95" />
                 </div>
 
-                {/* Mode Toggle (Advanced/Basic) */}
+                {/* Mode Toggle (Advanced/Chat) */}
                 {mounted && viewMode === "ADVANCED" && (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -77,7 +75,7 @@ export function Sidebar({ className }: SidebarProps) {
                                 <MessageSquare className="h-3.5 w-3.5" />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Switch to Basic Mode</TooltipContent>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Switch to Chat Mode</TooltipContent>
                     </Tooltip>
                 )}
 

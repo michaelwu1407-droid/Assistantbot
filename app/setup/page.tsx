@@ -25,10 +25,10 @@ export default async function SetupPage() {
             <div className="absolute inset-0 ott-glow -z-10" />
 
             <div className="text-center mb-8 flex flex-col items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-                    <span className="text-white font-extrabold italic text-lg tracking-tighter">Pj</span>
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden">
+                    <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-midnight tracking-tight">Welcome to Pj Buddy</h1>
+                <h1 className="text-3xl font-extrabold text-midnight tracking-tight">Welcome to Earlymark</h1>
                 <p className="text-muted-foreground">Let&apos;s personalise your assistant.</p>
             </div>
 

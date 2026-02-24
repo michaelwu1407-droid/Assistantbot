@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
-import { Compass, CalendarClock, Layers, MapPin, Clock, Navigation, ChevronDown, ChevronUp, Route, CheckCircle2, LocateFixed } from "lucide-react"
+import { Compass, CalendarClock, Layers, MapPin, Clock, Navigation, ChevronRight, Route, CheckCircle2, LocateFixed } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
+import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 
 export interface Job {
   id: string
@@ -22,6 +23,8 @@ export interface Job {
 interface GoogleMapViewProps {
   jobs: Job[]
   todayIds?: Set<string>
+  /** When Google Maps fails to load (e.g. invalid API key), parent can switch to Leaflet */
+  onFallbackToLeaflet?: () => void
 }
 
 const DEFAULT_CENTER = { lat: -37.8136, lng: 144.9631 }
@@ -40,17 +43,19 @@ function getJobPosition(job: Job): { lat: number; lng: number } {
   }
 }
 
-export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
+export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMapViewProps) {
   const [showToday, setShowToday] = useState(true)
   const [showUpcoming, setShowUpcoming] = useState(true)
   const [legendOpen, setLegendOpen] = useState(false)
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [startedJobId, setStartedJobId] = useState<string | null>(null)
   const [jobListExpanded, setJobListExpanded] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isRouteMode, setIsRouteMode] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
+  const [viewJobDealId, setViewJobDealId] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
 
@@ -134,6 +139,10 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
     setStartedJobId(null)
   }, [])
 
+  useEffect(() => {
+    if (loadError && onFallbackToLeaflet) onFallbackToLeaflet()
+  }, [loadError, onFallbackToLeaflet])
+
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
     setLocating(true)
@@ -166,6 +175,13 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
   }, [markers])
 
   if (loadError) {
+    if (onFallbackToLeaflet) {
+      return (
+        <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-500">
+          <span className="text-sm">Loading map…</span>
+        </div>
+      )
+    }
     return (
       <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-600 p-4 text-center">
         <div>
@@ -196,10 +212,25 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
   }
 
   return (
-    <div className="h-full w-full relative flex">
-      {/* Job List Sidebar */}
+    <div className="h-full w-full relative flex min-h-0">
+      {/* Job List Sidebar — collapsible so map can use full width */}
       {jobsToday.length > 0 && (
-        <div className="w-80 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10">
+        <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
+          {sidebarCollapsed ? (
+            <div className="flex flex-col items-center py-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(false)}
+                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+                title="Expand Today's Jobs"
+              >
+                <MapPin className="h-4 w-4 text-teal-600" />
+                <span className="text-[10px] font-medium truncate">Jobs</span>
+                <ChevronRight className="h-4 w-4 text-slate-400" />
+              </button>
+            </div>
+          ) : (
+            <>
           {/* Header */}
           <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -210,8 +241,8 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
               </div>
-              <button onClick={() => setJobListExpanded((e) => !e)}>
-                {jobListExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+              <button type="button" onClick={() => setSidebarCollapsed(true)} className="p-2 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors" title="Minimise panel">
+                <ChevronRight className="h-5 w-5 rotate-180 stroke-[2.5]" />
               </button>
             </div>
 
@@ -284,21 +315,27 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
                         </div>
                       </button>
 
-                      {/* Start Job / Navigate buttons — only shown when selected */}
+                      {/* View Job (deal card modal) / Open in Google Maps — only shown when selected */}
                       {isSelected && (
-                        <div className="px-3 pb-3 flex gap-2">
-                          {!isStarted ? (
-                            <button
-                              onClick={() => startJob(job)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              <Navigation className="h-3.5 w-3.5" />
-                              Start Job
-                            </button>
-                          ) : (
+                        <div className="px-3 pb-3 flex flex-col gap-2">
+                          <button
+                            onClick={() => setViewJobDealId(job.id)}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                            View Job
+                          </button>
+                          <button
+                            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200"
+                          >
+                            <Navigation className="h-3.5 w-3.5" />
+                            Open in Google Maps
+                          </button>
+                          {isStarted && (
                             <button
                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
                             >
                               <Navigation className="h-3.5 w-3.5" />
                               Navigate Again
@@ -390,11 +427,13 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
               )}
             </div>
           )}
+            </>
+          )}
         </div>
       )}
 
       {/* Map */}
-      <div className="flex-1 min-w-0 relative">
+      <div className="flex-1 min-w-0 relative min-h-[300px]">
         <GoogleMap
           mapContainerStyle={MAP_CONTAINER_STYLE}
           center={DEFAULT_CENTER}
@@ -558,6 +597,12 @@ export function GoogleMapView({ jobs, todayIds }: GoogleMapViewProps) {
           onSuccess={handleModalSuccess}
         />
       )}
+
+      <DealDetailModal
+        dealId={viewJobDealId}
+        open={!!viewJobDealId}
+        onOpenChange={(open) => !open && setViewJobDealId(null)}
+      />
     </div>
   )
 }

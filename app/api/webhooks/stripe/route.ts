@@ -58,6 +58,31 @@ export async function POST(req: Request) {
                 break;
             }
 
+            case "invoice.paid": {
+                // After 3 months on intro price ($60), switch to standard price ($150)
+                const invoice = event.data.object as Stripe.Invoice;
+                const subscriptionId = invoice.subscription as string | null;
+                const introPriceId = process.env.STRIPE_PRO_INTRO_PRICE_ID;
+                const standardPriceId = process.env.STRIPE_PRO_PRICE_ID;
+                if (subscriptionId && introPriceId && standardPriceId) {
+                    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                    const currentPriceId = subscription.items.data[0]?.price.id;
+                    const created = subscription.created;
+                    const threeMonthsAgo = Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60;
+                    if (
+                        currentPriceId === introPriceId &&
+                        created < threeMonthsAgo
+                    ) {
+                        const itemId = subscription.items.data[0].id;
+                        await stripe.subscriptions.update(subscriptionId, {
+                            items: [{ id: itemId, price: standardPriceId }],
+                            proration_behavior: "none",
+                        });
+                    }
+                }
+                break;
+            }
+
             case "customer.subscription.updated":
             case "customer.subscription.deleted": {
                 const subscriptionEvent = event.data.object as Stripe.Subscription;

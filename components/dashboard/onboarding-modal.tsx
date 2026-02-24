@@ -37,7 +37,7 @@ export function OnboardingModal() {
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-4">
                         <Sparkles className="h-6 w-6 text-emerald-600" />
                     </div>
-                    <DialogTitle className="text-center text-xl">Welcome to Pj Buddy!</DialogTitle>
+                    <DialogTitle className="text-center text-xl">Welcome to Earlymark!</DialogTitle>
                     <DialogDescription className="text-center pt-2">
                         Your all-in-one assistant for Tradies and Real Estate Agents.
                         We're here to help you automate the boring stuff.

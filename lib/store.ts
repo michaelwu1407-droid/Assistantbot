@@ -7,6 +7,7 @@ interface ShellState {
   viewMode: ViewMode
   persona: Persona
   tutorialComplete: boolean
+  tutorialStepIndex: number
   workspaceId: string | null
   userId: string | null
   mobileMenuOpen: boolean
@@ -15,6 +16,7 @@ interface ShellState {
   setViewMode: (mode: ViewMode) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
+  setTutorialStepIndex: (index: number) => void
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
   setMobileMenuOpen: (open: boolean) => void
@@ -27,6 +29,7 @@ export const useShellStore = create<ShellState>((set, get) => ({
   viewMode: 'BASIC' as ViewMode,
   persona: 'TRADIE' as Persona,
   tutorialComplete: false,
+  tutorialStepIndex: -1,
   workspaceId: null,
   userId: null,
   mobileMenuOpen: false,
@@ -44,6 +47,7 @@ export const useShellStore = create<ShellState>((set, get) => ({
     try { localStorage.setItem('pj_tutorial_complete', 'true') } catch { }
     set({ tutorialComplete: true })
   },
+  setTutorialStepIndex: (index: number) => set({ tutorialStepIndex: index }),
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
   setUserId: (id: string) => set({ userId: id }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),

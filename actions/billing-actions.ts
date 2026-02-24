@@ -25,13 +25,20 @@ export async function createCheckoutSession(workspaceId: string) {
 
     let customerId = workspace.stripeCustomerId;
 
+    // Intro: $60/month for first 3 months, then $150/month (use STRIPE_PRO_INTRO_PRICE_ID for $60, STRIPE_PRO_PRICE_ID for $150)
+    const introPriceId = process.env.STRIPE_PRO_INTRO_PRICE_ID;
+    const priceId = introPriceId || process.env.STRIPE_PRO_PRICE_ID;
+    if (!priceId) {
+        throw new Error("STRIPE_PRO_PRICE_ID or STRIPE_PRO_INTRO_PRICE_ID is required");
+    }
+
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         billing_address_collection: "auto",
         customer: customerId || undefined,
         line_items: [
             {
-                price: process.env.STRIPE_PRO_PRICE_ID,
+                price: priceId,
                 quantity: 1,
             },
         ],

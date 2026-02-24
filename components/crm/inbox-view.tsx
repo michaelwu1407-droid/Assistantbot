@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
+import { useShellStore } from "@/lib/store"
+import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
 import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft, Bot, Send } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -9,6 +11,36 @@ import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
 import { toast } from "sonner"
 import Link from "next/link"
+
+const FAKE_TUTORIAL_INBOX_CONTACT_ID = "tutorial-john-smith"
+const FAKE_TUTORIAL_INBOX: ActivityView[] = [
+  {
+    id: "tutorial-js-1",
+    type: "NOTE",
+    title: "Inbound",
+    description: null,
+    time: "2m ago",
+    createdAt: new Date(),
+    contactId: FAKE_TUTORIAL_INBOX_CONTACT_ID,
+    contactName: "John Smith",
+    contactPhone: "0412 345 678",
+    contactEmail: "john@example.com",
+    content: "Hi, I need a quote for bathroom plumbing — leak under the sink.",
+  },
+  {
+    id: "tutorial-js-2",
+    type: "NOTE",
+    title: "Reply",
+    description: null,
+    time: "Just now",
+    createdAt: new Date(),
+    contactId: FAKE_TUTORIAL_INBOX_CONTACT_ID,
+    contactName: "John Smith",
+    contactPhone: "0412 345 678",
+    contactEmail: "john@example.com",
+    content: "Thanks John. We'll send a quote by end of day.",
+  },
+]
 
 interface InboxViewProps {
   initialInteractions: ActivityView[]
@@ -29,7 +61,11 @@ function isSystemEvent(a: { title?: string | null; description?: string | null }
 }
 
 export function InboxView({ initialInteractions }: InboxViewProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(initialInteractions[0]?.id ?? null)
+  const { viewMode, tutorialStepIndex } = useShellStore()
+  const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"
+  const interactions = isTutorialInboxStep ? [...FAKE_TUTORIAL_INBOX, ...initialInteractions] : initialInteractions
+
+  const [selectedId, setSelectedId] = useState<string | null>(interactions[0]?.id ?? null)
   const [search, setSearch] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
 
@@ -41,7 +77,7 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
 
   // Group interactions by contact
   const contactMap = new Map<string, { name: string; id: string; phone?: string | null; email?: string | null; interactions: ActivityView[] }>()
-  for (const a of initialInteractions) {
+  for (const a of interactions) {
     const key = a.contactId || a.id
     if (!contactMap.has(key)) {
       contactMap.set(key, {
@@ -68,7 +104,7 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
   )
 
   // Find the selected contact's data
-  const selectedActivity = initialInteractions.find(a => a.id === selectedId)
+  const selectedActivity = interactions.find(a => a.id === selectedId)
   const selectedContactKey = selectedActivity?.contactId || selectedActivity?.id || ""
   const selectedContact = contactMap.get(selectedContactKey)
 
@@ -84,19 +120,43 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
     ? filteredContacts.slice(0, 5).map(c => ({ id: c.id, name: c.name }))
     : []
 
-  function iconFor(type: string) {
-    switch (type) {
+  function channelIconAndStyle(type: string): { icon: ReactNode; containerClass: string; label: string } {
+    const t = type?.toLowerCase() ?? ""
+    switch (t) {
       case "call":
-        return <Phone className="h-4 w-4" />
+        return {
+          icon: <Phone className="h-4 w-4" />,
+          containerClass: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400",
+          label: "Call",
+        }
       case "email":
-        return <Mail className="h-4 w-4" />
+        return {
+          icon: <Mail className="h-4 w-4" />,
+          containerClass: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
+          label: "Email",
+        }
+      case "note":
       default:
-        return <FileText className="h-4 w-4" />
+        return {
+          icon: <MessageSquare className="h-4 w-4" />,
+          containerClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400",
+          label: "Message",
+        }
     }
+  }
+
+  // User/sent messages (reply, outbound) show on the right
+  function isOutbound(item: ActivityView) {
+    const title = (item.title ?? "").toLowerCase()
+    return /^(reply|outbound|sent|sms sent|outbound call|email sent)/i.test(title) || title.includes("reply") || title.includes("outbound")
   }
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return
+    if (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID) {
+      toast.info("This is demo data for the tutorial — select a real contact to send messages.")
+      return
+    }
     setSending(true)
 
     try {
@@ -355,24 +415,42 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
                   {detailTab === "conversations" ? "No conversations yet." : "No system activity."}
                 </div>
               ) : (
-                detailInteractions.map((item) => (
-                  <div key={item.id} className="flex gap-3 items-start">
-                    <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground mt-0.5">
-                      {iconFor(item.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-medium text-foreground">{item.title}</span>
-                        <span className="text-[10px] text-muted-foreground">{item.time}</span>
-                      </div>
-                      {item.content && (
-                        <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">
-                          {item.content}
-                        </p>
+                detailInteractions.map((item) => {
+                  const outbound = isOutbound(item)
+                  const { icon, containerClass, label } = channelIconAndStyle(item.type)
+                  return (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "flex gap-3 items-start",
+                        outbound && "flex-row-reverse justify-end"
                       )}
+                    >
+                      <div
+                        className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", containerClass)}
+                        title={label}
+                      >
+                        {icon}
+                      </div>
+                      <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xs font-medium text-foreground">{item.title}</span>
+                          <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                        </div>
+                        {item.content && (
+                          <p
+                            className={cn(
+                              "text-sm mt-0.5 whitespace-pre-wrap",
+                              outbound ? "text-foreground bg-primary/10 rounded-lg rounded-br-sm px-2.5 py-1.5" : "text-muted-foreground"
+                            )}
+                          >
+                            {item.content}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 
@@ -414,12 +492,12 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
                       handleSendMessage()
                     }
                   }}
-                  disabled={messageMode === "direct" && !selectedContact.phone}
+                  disabled={(messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
                 />
                 <Button
                   size="sm"
                   className="h-9 px-3"
-                  disabled={!messageText.trim() || sending || (messageMode === "direct" && !selectedContact.phone)}
+                  disabled={!messageText.trim() || sending || (messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
                   onClick={handleSendMessage}
                 >
                   <Send className="h-4 w-4" />

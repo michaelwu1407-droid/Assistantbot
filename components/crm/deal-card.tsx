@@ -4,16 +4,32 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
 import { checkIfDealIsOverdue, getOverdueStyling } from "@/lib/deal-utils"
 import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+interface TeamMemberOption {
+  id: string
+  name: string | null
+  email: string
+  role: string
+}
 
 interface DealCardProps {
   deal: DealView
   overlay?: boolean
+  columnId?: string
+  teamMembers?: TeamMemberOption[]
+  onAssign?: (userId: string | null) => void | Promise<void>
   onOpenModal?: () => void
   onDelete?: () => void | Promise<void>
   onReconcile?: (dealId: string) => void
@@ -25,7 +41,7 @@ function formatScheduledTime(scheduledAt: Date | null | undefined): string {
   return format(d, "MMM d, h:mm a")
 }
 
-export function DealCard({ deal, overlay, onOpenModal, onDelete, onReconcile }: DealCardProps) {
+export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, onOpenModal, onDelete, onReconcile }: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
   
   // Check if deal is overdue
@@ -185,6 +201,39 @@ export function DealCard({ deal, overlay, onOpenModal, onDelete, onReconcile }: 
             <Briefcase className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
             <span className="truncate">{deal.title}</span>
           </div>
+
+          {/* Assignee (scheduled column): show name + dropdown to assign */}
+          {columnId === "scheduled" && (teamMembers.length > 0 || deal.assignedToName) && (
+            <div className="flex items-center justify-between gap-1" data-no-card-click>
+              <span className="text-[11px] text-[#64748B] dark:text-slate-400 flex items-center gap-1">
+                <User className="w-3 h-3 shrink-0" />
+                {deal.assignedToName ?? "Unassigned"}
+              </span>
+              {onAssign && teamMembers.length > 0 && !overlay && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-[11px] text-[#00D28B] hover:underline flex items-center gap-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <UserPlus className="w-3 h-3" /> Assign
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => onAssign(null)}>
+                      Unassign
+                    </DropdownMenuItem>
+                    {teamMembers.map((m) => (
+                      <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
+                        {m.name || m.email}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          )}
 
           {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">

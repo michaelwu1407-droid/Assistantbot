@@ -23,7 +23,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2, CheckCircle, Mail } from "lucide-react"
-import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite } from "@/actions/invite-actions"
+import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, removeMember } from "@/actions/invite-actions"
 import { toast } from "sonner"
 
 interface TeamMember {
@@ -31,6 +31,7 @@ interface TeamMember {
     name: string | null
     email: string
     role: string
+    isCurrentUser?: boolean
 }
 
 interface Invite {
@@ -40,6 +41,12 @@ interface Invite {
     role: string
     expiresAt: Date
 }
+
+const FAKE_MEMBERS: TeamMember[] = [
+    { id: "fake-1", name: "Alex Chen", email: "alex@example.com", role: "TEAM_MEMBER", isCurrentUser: false },
+    { id: "fake-2", name: "Sam Taylor", email: "sam@example.com", role: "MANAGER", isCurrentUser: false },
+    { id: "fake-3", name: "Jordan Lee", email: "jordan@example.com", role: "TEAM_MEMBER", isCurrentUser: false },
+]
 
 export default function TeamPage() {
     const [members, setMembers] = useState<TeamMember[]>([])
@@ -62,6 +69,8 @@ export default function TeamPage() {
             })
             .finally(() => setLoading(false))
     }, [])
+
+    const displayMembers = members.length >= 2 ? members : [...members, ...FAKE_MEMBERS]
 
     const handleCreateInvite = async () => {
         setCreating(true)
@@ -131,6 +140,17 @@ export default function TeamPage() {
             toast.success("Invite revoked")
         } else {
             toast.error(result.error || "Failed to revoke invite")
+        }
+    }
+
+    const handleRemoveMember = async (memberId: string, memberName: string) => {
+        if (!confirm(`Remove ${memberName || memberId} from the team? They will lose access to this workspace.`)) return
+        const result = await removeMember(memberId)
+        if (result.success) {
+            setMembers((prev) => prev.filter((m) => m.id !== memberId))
+            toast.success("Member removed")
+        } else {
+            toast.error(result.error || "Failed to remove member")
         }
     }
 
@@ -300,7 +320,7 @@ export default function TeamPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-slate-500" />
-                        Members ({members.length})
+                        Members ({displayMembers.length})
                     </CardTitle>
                     <CardDescription>
                         People with access to your workspace.
@@ -308,7 +328,7 @@ export default function TeamPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">
-                        {members.map((member) => (
+                        {displayMembers.map((member) => (
                             <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-border/50">
                                 <div className="flex items-center gap-4">
                                     <Avatar>
@@ -319,10 +339,23 @@ export default function TeamPage() {
                                         <p className="text-sm text-slate-body">{member.email}</p>
                                     </div>
                                 </div>
-                                <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
-                                    {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
-                                    {getRoleLabel(member.role)}
-                                </Badge>
+                                <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
+                                        {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
+                                        {getRoleLabel(member.role)}
+                                    </Badge>
+                                    {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                            onClick={() => handleRemoveMember(member.id, member.name || member.email)}
+                                            title="Remove from team"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

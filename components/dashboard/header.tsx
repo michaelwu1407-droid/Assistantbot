@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users, UserX } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
 import {
     DropdownMenu,
@@ -13,19 +13,39 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { Breadcrumbs } from "@/components/layout/breadcrumbs"
 import { cn } from "@/lib/utils"
 
+interface TeamMemberOption {
+    id: string
+    name: string | null
+    email: string
+    role: string
+}
+
 interface HeaderProps {
     userName: string
     userId: string
     workspaceId: string
+    teamMembers: TeamMemberOption[]
+    filterByUserId: string | null
+    onFilterByUserChange: (value: string | null) => void
     onNewDeal: () => void
 }
 
-export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps) {
+const FILTER_ALL = "__all__"
+const FILTER_UNASSIGNED = "__unassigned__"
+
+export function Header({ userName, userId, workspaceId, teamMembers, filterByUserId, onFilterByUserChange, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
     const router = useRouter()
     const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
@@ -113,6 +133,32 @@ export function Header({ userName, userId, workspaceId, onNewDeal }: HeaderProps
             </div>
 
             <div className="flex items-center gap-3 md:gap-4">
+                {/* Filter by team member - left of search */}
+                {teamMembers.length > 0 && (
+                    <Select
+                        value={filterByUserId ?? FILTER_ALL}
+                        onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v === FILTER_UNASSIGNED ? FILTER_UNASSIGNED : v)}
+                    >
+                        <SelectTrigger className="w-[160px] hidden md:flex border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900" aria-label="Filter jobs by team member">
+                            <Users className="h-4 w-4 mr-1.5 text-slate-500 shrink-0" />
+                            <SelectValue placeholder="All jobs" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={FILTER_ALL}>All jobs</SelectItem>
+                            <SelectItem value={FILTER_UNASSIGNED}>
+                                <span className="flex items-center gap-2">
+                                    <UserX className="h-3.5 w-3.5 text-slate-400" />
+                                    Unassigned
+                                </span>
+                            </SelectItem>
+                            {teamMembers.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                    {m.name || m.email}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
                 {/* Global Search - CMD+K */}
                 <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />
 

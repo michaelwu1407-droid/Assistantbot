@@ -73,6 +73,8 @@ export interface DealView {
   status?: string;
   scheduledAt?: Date | null;
   workspaceId: string;
+  assignedToId?: string | null;
+  assignedToName?: string | null;
   // Stale Job Recovery System fields
   isStale?: boolean;
   actualOutcome?: string | null;
@@ -118,6 +120,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
       where,
       include: {
         contact: true,
+        assignedTo: { select: { id: true, name: true } },
         activities: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -177,6 +180,8 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         longitude: deal.longitude ?? undefined,
         scheduledAt: deal.scheduledAt ?? undefined,
         workspaceId: deal.workspaceId,
+        assignedToId: deal.assignedToId ?? undefined,
+        assignedToName: deal.assignedTo?.name ?? undefined,
         // Stale Job Recovery System fields
         isStale: deal.isStale,
         actualOutcome: deal.actualOutcome,
@@ -422,6 +427,34 @@ export async function updateDeal(
     },
   });
 
+  return { success: true };
+}
+
+/**
+ * Update who a deal is assigned to (e.g. when in Scheduled stage).
+ */
+export async function updateDealAssignedTo(
+  dealId: string,
+  assignedToId: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    select: { workspaceId: true },
+  });
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  if (assignedToId) {
+    const member = await db.user.findFirst({
+      where: { id: assignedToId, workspaceId: deal.workspaceId },
+      select: { id: true },
+    });
+    if (!member) return { success: false, error: "User not in this workspace" };
+  }
+
+  await db.deal.update({
+    where: { id: dealId },
+    data: { assignedToId },
+  });
   return { success: true };
 }
 

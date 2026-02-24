@@ -20,10 +20,9 @@ export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
         }
     };
 
-    const monthlyPrice = 2;
-    const monthlyOriginal = 5;
-    const yearlyMonthly = 1.60; // 20% off
     const yearlySavings = 20;
+    // Yearly = $5/day * 30 days * 12 months * (1 - 20%)
+    const yearlyTotal = 5 * 30 * 12 * (1 - yearlySavings / 100);
 
     return (
         <div className="space-y-4">
@@ -54,27 +53,25 @@ export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
                 </button>
             </div>
 
-            {/* Price display */}
-            <div className="flex items-center justify-center gap-3 py-4">
+            {/* Price display: Monthly = intro promo; Yearly = annual rate only */}
+            <div className="flex flex-col items-center justify-center gap-2 py-4">
                 {billingPeriod === "monthly" ? (
-                    <>
-                        <span className="text-4xl font-extrabold text-red-500">${monthlyPrice}</span>
-                        <span className="text-2xl font-bold text-muted-foreground line-through">${monthlyOriginal}</span>
-                        <span className="text-muted-foreground text-sm">/day</span>
-                    </>
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <span className="text-3xl font-extrabold text-primary">$2</span>
+                        <span className="text-2xl font-bold text-muted-foreground line-through">$5</span>
+                        <span className="text-muted-foreground">/ day for the first 3 months</span>
+                    </div>
                 ) : (
-                    <>
-                        <span className="text-4xl font-extrabold text-red-500">${yearlyMonthly.toFixed(2)}</span>
-                        <span className="text-2xl font-bold text-muted-foreground line-through">${monthlyPrice}</span>
-                        <span className="text-muted-foreground text-sm">/day</span>
-                    </>
+                    <div className="text-3xl font-extrabold text-midnight">
+                        ${yearlyTotal.toLocaleString()} <span className="text-lg font-semibold text-muted-foreground">/ year</span>
+                    </div>
                 )}
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
                 {billingPeriod === "monthly"
-                    ? "Monthly subscription. Cancel anytime."
-                    : `Yearly subscription. Save ${yearlySavings}% — billed annually.`}
+                    ? "$60 / month subscription. Cancel anytime."
+                    : "Cancel anytime."}
             </p>
 
             <Button

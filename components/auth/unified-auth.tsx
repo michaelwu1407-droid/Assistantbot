@@ -48,7 +48,7 @@ export function UnifiedAuth() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        router.push("/billing");
+        router.push("/auth/next");
       }
       setState(prev => ({ ...prev, user }));
     };
@@ -81,22 +81,10 @@ export function UnifiedAuth() {
     setState(prev => ({ ...prev, ...updates }));
   };
 
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = () => {
+    // Use our own OAuth flow so Google shows "Earlymark.ai" instead of the Supabase URL
     updateState({ loading: true, message: "" });
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    
-    if (error) {
-      updateState({ 
-        loading: false, 
-        message: error.message 
-      });
-    }
+    window.location.href = "/api/auth/google-signin";
   };
 
   const handlePhoneAuth = async () => {
@@ -204,7 +192,7 @@ export function UnifiedAuth() {
             MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
             MonitoringService.trackEvent("user_signed_up", { provider: "email" });
           }
-          router.push("/billing");
+          router.push("/auth/next");
           router.refresh();
         }
       }

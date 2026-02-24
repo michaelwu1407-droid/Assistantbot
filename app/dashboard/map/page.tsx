@@ -1,13 +1,21 @@
 import { getTradieJobs, getTodaySchedule } from "@/actions/tradie-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
-import MapView from "@/components/map/map-view-client"
 import { MapPageClient } from "@/components/map/map-page-client"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Calendar, HardHat } from "lucide-react"
+import { Calendar } from "lucide-react"
 
 export const dynamic = "force-dynamic"
+
+// Fake jobs for today (Sydney area) so you can test the map and list when there are no real jobs
+function getFakeJobsForToday(): Array<{ id: string; title: string; clientName: string; address: string; status: string; value: number; scheduledAt: Date; lat: number; lng: number }> {
+    const today = new Date()
+    const pad = (n: number) => n.toString().padStart(2, "0")
+    return [
+        { id: "fake-map-1", title: "Tap repair", clientName: "Jane Smith", address: "42 George St, Sydney NSW 2000", status: "SCHEDULED", value: 180, scheduledAt: new Date(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}T09:00:00`), lat: -33.8688, lng: 151.2093 },
+        { id: "fake-map-2", title: "Hot water check", clientName: "Mike Jones", address: "15 Pitt St, Sydney NSW 2000", status: "SCHEDULED", value: 220, scheduledAt: new Date(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}T11:30:00`), lat: -33.8676, lng: 151.2074 },
+        { id: "fake-map-3", title: "Drain clear", clientName: "Sarah Brown", address: "88 Elizabeth St, Sydney NSW 2000", status: "SCHEDULED", value: 350, scheduledAt: new Date(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}T14:00:00`), lat: -33.8715, lng: 151.2107 },
+    ]
+}
 
 export default async function DashboardMapPage() {
     try {
@@ -26,27 +34,32 @@ export default async function DashboardMapPage() {
             scheduledAt: j.scheduledAt instanceof Date ? j.scheduledAt : j.scheduledAt ? new Date(j.scheduledAt as unknown as string) : new Date(),
         }))
 
+        // If fewer than 2 jobs today, add fake jobs so you can test the map and list
+        const todayStart = new Date()
+        todayStart.setHours(0, 0, 0, 0)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+        const isToday = (j: { scheduledAt: Date }) => {
+            const d = j.scheduledAt ? new Date(j.scheduledAt) : null
+            return d && d >= todayStart && d <= todayEnd
+        }
+        const realTodayCount = jobsWithDate.filter(isToday).length
+        const displayJobs = realTodayCount >= 2 ? jobsWithDate : [...jobsWithDate, ...getFakeJobsForToday()]
+        const todayCount = displayJobs.filter(isToday).length
+
         return (
             <div className="h-full flex flex-col">
-                {/* Start the day strip */}
-                <div className="shrink-0 flex items-center justify-between gap-4 p-3 border-b border-slate-200 bg-white/80">
+                {/* Today's Jobs strip */}
+                <div className="shrink-0 flex items-center gap-4 p-3 border-b border-slate-200 bg-white/80">
                     <div className="flex items-center gap-2">
                         <Calendar className="h-5 w-5 text-primary" />
                         <span className="font-semibold text-slate-900">
-                            {todaySchedule.length > 0
-                                ? `${todaySchedule.length} job${todaySchedule.length === 1 ? "" : "s"} today`
-                                : "No jobs scheduled for today"}
+                            {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
                         </span>
                     </div>
-                    <Button size="sm" asChild>
-                        <Link href="/dashboard/tradie" className="gap-1.5">
-                            <HardHat className="h-4 w-4" />
-                            Start the day
-                        </Link>
-                    </Button>
                 </div>
                 <div className="flex-1 min-h-0">
-                    <MapPageClient jobs={jobsWithDate} />
+                    <MapPageClient jobs={displayJobs} />
                 </div>
             </div>
         )

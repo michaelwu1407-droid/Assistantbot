@@ -30,17 +30,17 @@ export default async function BillingPaywallPage() {
             <div className="w-full max-w-md ott-card bg-card p-8 relative z-10 text-center">
                 {/* Logo */}
                 <div className="flex justify-center mb-6">
-                    <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-                        <span className="text-white font-extrabold italic text-xl tracking-tighter">Pj</span>
+                    <div className="h-14 w-14 rounded-xl flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden">
+                        <img src="/Latest logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
                     </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 mb-2">
                     <Sparkles className="h-5 w-5 text-primary" />
-                    <h1 className="text-3xl font-extrabold text-midnight tracking-tight">Activate Your AI</h1>
+                    <h1 className="text-3xl font-extrabold text-midnight tracking-tight">Activate your assistant</h1>
                 </div>
                 <p className="text-muted-foreground text-sm mb-8">
-                    Start your Pj Buddy subscription to unlock your AI Agent, automate your workflows, and access the full CRM.
+                    Sign up today to get yourself an early mark
                 </p>
 
                 <div className="bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl p-6 text-left mb-8 space-y-4">

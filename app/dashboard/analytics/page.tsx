@@ -91,35 +91,10 @@ export default function AnalyticsPage() {
         </Select>
       </div>
 
-      {/* 3 Key Cards: Status | Revenue | Customer */}
+      {/* 3 Key Cards: Revenue | Customers | Jobs won with Travis */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        {/* Card 1: Status */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Status</p>
-              <LayoutList className="h-5 w-5 text-muted-foreground/40" />
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-2xl font-bold text-midnight">{data.jobs.completed}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{scheduledCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Scheduled</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{pipelineCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Pipeline</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Pipeline = new requests + quotes sent</p>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Revenue — click to expand trend */}
+        {/* Card 1: Revenue — click to expand trend */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setRevenueExpanded(!revenueExpanded)}
@@ -144,7 +119,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Card 3: Customer */}
+        {/* Card 2: Customers */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
@@ -173,6 +148,31 @@ export default function AnalyticsPage() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Jobs won with Travis */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Jobs won with Travis</p>
+              <LayoutList className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-2xl font-bold text-midnight">{data.jobs.completed}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-600">{scheduledCount}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Scheduled</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-blue-600">{pipelineCount}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Pipeline</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Pipeline = new requests + quotes sent</p>
           </CardContent>
         </Card>
       </div>
@@ -212,14 +212,14 @@ export default function AnalyticsPage() {
         </Card>
       )}
 
-      {/* Job performance detail */}
+      {/* Status: Completed, Scheduled, New requests */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <CheckCircle className="h-4 w-4" />
-            Job Performance
+            Status
           </CardTitle>
-          <CardDescription>Completion metrics for the selected period</CardDescription>
+          <CardDescription>Job counts by stage for the selected period</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
@@ -228,12 +228,12 @@ export default function AnalyticsPage() {
               <p className="text-xs text-slate-600 mt-1">Completed</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-midnight">{data.jobs.inProgress}</p>
-              <p className="text-xs text-slate-600 mt-1">In progress</p>
+              <p className="text-2xl font-bold text-midnight">{scheduledCount}</p>
+              <p className="text-xs text-slate-600 mt-1">Scheduled</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-midnight">{data.jobs.avgCompletionTime}</p>
-              <p className="text-xs text-slate-600 mt-1">Avg days to complete</p>
+              <p className="text-2xl font-bold text-midnight">{pipelineCount}</p>
+              <p className="text-xs text-slate-600 mt-1">New requests</p>
             </div>
           </div>
         </CardContent>

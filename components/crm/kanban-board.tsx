@@ -25,7 +25,7 @@ import { DealCard } from "./deal-card"
 import { DealDetailModal } from "./deal-detail-modal"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DealView, updateDealStage } from "@/actions/deal-actions"
+import { DealView, updateDealStage, updateDealAssignedTo } from "@/actions/deal-actions"
 import { toast } from "sonner"
 
 // 5 pipeline columns + Deleted jobs (autoclears after 30 days)
@@ -41,9 +41,18 @@ const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
   { id: "deleted", title: "Deleted jobs", color: "bg-slate-400" },
 ]
 
+interface TeamMemberOption {
+  id: string
+  name: string | null
+  email: string
+  role: string
+}
+
 interface KanbanBoardProps {
   deals: DealView[]
   industryType?: "TRADES" | "REAL_ESTATE" | null
+  filterByUserId?: string | null
+  teamMembers?: TeamMemberOption[]
 }
 
 /* ── Droppable Column wrapper ─────────────────────────────── */
@@ -59,13 +68,22 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   )
 }
 
-export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardProps) {
+const FILTER_UNASSIGNED = "__unassigned__"
+
+export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId, teamMembers = [] }: KanbanBoardProps) {
   const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const hasDragged = useRef(false)
   const dragStartStageRef = useRef<string | null>(null)
+
+  // Filter deals by assignee when filter is set
+  const filteredDeals = useMemo(() => {
+    if (!filterByUserId || filterByUserId === "__all__") return deals
+    if (filterByUserId === FILTER_UNASSIGNED) return deals.filter((d) => !d.assignedToId)
+    return deals.filter((d) => d.assignedToId === filterByUserId)
+  }, [deals, filterByUserId])
 
   // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {
@@ -95,14 +113,14 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       completed: [],
       deleted: [],
     };
-    deals.forEach((deal) => {
+    filteredDeals.forEach((deal) => {
       // Merge legacy "pipeline" stage into "quote_sent"
       const stage = deal.stage === "pipeline" ? "quote_sent" : deal.stage
       if (cols[stage]) cols[stage].push(deal);
       else cols["new_request"].push(deal);
     });
     return cols;
-  }, [deals])
+  }, [filteredDeals])
 
   const activeDeal = useMemo(() =>
     deals.find(d => d.id === activeId),
@@ -206,15 +224,15 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start pl-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start pl-1 pt-5 bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 
           // Determine label based on industry
           return (
             <div key={col.id} className="w-72 flex-shrink-0 flex flex-col h-full max-h-full">
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-4 px-2">
+              {/* Column Header — same vertical gap above (pt-5) as below (mb-5) */}
+              <div className="flex items-center justify-between mb-5 px-2">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${col.color}`} />
                   <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{col.title}</h3>
@@ -245,9 +263,21 @@ export function KanbanBoard({ deals: initialDeals, industryType }: KanbanBoardPr
                 <DroppableColumn id={col.id}>
                   {colDeals.length > 0 ? (
                     colDeals.map((deal) => (
-                      <DealCard 
-                        key={deal.id} 
-                        deal={deal} 
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        columnId={col.id}
+                        teamMembers={col.id === "scheduled" ? teamMembers : undefined}
+                        onAssign={col.id === "scheduled" && teamMembers.length > 0 ? async (userId) => {
+                          const result = await updateDealAssignedTo(deal.id, userId)
+                          if (result.success) {
+                            const name = userId ? (teamMembers.find((m) => m.id === userId)?.name || "Someone") : null
+                            setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, assignedToId: userId ?? undefined, assignedToName: name ?? undefined } : d)))
+                            toast.success(userId ? `Assigned to ${name}` : "Unassigned")
+                          } else {
+                            toast.error(result.error ?? "Failed to assign")
+                          }
+                        } : undefined}
                         onOpenModal={() => {
                           setSelectedDealId(deal.id)
                           setModalOpen(true)

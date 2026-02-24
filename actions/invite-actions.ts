@@ -6,7 +6,11 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient(): Resend | null {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || key.trim() === "") return null;
+  return new Resend(key);
+}
 
 /**
  * Create an invite link for a workspace.
@@ -51,21 +55,23 @@ export async function createInvite(params: {
       },
     });
 
-    // Send email if email is provided
+    // Send email if email is provided and Resend is configured
     if (params.email && params.email.trim()) {
-      try {
-        const workspace = await db.workspace.findUnique({
-          where: { id: user.workspaceId },
-          select: { name: true },
-        });
+      const resend = getResendClient();
+      if (resend) {
+        try {
+          const workspace = await db.workspace.findUnique({
+            where: { id: user.workspaceId },
+            select: { name: true },
+          });
 
-        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pj-buddy.com'}/invite/join?token=${invite.token}`;
+          const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pj-buddy.com'}/invite/join?token=${invite.token}`;
 
-        await resend.emails.send({
-          from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'pj-buddy.com'}`,
-          to: [params.email],
-          subject: `You're invited to join ${workspace?.name || 'Pj Buddy'}`,
-          html: `
+          await resend.emails.send({
+            from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'pj-buddy.com'}`,
+            to: [params.email],
+            subject: `You're invited to join ${workspace?.name || 'Pj Buddy'}`,
+            html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
               <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                 <h2 style="color: #1e293b; margin-bottom: 8px;">You're Invited!</h2>
@@ -87,11 +93,13 @@ export async function createInvite(params: {
               </div>
             </div>
           `,
-        });
-      } catch (emailError) {
-        console.error("Failed to send invite email:", emailError);
-        // Don't fail the whole operation if email fails
+          });
+        } catch (emailError) {
+          console.error("Failed to send invite email:", emailError);
+          // Don't fail the whole operation if email fails
+        }
       }
+      // If RESEND_API_KEY is not set, invite link is still created and can be copied
     }
 
     revalidatePath("/dashboard/team");
@@ -222,7 +230,7 @@ export async function getTeamMembers() {
   });
   if (!user) return [];
 
-  return db.user.findMany({
+  const members = await db.user.findMany({
     where: { workspaceId: user.workspaceId },
     select: {
       id: true,
@@ -232,4 +240,53 @@ export async function getTeamMembers() {
     },
     orderBy: { email: "asc" },
   });
+  return members.map((m) => ({
+    ...m,
+    isCurrentUser: m.email === authUser.email,
+  }));
+}
+
+/**
+ * Remove a team member from the workspace (OWNER/MANAGER only).
+ * Unassigns their deals and deletes their user record for this workspace.
+ */
+export async function removeMember(memberId: string): Promise<{ success: boolean; error?: string }> {
+  const authUser = await getAuthUser();
+  if (!authUser?.email) return { success: false, error: "Unauthorized" };
+
+  const actor = await db.user.findFirst({
+    where: { email: authUser.email },
+    select: { id: true, workspaceId: true, role: true },
+  });
+  if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER")) {
+    return { success: false, error: "Only owners and managers can remove members" };
+  }
+
+  if (actor.id === memberId) {
+    return { success: false, error: "You cannot remove yourself. Use account settings to leave." };
+  }
+
+  const target = await db.user.findUnique({
+    where: { id: memberId },
+    select: { id: true, workspaceId: true, role: true },
+  });
+  if (!target) return { success: false, error: "User not found" };
+  if (target.workspaceId !== actor.workspaceId) {
+    return { success: false, error: "User is not in this workspace" };
+  }
+  if (target.role === "OWNER") {
+    return { success: false, error: "Cannot remove the workspace owner" };
+  }
+
+  await db.$executeRawUnsafe(
+    `UPDATE "Deal" SET "assignedToId" = NULL WHERE "assignedToId" = $1`,
+    memberId
+  );
+  await db.activity.deleteMany({ where: { userId: memberId } });
+  await db.notification.deleteMany({ where: { userId: memberId } });
+  await db.user.delete({ where: { id: memberId } });
+
+  revalidatePath("/dashboard/team");
+  revalidatePath("/dashboard");
+  return { success: true };
 }

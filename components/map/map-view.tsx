@@ -4,10 +4,11 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronDown, ChevronUp, Route, CheckCircle2 } from "lucide-react"
+import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronRight, Route, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
+import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -94,10 +95,12 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const [startedJobId, setStartedJobId] = useState<string | null>(null)
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null)
   const [jobListExpanded, setJobListExpanded] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isRouteMode, setIsRouteMode] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
+  const [viewJobDealId, setViewJobDealId] = useState<string | null>(null)
 
   const { jobsToday, jobsUpcoming } = useMemo(() => {
     const today: Job[] = []
@@ -175,10 +178,25 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     : jobsToday;
 
   return (
-    <div className="h-full w-full relative flex">
-      {/* Job List Sidebar */}
+    <div className="h-full w-full relative flex min-h-0">
+      {/* Job List Sidebar — collapsible */}
       {jobsToday.length > 0 && (
-        <div className="w-80 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10">
+        <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
+          {sidebarCollapsed ? (
+            <div className="flex flex-col items-center py-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(false)}
+                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+                title="Expand Today's Jobs"
+              >
+                <MapPin className="h-4 w-4 text-teal-600" />
+                <span className="text-[10px] font-medium">Jobs</span>
+                <ChevronRight className="h-4 w-4 text-slate-400 rotate-180" />
+              </button>
+            </div>
+          ) : (
+            <>
           {/* Header */}
           <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -189,8 +207,8 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
               </div>
-              <button onClick={() => setJobListExpanded((e) => !e)}>
-                {jobListExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+              <button type="button" onClick={() => setSidebarCollapsed(true)} className="p-2 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors" title="Minimise panel">
+                <ChevronRight className="h-5 w-5 rotate-180 stroke-[2.5]" />
               </button>
             </div>
 
@@ -263,21 +281,27 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                         </div>
                       </button>
 
-                      {/* Start Job / Navigate buttons — only shown when selected */}
+                      {/* View Job (deal card modal) / Open in Google Maps — only shown when selected */}
                       {isSelected && (
-                        <div className="px-3 pb-3 flex gap-2">
-                          {!isStarted ? (
-                            <button
-                              onClick={() => startJob(job)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              <Navigation className="h-3.5 w-3.5" />
-                              Start Job
-                            </button>
-                          ) : (
+                        <div className="px-3 pb-3 flex flex-col gap-2">
+                          <button
+                            onClick={() => setViewJobDealId(job.id)}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                            View Job
+                          </button>
+                          <button
+                            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200"
+                          >
+                            <Navigation className="h-3.5 w-3.5" />
+                            Open in Google Maps
+                          </button>
+                          {isStarted && (
                             <button
                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
                             >
                               <Navigation className="h-3.5 w-3.5" />
                               Navigate Again
@@ -369,11 +393,13 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
               )}
             </div>
           )}
+            </>
+          )}
         </div>
       )}
 
       {/* Map */}
-      <div className="flex-1 min-w-0 relative">
+      <div className="flex-1 min-w-0 relative min-h-[300px]">
         <MapContainer
           center={DEFAULT_CENTER}
           zoom={12}
@@ -505,6 +531,12 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
           onSuccess={handleModalSuccess}
         />
       )}
+
+      <DealDetailModal
+        dealId={viewJobDealId}
+        open={!!viewJobDealId}
+        onOpenChange={(open) => !open && setViewJobDealId(null)}
+      />
     </div>
   )
 }

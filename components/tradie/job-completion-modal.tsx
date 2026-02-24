@@ -10,10 +10,9 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { SignaturePad } from "./signature-pad";
 import { completeJob, finalizeJobCompletion } from "@/actions/tradie-actions";
 import { toast } from "sonner";
-import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, MapPin } from "lucide-react";
+import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Upload, X } from "lucide-react";
 import { MessageActionSheet } from "@/components/sms/message-action-sheet";
 import { Job } from "@/components/map/map-view";
 import { cn } from "@/lib/utils";
@@ -28,6 +27,7 @@ interface JobCompletionModalProps {
 
 export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess }: JobCompletionModalProps) {
     const [signature, setSignature] = useState<string | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [isPaid, setIsPaid] = useState(false);
     const [notes, setNotes] = useState("");
     const [loading, setLoading] = useState(false);
@@ -35,19 +35,13 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     const [showActionSheet, setShowActionSheet] = useState(false);
 
     const handleComplete = async () => {
-        // Enforce signature if this is the standard job flow 
-        if (!signature && !job) return;
-
         setLoading(true);
         try {
-            // 1. Core Signature / Old Workflow Completion
             let sigSuccess = true;
             if (signature) {
                 const sigResult = await completeJob(dealId, signature);
                 sigSuccess = sigResult.success;
             }
-
-            // 2. New Payment & Notes Payload 
             if (sigSuccess) {
                 const finalizeResult = await finalizeJobCompletion(dealId, { isPaid, notes });
                 if (finalizeResult.success) {
@@ -76,6 +70,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
         onOpenChange(false);
         setCompleted(false);
         setSignature(null);
+        setFiles([]);
     };
 
     const handleActionSheetClose = (isOpen: boolean) => {
@@ -83,8 +78,16 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
         if (!isOpen) {
             setCompleted(false);
             setSignature(null);
+            setFiles([]);
         }
     };
+
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const chosen = e.target.files;
+        if (chosen) setFiles((prev) => [...prev, ...Array.from(chosen)]);
+        e.target.value = "";
+    };
+    const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
 
     return (
         <>
@@ -98,7 +101,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                                 <DialogTitle className="text-center">Complete Job</DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Please collect the client&apos;s signature to finalize this job.
+                                    Add payment status, notes, and any photos or files to finalize this job.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -167,12 +170,36 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     />
                                 </div>
 
-                                {/* Signature Pad */}
+                                {/* Upload photos or files */}
                                 <div className="mt-4">
                                     <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
-                                        Customer Signature {job && <span className="text-slate-400 font-normal text-xs">(Optional for Maps)</span>}
+                                        <Upload className="h-4 w-4" />
+                                        Upload photos or files
                                     </label>
-                                    <SignaturePad onSave={setSignature} />
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*,.pdf,.doc,.docx"
+                                        onChange={onFileChange}
+                                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                                    />
+                                    {files.length > 0 && (
+                                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                                            {files.map((f, i) => (
+                                                <div key={i} className="flex items-center justify-between text-xs bg-slate-50 rounded-lg px-2 py-1.5">
+                                                    <span className="truncate">{f.name}</span>
+                                                    <button type="button" onClick={() => removeFile(i)} className="p-0.5 rounded hover:bg-slate-200 text-slate-500">
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {files.length > 0 && (
+                                        <Button type="button" variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setFiles([])}>
+                                            Clear all
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 
@@ -186,10 +213,10 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </Button>
                                 <Button
                                     onClick={handleComplete}
-                                    disabled={loading || (!signature && !job)}
+                                    disabled={loading}
                                     className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                                 >
-                                    {loading ? "Finalizing..." : "Complete & Save Docs"}
+                                    {loading ? "Finalizing..." : "Complete & Save"}
                                 </Button>
                             </DialogFooter>
                         </>

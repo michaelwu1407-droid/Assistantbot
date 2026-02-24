@@ -19,7 +19,7 @@ type Message = {
 }
 
 type DraftCardData = {
-    kind: "pricing" | "hours" | "autonomy"
+    kind: "pricing" | "hours" | "autonomy" | "onboarding"
     fields: DraftField[]
 }
 
@@ -118,7 +118,7 @@ export function SetupChat() {
         {
             id: "1",
             role: "assistant",
-            content: "Hi! I'm Pj Buddy, your new AI partner. What's your first name?",
+            content: "Hi! I'm Travis, your AI assistant here to give you an early mark. What's your first name?",
             type: "text"
         }
     ])
@@ -173,27 +173,63 @@ export function SetupChat() {
         }, 1000)
     }
 
-    const handleDraftConfirm = (values: Record<string, string | number | boolean>) => {
+    const handleDraftConfirm = (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => {
         setDraftValues(prev => ({ ...prev, ...values }))
         const summary = Object.entries(values)
+            .filter(([, v]) => v !== "" && v !== undefined)
             .map(([k, v]) => `${k}: ${v}`)
             .join(", ")
         const userMsg: Message = {
             id: crypto.randomUUID(),
             role: "user",
-            content: `✅ Confirmed: ${summary}`,
+            content: summary ? `✅ Confirmed: ${summary}` : "✅ Done",
         }
         setMessages(prev => [...prev, userMsg])
-        setIsTyping(true
+        setIsTyping(true)
 
-        )
+        if (kind === "onboarding") {
+            const tradeTypeVal = String(values.tradeType || "").trim()
+            const businessNameVal = String(values.businessName || "").trim()
+            const locationVal = String(values.location || "").trim()
+            const phoneVal = String(values.phone || "").trim()
+            const phone = (phoneVal || "").trim()
+            setTradeType(resolveTradeType(tradeTypeVal))
+            setBusinessName(businessNameVal)
+            setLocation(resolveLocation(locationVal))
+            setIndustry("TRADES")
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `All set! 🎉 Setting up ${businessNameVal || `${userName}'s Workspace`} now — I'll show you around in a quick walkthrough.`,
+                        type: "text"
+                    }
+                ])
+                completeOnboarding({
+                    businessName: businessNameVal || `${userName}'s Workspace`,
+                    industryType: "TRADES",
+                    location: resolveLocation(locationVal),
+                    tradeType: resolveTradeType(tradeTypeVal),
+                    ownerPhone: phone,
+                }).then(() => {
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
+                }).catch(() => {
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
+                })
+            }, 1500)
+            return
+        }
+
         setTimeout(() => {
             processStep("DRAFT_CONFIRMED")
         }, 1000)
     }
 
     const processStep = (validInput: string) => {
-        // Step 0: First Name → ask for trade type
+        // Step 0: First name → show onboarding form
         if (step === 0) {
             setUserName(validInput)
             setStep(1)
@@ -204,103 +240,26 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `Nice to meet you, ${validInput}! 👋 What type of trade do you do? (e.g. Plumber, Electrician, Carpenter, HVAC, Painter, Roofer)`,
+                        content: `Nice to meet you, ${validInput}! 👋 Fill in the form below so I can get to know you better and set up your workspace.`,
                         type: "text"
-                    }
-                ])
-            }, 1200)
-        }
-
-        // Step 1: Trade type → ask for business name
-        else if (step === 1) {
-            const resolved = resolveTradeType(validInput)
-            setTradeType(resolved)
-            setIndustryType("TRADES")
-            setIndustry("TRADES")
-            setStep(2)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
+                    },
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `${resolved} — solid! 🔧 What's your business name?`,
-                        type: "text"
+                        type: "draft-card",
+                        content: "",
+                        draftCard: {
+                            kind: "onboarding",
+                            fields: [
+                                { key: "tradeType", label: "Trade type", type: "text", defaultValue: "", placeholder: "e.g. Plumber, Electrician, Carpenter, HVAC, Painter, Roofer" },
+                                { key: "businessName", label: "Business name", type: "text", defaultValue: "", placeholder: "Your business name" },
+                                { key: "location", label: "Location", type: "text", defaultValue: "", placeholder: "e.g. Sydney, Melbourne, Brisbane" },
+                                { key: "phone", label: "Mobile", type: "text", defaultValue: "", placeholder: "Your mobile number" },
+                            ]
+                        }
                     }
                 ])
             }, 1200)
-        }
-
-        // Step 2: Business name → ask for location
-        else if (step === 2) {
-            setBusinessName(validInput)
-            setStep(3)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: `"${validInput}" — love it! Where are you based? (e.g. Sydney, Melbourne, Brisbane)`,
-                        type: "text"
-                    }
-                ])
-            }, 1200)
-        }
-
-        // Step 3: Location → ask for phone
-        else if (step === 3) {
-            const resolved = resolveLocation(validInput)
-            setLocation(resolved)
-            setStep(4)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: `${resolved} — great spot! Last one: what's your mobile number? (We'll use it for your business line. Type "skip" to do this later.)`,
-                        type: "text"
-                    }
-                ])
-            }, 1200)
-        }
-
-        // Step 4: Phone → save & redirect to tutorial
-        else if (step === 4) {
-            const phone = validInput.toLowerCase() === "skip" || validInput.trim() === "" ? "" : validInput.trim()
-            setStep(5)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: `All set! 🎉 Setting up ${businessName || `${userName}'s Workspace`} now — I'll show you around in a quick walkthrough.`,
-                        type: "text"
-                    }
-                ])
-                // Save all onboarding data and go to tutorial
-                completeOnboarding({
-                    businessName: businessName || `${userName}'s Workspace`,
-                    industryType: "TRADES",
-                    location: location,
-                    tradeType: tradeType,
-                    ownerPhone: phone,
-                }).then(() => {
-                    setTimeout(() => {
-                        router.push("/dashboard?tutorial=true")
-                    }, 2500)
-                }).catch(() => {
-                    setTimeout(() => {
-                        router.push("/dashboard?tutorial=true")
-                    }, 2500)
-                })
-            }, 1500)
         }
     }
 
@@ -313,7 +272,9 @@ export function SetupChat() {
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-muted/10 custom-scrollbar">
                 <AnimatePresence>
-                    {messages.map((msg) => (
+                    {messages.map((msg) => {
+                        if (msg.type === "draft-card") return null
+                        return (
                         <motion.div
                             key={msg.id}
                             initial={{ opacity: 0, y: 10 }}
@@ -329,7 +290,8 @@ export function SetupChat() {
                                 <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
                             </div>
                         </motion.div>
-                    ))}
+                        )
+                    })}
                     {isTyping && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -370,7 +332,7 @@ export function SetupChat() {
                 {messages.length > 0 && messages[messages.length - 1].role === "assistant" && messages[messages.length - 1].type === "draft-card" && !isTyping && (
                     <DraftCardUI
                         data={messages[messages.length - 1].draftCard!}
-                        onConfirm={handleDraftConfirm}
+                        onConfirm={(values) => handleDraftConfirm(values, messages[messages.length - 1].draftCard?.kind)}
                     />
                 )}
 
@@ -408,7 +370,7 @@ export function SetupChat() {
 }
 
 // ─── Draft Card Component ────────────────────────────────────────
-function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (values: Record<string, string | number | boolean>) => void }) {
+function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => void }) {
     const [values, setValues] = useState<Record<string, string | number | boolean>>(() => {
         const init: Record<string, string | number | boolean> = {}
         data.fields.forEach(f => {
@@ -431,6 +393,7 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                 {data.kind === "pricing" && "💰 Pricing Setup"}
                 {data.kind === "hours" && "🕐 Working Hours"}
                 {data.kind === "autonomy" && "🤖 AI Autonomy Level"}
+                {data.kind === "onboarding" && "Your details"}
             </h3>
 
             {data.fields.map((field) => (
@@ -497,7 +460,8 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
             <Button
                 size="sm"
                 className="w-full"
-                onClick={() => onConfirm(values)}
+                onClick={() => onConfirm(values, data.kind)}
+                disabled={data.kind === "onboarding" && !String(values.phone ?? "").trim()}
             >
                 ✅ Confirm
             </Button>

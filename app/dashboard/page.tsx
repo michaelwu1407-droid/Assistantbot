@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getTeamMembers } from "@/actions/invite-actions"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { getAuthUser } from "@/lib/auth"
 
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
     let workspace, deals;
+    let teamMembers: { id: string; name: string | null; email: string; role: string }[] = []
     let dbError = false;
 
     // 1. Get User
@@ -24,6 +26,7 @@ export default async function DashboardPage() {
     try {
         workspace = await getOrCreateWorkspace(userId)
         deals = await getDeals(workspace.id)
+        teamMembers = await getTeamMembers()
     } catch {
         dbError = true;
     }
@@ -56,6 +59,7 @@ export default async function DashboardPage() {
         <DashboardClient
             workspace={workspace}
             deals={deals}
+            teamMembers={teamMembers}
             userName={userName}
             userId={userId}
         />

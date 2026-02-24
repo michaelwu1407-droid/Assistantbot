@@ -12,7 +12,11 @@ export async function GET(
 
     const deal = await db.deal.findUnique({
       where: { id },
-      include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } } },
+      include: {
+        contact: true,
+        assignedTo: { select: { id: true, name: true } },
+        jobPhotos: { orderBy: { createdAt: "desc" } },
+      },
     })
 
     if (!deal) {
