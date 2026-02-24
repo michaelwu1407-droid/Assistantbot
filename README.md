@@ -1,4 +1,4 @@
-# Pj Buddy - AI-Powered Tradie CRM Platform
+# Earlymark - AI-Powered Tradie CRM Platform
 
 **Version**: 2.1 (February 2026)  
 **Target**: Australian Tradespeople & Service Businesses  
@@ -8,7 +8,7 @@
 
 ## 🎯 **Core Vision**
 
-Pj Buddy is an **AI-first CRM** built exclusively for Tradies. We eliminate administrative overhead by providing a conversational interface where jobs can be quoted, scheduled, and invoiced entirely through natural language.
+Earlymark is an **AI-first CRM** built exclusively for Tradies. We eliminate administrative overhead by providing a conversational interface where jobs can be quoted, scheduled, and invoiced entirely through natural language.
 
 **Key Philosophy**: "Chat First, Click Second" - Our AI assistant handles 90% of tasks through simple commands, while the visual dashboard provides oversight when needed.
 
@@ -32,7 +32,7 @@ Our revolutionary **Instant Lead Capture** automatically detects and responds to
 
 ### 📈 **Speed-to-Lead Advantage**
 - **Traditional**: 2-4 hour average response time
-- **Pj Buddy**: **Under 60 seconds** automatic response
+- **Earlymark**: **Under 60 seconds** automatic response
 - **Result**: 3x higher win rate on competitive platforms
 
 ---
@@ -66,8 +66,8 @@ Multi-channel support with AI-powered assistance:
 - **Immediate Help**: Diagnostics and next steps
 
 ### 📞 **Human Support Channels**
-- **Email**: support@pjbuddy.com (24-hour response)
-- **Phone**: 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST)
+- **Email**: support@earlymark.com (24-hour response)
+- **Phone**: 1300 EARLYMARK (Mon-Fri 9am-5pm AEST)
 - **Tickets**: Integrated support system in settings
 - **Website**: Contact section with all channels
 
@@ -183,7 +183,7 @@ Multi-channel support with AI-powered assistance:
 ```bash
 # Clone and install
 git clone [repo-url]
-cd pj-buddy
+cd earlymark
 npm install
 
 # Environment variables
@@ -232,8 +232,8 @@ ENCRYPTION_KEY=your-32-byte-key
 
 - **Issues**: GitHub Issues for bug reports
 - **Documentation**: See `/docs` folder for detailed guides
-- **Status**: Real-time status at status.pj-buddy.com
-- **Updates**: Follow @pjbuddy on Twitter for updates
+- **Status**: Real-time status at status.earlymark.com
+- **Updates**: Follow @earlymark on Twitter for updates
 
 ---
 
@@ -248,7 +248,7 @@ ENCRYPTION_KEY=your-32-byte-key
 
 **Last Updated**: February 24, 2026  
 **Version**: 2.1 - Communication Clarification Edition  
-**Maintained by**: Pj Buddy Engineering Team
+**Maintained by**: Earlymark Engineering Team
 
 ---
 

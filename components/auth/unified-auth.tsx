@@ -291,12 +291,12 @@ export function UnifiedAuth() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-            <span className="text-white font-extrabold italic text-lg tracking-tighter">Pj</span>
+            <span className="text-white font-extrabold italic text-lg tracking-tighter">Em</span>
           </div>
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-extrabold text-midnight tracking-tight mb-2">Welcome to Pj Buddy</h1>
+          <h1 className="text-2xl font-extrabold text-midnight tracking-tight mb-2">Welcome to Earlymark</h1>
           <p className="text-muted-foreground text-sm">
             The AI-powered CRM for Tradies
           </p>
@@ -443,7 +443,7 @@ export function UnifiedAuth() {
               state.method === "google" ? "Connecting..." : 
               state.method === "phone" && !state.phoneOtpSent ? "Sending Code..." : "Signing in..."
             ) : (
-              state.method === "google" ? "Continue with Google" :
+              state.method === "google" ? "Connect with Google" :
               state.method === "phone" && !state.phoneOtpSent ? "Send Code" : "Sign In"
             )}
           </Button>

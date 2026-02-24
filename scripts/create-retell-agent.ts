@@ -1,7 +1,7 @@
 import Retell from "retell-sdk";
 
 /**
- * Script: Create a Pj Buddy Retell Agent
+ * Script: Create an Earlymark Retell Agent
  *
  * Run with:
  *   npm run retell:create-agent
@@ -62,8 +62,8 @@ async function main() {
 
   // Create the voice agent.
   const agent = await client.agent.create({
-    agent_name: "Pj Buddy Voice Agent",
-    version_description: "Gemini 2.5 Flash + MiniMax TTS for Pj Buddy CRM.",
+    agent_name: "Earlymark Voice Agent",
+    version_description: "Gemini 2.5 Flash + MiniMax TTS for Earlymark CRM.",
     response_engine: {
       type: "retell-llm",
       // This ID must point to a Response Engine configured in Retell
@@ -86,7 +86,7 @@ async function main() {
     // https://docs.retellai.com/api-references/create-agent
   } as any);
 
-  console.log("Created Pj Buddy Retell agent:");
+  console.log("Created Earlymark Retell agent:");
   console.log(JSON.stringify(agent, null, 2));
 }
 

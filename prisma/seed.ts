@@ -15,7 +15,7 @@ function hoursFromNow(hours: number): Date {
 }
 
 async function main() {
-  console.log("Seeding Pj Buddy database...");
+  console.log("Seeding Earlymark database...");
 
   // Clean existing data
   await prisma.material.deleteMany();
@@ -31,7 +31,7 @@ async function main() {
 
   const workspace = await prisma.workspace.create({
     data: {
-      name: "Pj Buddy Demo",
+      name: "Earlymark Demo",
       type: WorkspaceType.TRADIE,
     },
   });

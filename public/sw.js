@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pj-buddy-v2';
+const CACHE_NAME = 'earlymark-v2';
 
 // Assets to pre-cache on install
 const STATIC_ASSETS = [
