@@ -2,6 +2,7 @@
   "name": "pj-buddy",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma@5.21.1 generate && next build",

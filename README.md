@@ -239,7 +239,7 @@ ENCRYPTION_KEY=your-32-byte-key
 
 ## 📄 **License & Legal**
 
-- **License**: MIT License
+- **License**: Proprietary - All rights reserved © 2026 Michael Wu
 - **Privacy**: GDPR-compliant data handling
 - **Security**: SOC2 Type II compliant infrastructure
 - **Support**: 24/7 support for Enterprise plans
