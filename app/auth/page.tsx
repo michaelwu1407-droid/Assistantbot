@@ -1,5 +1,5 @@
-import { AuthSelector } from "@/components/auth/auth-selector";
+import { UnifiedAuth } from "@/components/auth/unified-auth";
 
 export default function AuthPage() {
-  return <AuthSelector />;
+  return <UnifiedAuth />;
 }

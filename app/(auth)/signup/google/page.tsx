@@ -1,5 +1,5 @@
-import { GoogleSignUp } from "@/components/auth/google-signup";
+import { redirect } from "next/navigation";
 
 export default function GoogleSignupPage() {
-  return <GoogleSignUp />;
+  redirect("/auth");
 }
