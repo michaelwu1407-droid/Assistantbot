@@ -138,7 +138,7 @@ export function UnifiedAuth() {
       } else if (data.user) {
         MonitoringService.identifyUser(data.user.id, { name: state.name });
         MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
-        router.push("/billing");
+        router.push("/dashboard");
         router.refresh();
       }
     }
@@ -160,7 +160,7 @@ export function UnifiedAuth() {
         MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
         MonitoringService.trackEvent("user_signed_in", { provider: "email" });
       }
-      router.push("/billing");
+      router.push("/dashboard");
       router.refresh();
       return;
     }
