@@ -290,7 +290,7 @@ export function UnifiedAuth() {
       <div className="w-full max-w-md ott-card bg-card p-8 relative z-10">
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/logo.svg" alt="Earlymark" className="h-12 w-12" />
+          <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
         </div>
 
         <div className="text-center mb-8">

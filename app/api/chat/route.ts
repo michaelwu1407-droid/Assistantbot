@@ -1,6 +1,7 @@
 import { streamText, convertToModelMessages, tool, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
+import type { MemoryClient } from "mem0ai";
 import {
   runMoveDeal,
   runListDeals,
@@ -42,6 +43,26 @@ export const maxDuration = 60;
 
 /** Cost-effective Gemini model for chat + tools */
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+
+// Lazy initialization of Mem0 Memory Client
+let memoryClient: MemoryClient | null = null;
+
+function getMemoryClient(): MemoryClient | null {
+  if (!memoryClient && process.env.MEM0_API_KEY) {
+    try {
+      // Dynamic import to avoid SSR issues
+      const { MemoryClient } = require("mem0ai");
+      memoryClient = new MemoryClient({
+        apiKey: process.env.MEM0_API_KEY,
+      });
+      console.log("[Mem0] Memory client initialized successfully");
+    } catch (error) {
+      console.error("[Mem0] Failed to initialize memory client:", error);
+      return null;
+    }
+  }
+  return memoryClient;
+}
 
 export async function POST(req: Request) {
   try {
@@ -282,6 +303,53 @@ export async function POST(req: Request) {
 3. If asked for general pricing, quote the standard Call-Out Fee of $${callOutFee}. You can say something like "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
 4. If the user requests a common task that exists in the Glossary, you may quote that specific price range instead of the call-out fee.`;
 
+    // === STEP A: "The Recall" (Pre-Generation Memory Search) ===
+    console.log(`[Mem0] Starting memory recall for workspace: ${workspaceId}`);
+    
+    // Extract user ID from headers or use workspaceId as fallback
+    const userId = req.headers.get("x-user-id") || workspaceId;
+    console.log(`[Mem0] User ID: ${userId}`);
+    
+    // Get the last user message for memory search
+    const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
+    const lastMessageContent = lastUserMessage?.content || "";
+    console.log(`[Mem0] Last message: "${lastMessageContent.substring(0, 50)}..."`);
+    
+    let memoryContextStr = "";
+    const memClient = getMemoryClient();
+    
+    if (memClient && lastMessageContent) {
+      try {
+        console.log(`[Mem0] Searching for relevant memories...`);
+        const searchResults = await memClient.search(lastMessageContent, {
+          user_id: userId,
+          limit: 5,
+        });
+        
+        console.log(`[Mem0] Found ${searchResults.length} memories`);
+        
+        if (searchResults.length > 0) {
+          const facts = searchResults.map((memory: any, index: number) => {
+            console.log(`[Mem0] Memory ${index + 1}: ${memory.memory}`);
+            return `- ${memory.memory}`;
+          }).join("\n");
+          
+          memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nThe following facts are retrieved from previous conversations with this user:\n${facts}\n[[END MEMORY CONTEXT]]\n\nUse these facts to personalize your response.`;
+        } else {
+          console.log(`[Mem0] No relevant memories found`);
+          memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nNo previous context found for this query.\n[[END MEMORY CONTEXT]]`;
+        }
+      } catch (error) {
+        console.error("[Mem0] Error searching memories:", error);
+        memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nUnable to retrieve memories at this time.\n[[END MEMORY CONTEXT]]`;
+      }
+    } else {
+      console.log(`[Mem0] Memory client not available or no message content`);
+      memoryContextStr = "";
+    }
+    
+    console.log(`[Mem0] Memory context prepared, proceeding to stream generation`);
+
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
       system: `You are Travis, a concise CRM assistant for tradies. Keep responses SHORT and punchy — tradies are busy. No essays. Use "jobs" not "meetings".
@@ -290,6 +358,7 @@ ${agentModeStr}
 ${workingHoursStr}
 ${preferencesStr}
 ${pricingRulesStr}
+${memoryContextStr}
 
 MESSAGING RULES — CRITICAL:
 1. When the user says "message X", "text X", "tell X", "send X a message" — IMMEDIATELY call the sendSms tool. Do NOT ask for confirmation. Just send it.
@@ -575,6 +644,42 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
         }),
       },
       stopWhen: stepCountIs(5),
+      onFinish: async ({ text }) => {
+        // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
+        console.log(`[Mem0] Starting memory storage...`);
+        
+        const memClientForStorage = getMemoryClient();
+        if (!memClientForStorage) {
+          console.log(`[Mem0] Memory client not available for storage`);
+          return;
+        }
+        
+        try {
+          // Create the message pair for Mem0
+          const messagesForMem0 = [
+            { role: "user" as const, content: lastMessageContent },
+            { role: "assistant" as const, content: text },
+          ];
+          
+          // Store in Mem0 asynchronously (non-blocking)
+          memClientForStorage.add(messagesForMem0, {
+            user_id: userId,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              source: "chat",
+              workspaceId: workspaceId,
+            },
+          }).then(() => {
+            console.log(`[Mem0] Successfully saved interaction`);
+          }).catch((error) => {
+            console.error("[Mem0] Error saving interaction:", error);
+          });
+          
+          // Note: Not awaiting to avoid blocking the response
+        } catch (error) {
+          console.error("[Mem0] Error in memory storage:", error);
+        }
+      },
     });
 
     return result.toUIMessageStreamResponse();
