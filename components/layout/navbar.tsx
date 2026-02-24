@@ -15,10 +15,10 @@ export function Navbar() {
         <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between bg-white/80 px-6 lg:px-12 backdrop-blur-xl border-b border-border">
             {/* Brand */}
             <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20">
-                    <span className="font-extrabold italic text-sm tracking-tighter">Pj</span>
+                <div className="flex h-9 w-9 items-center justify-center">
+                    <img src="/logo.svg" alt="Earlymark" className="h-9 w-9" />
                 </div>
-                <span className="text-lg font-bold tracking-tight text-midnight">Pj Buddy</span>
+                <span className="text-lg font-bold tracking-tight text-midnight">Earlymark</span>
             </div>
 
             {/* Navigation Links - Centered */}

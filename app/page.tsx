@@ -20,10 +20,10 @@ export default function Home() {
             Your AI-Powered Business Assistant
           </div>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.1] text-midnight text-balance">
-            Manage faster with the most intuitive CRM
+            Earlymark: AI-Powered CRM for Modern Business
           </h1>
           <p className="text-lg text-slate-body max-w-2xl leading-relaxed">
-            Pj Buddy isn&apos;t just a CRM. It&apos;s a chatbot-first assistant that manages your trades or real estate business while you work. Automate tasks and maximise opportunities.
+            Earlymark combines intelligent automation with personal communication. Let Travis AI handle outreach while you maintain direct connections with your customers through our streamlined communication system.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link href="/auth">
@@ -49,8 +49,8 @@ export default function Home() {
               {/* Mock Dashboard Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center">
-                    <span className="text-white font-bold text-xs italic">Pj</span>
+                  <div className="h-8 w-8 items-center justify-center">
+                    <img src="/logo.svg" alt="Earlymark" className="h-8 w-8" />
                   </div>
                   <span className="text-sm font-semibold text-midnight">Dashboard</span>
                 </div>
@@ -98,10 +98,10 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-12">
             <div className="max-w-md flex flex-col gap-4">
               <h2 className="text-4xl md:text-5xl font-bold tracking-[-0.03em] leading-[1.2] text-midnight text-balance">
-                Retain customers.
+                Smart Communication, Maximum Efficiency.
               </h2>
               <p className="text-slate-body leading-relaxed">
-                Use one central platform to help your team be more productive. Consolidate your tech stack or integrate with your favourite tools.
+                Experience the power of dual communication systems. Let Travis AI automate your outreach while maintaining personal connections through direct communication channels.
               </p>
               <div className="flex gap-8 pt-4">
                 <div>
@@ -143,10 +143,10 @@ export default function Home() {
         <div className="container mx-auto max-w-6xl flex flex-col gap-16">
           <div className="text-center flex flex-col gap-4 max-w-2xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold tracking-[-0.03em] leading-[1.2] text-midnight">
-              Find out what we offer
+              Intelligent Communication Features
             </h2>
             <p className="text-slate-body leading-relaxed">
-              Let AI do the heavy lifting so your team can spend more time selling.
+              Harness the power of AI automation while maintaining personal touchpoints with your customers.
             </p>
           </div>
 
@@ -156,13 +156,13 @@ export default function Home() {
                 <Hammer className="h-16 w-16 text-primary" />
               </div>
               <CardHeader className="px-0">
-                <CardTitle className="text-xl">Tradie Mode</CardTitle>
-                <CardDescription className="text-slate-body">For Plumbers, Electricians, and Technicians</CardDescription>
+                <CardTitle className="text-xl">🤖 AI Agent Communication</CardTitle>
+                <CardDescription className="text-slate-body">Travis AI handles automated outreach using your business number</CardDescription>
               </CardHeader>
               <CardContent className="px-0 flex flex-col gap-3">
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Map-based job routing</div>
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Quick Invoicing</div>
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Material Logging</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Automated calls & texts</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Job reminders & trip SMS</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> 24/7 availability</div>
               </CardContent>
             </Card>
 
@@ -171,13 +171,13 @@ export default function Home() {
                 <Smartphone className="h-16 w-16 text-blue-500" />
               </div>
               <CardHeader className="px-0">
-                <CardTitle className="text-xl">Agent Mode</CardTitle>
-                <CardDescription className="text-slate-body">For Real Estate Agents and Property Managers</CardDescription>
+                <CardTitle className="text-xl">📱 Manual Communication</CardTitle>
+                <CardDescription className="text-slate-body">Direct customer contact using your personal phone number</CardDescription>
               </CardHeader>
               <CardContent className="px-0 flex flex-col gap-3">
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Open House Kiosk</div>
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Speed-to-lead Dialing</div>
-                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Buyer Matchmaking</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Personal phone integration</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> One-click call/text buttons</div>
+                <div className="flex items-center gap-3 text-slate-body"><Check className="h-4 w-4 text-primary shrink-0" /> Direct conversation control</div>
               </CardContent>
             </Card>
           </div>
@@ -185,9 +185,9 @@ export default function Home() {
           {/* Feature Details */}
           <div className="flex flex-col gap-8">
             {[
-              { icon: MessageSquare, title: "Maximise engagement with every contact", desc: "Efficiently reach contacts at every stage of your pipeline with the right message using powerful features like personalised sequences." },
-              { icon: Zap, title: "Customise in minutes to fit your sales cycle", desc: "Easily tailor your CRM to suit you, without any development help. Edit deal stages, add as many columns as you like." },
-              { icon: Clock, title: "Save valuable time with one-click automations", desc: "Close more deals by automating repetitive work. Automatically assign leads to reps, set reminders for upcoming activities, and more." },
+              { icon: MessageSquare, title: "🤖 AI-Powered Automation", desc: "Travis AI handles appointment reminders, follow-ups, and customer outreach using your business phone number. Available 24/7 for your customers." },
+              { icon: Zap, title: "📱 Personal Communication", desc: "Maintain direct relationships with one-click calling and texting from your personal number. Perfect for complex discussions and personal touch." },
+              { icon: Clock, title: "⚡ Smart Reminders", desc: "Automated job reminders 24 hours before appointments and 'on my way' SMS when you start driving. Never miss a follow-up again." },
             ].map((feature) => (
               <div key={feature.title} className="flex items-start gap-4 p-6 rounded-[24px] hover:bg-secondary/50 transition-colors">
                 <div className="h-10 w-10 rounded-xl bg-mint-50 flex items-center justify-center shrink-0">
@@ -271,7 +271,7 @@ export default function Home() {
             Need Help? We're Here for You!
           </h2>
           <p className="text-white/60 max-w-2xl leading-relaxed">
-            Get support from our team via multiple channels. We're committed to helping you succeed with Pj Buddy.
+            Get support from our team via multiple channels. We're committed to helping you succeed with Earlymark.
           </p>
           
           {/* Contact Options Grid */}
@@ -297,12 +297,12 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Email Support</h3>
               <p className="text-white/60 text-sm mb-2">
-                support@pjbuddy.com
+                support@earlymark.com
               </p>
               <p className="text-white/60 text-sm mb-4">
                 Response within 24 hours
               </p>
-              <a href="mailto:support@pjbuddy.com">
+              <a href="mailto:support@earlymark.com">
                 <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white hover:text-midnight w-full">
                   Send Email
                 </Button>
@@ -315,12 +315,12 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Phone Support</h3>
               <p className="text-white/60 text-sm mb-2">
-                1300 PJ BUDDY
+                1300 EARLY
               </p>
               <p className="text-white/60 text-sm mb-4">
                 Mon-Fri 9am-5pm AEST
               </p>
-              <a href="tel:13007528339">
+              <a href="tel:130032759">
                 <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white hover:text-midnight w-full">
                   Call Now
                 </Button>
@@ -348,7 +348,7 @@ export default function Home() {
       <footer className="py-8 px-6 bg-midnight border-t border-white/10">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/40">
-            {"2025 Pj Buddy. All Rights Reserved."}
+            {"2025 Earlymark. All Rights Reserved."}
           </p>
           <div className="flex items-center gap-6">
             {["Home", "Product", "Pricing", "Contact"].map((link) => (
