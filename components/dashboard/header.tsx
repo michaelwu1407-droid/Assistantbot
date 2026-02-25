@@ -36,16 +36,16 @@ interface HeaderProps {
     userName: string
     userId: string
     workspaceId: string
-    teamMembers: TeamMemberOption[]
-    filterByUserId: string | null
-    onFilterByUserChange: (value: string | null) => void
+    teamMembers?: TeamMemberOption[]
+    filterByUserId?: string | null
+    onFilterByUserChange?: (value: string | null) => void
     onNewDeal: () => void
 }
 
 const FILTER_ALL = "__all__"
 const FILTER_UNASSIGNED = "__unassigned__"
 
-export function Header({ userName, userId, workspaceId, teamMembers, filterByUserId, onFilterByUserChange, onNewDeal }: HeaderProps) {
+export function Header({ userName, userId, workspaceId, teamMembers = [], filterByUserId, onFilterByUserChange = () => { }, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
     const router = useRouter()
     const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)

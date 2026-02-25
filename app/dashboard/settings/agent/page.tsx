@@ -12,8 +12,8 @@ import { toast } from "sonner"
 import { Bot, Clock, Bell, Brain, DollarSign, MessageSquare, Phone, Send, FileText } from "lucide-react"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 
-const defaultSoftChase = { message: "Hi, just following up on our recent conversation. Let me know if you'd like to move forward.", triggerDays: 3, channel: "sms" as const }
-const defaultInvoiceFollowUp = { message: "This is a friendly reminder that your invoice is still outstanding. Please let us know if you have any questions.", triggerDays: 7, channel: "email" as const }
+const defaultSoftChase = { message: "Hi, just following up on our recent conversation. Let me know if you'd like to move forward.", triggerDays: 3, channel: "sms" as "sms" | "email" }
+const defaultInvoiceFollowUp = { message: "This is a friendly reminder that your invoice is still outstanding. Please let us know if you have any questions.", triggerDays: 7, channel: "email" as "sms" | "email" }
 
 export default function AgentSettingsPage() {
     const [isLoading, setIsLoading] = useState(true)
@@ -57,8 +57,16 @@ export default function AgentSettingsPage() {
                         textAllowedEnd: data.textAllowedEnd ?? "20:00",
                         callAllowedStart: data.callAllowedStart ?? "08:00",
                         callAllowedEnd: data.callAllowedEnd ?? "20:00",
-                        softChase: data.softChase ?? defaultSoftChase,
-                        invoiceFollowUp: data.invoiceFollowUp ?? defaultInvoiceFollowUp,
+                        softChase: {
+                            message: data.softChase?.message ?? defaultSoftChase.message,
+                            triggerDays: data.softChase?.triggerDays ?? defaultSoftChase.triggerDays,
+                            channel: (data.softChase?.channel as "sms" | "email") ?? defaultSoftChase.channel,
+                        },
+                        invoiceFollowUp: {
+                            message: data.invoiceFollowUp?.message ?? defaultInvoiceFollowUp.message,
+                            triggerDays: data.invoiceFollowUp?.triggerDays ?? defaultInvoiceFollowUp.triggerDays,
+                            channel: (data.invoiceFollowUp?.channel as "sms" | "email") ?? defaultInvoiceFollowUp.channel,
+                        },
                     })
                 }
             } catch (error) {

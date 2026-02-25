@@ -57,6 +57,10 @@ export function EmailLeadCaptureSettings() {
       if (!settings) throw new Error("No settings");
       await updateWorkspaceSettings({
         ...settings,
+        aiPreferences: settings.aiPreferences ?? undefined,
+        jobReminderHours: settings.jobReminderHours ?? undefined,
+        inboundEmailAlias: settings.inboundEmailAlias ?? undefined,
+        agentScriptStyle: (settings.agentScriptStyle as "opening" | "closing") ?? undefined,
         agentMode: settings.agentMode,
         workingHoursStart: settings.workingHoursStart ?? "08:00",
         workingHoursEnd: settings.workingHoursEnd ?? "17:00",

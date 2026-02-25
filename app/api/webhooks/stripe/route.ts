@@ -30,7 +30,7 @@ export async function POST(req: Request) {
                 status: "error",
                 error: error.message,
             },
-        }).catch(() => {}); // Don't fail the response if logging fails
+        }).catch(() => { }); // Don't fail the response if logging fails
 
         return new NextResponse("Webhook signature verification failed", { status: 400 });
     }
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
             case "invoice.paid": {
                 // After 3 months on intro price ($60), switch to standard price ($150)
-                const invoice = event.data.object as Stripe.Invoice;
+                const invoice = event.data.object as any;
                 const subscriptionId = invoice.subscription as string | null;
                 const introPriceId = process.env.STRIPE_PRO_INTRO_PRICE_ID;
                 const standardPriceId = process.env.STRIPE_PRO_PRICE_ID;
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
                 status: "success",
                 payload: JSON.parse(JSON.stringify({ id: event.id, type: event.type })),
             },
-        }).catch(() => {});
+        }).catch(() => { });
 
     } catch (err: any) {
         Sentry.captureException(err, {
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
                 status: "error",
                 error: err.message,
             },
-        }).catch(() => {});
+        }).catch(() => { });
 
         return new NextResponse("Internal server error", { status: 500 });
     }

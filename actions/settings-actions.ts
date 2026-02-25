@@ -83,13 +83,13 @@ export async function updateWorkspaceSettings(input: {
         "textAllowedStart", "textAllowedEnd", "callAllowedStart", "callAllowedEnd",
         "softChase", "invoiceFollowUp",
     ] as const
-    let settingsUpdate: Record<string, unknown> | undefined
+    let settingsUpdate: any = undefined
     const s = input as Record<string, unknown>
     for (const key of settingsKeys) {
         if (s[key] !== undefined) {
             if (!settingsUpdate) {
                 const ws = await db.workspace.findUnique({ where: { id: workspaceId }, select: { settings: true } })
-                settingsUpdate = (ws?.settings as Record<string, unknown>) ? { ...(ws.settings as Record<string, unknown>) } : {}
+                settingsUpdate = ws && ws.settings ? { ...(ws.settings as Record<string, unknown>) } : {}
             }
             settingsUpdate[key] = s[key]
         }
