@@ -28,7 +28,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link href="/auth">
               <Button variant="outline" size="lg">
-                Contact Sales
+                Login / Sign up
               </Button>
             </Link>
             <Link href="/auth">
@@ -331,7 +331,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <Link href="/auth">
               <Button variant="outline" size="lg" className="border-white/20 text-white hover:bg-white hover:text-midnight bg-transparent">
-                Contact Sales
+                Login / Sign up
               </Button>
             </Link>
             <Link href="/auth">

@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     
     // Redirect if not authenticated
     if (!authUser) {
-        redirect("/login")
+        redirect("/auth")
     }
 
     const userId = authUser.id
@@ -27,20 +27,14 @@ export default async function DashboardPage() {
         workspace = await getOrCreateWorkspace(userId)
         deals = await getDeals(workspace.id)
         teamMembers = await getTeamMembers()
-    } catch {
+    } catch (error) {
+        console.error("DashboardPage failed to load:", error);
         dbError = true;
     }
 
-    // Redirect must be outside try/catch — Next.js redirect() throws internally
-    if (!dbError && workspace && !workspace.onboardingComplete) {
-        redirect("/setup")
-    }
-
-    // Billing gate: redirect unpaid users to /billing paywall
-    if (!dbError && workspace && workspace.subscriptionStatus !== "active") {
-        redirect("/billing")
-    }
-
+    // Note: Auth flow already handles subscription and onboarding redirects
+    // Users should only reach here if they have active subscriptions
+    
     if (dbError || !workspace || !deals) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 gap-4">

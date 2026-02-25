@@ -4,9 +4,12 @@ import posthog from 'posthog-js';
 import { PostHogProvider as CSPostHogProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
 
+// Static imports to bundle PostHog modules
+import 'posthog-js/dist/posthog-recorder';
+
 // Check if PostHog key is properly configured (not a placeholder)
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_SUPABASE_HOST || 'https://us.i.posthog.com';
 
 // Only initialize if we have a real API key (not placeholder or empty)
 const isValidPostHogKey = POSTHOG_KEY && 
@@ -15,12 +18,15 @@ const isValidPostHogKey = POSTHOG_KEY &&
   !POSTHOG_KEY.includes('placeholder') &&
   POSTHOG_KEY.length > 10; // Real PostHog keys are longer
 
-// Debug environment variables
+// Debug environment variables in detail
 if (typeof window !== 'undefined') {
-    console.log('PostHog Debug - Environment Variables:', {
-        NEXT_PUBLIC_POSTHOG_KEY: POSTHOG_KEY ? (isValidPostHogKey ? 'VALID' : 'PLACEHOLDER') : 'MISSING',
+    console.log('PostHog Debug - Detailed Environment Variables:', {
+        NEXT_PUBLIC_POSTHOG_KEY: POSTHOG_KEY ? `${POSTHOG_KEY.substring(0, 10)}...${POSTHOG_KEY.substring(POSTHOG_KEY.length - 5)}` : 'MISSING',
+        NEXT_PUBLIC_POSTHOG_KEY_LENGTH: POSTHOG_KEY?.length || 0,
         NEXT_PUBLIC_POSTHOG_HOST: POSTHOG_HOST,
         NODE_ENV: process.env.NODE_ENV,
+        window_location: window.location.origin,
+        env_available: !!process.env.NEXT_PUBLIC_POSTHOG_KEY
     });
 }
 

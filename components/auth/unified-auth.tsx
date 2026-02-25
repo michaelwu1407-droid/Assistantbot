@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { MonitoringService } from "@/lib/monitoring";
+import { logger } from "@/lib/logging";
 import { Mail, Phone, Chrome } from "lucide-react";
 
 interface AuthState {
@@ -46,10 +47,23 @@ export function UnifiedAuth() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      logger.authFlow("Checking for existing user session", { action: "check_existing_user" });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        logger.authError("Failed to check existing user", { error: error.message, details: error }, error);
+      } else if (user) {
+        logger.authFlow("Found existing user session, redirecting", { 
+          userId: user.id,
+          email: user.email,
+          action: "redirect_to_auth_next"
+        });
         router.push("/auth/next");
+      } else {
+        logger.authFlow("No existing user session found", { action: "show_auth_form" });
       }
+      
       setState(prev => ({ ...prev, user }));
     };
     checkUser();
@@ -114,6 +128,12 @@ export function UnifiedAuth() {
       }
     } else {
       // Verify OTP
+      logger.authFlow("Starting OTP verification", { 
+        phone: state.phone, 
+        hasOtp: !!state.otp,
+        otpLength: state.otp.length 
+      });
+      
       const formattedPhone = formatPhoneE164(state.phone);
       const { data, error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
@@ -122,12 +142,70 @@ export function UnifiedAuth() {
       });
       
       if (error) {
+        logger.authError("OTP verification failed", { 
+          phone: formattedPhone,
+          error: error.message,
+          details: error 
+        }, error);
         updateState({ loading: false, message: error.message });
       } else if (data.user) {
-        MonitoringService.identifyUser(data.user.id, { name: state.name });
-        MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
-        router.push("/dashboard");
-        router.refresh();
+        logger.authFlow("OTP verification successful", { 
+          userId: data.user.id,
+          phone: formattedPhone,
+          session: !!data.session
+        });
+        
+        // Wait and verify session with retry logic
+        let sessionVerified = false;
+        let verifyError = null;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          logger.authFlow(`Session verification attempt ${attempt}`, { userId: data.user.id });
+          
+          // Wait longer for session to be established
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          
+          // Verify session is actually working
+          const { data: { user: verifiedUser }, error: currentVerifyError } = await supabase.auth.getUser();
+          
+          if (!currentVerifyError && verifiedUser) {
+            sessionVerified = true;
+            logger.authFlow("Session verified successfully", { 
+              userId: verifiedUser.id,
+              email: verifiedUser.email,
+              attempt
+            });
+            break;
+          } else {
+            verifyError = currentVerifyError;
+            logger.authFlow(`Session verification attempt ${attempt} failed`, { 
+              userId: data.user.id,
+              error: currentVerifyError?.message,
+              attempt
+            });
+          }
+        }
+        
+        if (!sessionVerified) {
+          logger.authError("Session verification failed after all attempts", { 
+            userId: data.user.id,
+            verifyError: verifyError?.message
+          }, verifyError || new Error("Session verification failed"));
+          updateState({ loading: false, message: "Authentication successful but session failed to establish. Please try again." });
+        } else {
+          MonitoringService.identifyUser(data.user.id, { name: state.name });
+          MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
+          
+          logger.authFlow("Redirecting to dashboard", { userId: data.user.id });
+          router.push("/dashboard");
+          router.refresh();
+        }
+      } else {
+        logger.authError("OTP verification returned no user", { 
+          phone: formattedPhone,
+          data: data
+        });
+        updateState({ loading: false, message: "Verification failed. No user data returned." });
       }
     }
   };

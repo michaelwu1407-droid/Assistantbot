@@ -6,35 +6,27 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase environment variables are missing:', {
+    console.error('Supabase environment variables are missing:', {
       url: !!supabaseUrl,
-      key: !!supabaseAnonKey,
-      envLoaded: !!process.env.NEXT_PUBLIC_SUPABASE_URL
+      key: !!supabaseAnonKey
     });
     throw new Error('Supabase configuration is incomplete');
   }
 
   try {
-    console.log('🔗 Creating Supabase client with URL:', supabaseUrl);
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce',
-        debug: process.env.NODE_ENV === 'development'
       },
       global: {
         headers: {
           'X-Client-Info': 'assistantbot-web'
         }
-      },
-      db: {
-        schema: 'public'
       }
     });
   } catch (error) {
-    console.error('❌ Failed to create Supabase client:', error);
+    console.error('Failed to create Supabase client:', error);
     throw new Error('Supabase client initialization failed');
   }
 }

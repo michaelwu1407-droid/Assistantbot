@@ -5,6 +5,8 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Allow cross-origin requests from development proxy and fix server actions
+  allowedDevOrigins: ['127.0.0.1:51280', 'localhost:3000'],
 }
 
 // Injected content via Sentry wizard below

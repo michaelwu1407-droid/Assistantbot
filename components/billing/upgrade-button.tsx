@@ -21,6 +21,7 @@ export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
     };
 
     const yearlySavings = 20;
+    // TODO: Update prices at the end of promotional period - currently $2/day intro, $5/day regular
     // Yearly = $5/day * 30 days * 12 months * (1 - 20%)
     const yearlyTotal = 5 * 30 * 12 * (1 - yearlySavings / 100);
 
@@ -59,7 +60,7 @@ export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                         <span className="text-3xl font-extrabold text-primary">$2</span>
                         <span className="text-2xl font-bold text-muted-foreground line-through">$5</span>
-                        <span className="text-muted-foreground">/ day for the first 3 months</span>
+                        <span className="text-muted-foreground">/ day for a limited time only</span>
                     </div>
                 ) : (
                     <div className="text-3xl font-extrabold text-midnight">

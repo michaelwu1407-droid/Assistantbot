@@ -8,16 +8,14 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase environment variables are missing on server:', {
+    console.error('Supabase environment variables are missing on server:', {
       url: !!supabaseUrl,
-      key: !!supabaseAnonKey,
-      envLoaded: !!process.env.NEXT_PUBLIC_SUPABASE_URL
+      key: !!supabaseAnonKey
     });
     throw new Error('Supabase server configuration is incomplete');
   }
 
   try {
-    console.log('🔗 Creating Supabase server client with URL:', supabaseUrl);
     const cookieStore = await cookies();
     
     return createServerClient(
@@ -57,7 +55,7 @@ export async function createClient() {
       }
     );
   } catch (error) {
-    console.error('❌ Failed to create Supabase server client:', error);
+    console.error('Failed to create Supabase server client:', error);
     throw new Error('Supabase server client initialization failed');
   }
 }
@@ -71,16 +69,14 @@ export function createAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error('❌ Supabase admin environment variables are missing:', {
+    console.error('Supabase admin environment variables are missing:', {
       url: !!supabaseUrl,
-      key: !!serviceRoleKey,
-      envLoaded: !!process.env.NEXT_PUBLIC_SUPABASE_URL
+      key: !!serviceRoleKey
     });
     throw new Error('Supabase admin configuration is incomplete');
   }
 
   try {
-    console.log('🔗 Creating Supabase admin client with URL:', supabaseUrl);
     return createSupabaseClient(
       supabaseUrl,
       serviceRoleKey,
@@ -97,7 +93,7 @@ export function createAdminClient() {
       }
     );
   } catch (error) {
-    console.error('❌ Failed to create Supabase admin client:', error);
+    console.error('Failed to create Supabase admin client:', error);
     throw new Error('Supabase admin client initialization failed');
   }
 }

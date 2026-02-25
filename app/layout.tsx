@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { ReferralProvider } from "@/components/providers/referral-provider";
+import { AppInitializer } from "@/components/providers/app-initializer";
 import { Footer } from "@/components/layout/footer";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fontSans.variable} antialiased font-sans bg-background text-foreground`}>
+        <AppInitializer />
         <AccessibilityProvider>
           <ClientThemeProvider>
             <IndustryProvider>

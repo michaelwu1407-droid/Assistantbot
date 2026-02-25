@@ -21,7 +21,8 @@ export async function createCheckoutSession(workspaceId: string) {
     }
 
     const headersList = await headers();
-    const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const origin = headersList.get("origin") || headersList.get("x-forwarded-host") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = origin.includes("127.0.0.1") ? "http://localhost:3000" : origin;
 
     let customerId = workspace.stripeCustomerId;
 
@@ -44,8 +45,8 @@ export async function createCheckoutSession(workspaceId: string) {
         ],
         mode: "subscription",
         client_reference_id: workspaceId,
-        success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/billing`,
+        success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/billing`,
     });
 
     if (!session.url) {
@@ -70,11 +71,12 @@ export async function createCustomerPortalSession(workspaceId: string) {
     }
 
     const headersList = await headers();
-    const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const origin = headersList.get("origin") || headersList.get("x-forwarded-host") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = origin.includes("127.0.0.1") ? "http://localhost:3000" : origin;
 
     const session = await stripe.billingPortal.sessions.create({
         customer: workspace.stripeCustomerId,
-        return_url: `${origin}/dashboard/settings`,
+        return_url: `${baseUrl}/dashboard/settings`,
     });
 
     if (!session.url) {

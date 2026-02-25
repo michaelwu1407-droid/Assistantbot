@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logging";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -69,15 +70,30 @@ export async function getOrCreateWorkspace(
   defaults?: { name?: string; type?: "TRADIE" | "AGENT"; industryType?: "TRADES" | "REAL_ESTATE"; location?: string }
 ): Promise<WorkspaceView> {
   try {
+    logger.authFlow("Attempting to get or create workspace", { 
+      action: "getOrCreateWorkspace",
+      ownerId: ownerId || "missing",
+      hasDefaults: !!defaults
+    });
+
     if (ownerId) {
+      logger.debug("Looking for existing workspace", { ownerId });
+      
       const existing = await db.workspace.findFirst({
         where: { ownerId },
         orderBy: { createdAt: "desc" },
       });
 
       if (existing) {
+        logger.authFlow("Found existing workspace", { 
+          workspaceId: existing.id,
+          subscriptionStatus: existing.subscriptionStatus,
+          onboardingComplete: existing.onboardingComplete
+        });
         return toWorkspaceView(existing);
       }
+
+      logger.info("No existing workspace found, creating new one", { ownerId });
     }
 
     const workspace = await db.workspace.create({
@@ -90,18 +106,39 @@ export async function getOrCreateWorkspace(
       },
     });
 
+    logger.authFlow("Successfully created new workspace", { 
+      workspaceId: workspace.id,
+      ownerId: workspace.ownerId,
+      subscriptionStatus: workspace.subscriptionStatus
+    });
+
     return toWorkspaceView(workspace);
   } catch (error) {
-    console.error("Database Error in getOrCreateWorkspace:", error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    
+    logger.workspaceError("Database Error in getOrCreateWorkspace", { 
+      ownerId, 
+      defaults,
+      error: errorObj.message 
+    }, errorObj);
 
-    const errorMessage = (error as Error).message || "";
+    const errorMessage = errorObj.message || "";
     if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("Environment variable not found")) {
+      logger.critical("Database connection failed - check internet/firewall", { 
+        errorMessage,
+        category: "database_connection"
+      });
       throw new Error(
         "CRITICAL: Database connection failed. Please check your internet connection and firewall settings."
       );
     }
 
-    throw error;
+    logger.databaseError("Unexpected error in getOrCreateWorkspace", { 
+      errorMessage,
+      category: "workspace_creation"
+    }, errorObj);
+    
+    throw errorObj;
   }
 }
 

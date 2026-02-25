@@ -64,18 +64,20 @@ export function Sidebar({ className }: SidebarProps) {
                 </div>
 
                 {/* Mode Toggle (Advanced/Chat) */}
-                {mounted && viewMode === "ADVANCED" && (
+                {mounted && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
                                 id="mode-toggle-btn"
-                                onClick={() => setViewMode("BASIC")}
+                                onClick={() => setViewMode(viewMode === "ADVANCED" ? "BASIC" : "ADVANCED")}
                                 className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
                             >
                                 <MessageSquare className="h-3.5 w-3.5" />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Switch to Chat Mode</TooltipContent>
+                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">
+                            {viewMode === "ADVANCED" ? "Switch to Chat Mode" : "Switch to Advanced Mode"}
+                        </TooltipContent>
                     </Tooltip>
                 )}
 

@@ -5,6 +5,14 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const { searchParams } = url
 
+  // Fix proxy headers for development
+  const response = NextResponse.next()
+  if (request.headers.get('x-forwarded-host') === 'localhost:3000' && 
+      request.headers.get('origin') === 'http://127.0.0.1:51280') {
+    // Set matching headers to prevent Next.js server action abort
+    response.headers.set('x-forwarded-host', '127.0.0.1:51280')
+  }
+
   // Check for referral parameter
   const refCode = searchParams.get('ref')
   
@@ -35,7 +43,6 @@ export async function middleware(request: NextRequest) {
     }
 
     // Store referral info in session cookie for later use
-    const response = NextResponse.next()
     response.cookies.set('referral_code', refCode, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -45,8 +52,20 @@ export async function middleware(request: NextRequest) {
     
     return response
   }
-
-  return NextResponse.next()
+  
+  // Add CSP headers to allow PostHog and other external services
+  const cspHeader = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com",
+    "connect-src 'self' https://us.i.posthog.com https://api.openai.com https://api.retellai.com https://api.stripe.com",
+    "img-src 'self' data: https://us.i.posthog.com https://lh3.googleusercontent.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
+  ].join("; ")
+  
+  response.headers.set('Content-Security-Policy', cspHeader)
+  
+  return response
 }
 
 export const config = {
