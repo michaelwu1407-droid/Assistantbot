@@ -23,6 +23,7 @@ import {
   runUndoLastAction,
   runAssignTeamMember,
   handleSupportRequest,
+  recordManualRevenue,
 } from "@/actions/chat-actions";
 import {
   runGetSchedule,
@@ -35,8 +36,9 @@ import {
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { buildJobDraftFromParams } from "@/lib/chat-utils";
-import { parseJobWithAI } from "@/lib/ai/job-parser";
+import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -100,7 +102,163 @@ export async function POST(req: Request) {
 
     if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
-    const parsed = await parseJobWithAI(content);
+    // "Next" in multi-job flow: find original multi-job message in history and return the next job's draft card (no AI)
+    const isNextMessage = /^\s*next\s*(job)?\s*(please)?\s*$/i.test(content.trim()) || content.trim().toLowerCase() === "next";
+    if (isNextMessage && Array.isArray(messages) && messages.length >= 2) {
+      const getMessageText = (m: { role?: string; parts?: { type?: string; text?: string }[]; content?: string }) => {
+        if (m?.role !== "user") return "";
+        const textPart = m.parts?.find((p: { type?: string }) => p.type === "text");
+        return (textPart as { text?: string } | undefined)?.text ?? (typeof (m as { content?: string }).content === "string" ? (m as { content: string }).content : "") ?? "";
+      };
+      let jobsFromHistory: Awaited<ReturnType<typeof parseMultipleJobsWithAI>> = null;
+      let multiJobMessageIndex = -1;
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i] as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
+        const text = getMessageText(msg).trim();
+        if (!text) continue;
+        const parsed = await parseMultipleJobsWithAI(text);
+        if (parsed && parsed.length >= 2) {
+          jobsFromHistory = parsed;
+          multiJobMessageIndex = i;
+          break;
+        }
+      }
+      if (jobsFromHistory && multiJobMessageIndex >= 0) {
+        let nextCount = 0;
+        for (let i = multiJobMessageIndex + 1; i < messages.length; i++) {
+          const msg = messages[i] as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
+          if (msg?.role !== "user") continue;
+          const text = getMessageText(msg).trim().toLowerCase();
+          if (text === "next" || /^next\s*(job)?\s*(please)?\s*$/.test(text)) nextCount++;
+        }
+        if (nextCount < jobsFromHistory.length) {
+          const jobIndex = nextCount;
+          const nextJob = jobsFromHistory[jobIndex];
+          const draft = buildJobDraftFromParams(nextJob) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
+          draft.warnings = [];
+          try {
+            const settings = await getWorkspaceSettingsById(workspaceId);
+            if (settings?.agentMode === "FILTER") {
+              return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
+            }
+            const deals = await getDeals(workspaceId);
+            const MIN_GAP_MINUTES = 60;
+            const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
+            if (draft.scheduleISO) {
+              const draftTime = new Date(draft.scheduleISO).getTime();
+              const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
+                !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
+              );
+              const before = withTime.filter((d) => new Date(d.scheduledAt).getTime() < draftTime).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+              const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+              const tz = "Australia/Sydney";
+              const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) =>
+                `${(d.title || d.contactName || "Job").trim()} at ${new Date(d.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
+              if (before.length > 0 || after.length > 0) {
+                const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
+                draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");
+              }
+            }
+            const firstName = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
+            const descLower = (draft.workDescription ?? "").toLowerCase();
+            const hasDuplicate = deals.some((d) => {
+              const name = (d.contactName ?? "").toLowerCase();
+              const title = (d.title ?? "").toLowerCase();
+              if (!firstName || !name.includes(firstName)) return false;
+              if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
+              return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
+            });
+            if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+          } catch {
+            // ignore
+          }
+          const multiJobRemaining = jobIndex < jobsFromHistory.length - 1;
+          const textId = "text-multi-next";
+          const toolCallId = `showJobDraft-multi-${jobIndex + 1}`;
+          const toolInput = { clientName: draft.clientName ?? "", workDescription: draft.workDescription ?? "Job", price: Number(String(draft.price).replace(/,/g, "")) || 0, address: draft.address || undefined, schedule: draft.rawSchedule || undefined, phone: draft.phone || undefined, email: draft.email || undefined };
+          const stream = createUIMessageStream({
+            execute: ({ writer }) => {
+              writer.write({ type: "start" });
+              writer.write({ type: "text-start", id: textId });
+              writer.write({ type: "text-delta", id: textId, delta: multiJobRemaining ? "Here's the next one — edit if needed, then confirm or cancel." : "Here's the last one — edit if needed, then confirm." });
+              writer.write({ type: "text-end", id: textId });
+              writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
+              writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining } });
+              writer.write({ type: "finish" });
+            },
+          });
+          return createUIMessageStreamResponse({ stream });
+        }
+      }
+    }
+
+    // One extraction call: works for natural language, dashed list, or mixed. No dependency on " - ".
+    const extractedJobs = await extractAllJobsFromParagraph(content);
+    const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
+    const useMultiJobFlow = multipleJobs !== null;
+    const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
+
+    if (useMultiJobFlow && multipleJobs && multipleJobs.length >= 2) {
+      // Return first job as a proper draft card so the UI shows Confirm/Cancel (not AI text).
+      const first = multipleJobs[0];
+      const draft = buildJobDraftFromParams(first) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
+      draft.warnings = [];
+      try {
+        const settings = await getWorkspaceSettingsById(workspaceId);
+        if (settings?.agentMode === "FILTER") {
+          return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
+        }
+        const deals = await getDeals(workspaceId);
+        const MIN_GAP_MINUTES = 60;
+        const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
+        if (draft.scheduleISO) {
+          const draftTime = new Date(draft.scheduleISO).getTime();
+          const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
+            !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
+          );
+          const before = withTime.filter((d) => new Date(d.scheduledAt).getTime() < draftTime).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+          const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+          const tz = "Australia/Sydney";
+          const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) => {
+            const t = new Date(d.scheduledAt);
+            return `${(d.title || d.contactName || "Job").trim()} at ${t.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
+          };
+          if (before.length > 0 || after.length > 0) {
+            const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
+            draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");
+          }
+        }
+        const firstName = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
+        const descLower = (draft.workDescription ?? "").toLowerCase();
+        const hasDuplicate = deals.some((d) => {
+          const name = (d.contactName ?? "").toLowerCase();
+          const title = (d.title ?? "").toLowerCase();
+          if (!firstName || !name.includes(firstName)) return false;
+          if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
+          return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
+        });
+        if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+      } catch {
+        // ignore
+      }
+      const textId = "text-multi-draft";
+      const toolCallId = "showJobDraft-multi-1";
+      const toolInput = { clientName: draft.clientName ?? "", workDescription: draft.workDescription ?? "Job", price: Number(String(draft.price).replace(/,/g, "")) || 0, address: draft.address || undefined, schedule: draft.rawSchedule || undefined, phone: draft.phone || undefined, email: draft.email || undefined };
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: "I'll process these one at a time. Here's the first one — edit if needed, then confirm and I'll create it and move to the next." });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
+          writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining: true } });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
+
+    const parsed = useMultiJobFlow ? null : (singleJobFromParagraph ?? await parseJobWithAI(content));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
@@ -128,7 +286,7 @@ export async function POST(req: Request) {
             .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
           const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) => {
             const t = new Date(d.scheduledAt);
-            const time = t.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true });
+            const time = t.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Australia/Sydney" });
             const label = (d.title || d.contactName || "Job").trim();
             return `${label} at ${time}`;
           };
@@ -155,13 +313,14 @@ export async function POST(req: Request) {
       }
       const textId = "text-draft";
       const toolCallId = "showJobDraft-1";
+      const toolInput = { clientName: draft.clientName ?? "", workDescription: draft.workDescription ?? "Job", price: Number(String(draft.price).replace(/,/g, "")) || 0, address: draft.address || undefined, schedule: draft.rawSchedule || undefined, phone: draft.phone || undefined, email: draft.email || undefined };
       const stream = createUIMessageStream({
         execute: ({ writer }) => {
           writer.write({ type: "start" });
           writer.write({ type: "text-start", id: textId });
           writer.write({ type: "text-delta", id: textId, delta: "Here's what I got — edit anything before confirming." });
           writer.write({ type: "text-end", id: textId });
-          writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraft", input: {} });
+          writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
           writer.write({ type: "tool-output-available", toolCallId, output: { draft } });
           writer.write({ type: "finish" });
         },
@@ -254,6 +413,22 @@ export async function POST(req: Request) {
 
     const settings = await getWorkspaceSettingsById(workspaceId);
 
+    // Resolve current user's role in this workspace (for data-correction / manager-only rules)
+    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" = "TEAM_MEMBER";
+    try {
+      const authUser = await getAuthUser();
+      if (authUser?.email) {
+        const dbUser = await db.user.findFirst({
+          where: { workspaceId, email: authUser.email },
+          select: { role: true },
+        });
+        if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
+      }
+    } catch {
+      // default TEAM_MEMBER so only managers can confirm data changes
+    }
+    const isManager = userRole === "OWNER" || userRole === "MANAGER";
+
     // Keep BusinessProfile and WorkspaceSettings in system prompt (small & static)
     const workspaceInfo = await db.workspace.findUnique({
       where: { id: workspaceId },
@@ -294,10 +469,22 @@ export async function POST(req: Request) {
     const workingHoursStr = `\nWORKING HOURS: Your company working hours are strictly ${settings?.workingHoursStart || "08:00"} to ${settings?.workingHoursEnd || "17:00"}. DO NOT SCHEDULE jobs outside of this window.`;
 
     const businessName = (settings as { agentBusinessName?: string })?.agentBusinessName?.trim() || workspaceInfo?.name || "this business";
-    const scriptStyle = (settings as { agentScriptStyle?: string })?.agentScriptStyle || "opening";
-    const agentScriptStr = scriptStyle === "closing"
-      ? `\nAGENT SIGN-OFF: When YOU initiate a message or call (not automated notifications), END with: "Kind regards, Travis (AI assistant for ${businessName})". Do NOT use an opening line. This does not apply to automated reminder or notification messages.`
-      : `\nAGENT INTRODUCTION: When YOU initiate a message or call (not automated notifications), START with: "Hi I'm Travis, the AI assistant for ${businessName}". Do NOT also add a sign-off. This does not apply to automated reminder or notification messages.`;
+    const openingMsg = (settings as { agentOpeningMessage?: string })?.agentOpeningMessage?.trim();
+    const closingMsg = (settings as { agentClosingMessage?: string })?.agentClosingMessage?.trim();
+    const defaultOpening = `Hi I'm Travis, the AI assistant for ${businessName}`;
+    const defaultClosing = `Kind regards, Travis (AI assistant for ${businessName})`;
+    const parts: string[] = [];
+    if (openingMsg) {
+      parts.push(`\nAGENT INTRODUCTION (customers only): When YOU contact a CUSTOMER (SMS, email, or call to them — not in this dashboard chat), START with this exact opening (or very close): "${openingMsg}". Do NOT use this when replying in the dashboard chat to the business owner.`);
+    } else {
+      parts.push(`\nAGENT INTRODUCTION (customers only): When YOU contact a CUSTOMER (SMS, email, or call to them — not in this dashboard chat), START with: "${defaultOpening}". Do NOT use this when replying in the dashboard chat to the business owner.`);
+    }
+    if (closingMsg) {
+      parts.push(`\nAGENT SIGN-OFF (customers only): When YOU contact a CUSTOMER, END messages with this exact sign-off (or very close): "${closingMsg}". Do NOT use this sign-off when replying in the dashboard chat to the business owner.`);
+    } else {
+      parts.push(`\nAGENT SIGN-OFF (customers only): When YOU contact a CUSTOMER, END with: "${defaultClosing}". Do NOT use this sign-off when replying in the dashboard chat to the business owner.`);
+    }
+    const agentScriptStr = parts.join("");
 
     const textStart = (settings as { textAllowedStart?: string })?.textAllowedStart ?? "08:00";
     const textEnd = (settings as { textAllowedEnd?: string })?.textAllowedEnd ?? "20:00";
@@ -363,9 +550,14 @@ export async function POST(req: Request) {
     
     console.log(`[Mem0] Memory context prepared, proceeding to stream generation`);
 
+    const multiJobInstruction = useMultiJobFlow
+      ? `\n\nMULTIPLE JOBS — CRITICAL: The user has pasted multiple jobs in one message. You MUST process them ONE AT A TIME. First call showJobDraftForConfirmation with ONLY the first job's details (clientName, workDescription, price, address, schedule, phone, email). Then say clearly: "This is the first one. Confirm and I'll create it, then we'll do the next." Do NOT call createJobNatural until the user has confirmed. After the user confirms (e.g. "confirm", "ok", "yes", "done"), call createJobNatural for that job, then call showJobDraftForConfirmation for the NEXT job. Repeat until all jobs are done.`
+      : "";
+
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
       system: `You are Travis, a concise CRM assistant for tradies. Keep responses SHORT and punchy — tradies are busy. No essays. Use "jobs" not "meetings".
+${multiJobInstruction}
 ${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}
@@ -410,12 +602,14 @@ Could you provide these?"
 8. ALWAYS RESPOND: Never return empty/blank responses. Always provide helpful guidance even when uncertain.
 9. DATA RETRIEVAL FAILURE: If tools return no data: "I checked [what you checked] but didn't find [what you expected]. This could mean [possible explanations]. What would you like to do?"
 
-10. ALWAYS RESPOND: Never return empty/blank responses. Always provide helpful guidance even when uncertain.
+10. USER_ROLE: ${userRole}. DATA CORRECTIONS (manager-only): Only OWNER and MANAGER can confirm changes to data (revenue, job/customer details). If USER_ROLE is TEAM_MEMBER: when the user says something is wrong (e.g. "I made $200 in February"), do NOT offer to update it. Say: "Only your team manager or owner can update that. Ask them to make the change or to confirm it." If USER_ROLE is OWNER or MANAGER: when the user says data is wrong, offer to update it and say they can confirm by typing **confirm** (or "ok", "agree", "yes", or any positive reply) or by clicking the Confirm button. Then call the showConfirmationCard tool with a short summary (e.g. "Update February revenue to $200") so the user sees a Confirm button. When the user replies with "confirm", "ok", "agree", "yes", or any clear positive affirmation, call recordManualRevenue. Only call recordManualRevenue after the user has confirmed.
 
 TOOLS — DATA RETRIEVAL (use these to look up information on demand):
 - getSchedule: Fetches jobs for a date range. ALWAYS call this when the user asks about their schedule, availability, or upcoming/past appointments. Also use before scheduling new jobs to check for conflicts and nearby jobs for smart routing.
 - searchJobHistory: Search past jobs by keyword (client name, address, description). Use for "When did I last visit X?", "Jobs at Y address", or any historical question.
 - getFinancialReport: Revenue, job counts, and completion rates for a date range. Use for "How much did I earn?", "Monthly revenue?", "How many jobs this quarter?"
+- showConfirmationCard: Show a Confirm/Cancel button for a data change. Call when you offer to update data so the user can click Confirm or type ok/agree/yes/confirm.
+- recordManualRevenue: Record revenue for a period. Call ONLY after the user has confirmed (typed confirm, ok, agree, yes, or clicked Confirm).
 - getClientContext: Full client profile — contact info, recent jobs, notes, messages. Use for "Tell me about X", "What's the history with Y?", or before contacting a client.
 - getTodaySummary: Quick snapshot of today's jobs, overdue tasks, and message count. Use for "What's on today?", "Give me my daily summary", "Morning brief".
 - getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?"
@@ -425,6 +619,8 @@ TOOLS — DATA RETRIEVAL (use these to look up information on demand):
 - undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
 - assignTeamMember: Assign a team member to a job. Use when the user says "Assign Dave to the Henderson job" or "Put Sarah on the plumbing repair".
 - contactSupport: Create a support ticket when the user asks for help, reports issues, or needs assistance.
+
+MULTI-JOB FOLLOW-UP — CRITICAL: When the user replies with "Next" or "next job please" in a thread where a job draft was shown ("first one" or "one at a time"), you MUST call the showJobDraftForConfirmation tool with the NEXT job's details (clientName, workDescription, price, address, schedule, phone, email from the user's original message). Do NOT output the job as plain text or bullet points (e.g. "* Client: Bob * Work: ..."). The user must see a draft CARD with Confirm/Cancel buttons. Call the tool, then you may add one short line like "Here's the next one — confirm or cancel." Do NOT call createJobNatural for the job they just confirmed or cancelled; only call showJobDraftForConfirmation for the next job. Repeat until all jobs are shown as draft cards.
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try. Never return empty responses.`,
       messages: modelMessages as any,
@@ -469,6 +665,31 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
             email: z.string().optional().describe("Client email if provided"),
           }),
           execute: async (params) => runCreateJobNatural(workspaceId, params),
+        }),
+        showJobDraftForConfirmation: tool({
+          description:
+            "REQUIRED when showing any job in a multi-job flow. Shows a draft CARD with Confirm/Cancel buttons — the user must see this card, not a text description. When the user says 'Next' or you are showing the 2nd, 3rd, etc. job from their list: call this tool with that job's clientName, workDescription, price, address, schedule, phone, email (extract from the user's original message). Do NOT reply with bullet points like '* Client: X * Work: Y' — that is wrong. Always call this tool so the UI displays the draft card. After the user confirms the card, they will send 'Next' and you call this tool again for the next job.",
+          inputSchema: z.object({
+            clientName: z.string().describe("Client full name (first and last)"),
+            workDescription: z.string().describe("What work is needed"),
+            price: z.number().describe("Price in dollars"),
+            address: z.string().optional().describe("Street address for the job"),
+            schedule: z.string().optional().describe("When e.g. tomorrow 2pm"),
+            phone: z.string().optional().describe("Client phone number if provided"),
+            email: z.string().optional().describe("Client email if provided"),
+          }),
+          execute: async (params) => {
+            const draft = buildJobDraftFromParams({
+              clientName: params.clientName,
+              workDescription: params.workDescription,
+              price: params.price,
+              address: params.address,
+              schedule: params.schedule,
+              phone: params.phone,
+              email: params.email,
+            });
+            return { draft };
+          },
         }),
         proposeReschedule: tool({
           description:
@@ -631,6 +852,23 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           }),
           execute: async ({ startDate, endDate }) =>
             runGetFinancialReport(workspaceId, { startDate, endDate }),
+        }),
+        showConfirmationCard: tool({
+          description: "Show a Confirm button so the user can approve a data change (e.g. update revenue). Call this when you offer to update data and want the user to confirm. Pass a short summary of what will change.",
+          inputSchema: z.object({
+            summary: z.string().describe("Short summary of the change, e.g. 'Update February revenue to $200'"),
+          }),
+          execute: async ({ summary }) => ({ showConfirmButton: true, summary }),
+        }),
+        recordManualRevenue: tool({
+          description: "Record manual revenue for a period. Call ONLY after the user has confirmed (typed 'confirm', 'ok', 'agree', 'yes', or clicked Confirm). Use the amount and date range the user originally gave.",
+          inputSchema: z.object({
+            amount: z.number().describe("Revenue amount in dollars"),
+            startDate: z.string().describe("Start of period as ISO string (e.g. 2026-02-01T00:00:00)"),
+            endDate: z.string().describe("End of period as ISO string (e.g. 2026-02-28T23:59:59)"),
+          }),
+          execute: async ({ amount, startDate, endDate }) =>
+            recordManualRevenue(workspaceId, { amount, startDate, endDate }),
         }),
         getClientContext: tool({
           description: "Fetches a complete profile for a specific client: their contact info, recent jobs, notes, and message history. Use when the user asks 'Tell me about Mrs. Jones', 'What's the history with John Smith?', 'Pull up Steven's details', or needs context about a client before a call/visit.",

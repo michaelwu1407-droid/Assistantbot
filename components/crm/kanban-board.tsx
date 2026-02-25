@@ -23,13 +23,22 @@ import {
 
 import { DealCard } from "./deal-card"
 import { DealDetailModal } from "./deal-detail-modal"
-import { Plus } from "lucide-react"
+import { Plus, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DealView, updateDealStage, updateDealAssignedTo } from "@/actions/deal-actions"
 import { toast } from "sonner"
 
-// 5 pipeline columns + Deleted jobs (autoclears after 30 days)
-// Note: "pipeline" stage is merged into "quote_sent"
+// 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
 
 const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
@@ -53,6 +62,7 @@ interface KanbanBoardProps {
   industryType?: "TRADES" | "REAL_ESTATE" | null
   filterByUserId?: string | null
   teamMembers?: TeamMemberOption[]
+  currentUserRole?: string
 }
 
 /* ── Droppable Column wrapper ─────────────────────────────── */
@@ -70,11 +80,14 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 
 const FILTER_UNASSIGNED = "__unassigned__"
 
-export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId, teamMembers = [] }: KanbanBoardProps) {
+export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId, teamMembers = [], currentUserRole = "TEAM_MEMBER" }: KanbanBoardProps) {
   const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [pendingMoveToScheduled, setPendingMoveToScheduled] = useState<{ dealId: string; dealTitle: string } | null>(null)
+  const [assignModalUserId, setAssignModalUserId] = useState<string>("")
+  const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
   const dragStartStageRef = useRef<string | null>(null)
 
@@ -115,7 +128,9 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
     };
     filteredDeals.forEach((deal) => {
       // Merge legacy "pipeline" stage into "quote_sent"
-      const stage = deal.stage === "pipeline" ? "quote_sent" : deal.stage
+      let stage = deal.stage === "pipeline" ? "quote_sent" : deal.stage
+      // Pending-approval deals appear IN the Completed column (styled differently on the card)
+      if (stage === "pending_approval") stage = "completed"
       if (cols[stage]) cols[stage].push(deal);
       else cols["new_request"].push(deal);
     });
@@ -197,6 +212,14 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       return
     }
 
+    // Moving to Scheduled requires an assigned team member — show modal if missing
+    if (targetColumn === "scheduled" && !draggedDeal.assignedToId) {
+      setPendingMoveToScheduled({ dealId: draggedId, dealTitle: draggedDeal.title })
+      setAssignModalUserId(teamMembers.length > 0 ? teamMembers[0].id : "")
+      setTimeout(() => { hasDragged.current = false }, 300)
+      return
+    }
+
     try {
       const result = await updateDealStage(draggedId, targetColumn)
       if (result.success) {
@@ -214,6 +237,41 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       setDeals(initialDeals)
     }
     setTimeout(() => { hasDragged.current = false }, 300)
+  }
+
+  const handleAssignAndMoveToScheduled = async () => {
+    if (!pendingMoveToScheduled || !assignModalUserId) {
+      toast.error("Select a team member to assign.")
+      return
+    }
+    setAssignModalSubmitting(true)
+    try {
+      const assignRes = await updateDealAssignedTo(pendingMoveToScheduled.dealId, assignModalUserId)
+      if (!assignRes.success) {
+        toast.error(assignRes.error ?? "Failed to assign")
+        setAssignModalSubmitting(false)
+        return
+      }
+      const stageRes = await updateDealStage(pendingMoveToScheduled.dealId, "scheduled")
+      if (stageRes.success) {
+        const name = teamMembers.find((m) => m.id === assignModalUserId)?.name || "Someone"
+        setDeals((prev) =>
+          prev.map((d) =>
+            d.id === pendingMoveToScheduled.dealId
+              ? { ...d, stage: "scheduled" as const, assignedToId: assignModalUserId, assignedToName: name }
+              : d
+          )
+        )
+        toast.success(`Assigned to ${name} and moved to Scheduled`)
+        setPendingMoveToScheduled(null)
+      } else {
+        toast.error(stageRes.error ?? "Failed to move")
+      }
+    } catch (err) {
+      toast.error("Something went wrong")
+    } finally {
+      setAssignModalSubmitting(false)
+    }
   }
 
   return (
@@ -267,8 +325,8 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
                         key={deal.id}
                         deal={deal}
                         columnId={col.id}
-                        teamMembers={col.id === "scheduled" ? teamMembers : undefined}
-                        onAssign={col.id === "scheduled" && teamMembers.length > 0 ? async (userId) => {
+                        teamMembers={teamMembers}
+                        onAssign={teamMembers.length > 0 ? async (userId) => {
                           const result = await updateDealAssignedTo(deal.id, userId)
                           if (result.success) {
                             const name = userId ? (teamMembers.find((m) => m.id === userId)?.name || "Someone") : null
@@ -329,7 +387,55 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
         dealId={selectedDealId}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        currentUserRole={currentUserRole}
+        onDealUpdated={() => setDeals(initialDeals)}
       />
+
+      {/* Assign team member before moving to Scheduled */}
+      <Dialog open={!!pendingMoveToScheduled} onOpenChange={(open) => !open && setPendingMoveToScheduled(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Assign team member
+            </DialogTitle>
+            <DialogDescription>
+              A team member must be assigned before a job can be in Scheduled. {pendingMoveToScheduled && `Assign someone to move "${pendingMoveToScheduled.dealTitle}" to Scheduled.`}
+            </DialogDescription>
+          </DialogHeader>
+          {teamMembers.length > 0 ? (
+            <div className="grid gap-4 py-2">
+              <Label>Assigned to</Label>
+              <Select value={assignModalUserId} onValueChange={setAssignModalUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name || m.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 py-2">
+              Add team members in Settings → Team first, then you can assign them to jobs.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingMoveToScheduled(null)} disabled={assignModalSubmitting}>
+              Cancel
+            </Button>
+            {teamMembers.length > 0 && (
+              <Button onClick={handleAssignAndMoveToScheduled} disabled={assignModalSubmitting || !assignModalUserId}>
+                {assignModalSubmitting ? "Saving…" : "Assign & move to Scheduled"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DndContext>
   )
 }

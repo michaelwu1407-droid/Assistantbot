@@ -13,7 +13,9 @@ export default async function SchedulePage() {
     let deals
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
-        deals = await getDeals(workspace.id)
+        const allDeals = await getDeals(workspace.id)
+        // Deleted jobs should not appear on the schedule
+        deals = allDeals.filter((d) => d.stage !== "deleted")
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">

@@ -79,7 +79,7 @@ function JobDraftCard({
   const [firstName, setFirstName] = useState(data.firstName ?? '');
   const [lastName, setLastName] = useState(data.lastName ?? '');
   const [workDescription, setWorkDescription] = useState(data.workDescription ?? '');
-  const [price, setPrice] = useState(data.price ?? '0');
+  const [price, setPrice] = useState(data.price && data.price !== "0" ? String(data.price) : "");
   const [schedule, setSchedule] = useState(data.schedule ?? data.rawSchedule ?? '');
   const [address, setAddress] = useState(data.address ?? '');
   const [phone, setPhone] = useState(data.phone ?? '');
@@ -95,13 +95,16 @@ function JobDraftCard({
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
+      // Use rawSchedule (e.g. "12pm") when user didn't edit schedule, so server parses time correctly
+      const initialSchedule = data.schedule ?? data.rawSchedule ?? '';
+      const effectiveRawSchedule = (schedule === initialSchedule && data.rawSchedule) ? data.rawSchedule : schedule;
       const result = await confirmJobDraft(workspaceId, {
         clientName: `${firstName}${lastName ? ' ' + lastName : ''}`.trim() || 'Unknown',
         workDescription,
         price,
         schedule,
         address: address || undefined,
-        rawSchedule: schedule,
+        rawSchedule: effectiveRawSchedule,
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         contactType: customerType === 'Business' ? 'BUSINESS' : 'PERSON',
@@ -149,8 +152,8 @@ function JobDraftCard({
           </div>
         </div>
         <div>
-          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Work description</label>
-          <Input className="h-8 text-xs" value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
+          <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Job type / What work is needed</label>
+          <Input className="h-8 text-xs" value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} placeholder="e.g. Sink repair, Light repair" />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -169,7 +172,7 @@ function JobDraftCard({
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Phone</label>
-            <Input className="h-8 text-xs" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" placeholder="Optional" />
+            <Input className="h-8 text-xs" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" />
           </div>
           <div>
             <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Email</label>
@@ -232,6 +235,10 @@ function ChatWithHistory({
   const router = useRouter();
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
+  /** When user cancels a job draft, we hide the card and show "Cancelled". */
+  const [cancelledDrafts, setCancelledDrafts] = useState<Record<string, boolean>>({});
+  /** Block sending "Next" more than once in quick succession (prevents multi-job draft spam). */
+  const nextSendBlockedRef = useRef(false);
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();
 
@@ -303,18 +310,18 @@ function ChatWithHistory({
           <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
               <p className="text-[10px] md:text-xs leading-relaxed text-slate-800 dark:text-foreground">
-                Hi! I&apos;m Travis, your personal assistant. Here to give you an earlymark!
+                Hi! I&apos;m Travis, your personal assistant. Here to give you an early mark!
               </p>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
           </div>
         )}
 
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const isUser = message.role === 'user';
           const date = new Date();
           return (
-            <div key={message.id}>
+            <div key={message.id ? `${message.id}-${index}` : `msg-${index}`}>
               <div
                 className={cn(
                   "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
@@ -333,9 +340,11 @@ function ChatWithHistory({
                     {(() => {
                       const parts = message.parts ?? [];
                       const rendered: React.ReactNode[] = [];
+                      let draftCardRenderedForMessage = false;
                       parts.forEach((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string; draft?: JobDraftData }; errorText?: string }, idx: number) => {
-                        const partText = part.type === 'text' && part.text ? part.text : (part as { text?: string }).text;
-                        if (partText && typeof partText === 'string') {
+                        if (!part || typeof part !== "object") return;
+                        const partText = part.type === "text" && part.text ? part.text : (part as { text?: string }).text;
+                        if (partText && typeof partText === "string") {
                           rendered.push(
                             <p key={idx} className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
                               {partText}
@@ -343,10 +352,13 @@ function ChatWithHistory({
                           );
                           return;
                         }
-                        const isTool = part.type?.startsWith('tool-') || part.type === 'dynamic-tool';
+                        const isTool = part.type?.startsWith("tool-") || part.type === "dynamic-tool";
                         if (isTool) {
-                          if (part.state === 'output-available' && part.output?.draft) {
+                          if (part?.state === "output-available" && part.output?.draft) {
+                            if (draftCardRenderedForMessage) return;
+                            draftCardRenderedForMessage = true;
                             const confirmation = confirmedDrafts[message.id];
+                            const cancelled = cancelledDrafts[message.id];
                             if (confirmation) {
                               rendered.push(
                                 <div
@@ -357,20 +369,70 @@ function ChatWithHistory({
                                   <span>{confirmation}</span>
                                 </div>
                               );
+                            } else if (cancelled) {
+                              rendered.push(
+                                <div
+                                  key={idx}
+                                  className="mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] font-medium bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400"
+                                >
+                                  <X className="w-4 h-4 shrink-0" />
+                                  <span>Cancelled</span>
+                                </div>
+                              );
                             } else {
+                              const isMultiJob = !!(part.output as { multiJobRemaining?: boolean })?.multiJobRemaining;
+                              const sendNextOnce = () => {
+                                if (nextSendBlockedRef.current) return;
+                                nextSendBlockedRef.current = true;
+                                sendMessage({ text: "Next" });
+                                setTimeout(() => {
+                                  nextSendBlockedRef.current = false;
+                                }, 3000);
+                              };
                               rendered.push(
                                 <JobDraftCard
                                   key={idx}
                                   data={part.output.draft}
                                   workspaceId={workspaceId}
-                                  onCancel={() => { }}
-                                  onConfirmSuccess={(msg) => setConfirmedDrafts((prev) => ({ ...prev, [message.id]: msg }))}
+                                  onCancel={() => {
+                                    setCancelledDrafts((prev) => ({ ...prev, [message.id]: true }));
+                                    if (isMultiJob) sendNextOnce();
+                                  }}
+                                  onConfirmSuccess={(msg) => {
+                                    setConfirmedDrafts((prev) => ({ ...prev, [message.id]: msg }));
+                                    if (isMultiJob) sendNextOnce();
+                                  }}
                                 />
                               );
                             }
                             return;
                           }
-                          if (part.state === 'output-available' && part.output?.message) {
+                          if (part?.state === "output-available" && part.output?.showConfirmButton && part.output?.summary) {
+                            rendered.push(
+                              <div key={idx} className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                                <p className="text-[10px] text-slate-600 dark:text-slate-400">{part.output.summary}</p>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={() => sendMessage({ text: 'confirm' })}
+                                  >
+                                    <Check className="w-3 h-3 mr-1" /> Confirm
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[10px]"
+                                    onClick={() => sendMessage({ text: 'cancel' })}
+                                  >
+                                    <X className="w-3 h-3 mr-1" /> Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                            return;
+                          }
+                          if (part?.state === "output-available" && part.output?.message) {
                             const isSuccess = part.output.success !== false;
                             rendered.push(
                               <div
@@ -401,7 +463,7 @@ function ChatWithHistory({
                             );
                             return;
                           }
-                          if (part.state === 'output-error' && part.errorText) {
+                          if (part?.state === "output-error" && part.errorText) {
                             rendered.push(
                               <div key={idx} className="mt-2 text-[10px] text-red-600">
                                 {part.errorText}
@@ -416,8 +478,9 @@ function ChatWithHistory({
                         : '';
                       if (!content.trim() && parts.length > 0) {
                         const fromParts = parts
+                          .filter((p): p is object => p != null && typeof p === "object")
                           .map((p: { text?: string; content?: string }) => (p as { text?: string }).text ?? (p as { content?: string }).content)
-                          .filter((t): t is string => typeof t === 'string' && t.length > 0);
+                          .filter((t): t is string => typeof t === "string" && t.length > 0);
                         if (fromParts.length) content = fromParts.join('\n');
                       }
                       if (content.trim()) {

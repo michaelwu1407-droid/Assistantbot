@@ -9,6 +9,14 @@
 - **Agent/Vendor Features (BE-2):** Successfully wired `getVendorReportData` logic into Real Estate analytics to strip placeholders and drive the Vendor Report UI with actual buyer pricing feedback.
 - **Digital Job Features (J-11):** Implemented the `SignaturePad` inside JobCompletion workflows to dynamically construct the data string into the Deal metadata.
 
+## 2026-02-26: Kanban Filter, Owner Sync, Team Invite UX & Onboarding Role
+- **Kanban filter by team member**: Filter dropdown in dashboard header is now visible on all screen sizes (removed `hidden md:flex`), with a clear "Filter:" label. Options: All jobs, Unassigned, or any team member. Ensures managers and owners can quickly filter the board by assignee.
+- **Owner User row sync**: When a new workspace is created via `getOrCreateWorkspace`, the app now creates a corresponding **User** row for the owner (email, name, workspaceId, role OWNER) so they appear in the team list and kanban filter. Added `ensureOwnerHasUserRow(workspace)` called on dashboard load to backfill owners of existing workspaces who never had a User row.
+- **Team invite link & role**: Invite dialog on `/dashboard/team` updated: role selector labeled "They'll join as" (Team Member / Manager); after generating or sending an invite, copy section explains "Anyone who opens this link will join as [role]" and includes a prominent "Copy invite link" button. Role is set when the link is generated.
+- **Role-based kanban default**: Team members (TEAM_MEMBER) now default to "My jobs" (filter by current user) on the kanban; owners/managers default to "All jobs". Users can change the filter at any time.
+- **Onboarding role message**: Setup chat completion message now states that the user is the **team manager** and can invite their team from the Team page; consistent messaging in all completion paths (with/without phone number success).
+- **Files Touched**: `components/dashboard/header.tsx`, `actions/workspace-actions.ts`, `app/dashboard/page.tsx`, `app/dashboard/team/page.tsx`, `components/dashboard/dashboard-client.tsx`, `components/onboarding/setup-chat.tsx`.
+
 ## 2026-02-24: Account Deletion Bug Fix
 - **Enhanced Error Handling**: Improved `deleteUserAccount` function with detailed logging and debugging information for "user not found" scenarios.
 - **Fallback Mechanism**: Created `/api/delete-user` endpoint to handle orphaned Supabase users that exist in auth but not in database.

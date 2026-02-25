@@ -4,14 +4,13 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { logger } from "@/lib/logging";
 
 /**
- * Auth flow logic:
- * 1. Already logged in users → dashboard (skip onboarding/tutorial)
- * 2. Existing users logging in → dashboard (skip onboarding/tutorial) 
- * 3. New users signing up → billing → onboarding → tutorial
+ * Auth flow after login/signup (from /auth or OAuth callback):
+ * - Active subscription → dashboard
+ * - No active subscription (including former users who stopped paying) → billing
  */
 export default async function AuthNextPage() {
     logger.authFlow("Auth next page - starting flow", { action: "auth_next_page" });
-    
+
     const userId = await getAuthUserId();
     if (!userId) {
         logger.authFlow("No userId found, redirecting to /auth", { action: "redirect_to_auth" });
@@ -22,7 +21,7 @@ export default async function AuthNextPage() {
     try {
         logger.authFlow("Getting workspace for user", { userId, action: "get_workspace" });
         workspace = await getOrCreateWorkspace(userId);
-        
+
         logger.authFlow("Workspace data retrieved", {
             action: "workspace_retrieved",
             workspaceId: workspace.id,
@@ -32,40 +31,34 @@ export default async function AuthNextPage() {
         });
     } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
-        
-        logger.authError("Error getting workspace, redirecting to /billing", { 
-            userId, 
+        logger.authError("Error getting workspace, redirecting to /auth", {
+            userId,
             error: errorObj.message,
             action: "workspace_error_redirect"
         }, errorObj);
-        redirect("/billing");
+        redirect("/auth");
     }
 
     const subscribed = workspace.subscriptionStatus === "active";
-    const onboarded = workspace.onboardingComplete === true;
 
     logger.authFlow("Making redirect decision", {
         action: "redirect_decision",
         userId,
         workspaceId: workspace.id,
         subscribed,
-        onboarded,
         redirectTarget: subscribed ? "/dashboard" : "/billing"
     });
 
-    // If user has active subscription, go to dashboard regardless of onboarding status
-    // This covers both existing users and already logged in users
     if (subscribed) {
-        logger.authFlow("Redirecting to /dashboard", { 
+        logger.authFlow("Redirecting to /dashboard", {
             userId,
             workspaceId: workspace.id,
             reason: "active_subscription"
         });
         redirect("/dashboard");
     }
-    
-    // New users or users without active subscription go to billing
-    logger.authFlow("Redirecting to /billing", { 
+
+    logger.authFlow("Redirecting to /billing", {
         userId,
         workspaceId: workspace.id,
         reason: "no_active_subscription"

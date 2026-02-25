@@ -15,8 +15,10 @@ export default async function InboxPage() {
 
     let interactions
     let contactSegment: Record<string, "lead" | "existing"> = {}
+    let workspaceId: string | undefined
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
+        workspaceId = workspace.id
         const [activities, contacts] = await Promise.all([
             getActivities({
                 workspaceId: workspace.id,
@@ -46,7 +48,7 @@ export default async function InboxPage() {
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <InboxView initialInteractions={interactions} contactSegment={contactSegment} />
+            <InboxView initialInteractions={interactions} contactSegment={contactSegment} workspaceId={workspaceId} />
         </div>
     )
 }

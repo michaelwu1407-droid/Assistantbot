@@ -1,6 +1,6 @@
 # Pj Buddy — Comprehensive Operational Manual
 
-**Version**: 2.1 (Feb 2026)
+**Version**: 2.2 (Feb 2026)
 **Target Audience**: Developers, Product Managers, and Power Users.
 
 ---
@@ -75,11 +75,17 @@ A unified search bar accessible from anywhere.
 ### 2.5. Kanban Pipeline
 Visual workflow management for Deals.
 - **Drag-and-Drop**: Move deals between stages (New -> Contacted -> Negotiation -> Won).
+- **Filter by team member**: Header filter (visible on all screens) lets you view **All jobs**, **Unassigned**, or any team member’s jobs. Team members default to **My jobs**; managers/owners default to **All jobs**.
 - **Stale Deal warnings**: Visual indicators (Amber border) for deals untouched for 7+ days.
 - **Rotting Deal warnings**: Red border for deals untouched for 14+ days.
 - **Industry Logic**: Different columns for **Trades** (Quote Sent, Job Booked) vs **Real Estate** (Appraisal, Listed).
 
-### 2.6. Activity Feed
+### 2.6. Team & Invites
+- **Team page** (`/dashboard/team`): View members, roles (Owner, Manager, Team Member), and pending invites.
+- **Invite by link**: Choose **They’ll join as** — **Team Member** or **Manager** — then send the invitation email or **Generate Invite Link**. Anyone opening the link joins with that role. Copy the link to share manually (e.g. message or email); link expires in 7 days.
+- **Role and board view**: Signing up from the main site makes you the **team manager** (owner). Joining via an invite link makes you the role set by the inviter (Team Member or Manager). Team members see the kanban defaulted to **My jobs**; managers/owners see **All jobs**.
+
+### 2.7. Activity Feed
 A unified timeline of all interactions.
 - **Aggregated Events**: Emails, Calls, SMS, Note changes, Status changes, Support requests.
 - **Rich Media**: Displays snippets of emails and transcriptions of voice notes.

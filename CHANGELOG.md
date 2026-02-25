@@ -1,5 +1,35 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.2 (February 26, 2026)
+
+### 🎯 Kanban & Team Experience
+
+#### 📋 **Kanban Filter by Team Member**
+- **Visible on all screens**: Filter dropdown in the dashboard header is always visible (including mobile), with a clear "Filter:" label.
+- **Options**: All jobs, Unassigned, or filter by any team member so managers can focus on one person's workload.
+
+#### 👤 **Owner Sync & Team List**
+- **New workspaces**: When you sign up and a workspace is created, the app now creates your User record as **Owner** so you appear in the team list and in the kanban filter.
+- **Existing workspaces**: On dashboard load, if you're the workspace owner but had no User row (e.g. created before this fix), one is created automatically so the filter and team page work correctly.
+
+#### 🔗 **Invite Link & Role Clarity**
+- **Role when inviting**: The invite dialog clearly shows "They'll join as" with **Team Member** or **Manager**. The chosen role is fixed when you generate or send the invite.
+- **Copy and share**: After creating an invite, the copy explains that anyone opening the link will join as that role, with a prominent "Copy invite link" button and the link field.
+
+#### 📌 **Role-Based Kanban Default**
+- **Team members**: Default view is **My jobs** (only jobs assigned to them). They can switch to All jobs or another person if needed.
+- **Managers/Owners**: Default remains **All jobs**.
+
+#### 📢 **Onboarding Message**
+- At the end of setup, users are told they're the **team manager** and can invite their team from the Team page so members see the jobs assigned to them.
+
+### 📚 **Documentation**
+- **project_status_log.md**: Entry for 2026-02-26.
+- **APP_MANUAL.md**: Kanban filter and Team/Invite section updated.
+- **docs/team_roles_and_approvals.md**: Kanban view by role and invite behaviour noted.
+
+---
+
 ## Version 2.1 (February 24, 2026)
 
 ### 🆕 Major New Features

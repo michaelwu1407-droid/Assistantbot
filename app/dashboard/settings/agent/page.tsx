@@ -29,6 +29,8 @@ export default function AgentSettingsPage() {
         autoUpdateGlossary: true,
         agentScriptStyle: "opening" as "opening" | "closing",
         agentBusinessName: "",
+        agentOpeningMessage: "",
+        agentClosingMessage: "",
         textAllowedStart: "08:00",
         textAllowedEnd: "20:00",
         callAllowedStart: "08:00",
@@ -53,6 +55,8 @@ export default function AgentSettingsPage() {
                         autoUpdateGlossary: data.autoUpdateGlossary ?? true,
                         agentScriptStyle: (data.agentScriptStyle === "closing" ? "closing" : "opening") as "opening" | "closing",
                         agentBusinessName: data.agentBusinessName ?? "",
+                        agentOpeningMessage: (data as { agentOpeningMessage?: string }).agentOpeningMessage ?? "",
+                        agentClosingMessage: (data as { agentClosingMessage?: string }).agentClosingMessage ?? "",
                         textAllowedStart: data.textAllowedStart ?? "08:00",
                         textAllowedEnd: data.textAllowedEnd ?? "20:00",
                         callAllowedStart: data.callAllowedStart ?? "08:00",
@@ -97,11 +101,57 @@ export default function AgentSettingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Agent Capabilities</h3>
+                <h3 className="text-lg font-medium">AI Assistant</h3>
                 <p className="text-sm text-muted-foreground">
-                    Configure how much autonomy your AI assistant has, and its active hours.
+                    Capabilities, automations, and learning settings.
                 </p>
             </div>
+
+            {/* AI Capabilities - per-feature toggles coming later */}
+            <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle>AI capabilities</CardTitle>
+                    <CardDescription>
+                        Fine-grained toggles for auto-quote, appointment booking, and lead qualification are planned. For now, use <strong>Autonomy Mode</strong> below to control how much Travis does automatically (Execute / Organize / Filter).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">Per-feature enable/disable coming in a future update.</p>
+                </CardContent>
+            </Card>
+
+            {/* Automations - not built yet */}
+            <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle>Automations</CardTitle>
+                    <CardDescription>
+                        IF/THEN workflow rules (e.g. New lead created → Send welcome SMS). Coming soon.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-slate-500">Automation builder will be available in a future update.</p>
+                </CardContent>
+            </Card>
+
+            {/* Learning Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Learning settings</CardTitle>
+                    <CardDescription>
+                        Let the AI learn from conversations and update the glossary.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <Label>Auto-learn from conversations</Label>
+                        <Switch checked={settings.autoUpdateGlossary} onCheckedChange={(v) => setSettings({ ...settings, autoUpdateGlossary: v })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Glossary / preferences</Label>
+                        <p className="text-xs text-slate-500">Manual glossary management is in Settings → Agent Capabilities (AI preferences below).</p>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Agent Autonomy Mode */}
             <Card>
@@ -221,7 +271,7 @@ export default function AgentSettingsPage() {
                 </Card>
             </div>
 
-            {/* Agent script: opening vs closing + business name */}
+            {/* Agent introduction: custom opening and closing messages */}
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-2">
@@ -229,32 +279,40 @@ export default function AgentSettingsPage() {
                         <CardTitle>Agent Introduction</CardTitle>
                     </div>
                     <CardDescription>
-                        How Travis introduces itself in messages and calls. Use either an opening line or a sign-off, not both.
+                        Customise how Travis introduces and signs off when contacting customers (SMS, email, calls). You can set both an opening and a closing line; leave blank to use defaults.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label>Business name (for &quot;AI assistant for [x]&quot;)</Label>
+                        <Label>Business name (used in defaults if you leave messages blank)</Label>
                         <Input
                             placeholder="e.g. Acme Plumbing"
                             value={settings.agentBusinessName}
                             onChange={(e) => setSettings({ ...settings, agentBusinessName: e.target.value })}
                         />
                     </div>
-                    <RadioGroup
-                        value={settings.agentScriptStyle}
-                        onValueChange={(val: "opening" | "closing") => setSettings({ ...settings, agentScriptStyle: val })}
-                        className="flex flex-col space-y-2"
-                    >
-                        <Label className="flex items-center gap-2 cursor-pointer rounded-lg border p-3 hover:bg-slate-50 [&:has([data-state=checked])]:bg-blue-50 [&:has([data-state=checked])]:border-blue-200">
-                            <RadioGroupItem value="opening" />
-                            <span>Start with: &quot;Hi I&apos;m Travis, the AI assistant for [business]&quot;</span>
-                        </Label>
-                        <Label className="flex items-center gap-2 cursor-pointer rounded-lg border p-3 hover:bg-slate-50 [&:has([data-state=checked])]:bg-blue-50 [&:has([data-state=checked])]:border-blue-200">
-                            <RadioGroupItem value="closing" />
-                            <span>End with: &quot;Kind regards, Travis (AI assistant for [business])&quot;</span>
-                        </Label>
-                    </RadioGroup>
+                    <div className="space-y-2">
+                        <Label>Opening line (when Travis first contacts a customer)</Label>
+                        <Textarea
+                            rows={2}
+                            placeholder={`e.g. Hi I'm Travis, the AI assistant for ${settings.agentBusinessName || "[your business]"}. How can I help?`}
+                            value={settings.agentOpeningMessage}
+                            onChange={(e) => setSettings({ ...settings, agentOpeningMessage: e.target.value })}
+                            className="resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to use the default: &quot;Hi I&apos;m Travis, the AI assistant for [business name]&quot;</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Closing / sign-off (at the end of messages to customers)</Label>
+                        <Textarea
+                            rows={2}
+                            placeholder={`e.g. Kind regards, Travis (AI assistant for ${settings.agentBusinessName || "[your business]"})`}
+                            value={settings.agentClosingMessage}
+                            onChange={(e) => setSettings({ ...settings, agentClosingMessage: e.target.value })}
+                            className="resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to use the default: &quot;Kind regards, Travis (AI assistant for [business name])&quot;</p>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -319,7 +377,7 @@ export default function AgentSettingsPage() {
                         <CardTitle>Soft Chase (Lead Follow-up)</CardTitle>
                     </div>
                     <CardDescription>
-                        Default follow-up for new leads not yet converted. Travis sends this by email or text after the chosen delay.
+                        Default follow-up for new leads not yet converted. Set the message, delay, and channel; when automated lead follow-up runs, it will use these settings.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -365,7 +423,7 @@ export default function AgentSettingsPage() {
                         <CardTitle>Unpaid Invoice Follow-up</CardTitle>
                     </div>
                     <CardDescription>
-                        Automatic follow-up for unpaid invoices. Set the message and how many days after the invoice to send it.
+                        Automatic follow-up for unpaid invoices. Set the message, how many days after the invoice to send, and channel. When automated invoice follow-up runs, it will use these settings.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -412,20 +470,26 @@ export default function AgentSettingsPage() {
                             <CardTitle>AI Behavioral Logic</CardTitle>
                         </div>
                         <CardDescription>
-                            Custom rules the AI has learned from your conversations. You can edit these directly.
+                            Custom rules and preferences the AI must follow (e.g. buffer between jobs, how to quote). You can edit these directly; they are also updated when the AI learns from your conversations.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="preferences">Learned Rules</Label>
+                            <Label htmlFor="preferences">Rules & preferences (one per line or free text)</Label>
                             <Textarea
                                 id="preferences"
                                 rows={6}
-                                placeholder="e.g. Always schedule 30min gap between jobs..."
+                                placeholder="e.g. Always schedule 30min gap between jobs. Never quote over the phone without a site visit."
                                 value={settings.aiPreferences}
                                 onChange={(e) => setSettings({ ...settings, aiPreferences: e.target.value })}
                             />
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            Click &quot;Save Configuration&quot; at the bottom of this page to save. Your changes here are included in that save.
+                        </p>
+                        <Button type="button" variant="secondary" size="sm" onClick={handleSave} disabled={isSaving}>
+                            {isSaving ? "Saving..." : "Save this section"}
+                        </Button>
                     </CardContent>
                 </Card>
 
@@ -457,18 +521,9 @@ export default function AgentSettingsPage() {
                                 The AI will quote this price for generic jobs before scheduling.
                             </p>
                         </div>
-                        <div className="flex items-center justify-between space-x-2">
-                            <div>
-                                <Label className="text-sm font-medium">Auto-Optimize Glossary</Label>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    When you finalize an invoice, the AI automatically learns that confirmed price and updates its estimation engine for future jobs.
-                                </p>
-                            </div>
-                            <Switch
-                                checked={settings.autoUpdateGlossary}
-                                onCheckedChange={(checked) => setSettings({ ...settings, autoUpdateGlossary: checked })}
-                            />
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Glossary learning (learning prices from finalized invoices) is controlled by <strong>Auto-learn from conversations</strong> in Learning settings above.
+                        </p>
                     </CardContent>
                 </Card>
             </div>

@@ -133,31 +133,34 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
             </div>
 
             <div className="flex items-center gap-3 md:gap-4">
-                {/* Filter by team member - left of search */}
+                {/* Filter by team member - visible on all screens */}
                 {teamMembers.length > 0 && (
-                    <Select
-                        value={filterByUserId ?? FILTER_ALL}
-                        onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v === FILTER_UNASSIGNED ? FILTER_UNASSIGNED : v)}
-                    >
-                        <SelectTrigger className="w-[160px] hidden md:flex border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900" aria-label="Filter jobs by team member">
-                            <Users className="h-4 w-4 mr-1.5 text-slate-500 shrink-0" />
-                            <SelectValue placeholder="All jobs" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={FILTER_ALL}>All jobs</SelectItem>
-                            <SelectItem value={FILTER_UNASSIGNED}>
-                                <span className="flex items-center gap-2">
-                                    <UserX className="h-3.5 w-3.5 text-slate-400" />
-                                    Unassigned
-                                </span>
-                            </SelectItem>
-                            {teamMembers.map((m) => (
-                                <SelectItem key={m.id} value={m.id}>
-                                    {m.name || m.email}
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-500 hidden sm:inline">Filter:</span>
+                        <Select
+                            value={filterByUserId ?? FILTER_ALL}
+                            onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v === FILTER_UNASSIGNED ? FILTER_UNASSIGNED : v)}
+                        >
+                            <SelectTrigger className="w-[140px] sm:w-[160px] flex border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900" aria-label="Filter jobs by team member">
+                                <Users className="h-4 w-4 mr-1.5 text-slate-500 shrink-0" />
+                                <SelectValue placeholder="All jobs" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={FILTER_ALL}>All jobs</SelectItem>
+                                <SelectItem value={FILTER_UNASSIGNED}>
+                                    <span className="flex items-center gap-2">
+                                        <UserX className="h-3.5 w-3.5 text-slate-400" />
+                                        Unassigned
+                                    </span>
                                 </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                                {teamMembers.map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                        {m.name || m.email}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 )}
                 {/* Global Search - CMD+K */}
                 <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />

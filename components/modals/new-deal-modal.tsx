@@ -14,13 +14,21 @@ import { Plus, User, Mail, Phone, MapPin, AlertCircle, CalendarClock } from "luc
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete, type PlaceResult } from "@/components/ui/address-autocomplete"
 
+interface TeamMemberOption {
+    id: string
+    name: string | null
+    email: string
+    role: string
+}
+
 interface NewDealModalProps {
     isOpen: boolean
     onClose: () => void
     workspaceId: string
+    teamMembers?: TeamMemberOption[]
 }
 
-export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps) {
+export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }: NewDealModalProps) {
     const router = useRouter()
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
@@ -29,6 +37,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
     const [longitude, setLongitude] = useState<number | null>(null)
     const [scheduledAt, setScheduledAt] = useState("")
     const [stage, setStage] = useState("new_request")
+    const [assignedToId, setAssignedToId] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
 
@@ -65,6 +74,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
         e.preventDefault()
         if (!title) return
         if (mode === "select" && !contactId) return
+        if (stage === "scheduled" && !assignedToId) {
+            toast.error("Assign a team member when creating a job in Scheduled stage.")
+            return
+        }
         if (mode === "create") {
             if (!newContactName) return
             // Require at least email or phone
@@ -232,6 +245,26 @@ export function NewDealModal({ isOpen, onClose, workspaceId }: NewDealModalProps
                                 </SelectContent>
                             </Select>
                         </div>
+                        {teamMembers.length > 0 && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="assignedTo" className="text-right">
+                                    Assigned to {stage === "scheduled" ? "*" : ""}
+                                </Label>
+                                <Select value={assignedToId} onValueChange={setAssignedToId}>
+                                    <SelectTrigger id="assignedTo" className="col-span-3">
+                                        <SelectValue placeholder={stage === "scheduled" ? "Select team member (required)" : "Optional"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        {teamMembers.map((m) => (
+                                            <SelectItem key={m.id} value={m.id}>
+                                                {m.name || m.email}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
 
                     <div className="border-t border-slate-100 my-1" />

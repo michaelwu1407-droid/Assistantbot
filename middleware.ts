@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { trackReferralClick } from "@/actions/referral-actions"
+import { updateSession } from "@/lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
+  // Refresh Supabase session so login/logout in another browser or tab stays in sync
+  let response = await updateSession(request)
+
   const url = request.nextUrl
   const { searchParams } = url
 
   // Fix proxy headers for development
-  const response = NextResponse.next()
   if (request.headers.get('x-forwarded-host') === 'localhost:3000' && 
       request.headers.get('origin') === 'http://127.0.0.1:51280') {
-    // Set matching headers to prevent Next.js server action abort
     response.headers.set('x-forwarded-host', '127.0.0.1:51280')
   }
 
@@ -53,17 +55,28 @@ export async function middleware(request: NextRequest) {
     return response
   }
   
-  // Add CSP headers to allow PostHog and other external services
+  // Add CSP headers. connect-src MUST include Supabase or the browser blocks auth (Failed to fetch).
+  const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+    : "";
+  const connectSrc = [
+    "'self'",
+    "https://us.i.posthog.com",
+    "https://api.openai.com",
+    "https://api.retellai.com",
+    "https://api.stripe.com",
+    ...(supabaseOrigin ? [supabaseOrigin] : []),
+  ].join(" ");
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com",
-    "connect-src 'self' https://us.i.posthog.com https://api.openai.com https://api.retellai.com https://api.stripe.com",
+    `connect-src ${connectSrc}`,
     "img-src 'self' data: https://us.i.posthog.com https://lh3.googleusercontent.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-  ].join("; ")
-  
-  response.headers.set('Content-Security-Policy', cspHeader)
+  ].join("; ");
+
+  response.headers.set("Content-Security-Policy", cspHeader);
   
   return response
 }

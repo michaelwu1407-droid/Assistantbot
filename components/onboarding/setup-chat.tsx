@@ -19,7 +19,7 @@ type Message = {
 }
 
 type DraftCardData = {
-    kind: "pricing" | "hours" | "autonomy" | "onboarding"
+    kind: "pricing" | "hours" | "autonomy" | "onboarding" | "onboarding_hours" | "onboarding_pricing" | "onboarding_business_contact"
     fields: DraftField[]
 }
 
@@ -143,6 +143,27 @@ export function SetupChat() {
     const [location, setLocation] = useState("")
     const [tradeType, setTradeType] = useState("")
     const [draftValues, setDraftValues] = useState<Record<string, string | number | boolean>>({})
+    const [onboardingStep, setOnboardingStep] = useState(0)
+    const [onboardingData, setOnboardingData] = useState<{
+        businessName?: string
+        location?: string
+        tradeType?: string
+        phone?: string
+        industryType?: "TRADES"
+        agentMode?: "EXECUTE" | "ORGANIZE" | "FILTER"
+        workingHoursStart?: string
+        workingHoursEnd?: string
+        agendaNotifyTime?: string
+        wrapupNotifyTime?: string
+        callOutFee?: number
+        pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD"
+        leadSources?: string[]
+        autoCallLeads?: boolean
+        emergencyBypass?: boolean
+        autoUpdateGlossary?: boolean
+        digestPreference?: "immediate" | "daily" | "weekly"
+        businessContact?: { phone?: string; email?: string; address?: string }
+    }>({})
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -179,6 +200,146 @@ export function SetupChat() {
         setMessages(prev => [...prev, userMsg])
         setIsTyping(true)
 
+        if (onboardingStep === 1) {
+            setOnboardingData(prev => ({ ...prev, agentMode: choice.value as "EXECUTE" | "ORGANIZE" | "FILTER" }))
+            setOnboardingStep(2)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "What are your typical working hours? (Travis will only schedule within this window.)",
+                        type: "text"
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        type: "draft-card",
+                        content: "",
+                        draftCard: {
+                            kind: "onboarding_hours",
+                            fields: [
+                                { key: "workingHoursStart", label: "Start", type: "time", defaultValue: "08:00" },
+                                { key: "workingHoursEnd", label: "End", type: "time", defaultValue: "17:00" },
+                                { key: "agendaNotifyTime", label: "Morning agenda notify", type: "time", defaultValue: "07:30" },
+                                { key: "wrapupNotifyTime", label: "Evening wrap-up notify", type: "time", defaultValue: "17:30" },
+                            ]
+                        }
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (onboardingStep === 4) {
+            const leadSources = choice.value === "later" ? [] : [choice.value]
+            setOnboardingData(prev => ({ ...prev, leadSources }))
+            setOnboardingStep(5)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "When a new lead comes in (e.g. from Hipages), should Travis call them immediately to lock in the job?",
+                        type: "choice",
+                        choices: [{ label: "Yes, call new leads straight away", value: "yes" }, { label: "No, I'll follow up myself", value: "no" }]
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (onboardingStep === 5) {
+            setOnboardingData(prev => ({ ...prev, autoCallLeads: choice.value === "yes" }))
+            setOnboardingStep(6)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Should urgent or after-hours calls bypass the AI and ring you directly?",
+                        type: "choice",
+                        choices: [{ label: "Yes, ring me for urgent calls", value: "yes" }, { label: "No, let Travis handle them", value: "no" }]
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (onboardingStep === 6) {
+            setOnboardingData(prev => ({ ...prev, emergencyBypass: choice.value === "yes" }))
+            setOnboardingStep(7)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Let Travis learn from your conversations to improve quotes and behaviour over time?",
+                        type: "choice",
+                        choices: [{ label: "Yes, auto-learn", value: "yes" }, { label: "No, keep it fixed", value: "no" }]
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (onboardingStep === 7) {
+            setOnboardingData(prev => ({ ...prev, autoUpdateGlossary: choice.value === "yes" }))
+            setOnboardingStep(8)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "How do you want your notification digest?",
+                        type: "choice",
+                        choices: [
+                            { label: "Immediate (as they happen)", value: "immediate" },
+                            { label: "Daily digest", value: "daily" },
+                            { label: "Weekly summary", value: "weekly" },
+                        ]
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (onboardingStep === 8) {
+            setOnboardingData(prev => ({ ...prev, digestPreference: choice.value as "immediate" | "daily" | "weekly" }))
+            setOnboardingStep(9)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Optional: Add a public phone or email for customers (so Travis can give it out). You can skip and add this later in Settings.",
+                        type: "draft-card",
+                        content: "",
+                        draftCard: {
+                            kind: "onboarding_business_contact",
+                            fields: [
+                                { key: "publicPhone", label: "Public phone", type: "text", defaultValue: "", placeholder: "e.g. +61 400 000 000" },
+                                { key: "publicEmail", label: "Public email", type: "text", defaultValue: "", placeholder: "hello@yourbusiness.com" },
+                            ]
+                        }
+                    }
+                ])
+            }, 800)
+            return
+        }
+
         setTimeout(() => {
             processStep(choice.value)
         }, 1000)
@@ -193,7 +354,6 @@ export function SetupChat() {
             const locationVal = resolveLocation(String(values.location || "").trim())
             const phoneVal = formatPhone(String(values.phone || "").trim())
 
-            // Clean up the draft values string display
             const cleanedValues = {
                 ...values,
                 tradeType: tradeTypeVal,
@@ -201,9 +361,8 @@ export function SetupChat() {
                 location: locationVal,
                 phone: phoneVal
             }
-            // Update the display summary string with cleaned values!
             const summary = Object.entries(cleanedValues)
-                .filter(([k, v]) => v !== "" && v !== undefined && k !== "company" && k !== "name") // hide internal fields if any
+                .filter(([k, v]) => v !== "" && v !== undefined && k !== "company" && k !== "name")
                 .map(([k, v]) => {
                     const label = k === "tradeType" ? "Trade" : k === "businessName" ? "Business" : k === "location" ? "Location" : k === "phone" ? "Mobile" : k
                     return `${label}: ${v}`
@@ -217,11 +376,19 @@ export function SetupChat() {
             }
             setMessages(prev => [...prev, userMsg])
             setIsTyping(true)
-
             setTradeType(tradeTypeVal)
             setBusinessName(businessNameVal)
             setLocation(locationVal)
             setIndustry("TRADES")
+            setOnboardingData(prev => ({
+                ...prev,
+                businessName: businessNameVal || `${userName}'s Workspace`,
+                location: locationVal,
+                tradeType: tradeTypeVal,
+                phone: phoneVal,
+                industryType: "TRADES",
+            }))
+            setOnboardingStep(1)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
@@ -229,22 +396,109 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `All set! 🎉 Setting up ${businessNameVal || `${userName}'s Workspace`} now — I'll show you around in a quick walkthrough.`,
+                        content: "Great! A few more settings so Travis can work the way you want.",
                         type: "text"
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "How should Travis handle incoming requests from clients?",
+                        type: "choice",
+                        choices: [
+                            { label: "Execute (full autonomy)", value: "EXECUTE" },
+                            { label: "Organize (propose, you approve)", value: "ORGANIZE" },
+                            { label: "Filter (info only)", value: "FILTER" },
+                        ]
                     }
                 ])
-                completeOnboarding({
-                    businessName: businessNameVal || `${userName}'s Workspace`,
-                    industryType: "TRADES",
-                    location: locationVal,
-                    tradeType: tradeTypeVal,
-                    ownerPhone: phoneVal,
-                }).then(() => {
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
-                }).catch(() => {
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
-                })
-            }, 1500)
+            }, 1200)
+            return
+        }
+
+        if (kind === "onboarding_hours") {
+            const start = String(values.workingHoursStart ?? "08:00").trim()
+            const end = String(values.workingHoursEnd ?? "17:00").trim()
+            const agenda = String(values.agendaNotifyTime ?? "07:30").trim()
+            const wrapup = String(values.wrapupNotifyTime ?? "17:30").trim()
+            setOnboardingData(prev => ({ ...prev, workingHoursStart: start, workingHoursEnd: end, agendaNotifyTime: agenda, wrapupNotifyTime: wrapup }))
+            setOnboardingStep(3)
+            const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: `✅ Hours: ${start} – ${end}` }
+            setMessages(prev => [...prev, userMsg])
+            setIsTyping(true)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "What's your call-out fee (in $)? And how do you charge?",
+                        type: "text"
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        type: "draft-card",
+                        content: "",
+                        draftCard: {
+                            kind: "onboarding_pricing",
+                            fields: [
+                                { key: "callOutFee", label: "Call-out fee ($)", type: "number", defaultValue: 89, placeholder: "89", suffix: "$" },
+                                { key: "pricingMode", label: "Pricing mode", type: "select", defaultValue: "STANDARD", options: [
+                                    { label: "Book only (no call-out)", value: "BOOK_ONLY" },
+                                    { label: "Call-out + job", value: "CALL_OUT" },
+                                    { label: "Standard (quote per job)", value: "STANDARD" },
+                                ]},
+                            ]
+                        }
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (kind === "onboarding_pricing") {
+            const callOutFee = Number(values.callOutFee) || 89
+            const pricingMode = (values.pricingMode as "BOOK_ONLY" | "CALL_OUT" | "STANDARD") || "STANDARD"
+            setOnboardingData(prev => ({ ...prev, callOutFee, pricingMode }))
+            setOnboardingStep(4)
+            const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: `✅ Call-out $${callOutFee}, ${pricingMode}` }
+            setMessages(prev => [...prev, userMsg])
+            setIsTyping(true)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Where do your leads usually come from? (We'll set up email capture for these.)",
+                        type: "choice",
+                        choices: [
+                            { label: "Hipages", value: "hipages" },
+                            { label: "Airtasker", value: "airtasker" },
+                            { label: "Oneflare", value: "oneflare" },
+                            { label: "ServiceSeeking", value: "serviceseeking" },
+                            { label: "Google Ads / other", value: "google_other" },
+                            { label: "I'll set up later", value: "later" },
+                        ]
+                    }
+                ])
+            }, 800)
+            return
+        }
+
+        if (kind === "onboarding_business_contact") {
+            const phone = String(values.publicPhone ?? "").trim()
+            const email = String(values.publicEmail ?? "").trim()
+            setOnboardingData(prev => ({
+                ...prev,
+                businessContact: (phone || email) ? { phone: phone || undefined, email: email || undefined } : undefined
+            }))
+            runCompleteOnboarding({
+                ...onboardingData,
+                businessContact: (phone || email) ? { phone: phone || undefined, email: email || undefined } : onboardingData.businessContact
+            })
             return
         }
 
@@ -259,10 +513,75 @@ export function SetupChat() {
         }
         setMessages(prev => [...prev, userMsg])
         setIsTyping(true)
-
         setTimeout(() => {
             processStep("DRAFT_CONFIRMED")
         }, 1000)
+    }
+
+    const runCompleteOnboarding = (finalData: typeof onboardingData) => {
+        const businessNameVal = finalData.businessName || userName + "'s Workspace"
+        const locationVal = finalData.location || ""
+        const tradeTypeVal = finalData.tradeType || "General"
+        const phoneVal = finalData.phone || ""
+        setMessages(prev => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: `Setting up ${businessNameVal} and your AI phone number…`,
+                type: "text"
+            }
+        ])
+        completeOnboarding({
+            businessName: businessNameVal,
+            industryType: "TRADES",
+            location: locationVal,
+            tradeType: tradeTypeVal,
+            ownerPhone: phoneVal,
+            agentMode: finalData.agentMode,
+            workingHoursStart: finalData.workingHoursStart,
+            workingHoursEnd: finalData.workingHoursEnd,
+            agendaNotifyTime: finalData.agendaNotifyTime,
+            wrapupNotifyTime: finalData.wrapupNotifyTime,
+            callOutFee: finalData.callOutFee,
+            pricingMode: finalData.pricingMode,
+            leadSources: finalData.leadSources,
+            autoCallLeads: finalData.autoCallLeads,
+            emergencyBypass: finalData.emergencyBypass,
+            autoUpdateGlossary: finalData.autoUpdateGlossary,
+            digestPreference: finalData.digestPreference,
+            businessContact: finalData.businessContact,
+        }).then((result) => {
+                    const phoneNumber = result?.phoneNumber
+                    const provisioningError = result?.provisioningError
+                    let finalMessage = `All set! 🎉 You're the team manager — invite your team from the Team page and they'll see the jobs you assign to them. I'll show you around in a quick walkthrough.`
+                    if (phoneNumber) {
+                        finalMessage = `All set! 🎉 Your business number is ${phoneNumber} — use it for SMS and calls.${phoneVal ? " We've sent it to your mobile too." : ""} You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
+                    } else if (provisioningError) {
+                        finalMessage = `All set! 🎉 We couldn't set up your phone number right now. You can add it later in Settings → Phone. You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
+                    }
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: finalMessage,
+                            type: "text"
+                        }
+                    ])
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 4000)
+                }).catch(() => {
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "All set! 🎉 You're the team manager — invite your team from the Team page. I'll show you around in a quick walkthrough.",
+                            type: "text"
+                        }
+                    ])
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
+                })
     }
 
     const processStep = (validInput: string) => {
@@ -431,6 +750,9 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                 {data.kind === "hours" && "🕐 Working Hours"}
                 {data.kind === "autonomy" && "🤖 AI Autonomy Level"}
                 {data.kind === "onboarding" && "Your details"}
+                {data.kind === "onboarding_hours" && "🕐 Working hours"}
+                {data.kind === "onboarding_pricing" && "💰 Call-out & pricing"}
+                {data.kind === "onboarding_business_contact" && "📞 Public contact (optional)"}
             </h3>
 
             {data.fields.map((field) => (
@@ -494,14 +816,26 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                 </div>
             ))}
 
-            <Button
-                size="sm"
-                className="w-full"
-                onClick={() => onConfirm(values, data.kind)}
-                disabled={data.kind === "onboarding" && !String(values.phone ?? "").trim()}
-            >
-                ✅ Confirm
-            </Button>
+            <div className="flex gap-2">
+                {data.kind === "onboarding_business_contact" && (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => onConfirm({ publicPhone: "", publicEmail: "" }, data.kind)}
+                    >
+                        Skip
+                    </Button>
+                )}
+                <Button
+                    size="sm"
+                    className={data.kind === "onboarding_business_contact" ? "flex-1" : "w-full"}
+                    onClick={() => onConfirm(values, data.kind)}
+                    disabled={data.kind === "onboarding" && !String(values.phone ?? "").trim()}
+                >
+                    ✅ Confirm
+                </Button>
+            </div>
         </motion.div>
     )
 }

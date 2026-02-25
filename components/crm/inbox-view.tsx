@@ -49,6 +49,8 @@ interface InboxViewProps {
   initialInteractions: ActivityView[]
   /** Map contactId -> "lead" | "existing". Contacts not in map are treated as "lead". */
   contactSegment?: Record<string, ContactSegment>
+  /** Required for "Tell Travis" mode so the chat API can run in the correct workspace. */
+  workspaceId?: string
 }
 
 const typeLabel: Record<string, string> = {
@@ -65,7 +67,7 @@ function isSystemEvent(a: { title?: string | null; description?: string | null }
   return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
 }
 
-export function InboxView({ initialInteractions, contactSegment = {} }: InboxViewProps) {
+export function InboxView({ initialInteractions, contactSegment = {}, workspaceId }: InboxViewProps) {
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"
   const interactions = isTutorialInboxStep ? [...FAKE_TUTORIAL_INBOX, ...initialInteractions] : initialInteractions
@@ -185,12 +187,18 @@ export function InboxView({ initialInteractions, contactSegment = {} }: InboxVie
           toast.error(result.error || "Failed to send")
         }
       } else {
-        // Ask Travis — route through chatbot API
+        // Ask Travis — route through chatbot API (requires workspaceId)
+        if (!workspaceId) {
+          toast.error("Workspace not loaded. Refresh the page and try again.")
+          setSending(false)
+          return
+        }
         try {
           const res = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              workspaceId,
               messages: [
                 { role: "user", content: `Tell ${selectedContact.name}: ${messageText}` }
               ],
@@ -199,7 +207,8 @@ export function InboxView({ initialInteractions, contactSegment = {} }: InboxVie
           if (res.ok) {
             toast.success(`Travis is sending to ${selectedContact.name}`)
           } else {
-            toast.error("Travis couldn't send that message")
+            const err = await res.json().catch(() => ({}))
+            toast.error(err?.error || "Travis couldn't send that message")
           }
         } catch {
           toast.error("Failed to reach Travis")

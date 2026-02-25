@@ -88,13 +88,27 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
     cardClasses = "ott-card rounded-[20px] bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4 dark:border-amber-500/40"
     statusLabel = "Follow up"
     statusClass = "bg-amber-100 text-amber-700 border-amber-200"
-    statusClass = "bg-amber-100 text-amber-700 border-amber-200"
   }
 
   if (deal.isDraft) {
     cardClasses = "ott-card rounded-[20px] bg-indigo-50/50 border-indigo-300 border-dashed p-4 dark:border-indigo-500/40"
     statusLabel = "Draft"
     statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
+  }
+
+  // Pending approval: in Completed column but styled differently until manager approves
+  if (deal.stage === "pending_approval") {
+    cardClasses = "ott-card rounded-[20px] bg-amber-50/80 border-amber-400 border-2 border-dashed p-4 dark:bg-amber-950/30 dark:border-amber-500/60"
+    statusLabel = "Pending approval"
+    statusClass = "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700"
+  }
+
+  // Rejected: was sent back from completion; show Rejected badge
+  const metadata = (deal.metadata || {}) as Record<string, unknown>
+  const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
+  if (isRejected && statusLabel === "") {
+    statusLabel = "Rejected"
+    statusClass = "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-200"
   }
 
   const showHealthBadge = statusLabel !== "" || overdueStyling.badgeText !== ""
@@ -202,12 +216,17 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
             <span className="truncate">{deal.title}</span>
           </div>
 
-          {/* Assignee (scheduled column): show name + dropdown to assign */}
-          {columnId === "scheduled" && (teamMembers.length > 0 || deal.assignedToName) && (
+          {/* Assignee: optional in earlier stages, required in Scheduled (show warning if unassigned) */}
+          {(teamMembers.length > 0 || deal.assignedToName) && (
             <div className="flex items-center justify-between gap-1" data-no-card-click>
-              <span className="text-[11px] text-[#64748B] dark:text-slate-400 flex items-center gap-1">
+              <span className={cn(
+                "text-[11px] flex items-center gap-1",
+                columnId === "scheduled" && !deal.assignedToName
+                  ? "text-amber-600 dark:text-amber-400 font-medium"
+                  : "text-[#64748B] dark:text-slate-400"
+              )}>
                 <User className="w-3 h-3 shrink-0" />
-                {deal.assignedToName ?? "Unassigned"}
+                {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
               </span>
               {onAssign && teamMembers.length > 0 && !overlay && (
                 <DropdownMenu>
@@ -234,6 +253,7 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
               )}
             </div>
           )}
+
 
           {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
