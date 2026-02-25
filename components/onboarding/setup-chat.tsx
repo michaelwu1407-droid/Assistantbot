@@ -121,19 +121,6 @@ function formatPhone(phone: string): string {
     return phone // Return as-is if it doesn't match standard 10 digit
 }
 
-function resolveBusinessName(name: string): string {
-    let clean = name.trim()
-    // Common slip on mobile: trailing 'q' instead of hitting enter or space or simply fat fingering
-    if (clean.length > 3 && clean.endsWith("q") && !clean.toLowerCase().endsWith("macq")) {
-        // Just stripping trailing q if it seems like a typo (very basic heuristic)
-        // A smarter approach is a server action, but for now this catches the explicit "Hedoq" -> "Hedo" typo
-        // Actually, let's look for words ending in 'q' that aren't common (like 'macaq', 'faq')
-        if (clean.endsWith("q") && !["faq", "macq", "inq"].some(w => clean.toLowerCase().endsWith(w))) {
-            clean = clean.slice(0, -1)
-        }
-    }
-    return clean
-}
 
 export function SetupChat() {
     const router = useRouter()
@@ -202,7 +189,7 @@ export function SetupChat() {
 
         if (kind === "onboarding") {
             const tradeTypeVal = resolveTradeType(String(values.tradeType || "").trim())
-            const businessNameVal = resolveBusinessName(String(values.businessName || "").trim())
+            const businessNameVal = String(values.businessName || "").trim()
             const locationVal = resolveLocation(String(values.location || "").trim())
             const phoneVal = formatPhone(String(values.phone || "").trim())
 
