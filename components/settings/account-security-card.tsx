@@ -14,9 +14,11 @@ import { toast } from "sonner"
 
 interface AccountSecurityCardProps {
   userId: string
+  /** Business/workspace name shown in the confirmation step. User must type this exactly to confirm deletion. */
+  businessName?: string
 }
 
-export function AccountSecurityCard({ userId }: AccountSecurityCardProps) {
+export function AccountSecurityCard({ userId, businessName = "" }: AccountSecurityCardProps) {
   const router = useRouter()
   const supabase = createClient()
   const [isLoading, setIsLoading] = useState(false)
@@ -24,6 +26,9 @@ export function AccountSecurityCard({ userId }: AccountSecurityCardProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteReason, setDeleteReason] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirmNameDialog, setShowConfirmNameDialog] = useState(false)
+  const [confirmNameInput, setConfirmNameInput] = useState("")
+  const expectedName = businessName.trim() || "DELETE"
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,8 +50,20 @@ export function AccountSecurityCard({ userId }: AccountSecurityCardProps) {
     }
   }
 
-  const handleDeleteAccount = async () => {
+  const handlePermanentlyDeleteClick = () => {
+    setIsDeleteDialogOpen(false)
+    setShowConfirmNameDialog(true)
+    setConfirmNameInput("")
+  }
+
+  const handleConfirmNameSubmit = async () => {
+    if (confirmNameInput.trim() !== expectedName) {
+      toast.error(`Please type "${expectedName}" exactly to confirm.`)
+      return
+    }
     setIsDeleting(true)
+    setShowConfirmNameDialog(false)
+    setConfirmNameInput("")
     try {
       const result = await deleteUserAccount(userId, deleteReason)
       if (result.success) {
@@ -71,7 +88,6 @@ export function AccountSecurityCard({ userId }: AccountSecurityCardProps) {
       toast.error("An unexpected error occurred.")
     } finally {
       setIsDeleting(false)
-      setIsDeleteDialogOpen(false)
     }
   }
 
@@ -166,8 +182,49 @@ export function AccountSecurityCard({ userId }: AccountSecurityCardProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount} disabled={isDeleting || !deleteReason}>
-              {isDeleting ? "Deleting…" : "Permanently delete"}
+            <Button variant="destructive" onClick={handlePermanentlyDeleteClick} disabled={isDeleting || !deleteReason}>
+              Permanently delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showConfirmNameDialog} onOpenChange={(open) => { setShowConfirmNameDialog(open); if (!open) setConfirmNameInput("") }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm deletion
+            </DialogTitle>
+            <DialogDescription>
+              To permanently delete your account and all data, type your business name below exactly as shown.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm-name">
+                Type <strong className="text-foreground">&quot;{expectedName}&quot;</strong> to confirm
+              </Label>
+              <Input
+                id="confirm-name"
+                value={confirmNameInput}
+                onChange={(e) => setConfirmNameInput(e.target.value)}
+                placeholder={expectedName}
+                className="font-mono"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowConfirmNameDialog(false); setConfirmNameInput("") }} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleConfirmNameSubmit()}
+              disabled={isDeleting || confirmNameInput.trim() !== expectedName}
+            >
+              {isDeleting ? "Deleting…" : "Confirm and delete account"}
             </Button>
           </DialogFooter>
         </DialogContent>

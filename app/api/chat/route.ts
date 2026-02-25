@@ -937,10 +937,11 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
     console.error("Chat API error:", error);
     return new Response(
       JSON.stringify({
-        error: "Something went wrong. Please try again.",
+        error: message.includes("GEMINI") || message.includes("API") ? "AI service error. Please try again." : message,
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );

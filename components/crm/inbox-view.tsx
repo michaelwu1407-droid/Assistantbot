@@ -197,23 +197,32 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
           const res = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({
               workspaceId,
               messages: [
-                { role: "user", content: `Tell ${selectedContact.name}: ${messageText}` }
+                { role: "user", content: `Send this message to ${selectedContact.name} (contact in this workspace): "${messageText.trim()}". Use the sendSms tool with contactName "${selectedContact.name}" and the message exactly as quoted.` }
               ],
             }),
           })
           if (res.ok) {
-            toast.success(`Travis is sending to ${selectedContact.name}`)
+            toast.success(`Travis is handling the message to ${selectedContact.name}`)
+            setMessageText("")
           } else {
-            const err = await res.json().catch(() => ({}))
-            toast.error(err?.error || "Travis couldn't send that message")
+            const text = await res.text()
+            let errMsg = "Travis couldn't send that message."
+            try {
+              const err = JSON.parse(text)
+              if (err?.error && typeof err.error === "string") errMsg = err.error
+            } catch {
+              if (text) errMsg = text.slice(0, 120)
+            }
+            toast.error(errMsg)
           }
-        } catch {
-          toast.error("Failed to reach Travis")
+        } catch (e) {
+          toast.error("Could not reach Travis. Check your connection and try again.")
+          console.error("[Inbox] Ask Travis request failed:", e)
         }
-        setMessageText("")
       }
     } catch {
       toast.error("Failed to send message")

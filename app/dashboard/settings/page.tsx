@@ -6,12 +6,15 @@ import { CallForwardingCard } from "@/components/settings/call-forwarding-card"
 import { AccountSecurityCard } from "@/components/settings/account-security-card"
 import { getAuthUserId } from "@/lib/auth"
 import { getUserProfile } from "@/actions/user-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 
 export const dynamic = "force-dynamic"
 
 export default async function AccountSettingsPage() {
   const userId = await getAuthUserId()
   const profile = await getUserProfile(userId)
+  const workspace = await getOrCreateWorkspace(userId)
+  const businessName = workspace?.name ?? ""
 
   return (
     <div className="space-y-8">
@@ -50,7 +53,7 @@ export default async function AccountSettingsPage() {
       {/* 4. Security */}
       <section>
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Security</h4>
-        <AccountSecurityCard userId={userId} />
+        <AccountSecurityCard userId={userId} businessName={businessName} />
       </section>
       <Separator />
 
