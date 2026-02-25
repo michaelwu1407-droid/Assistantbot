@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { getAuthUser } from "@/lib/auth";
@@ -395,7 +396,7 @@ export async function completeOnboarding(data: {
       ...(data.autoUpdateGlossary !== undefined && { autoUpdateGlossary: data.autoUpdateGlossary }),
       ...(data.autoCallLeads !== undefined && { autoCallLeads: data.autoCallLeads }),
       ...(data.callOutFee !== undefined && { callOutFee: data.callOutFee }),
-      ...(Object.keys(settingsUpdate).length > 0 && { settings: settingsUpdate }),
+      ...(Object.keys(settingsUpdate).length > 0 && { settings: settingsUpdate as Prisma.JsonObject }),
     },
   });
 
