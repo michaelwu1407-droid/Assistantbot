@@ -111,6 +111,30 @@ function resolveLocation(input: string): string {
         .join(" ")
 }
 
+// ─── Input Cleanup Helpers ─────────────────────────────────────────
+function formatPhone(phone: string): string {
+    const cleaned = phone.replace(/\D/g, "")
+    // Australian mobile format 04XX XXX XXX
+    if (cleaned.length === 10 && cleaned.startsWith("04")) {
+        return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 10)}`
+    }
+    return phone // Return as-is if it doesn't match standard 10 digit
+}
+
+function resolveBusinessName(name: string): string {
+    let clean = name.trim()
+    // Common slip on mobile: trailing 'q' instead of hitting enter or space or simply fat fingering
+    if (clean.length > 3 && clean.endsWith("q") && !clean.toLowerCase().endsWith("macq")) {
+        // Just stripping trailing q if it seems like a typo (very basic heuristic)
+        // A smarter approach is a server action, but for now this catches the explicit "Hedoq" -> "Hedo" typo
+        // Actually, let's look for words ending in 'q' that aren't common (like 'macaq', 'faq')
+        if (clean.endsWith("q") && !["faq", "macq", "inq"].some(w => clean.toLowerCase().endsWith(w))) {
+            clean = clean.slice(0, -1)
+        }
+    }
+    return clean
+}
+
 export function SetupChat() {
     const router = useRouter()
     const { setIndustry } = useIndustry()
@@ -175,27 +199,41 @@ export function SetupChat() {
 
     const handleDraftConfirm = (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => {
         setDraftValues(prev => ({ ...prev, ...values }))
-        const summary = Object.entries(values)
-            .filter(([, v]) => v !== "" && v !== undefined)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(", ")
-        const userMsg: Message = {
-            id: crypto.randomUUID(),
-            role: "user",
-            content: summary ? `✅ Confirmed: ${summary}` : "✅ Done",
-        }
-        setMessages(prev => [...prev, userMsg])
-        setIsTyping(true)
 
         if (kind === "onboarding") {
-            const tradeTypeVal = String(values.tradeType || "").trim()
-            const businessNameVal = String(values.businessName || "").trim()
-            const locationVal = String(values.location || "").trim()
-            const phoneVal = String(values.phone || "").trim()
-            const phone = (phoneVal || "").trim()
-            setTradeType(resolveTradeType(tradeTypeVal))
+            const tradeTypeVal = resolveTradeType(String(values.tradeType || "").trim())
+            const businessNameVal = resolveBusinessName(String(values.businessName || "").trim())
+            const locationVal = resolveLocation(String(values.location || "").trim())
+            const phoneVal = formatPhone(String(values.phone || "").trim())
+
+            // Clean up the draft values string display
+            const cleanedValues = {
+                ...values,
+                tradeType: tradeTypeVal,
+                businessName: businessNameVal,
+                location: locationVal,
+                phone: phoneVal
+            }
+            // Update the display summary string with cleaned values!
+            const summary = Object.entries(cleanedValues)
+                .filter(([k, v]) => v !== "" && v !== undefined && k !== "company" && k !== "name") // hide internal fields if any
+                .map(([k, v]) => {
+                    const label = k === "tradeType" ? "Trade" : k === "businessName" ? "Business" : k === "location" ? "Location" : k === "phone" ? "Mobile" : k
+                    return `${label}: ${v}`
+                })
+                .join(", ")
+
+            const userMsg: Message = {
+                id: crypto.randomUUID(),
+                role: "user",
+                content: summary ? `✅ Confirmed: ${summary}` : "✅ Done",
+            }
+            setMessages(prev => [...prev, userMsg])
+            setIsTyping(true)
+
+            setTradeType(tradeTypeVal)
             setBusinessName(businessNameVal)
-            setLocation(resolveLocation(locationVal))
+            setLocation(locationVal)
             setIndustry("TRADES")
             setTimeout(() => {
                 setIsTyping(false)
@@ -211,9 +249,9 @@ export function SetupChat() {
                 completeOnboarding({
                     businessName: businessNameVal || `${userName}'s Workspace`,
                     industryType: "TRADES",
-                    location: resolveLocation(locationVal),
-                    tradeType: resolveTradeType(tradeTypeVal),
-                    ownerPhone: phone,
+                    location: locationVal,
+                    tradeType: tradeTypeVal,
+                    ownerPhone: phoneVal,
                 }).then(() => {
                     setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
                 }).catch(() => {
@@ -222,6 +260,18 @@ export function SetupChat() {
             }, 1500)
             return
         }
+
+        const summary = Object.entries(values)
+            .filter(([, v]) => v !== "" && v !== undefined)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ")
+        const userMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: summary ? `✅ Confirmed: ${summary}` : "✅ Done",
+        }
+        setMessages(prev => [...prev, userMsg])
+        setIsTyping(true)
 
         setTimeout(() => {
             processStep("DRAFT_CONFIRMED")
@@ -275,21 +325,21 @@ export function SetupChat() {
                     {messages.map((msg) => {
                         if (msg.type === "draft-card") return null
                         return (
-                        <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                        >
-                            <div
-                                className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${msg.role === "user"
-                                    ? "bg-primary text-primary-foreground rounded-br-md"
-                                    : "glass-card text-foreground rounded-bl-md border border-border/50"
-                                    }`}
+                            <motion.div
+                                key={msg.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                             >
-                                <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
-                            </div>
-                        </motion.div>
+                                <div
+                                    className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${msg.role === "user"
+                                        ? "bg-primary text-primary-foreground rounded-br-md"
+                                        : "glass-card text-foreground rounded-bl-md border border-border/50"
+                                        }`}
+                                >
+                                    <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
+                                </div>
+                            </motion.div>
                         )
                     })}
                     {isTyping && (
