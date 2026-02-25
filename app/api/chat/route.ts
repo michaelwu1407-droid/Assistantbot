@@ -282,6 +282,7 @@ export async function POST(req: Request) {
       if (businessProfile.emergencyService) knowledgeBaseStr += `\n- Emergency Service: Available${businessProfile.emergencySurcharge ? ` (+$${businessProfile.emergencySurcharge} surcharge)` : ""}`;
     }
     knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
+    knowledgeBaseStr += "\nOn incoming voice calls, Travis (the voice agent) can transfer callers to the tradie's mobile if they ask to speak to the human; the tradie's number is stored in the app profile.";
 
     // Build context strings (static workspace settings only — no data stuffing)
     const agentModeStr = settings?.agentMode === "EXECUTE"
@@ -291,6 +292,18 @@ export async function POST(req: Request) {
         : "\nAGENT OVERRIDE MODE: FILTER. You are a screening receptionist ONLY. Extract information, but DO NOT schedule, propose times, or provide pricing. Tell the user you will pass their details on.";
 
     const workingHoursStr = `\nWORKING HOURS: Your company working hours are strictly ${settings?.workingHoursStart || "08:00"} to ${settings?.workingHoursEnd || "17:00"}. DO NOT SCHEDULE jobs outside of this window.`;
+
+    const businessName = (settings as { agentBusinessName?: string })?.agentBusinessName?.trim() || workspaceInfo?.name || "this business";
+    const scriptStyle = (settings as { agentScriptStyle?: string })?.agentScriptStyle || "opening";
+    const agentScriptStr = scriptStyle === "closing"
+      ? `\nAGENT SIGN-OFF: When YOU initiate a message or call (not automated notifications), END with: "Kind regards, Travis (AI assistant for ${businessName})". Do NOT use an opening line. This does not apply to automated reminder or notification messages.`
+      : `\nAGENT INTRODUCTION: When YOU initiate a message or call (not automated notifications), START with: "Hi I'm Travis, the AI assistant for ${businessName}". Do NOT also add a sign-off. This does not apply to automated reminder or notification messages.`;
+
+    const textStart = (settings as { textAllowedStart?: string })?.textAllowedStart ?? "08:00";
+    const textEnd = (settings as { textAllowedEnd?: string })?.textAllowedEnd ?? "20:00";
+    const callStart = (settings as { callAllowedStart?: string })?.callAllowedStart ?? "08:00";
+    const callEnd = (settings as { callAllowedEnd?: string })?.callAllowedEnd ?? "20:00";
+    const allowedTimesStr = `\nALLOWED TIMES: Only send texts between ${textStart} and ${textEnd} (local time). Only place outbound calls between ${callStart} and ${callEnd}. If the user asks to message or call outside these windows, say you're outside contact hours and will do it during the allowed window.`;
 
     const preferencesStr = settings?.aiPreferences
       ? `\nUSER PREFERENCES (Follow these strictly):\n${settings.aiPreferences}`
@@ -356,6 +369,8 @@ export async function POST(req: Request) {
 ${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}
+${agentScriptStr}
+${allowedTimesStr}
 ${preferencesStr}
 ${pricingRulesStr}
 ${memoryContextStr}

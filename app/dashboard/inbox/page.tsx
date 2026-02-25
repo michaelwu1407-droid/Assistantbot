@@ -3,21 +3,36 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUser } from "@/lib/auth"
 import { InboxView } from "@/components/crm/inbox-view"
 import { getActivities } from "@/actions/activity-actions"
+import { getContacts } from "@/actions/contact-actions"
 
 export const dynamic = "force-dynamic"
+
+const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const
 
 export default async function InboxPage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
 
     let interactions
+    let contactSegment: Record<string, "lead" | "existing"> = {}
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
-        interactions = await getActivities({
-            workspaceId: workspace.id,
-            typeIn: ["CALL", "EMAIL", "NOTE"],
-            limit: 80,
-        })
+        const [activities, contacts] = await Promise.all([
+            getActivities({
+                workspaceId: workspace.id,
+                typeIn: ["CALL", "EMAIL", "NOTE"],
+                limit: 80,
+            }),
+            getContacts(workspace.id),
+        ])
+        interactions = activities
+        for (const c of contacts) {
+            contactSegment[c.id] = EXISTING_STAGES.includes(
+                (c.primaryDealStageKey ?? "") as (typeof EXISTING_STAGES)[number]
+            )
+                ? "existing"
+                : "lead"
+        }
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">
@@ -31,7 +46,7 @@ export default async function InboxPage() {
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <InboxView initialInteractions={interactions} />
+            <InboxView initialInteractions={interactions} contactSegment={contactSegment} />
         </div>
     )
 }

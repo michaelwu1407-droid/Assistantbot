@@ -42,8 +42,13 @@ const FAKE_TUTORIAL_INBOX: ActivityView[] = [
   },
 ]
 
+/** Lead = no job scheduled or early stage. Existing = has deal in SCHEDULED, PIPELINE, INVOICED, or WON. */
+export type ContactSegment = "lead" | "existing"
+
 interface InboxViewProps {
   initialInteractions: ActivityView[]
+  /** Map contactId -> "lead" | "existing". Contacts not in map are treated as "lead". */
+  contactSegment?: Record<string, ContactSegment>
 }
 
 const typeLabel: Record<string, string> = {
@@ -60,7 +65,7 @@ function isSystemEvent(a: { title?: string | null; description?: string | null }
   return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
 }
 
-export function InboxView({ initialInteractions }: InboxViewProps) {
+export function InboxView({ initialInteractions, contactSegment = {} }: InboxViewProps) {
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"
   const interactions = isTutorialInboxStep ? [...FAKE_TUTORIAL_INBOX, ...initialInteractions] : initialInteractions
@@ -68,6 +73,7 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(interactions[0]?.id ?? null)
   const [search, setSearch] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
+  const [segmentFilter, setSegmentFilter] = useState<ContactSegment | "all">("all")
 
   // RHS detail panel state
   const [detailTab, setDetailTab] = useState<DetailTab>("conversations")
@@ -95,13 +101,17 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
   }
 
   const contacts = Array.from(contactMap.values())
-  const filteredContacts = contacts.filter(c =>
+  const filteredBySearch = contacts.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.interactions.some(i =>
       i.title?.toLowerCase().includes(search.toLowerCase()) ||
       i.content?.toLowerCase().includes(search.toLowerCase())
     )
   )
+  const filteredContacts =
+    segmentFilter === "all"
+      ? filteredBySearch
+      : filteredBySearch.filter((c) => (contactSegment[c.id] ?? "lead") === segmentFilter)
 
   // Find the selected contact's data
   const selectedActivity = interactions.find(a => a.id === selectedId)
@@ -209,6 +219,46 @@ export function InboxView({ initialInteractions }: InboxViewProps) {
       <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
         <div className="p-3 border-b border-border/40 space-y-2">
           <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
+          {Object.keys(contactSegment).length > 0 && (
+            <div className="flex rounded-lg border border-border/50 bg-background/50 p-0.5">
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("lead")}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  segmentFilter === "lead"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Leads
+              </button>
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("existing")}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  segmentFilter === "existing"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("all")}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  segmentFilter === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                All
+              </button>
+            </div>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input

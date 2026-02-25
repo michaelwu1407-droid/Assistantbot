@@ -86,6 +86,42 @@ function extractSubdomain(email: string): string | null {
   return null;
 }
 
+/** Lead capture domain for [alias]@inbound.earlymark.ai style addresses. */
+const INBOUND_LEAD_DOMAIN = process.env.INBOUND_LEAD_DOMAIN ?? "inbound.earlymark.ai";
+
+/** Extract alias from To address when it is alias@inbound.earlymark.ai. */
+function extractLeadAlias(toEmail: string): string | null {
+  const at = toEmail.indexOf("@");
+  if (at === -1) return null;
+  const local = toEmail.slice(0, at).trim().toLowerCase();
+  const domain = toEmail.slice(at + 1).trim().toLowerCase();
+  if (domain !== INBOUND_LEAD_DOMAIN || !local) return null;
+  return local;
+}
+
+/** Detect platform from From or Subject (HiPages, Airtasker, ServiceSeeking). */
+function detectLeadPlatform(from: string, subject: string): string | null {
+  const combined = `${from} ${subject}`.toLowerCase();
+  if (combined.includes("hipages")) return "HiPages";
+  if (combined.includes("airtasker")) return "Airtasker";
+  if (combined.includes("serviceseeking")) return "ServiceSeeking";
+  return null;
+}
+
+/** Australian mobile: 04... or +61 4... (with optional spaces/dashes). */
+const AUS_MOBILE_REGEX = /(?:04|\+61\s?4)(?:\d(?:[\s-]?\d){7,8})/g;
+/** Name after "Name:" or "Client:". */
+const NAME_REGEX = /(?:Name|Client):\s*([A-Za-z][A-Za-z ]*)/i;
+
+function parseLeadContactDetails(textBody: string): { phone: string | null; name: string | null } {
+  const normalized = (textBody || "").replace(/\s+/g, " ");
+  const phoneMatch = normalized.match(AUS_MOBILE_REGEX);
+  const phone = phoneMatch ? phoneMatch[0].replace(/\s+/g, "").replace(/^\+61/, "0") : null;
+  const nameMatch = normalized.match(NAME_REGEX);
+  const name = nameMatch ? nameMatch[1].trim() : null;
+  return { phone, name };
+}
+
 // ─── Email Address Extraction ────────────────────────────────────────
 // Handles both "Name <email@x.com>" and plain "email@x.com" formats.
 
@@ -162,47 +198,220 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Parse the recipient address and extract the subdomain
+    // 3. Parse the recipient address
     const toAddress = parseEmailAddress(rawTo);
+    const leadAlias = extractLeadAlias(toAddress.email);
     const subdomain = extractSubdomain(toAddress.email);
 
-    if (!subdomain) {
-      return NextResponse.json(
-        { error: "Could not extract subdomain from recipient address" },
-        { status: 400 }
-      );
-    }
-
-    // 4. Tenant identification — match subdomain to a Workspace
-    //    The workspace's `inboundEmail` stores the full address (e.g., info@tradiesrus.earlymark.ai)
-    //    or we match on the workspace `name` slugified to the subdomain.
-    const workspace = await db.workspace.findFirst({
-      where: {
-        OR: [
-          { inboundEmail: toAddress.email },
-          {
-            // Fallback: match workspace name → subdomain (slug comparison)
-            name: {
-              equals: subdomain.replace(/-/g, " "),
-              mode: "insensitive",
-            },
+    // 4. Tenant identification — by lead alias, full inbound email, or subdomain
+    let workspace = leadAlias
+      ? await db.workspace.findFirst({
+          where: { inboundEmailAlias: leadAlias },
+          select: {
+            id: true,
+            name: true,
+            ownerId: true,
+            inboundEmail: true,
+            inboundEmailAlias: true,
+            autoCallLeads: true,
+            retellAgentId: true,
+            twilioPhoneNumber: true,
           },
-        ],
-      },
-    });
+        })
+      : null;
+
+    if (!workspace) {
+      if (!subdomain) {
+        return NextResponse.json(
+          { error: "Could not extract subdomain or lead alias from recipient address" },
+          { status: 400 }
+        );
+      }
+      workspace = await db.workspace.findFirst({
+        where: {
+          OR: [
+            { inboundEmail: toAddress.email },
+            {
+              name: {
+                equals: subdomain.replace(/-/g, " "),
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          inboundEmail: true,
+          inboundEmailAlias: true,
+          autoCallLeads: true,
+          retellAgentId: true,
+          twilioPhoneNumber: true,
+        },
+      });
+    }
 
     if (!workspace) {
       console.warn(
-        `[inbound-email] No workspace found for subdomain "${subdomain}" (to: ${toAddress.email})`
+        `[inbound-email] No workspace found (to: ${toAddress.email}, leadAlias: ${leadAlias ?? "—"}, subdomain: ${subdomain ?? "—"})`
       );
       return NextResponse.json(
-        { error: "No business found for this subdomain" },
+        { error: "No business found for this address" },
         { status: 404 }
       );
     }
 
-    // 5. Contact matching — find or create a Contact from the sender
     const sender = parseEmailAddress(rawFrom);
+    const platform = detectLeadPlatform(sender.email, subject);
+
+    // ─── Lead Won path: HiPages / Airtasker / ServiceSeeking ─────────────
+    if (platform) {
+      const { phone, name } = parseLeadContactDetails(textBody);
+      const leadName = name || sender.name || "Lead";
+      const displayPhone = phone || null;
+      const leadEmail = (sender.email && sender.email.trim()) || null;
+      if (!displayPhone && !leadEmail) {
+        await db.webhookEvent.create({
+          data: {
+            provider: "resend",
+            eventType: "email.received",
+            status: "error",
+            error: "Lead email had no phone in body and no sender email",
+            payload: { leadCapture: true, platform, workspaceId: workspace!.id, subject },
+          },
+        }).catch(() => {});
+        return NextResponse.json(
+          { error: "Lead email could not be processed: no phone number in body and no sender email" },
+          { status: 400 }
+        );
+      }
+
+      let contact = displayPhone
+        ? await db.contact.findFirst({
+            where: { workspaceId: workspace!.id, phone: displayPhone },
+          })
+        : null;
+      if (!contact) {
+        contact = await db.contact.create({
+          data: {
+            workspaceId: workspace!.id,
+            name: leadName,
+            email: leadEmail ?? undefined,
+            phone: displayPhone ?? undefined,
+          },
+        });
+      } else if (name && contact.name !== name) {
+        await db.contact.update({
+          where: { id: contact.id },
+          data: { name },
+        });
+        contact = { ...contact, name };
+      }
+
+      const deal = await db.deal.create({
+        data: {
+          workspaceId: workspace!.id,
+          contactId: contact.id,
+          title: `Lead from ${platform}`,
+          stage: "NEW",
+          value: 0,
+          metadata: { leadSource: platform, leadWonEmail: true },
+        },
+      });
+
+      const leadActivity = await db.activity.create({
+        data: {
+          type: "EMAIL",
+          title: `Lead Won from ${platform}`,
+          description: subject,
+          content: textBody.substring(0, 10000),
+          contactId: contact.id,
+          dealId: deal.id,
+        },
+      });
+
+      let callTriggered = false;
+      if (
+        workspace!.autoCallLeads &&
+        displayPhone &&
+        workspace!.retellAgentId &&
+        workspace!.twilioPhoneNumber
+      ) {
+        try {
+          const tradieName = workspace!.name;
+          const Retell = (await import("retell-sdk")).default;
+          const retell = new Retell({ apiKey: process.env.RETELL_API_KEY! });
+          await retell.call.createPhoneCall({
+            from_number: workspace!.twilioPhoneNumber,
+            to_number: displayPhone.startsWith("0") ? `+61${displayPhone.slice(1)}` : displayPhone,
+            metadata: {
+              workspace_id: workspace!.id,
+              contact_id: contact.id,
+              platform_name: platform,
+              lead_name: leadName,
+              script_context: `You are calling because ${tradieName} just accepted a lead on ${platform}. You want to book the quote immediately.`,
+            },
+            override_agent_id: workspace!.retellAgentId!,
+          } as any);
+          callTriggered = true;
+          await db.activity.create({
+            data: {
+              type: "CALL",
+              title: "Outbound call to lead (auto)",
+              content: `Auto call triggered for ${platform} lead ${leadName}`,
+              contactId: contact.id,
+              dealId: deal.id,
+            },
+          });
+        } catch (callErr) {
+          const errMsg = callErr instanceof Error ? callErr.message : String(callErr);
+          console.error("[inbound-email] Retell lead call failed:", callErr);
+          Sentry.captureException(callErr, {
+            tags: { webhook: "resend", stage: "lead_auto_call", workspaceId: workspace!.id },
+            extra: { platform, contactId: contact.id, dealId: deal.id, leadName },
+          });
+          await db.activity.create({
+            data: {
+              type: "NOTE",
+              title: "Auto call to lead failed",
+              content: `Could not place automatic call to ${leadName}: ${errMsg}`,
+              contactId: contact.id,
+              dealId: deal.id,
+            },
+          }).catch(() => {});
+        }
+      }
+
+      await db.webhookEvent.create({
+        data: {
+          provider: "resend",
+          eventType: "email.received",
+          status: "success",
+          payload: {
+            leadCapture: true,
+            platform,
+            workspaceId: workspace!.id,
+            contactId: contact.id,
+            dealId: deal.id,
+            callTriggered,
+          },
+        },
+      }).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        leadCapture: true,
+        platform,
+        workspaceId: workspace!.id,
+        contactId: contact.id,
+        dealId: deal.id,
+        activityId: leadActivity.id,
+        callTriggered,
+      });
+    }
+
+    // 5. Contact matching — find or create a Contact from the sender (normal inbound path)
 
     let contact = await db.contact.findFirst({
       where: {

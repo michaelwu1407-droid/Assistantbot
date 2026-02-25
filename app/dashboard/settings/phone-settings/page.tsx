@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Phone, CheckCircle, AlertCircle, RefreshCw, Headphones } from "lucide-react";
 import { sendPhoneVerificationCode, updatePhoneNumber, getPhoneNumberStatus } from "@/actions/phone-settings";
+import { AIReceptionistSettings } from "@/components/settings/ai-receptionist-settings";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -295,6 +296,8 @@ export default function PhoneSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <AIReceptionistSettings />
     </div>
   );
 }

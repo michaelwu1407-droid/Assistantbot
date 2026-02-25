@@ -34,16 +34,25 @@ interface SearchableContact extends SearchableItem {
 
 // ─── Validation ─────────────────────────────────────────────────────
 
-const CreateContactSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  company: z.string().optional(),
-  workspaceId: z.string(),
-  /** PERSON | BUSINESS; stored in metadata. Default PERSON. */
-  contactType: z.enum(["PERSON", "BUSINESS"]).optional(),
-});
+const CreateContactSchema = z
+  .object({
+    name: z.string().min(1),
+    email: z.string().email().optional().or(z.literal("")),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    company: z.string().optional(),
+    workspaceId: z.string(),
+    /** PERSON | BUSINESS; stored in metadata. Default PERSON. */
+    contactType: z.enum(["PERSON", "BUSINESS"]).optional(),
+  })
+  .refine(
+    (data) => {
+      const hasEmail = typeof data.email === "string" && data.email.trim() !== "";
+      const hasPhone = typeof data.phone === "string" && data.phone.trim() !== "";
+      return hasEmail || hasPhone;
+    },
+    { message: "At least one of phone or email is required." }
+  );
 
 const UpdateContactSchema = z.object({
   contactId: z.string(),
@@ -284,6 +293,16 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
   }
 
   const { contactId, ...data } = parsed.data;
+  const contact = await db.contact.findUnique({ where: { id: contactId }, select: { email: true, phone: true } });
+  if (!contact) return { success: false, error: "Contact not found" };
+
+  const newEmail = data.email !== undefined ? (data.email && data.email.trim() ? data.email.trim() : null) : contact.email;
+  const newPhone = data.phone !== undefined ? (data.phone && data.phone.trim() ? data.phone.trim() : null) : contact.phone;
+  const hasEmail = typeof newEmail === "string" && newEmail.length > 0;
+  const hasPhone = typeof newPhone === "string" && newPhone.length > 0;
+  if (!hasEmail && !hasPhone) {
+    return { success: false, error: "At least one of phone or email is required." };
+  }
 
   await db.contact.update({
     where: { id: contactId },

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { getOrAllocateInboundEmail } from "@/actions/settings-actions"
 import { connectXero } from "@/actions/integration-actions"
+import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
 
 export default function IntegrationsPage() {
     const searchParams = useSearchParams()
@@ -188,6 +189,8 @@ export default function IntegrationsPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                <EmailLeadCaptureSettings />
 
                 <Card>
                     <CardHeader>

@@ -121,7 +121,11 @@ model Workspace {
   // Integrations & Billing Directives
   callOutFee         Decimal?    @default(0)
   inboundEmail       String?     @unique
-  
+  /** Alias for lead-capture address: [alias]@inbound.earlymark.ai (or INBOUND_LEAD_DOMAIN). */
+  inboundEmailAlias  String?     @unique
+  /** When true, inbound "Lead Won" emails (HiPages, Airtasker, etc.) trigger an immediate Retell call to the lead. */
+  autoCallLeads      Boolean     @default(false)
+
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 }

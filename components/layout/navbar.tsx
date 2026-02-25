@@ -26,6 +26,9 @@ export function Navbar() {
                 <Link href="/features" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Features
                 </Link>
+                <Link href="/tutorial" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                    Tutorial
+                </Link>
                 <DropdownMenu>
                     <DropdownMenuTrigger className="text-sm font-medium text-slate-body hover:text-midnight transition-colors bg-transparent border-none p-0 flex items-center gap-1 focus:outline-none cursor-pointer">
                         Solutions <ChevronDown className="h-4 w-4 opacity-50" />

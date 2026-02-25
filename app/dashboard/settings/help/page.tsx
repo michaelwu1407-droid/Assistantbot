@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Bot, MessageSquare, Calendar, DollarSign, Users, Zap } from "lucide-react";
+import { BookOpen, Bot, MessageSquare, Calendar, DollarSign, Users, Zap, Send, FileText, Radio, Headphones, Mail } from "lucide-react";
 
 export default function TravisHandbookPage() {
   return (
@@ -87,8 +87,55 @@ export default function TravisHandbookPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>See conversations with each customer across emails, texts, and calls. Travis can send automated messages, initiate outbound calls, and answer calls in different languages. Use the Inbox from the sidebar or ask Travis to message or call a customer.
-          </p>
+          <p>See conversations with each customer across emails, texts, and calls. Travis can send automated messages, initiate outbound calls, and answer calls in different languages. Use the Inbox from the sidebar or ask Travis to message or call a customer.</p>
+        </CardContent>
+      </Card>
+
+      {/* 3b. Outbound & Leads */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Radio className="h-5 w-5 text-emerald-600" />
+            Outbound &amp; Leads
+          </CardTitle>
+          <CardDescription>
+            Handle leads from hipages, Google Ads, Airtasker, and your own outbound.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>In the Inbox, use the Leads / Existing toggle to switch between new leads (not yet converted) and existing customers who have jobs or are further down the pipeline. Respond to leads from any source in one place; Travis can message or call them.</p>
+        </CardContent>
+      </Card>
+
+      {/* 3c. AI Receptionist & Call Forwarding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Headphones className="h-5 w-5 text-emerald-600" />
+            AI Receptionist &amp; Call Forwarding
+          </CardTitle>
+          <CardDescription>
+            Forward your phone to Travis so you never miss a job.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>In Settings → Phone you can forward incoming calls (e.g. from Google Ads, hipages, or your main line) to Travis. Use &quot;Enable 100% AI Receptionist&quot; to send every call to Travis, or &quot;Backup AI Receptionist&quot; so he only picks up if you don&apos;t answer. If a caller asks to speak to you, Travis can transfer them to your mobile.</p>
+        </CardContent>
+      </Card>
+
+      {/* 3d. Email Lead Capture */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Mail className="h-5 w-5 text-emerald-600" />
+            Email Lead Capture &amp; Auto-Response
+          </CardTitle>
+          <CardDescription>
+            Forward &quot;Lead Won&quot; emails to your unique address; we create the contact and can call the lead instantly.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>In Settings → Integrations, use the Auto-Lead Response card. You get a unique forwarding email (e.g. you@inbound.earlymark.ai). Set up a Gmail filter to forward Lead Won emails from HiPages, Airtasker, or ServiceSeeking to that address. We create the contact and deal, parse the lead&apos;s phone and name, and—if you turn on &quot;Call new leads immediately?&quot;—trigger an immediate AI call to lock down the job.</p>
         </CardContent>
       </Card>
 
@@ -138,8 +185,39 @@ export default function TravisHandbookPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Ask &quot;How many contacts do I have?&quot;, &quot;Who&apos;s due for annual service?&quot;, or &quot;Find Thom&quot; for fuzzy search. Sort between individual and business customers on the Contacts page.
-          </p>
+          <p>Ask &quot;How many contacts do I have?&quot;, &quot;Who&apos;s due for annual service?&quot;, or &quot;Find Thom&quot; for fuzzy search. When creating customers or logging deals, at least one of phone or email is required.</p>
+        </CardContent>
+      </Card>
+
+      {/* 7. Soft Chase (Lead Follow-up) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Send className="h-5 w-5 text-emerald-600" />
+            Soft Chase (Lead Follow-up)
+          </CardTitle>
+          <CardDescription>
+            A default follow-up message for new leads not yet converted.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>In Settings → Agent Capabilities you can configure the follow-up message and when it is sent (e.g. 3 days or 1 day after the lead). Travis sends this as either an email or text so you never leave a lead cold.</p>
+        </CardContent>
+      </Card>
+
+      {/* 8. Unpaid Invoice Follow-up */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-5 w-5 text-emerald-600" />
+            Unpaid Invoice Follow-up
+          </CardTitle>
+          <CardDescription>
+            Automatic follow-up for unpaid invoices.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>In Settings → Agent Capabilities you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Travis sends this by email or text to help you get paid faster.</p>
         </CardContent>
       </Card>
     </div>

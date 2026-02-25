@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getActivities } from "@/actions/activity-actions";
+import { getContacts } from "@/actions/contact-actions";
 import { InboxView } from "@/components/crm/inbox-view";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -8,13 +9,24 @@ import { getAuthUserId } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
+const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const;
+
 export default async function InboxPage() {
-  let workspace, interactions;
+  let workspace, interactions, contactSegment: Record<string, "lead" | "existing"> = {};
   let dbError = false;
   try {
     const userId = await getAuthUserId();
     workspace = await getOrCreateWorkspace(userId);
-    interactions = await getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE"] });
+    const [activities, contacts] = await Promise.all([
+      getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE"] }),
+      getContacts(workspace.id),
+    ]);
+    interactions = activities;
+    for (const c of contacts) {
+      contactSegment[c.id] = EXISTING_STAGES.includes((c.primaryDealStageKey ?? "") as (typeof EXISTING_STAGES)[number])
+        ? "existing"
+        : "lead";
+    }
   } catch {
     dbError = true;
   }
@@ -44,7 +56,7 @@ export default async function InboxPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <InboxView initialInteractions={interactions} />
+        <InboxView initialInteractions={interactions} contactSegment={contactSegment} />
       </div>
     </div>
   );
