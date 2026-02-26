@@ -24,7 +24,10 @@ export const metadata: Metadata = {
   title: "Earlymark — CRM for SMEs",
   description: "High-velocity CRM platform with Hub and Spoke architecture",
   icons: {
-    icon: "/latest-logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/latest-logo.png", sizes: "512x512", type: "image/png" }
+    ],
     apple: "/latest-logo.png",
   },
 };
