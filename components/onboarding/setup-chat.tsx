@@ -170,8 +170,11 @@ export function SetupChat() {
     }
 
     useEffect(() => {
-        scrollToBottom()
-    }, [messages, isTyping])
+        // Only scroll when new messages are added or typing state changes, not on every render
+        if (messages.length > 0 || isTyping) {
+            scrollToBottom()
+        }
+    }, [messages.length, isTyping])
 
     const handleSend = async () => {
         if (!inputValue.trim()) return
@@ -818,6 +821,7 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
             <div className="flex gap-2">
                 {data.kind === "onboarding_business_contact" && (
                     <Button
+                        type="button"
                         size="sm"
                         variant="outline"
                         className="flex-1"
@@ -827,6 +831,7 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                     </Button>
                 )}
                 <Button
+                    type="button"
                     size="sm"
                     className={data.kind === "onboarding_business_contact" ? "flex-1" : "w-full"}
                     onClick={() => onConfirm(values, data.kind)}
