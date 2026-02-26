@@ -4,14 +4,14 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-// Only initialize Sentry if DSN is available
-if (process.env.NODE_ENV === "production") {
+// Only initialize Sentry in production with DSN
+if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
   try {
     Sentry.init({
-      dsn: "https://6766432707e282e24650d02db54ce08a@o4510923609079808.ingest.us.sentry.io/4510923609276416",
+      dsn: process.env.SENTRY_DSN,
 
       // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-      tracesSampleRate: 1,
+      tracesSampleRate: 0.1, // Reduced sampling rate
 
       // Enable logs to be sent to Sentry
       enableLogs: true,

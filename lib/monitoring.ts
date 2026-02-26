@@ -1,5 +1,18 @@
 import * as Sentry from '@sentry/nextjs';
-import posthog from 'posthog-js';
+
+// Safe PostHog import with fallback
+let posthog: any;
+try {
+  posthog = require('posthog-js');
+} catch (error) {
+  console.warn('PostHog not available:', error);
+  posthog = {
+    __loaded: false,
+    capture: () => {},
+    identify: () => {},
+    reset: () => {}
+  };
+}
 
 export const MonitoringService = {
     /**
@@ -11,19 +24,24 @@ export const MonitoringService = {
         try {
             console.error("MonitoringService Caught Error:", error, context);
 
-            Sentry.withScope((scope) => {
-                if (context) {
-                    scope.setExtras(context);
+            // Only try to use Sentry if it's available
+            if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+                Sentry.withScope((scope) => {
+                    if (context) {
+                        scope.setExtras(context);
 
-                    // Optionally map specific context keys to Sentry tags for easier filtering
-                    if (context.component) scope.setTag('component', context.component);
-                    if (context.action) scope.setTag('action', context.action);
-                    if (context.userId) scope.setTag('userId', context.userId);
-                }
+                        // Optionally map specific context keys to Sentry tags for easier filtering
+                        if (context.component) scope.setTag('component', context.component);
+                        if (context.action) scope.setTag('action', context.action);
+                        if (context.userId) scope.setTag('userId', context.userId);
+                    }
 
-                const errorObj = typeof error === 'string' ? new Error(error) : error;
-                Sentry.captureException(errorObj);
-            });
+                    const errorObj = typeof error === 'string' ? new Error(error) : error;
+                    Sentry.captureException(errorObj);
+                });
+            } else {
+                console.warn('Sentry not available, error logged to console only');
+            }
         } catch (sentryError) {
             console.error('Failed to log error to Sentry:', sentryError);
             console.error('Original error:', error);
@@ -46,7 +64,7 @@ export const MonitoringService = {
             if (scrubbedProperties.ssn) delete scrubbedProperties.ssn;
 
             // Only fire event if window is defined (client-side) and PostHog is loaded
-            if (typeof window !== 'undefined' && posthog.__loaded) {
+            if (typeof window !== 'undefined' && posthog && posthog.__loaded) {
                 posthog.capture(eventName, scrubbedProperties);
             } else {
                 // If we're on the server or posthog hasn't loaded, we log it so we don't lose the footprint in local dev
@@ -54,6 +72,7 @@ export const MonitoringService = {
             }
         } catch (error) {
             console.error('Error tracking event:', error);
+            // Don't re-throw - tracking failures shouldn't break the app
         }
     },
 
@@ -63,26 +82,51 @@ export const MonitoringService = {
      * @param traits Identifying data (Email, Name, Role)
      */
     identifyUser: (userId: string, traits?: { email?: string; name?: string; role?: string }) => {
-        // 1. Identify User in Sentry
-        Sentry.setUser({
-            id: userId,
-            email: traits?.email,
-            username: traits?.name
-        });
+        try {
+            // 1. Identify User in Sentry
+            if (typeof Sentry !== 'undefined' && Sentry.setUser) {
+                Sentry.setUser({
+                    id: userId,
+                    email: traits?.email,
+                    username: traits?.name,
+                    extra: {
+                        role: traits?.role,
+                    },
+                });
+            }
 
-        // 2. Identify User in PostHog
-        if (typeof window !== 'undefined' && posthog.__loaded) {
-            posthog.identify(userId, traits);
+            // 2. Identify User in PostHog (only if loaded)
+            if (typeof window !== 'undefined' && posthog && posthog.__loaded) {
+                posthog.identify(userId, {
+                    email: traits?.email,
+                    name: traits?.name,
+                    role: traits?.role,
+                });
+            }
+        } catch (error) {
+            console.error('Error identifying user:', error);
+            // Don't re-throw - identification failures shouldn't break the app
         }
     },
 
     /**
-     * Cleans up identities on logout. Must be fired when users sign out.
+     * Clears the current user's identity from both Sentry and PostHog.
+     * Call this on logout to prevent data leakage between sessions.
      */
-    clearIdentity: () => {
-        Sentry.setUser(null);
-        if (typeof window !== 'undefined' && posthog.__loaded) {
-            posthog.reset();
+    clearUser: () => {
+        try {
+            // Clear from Sentry
+            if (typeof Sentry !== 'undefined' && Sentry.setUser) {
+                Sentry.setUser(null);
+            }
+
+            // Clear from PostHog (only if loaded)
+            if (typeof window !== 'undefined' && posthog && posthog.__loaded) {
+                posthog.reset();
+            }
+        } catch (error) {
+            console.error('Error clearing user:', error);
+            // Don't re-throw - clearing failures shouldn't break the app
         }
-    }
+    },
 };
