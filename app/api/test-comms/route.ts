@@ -10,10 +10,10 @@ export async function GET(request: NextRequest) {
     environment: {},
     twilio: {
       configured: false,
-      accountSid: null,
-      testSubaccount: null,
-      availableNumbers: null,
-      error: null
+      accountSid: null as string | null,
+      testSubaccount: null as { success: boolean; subaccountId?: string } | null,
+      availableNumbers: null as { local: string[]; mobile: string[]; totalAvailable: number } | { error: string } | null,
+      error: null as string | null
     },
     retell: {
       configured: false,
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
       agentId: false
     },
     provisioning: {
-      lastResult: null,
-      error: null
+      lastResult: null as { success: boolean; phoneNumber?: string; stageReached?: string; error?: string } | null,
+      error: null as string | null
     }
   };
 
