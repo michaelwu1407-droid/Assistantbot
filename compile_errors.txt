@@ -1,2 +1,0 @@
-# Stale — errors below were from a build before Sprint 19 imports were added.
-# Cleared on 2026-02-20 after verifying getWorkspaceSettingsById is now used in route.ts.

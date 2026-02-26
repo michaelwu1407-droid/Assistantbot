@@ -61,6 +61,48 @@ This document tracks the functional status of each page and feature, explicitly 
 
 ---
 
+## 🌐 Multilingual Support Implementation (From MULTILINGUAL_SETUP.md)
+
+### **Environment Configuration Required**
+- **RETELL-1 (API Setup):** 🔜 PENDING — Add Retell AI environment variables for multilingual support:
+  - `RETELL_API_KEY` - Retell API key
+  - `RETELL_AGENT_ID` - Agent ID for multilingual support
+  - `RETELL_RESPONSE_ENGINE_ID` - Response engine for language detection
+  - `RETELL_PRIMARY_VOICE_ID` - Default voice (e.g., `zh-CN-XiaoxiaoNeural`)
+  - `RETELL_FALLBACK_VOICE_ID` - Fallback to English voice
+  - Individual language voice IDs (Chinese, Spanish, French, German, etc.)
+
+### **Retell AI Integration**
+- **RETELL-2 (Agent Configuration):** 🔜 TODO — Configure multilingual agent in Retell Dashboard:
+  - Create response engine with language detection
+  - Add language-specific instructions for customer communication
+  - Set up voice models for supported languages
+  - Test language detection and response accuracy
+
+### **AI System Integration**
+- **RETELL-3 (Voice Selection Logic):** 🔜 TODO — Implement dynamic voice selection based on customer notes:
+  - Parse customer notes for language preferences
+  - Map language keywords to appropriate voice IDs
+  - Integrate with call-making logic in `lib/comms-simple.ts`
+  - Add fallback to English when language not supported
+
+### **SMS Translation Support**
+- **RETELL-4 (SMS Translation):** 🔜 TODO — Add translation capabilities for SMS communications:
+  - Integrate translation service (Google Translate API)
+  - Store customer language preferences
+  - Auto-translate common SMS messages
+  - Add language preference to SMS metadata
+
+### **Testing & Quality Assurance**
+- **RETELL-5 (Testing Suite):** 🔜 TODO — Create comprehensive testing for multilingual features:
+  - Test customer creation with language notes
+  - Verify AI calls use correct voice models
+  - Test language detection accuracy
+  - Validate SMS translation quality
+  - Monitor call logs for language handling issues
+
+---
+
 ## Unresolved UX/UI & Feature Audit (Pending)
 *The following issues have been logged from a comprehensive user review on 2026-02-20 and are pending future development.*
 

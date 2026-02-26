@@ -1,9 +1,0 @@
-﻿actions/chat-actions.ts(988,19): error TS2322: Type 'string' is not assignable to type 'DealStage | EnumDealStageFieldUpdateOperationsInput | undefined'.
-actions/invite-actions.ts(177,16): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'UserOrderByWithRelationInput | UserOrderByWithRelationInput[]'.
-actions/notification-actions.ts(140,7): error TS2322: Type '{ notificationPreferences: NotificationPreferences; }' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue | undefined'.
-  Types of property 'notificationPreferences' are incompatible.
-    Type 'NotificationPreferences' is not assignable to type 'InputJsonValue | null | undefined'.
-      Type 'NotificationPreferences' is not assignable to type 'InputJsonObject'.
-        Index signature for type 'string' is missing in type 'NotificationPreferences'.
-actions/sms-templates.ts(10,7): error TS2741: Property 'BOOKING_REMINDER_24H' is missing in type '{ JOB_COMPLETE: string; ON_MY_WAY: string; LATE: string; }' but required in type 'Record<TriggerEvent, string>'.
-app/dashboard/settings/sms-templates/sms-templates-form.tsx(24,7): error TS2741: Property 'BOOKING_REMINDER_24H' is missing in type '{ JOB_COMPLETE: { label: string; description: string; icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; }; ON_MY_WAY: { ...; }; LATE: { ...; }; }' but required in type 'Record<TriggerEvent, { label: string; description: string; icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; }>'.
