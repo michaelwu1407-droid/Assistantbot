@@ -1,5 +1,7 @@
 import { UnifiedAuth } from "@/components/auth/unified-auth";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AuthPage({
   searchParams,
 }: {

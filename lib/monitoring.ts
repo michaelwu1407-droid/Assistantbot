@@ -8,21 +8,26 @@ export const MonitoringService = {
      * @param context Additional metadata/context (e.g. tag context or extra data).
      */
     logError: (error: Error | string, context?: Record<string, any>) => {
-        console.error("MonitoringService Caught Error:", error, context);
+        try {
+            console.error("MonitoringService Caught Error:", error, context);
 
-        Sentry.withScope((scope) => {
-            if (context) {
-                scope.setExtras(context);
+            Sentry.withScope((scope) => {
+                if (context) {
+                    scope.setExtras(context);
 
-                // Optionally map specific context keys to Sentry tags for easier filtering
-                if (context.component) scope.setTag('component', context.component);
-                if (context.action) scope.setTag('action', context.action);
-                if (context.userId) scope.setTag('userId', context.userId);
-            }
+                    // Optionally map specific context keys to Sentry tags for easier filtering
+                    if (context.component) scope.setTag('component', context.component);
+                    if (context.action) scope.setTag('action', context.action);
+                    if (context.userId) scope.setTag('userId', context.userId);
+                }
 
-            const errorObj = typeof error === 'string' ? new Error(error) : error;
-            Sentry.captureException(errorObj);
-        });
+                const errorObj = typeof error === 'string' ? new Error(error) : error;
+                Sentry.captureException(errorObj);
+            });
+        } catch (sentryError) {
+            console.error('Failed to log error to Sentry:', sentryError);
+            console.error('Original error:', error);
+        }
     },
 
     /**
@@ -31,20 +36,24 @@ export const MonitoringService = {
      * @param properties Associated metadata for the event.
      */
     trackEvent: (eventName: string, properties?: Record<string, any>) => {
-        // Basic PII scrubbing definition
-        const scrubbedProperties = { ...properties };
+        try {
+            // Basic PII scrubbing definition
+            const scrubbedProperties = { ...properties };
 
-        // Explicitly delete highly sensitive keys if they accidentally get passed
-        if (scrubbedProperties.password) delete scrubbedProperties.password;
-        if (scrubbedProperties.creditCard) delete scrubbedProperties.creditCard;
-        if (scrubbedProperties.ssn) delete scrubbedProperties.ssn;
+            // Explicitly delete highly sensitive keys if they accidentally get passed
+            if (scrubbedProperties.password) delete scrubbedProperties.password;
+            if (scrubbedProperties.creditCard) delete scrubbedProperties.creditCard;
+            if (scrubbedProperties.ssn) delete scrubbedProperties.ssn;
 
-        // Only fire event if window is defined (client-side) and PostHog is loaded
-        if (typeof window !== 'undefined' && posthog.__loaded) {
-            posthog.capture(eventName, scrubbedProperties);
-        } else {
-            // If we're on the server or posthog hasn't loaded, we log it so we don't lose the footprint in local dev
-            console.log(`[SSR Event Skipped/Simulated] ${eventName}`, scrubbedProperties);
+            // Only fire event if window is defined (client-side) and PostHog is loaded
+            if (typeof window !== 'undefined' && posthog.__loaded) {
+                posthog.capture(eventName, scrubbedProperties);
+            } else {
+                // If we're on the server or posthog hasn't loaded, we log it so we don't lose the footprint in local dev
+                console.log(`[SSR Event Skipped/Simulated] ${eventName}`, scrubbedProperties);
+            }
+        } catch (error) {
+            console.error('Error tracking event:', error);
         }
     },
 

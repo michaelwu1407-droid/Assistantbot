@@ -46,16 +46,20 @@ class Logger {
 
     // Send to monitoring service for errors and critical issues
     if (level === LogLevel.ERROR || level === LogLevel.CRITICAL) {
-      MonitoringService.trackEvent("error_occurred", {
-        level,
-        message,
-        context,
-        error: error?.message,
-        stack: error?.stack,
-      });
-      
-      if (error) {
-        MonitoringService.logError(error.message, context);
+      try {
+        MonitoringService.trackEvent("error_occurred", {
+          level,
+          message,
+          context,
+          error: error?.message,
+          stack: error?.stack,
+        });
+        
+        if (error) {
+          MonitoringService.logError(error.message, context);
+        }
+      } catch (monitoringError) {
+        console.error('Failed to send to monitoring service:', monitoringError);
       }
     }
 
