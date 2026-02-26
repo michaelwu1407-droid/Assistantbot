@@ -191,7 +191,7 @@ export function SetupChat() {
         // Process next step
         setTimeout(() => {
             processStep(inputValue)
-        }, 1000)
+        }, 300)
     }
 
     const handleChoice = (choice: { label: string; value: string }) => {
@@ -232,7 +232,7 @@ export function SetupChat() {
                         }
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -252,7 +252,7 @@ export function SetupChat() {
                         choices: [{ label: "Yes, call new leads straight away", value: "yes" }, { label: "No, I'll follow up myself", value: "no" }]
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -271,7 +271,7 @@ export function SetupChat() {
                         choices: [{ label: "Yes, ring me for urgent calls", value: "yes" }, { label: "No, let Travis handle them", value: "no" }]
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -290,7 +290,7 @@ export function SetupChat() {
                         choices: [{ label: "Yes, auto-learn", value: "yes" }, { label: "No, keep it fixed", value: "no" }]
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -313,7 +313,7 @@ export function SetupChat() {
                         ]
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -338,13 +338,13 @@ export function SetupChat() {
                         }
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
         setTimeout(() => {
             processStep(choice.value)
-        }, 1000)
+        }, 300)
     }
 
     const handleDraftConfirm = (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => {
@@ -413,7 +413,7 @@ export function SetupChat() {
                         ]
                     }
                 ])
-            }, 1200)
+            }, 600)
             return
         }
 
@@ -455,7 +455,7 @@ export function SetupChat() {
                         }
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -486,7 +486,7 @@ export function SetupChat() {
                         ]
                     }
                 ])
-            }, 800)
+            }, 400)
             return
         }
 
@@ -517,7 +517,7 @@ export function SetupChat() {
         setIsTyping(true)
         setTimeout(() => {
             processStep("DRAFT_CONFIRMED")
-        }, 1000)
+        }, 300)
     }
 
     const runCompleteOnboarding = (finalData: typeof onboardingData) => {
@@ -571,7 +571,7 @@ export function SetupChat() {
                             type: "text"
                         }
                     ])
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 4000)
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2000)
                 }).catch(() => {
                     setMessages(prev => [
                         ...prev,
@@ -582,7 +582,7 @@ export function SetupChat() {
                             type: "text"
                         }
                     ])
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2500)
+                    setTimeout(() => router.push("/dashboard?tutorial=true"), 1500)
                 })
     }
 
@@ -617,7 +617,7 @@ export function SetupChat() {
                         }
                     }
                 ])
-            }, 1200)
+            }, 600)
         }
     }
 

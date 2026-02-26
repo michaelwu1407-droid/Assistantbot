@@ -14,7 +14,8 @@ export function AppInitializer() {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        // Only refresh on critical auth events, not every token refresh
+        if (event === "SIGNED_OUT") {
           router.refresh();
         }
       });
@@ -25,34 +26,37 @@ export function AppInitializer() {
   }, [router]);
 
   useEffect(() => {
-    // Client-side initialization checks
+    // Client-side initialization checks - defer to not block initial render
     const checkClientEnvironment = () => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Use setTimeout to defer execution until after initial render
+      setTimeout(() => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      if (!supabaseUrl || !supabaseKey) {
-        console.error('❌ Client-side Supabase configuration missing:', {
-          url: !!supabaseUrl,
-          key: !!supabaseKey
-        });
-        
-        // In production, show a user-friendly error
-        if (process.env.NODE_ENV === 'production') {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: system-ui;">
-              <div style="text-align: center; max-width: 400px; padding: 20px;">
-                <h1>Service Temporarily Unavailable</h1>
-                <p>We're experiencing technical difficulties. Please try again in a few moments.</p>
-                <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                  Try Again
-                </button>
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('❌ Client-side Supabase configuration missing:', {
+            url: !!supabaseUrl,
+            key: !!supabaseKey
+          });
+          
+          // In production, show a user-friendly error
+          if (process.env.NODE_ENV === 'production') {
+            document.body.innerHTML = `
+              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: system-ui;">
+                <div style="text-align: center; max-width: 400px; padding: 20px;">
+                  <h1>Service Temporarily Unavailable</h1>
+                  <p>We're experiencing technical difficulties. Please try again in a few moments.</p>
+                  <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Try Again
+                  </button>
+                </div>
               </div>
-            </div>
-          `;
+            `;
+          }
+        } else {
+          console.log('✅ Client-side Supabase configuration verified');
         }
-      } else {
-        console.log('✅ Client-side Supabase configuration verified');
-      }
+      }, 0);
     };
 
     // Run checks after component mounts

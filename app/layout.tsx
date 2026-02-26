@@ -46,24 +46,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontSans.variable} antialiased font-sans bg-background text-foreground`}>
+      <body
+        className={`${fontSans.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <AppInitializer />
         <AccessibilityProvider>
           <ClientThemeProvider>
             <IndustryProvider>
-              <PostHogProvider>
-                <ReferralProvider>
-                  {children}
-                  <Footer />
-                  <CommandPalette />
-                  <OfflineBanner />
-                  <ServiceWorkerProvider />
-                  <Toaster />
-                </ReferralProvider>
-              </PostHogProvider>
+              {children}
+              <Footer />
             </IndustryProvider>
           </ClientThemeProvider>
         </AccessibilityProvider>
+        {/* Defer non-critical providers */}
+        <PostHogProvider>
+          <ReferralProvider>
+            <CommandPalette />
+            <OfflineBanner />
+            <ServiceWorkerProvider />
+            <Toaster />
+          </ReferralProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
