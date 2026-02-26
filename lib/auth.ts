@@ -24,11 +24,11 @@ export async function getAuthUserId(): Promise<string> {
     logger.authFlow("Successfully retrieved user ID", { userId: user.id });
     return user.id;
   } catch (error) {
-    if (error.message === "User not authenticated") {
+    if (error instanceof Error && error.message === "User not authenticated") {
       throw error; // Re-throw auth errors
     }
     
-    logger.authError("Unexpected error in getAuthUserId", { error: error.message }, error);
+    logger.authError("Unexpected error in getAuthUserId", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));
     throw new Error("User not authenticated");
   }
 }
@@ -69,11 +69,11 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
 
     return userData;
   } catch (error) {
-    if (error.message === "User not authenticated") {
+    if (error instanceof Error && error.message === "User not authenticated") {
       throw error; // Re-throw auth errors
     }
     
-    logger.authError("Unexpected error in getAuthUser", { error: error.message }, error);
+    logger.authError("Unexpected error in getAuthUser", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));
     throw new Error("User not authenticated");
   }
 }

@@ -3,6 +3,8 @@ import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { getAuthUserId, getAuthUser } from "@/lib/auth";
 import { AuthError } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 export default async function DebugAuthPage() {
   let serverAuth = null;
   let serverError: AuthError | Error | null = null;

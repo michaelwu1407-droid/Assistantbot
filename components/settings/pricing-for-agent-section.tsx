@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { DollarSign, Plus } from "lucide-react"
-import { updateWorkspaceSettings } from "@/actions/settings-actions"
+import { updateWorkspaceSettings, getWorkspaceSettings } from "@/actions/settings-actions"
 import { toast } from "sonner"
 
 interface PricingForAgentSectionProps {
@@ -26,8 +26,36 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   const handleSave = async () => {
     setSaving(true)
     try {
+      const currentSettings = await getWorkspaceSettings()
+      if (!currentSettings) {
+        toast.error("Failed to get current settings")
+        return
+      }
+      
       await updateWorkspaceSettings({
+        agentMode: currentSettings.agentMode || "EXECUTE",
+        workingHoursStart: currentSettings.workingHoursStart || "09:00",
+        workingHoursEnd: currentSettings.workingHoursEnd || "17:00",
+        agendaNotifyTime: currentSettings.agendaNotifyTime || "09:00",
+        wrapupNotifyTime: currentSettings.wrapupNotifyTime || "17:00",
+        aiPreferences: currentSettings.aiPreferences || undefined,
+        autoUpdateGlossary: currentSettings.autoUpdateGlossary,
         callOutFee: parseFloat(callOutFee) || 0,
+        jobReminderHours: currentSettings.jobReminderHours || undefined,
+        enableJobReminders: currentSettings.enableJobReminders,
+        enableTripSms: currentSettings.enableTripSms,
+        agentScriptStyle: currentSettings.agentScriptStyle as "opening" | "closing" | undefined,
+        agentBusinessName: currentSettings.agentBusinessName || undefined,
+        agentOpeningMessage: currentSettings.agentOpeningMessage || undefined,
+        agentClosingMessage: currentSettings.agentClosingMessage || undefined,
+        textAllowedStart: currentSettings.textAllowedStart || undefined,
+        textAllowedEnd: currentSettings.textAllowedEnd || undefined,
+        callAllowedStart: currentSettings.callAllowedStart || undefined,
+        callAllowedEnd: currentSettings.callAllowedEnd || undefined,
+        softChase: currentSettings.softChase || undefined,
+        invoiceFollowUp: currentSettings.invoiceFollowUp || undefined,
+        inboundEmailAlias: currentSettings.inboundEmailAlias,
+        autoCallLeads: currentSettings.autoCallLeads,
       })
       toast.success("Pricing saved")
     } catch {

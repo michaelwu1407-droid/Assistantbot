@@ -224,7 +224,7 @@ function DealDetailContent({
         <div className="bg-red-50 border-b border-red-200 p-3 shrink-0 flex items-center gap-2 text-red-800 text-sm">
           <span className="flex h-2 w-2 rounded-full bg-red-500" />
           <strong>Completion was rejected.</strong>
-          {metadata.completionRejectionReason && (
+          {metadata.completionRejectionReason != null && (
             <span className="text-red-700">Reason: {String(metadata.completionRejectionReason)}</span>
           )}
           <span>Edit the job and move it back to Completed when ready, or a manager can approve from here if it’s pending again.</span>

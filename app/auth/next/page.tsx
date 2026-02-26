@@ -8,6 +8,8 @@ import { logger } from "@/lib/logging";
  * - Active subscription → dashboard
  * - No active subscription (including former users who stopped paying) → billing
  */
+export const dynamic = 'force-dynamic';
+
 export default async function AuthNextPage() {
     logger.authFlow("Auth next page - starting flow", { action: "auth_next_page" });
 

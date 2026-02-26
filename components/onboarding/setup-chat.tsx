@@ -326,7 +326,6 @@ export function SetupChat() {
                         role: "assistant",
                         content: "Optional: Add a public phone or email for customers (so Travis can give it out). You can skip and add this later in Settings.",
                         type: "draft-card",
-                        content: "",
                         draftCard: {
                             kind: "onboarding_business_contact",
                             fields: [

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Clock } from "lucide-react"
-import { updateWorkspaceSettings } from "@/actions/settings-actions"
+import { updateWorkspaceSettings, getWorkspaceSettings } from "@/actions/settings-actions"
 import { toast } from "sonner"
 
 interface WorkingHoursFormProps {
@@ -30,11 +30,36 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
   const handleSave = async () => {
     setSaving(true)
     try {
+      const currentSettings = await getWorkspaceSettings()
+      if (!currentSettings) {
+        toast.error("Failed to get current settings")
+        return
+      }
+      
       await updateWorkspaceSettings({
+        agentMode: currentSettings.agentMode || "EXECUTE",
         workingHoursStart: start,
         workingHoursEnd: end,
         agendaNotifyTime: agendaTime,
         wrapupNotifyTime: wrapupTime,
+        aiPreferences: currentSettings.aiPreferences || undefined,
+        autoUpdateGlossary: currentSettings.autoUpdateGlossary,
+        callOutFee: currentSettings.callOutFee,
+        jobReminderHours: currentSettings.jobReminderHours || undefined,
+        enableJobReminders: currentSettings.enableJobReminders,
+        enableTripSms: currentSettings.enableTripSms,
+        agentScriptStyle: currentSettings.agentScriptStyle as "opening" | "closing" | undefined,
+        agentBusinessName: currentSettings.agentBusinessName || undefined,
+        agentOpeningMessage: currentSettings.agentOpeningMessage || undefined,
+        agentClosingMessage: currentSettings.agentClosingMessage || undefined,
+        textAllowedStart: currentSettings.textAllowedStart || undefined,
+        textAllowedEnd: currentSettings.textAllowedEnd || undefined,
+        callAllowedStart: currentSettings.callAllowedStart || undefined,
+        callAllowedEnd: currentSettings.callAllowedEnd || undefined,
+        softChase: currentSettings.softChase || undefined,
+        invoiceFollowUp: currentSettings.invoiceFollowUp || undefined,
+        inboundEmailAlias: currentSettings.inboundEmailAlias,
+        autoCallLeads: currentSettings.autoCallLeads,
       })
       toast.success("Working hours saved")
     } catch {
