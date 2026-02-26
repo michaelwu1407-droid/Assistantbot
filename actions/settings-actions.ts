@@ -1,16 +1,19 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { getAuthUser } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
 
+async function getWorkspaceId(): Promise<string> {
+    const userId = await getAuthUserId()
+    const workspace = await getOrCreateWorkspace(userId)
+    return workspace.id
+}
+
 export async function getWorkspaceSettings() {
-    const authUser = await getAuthUser()
-    if (!authUser || !authUser.email) throw new Error("Unauthorized")
-    const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
-    if (!user) throw new Error("Unauthorized")
-    const workspaceId = user.workspaceId
+    const workspaceId = await getWorkspaceId()
 
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
@@ -40,6 +43,8 @@ export async function getWorkspaceSettings() {
         ...base,
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",
+        agentOpeningMessage: (s.agentOpeningMessage as string) ?? "",
+        agentClosingMessage: (s.agentClosingMessage as string) ?? "",
         textAllowedStart: (s.textAllowedStart as string) ?? "08:00",
         textAllowedEnd: (s.textAllowedEnd as string) ?? "20:00",
         callAllowedStart: (s.callAllowedStart as string) ?? "08:00",
@@ -63,6 +68,8 @@ export async function updateWorkspaceSettings(input: {
     enableTripSms?: boolean
     agentScriptStyle?: "opening" | "closing"
     agentBusinessName?: string
+    agentOpeningMessage?: string
+    agentClosingMessage?: string
     textAllowedStart?: string
     textAllowedEnd?: string
     callAllowedStart?: string
@@ -72,14 +79,10 @@ export async function updateWorkspaceSettings(input: {
     inboundEmailAlias?: string | null
     autoCallLeads?: boolean
 }) {
-    const authUser = await getAuthUser()
-    if (!authUser || !authUser.email) throw new Error("Unauthorized")
-    const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
-    if (!user) throw new Error("Unauthorized")
-    const workspaceId = user.workspaceId
+    const workspaceId = await getWorkspaceId()
 
     const settingsKeys = [
-        "agentScriptStyle", "agentBusinessName",
+        "agentScriptStyle", "agentBusinessName", "agentOpeningMessage", "agentClosingMessage",
         "textAllowedStart", "textAllowedEnd", "callAllowedStart", "callAllowedEnd",
         "softChase", "invoiceFollowUp",
     ] as const
@@ -162,6 +165,8 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         ...base,
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",
+        agentOpeningMessage: (s.agentOpeningMessage as string) ?? "",
+        agentClosingMessage: (s.agentClosingMessage as string) ?? "",
         textAllowedStart: (s.textAllowedStart as string) ?? "08:00",
         textAllowedEnd: (s.textAllowedEnd as string) ?? "20:00",
         callAllowedStart: (s.callAllowedStart as string) ?? "08:00",
@@ -171,12 +176,33 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
     }
 }
 
+export async function getBusinessContact(): Promise<{ phone?: string; email?: string; address?: string } | null> {
+    let workspaceId: string
+    try {
+        workspaceId = await getWorkspaceId()
+    } catch {
+        return null
+    }
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { settings: true } })
+    const s = (workspace?.settings as Record<string, unknown>) ?? {}
+    return (s.businessContact as { phone?: string; email?: string; address?: string }) ?? null
+}
+
+export async function updateBusinessContact(data: { phone?: string; email?: string; address?: string }) {
+    const workspaceId = await getWorkspaceId()
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { settings: true } })
+    const current = (workspace?.settings as Record<string, unknown>) ?? {}
+    const businessContact = { ...(current.businessContact as Record<string, string> || {}), ...data }
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: { settings: { ...current, businessContact } },
+    })
+    revalidatePath("/dashboard/settings/my-business")
+    return { success: true }
+}
+
 export async function getOrAllocateInboundEmail() {
-    const authUser = await getAuthUser()
-    if (!authUser || !authUser.email) throw new Error("Unauthorized")
-    const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
-    if (!user) throw new Error("Unauthorized")
-    const workspaceId = user.workspaceId
+    const workspaceId = await getWorkspaceId()
 
     let workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { inboundEmail: true } })
     if (!workspace) throw new Error("Workspace not found")
@@ -198,11 +224,7 @@ const INBOUND_LEAD_DOMAIN = process.env.INBOUND_LEAD_DOMAIN ?? "inbound.earlymar
 
 /** Get or allocate the lead-capture forwarding address [alias]@inbound.earlymark.ai for "Lead Won" emails. */
 export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
-    const authUser = await getAuthUser()
-    if (!authUser || !authUser.email) throw new Error("Unauthorized")
-    const user = await db.user.findFirst({ where: { email: authUser.email }, select: { workspaceId: true } })
-    if (!user) throw new Error("Unauthorized")
-    const workspaceId = user.workspaceId
+    const workspaceId = await getWorkspaceId()
 
     let workspace = await db.workspace.findUnique({
         where: { id: workspaceId },

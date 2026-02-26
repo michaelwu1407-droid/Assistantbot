@@ -1,8 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export function AppInitializer() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // When user logs in/out in another browser or tab, refresh so this tab stays in sync
+    try {
+      const supabase = getSupabaseClient();
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+          router.refresh();
+        }
+      });
+      return () => subscription.unsubscribe();
+    } catch (err) {
+      console.warn("[Auth] Listener setup failed:", (err as Error)?.message ?? err);
+    }
+  }, [router]);
+
   useEffect(() => {
     // Client-side initialization checks
     const checkClientEnvironment = () => {

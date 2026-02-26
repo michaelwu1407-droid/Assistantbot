@@ -216,7 +216,9 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
-  // 1. Smart Deduplication Check
+  // 1. Smart Deduplication Check: only reuse by email/phone when the name matches.
+  // Otherwise multiple jobs with different client names but same phone would all
+  // attach to one contact and show the last name (e.g. all cards showing "John").
   const existingContact = await db.contact.findFirst({
     where: {
       workspaceId: parsed.data.workspaceId,
@@ -227,7 +229,11 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     },
   });
 
-  if (existingContact) {
+  const nameMatches =
+    existingContact &&
+    parsed.data.name.trim().toLowerCase() === existingContact.name.trim().toLowerCase();
+
+  if (existingContact && nameMatches) {
     const existingMeta = (existingContact.metadata as Record<string, unknown>) ?? {};
     await db.contact.update({
       where: { id: existingContact.id },

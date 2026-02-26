@@ -199,10 +199,13 @@ export default function IntegrationsPage() {
                             Google Calendar
                         </CardTitle>
                         <CardDescription>
-                            Sync your schedule to view external appointments alongside your jobs.
+                            Two-way sync so jobs appear in your Google Calendar. [To be built]
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-200 mb-4">
+                            Calendar sync is coming soon. You will be able to connect Google Calendar and see last sync time here.
+                        </div>
                         <div className="flex items-center gap-4">
                             <div className="bg-slate-100 p-4 rounded-full">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="h-8 w-8" />

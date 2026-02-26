@@ -1,8 +1,10 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
+import { getAuthUser } from "@/lib/auth";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -106,6 +108,36 @@ export async function getOrCreateWorkspace(
       },
     });
 
+    // Ensure the workspace owner has a User row so they appear in team and kanban filter
+    try {
+      const authUser = await getAuthUser();
+      if (authUser?.email && ownerId) {
+        const existingUser = await db.user.findUnique({
+          where: { email: authUser.email },
+          select: { id: true },
+        });
+        if (!existingUser) {
+          await db.user.create({
+            data: {
+              email: authUser.email,
+              name: authUser.name || null,
+              workspaceId: workspace.id,
+              role: "OWNER",
+            },
+          });
+          logger.authFlow("Created owner User row for new workspace", {
+            workspaceId: workspace.id,
+            email: authUser.email,
+          });
+        }
+      }
+    } catch (ownerUserError) {
+      logger.workspaceError("Failed to ensure owner User row (non-fatal)", {
+        workspaceId: workspace.id,
+        error: ownerUserError instanceof Error ? ownerUserError.message : String(ownerUserError),
+      });
+    }
+
     logger.authFlow("Successfully created new workspace", { 
       workspaceId: workspace.id,
       ownerId: workspace.ownerId,
@@ -139,6 +171,42 @@ export async function getOrCreateWorkspace(
     }, errorObj);
     
     throw errorObj;
+  }
+}
+
+/**
+ * Ensure the workspace owner has a User row (for existing workspaces created before owner sync).
+ * Call this after getOrCreateWorkspace so the dashboard team list and kanban filter include the owner.
+ */
+export async function ensureOwnerHasUserRow(workspace: WorkspaceView): Promise<void> {
+  if (!workspace.ownerId) return;
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser?.email || authUser.id !== workspace.ownerId) return;
+
+    const existing = await db.user.findUnique({
+      where: { email: authUser.email },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    await db.user.create({
+      data: {
+        email: authUser.email,
+        name: authUser.name || null,
+        workspaceId: workspace.id,
+        role: "OWNER",
+      },
+    });
+    logger.authFlow("Created owner User row for existing workspace", {
+      workspaceId: workspace.id,
+      email: authUser.email,
+    });
+  } catch (e) {
+    logger.workspaceError("ensureOwnerHasUserRow failed (non-fatal)", {
+      workspaceId: workspace.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 
@@ -259,6 +327,18 @@ export async function completeOnboarding(data: {
   emergencyService?: boolean;
   callOutFee?: number;
   pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
+  // Agent & workspace behaviour (from extended onboarding)
+  agentMode?: "EXECUTE" | "ORGANIZE" | "FILTER";
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
+  agendaNotifyTime?: string;
+  wrapupNotifyTime?: string;
+  autoUpdateGlossary?: boolean;
+  autoCallLeads?: boolean;
+  businessContact?: { phone?: string; email?: string; address?: string };
+  leadSources?: string[];
+  emergencyBypass?: boolean;
+  digestPreference?: "immediate" | "daily" | "weekly";
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -270,8 +350,34 @@ export async function completeOnboarding(data: {
 
   const workspace = await getOrCreateWorkspace(userId);
 
+  logger.info("Onboarding completing", {
+    action: "completeOnboarding",
+    workspaceId: workspace.id,
+    userId,
+    hasAgentMode: !!data.agentMode,
+    hasWorkingHours: !!(data.workingHoursStart && data.workingHoursEnd),
+    hasPricing: data.callOutFee !== undefined || !!data.pricingMode,
+    leadSourcesCount: data.leadSources?.length ?? 0,
+    autoCallLeads: data.autoCallLeads,
+    emergencyBypass: data.emergencyBypass,
+    autoUpdateGlossary: data.autoUpdateGlossary,
+    digestPreference: data.digestPreference,
+    hasBusinessContact: !!(data.businessContact && (data.businessContact.phone || data.businessContact.email)),
+  });
+
   // Map industry to workspace type (always TRADIE now)
   const type = "TRADIE";
+
+  const existing = await db.workspace.findUnique({
+    where: { id: workspace.id },
+    select: { settings: true },
+  });
+  const currentSettings = (existing?.settings as Record<string, unknown>) ?? {};
+  const settingsUpdate: Record<string, unknown> = { ...currentSettings };
+  if (data.businessContact) settingsUpdate.businessContact = data.businessContact;
+  if (data.leadSources !== undefined) settingsUpdate.leadSources = data.leadSources;
+  if (data.emergencyBypass !== undefined) settingsUpdate.emergencyBypass = data.emergencyBypass;
+  if (data.digestPreference) settingsUpdate.digestPreference = data.digestPreference;
 
   // Persist onboarding data immediately (don't block on comms provisioning)
   await db.workspace.update({
@@ -282,6 +388,15 @@ export async function completeOnboarding(data: {
       industryType: data.industryType,
       location: data.location,
       onboardingComplete: true,
+      ...(data.agentMode && { agentMode: data.agentMode }),
+      ...(data.workingHoursStart && { workingHoursStart: data.workingHoursStart }),
+      ...(data.workingHoursEnd && { workingHoursEnd: data.workingHoursEnd }),
+      ...(data.agendaNotifyTime && { agendaNotifyTime: data.agendaNotifyTime }),
+      ...(data.wrapupNotifyTime && { wrapupNotifyTime: data.wrapupNotifyTime }),
+      ...(data.autoUpdateGlossary !== undefined && { autoUpdateGlossary: data.autoUpdateGlossary }),
+      ...(data.autoCallLeads !== undefined && { autoCallLeads: data.autoCallLeads }),
+      ...(data.callOutFee !== undefined && { callOutFee: data.callOutFee }),
+      ...(Object.keys(settingsUpdate).length > 0 && { settings: settingsUpdate as Prisma.JsonObject }),
     },
   });
 
@@ -324,31 +439,50 @@ export async function completeOnboarding(data: {
   });
 
   // For Tradies: provision dedicated phone number, SIP trunk, and Retell voice agent.
-  // This runs async and logs errors to activity feed for visibility
-  const { initializeTradieComms } = await import("@/lib/comms");
-  initializeTradieComms(
-    workspace.id,
-    data.businessName,
-    data.ownerPhone || ""
-  ).catch(async (err) => {
-    console.error("[completeOnboarding] Comms provisioning failed:", err);
-    
-    // Log the failure to activity feed so user can see it
+  // We await so we can tell the user their number (or that setup failed) before redirecting.
+  let phoneNumber: string | undefined;
+  let provisioningError: string | undefined;
+  try {
+    const { initializeTradieComms } = await import("@/lib/comms");
+    const result = await initializeTradieComms(
+      workspace.id,
+      data.businessName,
+      data.ownerPhone || ""
+    );
+    if (result.success && result.phoneNumber) {
+      phoneNumber = result.phoneNumber;
+    } else if (!result.success && result.error) {
+      provisioningError = result.error;
+      logger.error("Comms provisioning failed during onboarding", { workspaceId: workspace.id, error: result.error });
+      try {
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Phone Number Setup Failed",
+            content: `AI agent phone number setup failed: ${result.error}. You can add a number later in Settings → Phone.`,
+          },
+        });
+      } catch (logErr) {
+        logger.error("Failed to log error to activity feed", { workspaceId: workspace.id }, logErr instanceof Error ? logErr : undefined);
+      }
+    }
+  } catch (err) {
+    provisioningError = err instanceof Error ? err.message : "Unknown error";
+    logger.error("Comms provisioning failed during onboarding", { workspaceId: workspace.id, error: provisioningError }, err instanceof Error ? err : undefined);
     try {
-      const { db } = await import("@/lib/db");
       await db.activity.create({
         data: {
           type: "NOTE",
           title: "Phone Number Setup Failed",
-          content: `AI agent phone number setup failed: ${err instanceof Error ? err.message : "Unknown error"}. Please contact support or try setting up manually in settings.`,
+          content: `AI agent phone number setup failed: ${provisioningError}. You can add a number later in Settings → Phone.`,
         },
       });
     } catch (logErr) {
-      console.error("[completeOnboarding] Failed to log error to activity feed:", logErr);
+      logger.error("Failed to log error to activity feed", { workspaceId: workspace.id }, logErr instanceof Error ? logErr : undefined);
     }
-  });
+  }
 
-  return { success: true, workspaceId: workspace.id };
+  return { success: true, workspaceId: workspace.id, phoneNumber, provisioningError };
 }
 
 /**

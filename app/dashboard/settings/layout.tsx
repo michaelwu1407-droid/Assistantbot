@@ -3,83 +3,66 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { AlertTriangle } from "lucide-react"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
 }
 
-const sidebarNavItems = [
+const sidebarNavSections: { label?: string; items: { title: string; href: string }[] }[] = [
     {
-        title: "Profile",
-        href: "/dashboard/settings",
+        items: [
+            { title: "Account", href: "/dashboard/settings" },
+        ],
     },
     {
-        title: "Help",
-        href: "/dashboard/settings/help",
+        items: [
+            { title: "My business", href: "/dashboard/settings/my-business" },
+        ],
     },
     {
-        title: "Phone Settings",
-        href: "/dashboard/settings/phone-settings",
+        items: [
+            { title: "Automated calling & texting", href: "/dashboard/settings/call-settings" },
+        ],
     },
     {
-        title: "Support",
-        href: "/dashboard/settings/support",
+        items: [
+            { title: "AI Assistant", href: "/dashboard/settings/agent" },
+        ],
     },
     {
-        title: "Account",
-        href: "/dashboard/settings/account",
+        items: [
+            { title: "Integrations", href: "/dashboard/settings/integrations" },
+        ],
     },
     {
-        title: "Billing",
-        href: "/dashboard/settings/billing",
+        items: [
+            { title: "Notifications", href: "/dashboard/settings/notifications" },
+        ],
     },
     {
-        title: "Notifications",
-        href: "/dashboard/settings/notifications",
+        items: [
+            { title: "Billing", href: "/dashboard/settings/billing" },
+        ],
     },
     {
-        title: "Workspace",
-        href: "/dashboard/settings/workspace",
+        items: [
+            { title: "Display", href: "/dashboard/settings/display" },
+        ],
     },
     {
-        title: "Display",
-        href: "/dashboard/settings/display",
+        label: "Other",
+        items: [
+            { title: "Data & Privacy", href: "/dashboard/settings/privacy" },
+        ],
     },
     {
-        title: "One-Tap Messages",
-        href: "/dashboard/settings/sms-templates",
+        items: [
+            { title: "Help", href: "/dashboard/settings/help" },
+        ],
     },
-    {
-        title: "Automations",
-        href: "/dashboard/settings/automations",
-    },
-    {
-        title: "Integrations",
-        href: "/dashboard/settings/integrations",
-    },
-    {
-        title: "AI Voice Agent",
-        href: "/dashboard/settings/ai-voice",
-    },
-    {
-        title: "Agent Capabilities",
-        href: "/dashboard/settings/agent",
-    },
-    {
-        title: "Repair Glossary",
-        href: "/dashboard/settings/glossary",
-    }
 ]
 
-interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
-    items: {
-        href: string
-        title: string
-    }[]
-}
-
-function SidebarNav({ className, items, ...props }: SidebarNavProps) {
+function SidebarNav({ className, ...props }: { className?: string } & React.HTMLAttributes<HTMLElement>) {
     const pathname = usePathname()
 
     return (
@@ -90,20 +73,29 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
             )}
             {...props}
         >
-            {items.map((item) => (
-                <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                        "justify-start text-left whitespace-nowrap",
-                        pathname === item.href
-                            ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                            : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 text-slate-500",
-                        "inline-flex h-10 items-center rounded-xl px-4 py-2 text-sm transition-colors"
+            {sidebarNavSections.map((section, si) => (
+                <div key={si} className="lg:space-y-1">
+                    {section.label && (
+                        <p className="hidden lg:block px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            {section.label}
+                        </p>
                     )}
-                >
-                    {item.title}
-                </Link>
+                    {section.items.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "justify-start text-left whitespace-nowrap",
+                                pathname === item.href
+                                    ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                    : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 text-slate-500",
+                                "inline-flex h-10 items-center rounded-xl px-4 py-2 text-sm transition-colors"
+                            )}
+                        >
+                            {item.title}
+                        </Link>
+                    ))}
+                </div>
             ))}
         </nav>
     )
@@ -112,23 +104,16 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
     return (
         <div className="space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
-            {/* WIP Banner */}
-            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
-                <p className="text-sm font-medium">
-                    Settings is a work in progress (WIP). Some options may not be fully functional yet.
-                </p>
-            </div>
             <div className="space-y-1.5">
                 <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h2>
                 <p className="text-slate-500 text-sm">
-                    Manage your CRM preferences, team structures, and AI agent configuration.
+                    Manage your account, business, AI agent, and preferences.
                 </p>
             </div>
             <div className="my-6 border-t border-slate-200 dark:border-slate-800" />
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-                <aside className="w-full lg:w-[250px] shrink-0">
-                    <SidebarNav items={sidebarNavItems} />
+                <aside className="w-full lg:w-[260px] shrink-0">
+                    <SidebarNav />
                 </aside>
                 <div className="flex-1 min-w-0 max-w-full lg:max-w-3xl border-slate-100 dark:border-slate-800 lg:border-l lg:pl-10">
                     {children}

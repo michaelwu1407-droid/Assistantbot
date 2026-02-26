@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, MessageSquare, Loader2, Bot, Pencil } from "lucide-react"
+import { Mail, MessageSquare, Loader2, Bot, Pencil, Bell } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -138,6 +139,103 @@ export default function NotificationsSettingsPage() {
             <Separator />
 
             <div className="space-y-4">
+                {/* Push Notifications */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Bell className="h-5 w-5" />
+                            Push notifications
+                        </CardTitle>
+                        <CardDescription>
+                            Browser and mobile alerts. Use your browser or device settings to allow notifications.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label>Browser notifications</Label>
+                            <Switch defaultChecked />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            For mobile push (e.g. OneSignal), integration can be added in a future update.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* Digest */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Digest settings</CardTitle>
+                        <CardDescription>
+                            Batch notifications into immediate, daily, or weekly summaries.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <RadioGroup defaultValue="daily" className="flex flex-col gap-2">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="immediate" id="digest-immediate" />
+                                <Label htmlFor="digest-immediate">Immediate</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="daily" id="digest-daily" />
+                                <Label htmlFor="digest-daily">Daily digest</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="weekly" id="digest-weekly" />
+                                <Label htmlFor="digest-weekly">Weekly summary</Label>
+                            </div>
+                        </RadioGroup>
+                    </CardContent>
+                </Card>
+
+                {/* Quiet Hours */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Quiet hours</CardTitle>
+                        <CardDescription>
+                            Do-not-disturb schedule. Urgent exceptions can still notify.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Start</Label>
+                                <Input type="time" defaultValue="22:00" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>End</Label>
+                                <Input type="time" defaultValue="07:00" />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Weekends only</Label>
+                            <Switch />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Allow urgent exceptions</Label>
+                            <Switch defaultChecked />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* SMS Alerts */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>SMS alerts</CardTitle>
+                        <CardDescription>
+                            Time-sensitive alerts via text. Uses your personal phone from Account settings.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label>Urgent-only SMS</Label>
+                            <Switch defaultChecked />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Number is set in Account → Personal phone. Cost tracking can be added in a future update.
+                        </p>
+                    </CardContent>
+                </Card>
+
                 {/* Automated Communication Rules */}
                 <Card>
                     <CardHeader>

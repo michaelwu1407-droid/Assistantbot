@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { Shell } from '@/components/layout/Shell';
 import { ChatInterface } from "@/components/chatbot/chat-interface";
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
@@ -28,6 +29,9 @@ export default async function DashboardLayout({
     tutorialComplete = workspace.tutorialComplete;
   } catch (error) {
     console.error("Layout failed to fetch workspace:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    const isConnectionError = /fetch|network|supabase|ECONNREFUSED|ETIMEDOUT/i.test(msg);
+    redirect(isConnectionError ? "/auth?error=connection" : "/auth");
   }
 
   return (

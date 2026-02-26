@@ -1,9 +1,13 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { createClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import { getDealHealth, type DealHealth } from "@/lib/pipeline";
 import { evaluateAutomations } from "./automation-actions";
+import { createNotification } from "./notification-actions";
 import { getAuthUser } from "@/lib/auth";
 import { MonitoringService } from "@/lib/monitoring";
 
@@ -17,6 +21,7 @@ const STAGE_MAP: Record<string, string> = {
   SCHEDULED: "scheduled",
   PIPELINE: "pipeline",
   INVOICED: "ready_to_invoice",
+  PENDING_COMPLETION: "pending_approval",
   WON: "completed",
   LOST: "lost",
   DELETED: "deleted",
@@ -29,6 +34,7 @@ const STAGE_REVERSE: Record<string, string> = {
   scheduled: "SCHEDULED",
   pipeline: "PIPELINE",
   ready_to_invoice: "INVOICED",
+  pending_approval: "PENDING_COMPLETION",
   completed: "WON",
   lost: "LOST",
   deleted: "DELETED",
@@ -42,10 +48,13 @@ const STAGE_ACTIVITY_LABELS: Record<string, string> = {
   scheduled: "Scheduled",
   pipeline: "Pipeline",
   ready_to_invoice: "Ready to invoice",
+  pending_approval: "Pending approval",
   completed: "Completed",
   lost: "Lost",
   deleted: "Deleted jobs",
 };
+
+type PrismaStage = "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "PENDING_COMPLETION" | "WON" | "LOST" | "DELETED";
 
 export interface DealView {
   id: string;
@@ -95,6 +104,7 @@ const CreateDealSchema = z.object({
   longitude: z.number().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   scheduledAt: z.union([z.coerce.date(), z.string().transform((s) => new Date(s))]).optional(),
+  assignedToId: z.string().optional().nullable(),
 });
 
 const UpdateStageSchema = z.object({
@@ -204,15 +214,20 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { title, value, stage, contactId, workspaceId, address, latitude, longitude, metadata, scheduledAt } = parsed.data;
+  const { title, value, stage, contactId, workspaceId, address, latitude, longitude, metadata, scheduledAt, assignedToId } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
+
+  if (prismaStage === "SCHEDULED" && !assignedToId) {
+    return { success: false, error: "Assign a team member when creating a job in Scheduled stage." };
+  }
 
   const deal = await db.deal.create({
     data: {
       title,
       value,
-      stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST",
+      stage: prismaStage as PrismaStage,
       contactId,
+      assignedToId: assignedToId || null,
       workspaceId,
       address,
       latitude: latitude ?? undefined,
@@ -245,6 +260,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
 
 /**
  * Persist a Kanban drag-and-drop stage change.
+ * When a team member moves to Completed, the deal goes to PENDING_COMPLETION until a manager approves.
  */
 export async function updateDealStage(dealId: string, stage: string) {
   try {
@@ -253,22 +269,100 @@ export async function updateDealStage(dealId: string, stage: string) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const prismaStage = STAGE_REVERSE[parsed.data.stage];
+    let prismaStage = STAGE_REVERSE[parsed.data.stage];
     if (!prismaStage) {
       return { success: false, error: `Invalid stage: ${stage}` };
     }
 
-    // Save previous stage for undo support
     const currentDeal = await db.deal.findUnique({
       where: { id: parsed.data.dealId },
-      select: { stage: true, metadata: true },
+      select: { stage: true, metadata: true, workspaceId: true, contactId: true, assignedToId: true },
     });
-    const currentMeta = (currentDeal?.metadata as Record<string, unknown>) ?? {};
+    if (!currentDeal) return { success: false, error: "Deal not found" };
+    const currentMeta = (currentDeal.metadata as Record<string, unknown>) ?? {};
+
+    // Cannot move to Scheduled without an assigned team member
+    if (prismaStage === "SCHEDULED" && !currentDeal.assignedToId) {
+      return { success: false, error: "Assign a team member before moving to Scheduled." };
+    }
+
+    // Team members moving to Completed go to Pending approval; only managers/owners can set WON directly
+    if (prismaStage === "WON") {
+      let userRole: string = "TEAM_MEMBER";
+      try {
+        const auth = await getAuthUser();
+        if (auth?.email) {
+          const dbUser = await db.user.findFirst({
+            where: { workspaceId: currentDeal.workspaceId, email: auth.email },
+            select: { id: true, role: true },
+          });
+          if (dbUser) userRole = dbUser.role;
+        }
+      } catch {
+        userRole = "TEAM_MEMBER";
+      }
+      if (userRole === "TEAM_MEMBER") {
+        prismaStage = "PENDING_COMPLETION";
+        const meta = {
+          ...currentMeta,
+          previousStage: currentDeal.stage ?? "NEW",
+          completionRequestedAt: new Date().toISOString(),
+        } as Record<string, unknown>;
+        try {
+          const auth = await getAuthUser();
+          if (auth?.email) {
+            const dbUser = await db.user.findFirst({
+              where: { workspaceId: currentDeal.workspaceId, email: auth.email },
+              select: { id: true },
+            });
+            if (dbUser) meta.completionRequestedBy = dbUser.id;
+          }
+        } catch {
+          // leave completionRequestedBy unset
+        }
+        const deal = await db.deal.update({
+          where: { id: parsed.data.dealId },
+          data: {
+            stage: "PENDING_COMPLETION",
+            stageChangedAt: new Date(),
+            metadata: JSON.parse(JSON.stringify(meta)),
+          },
+        });
+        const stageLabel = STAGE_ACTIVITY_LABELS.pending_approval ?? "Pending approval";
+        let userName = "Someone";
+        let userId: string | undefined;
+        try {
+          const auth = await getAuthUser();
+          userName = auth.name;
+          const dbUser = await db.user.findFirst({
+            where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+            select: { id: true },
+          });
+          if (dbUser) userId = dbUser.id;
+        } catch {
+          //
+        }
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: `Moved to ${stageLabel}`,
+            content: "Awaiting manager approval to mark as completed.",
+            description: `— ${userName}`,
+            dealId: parsed.data.dealId,
+            contactId: currentDeal.contactId ?? undefined,
+            ...(userId && { userId }),
+          },
+        });
+        revalidatePath("/dashboard");
+        revalidatePath("/dashboard/deals");
+        return { success: true };
+      }
+    }
 
     const deal = await db.deal.update({
       where: { id: parsed.data.dealId },
       data: {
-        stage: prismaStage as "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "WON" | "LOST" | "DELETED",
+        stage: prismaStage as PrismaStage,
         stageChangedAt: new Date(),
         metadata: JSON.parse(JSON.stringify({ ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" })),
       },
@@ -322,6 +416,153 @@ export async function updateDealStage(dealId: string, stage: string) {
 }
 
 /**
+ * Manager/owner approves a completion request (deal in PENDING_COMPLETION). Moves to WON and clears pending metadata.
+ */
+export async function approveCompletion(dealId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const auth = await getAuthUser();
+    if (!auth?.email) return { success: false, error: "Not signed in." };
+    const actor = await db.user.findFirst({
+      where: { email: auth.email },
+      select: { id: true, role: true, workspaceId: true },
+    });
+    if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER"))
+      return { success: false, error: "Only a team manager or owner can approve completions." };
+
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { id: true, stage: true, workspaceId: true, metadata: true, contactId: true },
+    });
+    if (!deal) return { success: false, error: "Deal not found." };
+    if (deal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
+    if (deal.stage !== "PENDING_COMPLETION") return { success: false, error: "This job is not pending approval." };
+
+    const meta = (deal.metadata as Record<string, unknown>) ?? {};
+    const requestedBy = meta.completionRequestedBy as string | undefined;
+
+    await db.deal.update({
+      where: { id: dealId },
+      data: {
+        stage: "WON",
+        stageChangedAt: new Date(),
+        metadata: JSON.parse(
+          JSON.stringify(
+            Object.fromEntries(
+              Object.entries(meta).filter(
+                (k) => !["completionRequestedBy", "completionRequestedAt", "previousStage"].includes(k[0])
+              )
+            )
+          )
+        ),
+      },
+    });
+
+    let userName = auth.name;
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Completion approved",
+        content: "Manager approved and job marked as completed.",
+        description: `— ${userName}`,
+        dealId,
+        contactId: deal.contactId ?? undefined,
+        userId: actor.id,
+      },
+    });
+
+    if (requestedBy && requestedBy !== actor.id) {
+      await createNotification({
+        userId: requestedBy,
+        title: "Completion approved",
+        message: `Your request to mark a job as completed was approved.`,
+        type: "SUCCESS",
+        link: `/dashboard/deals`,
+      });
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/deals");
+    return { success: true };
+  } catch (err) {
+    console.error("approveCompletion error:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to approve." };
+  }
+}
+
+/**
+ * Manager/owner rejects a completion request. Reverts deal to previous stage and notifies the requester.
+ */
+export async function rejectCompletion(dealId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const auth = await getAuthUser();
+    if (!auth?.email) return { success: false, error: "Not signed in." };
+    const actor = await db.user.findFirst({
+      where: { email: auth.email },
+      select: { id: true, name: true, role: true, workspaceId: true },
+    });
+    if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER"))
+      return { success: false, error: "Only a team manager or owner can reject completions." };
+
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { id: true, stage: true, workspaceId: true, metadata: true, contactId: true },
+    });
+    if (!deal) return { success: false, error: "Deal not found." };
+    if (deal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
+    if (deal.stage !== "PENDING_COMPLETION") return { success: false, error: "This job is not pending approval." };
+
+    const meta = (deal.metadata as Record<string, unknown>) ?? {};
+    const previousStage = (meta.previousStage as string) || "INVOICED";
+    const requestedBy = meta.completionRequestedBy as string | undefined;
+
+    await db.deal.update({
+      where: { id: dealId },
+      data: {
+        stage: previousStage as PrismaStage,
+        stageChangedAt: new Date(),
+        metadata: JSON.parse(
+          JSON.stringify({
+            ...meta,
+            completionRejectedBy: actor.id,
+            completionRejectedAt: new Date().toISOString(),
+            completionRejectionReason: reason?.trim() || null,
+          })
+        ),
+      },
+    });
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Completion rejected",
+        content: reason?.trim() ? `Manager rejected: ${reason}` : "Manager rejected the completion request.",
+        description: `— ${actor.name || "Manager"}`,
+        dealId,
+        contactId: deal.contactId ?? undefined,
+        userId: actor.id,
+      },
+    });
+
+    if (requestedBy && requestedBy !== actor.id) {
+      await createNotification({
+        userId: requestedBy,
+        title: "Completion request rejected",
+        message: reason?.trim() ? `Your completion was rejected: ${reason}` : "Your request to mark the job as completed was rejected. You can edit the job and try again.",
+        type: "WARNING",
+        link: `/dashboard/deals`,
+      });
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/deals");
+    return { success: true };
+  } catch (err) {
+    console.error("rejectCompletion error:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to reject." };
+  }
+}
+
+/**
  * Update deal metadata (polymorphic vertical-specific data).
  */
 export async function updateDealMetadata(
@@ -370,11 +611,19 @@ export async function updateDealMetadata(
 }
 
 /**
- * Update deal core fields (title, value, stage). Used by the deal edit page.
+ * Update deal core fields (title, value, stage, address, scheduledAt). Used by the deal edit page.
  */
 export async function updateDeal(
   dealId: string,
-  data: { title?: string; value?: number; stage?: string; isDraft?: boolean; invoicedAmount?: number | null }
+  data: {
+    title?: string;
+    value?: number;
+    stage?: string;
+    isDraft?: boolean;
+    invoicedAmount?: number | null;
+    address?: string | null;
+    scheduledAt?: Date | string | null;
+  }
 ) {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
@@ -395,6 +644,10 @@ export async function updateDeal(
   if (data.isDraft !== undefined) update.isDraft = data.isDraft;
   if (data.invoicedAmount !== undefined) {
     update.invoicedAmount = data.invoicedAmount;
+  }
+  if (data.address !== undefined) update.address = data.address || null;
+  if (data.scheduledAt !== undefined) {
+    update.scheduledAt = data.scheduledAt == null || data.scheduledAt === "" ? null : new Date(data.scheduledAt as string | Date);
   }
 
   await db.deal.update({
@@ -428,6 +681,49 @@ export async function updateDeal(
   });
 
   return { success: true };
+}
+
+/**
+ * Upload a photo for a deal: store in Supabase storage and create JobPhoto in Prisma
+ * so it appears on the deal detail page.
+ */
+export async function uploadDealPhoto(
+  dealId: string,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const deal = await db.deal.findUnique({ where: { id: dealId }, select: { id: true } });
+    if (!deal) return { success: false, error: "Deal not found" };
+
+    const file = formData.get("file") as File | null;
+    if (!file || !file.size) return { success: false, error: "No file provided" };
+    const maxMb = 10;
+    if (file.size > maxMb * 1024 * 1024) return { success: false, error: `File must be under ${maxMb}MB` };
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type)) return { success: false, error: "File must be an image (JPEG, PNG, WebP, or GIF)" };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) return { success: false, error: "Photo storage is not configured" };
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const fileName = `${dealId}/${nanoid()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const { error: uploadError } = await supabase.storage.from("job-photos").upload(fileName, file);
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage.from("job-photos").getPublicUrl(fileName);
+
+    await db.jobPhoto.create({
+      data: { dealId, url: publicUrl, caption: null },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/deals/${dealId}`);
+    return { success: true };
+  } catch (e) {
+    console.error("uploadDealPhoto error:", e);
+    return { success: false, error: e instanceof Error ? e.message : "Failed to upload photo" };
+  }
 }
 
 /**

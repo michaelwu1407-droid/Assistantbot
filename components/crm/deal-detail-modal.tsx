@@ -10,9 +10,10 @@ import { DealNotes } from "@/components/crm/deal-notes"
 import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
-import { updateDeal } from "@/actions/deal-actions"
+import { updateDeal, approveCompletion, rejectCompletion } from "@/actions/deal-actions"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
+import { Check, X } from "lucide-react"
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
@@ -21,6 +22,7 @@ const STAGE_LABELS: Record<string, string> = {
   SCHEDULED: "Scheduled",
   PIPELINE: "Pipeline",
   INVOICED: "Ready to be invoiced",
+  PENDING_COMPLETION: "Pending approval",
   WON: "Completed",
   LOST: "Lost",
   DELETED: "Deleted jobs",
@@ -30,9 +32,11 @@ interface DealDetailModalProps {
   dealId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  currentUserRole?: string
+  onDealUpdated?: () => void
 }
 
-export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalProps) {
+export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = "TEAM_MEMBER", onDealUpdated }: DealDetailModalProps) {
   const [deal, setDeal] = useState<any>(null)
   const [contactDeals, setContactDeals] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -80,18 +84,41 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         )}
-        {!loading && !error && deal && <DealDetailContent deal={deal} contactDeals={contactDeals} onOpenChange={onOpenChange} />}
+        {!loading && !error && deal && (
+          <DealDetailContent
+            deal={deal}
+            contactDeals={contactDeals}
+            onOpenChange={onOpenChange}
+            currentUserRole={currentUserRole}
+            onDealUpdated={onDealUpdated}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
-function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; contactDeals: any[]; onOpenChange: (open: boolean) => void }) {
+function DealDetailContent({
+  deal,
+  contactDeals,
+  onOpenChange,
+  currentUserRole,
+  onDealUpdated,
+}: {
+  deal: any
+  contactDeals: any[]
+  onOpenChange: (open: boolean) => void
+  currentUserRole: string
+  onDealUpdated?: () => void
+}) {
   const router = useRouter()
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
   const stageLabel = STAGE_LABELS[deal.stage] ?? deal.stage
+  const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
+  const isPendingApproval = deal.stage === "PENDING_COMPLETION"
+  const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
 
   const handleEdit = () => {
     onOpenChange(false)
@@ -122,9 +149,45 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
       await updateDeal(deal.id, { isDraft: false })
       toast.success("Job confirmed")
       deal.isDraft = false
-      onOpenChange(false) // Close modal so Kanban refreshes
+      onOpenChange(false)
+      onDealUpdated?.()
     } catch {
       toast.error("Failed to confirm job")
+    }
+  }
+
+  const handleApproveCompletion = async () => {
+    try {
+      const result = await approveCompletion(deal.id)
+      if (result.success) {
+        toast.success("Job approved and marked completed")
+        deal.stage = "WON"
+        onOpenChange(false)
+        onDealUpdated?.()
+        router.refresh()
+      } else {
+        toast.error(result.error ?? "Failed to approve")
+      }
+    } catch {
+      toast.error("Failed to approve")
+    }
+  }
+
+  const handleRejectCompletion = async () => {
+    const reason = window.prompt("Rejection reason (optional). The job will be sent back to its previous stage and flagged as rejected.")
+    if (reason === null) return
+    try {
+      const result = await rejectCompletion(deal.id, reason ?? undefined)
+      if (result.success) {
+        toast.success("Completion rejected. You can edit the job and move it back to Completed when ready.")
+        onOpenChange(false)
+        onDealUpdated?.()
+        router.refresh()
+      } else {
+        toast.error(result.error ?? "Failed to reject")
+      }
+    } catch {
+      toast.error("Failed to reject")
     }
   }
 
@@ -139,6 +202,32 @@ function DealDetailContent({ deal, contactDeals, onOpenChange }: { deal: any; co
           <Button size="sm" onClick={handleConfirmDraft} className="bg-indigo-600 hover:bg-indigo-700 text-white">
             Confirm Booking
           </Button>
+        </div>
+      )}
+      {isPendingApproval && isManager && (
+        <div className="bg-amber-50 border-b border-amber-200 p-3 shrink-0 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-amber-800 text-sm">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <strong>Pending approval:</strong> A team member moved this to Completed. Approve to confirm, or reject to send it back.
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={handleApproveCompletion} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Check className="w-4 h-4 mr-1" /> Approve
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleRejectCompletion} className="border-amber-400 text-amber-800 hover:bg-amber-100">
+              <X className="w-4 h-4 mr-1" /> Reject & send back
+            </Button>
+          </div>
+        </div>
+      )}
+      {isRejected && !isPendingApproval && (
+        <div className="bg-red-50 border-b border-red-200 p-3 shrink-0 flex items-center gap-2 text-red-800 text-sm">
+          <span className="flex h-2 w-2 rounded-full bg-red-500" />
+          <strong>Completion was rejected.</strong>
+          {metadata.completionRejectionReason && (
+            <span className="text-red-700">Reason: {String(metadata.completionRejectionReason)}</span>
+          )}
+          <span>Edit the job and move it back to Completed when ready, or a manager can approve from here if it’s pending again.</span>
         </div>
       )}
       {/* Header */}

@@ -56,7 +56,7 @@ export default async function InboxPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <InboxView initialInteractions={interactions} contactSegment={contactSegment} />
+        <InboxView initialInteractions={interactions} contactSegment={contactSegment} workspaceId={workspace?.id} />
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ interface TeamMemberOption {
     name: string | null
     email: string
     role: string
+    isCurrentUser?: boolean
 }
 
 interface DashboardClientProps {
@@ -27,9 +28,13 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ workspace, deals, teamMembers, userName, userId }: DashboardClientProps) {
+    const currentUser = teamMembers.find((m) => (m as { isCurrentUser?: boolean }).isCurrentUser)
+    const currentUserRole = currentUser?.role ?? "TEAM_MEMBER"
+    const defaultFilter =
+        currentUserRole === "TEAM_MEMBER" && currentUser?.id ? currentUser.id : null
     const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false)
-    const [filterByUserId, setFilterByUserId] = useState<string | null>(null)
+    const [filterByUserId, setFilterByUserId] = useState<string | null>(defaultFilter)
 
     useEffect(() => {
         ensureDailyNotifications(workspace.id).catch(() => { })
@@ -80,6 +85,7 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                                 industryType={workspace.industryType}
                                 filterByUserId={filterByUserId}
                                 teamMembers={teamMembers}
+                                currentUserRole={currentUserRole}
                             />
                         </div>
                     </div>
@@ -90,6 +96,7 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                 isOpen={isNewDealModalOpen}
                 onClose={() => setIsNewDealModalOpen(false)}
                 workspaceId={workspace.id}
+                teamMembers={teamMembers}
             />
 
             <ActivityModal

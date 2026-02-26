@@ -1,5 +1,10 @@
 import { UnifiedAuth } from "@/components/auth/unified-auth";
 
-export default function AuthPage() {
-  return <UnifiedAuth />;
+export default async function AuthPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  return <UnifiedAuth connectionError={params.error === "connection"} />;
 }

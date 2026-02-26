@@ -26,7 +26,7 @@ interface AuthState {
   otpResendTimer: number;
 }
 
-export function UnifiedAuth() {
+export function UnifiedAuth({ connectionError = false }: { connectionError?: boolean }) {
   const router = useRouter();
   const supabase = createClient();
   
@@ -354,6 +354,16 @@ export function UnifiedAuth() {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] -z-10 rounded-full bg-primary/8 blur-3xl" />
 
       <div className="w-full max-w-md ott-card bg-card p-8 relative z-10">
+        {connectionError && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
+            <p className="font-medium">We couldn’t reach the login service.</p>
+            <p className="mt-1 text-xs opacity-90">
+              If you use Supabase’s free tier, your project may be paused. Open the{" "}
+              <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">Supabase dashboard</a>
+              , select your project, and click <strong>Restore project</strong>. Then try again.
+            </p>
+          </div>
+        )}
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />

@@ -1,20 +1,132 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Bot, MessageSquare, Calendar, DollarSign, Users, Zap, Send, FileText, Radio, Headphones, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Bot, MessageSquare, Calendar, DollarSign, Users, Zap, Send, FileText, Radio, Headphones, Mail, HelpCircle, Phone, Activity } from "lucide-react";
+import Link from "next/link";
 
-export default function TravisHandbookPage() {
+export default function HelpSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-          <BookOpen className="h-7 w-7 text-emerald-600" />
-          Travis Handbook
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Help
         </h2>
         <p className="text-muted-foreground mt-1">
-          Your guide to Earlymark and the Travis AI assistant. Everything in one place.
+          Support, documentation, and system status.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            Support and feedback
+          </CardTitle>
+          <CardDescription>
+            Create and track support requests. You can use the chat to send feedback or open a ticket.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/settings/support">Open support and create ticket</Link>
+          </Button>
+          <p className="text-xs text-slate-500">
+            Integration with Crisp, Intercom, or Plain.com can be added for live chat and ticket history.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Knowledge base
+          </CardTitle>
+          <CardDescription>
+            Searchable help articles and tutorials.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Documentation and how-to guides are available in the Travis Handbook below and via the in-app tutorial.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Contact support
+          </CardTitle>
+          <CardDescription>
+            Phone, email, and chat options.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p><strong>Email:</strong> support@pjbuddy.com</p>
+          <p><strong>Phone:</strong> 1300 PJ BUDDY (Mon–Fri 9am–5pm AEST)</p>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/settings/support">Go to support page</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            System status
+          </CardTitle>
+          <CardDescription>
+            Service availability and uptime.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            A status dashboard with historical uptime and incident reports can be linked here (e.g. status.pjbuddy.com).
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="pt-4">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+          <BookOpen className="h-5 w-5 text-emerald-600" />
+          Travis Handbook
+        </h3>
+        <p className="text-muted-foreground text-sm mb-4">
+          Your guide to the Travis AI assistant. Everything in one place.
+        </p>
+
+      {/* 0. Onboarding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-5 w-5 text-emerald-600" />
+            Onboarding (Setup)
+          </CardTitle>
+          <CardDescription>
+            What gets set when you first sign up and go through the setup chat.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>After you enter your name, the setup chat collects:</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li><strong className="text-slate-900 dark:text-white">Business details</strong> — Business name, trade type, location, mobile</li>
+            <li><strong className="text-slate-900 dark:text-white">Agent mode</strong> — Execute, Organize, or Filter (see Agent Modes below). You can change this later in Settings → Agent Capabilities.</li>
+            <li><strong className="text-slate-900 dark:text-white">Working hours</strong> — Start and end time, plus when you want your morning agenda and evening wrap-up notifications.</li>
+            <li><strong className="text-slate-900 dark:text-white">Pricing</strong> — Call-out fee and pricing mode (Book only / Call-out / Standard). Editable in Settings.</li>
+            <li><strong className="text-slate-900 dark:text-white">Lead sources</strong> — Where your leads come from (e.g. hipages, Airtasker, Oneflare, ServiceSeeking, Google Ads). Used for integrations and reporting.</li>
+            <li><strong className="text-slate-900 dark:text-white">Call new leads immediately?</strong> — If yes, Travis can call new leads as soon as they come in (e.g. from email forwarding). Toggle in Settings → Integrations / Agent Capabilities.</li>
+            <li><strong className="text-slate-900 dark:text-white">Urgent/after-hours calls ring you?</strong> — If yes, urgent or after-hours callers can be forwarded to your mobile. Settings → Phone.</li>
+            <li><strong className="text-slate-900 dark:text-white">Auto-learn from conversations?</strong> — Whether Travis updates your glossary from chat. Settings → Agent Capabilities.</li>
+            <li><strong className="text-slate-900 dark:text-white">Notification digest</strong> — Immediate, daily, or weekly. Affects how often you get summaries.</li>
+            <li><strong className="text-slate-900 dark:text-white">Public contact (optional)</strong> — A phone and/or email to show to customers. You can skip this and add it later in Settings.</li>
+          </ul>
+          <p>At the end, we save everything, mark onboarding complete, and provision your AI phone number. You can change any of these later in Settings.</p>
+        </CardContent>
+      </Card>
 
       {/* 1. Agent Modes */}
       <Card>
@@ -220,6 +332,7 @@ export default function TravisHandbookPage() {
           <p>In Settings → Agent Capabilities you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Travis sends this by email or text to help you get paid faster.</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

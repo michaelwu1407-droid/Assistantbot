@@ -1,6 +1,6 @@
-// ─── Tutorial Steps (17 cards) ───────────────────────────────────────
+// ─── Tutorial Steps (16 cards) ───────────────────────────────────────
 // Steps 1–12: Welcome, chat mode, dashboard, nav (inbox → settings).
-// Steps 13–17: Travis Handbook pointer, Competitive Edge, Pro Tip, We're Listening, Finish.
+// Steps 13–16: Travis Handbook pointer, We're Listening, Finish.
 // Each step spotlights a feature/button/area and shows a chat example
 
 export interface TutorialStep {
@@ -49,7 +49,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // TRAVIS HANDBOOK & WRAP-UP (Steps 13–17)
     // ══════════════════════════════════════════════════════════════
     { id: "travis-handbook", targetId: "settings-link", title: "📖 Travis Handbook", message: "There's a lot more Travis can do — agent modes, top commands, scheduling, and more.\n\nOpen **Settings → Help** anytime to read the full **Travis Handbook**, organised by category.", actionLabel: "Next", section: "Wrap Up" },
-    { id: "bonus-competitive", targetId: null, title: "🏆 Competitive Edge", message: "95% of tradies don't follow up. 80% don't track leads. You're already ahead by using Earlymark.", actionLabel: "Next" },
     { id: "bonus-feedback", targetId: null, title: "💬 We're Listening", message: "Found something that could be better? Just type 'feedback' in chat and tell us. We read every message.", actionLabel: "Next" },
     { id: "replay-finish", targetId: null, title: "You're Ready to Roll! 🚀", message: "That's everything! You can replay this tutorial anytime from **Settings → Help**.\n\nTo get started, try asking me:\n\n📱 \"Create a new test job\"\n📱 \"What's on my schedule?\"\n📱 \"Show me my pipeline\"\n\nI'm always here to help. Let's build your business together!", actionLabel: "Start Using Earlymark", section: "Wrap Up" },
 ]

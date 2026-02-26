@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getAuthUser } from "@/lib/auth";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata } from "./deal-actions";
 import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
@@ -400,6 +401,69 @@ export async function runCreateDeal(
     success: true,
     message: `Created deal "${params.title}"${params.value != null && params.value > 0 ? ` worth $${params.value.toLocaleString()}` : ""}.`,
     dealId: result.dealId,
+  };
+}
+
+/**
+ * Record manual revenue for a period (e.g. when the user says "I made $200 in February" and the app shows $0).
+ * Creates a completed deal so getFinancialReport includes it. Only team managers (OWNER/MANAGER) can confirm; team members must ask their manager.
+ */
+export async function recordManualRevenue(
+  workspaceId: string,
+  params: { amount: number; startDate: string; endDate: string }
+): Promise<{ success: boolean; message: string }> {
+  const amount = Number(params.amount);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { success: false, message: "Amount must be a positive number." };
+  }
+  try {
+    const authUser = await getAuthUser();
+    if (authUser?.email) {
+      const dbUser = await db.user.findFirst({
+        where: { workspaceId, email: authUser.email },
+        select: { role: true },
+      });
+      if (dbUser?.role === "TEAM_MEMBER") {
+        return {
+          success: false,
+          message: "Only a team manager or owner can confirm data changes. Ask your manager to update this.",
+        };
+      }
+    }
+  } catch {
+    return { success: false, message: "You must be signed in to confirm changes." };
+  }
+  let contact = await db.contact.findFirst({
+    where: { workspaceId, name: "Manual revenue entry" },
+  });
+  if (!contact) {
+    contact = await db.contact.create({
+      data: {
+        name: "Manual revenue entry",
+        workspaceId,
+        email: "manual@internal",
+      },
+    });
+  }
+  const start = new Date(params.startDate);
+  const midMonth = new Date(start);
+  midMonth.setDate(15);
+  const title = `Manual revenue entry – ${start.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}`;
+  await db.deal.create({
+    data: {
+      title,
+      value: amount,
+      stage: "WON",
+      contactId: contact.id,
+      workspaceId,
+      createdAt: midMonth,
+    },
+  });
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/analytics");
+  return {
+    success: true,
+    message: `Recorded $${amount.toLocaleString()} revenue for that period. Future reports will include it.`,
   };
 }
 

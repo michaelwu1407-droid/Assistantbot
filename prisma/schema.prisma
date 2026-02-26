@@ -34,6 +34,7 @@ enum DealStage {
   SCHEDULED
   PIPELINE
   INVOICED
+  PENDING_COMPLETION  // Team member moved to completed; awaiting manager approval
   WON
   LOST
   DELETED

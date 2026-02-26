@@ -42,12 +42,6 @@ interface Invite {
     expiresAt: Date
 }
 
-const FAKE_MEMBERS: TeamMember[] = [
-    { id: "fake-1", name: "Alex Chen", email: "alex@example.com", role: "TEAM_MEMBER", isCurrentUser: false },
-    { id: "fake-2", name: "Sam Taylor", email: "sam@example.com", role: "MANAGER", isCurrentUser: false },
-    { id: "fake-3", name: "Jordan Lee", email: "jordan@example.com", role: "TEAM_MEMBER", isCurrentUser: false },
-]
-
 export default function TeamPage() {
     const [members, setMembers] = useState<TeamMember[]>([])
     const [invites, setInvites] = useState<Invite[]>([])
@@ -70,7 +64,7 @@ export default function TeamPage() {
             .finally(() => setLoading(false))
     }, [])
 
-    const displayMembers = members.length >= 2 ? members : [...members, ...FAKE_MEMBERS]
+    const displayMembers = members
 
     const handleCreateInvite = async () => {
         setCreating(true)
@@ -211,14 +205,14 @@ export default function TeamPage() {
                         <DialogHeader>
                             <DialogTitle>Invite a Team Member</DialogTitle>
                             <DialogDescription>
-                                Send an invitation email or generate a shareable link. They&apos;ll sign up and automatically join your workspace.
+                                Send an invitation email or generate a shareable link. They&apos;ll sign up and join your workspace with the role you choose below.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-2 ott-card rounded-xl bg-white/80 backdrop-blur border border-slate-200/60 shadow-lg">
                             <div className="space-y-2">
-                                <Label>Role</Label>
+                                <Label className="text-slate-800">They&apos;ll join as</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="border-slate-300">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -229,7 +223,7 @@ export default function TeamPage() {
                                 <p className="text-xs text-muted-foreground">
                                     {inviteRole === "MANAGER"
                                         ? "Managers can view everything and invite others."
-                                        : "Team members have a simplified view focused on their assigned jobs."}
+                                        : "Team members see the board filtered to their assigned jobs by default."}
                                 </p>
                             </div>
                             <div className="space-y-2">
@@ -289,7 +283,10 @@ export default function TeamPage() {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-medium text-slate-700">Manual sharing link</Label>
+                                        <Label className="text-sm font-medium text-slate-700">Share this link</Label>
+                                        <p className="text-xs text-slate-600">
+                                            Anyone who opens this link will join as <strong>{inviteRole === "MANAGER" ? "Manager" : "Team Member"}</strong>. Copy and send it (e.g. by message or email).
+                                        </p>
                                         <div className="flex gap-2">
                                             <Input 
                                                 value={generatedLink} 
@@ -300,12 +297,16 @@ export default function TeamPage() {
                                                 variant="outline" 
                                                 size="icon" 
                                                 onClick={handleCopyLink}
+                                                title="Copy link"
                                             >
                                                 <Copy className="h-4 w-4" />
                                             </Button>
                                         </div>
-                                        <p className="text-xs text-muted-foreground text-center">
-                                            This link expires in 7 days.
+                                        <Button variant="secondary" className="w-full" onClick={handleCopyLink}>
+                                            <Copy className="h-4 w-4 mr-2" /> Copy invite link
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground">
+                                            Link expires in 7 days.
                                         </p>
                                     </div>
                                 </div>

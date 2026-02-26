@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { getTeamMembers } from "@/actions/invite-actions"
 import { DealEditForm } from "./deal-edit-form"
 
 const STAGE_OPTIONS = [
@@ -22,10 +23,13 @@ interface PageProps {
 export default async function DealEditPage({ params }: PageProps) {
   const { id } = await params
 
-  const deal = await db.deal.findUnique({
-    where: { id },
-    include: { contact: true },
-  })
+  const [deal, teamMembers] = await Promise.all([
+    db.deal.findUnique({
+      where: { id },
+      include: { contact: true, assignedTo: { select: { id: true, name: true } } },
+    }),
+    getTeamMembers(),
+  ])
 
   if (!deal) notFound()
 
@@ -63,6 +67,10 @@ export default async function DealEditPage({ params }: PageProps) {
         initialValue={Number(deal.value ?? 0)}
         initialStage={stage}
         initialNotes={notes}
+        initialAddress={deal.address ?? ""}
+        initialScheduledAt={deal.scheduledAt ? new Date(deal.scheduledAt).toISOString().slice(0, 16) : ""}
+        initialAssignedToId={deal.assignedToId ?? ""}
+        teamMembers={teamMembers}
         stageOptions={STAGE_OPTIONS}
       />
     </div>

@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation"
 import { getDeals } from "@/actions/deal-actions"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getOrCreateWorkspace, ensureOwnerHasUserRow } from "@/actions/workspace-actions"
 import { getTeamMembers } from "@/actions/invite-actions"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { getAuthUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+    // Next.js 16: searchParams is a Promise; unwrap so it isn't serialized to client
+    if (props.searchParams) await props.searchParams
+
     let workspace, deals;
     let teamMembers: { id: string; name: string | null; email: string; role: string }[] = []
     let dbError = false;
@@ -25,6 +30,7 @@ export default async function DashboardPage() {
 
     try {
         workspace = await getOrCreateWorkspace(userId)
+        await ensureOwnerHasUserRow(workspace)
         deals = await getDeals(workspace.id)
         teamMembers = await getTeamMembers()
     } catch (error) {

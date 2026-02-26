@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
+import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { format } from "date-fns"
 
 export const dynamic = "force-dynamic"
@@ -214,17 +215,7 @@ export default async function DealDetailPage({ params }: PageProps) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="photos" className="mt-2">
-            {deal.jobPhotos && deal.jobPhotos.length > 0 ? (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {deal.jobPhotos.map((photo) => (
-                  <div key={photo.id} className="w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                    <img src={photo.url} alt={photo.caption || "Job"} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No photos yet.</p>
-            )}
+            <DealPhotosUpload dealId={deal.id} initialPhotos={deal.jobPhotos ?? []} />
           </TabsContent>
         </Tabs>
       </div>
