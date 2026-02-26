@@ -341,7 +341,7 @@ function ChatWithHistory({
                       const parts = message.parts ?? [];
                       const rendered: React.ReactNode[] = [];
                       let draftCardRenderedForMessage = false;
-                      parts.forEach((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string; draft?: JobDraftData }; errorText?: string }, idx: number) => {
+                      parts.forEach((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string; draft?: JobDraftData; showConfirmButton?: boolean; summary?: string }; errorText?: string }, idx: number) => {
                         if (!part || typeof part !== "object") return;
                         const partText = part.type === "text" && part.text ? part.text : (part as { text?: string }).text;
                         if (partText && typeof partText === "string") {
@@ -478,7 +478,7 @@ function ChatWithHistory({
                         : '';
                       if (!content.trim() && parts.length > 0) {
                         const fromParts = parts
-                          .filter((p): p is object => p != null && typeof p === "object")
+                          .filter((p) => p != null && typeof p === "object")
                           .map((p: { text?: string; content?: string }) => (p as { text?: string }).text ?? (p as { content?: string }).content)
                           .filter((t): t is string => typeof t === "string" && t.length > 0);
                         if (fromParts.length) content = fromParts.join('\n');
