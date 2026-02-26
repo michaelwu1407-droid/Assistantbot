@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { User } from "@supabase/supabase-js";
 
 export default function AuthTestPage() {
   const [status, setStatus] = useState("Checking auth...");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function AuthTestPage() {
           setStatus("❌ Not authenticated - please log in");
         }
       } catch (e) {
-        setStatus(`❌ Exception: ${e.message}`);
+        setStatus(`❌ Exception: ${e instanceof Error ? e.message : 'Unknown error'}`);
       }
     };
 
