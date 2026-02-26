@@ -29,7 +29,7 @@ export default function TestAuthPage() {
           setAuthStatus("Not authenticated ❌");
         }
       } catch (e) {
-        setAuthStatus(`Exception: ${e.message}`);
+        setAuthStatus(`Exception: ${e instanceof Error ? e.message : 'Unknown error'}`);
       }
     };
 

@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { getAuthUserId, getAuthUser } from "@/lib/auth";
+import { AuthError } from "@supabase/supabase-js";
 
 export default async function DebugAuthPage() {
   let serverAuth = null;
-  let serverError = null;
+  let serverError: AuthError | Error | null = null;
   let userId = null;
-  let userError = null;
+  let userError: Error | null = null;
 
   try {
     const supabase = await createClient();
@@ -14,13 +15,13 @@ export default async function DebugAuthPage() {
     serverAuth = data;
     serverError = error;
   } catch (e) {
-    serverError = e;
+    serverError = e instanceof Error ? e : new Error('Unknown error');
   }
 
   try {
     userId = await getAuthUserId();
   } catch (e) {
-    userError = e;
+    userError = e instanceof Error ? e : new Error('Unknown error');
   }
 
   return (
@@ -31,14 +32,14 @@ export default async function DebugAuthPage() {
         <div className="p-4 border rounded">
           <h2 className="font-semibold mb-2">Server-side Supabase Auth:</h2>
           <pre className="text-sm bg-gray-100 p-2 rounded overflow-auto">
-            {JSON.stringify({ user: serverAuth?.user, error: serverError?.message }, null, 2)}
+            {JSON.stringify({ user: serverAuth?.user, error: serverError?.message || 'No error' }, null, 2)}
           </pre>
         </div>
 
         <div className="p-4 border rounded">
           <h2 className="font-semibold mb-2">getAuthUserId():</h2>
           <pre className="text-sm bg-gray-100 p-2 rounded overflow-auto">
-            {userId ? `Success: ${userId}` : `Error: ${userError?.message}`}
+            {userId ? `Success: ${userId}` : `Error: ${userError?.message || 'Unknown error'}`}
           </pre>
         </div>
 
