@@ -4,6 +4,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { createNotification } from "./notification-actions";
 import { createTask } from "./task-actions";
+import { runSendEmail } from "./chat-actions";
+import { getTemplates, renderTemplate } from "./template-actions";
+import { logActivity } from "./activity-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -231,10 +234,93 @@ export async function evaluateAutomations(
         }
       }
 
-      // 3. Send Email (Stub)
-      if (action.type === "email") {
-        // In production: await sendEmail(...)
-        console.log(`[Automation] Would send email template '${action.template}' to contact`);
+      // 3. Send Email (Live Implementation)
+      if (action.type === "email" && action.template && event.contactId) {
+        try {
+          // Get workspace and contact information for dynamic agent identity
+          const deal = await db.deal.findUnique({
+            where: { id: event.dealId },
+            include: {
+              contact: true,
+              workspace: {
+                select: { 
+                  id: true,
+                  name: true, 
+                  ownerId: true,
+                  inboundEmailAlias: true 
+                }
+              }
+            }
+          });
+
+          if (!deal || !deal.contact || !deal.workspace) {
+            console.log(`[Automation] Missing deal/contact/workspace data for email automation`);
+            continue;
+          }
+
+          // Get workspace owner for BCC
+          const owner = await db.user.findUnique({
+            where: { id: deal.workspace.ownerId! },
+            select: { email: true }
+          });
+
+          // Render email template with variables
+          const templateData = await renderTemplate(action.template, {
+            contactName: deal.contact.name || "there",
+            dealTitle: deal.title,
+            amount: deal.value?.toString() || "0",
+            companyName: deal.workspace.name,
+            // Add more template variables as needed
+          });
+
+          if (!templateData) {
+            console.log(`[Automation] Template ${action.template} not found`);
+            continue;
+          }
+
+          // Send email with dynamic agent identity
+          const emailResult = await runSendEmail(deal.workspace.id, {
+            contactName: deal.contact.name || "there",
+            subject: templateData.subject || "Automated Message",
+            body: templateData.body,
+            workspaceAlias: deal.workspace.inboundEmailAlias || undefined,
+            workspaceName: deal.workspace.name,
+            ownerEmail: owner?.email
+          });
+
+          // Log the email for verification - FINAL EMAIL METADATA
+          const finalEmailMetadata = {
+            automation: automation.name,
+            template: action.template,
+            to: deal.contact.email,
+            contactName: deal.contact.name,
+            subject: templateData.subject,
+            from: deal.workspace.inboundEmailAlias 
+              ? `"${deal.workspace.name} Assistant" <${deal.workspace.inboundEmailAlias}@agent.earlymark.ai>`
+              : process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai",
+            replyTo: deal.workspace.inboundEmailAlias 
+              ? `${deal.workspace.inboundEmailAlias}@agent.earlymark.ai`
+              : undefined,
+            bcc: owner?.email,
+            workspaceAlias: deal.workspace.inboundEmailAlias,
+            workspaceName: deal.workspace.name,
+            timestamp: new Date().toISOString()
+          };
+
+          console.log(`[Automation] 📧 EMAIL SENT - METADATA VERIFICATION:`);
+          console.log(JSON.stringify(finalEmailMetadata, null, 2));
+
+          // Log activity
+          await logActivity({
+            type: "EMAIL",
+            title: `Automation: ${automation.name} - ${templateData.subject}`,
+            content: templateData.body,
+            contactId: deal.contact.id,
+          });
+
+        } catch (error) {
+          console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
+        }
       }
     }
   }

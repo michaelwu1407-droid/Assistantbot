@@ -1,6 +1,6 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-02-21 (Sprint 20 Fix-All Pass)
+**Last Updated:** 2026-02-27 (Documentation Consolidation & Twilio Migration)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
 
@@ -14,19 +14,50 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/contacts`** | ✅ Functional | None |
 | **`/dashboard/pipeline`** | ✅ Functional | None |
 | **`/dashboard/map`** | ✅ Functional | - Route mode: "Start Route" button shows sequenced stops sidebar, dashed route line, per-stop Navigate buttons (opens Google Maps), Navigate Full Route (multi-waypoint), numbered markers, fly-to animation. |
-| **`/dashboard/schedule`** | ✅ Functional | None |
+| **`/dashboard/schedule`** | ✅ Functional | - **NEW**: Add Month/Week/Day view toggle functionality. |
 | **`/dashboard/team`** | ✅ Functional | None |
-| **`/dashboard/reports`** | ✅ Functional | None |
-| **`/dashboard/settings`** | ✅ Functional | None |
+| **`/dashboard/reports`** | ✅ Functional | - **NEW**: Verify tracked data accuracy and PDF generation functionality. |
+| **`/dashboard/settings`** | ⚠️ Needs Overhaul | - **CRITICAL**: UI spacing issues (LHS content overlaps sidebar nav).<br>- **Profile/Knowledge Base**: Build business knowledge section for AI context.<br>- **Account Settings**: Remove duplicate email entry, fix "Delete Account" button placement.<br>- **Appearance/Display**: Consolidate useful items, fix default mode.<br>- **Billing/Invoicing**: Set up client payment integration.<br>- **Automations**: Verify functional rules and notifications.<br>- **Workspace**: Remove irrelevant fields, set working hours for agent. |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
-| **Chatbot Interface** | ✅ Functional | - UI calls `/api/chat` (Gemini SDK with 13 tool functions).<br>- `getWorkspaceSettingsById()` now used (no session auth dependency).<br>- Chat-1 "parts field" crash hardened with deep content validation.<br>- Legacy `processChat()` + ~1300 lines of regex parsing removed. All CRM tool functions retained. |
+| **Chatbot Interface** | ⚠️ Needs Fixes | - **CRITICAL**: Fix "parts field" crash on basic queries ("What jobs do I have tomorrow?").<br>- **NEW**: Add voice-to-text microphone functionality.<br>- **NEW**: Implement conversation retrieval ("Show me my text history with Steven").<br>- **NEW**: Enhance task management ("Call John next Tuesday"). |
 | **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
 | **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
 | **Vapi Webhook** | ✅ Functional | - Workspace resolution now uses strict `twilioPhoneNumber` matching on the dialed system number.<br>- Recording URL persisted in activity content (from `recordingUrl` or `artifact.recordingUrl`). |
 | **Retell Webhook/SMS** | ⚠️ Partial | - Infrastructure is solid (signature verification, workspace routing, stage mapping).<br>- Requires Retell dashboard setup (Response Engine, Voice, Tools).<br>- Env vars not documented. User has API key & identity ID — setup deferred.<br>- **Feature Request**: Must configure Retell AI gracefully to handle multi-languages natively. |
 | **Google Calendar Integration** | ❌ Scaffolding | - "Connect" button is a fake `setTimeout` mock — no OAuth. |
 | **MYOB / Auth / Mail** | ✅ Functional | None |
+
+## 🚨 Major Unresolved Features (From Sprint 19 Handover)
+
+### **Dashboard & Kanban Improvements**
+- **Activity Card**: Clicking should open popup with detailed entries
+- **New Deal Button**: Default should be "Create New" instead of "Select"
+- **Kanban Card Notes**: Reduce height, pin to bottom right, format as "*Date: Note*" with edit button
+- **Quick Actions**: "Contact them" needs "Text" and "Email" buttons (currently only "Call")
+
+### **Inbox Page**
+- **Customer Section**: Create "Recent activity" box with vertical scroll
+- **Correspondence History**: Secondary box with ALL correspondence (email, text, call) in chronological conversation format
+
+### **Core Workflow Features**
+- **Post-Job Workflow**: Send alert asking for resolution status and final invoiced amount
+- **Invoice Adjustments**: Easy adjustment via chatbox OR kanban cards
+- **Repair Glossary**: Build glossary for natural language job recognition (no estimated prices)
+- **Smart Routing**: Optimize booking for jobs within 15km/7 days of existing jobs
+- **Email Lead Interception**: Parse Hipages jobs from email inbox
+
+### **Agent Operational Modes**
+- **Execute Mode**: Total autonomy for booking/scheduling
+- **Organise Mode**: Creates draft cards, waits for human confirmation
+- **Filter Mode**: Receptionist only, no scheduling/pricing decisions
+- **Pricing Rules**: Never agree on pricing upfront without confirmation (except user-set common tasks)
+
+### **System-Wide Improvements**
+- **Daily Notifications**: Start/end of day agenda notifications (toggleable in settings)
+- **Search & Filtering**: Fast fuzzy search across entire application
+- **Sidebar Navigation**: Remove minimize button completely
+- **Maps Sidebar**: Move Maps icon above Contacts icon
 
 ---
 

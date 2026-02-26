@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
-import { getDeals, createDeal, updateDealStage, updateDealMetadata } from "./deal-actions";
+import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { createTask } from "./task-actions";
@@ -245,10 +245,11 @@ function getIndustryContext(industryType: string | null): IndustryContext {
 export async function runMoveDeal(
   workspaceId: string,
   dealTitle: string,
-  stageAlias: string
-): Promise<{ success: boolean; message: string; dealId?: string; stage?: string }> {
+  stageAlias: string,
+  assignedTo?: string
+): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
   const deals = await getDeals(workspaceId);
-  const deal = findDealByTitle(deals, dealTitle);
+  const deal = deals.find(d => d.title.toLowerCase().trim() === dealTitle.toLowerCase().trim());
   if (!deal) {
     const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
     return {
@@ -261,6 +262,25 @@ export async function runMoveDeal(
     const validStages = Object.keys(STAGE_ALIASES).filter(k => k.length > 3).slice(0, 10).join(", ");
     return { success: false, message: `Unknown stage "${stageAlias}". Try: ${validStages}` };
   }
+
+  // Check if moving to Scheduled and needs team member assignment
+  if (resolvedStage === "scheduled" && !deal.assignedToId && !assignedTo) {
+    return {
+      success: false,
+      message: `"${dealTitle}" needs a team member assigned to move to Scheduled. Who should I assign this job to?`,
+      requiresAssignment: true,
+      dealId: deal.id,
+    };
+  }
+
+  // If team member provided, assign them first
+  if (assignedTo && resolvedStage === "scheduled") {
+    const assignResult = await updateDealAssignedTo(deal.id, assignedTo);
+    if (!assignResult.success) {
+      return { success: false, message: assignResult.error ?? "Failed to assign team member." };
+    }
+  }
+
   const result = await updateDealStage(deal.id, resolvedStage);
   if (!result.success) {
     return { success: false, message: result.error ?? "Failed to move deal." };
@@ -371,7 +391,7 @@ export async function runListDeals(workspaceId: string): Promise<{ deals: { id: 
  */
 export async function runCreateDeal(
   workspaceId: string,
-  params: { title: string; company?: string; value?: number }
+  params: { title: string; company?: string; value?: number; assignedTo?: string }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
   let contactId: string | undefined;
   const company = (params.company ?? params.title).trim() || "Unknown";
@@ -391,6 +411,7 @@ export async function runCreateDeal(
     stage: "new",
     contactId,
     workspaceId,
+    assignedToId: params.assignedTo || null,
   });
   if (!result.success) {
     return { success: false, message: result.error ?? "Failed to create deal." };
@@ -863,7 +884,14 @@ export async function runSendSms(
  */
 export async function runSendEmail(
   workspaceId: string,
-  params: { contactName: string; subject: string; body: string }
+  params: { 
+    contactName: string; 
+    subject: string; 
+    body: string;
+    workspaceAlias?: string;
+    workspaceName?: string;
+    ownerEmail?: string;
+  }
 ): Promise<string> {
   try {
     const contacts = await searchContacts(workspaceId, params.contactName);
@@ -901,14 +929,41 @@ export async function runSendEmail(
     let delivered = false;
     const resendKey = process.env.RESEND_API_KEY;
     const fromDomain = process.env.RESEND_FROM_DOMAIN;
+    
+    // LOGIC START
+    let fromAddress = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai";
+    let replyToAddress = undefined;
+    let bccAddress = undefined;
+
+    // If this is an Agent conversation (alias is provided)
+    if (params.workspaceAlias && params.workspaceName) {
+      // 1. Construct the dynamic address
+      // Use the hardcoded subdomain: @agent.earlymark.ai
+      const agentEmail = `${params.workspaceAlias}@agent.earlymark.ai`;
+
+      // 2. Set the 'From' header with a friendly name
+      fromAddress = `"${params.workspaceName} Assistant" <${agentEmail}>`;
+
+      // 3. Set 'Reply-To' to the SAME address so replies hit our webhook
+      replyToAddress = agentEmail;
+
+      // 4. Set BCC to the owner so they have visibility
+      if (params.ownerEmail) {
+        bccAddress = params.ownerEmail;
+      }
+    }
+    // LOGIC END
+    
     if (resendKey && fromDomain) {
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
       const { error } = await resend.emails.send({
-        from: `${senderName} <noreply@${fromDomain}>`,
+        from: fromAddress,
         to: [contact.email],
         subject: params.subject,
         text: params.body,
+        replyTo: replyToAddress,
+        bcc: bccAddress,
       });
       if (error) {
         console.error("[sendEmail] Resend error:", error);

@@ -133,7 +133,7 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
             </div>
 
             <div className="flex items-center gap-3 md:gap-4">
-                {/* Filter by team member - visible on all screens */}
+                {/* Filter by team member - only show when team exists */}
                 {teamMembers.length > 0 && (
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-slate-500 hidden sm:inline">Filter:</span>
@@ -147,12 +147,14 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value={FILTER_ALL}>All jobs</SelectItem>
-                                <SelectItem value={FILTER_UNASSIGNED}>
-                                    <span className="flex items-center gap-2">
-                                        <UserX className="h-3.5 w-3.5 text-slate-400" />
-                                        Unassigned
-                                    </span>
-                                </SelectItem>
+                                {teamMembers.length > 0 && (
+                                    <SelectItem value={FILTER_UNASSIGNED}>
+                                        <span className="flex items-center gap-2">
+                                            <UserX className="h-3.5 w-3.5 text-slate-400" />
+                                            Unassigned
+                                        </span>
+                                    </SelectItem>
+                                )}
                                 {teamMembers.map((m) => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name || m.email}

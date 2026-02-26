@@ -9,6 +9,8 @@ interface CommsSetupResult {
   phoneNumber?: string;
   error?: string;
   stageReached?: string;
+  errorCode?: number;
+  status?: number;
 }
 
 // ─── Simple Phone Provisioning (No Subaccounts) ───────────────────────
@@ -33,40 +35,91 @@ export async function initializeSimpleComms(
   const retellAgentId = process.env.RETELL_AGENT_ID;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://assistantbot-zeta.vercel.app";
 
+  // Detailed environment logging
+  console.log("[SIMPLE-COMMS] Environment check:", {
+    hasTwilioClient: !!twilioMasterClient,
+    retellApiKey: retellApiKey ? "✅ SET" : "❌ MISSING",
+    retellAgentId: retellAgentId ? "✅ SET" : "❌ MISSING",
+    appUrl,
+    workspaceId,
+    businessName,
+    ownerPhone
+  });
+
   if (!twilioMasterClient) {
-    return { success: false, error: "Twilio credentials not configured", stageReached: "pre-check" };
+    const error = "Twilio credentials not configured";
+    console.error("[SIMPLE-COMMS] ERROR:", error);
+    return { success: false, error, stageReached: "pre-check" };
   }
   if (!retellApiKey || !retellAgentId) {
-    return { success: false, error: "Retell API key or Agent ID not configured", stageReached: "pre-check" };
+    const error = "Retell API key or Agent ID not configured";
+    console.error("[SIMPLE-COMMS] ERROR:", error);
+    return { success: false, error, stageReached: "pre-check" };
   }
 
   let stageReached = "init";
 
   try {
+    console.log("[SIMPLE-COMMS] Starting provisioning process...");
+    
+    // ────────────────────────────────────────────────────────────────
+    // 0. Test Twilio Authentication
+    // ────────────────────────────────────────────────────────────────
+    stageReached = "auth-test";
+    console.log("[SIMPLE-COMMS] Stage: auth-test");
+    
+    try {
+      const testAccount = await twilioMasterClient!.api.v2010.accounts(process.env.TWILIO_ACCOUNT_SID!).fetch();
+      console.log("[SIMPLE-COMMS] ✅ Twilio auth successful:", {
+        accountSid: testAccount.sid,
+        friendlyName: testAccount.friendlyName,
+        status: testAccount.status,
+        type: testAccount.type,
+        dateCreated: testAccount.dateCreated
+      });
+    } catch (authError) {
+      console.error("[SIMPLE-COMMS] ❌ Twilio auth failed:", authError);
+      return {
+        success: false,
+        error: `Twilio authentication failed: ${authError instanceof Error ? authError.message : "Unknown error"}`,
+        stageReached: "auth-test"
+      };
+    }
+    
     // ────────────────────────────────────────────────────────────────
     // 1. Buy Australian +61 Number (SMS + Voice capable)
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
+    console.log("[SIMPLE-COMMS] Stage: number-search");
 
     // Search for available AU numbers with SMS + Voice.
     // Try local first, fall back to mobile if none available.
     let chosenNumber: string | null = null;
 
+    console.log("[SIMPLE-COMMS] Searching for local numbers...");
     const localNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
       .local.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
+    
+    console.log("[SIMPLE-COMMS] Found local numbers:", localNumbers.length);
 
     if (localNumbers.length > 0) {
       chosenNumber = localNumbers[0].phoneNumber;
+      console.log("[SIMPLE-COMMS] Selected local number:", chosenNumber);
     } else {
+      console.log("[SIMPLE-COMMS] No local numbers, searching mobile...");
       const mobileNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
         .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
 
+      console.log("[SIMPLE-COMMS] Found mobile numbers:", mobileNumbers.length);
+
       if (mobileNumbers.length > 0) {
         chosenNumber = mobileNumbers[0].phoneNumber;
+        console.log("[SIMPLE-COMMS] Selected mobile number:", chosenNumber);
       }
     }
 
     if (!chosenNumber) {
+      console.error("[SIMPLE-COMMS] No numbers available");
       await logActivity(
         workspaceId,
         "Phone Number Provisioning Failed",
@@ -80,12 +133,15 @@ export async function initializeSimpleComms(
     }
 
     stageReached = "number-purchase";
+    console.log("[SIMPLE-COMMS] Stage: number-purchase, purchasing:", chosenNumber);
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
       friendlyName: `${businessName} - Pj Buddy`,
     });
 
+    console.log("[SIMPLE-COMMS] Number purchased successfully:", purchasedNumber.phoneNumber);
+    
     await logActivity(
       workspaceId,
       "Phone Number Purchased",
@@ -96,6 +152,7 @@ export async function initializeSimpleComms(
     // 2. Create Elastic SIP Trunk for Retell AI
     // ────────────────────────────────────────────────────────────────
     stageReached = "sip-trunk";
+    console.log("[SIMPLE-COMMS] Stage: sip-trunk");
 
     const trunk = await twilioMasterClient.trunking.v1.trunks.create({
       friendlyName: `${businessName} - Retell SIP`,
@@ -211,15 +268,49 @@ export async function initializeSimpleComms(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[initializeSimpleComms] Failed at stage '${stageReached}':`, error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    const errorCode = (error as any)?.code;
+    const status = (error as any)?.status;
+    
+    // Handle specific Live API errors
+    let detailedError = message;
+    if (errorCode === 21631) {
+      detailedError = "AUSTRALIAN REGULATORY BUNDLE REQUIRED: Your Twilio account needs ABN/identity verification to purchase Australian numbers. Please complete regulatory compliance in Twilio Console.";
+    } else if (errorCode === 20003) {
+      detailedError = "PERMISSION DENIED: Your Twilio account lacks permissions for Australian number inventory. Check account permissions and geographic restrictions.";
+    } else if (errorCode === 21452) {
+      detailedError = "INSUFFICIENT FUNDS: Twilio account balance too low to purchase phone number. Add funds to your Twilio account.";
+    } else if (status === 401) {
+      detailedError = "AUTHENTICATION FAILED: Invalid Twilio credentials. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in Vercel environment.";
+    } else if (status === 403) {
+      detailedError = "ACCESS FORBIDDEN: Account may be suspended or trial limitations apply. Check Twilio account status.";
+    }
+    
+    console.error(`[SIMPLE-COMMS] FAILED at stage '${stageReached}':`, {
+      message,
+      detailedError,
+      errorCode,
+      status,
+      stack,
+      stageReached,
+      workspaceId,
+      businessName,
+      timestamp: new Date().toISOString()
+    });
 
     await logActivity(
       workspaceId,
       "Comms Setup Failed",
-      `Error at stage '${stageReached}': ${message}`
-    ).catch(() => {}); // Don't let logging failure mask the real error
+      `Failed at stage '${stageReached}': ${detailedError}`
+    );
 
-    return { success: false, error: message, stageReached };
+    return {
+      success: false,
+      error: detailedError,
+      stageReached,
+      errorCode,
+      status
+    };
   }
 }
 

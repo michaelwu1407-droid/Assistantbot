@@ -3,6 +3,16 @@ import twilio from "twilio";
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
+// Debug logging for Twilio credentials
+console.log("[TWILIO] Credential check:", {
+  hasAccountSid: !!accountSid,
+  hasAuthToken: !!authToken,
+  accountSidPrefix: accountSid ? accountSid.substring(0, 8) + "..." : "missing",
+  accountSidLength: accountSid ? accountSid.length : 0,
+  authTokenLength: authToken ? authToken.length : 0,
+  isTestAccount: accountSid?.startsWith("AC") ? "✅ Valid format" : "❌ Invalid format"
+});
+
 // Initialize the master Twilio client (the Platform Provider's account)
 export const twilioMasterClient =
     accountSid && authToken ? twilio(accountSid, authToken) : null;
