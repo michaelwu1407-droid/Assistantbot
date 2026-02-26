@@ -172,7 +172,7 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         id: deal.id,
         title: deal.title,
         company: deal.contact.company ?? "",
-        value: deal.value ? deal.value.toNumber() : 0,
+        value: typeof deal.value === 'number' ? deal.value : Number(deal.value) || 0,
         stage: STAGE_MAP[deal.stage] ?? "new_request",
         lastActivityDate,
         createdAt: deal.createdAt,

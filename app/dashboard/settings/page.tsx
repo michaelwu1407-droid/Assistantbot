@@ -31,7 +31,11 @@ export default async function AccountSettingsPage() {
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">User profile</h4>
         <ProfileForm
           userId={userId}
-          initialData={profile ? { username: profile.username, email: profile.email } : undefined}
+          initialData={profile ? { 
+            username: profile.username, 
+            email: profile.email,
+            viewMode: profile.viewMode
+          } : undefined}
         />
       </section>
       <Separator />

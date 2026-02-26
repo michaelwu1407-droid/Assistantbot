@@ -77,3 +77,42 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
     throw new Error("User not authenticated");
   }
 }
+
+/**
+ * Get the current user's workspace ID from Supabase.
+ */
+export async function getWorkspaceId(): Promise<string> {
+  try {
+    logger.authFlow("Attempting to get workspace ID", { action: "getWorkspaceId" });
+    
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error) {
+      logger.authError("Failed to get user from Supabase for workspace", { error: error.message, details: error }, error);
+      throw new Error("User not authenticated");
+    }
+
+    if (!user) {
+      logger.authError("No user found in Supabase session for workspace", { hasUser: false });
+      throw new Error("User not authenticated");
+    }
+
+    // Get workspace from user metadata or create default workspace
+    const workspaceId = user.user_metadata?.workspace_id;
+    if (!workspaceId) {
+      logger.authError("No workspace ID found for user", { userId: user.id });
+      throw new Error("Workspace not found");
+    }
+
+    logger.authFlow("Successfully retrieved workspace ID", { userId: user.id, workspaceId });
+    return workspaceId;
+  } catch (error) {
+    if (error instanceof Error && error.message === "User not authenticated") {
+      throw error;
+    }
+    
+    logger.authError("Unexpected error in getWorkspaceId", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));
+    throw new Error("Failed to get workspace");
+  }
+}
