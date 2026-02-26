@@ -42,28 +42,39 @@ export default async function AuthNextPage() {
     }
 
     const subscribed = workspace.subscriptionStatus === "active";
+    const onboarded = workspace.onboardingComplete;
 
     logger.authFlow("Making redirect decision", {
         action: "redirect_decision",
         userId,
         workspaceId: workspace.id,
         subscribed,
-        redirectTarget: subscribed ? "/dashboard" : "/billing"
+        onboarded,
+        redirectTarget: subscribed ? (onboarded ? "/dashboard" : "/setup") : "/billing"
     });
 
-    if (subscribed) {
-        logger.authFlow("Redirecting to /dashboard", {
+    if (!subscribed) {
+        logger.authFlow("Redirecting to /billing", {
             userId,
             workspaceId: workspace.id,
-            reason: "active_subscription"
+            reason: "no_active_subscription"
         });
-        redirect("/dashboard");
+        redirect("/billing");
     }
 
-    logger.authFlow("Redirecting to /billing", {
+    if (!onboarded) {
+        logger.authFlow("Redirecting to /setup", {
+            userId,
+            workspaceId: workspace.id,
+            reason: "onboarding_incomplete"
+        });
+        redirect("/setup");
+    }
+
+    logger.authFlow("Redirecting to /dashboard", {
         userId,
         workspaceId: workspace.id,
-        reason: "no_active_subscription"
+        reason: "subscription_active_and_onboarding_complete"
     });
-    redirect("/billing");
+    redirect("/dashboard");
 }
