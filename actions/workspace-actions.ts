@@ -427,13 +427,13 @@ export async function completeOnboarding(data: {
     where: { userId },
     update: {
       mode: data.pricingMode || "STANDARD",
-      callOutFee: data.callOutFee || 89.0,
+      callOutFee: data.callOutFee || null,
       waiveFee: data.pricingMode === "BOOK_ONLY",
     },
     create: {
       userId,
       mode: data.pricingMode || "STANDARD",
-      callOutFee: data.callOutFee || 89.0,
+      callOutFee: data.callOutFee || null,
       waiveFee: data.pricingMode === "BOOK_ONLY",
     },
   });
