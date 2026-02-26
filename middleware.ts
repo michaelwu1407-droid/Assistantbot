@@ -65,6 +65,7 @@ export async function middleware(request: NextRequest) {
     "https://api.openai.com",
     "https://api.retellai.com",
     "https://api.stripe.com",
+    "https://o4510923609079808.ingest.us.sentry.io",
     ...(supabaseOrigin ? [supabaseOrigin] : []),
   ].join(" ");
   const cspHeader = [
