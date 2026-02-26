@@ -66,6 +66,7 @@ export async function middleware(request: NextRequest) {
     "https://api.retellai.com",
     "https://api.stripe.com",
     "https://o4510923609079808.ingest.us.sentry.io",
+    "https://*.ingest.sentry.io", // More permissive for Sentry
     ...(supabaseOrigin ? [supabaseOrigin] : []),
   ].join(" ");
   const cspHeader = [
