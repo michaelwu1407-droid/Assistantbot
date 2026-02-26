@@ -78,30 +78,37 @@ export function validateEnvironment(): {
   };
 }
 
-// Startup health check
+// Startup health check - non-blocking, logs warnings but doesn't crash
 export async function performStartupHealthCheck(): Promise<void> {
   console.log('🔍 Performing startup health check...');
   
-  // Check environment variables
+  // Check environment variables - log warnings but don't crash
   const envCheck = validateEnvironment();
   if (!envCheck.valid) {
-    console.error('❌ Environment validation failed:', {
+    console.warn('⚠️ Environment validation issues:', {
       missing: envCheck.missing,
       warnings: envCheck.warnings
     });
-    throw new Error(`Environment validation failed: ${envCheck.missing.join(', ')}`);
+    // Don't throw - let the app start and handle errors gracefully
+    console.log('⚠️ Continuing despite missing environment variables...');
   }
 
-  // Check database connectivity
-  const dbCheck = await checkDatabaseHealth();
-  if (dbCheck.status === 'unhealthy') {
-    console.error('❌ Database health check failed:', dbCheck.error);
-    throw new Error(`Database health check failed: ${dbCheck.error}`);
+  // Check database connectivity - log warnings but don't crash
+  try {
+    const dbCheck = await checkDatabaseHealth();
+    if (dbCheck.status === 'unhealthy') {
+      console.warn('⚠️ Database health check failed:', dbCheck.error);
+      // Don't throw - let the app start and handle errors gracefully
+      console.log('⚠️ Continuing despite database connectivity issues...');
+    } else {
+      console.log('✅ Database health check passed:', {
+        database: dbCheck.status,
+        latency: dbCheck.latency,
+        timestamp: dbCheck.timestamp
+      });
+    }
+  } catch (error) {
+    console.warn('⚠️ Database health check exception:', error);
+    // Don't throw - let the app start
   }
-
-  console.log('✅ Startup health check passed:', {
-    database: dbCheck.status,
-    latency: dbCheck.latency,
-    timestamp: dbCheck.timestamp
-  });
 }
