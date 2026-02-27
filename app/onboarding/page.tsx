@@ -16,7 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { saveOnboardingData, type OnboardingFormData } from "@/actions/onboarding";
 import { toast } from "sonner";
-import { Loader2, Wrench, DollarSign, MapPin, Plus, Trash2 } from "lucide-react";
+import { Loader2, Wrench, DollarSign, MapPin, Plus, Trash2, MessageSquare, ExternalLink } from "lucide-react";
 
 const TRADE_TYPES = [
   "Plumber",
@@ -31,6 +31,7 @@ const STEPS = [
   { label: "Trade Profile", icon: Wrench },
   { label: "Money Rules", icon: DollarSign },
   { label: "Logistics", icon: MapPin },
+  { label: "Assistant", icon: MessageSquare },
 ];
 
 export default function OnboardingPage() {
@@ -57,6 +58,9 @@ export default function OnboardingPage() {
   const [workHours, setWorkHours] = useState("Mon-Fri, 07:00-15:30");
   const [emergencyService, setEmergencyService] = useState(false);
   const [emergencySurcharge, setEmergencySurcharge] = useState(350);
+
+  const whatsappNumber = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || "+1234567890";
+  const waLink = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=Hi%20Earlymark`;
 
   const canAdvance = () => {
     if (step === 0) return tradeType !== "";
@@ -144,22 +148,20 @@ export default function OnboardingPage() {
             return (
               <div key={s.label} className="flex flex-col items-center gap-1.5 flex-1">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    isActive
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive
                       ? "bg-emerald-600 text-white scale-110"
                       : isDone
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-slate-200 text-slate-400"
-                  }`}
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-200 text-slate-400"
+                    }`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
                 <span
-                  className={`text-xs font-medium ${
-                    isActive
+                  className={`text-xs font-medium ${isActive
                       ? "text-emerald-700 dark:text-emerald-400"
                       : "text-slate-400"
-                  }`}
+                    }`}
                 >
                   {s.label}
                 </span>
@@ -330,6 +332,37 @@ export default function OnboardingPage() {
               </>
             )}
 
+            {/* ─── Step 4: Connecting the Assistant ─── */}
+            {step === 3 && (
+              <div className="space-y-6 text-center animate-in fade-in duration-300 py-4">
+                <div className="mx-auto w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-semibold">Connect your AI Assistant</h3>
+                <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                  Manage your business via chat while on the road. Travis is available 24/7 on WhatsApp.
+                </p>
+
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 max-w-xs mx-auto space-y-4">
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Your Assistant Number:
+                  </div>
+                  <div className="text-xl font-mono text-emerald-600 dark:text-emerald-400 font-bold select-all tracking-wide">
+                    {whatsappNumber}
+                  </div>
+                  <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white gap-2">
+                    <a href={waLink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Message Travis
+                    </a>
+                  </Button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  Tip: Save this number to your contacts for easy access.
+                </p>
+              </div>
+            )}
+
             {/* ─── Navigation ─── */}
             <div className="flex justify-between pt-2">
               {step > 0 ? (
@@ -340,7 +373,7 @@ export default function OnboardingPage() {
                 <div />
               )}
 
-              {step < 2 ? (
+              {step < 3 ? (
                 <Button
                   onClick={() => setStep(step + 1)}
                   disabled={!canAdvance()}

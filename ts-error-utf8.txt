@@ -1,0 +1,2 @@
+﻿lib/services/ai-agent.ts(85,13): error TS2353: Object literal may only specify known properties, and 'maxSteps' does not exist in type 'CallSettings & { system?: string | SystemModelMessage | SystemModelMessage[] | undefined; } & { prompt: string | ModelMessage[]; messages?: undefined; } & { ...; }'.
+lib/services/ai-agent.ts(90,61): error TS2554: Expected 2 arguments, but got 3.

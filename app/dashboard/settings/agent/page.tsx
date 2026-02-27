@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { Bot, Brain, Plus, X } from "lucide-react"
+import { Bot, Brain, Plus, X, MessageSquare, ExternalLink, CheckCircle2 } from "lucide-react"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 
 export default function AgentSettingsPage() {
@@ -25,6 +25,9 @@ export default function AgentSettingsPage() {
   })
   const [learningRules, setLearningRules] = useState<string[]>([])
   const [ruleDraft, setRuleDraft] = useState("")
+
+  const whatsappNumber = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || "+1234567890" // Fallback display
+  const waLink = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=Hi%20Earlymark`
 
   useEffect(() => {
     getWorkspaceSettings()
@@ -160,6 +163,38 @@ export default function AgentSettingsPage() {
                 ))
               )}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-green-500" />
+            <CardTitle>WhatsApp Assistant</CardTitle>
+          </div>
+          <CardDescription>Chat to Travis via WhatsApp to manage your business on the road.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
+            <div>
+              <p className="font-medium text-sm">Assistant Number</p>
+              <p className="text-lg font-mono text-slate-700 dark:text-slate-300 select-all">
+                {whatsappNumber}
+              </p>
+            </div>
+            {/* Status could be dynamic based on whether the user has a phone set, but assuming active if reached here for now */}
+            <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
+              Active
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button asChild variant="default" className="bg-green-600 hover:bg-green-700 text-white gap-2">
+              <a href={waLink} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" /> Connect via WhatsApp
+              </a>
+            </Button>
           </div>
         </CardContent>
       </Card>
