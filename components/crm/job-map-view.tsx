@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { GeocodedDeal, batchGeocode } from "@/actions/geo-actions";
-import { MapPin, Navigation, RefreshCw, Calendar, Filter } from "lucide-react";
+import { MapPin, Navigation, RefreshCw, Calendar, Filter, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isToday, isValid } from "date-fns";
+import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -30,6 +31,8 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
   const router = useRouter();
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [filter, setFilter] = useState<'all' | 'today'>('all');
+  const [completionDealId, setCompletionDealId] = useState<string | null>(null);
+  const [completionDeal, setCompletionDeal] = useState<GeocodedDeal | null>(null);
 
   const filteredDeals = useMemo(() => {
     if (filter === 'all') return initialDeals;
@@ -161,6 +164,18 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                       <Navigation className="h-3 w-3" />
                       Directions
                     </a>
+                    {deal.stage !== 'completed' && (
+                      <button
+                        onClick={() => {
+                          setCompletionDealId(deal.id);
+                          setCompletionDeal(deal);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold transition-colors"
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        Mark Done
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -173,6 +188,34 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
           <LeafletMap deals={filteredDeals} />
         </div>
       </div>
+
+      {/* Job Completion Modal — triggered from "Mark Done" buttons */}
+      {completionDealId && (
+        <JobCompletionModal
+          open={!!completionDealId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCompletionDealId(null);
+              setCompletionDeal(null);
+            }
+          }}
+          dealId={completionDealId}
+          job={completionDeal ? {
+            id: completionDeal.id,
+            title: completionDeal.title,
+            clientName: completionDeal.contactName,
+            address: completionDeal.address,
+            value: 0,
+            lat: completionDeal.latitude,
+            lng: completionDeal.longitude,
+          } as any : undefined}
+          onSuccess={() => {
+            setCompletionDealId(null);
+            setCompletionDeal(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

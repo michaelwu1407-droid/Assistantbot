@@ -4,15 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { createQuoteVariation } from '@/actions/tradie-actions';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Map } from "lucide-react";
-// Removed unused DealView import
+import { Map, CheckCircle2 } from "lucide-react";
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
+import { JobCompletionModal } from './job-completion-modal';
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
 import { Header } from "@/components/dashboard/header"
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search";
 import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Define the shape that JobBottomSheet expects (which we defined there as TradieJob)
 interface TradieJob {
@@ -45,8 +46,10 @@ interface TradieDashboardClientProps {
 
 export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "Mate", financialStats }: TradieDashboardClientProps) {
   const userId = useShellStore(s => s.userId) ?? "anonymous";
+  const router = useRouter();
   const [isSheetExpanded, setSheetExpanded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
 
   // Parse initial status from metadata or default to PENDING
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -131,6 +134,19 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         </Link>
       </div>
 
+      {/* Finish Job Button — most prominent action on active job card */}
+      {(jobStatus === "ON_SITE" || jobStatus === "TRAVELING") && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 pointer-events-auto w-[calc(100%-2rem)] max-w-sm">
+          <Button
+            onClick={() => setCompletionModalOpen(true)}
+            className="w-full h-14 text-lg font-extrabold bg-green-600 hover:bg-green-700 text-white rounded-2xl shadow-xl shadow-green-900/40 gap-2"
+          >
+            <CheckCircle2 className="h-6 w-6" />
+            Finish Job
+          </Button>
+        </div>
+      )}
+
       {/* Map Layer */}
       <div className="absolute inset-0 bg-slate-900">
         <JobMap deals={todayJobs.length > 0 ? todayJobs : (initialJob ? [initialJob] : [])} />
@@ -142,6 +158,26 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         setIsOpen={setSheetExpanded}
         onAddVariation={handleAddVariation}
         safetyCheckCompleted={initialJob.safetyCheckCompleted}
+      />
+
+      {/* Job Completion Modal */}
+      <JobCompletionModal
+        open={completionModalOpen}
+        onOpenChange={setCompletionModalOpen}
+        dealId={initialJob.id}
+        job={{
+          id: initialJob.id,
+          title: initialJob.title,
+          clientName: initialJob.clientName,
+          address: initialJob.address,
+          value: initialJob.value,
+          lat: initialJob.lat,
+          lng: initialJob.lng,
+        } as any}
+        onSuccess={() => {
+          setCompletionModalOpen(false);
+          router.refresh();
+        }}
       />
     </div>
   );

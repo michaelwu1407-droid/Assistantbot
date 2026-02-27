@@ -11,6 +11,7 @@ import { MonitoringService } from "@/lib/monitoring";
 import { logger } from "@/lib/logging";
 import { checkUserRoute } from "@/actions/workspace-actions";
 import { Mail, Phone, Chrome } from "lucide-react";
+import Link from "next/link";
 
 interface AuthState {
   email: string;
@@ -412,6 +413,17 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] -z-10 rounded-full bg-primary/8 blur-3xl" />
 
       <div className="w-full max-w-md ott-card bg-card p-8 relative z-10">
+        {/* Back to website home page */}
+        <Link
+          href="/"
+          className="absolute top-4 left-4 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          aria-label="Back to website"
+        >
+          <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 8L14 0V16L0 8Z" />
+          </svg>
+        </Link>
+
         {connectionError && (
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
             <p className="font-medium">We couldn’t reach the login service.</p>

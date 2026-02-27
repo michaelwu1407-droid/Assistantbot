@@ -10,18 +10,26 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { completeJob, finalizeJobCompletion } from "@/actions/tradie-actions";
+import { completeJob, finalizeJobCompletion, generateQuote } from "@/actions/tradie-actions";
+import { updateDeal } from "@/actions/deal-actions";
+import { createXeroDraftInvoice } from "@/actions/accounting-actions";
 import { toast } from "sonner";
-import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Upload, X } from "lucide-react";
+import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Upload, X, Clock, Wrench, Plus, Trash2, FileText } from "lucide-react";
 import { MessageActionSheet } from "@/components/sms/message-action-sheet";
+import { MaterialPicker } from "@/components/tradie/material-picker";
 import { Job } from "@/components/map/map-view";
 import { cn } from "@/lib/utils";
+
+interface MaterialLine {
+    description: string;
+    price: number;
+}
 
 interface JobCompletionModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     dealId: string;
-    job?: Job; // Optional fast-path context for the map view
+    job?: Job;
     onSuccess: () => void;
 }
 
@@ -34,26 +42,101 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     const [completed, setCompleted] = useState(false);
     const [showActionSheet, setShowActionSheet] = useState(false);
 
-    const handleComplete = async () => {
+    // Invoice Verifier state
+    const [laborHours, setLaborHours] = useState<number>(job?.scheduledDuration ?? 1);
+    const [laborRate, setLaborRate] = useState<number>(85); // Default hourly rate
+    const [materials, setMaterials] = useState<MaterialLine[]>([]);
+
+    const laborTotal = laborHours * laborRate;
+    const materialsTotal = materials.reduce((sum, m) => sum + m.price, 0);
+    const invoiceTotal = laborTotal + materialsTotal;
+
+    const handleAddMaterial = (material: { description: string; price: number }) => {
+        setMaterials((prev) => [...prev, material]);
+    };
+
+    const handleRemoveMaterial = (index: number) => {
+        setMaterials((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const buildLineItems = () => {
+        const items: { desc: string; price: number }[] = [];
+        if (laborHours > 0) {
+            items.push({ desc: `Labour — ${laborHours}h @ $${laborRate}/hr`, price: laborTotal });
+        }
+        for (const mat of materials) {
+            items.push({ desc: mat.description, price: mat.price });
+        }
+        return items;
+    };
+
+    /** Save for Later — stage → INVOICED (Ready to Invoice), no Xero sync */
+    const handleSaveForLater = async () => {
         setLoading(true);
         try {
-            let sigSuccess = true;
+            // Capture signature if present
+            if (signature) {
+                await completeJob(dealId, signature);
+            }
+
+            // Finalize with notes / payment info
+            await finalizeJobCompletion(dealId, { isPaid, notes });
+
+            // Move stage to INVOICED (ready_to_invoice) instead of WON
+            await updateDeal(dealId, { stage: "ready_to_invoice" });
+
+            toast.success("Job saved — ready for invoicing later.");
+            setCompleted(true);
+            onSuccess();
+        } catch {
+            toast.error("An error occurred saving the job.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /** Confirm & Generate — stage → WON, generate invoice record, push Xero draft */
+    const handleConfirmAndGenerate = async () => {
+        setLoading(true);
+        try {
+            // 1. Capture signature if present
             if (signature) {
                 const sigResult = await completeJob(dealId, signature);
-                sigSuccess = sigResult.success;
-            }
-            if (sigSuccess) {
-                const finalizeResult = await finalizeJobCompletion(dealId, { isPaid, notes });
-                if (finalizeResult.success) {
-                    toast.success("Job completed successfully!");
-                    setCompleted(true);
-                    onSuccess();
-                } else {
-                    toast.error(finalizeResult.error || "Failed to finalize details");
+                if (!sigResult.success) {
+                    toast.error("Failed to capture signature");
+                    setLoading(false);
+                    return;
                 }
-            } else {
-                toast.error("Failed to complete job");
             }
+
+            // 2. Finalize payment / notes
+            const finalizeResult = await finalizeJobCompletion(dealId, { isPaid, notes });
+            if (!finalizeResult.success) {
+                toast.error(finalizeResult.error || "Failed to finalize details");
+                setLoading(false);
+                return;
+            }
+
+            // 3. Generate internal invoice from verified line items
+            const lineItems = buildLineItems();
+            if (lineItems.length > 0) {
+                await generateQuote(dealId, lineItems);
+            }
+
+            // 4. Ensure deal is WON (completed)
+            await updateDeal(dealId, { stage: "completed" });
+
+            // 5. Push Xero DRAFT invoice for manager review
+            const xeroResult = await createXeroDraftInvoice(dealId);
+            if (xeroResult.success) {
+                toast.success("Invoice generated & sent to Xero as Draft!");
+            } else {
+                // Non-blocking: the invoice is created locally even if Xero sync fails
+                toast.success("Invoice generated! Xero sync skipped — " + (xeroResult.error || "connect Xero in Settings."));
+            }
+
+            setCompleted(true);
+            onSuccess();
         } catch {
             toast.error("An error occurred");
         } finally {
@@ -71,6 +154,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
         setCompleted(false);
         setSignature(null);
         setFiles([]);
+        setMaterials([]);
     };
 
     const handleActionSheetClose = (isOpen: boolean) => {
@@ -79,6 +163,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             setCompleted(false);
             setSignature(null);
             setFiles([]);
+            setMaterials([]);
         }
     };
 
@@ -92,7 +177,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
                     {!completed ? (
                         <>
                             <DialogHeader>
@@ -101,12 +186,12 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                                 <DialogTitle className="text-center">Complete Job</DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Add payment status, notes, and any photos or files to finalize this job.
+                                    Verify the invoice details, then save or generate the invoice.
                                 </DialogDescription>
                             </DialogHeader>
 
                             {job && (
-                                <div className="px-4 py-2 mt-2 bg-slate-50 border border-slate-100 rounded-xl mb-4">
+                                <div className="px-4 py-2 mt-2 bg-slate-50 border border-slate-100 rounded-xl mb-2">
                                     <div className="flex items-start gap-3">
                                         <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center border border-slate-300">
                                             <User className="h-4 w-4 text-slate-500" />
@@ -124,7 +209,80 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                             )}
 
-                            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-2">
+                            <div className="space-y-4 py-2 flex-1 overflow-y-auto px-2">
+                                {/* ── Invoice Verifier Section ── */}
+                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-4">
+                                    <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-blue-600" />
+                                        Invoice Verifier
+                                    </h3>
+
+                                    {/* Labor Hours */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                            <Clock className="h-3.5 w-3.5 text-blue-500" /> Labour Hours
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.25}
+                                                value={laborHours}
+                                                onChange={(e) => setLaborHours(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                className="w-24 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
+                                            />
+                                            <span className="text-xs text-slate-500 self-center">hrs @</span>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={5}
+                                                value={laborRate}
+                                                onChange={(e) => setLaborRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                className="w-24 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
+                                                placeholder="$/hr"
+                                            />
+                                            <span className="text-xs text-slate-500 self-center">= <b className="text-slate-900">${laborTotal.toFixed(2)}</b></span>
+                                        </div>
+                                    </div>
+
+                                    {/* Materials */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                            <Wrench className="h-3.5 w-3.5 text-blue-500" /> Materials Used
+                                        </label>
+
+                                        {materials.length > 0 && (
+                                            <div className="space-y-1.5">
+                                                {materials.map((mat, i) => (
+                                                    <div key={i} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2">
+                                                        <span className="text-xs text-slate-700 truncate flex-1 mr-2">{mat.description}</span>
+                                                        <span className="text-xs font-bold text-slate-900 mr-2">${mat.price.toFixed(2)}</span>
+                                                        <button type="button" onClick={() => handleRemoveMaterial(i)} className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500">
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <MaterialPicker
+                                            onSelect={handleAddMaterial}
+                                            trigger={
+                                                <Button type="button" variant="outline" size="sm" className="w-full gap-1.5 border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 h-10">
+                                                    <Plus className="h-3.5 w-3.5" />
+                                                    Add Material
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+
+                                    {/* Invoice Total */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-blue-200">
+                                        <span className="text-sm font-bold text-blue-900">Invoice Total</span>
+                                        <span className="text-lg font-extrabold text-emerald-600">${invoiceTotal.toFixed(2)}</span>
+                                    </div>
+                                </div>
+
                                 {/* Payment Toggle */}
                                 <div className="space-y-3">
                                     <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -157,7 +315,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
 
                                 {/* Notes Textarea */}
-                                <div className="space-y-3 mt-4">
+                                <div className="space-y-3">
                                     <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <PenLine className="h-4 w-4 text-purple-500" />
                                         Field Notes <span className="text-slate-400 font-normal text-xs">(Optional)</span>
@@ -171,7 +329,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
 
                                 {/* Upload photos or files */}
-                                <div className="mt-4">
+                                <div>
                                     <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
                                         <Upload className="h-4 w-4" />
                                         Upload photos or files
@@ -203,20 +361,30 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                             </div>
 
-                            <DialogFooter className="flex-col sm:justify-between gap-2 mt-4">
+                            {/* Dual-Action Footer */}
+                            <DialogFooter className="flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
+                                <Button
+                                    onClick={handleConfirmAndGenerate}
+                                    disabled={loading}
+                                    className="bg-green-600 hover:bg-green-700 text-white w-full h-12 text-base font-bold"
+                                >
+                                    {loading ? "Generating..." : "Confirm & Generate Invoice"}
+                                </Button>
+                                <Button
+                                    onClick={handleSaveForLater}
+                                    disabled={loading}
+                                    variant="outline"
+                                    className="w-full h-10 border-slate-300"
+                                >
+                                    {loading ? "Saving..." : "Save for Later"}
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     onClick={() => onOpenChange(false)}
                                     disabled={loading}
+                                    className="w-full text-slate-500"
                                 >
                                     Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleComplete}
-                                    disabled={loading}
-                                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-                                >
-                                    {loading ? "Finalizing..." : "Complete & Save"}
                                 </Button>
                             </DialogFooter>
                         </>
