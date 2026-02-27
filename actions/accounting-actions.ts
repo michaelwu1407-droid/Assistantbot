@@ -230,6 +230,110 @@ export async function syncInvoiceToMYOB(
 }
 
 /**
+ * Create a Xero DRAFT invoice directly from a deal/job.
+ *
+ * Used by the on-site completion workflow so the tradie can trigger
+ * invoice generation while the boss/manager reviews later in Xero.
+ * Always posts with Status: "DRAFT" — never "AUTHORISED".
+ */
+export async function createXeroDraftInvoice(
+  dealId: string
+): Promise<AccountingSyncResult> {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: {
+      contact: true,
+      invoices: { orderBy: { createdAt: "desc" }, take: 1 },
+      workspace: { select: { id: true } },
+    },
+  });
+
+  if (!deal) {
+    return { success: false, error: "Deal not found" };
+  }
+
+  // Use the most recent invoice if it exists, otherwise build line items from metadata/value
+  const invoice = deal.invoices[0];
+
+  const token = await getAccountingToken(deal.workspace.id, "XERO");
+  if (!token) {
+    return { success: false, error: "Xero not connected. Please connect Xero in Settings." };
+  }
+
+  let lineItems: { Description: string; UnitAmount: number; Quantity: number }[];
+
+  if (invoice) {
+    const items = (invoice.lineItems as { desc: string; price: number }[]) ?? [];
+    lineItems = items.map((item) => ({
+      Description: item.desc,
+      UnitAmount: item.price,
+      Quantity: 1,
+    }));
+  } else {
+    // Fallback: single line item from deal value
+    lineItems = [
+      {
+        Description: deal.title,
+        UnitAmount: deal.value ? Number(deal.value) : 0,
+        Quantity: 1,
+      },
+    ];
+  }
+
+  const reference = invoice?.number ?? `JOB-${dealId.slice(0, 8).toUpperCase()}`;
+
+  const xeroPayload: XeroInvoice = {
+    Type: "ACCREC",
+    Contact: {
+      Name: deal.contact.name,
+      EmailAddress: deal.contact.email ?? undefined,
+    },
+    LineItems: lineItems,
+    Date: new Date().toISOString().split("T")[0],
+    DueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+    Reference: reference,
+    Status: "DRAFT", // Always DRAFT — manager reviews in Xero
+  };
+
+  try {
+    const response = await fetch("https://api.xero.com/api.xro/2.0/Invoices", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({ Invoices: [xeroPayload] }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error("Xero Draft API Error:", errBody);
+      return { success: false, error: `Xero API rejected request: ${response.statusText}` };
+    }
+
+    const data = await response.json();
+    const createdInvoice = data.Invoices[0];
+    const externalId = createdInvoice.InvoiceID;
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Xero Draft Invoice Created",
+        content: `Draft invoice synced to Xero (ID: ${externalId}) for review.`,
+        dealId,
+        contactId: deal.contactId,
+      },
+    });
+
+    return { success: true, externalId, provider: "xero" };
+  } catch (error) {
+    console.error("Xero Draft Sync Exception:", error);
+    return { success: false, error: "Network error connecting to Xero" };
+  }
+}
+
+/**
  * Get sync status for an invoice.
  * Checks metadata for external accounting system IDs.
  */

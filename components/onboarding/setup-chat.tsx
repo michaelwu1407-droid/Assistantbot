@@ -20,7 +20,7 @@ type Message = {
 }
 
 type DraftCardData = {
-    kind: "pricing" | "hours" | "autonomy" | "onboarding" | "onboarding_hours" | "onboarding_pricing" | "onboarding_business_contact"
+    kind: "pricing" | "hours" | "autonomy" | "onboarding" | "onboarding_hours" | "onboarding_pricing" | "onboarding_business_contact" | "onboarding_bouncer"
     fields: DraftField[]
 }
 
@@ -177,6 +177,7 @@ export function SetupChat() {
         leadCaptureMode?: "connect_inbox" | "manual_forward"
         leadCaptureEmail?: string
         callForwardingEnabled?: boolean
+        exclusionCriteria?: string
     }>({ autoUpdateGlossary: true })
 
     const scrollToBottom = () => {
@@ -549,7 +550,8 @@ export function SetupChat() {
                     }))
                     .filter((row) => row.service || row.minFee !== undefined || row.maxFee !== undefined)
             setOnboardingData(prev => ({ ...prev, callOutFee, pricingMode, pricingServices, disableAiQuoting }))
-            setOnboardingStep(4)
+            // Go to bouncer/exclusion step before lead sources
+            setOnboardingStep(3)  // Will be handled by bouncer card below
             const userMsg: Message = {
                 id: crypto.randomUUID(),
                 role: "user",
@@ -566,17 +568,55 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                            content: "Where do your leads usually come from? (We'll set up email capture for these.)",
-                            type: "choice",
-                            choices: [
-                                { label: "Google Ads", value: "google_ads" },
-                                { label: "Hipages", value: "hipages" },
-                                { label: "Airtasker", value: "airtasker" },
-                                { label: "Oneflare", value: "oneflare" },
-                                { label: "ServiceSeeking", value: "serviceseeking" },
-                                { label: "I'll set up later", value: "later" },
+                        content: "Any jobs Travis should strictly turn away? These are hard 'No-Go' rules — Travis will politely decline anything that matches. Leave blank to accept all leads.",
+                        type: "text"
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        type: "draft-card",
+                        content: "",
+                        draftCard: {
+                            kind: "onboarding_bouncer",
+                            fields: [
+                                { key: "exclusionCriteria", label: "Strict Exclusion Rules (The Bouncer)", type: "text", defaultValue: "", placeholder: "No 2-story roofs, no asbestos, no jobs in CBD, no emergency calls after 10pm" },
                             ]
                         }
+                    }
+                ])
+            }, 400)
+            return
+        }
+
+        if (kind === "onboarding_bouncer") {
+            const exclusionCriteria = String(values.exclusionCriteria ?? "").trim()
+            setOnboardingData(prev => ({ ...prev, exclusionCriteria: exclusionCriteria || undefined }))
+            setOnboardingStep(4)
+            const userMsg: Message = {
+                id: crypto.randomUUID(),
+                role: "user",
+                content: exclusionCriteria ? `✅ No-go rules: ${exclusionCriteria}` : "✅ No exclusions — accept all leads"
+            }
+            setMessages(prev => [...prev, userMsg])
+            setIsTyping(true)
+            setTimeout(() => {
+                setIsTyping(false)
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: "Where do your leads usually come from? (We'll set up email capture for these.)",
+                        type: "choice",
+                        choices: [
+                            { label: "Google Ads", value: "google_ads" },
+                            { label: "Hipages", value: "hipages" },
+                            { label: "Airtasker", value: "airtasker" },
+                            { label: "Oneflare", value: "oneflare" },
+                            { label: "ServiceSeeking", value: "serviceseeking" },
+                            { label: "I'll set up later", value: "later" },
+                        ]
+                    }
                 ])
             }, 400)
             return
@@ -637,6 +677,7 @@ export function SetupChat() {
             businessContact: finalData.businessContact,
             pricingServices: finalData.pricingServices,
             disableAiQuoting: finalData.disableAiQuoting,
+            exclusionCriteria: finalData.exclusionCriteria,
         }).then((result) => {
             const phoneNumber = result?.phoneNumber
             const provisioningError = result?.provisioningError
@@ -870,6 +911,7 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                 {data.kind === "onboarding" && "Your details"}
                 {data.kind === "onboarding_hours" && "Working hours"}
                 {data.kind === "onboarding_pricing" && "Call-out and pricing"}
+                {data.kind === "onboarding_bouncer" && "The Bouncer"}
                 {data.kind === "onboarding_business_contact" && "Public contact (optional)"}
             </h3>
 

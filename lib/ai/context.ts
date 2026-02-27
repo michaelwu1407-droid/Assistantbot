@@ -43,7 +43,7 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
     // Keep BusinessProfile and WorkspaceSettings in system prompt
     const workspaceInfo = await db.workspace.findUnique({
         where: { id: workspaceId },
-        select: { name: true, location: true, twilioPhoneNumber: true },
+        select: { name: true, location: true, twilioPhoneNumber: true, exclusionCriteria: true },
     });
 
     let businessProfile: { tradeType: string; website: string | null; baseSuburb: string; serviceRadius: number; standardWorkHours: string; emergencyService: boolean; emergencySurcharge: number | null } | null = null;
@@ -128,6 +128,28 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
 4. If asked for general pricing and the task is custom/not in the glossary, quote the standard Call-Out Fee of $${callOutFee}. Say: "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
 ${glossaryStr}`;
 
+    // ── Bouncer & Advisor Logic ──────────────────────────────────────
+    const exclusionCriteria = workspaceInfo?.exclusionCriteria?.trim() || "";
+    let bouncerStr = "";
+    if (exclusionCriteria) {
+        bouncerStr = `\nLEAD QUALIFICATION — BOUNCER vs. ADVISOR (CRITICAL):
+
+PHASE A — THE HARD FILTER (Bouncer):
+The following are STRICT NO-GO rules. You are ONLY permitted to decline a lead if it matches one of these EXACTLY:
+${exclusionCriteria}
+When a lead matches a No-Go rule: politely inform the caller — "I'm sorry, we don't currently handle [specific job type/location/condition]." — then end the triage.
+
+PHASE B — THE TRIAGE & FLAG (Advisor):
+If the job does NOT violate any of the above No-Go rules, you MUST proceed with triage. Even if the job looks low-value, far away, or technically difficult, you are NOT allowed to decline it.
+Continue triage normally: ask for address, issue, urgency. Fill the Job Draft Card. If you have concerns (e.g. "This lead is 45km away", "Potential tire-kicker", "High-risk location"), add them to the internal_notes field as a private flag. The owner/manager will see these flags on their dashboard.
+
+CRITICAL GUARDRAIL: You are a professional assistant, not the business owner. You have ZERO authority to turn away business unless it matches a pre-defined Hard Constraint above. If a job seems "bad" but isn't on the No-Go list, your job is to capture every detail perfectly and add a private note to the user explaining your concern. NEVER assume a No-Go.
+
+REAL-TIME INSTRUCTION CAPTURE: If the business owner says "Next time, don't take jobs for X" or "Stop accepting Y", you MUST clarify: "Should I strictly decline these from now on, or just flag them for you?" If they say "Decline": use the updateAiPreferences tool to save a new hard_constraint. If they say "Flag": use updateAiPreferences to save it as a behavioral_preference (flag only, don't decline).`;
+    } else {
+        bouncerStr = `\nLEAD QUALIFICATION GUARDRAIL: You have no exclusion rules configured. You MUST NOT decline any lead for any reason. Always proceed with full triage. If you suspect a job is low-value or problematic, add a private note to the internal_notes field for the owner to review. NEVER turn away business.`;
+    }
+
     return {
         settings,
         userRole,
@@ -138,7 +160,8 @@ ${glossaryStr}`;
         agentScriptStr,
         allowedTimesStr,
         preferencesStr,
-        pricingRulesStr
+        pricingRulesStr,
+        bouncerStr,
     };
 }
 

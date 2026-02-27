@@ -89,6 +89,8 @@ export interface DealView {
   isStale?: boolean;
   actualOutcome?: string | null;
   outcomeNotes?: string | null;
+  // AI Agent Triage Flags
+  agentFlags?: string[];
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -197,6 +199,8 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         isStale: deal.isStale,
         actualOutcome: deal.actualOutcome,
         outcomeNotes: deal.outcomeNotes,
+        // AI Agent Triage Flags
+        agentFlags: Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : undefined,
       };
     });
   } catch (error) {

@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus, Flag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
@@ -254,6 +254,22 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
             </div>
           )}
 
+
+          {/* Agent Triage Flags — warnings from AI Bouncer/Advisor engine */}
+          {deal.agentFlags && deal.agentFlags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {deal.agentFlags.map((flag, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/40 dark:text-orange-200 dark:border-orange-700"
+                  title={`AI Flag: ${flag}`}
+                >
+                  <Flag className="w-2.5 h-2.5" />
+                  {flag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
