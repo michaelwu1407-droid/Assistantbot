@@ -22,6 +22,7 @@ import {
     handleSupportRequest,
     runAppendTicketNote,
     recordManualRevenue,
+    runAddAgentFlag,
 } from "@/actions/chat-actions";
 import {
     runGetSchedule,
@@ -128,9 +129,9 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
                 runUpdateInvoiceAmount(workspaceId, { dealTitle, amount }),
         }),
         updateAiPreferences: tool({
-            description: "Use this when the user gives you a permanent instruction about how you should behave, quote, or schedule in the future (e.g., 'From now on, always add a 1 hour buffer', 'Remember I dont work past 3pm on Fridays').",
+            description: "Use this when the user gives you a permanent instruction about how you should behave, quote, or schedule in the future (e.g., 'From now on, always add a 1 hour buffer', 'Remember I dont work past 3pm on Fridays'). Also use when the user says 'Stop taking jobs for X' — prefix the rule with [HARD_CONSTRAINT] to strictly decline, or [FLAG_ONLY] to just flag for review.",
             inputSchema: z.object({
-                rule: z.string().describe("The specific behavioral rule to save permanently in your memory bank."),
+                rule: z.string().describe("The specific behavioral rule to save permanently. Prefix with [HARD_CONSTRAINT] for strict decline rules or [FLAG_ONLY] for flag-only preferences."),
             }),
             execute: async ({ rule }) => runUpdateAiPreferences(workspaceId, rule),
         }),
@@ -254,6 +255,16 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async ({ ticketId, noteContent }) =>
                 runAppendTicketNote({ ticketId, noteContent }),
+        }),
+
+        addAgentFlag: tool({
+            description: "Add a triage flag/warning to a deal. Use this when you have concerns about a lead (e.g. far distance, potential tire-kicker, high-risk location) but the job does NOT match a hard No-Go rule. The flag will appear on the owner's dashboard for review.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Title of the deal to flag"),
+                flag: z.string().describe("Short warning note (e.g. 'Far away — 45km', 'Potential tire-kicker', 'High-risk location')"),
+            }),
+            execute: async ({ dealTitle, flag }) =>
+                runAddAgentFlag(workspaceId, { dealTitle, flag }),
         }),
 
         // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────

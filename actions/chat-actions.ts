@@ -714,6 +714,35 @@ export async function runAppendTicketNote(params: { ticketId: string; noteConten
 }
 
 /**
+ * AI Tool Action: Add an agent triage flag to a deal.
+ * Used by the Bouncer/Advisor engine to mark leads with concerns.
+ */
+export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: string; flag: string }) {
+  try {
+    const deal = await db.deal.findFirst({
+      where: {
+        workspaceId,
+        title: { contains: params.dealTitle, mode: "insensitive" },
+      },
+      select: { id: true, agentFlags: true },
+    });
+    if (!deal) return `Could not find a deal matching "${params.dealTitle}".`;
+
+    const existing = Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : [];
+    const updated = [...existing, params.flag];
+
+    await db.deal.update({
+      where: { id: deal.id },
+      data: { agentFlags: updated },
+    });
+
+    return `Flag added to ${params.dealTitle}: "${params.flag}"`;
+  } catch (err) {
+    return `Error adding flag: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
  * AI Tool Action: Create a Task/Reminder
  */
 export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {

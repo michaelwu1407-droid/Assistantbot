@@ -368,6 +368,7 @@ export async function completeOnboarding(data: {
   emergencyBypass?: boolean;
   digestPreference?: "immediate" | "daily" | "weekly";
   callForwardingEnabled?: boolean;
+  exclusionCriteria?: string;
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
@@ -441,9 +442,35 @@ export async function completeOnboarding(data: {
       ...(data.autoUpdateGlossary !== undefined && { autoUpdateGlossary: data.autoUpdateGlossary }),
       ...(data.autoCallLeads !== undefined && { autoCallLeads: data.autoCallLeads }),
       ...(data.callOutFee !== undefined && { callOutFee: data.callOutFee }),
+      ...(data.exclusionCriteria !== undefined && { exclusionCriteria: data.exclusionCriteria }),
       ...(Object.keys(settingsUpdate).length > 0 && { settings: settingsUpdate as Prisma.JsonObject }),
     },
   });
+
+  // Sync exclusion rules to Mem0 as hard_constraint
+  if (data.exclusionCriteria?.trim()) {
+    try {
+      const { getMemoryClient } = await import("@/lib/ai/context");
+      const memClient = getMemoryClient();
+      if (memClient) {
+        await memClient.add(
+          [{ role: "user" as const, content: `The following are STRICT NO-GO rules. You MUST decline any lead matching these exactly: ${data.exclusionCriteria}` }],
+          {
+            user_id: workspace.id,
+            metadata: {
+              type: "hard_constraint",
+              action: "decline",
+              source: "onboarding",
+              timestamp: new Date().toISOString(),
+            },
+          }
+        );
+        console.log("[Mem0] Exclusion criteria synced as hard_constraint");
+      }
+    } catch (error) {
+      console.error("[Mem0] Failed to sync exclusion criteria:", error);
+    }
+  }
 
   await db.user.update({
     where: { id: userId },

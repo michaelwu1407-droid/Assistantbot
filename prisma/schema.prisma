@@ -119,6 +119,9 @@ model Workspace {
   aiPreferences      String?     @db.Text
   autoUpdateGlossary Boolean     @default(true)
 
+  // Strict Triage & Bouncer — hard "No-Go" rules for lead qualification
+  exclusionCriteria  String?     @db.Text
+
   // Integrations & Billing Directives
   callOutFee         Decimal?    @default(0)
   inboundEmail       String?     @unique
@@ -213,6 +216,9 @@ model Deal {
   isStale        Boolean   @default(false)
   actualOutcome  String?   // "COMPLETED", "NO_SHOW", "RESCHEDULED"
   outcomeNotes   String?   @db.Text
+
+  // AI Agent Triage Flags — warnings from the Bouncer/Advisor engine
+  agentFlags     Json?     // Array of strings e.g. ["Far away (45km)", "Potential tire-kicker"]
   
   lastActivityAt DateTime  @default(now())
   stageChangedAt DateTime  @default(now())

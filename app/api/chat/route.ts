@@ -420,7 +420,8 @@ export async function POST(req: Request) {
       agentScriptStr,
       allowedTimesStr,
       preferencesStr,
-      pricingRulesStr
+      pricingRulesStr,
+      bouncerStr,
     } = await buildAgentContext(workspaceId, userId);
 
     const memoryContextStr = await fetchMemoryContext(userId, lastMessageContent);
@@ -440,6 +441,7 @@ ${agentScriptStr}
 ${allowedTimesStr}
 ${preferencesStr}
 ${pricingRulesStr}
+${bouncerStr}
 ${memoryContextStr}
 
 MESSAGING RULES — CRITICAL:
@@ -491,7 +493,8 @@ TOOLS — DATA RETRIEVAL (use these to look up information on demand):
 - getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?"
 - getConversationHistory: Retrieve text/call/email history with a specific contact.
 - createNotification: Create a scheduled notification or reminder alert.
-- updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays".
+- updateAiPreferences: Save a permanent behavioral rule. Use when the user gives a lasting instruction like "From now on, always add a 1 hour buffer" or "Remember I don't work past 3pm on Fridays". Also use when the user says "Stop taking jobs for X" — prefix with [HARD_CONSTRAINT] to strictly decline or [FLAG_ONLY] to just flag.
+- addAgentFlag: Add a private triage warning to a deal. Use when you have concerns about a lead (far distance, tire-kicker, risky) but it does NOT match a hard No-Go rule. The flag appears on the owner's dashboard.
 - undoLastAction: Undo the most recent action. Use when the user says "Undo that" or "Revert the last change".
 - assignTeamMember: Assign a team member to a job. Use when the user says "Assign Dave to the Henderson job" or "Put Sarah on the plumbing repair".
 - contactSupport: Create a support ticket when the user asks for help, reports issues, or needs assistance.
