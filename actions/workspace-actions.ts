@@ -72,7 +72,7 @@ export async function getOrCreateWorkspace(
   defaults?: { name?: string; type?: "TRADIE" | "AGENT"; industryType?: "TRADES" | "REAL_ESTATE"; location?: string }
 ): Promise<WorkspaceView> {
   try {
-    logger.authFlow("Attempting to get or create workspace", { 
+    logger.authFlow("Attempting to get or create workspace", {
       action: "getOrCreateWorkspace",
       ownerId: ownerId || "missing",
       hasDefaults: !!defaults
@@ -80,14 +80,14 @@ export async function getOrCreateWorkspace(
 
     if (ownerId) {
       logger.debug("Looking for existing workspace", { ownerId });
-      
+
       const existing = await db.workspace.findFirst({
         where: { ownerId },
         orderBy: { createdAt: "desc" },
       });
 
       if (existing) {
-        logger.authFlow("Found existing workspace", { 
+        logger.authFlow("Found existing workspace", {
           workspaceId: existing.id,
           subscriptionStatus: existing.subscriptionStatus,
           onboardingComplete: existing.onboardingComplete
@@ -138,7 +138,7 @@ export async function getOrCreateWorkspace(
       });
     }
 
-    logger.authFlow("Successfully created new workspace", { 
+    logger.authFlow("Successfully created new workspace", {
       workspaceId: workspace.id,
       ownerId: workspace.ownerId,
       subscriptionStatus: workspace.subscriptionStatus
@@ -147,16 +147,16 @@ export async function getOrCreateWorkspace(
     return toWorkspaceView(workspace);
   } catch (error) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    
-    logger.workspaceError("Database Error in getOrCreateWorkspace", { 
-      ownerId, 
+
+    logger.workspaceError("Database Error in getOrCreateWorkspace", {
+      ownerId,
       defaults,
-      error: errorObj.message 
+      error: errorObj.message
     }, errorObj);
 
     const errorMessage = errorObj.message || "";
     if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("Environment variable not found")) {
-      logger.critical("Database connection failed - check internet/firewall", { 
+      logger.critical("Database connection failed - check internet/firewall", {
         errorMessage,
         category: "database_connection"
       });
@@ -165,11 +165,11 @@ export async function getOrCreateWorkspace(
       );
     }
 
-    logger.databaseError("Unexpected error in getOrCreateWorkspace", { 
+    logger.databaseError("Unexpected error in getOrCreateWorkspace", {
       errorMessage,
       category: "workspace_creation"
     }, errorObj);
-    
+
     throw errorObj;
   }
 }
@@ -494,5 +494,20 @@ export async function completeTutorial(workspaceId: string) {
     data: { tutorialComplete: true },
   });
 
-  return { success: true };
+}
+
+/**
+ * Helper to determine where an authenticated user should be redirected
+ * when they successfully log in via unified auth.
+ */
+export async function checkUserRoute(userId: string): Promise<string> {
+  try {
+    const workspace = await getOrCreateWorkspace(userId);
+    if (workspace.subscriptionStatus === "active") {
+      return "/dashboard";
+    }
+    return "/billing";
+  } catch (error) {
+    return "/billing";
+  }
 }

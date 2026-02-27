@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { MonitoringService } from "@/lib/monitoring";
 import { logger } from "@/lib/logging";
+import { checkUserRoute } from "@/actions/workspace-actions";
 import { Mail, Phone, Chrome } from "lucide-react";
 
 interface AuthState {
@@ -54,12 +55,13 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       if (error) {
         logger.authError("Failed to check existing user", { error: error.message, details: error }, error);
       } else if (user) {
-        logger.authFlow("Found existing user session, redirecting", {
+        logger.authFlow("Found existing user session, determining route", {
           userId: user.id,
           email: user.email,
-          action: "redirect_to_dashboard"
+          action: "check_user_route"
         });
-        router.push("/dashboard");
+        const route = await checkUserRoute(user.id);
+        router.push(route);
       } else {
         logger.authFlow("No existing user session found", { action: "show_auth_form" });
       }
@@ -196,8 +198,9 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           MonitoringService.identifyUser(data.user.id, { name: state.name });
           MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
 
-          logger.authFlow("Redirecting to dashboard", { userId: data.user.id });
-          router.push("/dashboard");
+          logger.authFlow("Redirecting based on route check", { userId: data.user.id });
+          const route = await checkUserRoute(data.user.id);
+          router.push(route);
           router.refresh();
         }
       } else {
@@ -225,8 +228,11 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       if (user) {
         MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
         MonitoringService.trackEvent("user_signed_in", { provider: "email" });
+        const route = await checkUserRoute(user.id);
+        router.push(route);
+      } else {
+        router.push("/dashboard");
       }
-      router.push("/dashboard");
       router.refresh();
       return;
     }
