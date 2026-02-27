@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Check } from "lucide-react"
+import { Bell, Check, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getNotifications, markAsRead, markAllAsRead, type NotificationView } from "@/actions/notification-actions"
 import { cn } from "@/lib/utils"
@@ -106,14 +106,21 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                 !n.read && "bg-blue-50/30"
                                             )}
                                         >
-                                            <div className={cn(
-                                                "mt-1 h-2 w-2 rounded-full shrink-0",
-                                                n.type === 'ERROR' ? "bg-red-500" :
-                                                    n.type === 'WARNING' ? "bg-amber-500" :
-                                                        n.type === 'SUCCESS' ? "bg-emerald-500" :
-                                                            "bg-blue-500",
-                                                n.read && "bg-slate-300"
-                                            )} />
+                                            <div className={cn("mt-1 shrink-0", n.read && "opacity-50")}>
+                                                {n.type === 'AI' || n.type === 'SYSTEM' ? (
+                                                    <div className="flex items-center justify-center p-1 rounded-full bg-primary/20 text-primary">
+                                                        <Sparkles className="h-3 w-3" />
+                                                    </div>
+                                                ) : (
+                                                    <div className={cn(
+                                                        "h-2 w-2 rounded-full",
+                                                        n.type === 'ERROR' ? "bg-red-500" :
+                                                            n.type === 'WARNING' ? "bg-amber-500" :
+                                                                n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-blue-500",
+                                                        n.read && "bg-slate-300"
+                                                    )} />
+                                                )}
+                                            </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className={cn("text-sm font-medium text-slate-900", n.read && "text-slate-600")}>
                                                     {n.title}

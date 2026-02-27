@@ -445,12 +445,14 @@ export function SetupChat() {
                         draftCard: {
                             kind: "onboarding_pricing",
                             fields: [
-                                { key: "callOutFee", label: "Call-out fee ($)", type: "number", defaultValue: 89, placeholder: "89", suffix: "$" },
-                                { key: "pricingMode", label: "Pricing mode", type: "select", defaultValue: "STANDARD", options: [
-                                    { label: "Book only (no call-out)", value: "BOOK_ONLY" },
-                                    { label: "Call-out + job", value: "CALL_OUT" },
-                                    { label: "Standard (quote per job)", value: "STANDARD" },
-                                ]},
+                                { key: "callOutFee", label: "Call-out fee ($)", type: "number", defaultValue: "", placeholder: "e.g. 89", suffix: "$" },
+                                {
+                                    key: "pricingMode", label: "Pricing mode", type: "select", defaultValue: "STANDARD", options: [
+                                        { label: "Book only (no call-out)", value: "BOOK_ONLY" },
+                                        { label: "Call-out + job", value: "CALL_OUT" },
+                                        { label: "Standard (quote per job)", value: "STANDARD" },
+                                    ]
+                                },
                             ]
                         }
                     }
@@ -460,7 +462,7 @@ export function SetupChat() {
         }
 
         if (kind === "onboarding_pricing") {
-            const callOutFee = Number(values.callOutFee) || 89
+            const callOutFee = Number(values.callOutFee) || 0
             const pricingMode = (values.pricingMode as "BOOK_ONLY" | "CALL_OUT" | "STANDARD") || "STANDARD"
             setOnboardingData(prev => ({ ...prev, callOutFee, pricingMode }))
             setOnboardingStep(4)
@@ -554,36 +556,36 @@ export function SetupChat() {
             digestPreference: finalData.digestPreference,
             businessContact: finalData.businessContact,
         }).then((result) => {
-                    const phoneNumber = result?.phoneNumber
-                    const provisioningError = result?.provisioningError
-                    let finalMessage = `All set! 🎉 You're the team manager — invite your team from the Team page and they'll see the jobs you assign to them. I'll show you around in a quick walkthrough.`
-                    if (phoneNumber) {
-                        finalMessage = `All set! 🎉 Your business number is ${phoneNumber} — use it for SMS and calls.${phoneVal ? " We've sent it to your mobile too." : ""} You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
-                    } else if (provisioningError) {
-                        finalMessage = `All set! 🎉 We couldn't set up your phone number right now. You can add it later in Settings → Phone. You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
-                    }
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: finalMessage,
-                            type: "text"
-                        }
-                    ])
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 2000)
-                }).catch(() => {
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: "All set! 🎉 You're the team manager — invite your team from the Team page. I'll show you around in a quick walkthrough.",
-                            type: "text"
-                        }
-                    ])
-                    setTimeout(() => router.push("/dashboard?tutorial=true"), 1500)
-                })
+            const phoneNumber = result?.phoneNumber
+            const provisioningError = result?.provisioningError
+            let finalMessage = `All set! 🎉 You're the team manager — invite your team from the Team page and they'll see the jobs you assign to them. I'll show you around in a quick walkthrough.`
+            if (phoneNumber) {
+                finalMessage = `All set! 🎉 Your business number is ${phoneNumber} — use it for SMS and calls.${phoneVal ? " We've sent it to your mobile too." : ""} You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
+            } else if (provisioningError) {
+                finalMessage = `All set! 🎉 We couldn't set up your phone number right now. You can add it later in Settings → Phone. You're the team manager; invite your team from the Team page. I'll show you around in a quick walkthrough.`
+            }
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: finalMessage,
+                    type: "text"
+                }
+            ])
+            setTimeout(() => router.push("/dashboard?tutorial=true"), 2000)
+        }).catch(() => {
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: "All set! 🎉 You're the team manager — invite your team from the Team page. I'll show you around in a quick walkthrough.",
+                    type: "text"
+                }
+            ])
+            setTimeout(() => router.push("/dashboard?tutorial=true"), 1500)
+        })
     }
 
     const processStep = (validInput: string) => {

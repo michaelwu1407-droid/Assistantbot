@@ -29,7 +29,7 @@ interface AuthState {
 export function UnifiedAuth({ connectionError = false }: { connectionError?: boolean }) {
   const router = useRouter();
   const supabase = createClient();
-  
+
   const [state, setState] = useState<AuthState>({
     email: "",
     password: "",
@@ -48,22 +48,22 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
   useEffect(() => {
     const checkUser = async () => {
       logger.authFlow("Checking for existing user session", { action: "check_existing_user" });
-      
+
       const { data: { user }, error } = await supabase.auth.getUser();
-      
+
       if (error) {
         logger.authError("Failed to check existing user", { error: error.message, details: error }, error);
       } else if (user) {
-        logger.authFlow("Found existing user session, redirecting", { 
+        logger.authFlow("Found existing user session, redirecting", {
           userId: user.id,
           email: user.email,
-          action: "redirect_to_auth_next"
+          action: "redirect_to_dashboard"
         });
-        router.push("/auth/next");
+        router.push("/dashboard");
       } else {
         logger.authFlow("No existing user session found", { action: "show_auth_form" });
       }
-      
+
       setState(prev => ({ ...prev, user }));
     };
     checkUser();
@@ -73,9 +73,9 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     let interval: NodeJS.Timeout;
     if (state.otpResendTimer > 0) {
       interval = setInterval(() => {
-        setState(prev => ({ 
-          ...prev, 
-          otpResendTimer: prev.otpResendTimer - 1 
+        setState(prev => ({
+          ...prev,
+          otpResendTimer: prev.otpResendTimer - 1
         }));
       }, 1000);
     }
@@ -115,12 +115,12 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           }
         }
       });
-      
+
       if (error) {
         updateState({ loading: false, message: error.message });
       } else {
-        updateState({ 
-          phoneOtpSent: true, 
+        updateState({
+          phoneOtpSent: true,
           loading: false,
           message: "Verification code sent! Check your phone.",
           otpResendTimer: 60
@@ -128,49 +128,49 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       }
     } else {
       // Verify OTP
-      logger.authFlow("Starting OTP verification", { 
-        phone: state.phone, 
+      logger.authFlow("Starting OTP verification", {
+        phone: state.phone,
         hasOtp: !!state.otp,
-        otpLength: state.otp.length 
+        otpLength: state.otp.length
       });
-      
+
       const formattedPhone = formatPhoneE164(state.phone);
       const { data, error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
         token: state.otp,
         type: "sms",
       });
-      
+
       if (error) {
-        logger.authError("OTP verification failed", { 
+        logger.authError("OTP verification failed", {
           phone: formattedPhone,
           error: error.message,
-          details: error 
+          details: error
         }, error);
         updateState({ loading: false, message: error.message });
       } else if (data.user) {
-        logger.authFlow("OTP verification successful", { 
+        logger.authFlow("OTP verification successful", {
           userId: data.user.id,
           phone: formattedPhone,
           session: !!data.session
         });
-        
+
         // Wait and verify session with retry logic
         let sessionVerified = false;
         let verifyError = null;
-        
+
         for (let attempt = 1; attempt <= 3; attempt++) {
           logger.authFlow(`Session verification attempt ${attempt}`, { userId: data.user.id });
-          
+
           // Wait longer for session to be established
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-          
+
           // Verify session is actually working
           const { data: { user: verifiedUser }, error: currentVerifyError } = await supabase.auth.getUser();
-          
+
           if (!currentVerifyError && verifiedUser) {
             sessionVerified = true;
-            logger.authFlow("Session verified successfully", { 
+            logger.authFlow("Session verified successfully", {
               userId: verifiedUser.id,
               email: verifiedUser.email,
               attempt
@@ -178,16 +178,16 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
             break;
           } else {
             verifyError = currentVerifyError;
-            logger.authFlow(`Session verification attempt ${attempt} failed`, { 
+            logger.authFlow(`Session verification attempt ${attempt} failed`, {
               userId: data.user.id,
               error: currentVerifyError?.message,
               attempt
             });
           }
         }
-        
+
         if (!sessionVerified) {
-          logger.authError("Session verification failed after all attempts", { 
+          logger.authError("Session verification failed after all attempts", {
             userId: data.user.id,
             verifyError: verifyError?.message
           }, verifyError || new Error("Session verification failed"));
@@ -195,13 +195,13 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         } else {
           MonitoringService.identifyUser(data.user.id, { name: state.name });
           MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
-          
+
           logger.authFlow("Redirecting to dashboard", { userId: data.user.id });
           router.push("/dashboard");
           router.refresh();
         }
       } else {
-        logger.authError("OTP verification returned no user", { 
+        logger.authError("OTP verification returned no user", {
           phone: formattedPhone,
           data: data
         });
@@ -248,9 +248,9 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       if (signUpError) {
         updateState({ loading: false, message: signUpError.message });
       } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-        updateState({ 
-          loading: false, 
-          message: "Account already exists. Please check your credentials." 
+        updateState({
+          loading: false,
+          message: "Account already exists. Please check your credentials."
         });
       } else {
         // Sign up successful, try to sign in
@@ -258,11 +258,11 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           email: state.email,
           password: state.password,
         });
-        
+
         if (finalSignInError) {
-          updateState({ 
-            loading: false, 
-            message: "Account created! Please sign in with your credentials." 
+          updateState({
+            loading: false,
+            message: "Account created! Please sign in with your credentials."
           });
         } else {
           const { data: { user } } = await supabase.auth.getUser();
@@ -270,15 +270,15 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
             MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
             MonitoringService.trackEvent("user_signed_up", { provider: "email" });
           }
-          router.push("/auth/next");
+          router.push("/billing");
           router.refresh();
         }
       }
     } else if (signInError.message.includes("Email not confirmed")) {
-      updateState({ 
-        loading: false, 
+      updateState({
+        loading: false,
         needsConfirmation: true,
-        message: "Email not confirmed. Check your inbox or resend confirmation." 
+        message: "Email not confirmed. Check your inbox or resend confirmation."
       });
     } else {
       updateState({ loading: false, message: signInError.message });
@@ -294,25 +294,25 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     if (error) {
       updateState({ loading: false, message: error.message });
     } else {
-      updateState({ 
-        loading: false, 
-        message: "Confirmation email sent! Check your inbox." 
+      updateState({
+        loading: false,
+        message: "Confirmation email sent! Check your inbox."
       });
     }
   };
 
   const handleResendOtp = async () => {
     if (state.otpResendTimer > 0) return;
-    
+
     const formattedPhone = formatPhoneE164(state.phone);
     const { error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
     });
-    
+
     if (error) {
       updateState({ message: error.message });
     } else {
-      updateState({ 
+      updateState({
         message: "Code resent! Check your phone.",
         otpResendTimer: 60
       });
@@ -321,7 +321,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     switch (state.method) {
       case "google":
         await handleGoogleAuth();
@@ -383,10 +383,10 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
             variant={state.method === "google" ? "default" : "outline"}
             size="lg"
             className="w-full relative overflow-hidden group"
-            onClick={async () => { 
-              updateState({ method: "google" }); 
-              resetForm(); 
-              await handleGoogleAuth(); 
+            onClick={async () => {
+              updateState({ method: "google" });
+              resetForm();
+              await handleGoogleAuth();
             }}
             disabled={state.loading}
           >
@@ -462,8 +462,8 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
                       onClick={handleResendOtp}
                       disabled={state.otpResendTimer > 0}
                     >
-                      {state.otpResendTimer > 0 
-                        ? `Resend code in ${state.otpResendTimer}s` 
+                      {state.otpResendTimer > 0
+                        ? `Resend code in ${state.otpResendTimer}s`
                         : "Resend code"
                       }
                     </Button>
@@ -486,7 +486,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
                   required={state.method === "email"}
                 />
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <Label htmlFor="password" className="text-midnight font-semibold text-sm">Password</Label>
                 <Input
@@ -514,10 +514,10 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
 
           {/* Only show submit button for phone and email methods */}
           {state.method !== "google" && (
-            <Button 
-              type="submit" 
-              className="w-full mt-2" 
-              size="lg" 
+            <Button
+              type="submit"
+              className="w-full mt-2"
+              size="lg"
               disabled={state.loading}
             >
               {state.loading ? (

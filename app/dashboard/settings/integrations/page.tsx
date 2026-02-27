@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Calendar, Check, Loader2, RefreshCcw, ExternalLink, Copy, Zap, X, FileText } from "lucide-react"
+import { Mail, Calendar, Check, Loader2, RefreshCcw, ExternalLink, Copy, Zap, X, FileText, CreditCard } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { getOrAllocateInboundEmail } from "@/actions/settings-actions"
@@ -148,7 +148,7 @@ export default function IntegrationsPage() {
                                     <div className="text-xs text-muted-foreground">Auto-capture from all platforms</div>
                                 </div>
                             </Button>
-                            
+
                             <Button
                                 variant="outline"
                                 className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-blue-500/50 hover:bg-blue-50/50 transition-all"
@@ -301,6 +301,48 @@ export default function IntegrationsPage() {
                             </Button>
                         )}
                     </CardFooter>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5 text-indigo-500" />
+                            Payment Processors
+                        </CardTitle>
+                        <CardDescription>
+                            Connect payment gateways to securely receive payments from clients online.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white rounded-md shadow-sm border text-indigo-600 font-bold">
+                                    Stripe
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-sm">Stripe</h4>
+                                    <p className="text-xs text-muted-foreground">Accept credit cards and Apple/Google Pay</p>
+                                </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => toast.info("Stripe integration coming soon.")}>
+                                Connect
+                            </Button>
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white rounded-md shadow-sm border text-purple-600 font-bold">
+                                    MYOB
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-sm">MYOB PayBy</h4>
+                                    <p className="text-xs text-muted-foreground">Receive payments directly to your MYOB account</p>
+                                </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => toast.info("MYOB integration coming soon.")}>
+                                Connect
+                            </Button>
+                        </div>
+                    </CardContent>
                 </Card>
             </div>
         </div>

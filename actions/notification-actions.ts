@@ -8,7 +8,7 @@ export interface NotificationView {
   id: string;
   title: string;
   message: string;
-  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
+  type: string;
   read: boolean;
   link: string | null;
   createdAt: Date;
@@ -68,7 +68,7 @@ export async function createNotification(data: {
   userId: string;
   title: string;
   message: string;
-  type?: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
+  type?: string;
   link?: string;
 }) {
   await db.notification.create({
@@ -76,7 +76,7 @@ export async function createNotification(data: {
       userId: data.userId,
       title: data.title,
       message: data.message,
-      type: data.type || "INFO",
+      type: (data.type || "INFO") as any,
       link: data.link,
     },
   });

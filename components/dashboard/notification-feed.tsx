@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, X } from "lucide-react"
+import { Bell, X, Sparkles } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -107,6 +107,13 @@ export function NotificationFeed() {
                                     )}
                                 >
                                     <div className="flex justify-between items-start gap-3">
+                                        <div className={cn("mt-1 shrink-0", !notification.read ? "text-primary" : "text-muted-foreground opacity-50")}>
+                                            {notification.type === "AI" || notification.type === "SYSTEM" ? (
+                                                <Sparkles className="w-4 h-4" />
+                                            ) : (
+                                                <Bell className="w-4 h-4" />
+                                            )}
+                                        </div>
                                         <div className="flex-1">
                                             <p className={cn("text-sm font-medium", !notification.read ? "text-foreground" : "text-muted-foreground")}>
                                                 {notification.title}

@@ -198,129 +198,133 @@ export async function evaluateAutomations(
     }
 
     if (shouldFire) {
-      triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
+      try {
+        triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
 
-      await db.automation.update({
-        where: { id: automation.id },
-        data: { lastFiredAt: new Date() },
-      });
-
-      // ─── Execute Actions ───
-
-      // 1. Create Task
-      if (action.type === "create_task" && event.dealId) {
-        const dueAt = new Date();
-        dueAt.setDate(dueAt.getDate() + 2);
-        await createTask({
-          title: action.message ?? "Follow up",
-          dueAt,
-          dealId: event.dealId,
-          contactId: event.contactId
+        await db.automation.update({
+          where: { id: automation.id },
+          data: { lastFiredAt: new Date() },
         });
-      }
 
-      // 2. Notify Users
-      if (action.type === "notify") {
-        // Notify all users in workspace (SME team style)
-        const users = await db.user.findMany({ where: { workspaceId } });
-        for (const user of users) {
-          await createNotification({
-            userId: user.id,
-            title: automation.name,
-            message: action.message ?? "Automation triggered",
-            type: "INFO",
-            link: event.dealId ? `/dashboard?dealId=${event.dealId}` : undefined
+        // ─── Execute Actions ───
+
+        // 1. Create Task
+        if (action.type === "create_task" && event.dealId) {
+          const dueAt = new Date();
+          dueAt.setDate(dueAt.getDate() + 2);
+          await createTask({
+            title: action.message ?? "Follow up",
+            dueAt,
+            dealId: event.dealId,
+            contactId: event.contactId
           });
         }
-      }
 
-      // 3. Send Email (Live Implementation)
-      if (action.type === "email" && action.template && event.contactId) {
-        try {
-          // Get workspace and contact information for dynamic agent identity
-          const deal = await db.deal.findUnique({
-            where: { id: event.dealId },
-            include: {
-              contact: true,
-              workspace: {
-                select: { 
-                  id: true,
-                  name: true, 
-                  ownerId: true,
-                  inboundEmailAlias: true 
+        // 2. Notify Users
+        if (action.type === "notify") {
+          // Notify all users in workspace (SME team style)
+          const users = await db.user.findMany({ where: { workspaceId } });
+          for (const user of users) {
+            await createNotification({
+              userId: user.id,
+              title: automation.name,
+              message: action.message ?? "Automation triggered",
+              type: "SYSTEM",
+              link: event.dealId ? `/dashboard?dealId=${event.dealId}` : undefined
+            });
+          }
+        }
+
+        // 3. Send Email (Live Implementation)
+        if (action.type === "email" && action.template && event.contactId) {
+          try {
+            // Get workspace and contact information for dynamic agent identity
+            const deal = await db.deal.findUnique({
+              where: { id: event.dealId },
+              include: {
+                contact: true,
+                workspace: {
+                  select: {
+                    id: true,
+                    name: true,
+                    ownerId: true,
+                    inboundEmailAlias: true
+                  }
                 }
               }
+            });
+
+            if (!deal || !deal.contact || !deal.workspace) {
+              console.log(`[Automation] Missing deal/contact/workspace data for email automation`);
+              continue;
             }
-          });
 
-          if (!deal || !deal.contact || !deal.workspace) {
-            console.log(`[Automation] Missing deal/contact/workspace data for email automation`);
-            continue;
+            // Get workspace owner for BCC
+            const owner = await db.user.findUnique({
+              where: { id: deal.workspace.ownerId! },
+              select: { email: true }
+            });
+
+            // Render email template with variables
+            const templateData = await renderTemplate(action.template, {
+              contactName: deal.contact.name || "there",
+              dealTitle: deal.title,
+              amount: deal.value?.toString() || "0",
+              companyName: deal.workspace.name,
+              // Add more template variables as needed
+            });
+
+            if (!templateData) {
+              console.log(`[Automation] Template ${action.template} not found`);
+              continue;
+            }
+
+            // Send email with dynamic agent identity
+            const emailResult = await runSendEmail(deal.workspace.id, {
+              contactName: deal.contact.name || "there",
+              subject: templateData.subject || "Automated Message",
+              body: templateData.body,
+              workspaceAlias: deal.workspace.inboundEmailAlias || undefined,
+              workspaceName: deal.workspace.name,
+              ownerEmail: owner?.email
+            });
+
+            // Log the email for verification - FINAL EMAIL METADATA
+            const finalEmailMetadata = {
+              automation: automation.name,
+              template: action.template,
+              to: deal.contact.email,
+              contactName: deal.contact.name,
+              subject: templateData.subject,
+              from: deal.workspace.inboundEmailAlias
+                ? `"${deal.workspace.name} Assistant" <${deal.workspace.inboundEmailAlias}@agent.earlymark.ai>`
+                : process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai",
+              replyTo: deal.workspace.inboundEmailAlias
+                ? `${deal.workspace.inboundEmailAlias}@agent.earlymark.ai`
+                : undefined,
+              bcc: owner?.email,
+              workspaceAlias: deal.workspace.inboundEmailAlias,
+              workspaceName: deal.workspace.name,
+              timestamp: new Date().toISOString()
+            };
+
+            console.log(`[Automation] 📧 EMAIL SENT - METADATA VERIFICATION:`);
+            console.log(JSON.stringify(finalEmailMetadata, null, 2));
+
+            // Log activity
+            await logActivity({
+              type: "EMAIL",
+              title: `Automation: ${automation.name} - ${templateData.subject}`,
+              content: templateData.body,
+              contactId: deal.contact.id,
+            });
+
+          } catch (error) {
+            console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
           }
-
-          // Get workspace owner for BCC
-          const owner = await db.user.findUnique({
-            where: { id: deal.workspace.ownerId! },
-            select: { email: true }
-          });
-
-          // Render email template with variables
-          const templateData = await renderTemplate(action.template, {
-            contactName: deal.contact.name || "there",
-            dealTitle: deal.title,
-            amount: deal.value?.toString() || "0",
-            companyName: deal.workspace.name,
-            // Add more template variables as needed
-          });
-
-          if (!templateData) {
-            console.log(`[Automation] Template ${action.template} not found`);
-            continue;
-          }
-
-          // Send email with dynamic agent identity
-          const emailResult = await runSendEmail(deal.workspace.id, {
-            contactName: deal.contact.name || "there",
-            subject: templateData.subject || "Automated Message",
-            body: templateData.body,
-            workspaceAlias: deal.workspace.inboundEmailAlias || undefined,
-            workspaceName: deal.workspace.name,
-            ownerEmail: owner?.email
-          });
-
-          // Log the email for verification - FINAL EMAIL METADATA
-          const finalEmailMetadata = {
-            automation: automation.name,
-            template: action.template,
-            to: deal.contact.email,
-            contactName: deal.contact.name,
-            subject: templateData.subject,
-            from: deal.workspace.inboundEmailAlias 
-              ? `"${deal.workspace.name} Assistant" <${deal.workspace.inboundEmailAlias}@agent.earlymark.ai>`
-              : process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai",
-            replyTo: deal.workspace.inboundEmailAlias 
-              ? `${deal.workspace.inboundEmailAlias}@agent.earlymark.ai`
-              : undefined,
-            bcc: owner?.email,
-            workspaceAlias: deal.workspace.inboundEmailAlias,
-            workspaceName: deal.workspace.name,
-            timestamp: new Date().toISOString()
-          };
-
-          console.log(`[Automation] 📧 EMAIL SENT - METADATA VERIFICATION:`);
-          console.log(JSON.stringify(finalEmailMetadata, null, 2));
-
-          // Log activity
-          await logActivity({
-            type: "EMAIL",
-            title: `Automation: ${automation.name} - ${templateData.subject}`,
-            content: templateData.body,
-            contactId: deal.contact.id,
-          });
-
-        } catch (error) {
-          console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
         }
+      } catch (err) {
+        console.error(`[Automation] Error executing rules for automation ${automation.name}:`, err);
       }
     }
   }
