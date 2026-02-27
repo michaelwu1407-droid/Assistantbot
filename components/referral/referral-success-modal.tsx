@@ -85,10 +85,10 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
   }
 
   const getRewardText = () => {
-    if (referralStats?.totalEarned > 0) {
-      return `You've earned $${referralStats.totalEarned.toFixed(2)} so far!`
+    if ((referralStats?.totalConversions ?? 0) > 0) {
+      return `You've unlocked ${referralStats.totalConversions} month${referralStats.totalConversions === 1 ? "" : "s"} at 50% off so far.`
     }
-    return "Get $29 for every friend who upgrades to Pro."
+    return "Get one extra month at 50% off for every successful referral."
   }
 
   if (!isOpen) return null
@@ -201,9 +201,9 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
                 </div>
                 <div>
                   <div className="font-semibold text-green-900">
-                    ${referralStats.totalEarned.toFixed(0)}
+                    {referralStats.totalConversions}
                   </div>
-                  <div className="text-green-600">Earned</div>
+                  <div className="text-green-600">50% Off Months</div>
                 </div>
               </div>
             </div>

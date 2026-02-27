@@ -21,12 +21,12 @@ export default async function SetupPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+        <div className="h-[calc(100dvh-57px)] bg-background flex flex-col items-center justify-start px-4 pt-2 pb-2 md:pt-3 md:pb-2 relative overflow-hidden">
             <div className="absolute inset-0 ott-glow -z-10" />
 
-            <div className="text-center mb-8 flex flex-col items-center gap-3">
+            <div className="text-center mb-2 md:mb-2 flex flex-col items-center gap-1.5">
                 <div className="h-12 w-12 rounded-xl flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden">
-                    <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
+                    <img src="/latest-logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
                 </div>
                 <h1 className="text-3xl font-extrabold text-midnight tracking-tight">Welcome to Earlymark</h1>
                 <p className="text-muted-foreground">Let&apos;s personalise your assistant.</p>
@@ -34,9 +34,10 @@ export default async function SetupPage() {
 
             <SetupChat />
 
-            <div className="mt-8 text-xs text-muted-foreground opacity-60">
+            <div className="mt-2 text-xs text-muted-foreground opacity-60">
                 Press Enter to send &bull; All data is secure
             </div>
         </div>
     )
 }
+

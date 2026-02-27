@@ -146,6 +146,32 @@ export async function saveNotificationPreferences(prefs: NotificationPreferences
 }
 
 /**
+ * Create a test in-app notification for the current authenticated user.
+ */
+export async function sendTestNotification() {
+  const authUser = await getAuthUser()
+  if (!authUser?.email) throw new Error("Unauthorized")
+
+  const user = await db.user.findFirst({
+    where: { email: authUser.email },
+    select: { id: true },
+  })
+  if (!user) throw new Error("Unauthorized")
+
+  await createNotification({
+    userId: user.id,
+    title: "Test notification",
+    message: "Notifications are working. This is a test alert from Settings.",
+    type: "INFO",
+    link: "/dashboard/settings/notifications",
+  })
+
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/settings/notifications")
+  return { success: true }
+}
+
+/**
  * Automatically triggers the Morning Agenda and Evening Wrap-Up notifications
  * if the current time has passed the configured user preferences and they haven't fired today.
  */
@@ -161,6 +187,11 @@ export async function ensureDailyNotifications(workspaceId: string) {
 
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
   if (!workspace) return;
+
+  const settings = (workspace.settings as Record<string, unknown>) ?? {};
+  const prefs = (settings.notificationPreferences as Partial<NotificationPreferences>) ?? {};
+  const notificationsEnabled = (prefs.inAppTaskReminders ?? true) === true;
+  if (!notificationsEnabled) return;
 
   const { agendaNotifyTime, wrapupNotifyTime } = workspace;
   if (!agendaNotifyTime && !wrapupNotifyTime) return;

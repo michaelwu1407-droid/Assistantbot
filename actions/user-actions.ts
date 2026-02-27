@@ -51,7 +51,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 
     return {
       id: user.id,
-      username: user.name || "",
+      username: user.name || user.email?.split("@")[0] || "",
       email: user.email,
       bio: user.bio || "",
       urls: (user.urls as { value: string }[]) || [],
@@ -94,6 +94,7 @@ export async function updateUserProfile(
     });
 
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     console.error("Failed to update profile:", error);

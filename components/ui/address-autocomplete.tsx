@@ -33,17 +33,52 @@ export function AddressAutocomplete({
   className,
   id,
 }: AddressAutocompleteProps) {
+  const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim()
+
+  if (!apiKey) {
+    return (
+      <div className={cn("relative", className)}>
+        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        <Input
+          id={id}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <AddressAutocompleteWithGoogle
+      apiKey={apiKey}
+      value={value}
+      onChange={onChange}
+      onPlaceSelect={onPlaceSelect}
+      placeholder={placeholder}
+      className={className}
+      id={id}
+    />
+  )
+}
+
+function AddressAutocompleteWithGoogle({
+  apiKey,
+  value,
+  onChange,
+  onPlaceSelect,
+  placeholder,
+  className,
+  id,
+}: AddressAutocompleteProps & { apiKey: string }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const [isFocused, setIsFocused] = useState(false)
   const [isResolved, setIsResolved] = useState(false)
 
-  const apiKey = typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "")
-    : ""
-
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: apiKey || "no-key",
+    googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
   })
 
@@ -87,22 +122,6 @@ export function AddressAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsResolved(false)
     onChange(e.target.value)
-  }
-
-  // Fallback to plain input if no API key
-  if (!apiKey) {
-    return (
-      <div className={cn("relative", className)}>
-        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-        <Input
-          id={id}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-    )
   }
 
   return (

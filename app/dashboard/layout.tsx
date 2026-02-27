@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
-import { Shell } from '@/components/layout/Shell';
-import { ChatInterface } from "@/components/chatbot/chat-interface";
+import { ShellHost } from '@/components/layout/shell-host';
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { DashboardProvider } from "@/components/providers/dashboard-provider";
 import { SyncProvider } from "@/components/providers/sync-provider";
@@ -8,6 +7,7 @@ import { getAuthUserId } from "@/lib/auth";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
 import { redirect } from "next/navigation";
 import { logger } from "@/lib/logging";
+import { ChatInterface } from "@/components/chatbot/chat-interface";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,9 @@ export default async function DashboardLayout({
   let workspaceId = "";
   let userId = "";
   let tutorialComplete = false;
+  let onboardingComplete = false;
   let shouldRedirectToBilling = false;
+  let shouldRedirectToSetup = false;
 
   try {
     userId = await getAuthUserId();
@@ -34,6 +36,7 @@ export default async function DashboardLayout({
     const workspace = await getOrCreateWorkspace(userId);
     workspaceId = workspace.id;
     tutorialComplete = workspace.tutorialComplete;
+    onboardingComplete = workspace.onboardingComplete;
 
     logger.authFlow("Dashboard layout workspace data", {
       component: "DashboardLayout",
@@ -51,6 +54,10 @@ export default async function DashboardLayout({
       });
       shouldRedirectToBilling = true;
     }
+
+    if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
+      shouldRedirectToSetup = true;
+    }
   } catch (error) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
     logger.workspaceError("Layout failed to fetch workspace", { 
@@ -66,14 +73,16 @@ export default async function DashboardLayout({
     redirect("/billing");
   }
 
+  if (shouldRedirectToSetup) {
+    redirect("/setup");
+  }
+
   return (
     <DashboardProvider>
       <SyncProvider>
         <ShellInitializer workspaceId={workspaceId} userId={userId} tutorialComplete={tutorialComplete} />
         <Suspense fallback={<div className="h-screen w-full bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
-          <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
-            {children}
-          </Shell>
+          <ShellHost chatbot={<ChatInterface workspaceId={workspaceId} />}>{children}</ShellHost>
         </Suspense>
       </SyncProvider>
     </DashboardProvider>

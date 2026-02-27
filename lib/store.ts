@@ -5,6 +5,7 @@ export type Persona = 'TRADIE' | 'AGENT'
 
 interface ShellState {
   viewMode: ViewMode
+  lastAdvancedPath: string | null
   persona: Persona
   tutorialComplete: boolean
   tutorialStepIndex: number
@@ -14,6 +15,7 @@ interface ShellState {
   sidebarMinimized: boolean
   _hydrated: boolean
   setViewMode: (mode: ViewMode) => void
+  setLastAdvancedPath: (path: string) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
   setTutorialStepIndex: (index: number) => void
@@ -27,6 +29,7 @@ interface ShellState {
 
 export const useShellStore = create<ShellState>((set, get) => ({
   viewMode: 'BASIC' as ViewMode,
+  lastAdvancedPath: null,
   persona: 'TRADIE' as Persona,
   tutorialComplete: false,
   tutorialStepIndex: -1,
@@ -38,6 +41,10 @@ export const useShellStore = create<ShellState>((set, get) => ({
   setViewMode: (mode: ViewMode) => {
     try { localStorage.setItem('pj_view_mode', mode) } catch { }
     set({ viewMode: mode })
+  },
+  setLastAdvancedPath: (path: string) => {
+    try { localStorage.setItem('pj_last_advanced_path', path) } catch { }
+    set({ lastAdvancedPath: path })
   },
   setPersona: (persona: Persona) => {
     try { localStorage.setItem('pj_persona', persona) } catch { }
@@ -65,10 +72,12 @@ export const useShellStore = create<ShellState>((set, get) => ({
     try {
       const vm = localStorage.getItem('pj_view_mode')
       const p = localStorage.getItem('pj_persona')
+      const lap = localStorage.getItem('pj_last_advanced_path')
       const tc = localStorage.getItem('pj_tutorial_complete')
       const sm = localStorage.getItem('pj_sidebar_minimized')
       set({
         viewMode: (vm as ViewMode) || 'BASIC',
+        lastAdvancedPath: lap || null,
         persona: (p as Persona) || 'TRADIE',
         tutorialComplete: tc === 'true',
         sidebarMinimized: sm === 'true',

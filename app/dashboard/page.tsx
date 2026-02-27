@@ -14,7 +14,7 @@ export default async function DashboardPage(props: {
     if (props.searchParams) await props.searchParams
 
     let workspace, deals;
-    let teamMembers: { id: string; name: string | null; email: string; role: string }[] = []
+    let teamMembers: { id: string; name: string | null; email: string; role: string; isCurrentUser?: boolean }[] = []
     let dbError = false;
 
     // 1. Get User
@@ -26,13 +26,17 @@ export default async function DashboardPage(props: {
     }
 
     const userId = authUser.id
-    const userName = authUser.name
+    let userName = authUser.name
 
     try {
         workspace = await getOrCreateWorkspace(userId)
         await ensureOwnerHasUserRow(workspace)
         deals = await getDeals(workspace.id)
         teamMembers = await getTeamMembers()
+        const currentMember = teamMembers.find((m) => m.isCurrentUser)
+        if (currentMember?.name?.trim()) {
+            userName = currentMember.name
+        }
     } catch (error) {
         console.error("DashboardPage failed to load:", error);
         dbError = true;

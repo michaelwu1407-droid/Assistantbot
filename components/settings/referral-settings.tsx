@@ -4,10 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Copy, Users, MousePointer, DollarSign, TrendingUp } from "lucide-react"
+import { Copy, Users, DollarSign, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { createReferralLink, getReferralStats, getActiveReferralProgram } from "@/actions/referral-actions"
-import { referralTriggers } from "@/lib/referral-trigger"
 
 export function ReferralSettings({ userId }: { userId: string }) {
   const [stats, setStats] = useState<any>(null)
@@ -26,9 +25,9 @@ export function ReferralSettings({ userId }: { userId: string }) {
       const [statsData, linkData, programData] = await Promise.all([
         getReferralStats(userId),
         createReferralLink({ userId }),
-        getActiveReferralProgram()
+        getActiveReferralProgram(),
       ])
-      
+
       setStats(statsData)
       setReferralLink(linkData.referralLink)
       setProgram(programData)
@@ -44,16 +43,10 @@ export function ReferralSettings({ userId }: { userId: string }) {
       await navigator.clipboard.writeText(referralLink)
       setIsCopied(true)
       toast.success("Referral link copied to clipboard!")
-      
       setTimeout(() => setIsCopied(false), 2000)
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy link")
     }
-  }
-
-  const testModal = async () => {
-    await referralTriggers.keyActionSuccess(userId, "Test Action", "Test Value")
-    toast.success("Test referral modal triggered!")
   }
 
   if (isLoading) {
@@ -72,7 +65,6 @@ export function ReferralSettings({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Program Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -89,31 +81,26 @@ export function ReferralSettings({ userId }: { userId: string }) {
                   Active
                 </Badge>
               </div>
-              <p className="text-sm text-green-700">{program.description}</p>
+              <p className="text-sm text-green-700">
+                Refer a tradie and both accounts get 50% off. Every successful referral adds one more month at half-price for you.
+              </p>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <div className="text-xs text-green-600">You earn</div>
-                  <div className="font-semibold text-green-900">
-                    ${program.rewardValue} {program.rewardType === "credit" ? "credit" : program.rewardType}
-                  </div>
+                  <div className="font-semibold text-green-900">50% off for 1 month per referral</div>
                 </div>
                 <div>
                   <div className="text-xs text-green-600">They get</div>
-                  <div className="font-semibold text-green-900">
-                    ${program.referredRewardValue} {program.referredRewardType}
-                  </div>
+                  <div className="font-semibold text-green-900">50% off first month</div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center text-gray-500 py-4">
-              No active referral program
-            </div>
+            <div className="text-center text-gray-500 py-4">No active referral program</div>
           )}
         </CardContent>
       </Card>
 
-      {/* Your Stats */}
       {stats && (
         <Card>
           <CardHeader>
@@ -137,15 +124,14 @@ export function ReferralSettings({ userId }: { userId: string }) {
                 <div className="text-xs text-gray-600">Conversions</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-900">${stats.totalEarned.toFixed(0)}</div>
-                <div className="text-xs text-gray-600">Earned</div>
+                <div className="text-2xl font-bold text-green-900">{stats.totalConversions}</div>
+                <div className="text-xs text-gray-600">Months at 50% off</div>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Referral Link */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -157,9 +143,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Share this link:</span>
-              <Badge variant="secondary">
-                {stats?.totalReferrals || 0} referrals
-              </Badge>
+              <Badge variant="secondary">{stats?.totalReferrals || 0} referrals</Badge>
             </div>
             <div className="flex gap-2">
               <input
@@ -188,50 +172,9 @@ export function ReferralSettings({ userId }: { userId: string }) {
               </Button>
             </div>
           </div>
-          
-          <div className="text-xs text-gray-500">
-            Share this link with friends. When they sign up and upgrade, you'll earn rewards!
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Testing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MousePointer className="h-5 w-5 text-orange-600" />
-            Test Referral Triggers
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-gray-600">
-            Test the different referral triggers to see how they work:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <Button
-              onClick={() => referralTriggers.onboardingComplete(userId)}
-              variant="outline"
-              size="sm"
-            >
-              Test Onboarding
-            </Button>
-            <Button
-              onClick={testModal}
-              variant="outline"
-              size="sm"
-            >
-              Test Key Action
-            </Button>
-            <Button
-              onClick={() => referralTriggers.purchaseSuccess(userId, "Pro")}
-              variant="outline"
-              size="sm"
-            >
-              Test Purchase
-            </Button>
-          </div>
-          <div className="text-xs text-gray-500 bg-orange-50 border border-orange-200 rounded p-2">
-            💡 These would normally be called automatically after user completes the corresponding action
+          <div className="text-xs text-gray-500">
+            Share this link with friends. Each successful referral adds one more month at 50% off your subscription.
           </div>
         </CardContent>
       </Card>

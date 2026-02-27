@@ -17,7 +17,7 @@ interface TutorialOverlayProps {
 export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const router = useRouter()
     const pathname = usePathname()
-    const { viewMode, setViewMode, setTutorialComplete, setTutorialStepIndex } = useShellStore()
+    const { viewMode, setViewMode, setTutorialComplete, setTutorialStepIndex, setLastAdvancedPath } = useShellStore()
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [isVisible, setIsVisible] = useState(true)
 
@@ -106,7 +106,9 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         setIsVisible(false)
         setTutorialComplete()
         setTutorialStepIndex(-1)
+        setLastAdvancedPath("/dashboard")
         setViewMode("BASIC")
+        router.push("/dashboard")
         onComplete?.()
     }
 
@@ -116,13 +118,13 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const cardContent = (
         <>
             <h3 className="font-heading font-bold text-lg mb-2 pr-6">{step.title}</h3>
-            <p className="text-sm text-muted-foreground mb-3 leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-black mb-3 leading-relaxed whitespace-pre-line">
                 {step.message.split(/\*\*(.*?)\*\*/g).map((part, i) => i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part)}
             </p>
 
             {/* Schedule step: custom bullets (no generic examples) */}
             {step.id === "nav-schedule" && (
-                <ul className="list-disc list-inside text-sm text-muted-foreground mb-3 space-y-1 pl-1">
+                <ul className="list-disc list-inside text-sm text-black mb-3 space-y-1 pl-1">
                     <li>Jobs auto-slot when Travis creates them.</li>
                     <li>Travis auto-checks for clashes and suggests alternatives.</li>
                     <li>Best of all, Travis can group nearby jobs together to minimise travel.</li>
@@ -131,7 +133,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
             {/* Example phrases (dot points) - hidden for dashboard/inbox (irrelevant to topic) */}
             {step.chatExample && step.id !== "dashboard-home" && step.id !== "nav-inbox" && step.id !== "nav-schedule" && step.id !== "nav-map" && step.id !== "nav-contacts" && step.id !== "nav-team" && step.id !== "nav-settings" && (
-                <ul className="list-disc list-inside text-sm text-muted-foreground mb-3 space-y-1 pl-1">
+                <ul className="list-disc list-inside text-sm text-black mb-3 space-y-1 pl-1">
                     {step.id === "chat-preferences" ? (
                         <>
                             <li>&quot;From now on always add 1 hour buffer between jobs&quot;</li>
@@ -271,8 +273,8 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                 </div>
             )}
 
-            {/* Settings step: no spotlight, bottom middle, wider and shorter card */}
-            {step.id === "nav-settings" && (
+            {/* Settings + Travis Handbook steps: no spotlight, bottom middle, wider and shorter card */}
+            {(step.id === "nav-settings" || step.id === "travis-handbook") && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
@@ -286,8 +288,8 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                 </div>
             )}
 
-            {/* Spotlight mode: step has a target element (not dashboard, inbox, schedule, map, contacts, team, or settings) */}
-            {step.targetId && step.id !== "dashboard-home" && step.id !== "nav-inbox" && step.id !== "nav-schedule" && step.id !== "nav-map" && step.id !== "nav-contacts" && step.id !== "nav-team" && step.id !== "nav-settings" && (
+            {/* Spotlight mode: step has a target element (not dashboard, inbox, schedule, map, contacts, team, settings, or handbook) */}
+            {step.targetId && step.id !== "dashboard-home" && step.id !== "nav-inbox" && step.id !== "nav-schedule" && step.id !== "nav-map" && step.id !== "nav-contacts" && step.id !== "nav-team" && step.id !== "nav-settings" && step.id !== "travis-handbook" && (
                 <Spotlight
                     targetId={step.targetId}
                     resizeHandleId={step.resizeHandleId}
@@ -297,7 +299,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                     <Card className="w-full h-full max-w-full p-5 !bg-sky-100 dark:!bg-sky-900 text-card-foreground border-sky-300 dark:border-sky-700 shadow-2xl relative flex flex-col min-h-0 overflow-hidden">
                         {currentStepIndex === 0 && (
                             <div className="absolute -top-6 -left-6 h-12 w-12 rounded-full flex items-center justify-center shadow-lg ring-4 ring-background overflow-hidden bg-background">
-                                <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
+                                <img src="/latest-logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
                             </div>
                         )}
                         <div className="mt-2 flex-1 min-h-0 overflow-y-auto">
@@ -320,7 +322,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                             <div className="flex flex-col items-center text-center space-y-4">
                                 {currentStepIndex === 0 && (
                                     <div className="h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl mb-2 overflow-hidden">
-                                        <img src="/Latest logo.png" alt="Earlymark" className="h-16 w-16 object-contain" />
+                                        <img src="/latest-logo.png" alt="Earlymark" className="h-16 w-16 object-contain" />
                                     </div>
                                 )}
                                 {cardContent}
@@ -332,3 +334,4 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         </>
     )
 }
+

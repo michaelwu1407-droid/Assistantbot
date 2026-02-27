@@ -239,6 +239,8 @@ function ChatWithHistory({
   const [cancelledDrafts, setCancelledDrafts] = useState<Record<string, boolean>>({});
   /** Block sending "Next" more than once in quick succession (prevents multi-job draft spam). */
   const nextSendBlockedRef = useRef(false);
+  const hasInitializedScrollRef = useRef(false);
+  const previousMessageCountRef = useRef(0);
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();
 
@@ -285,8 +287,22 @@ function ChatWithHistory({
   const isLoading = status === 'submitted' || status === 'streaming';
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    const currentCount = messages.length;
+    const hadMessagesBefore = previousMessageCountRef.current > 0;
+    const hasNewMessage = currentCount > previousMessageCountRef.current;
+
+    if (!hasInitializedScrollRef.current) {
+      hasInitializedScrollRef.current = true;
+      previousMessageCountRef.current = currentCount;
+      return;
+    }
+
+    if (hasNewMessage || (isLoading && hadMessagesBefore)) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    previousMessageCountRef.current = currentCount;
+  }, [messages.length, isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

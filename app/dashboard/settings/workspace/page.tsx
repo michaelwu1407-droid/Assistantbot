@@ -3,6 +3,7 @@ import { WorkspaceForm } from "./workspace-form"
 import { PipelineHealthForm } from "./pipeline-health-form"
 import { getOrCreateWorkspace, getWorkspaceWithSettings } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,10 @@ export default async function WorkspaceSettingsPage() {
     const userId = await getAuthUserId();
     const workspace = await getOrCreateWorkspace(userId);
     const workspaceWithSettings = await getWorkspaceWithSettings(workspace.id);
+    const profile = await db.businessProfile.findUnique({
+        where: { userId },
+        select: { tradeType: true },
+    })
 
     return (
         <div className="space-y-8">
@@ -24,7 +29,7 @@ export default async function WorkspaceSettingsPage() {
                 workspaceId={workspace.id}
                 initialData={{
                     name: workspace.name,
-                    industry: workspace.industryType ?? "TRADES",
+                    specialty: profile?.tradeType ?? "Plumber",
                     location: workspace.location ?? undefined,
                 }}
             />

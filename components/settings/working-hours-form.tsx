@@ -14,6 +14,8 @@ interface WorkingHoursFormProps {
   initialData: {
     workingHoursStart: string
     workingHoursEnd: string
+    emergencyHoursStart?: string
+    emergencyHoursEnd?: string
     agendaNotifyTime: string
     wrapupNotifyTime: string
   }
@@ -22,9 +24,11 @@ interface WorkingHoursFormProps {
 export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
   const [start, setStart] = useState(initialData.workingHoursStart)
   const [end, setEnd] = useState(initialData.workingHoursEnd)
+  const [emergencyStart, setEmergencyStart] = useState(initialData.emergencyHoursStart ?? "")
+  const [emergencyEnd, setEmergencyEnd] = useState(initialData.emergencyHoursEnd ?? "")
   const [agendaTime, setAgendaTime] = useState(initialData.agendaNotifyTime)
   const [wrapupTime, setWrapupTime] = useState(initialData.wrapupNotifyTime)
-  const [emergency, setEmergency] = useState(true)
+  const [emergency, setEmergency] = useState(Boolean(initialData.emergencyHoursStart && initialData.emergencyHoursEnd))
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
@@ -60,6 +64,21 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
         invoiceFollowUp: currentSettings.invoiceFollowUp || undefined,
         inboundEmailAlias: currentSettings.inboundEmailAlias,
         autoCallLeads: currentSettings.autoCallLeads,
+        emergencyBypass: currentSettings.emergencyBypass,
+        emergencyHoursStart: emergency ? emergencyStart : "",
+        emergencyHoursEnd: emergency ? emergencyEnd : "",
+        recordCalls: currentSettings.recordCalls,
+        transcriptionQuality: currentSettings.transcriptionQuality,
+        agentPersonality: currentSettings.agentPersonality,
+        agentResponseLength: currentSettings.agentResponseLength,
+        voiceEnabled: currentSettings.voiceEnabled,
+        voiceLanguage: currentSettings.voiceLanguage,
+        voiceType: currentSettings.voiceType,
+        voiceSpeed: currentSettings.voiceSpeed,
+        voiceGreeting: currentSettings.voiceGreeting,
+        voiceAfterHoursMessage: currentSettings.voiceAfterHoursMessage,
+        transcribeVoicemails: currentSettings.transcribeVoicemails,
+        autoRespondToMessages: currentSettings.autoRespondToMessages,
       })
       toast.success("Working hours saved")
     } catch {
@@ -108,6 +127,18 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
           </div>
           <Switch checked={emergency} onCheckedChange={setEmergency} />
         </div>
+        {emergency && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Emergency hours start</Label>
+              <Input type="time" value={emergencyStart} onChange={(e) => setEmergencyStart(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Emergency hours end</Label>
+              <Input type="time" value={emergencyEnd} onChange={(e) => setEmergencyEnd(e.target.value)} />
+            </div>
+          </div>
+        )}
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save hours"}
         </Button>

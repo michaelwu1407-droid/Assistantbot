@@ -95,7 +95,8 @@ export function EmailLeadCaptureSettings() {
           <CardTitle>Auto-Lead Response</CardTitle>
         </div>
         <CardDescription>
-          Forward &quot;Lead Won&quot; emails from HiPages, Airtasker, or ServiceSeeking to your unique address. We create the contact and deal and can call the lead straight away.
+          Forward "Lead Won" emails from HiPages, Airtasker, or ServiceSeeking to your unique address.
+          Format is [firstname]@[businessname].earlymark.ai, with 1, 2, etc. appended if first names repeat.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -103,21 +104,21 @@ export function EmailLeadCaptureSettings() {
           <Label>Your forwarding email</Label>
           <div className="flex items-center gap-2">
             <code className="flex-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm font-mono">
-              {forwardingEmail || "—"}
+              {forwardingEmail || "-"}
             </code>
             <Button variant="outline" size="icon" onClick={handleCopy} disabled={!forwardingEmail} title="Copy">
               <Copy className="h-4 w-4" />
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Set up a Gmail (or other) filter to forward &quot;Lead Won&quot; / &quot;Job Won&quot; emails from HiPages, Airtasker, or ServiceSeeking to this address. We’ll identify the lead, create a contact and deal, and optionally call them immediately.
+            Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically.
           </p>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border/50 p-4">
           <div>
             <Label htmlFor="auto-call-leads" className="text-base font-medium">Call new leads immediately?</Label>
             <p className="text-sm text-muted-foreground mt-0.5">
-              When we receive a lead email, Travis can place an outbound call to the lead’s phone number right away to lock in the job.
+              If ON, Travis calls the lead immediately when an eligible lead email arrives. If OFF, the lead is still captured, but no immediate call is made.
             </p>
           </div>
           <Switch

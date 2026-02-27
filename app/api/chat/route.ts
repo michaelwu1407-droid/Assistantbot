@@ -23,6 +23,7 @@ import {
   runUndoLastAction,
   runAssignTeamMember,
   handleSupportRequest,
+  runAppendTicketNote,
   recordManualRevenue,
 } from "@/actions/chat-actions";
 import {
@@ -39,9 +40,25 @@ import { buildJobDraftFromParams } from "@/lib/chat-utils";
 import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { appendTicketNote } from "@/actions/activity-actions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+function extractStickyTicketIdFromAssistantMessage(message: unknown): string | null {
+  const raw = JSON.stringify(message ?? {});
+  const match = raw.match(/\[STATE:\s*TICKET_CREATED\][\s\S]*?\[TICKET_ID:\s*([^\]]+)\]/i);
+  return match?.[1]?.trim() ?? null;
+}
+
+function looksLikeFollowUpDetail(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const lower = trimmed.toLowerCase();
+  const acknowledgements = ["ok", "okay", "thanks", "thank you", "got it", "all good", "done"];
+  if (acknowledgements.includes(lower)) return false;
+  return trimmed.length >= 6;
+}
 
 /** Cost-effective Gemini model for chat + tools */
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
@@ -99,6 +116,35 @@ export async function POST(req: Request) {
     if (!content && typeof body.prompt === "string") content = body.prompt.trim();
     if (!content && typeof body.input === "string") content = body.input.trim();
     if (!content && typeof body.message === "string") content = body.message.trim();
+
+    // Sticky context: if previous assistant turn created a support ticket,
+    // treat the immediate next user message as an addendum note.
+    const lastUserIndex = Array.isArray(messages) ? [...messages].map((m: any) => m?.role).lastIndexOf("user") : -1;
+    if (lastUserIndex > 0 && looksLikeFollowUpDetail(content)) {
+      const previousAssistant = [...messages]
+        .slice(0, lastUserIndex)
+        .reverse()
+        .find((m: any) => m?.role === "assistant");
+      const stickyTicketId = extractStickyTicketIdFromAssistantMessage(previousAssistant);
+      if (stickyTicketId) {
+        try {
+          const result = await appendTicketNote(stickyTicketId, content);
+          const textId = "sticky-ticket-note";
+          const stream = createUIMessageStream({
+            execute: ({ writer }) => {
+              writer.write({ type: "start" });
+              writer.write({ type: "text-start", id: textId });
+              writer.write({ type: "text-delta", id: textId, delta: `${result} I've attached that to the same support ticket.` });
+              writer.write({ type: "text-end", id: textId });
+              writer.write({ type: "finish" });
+            },
+          });
+          return createUIMessageStreamResponse({ stream });
+        } catch {
+          // If append fails, continue normal flow.
+        }
+      }
+    }
 
     if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
@@ -586,6 +632,7 @@ MESSAGING RULES — CRITICAL:
 3. Keep conversation context. If the user mentions a person's name, and later says "message her" or "text him", use the most recently discussed person.
 4. After sending, briefly confirm: "✅ Sent to [Name]: \"[message]\"" — format the message in quotes so it stands out.
 5. Never rewrite or "improve" the user's message content unless explicitly asked to.
+6. Always check the output of the previous tool. If it contains a SYSTEM_CONTEXT_SIGNAL, follow that instruction for the immediate next turn.
 
 IMPORTANT: You have access to tools for checking the schedule, job history, finances, and client details. If a user asks a question you don't have the answer to in your immediate context, USE THE TOOLS. Do not guess. Always call the appropriate tool to retrieve real data before answering.
 
@@ -836,6 +883,15 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
             if (!userId) return "Unable to identify user for support request.";
             return handleSupportRequest(message, userId, workspaceId);
           },
+        }),
+        appendTicketNote: tool({
+          description: "Appends details to an existing ticket. Use this ONLY when the user adds information immediately after a ticket creation event.",
+          inputSchema: z.object({
+            ticketId: z.string().describe("Existing support ticket ID"),
+            noteContent: z.string().describe("Additional details to append to the ticket"),
+          }),
+          execute: async ({ ticketId, noteContent }) =>
+            runAppendTicketNote({ ticketId, noteContent }),
         }),
 
         // ─── Phase 2: Just-in-Time Retrieval Tools ──────────────────────

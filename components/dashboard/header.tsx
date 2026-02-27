@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users, UserX } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
 import {
     DropdownMenu,
@@ -43,7 +43,6 @@ interface HeaderProps {
 }
 
 const FILTER_ALL = "__all__"
-const FILTER_UNASSIGNED = "__unassigned__"
 
 export function Header({ userName, userId, workspaceId, teamMembers = [], filterByUserId, onFilterByUserChange = () => { }, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
@@ -139,22 +138,14 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
                         <span className="text-xs font-medium text-slate-500 hidden sm:inline">Filter:</span>
                         <Select
                             value={filterByUserId ?? FILTER_ALL}
-                            onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v === FILTER_UNASSIGNED ? FILTER_UNASSIGNED : v)}
+                            onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v)}
                         >
                             <SelectTrigger className="w-[140px] sm:w-[160px] flex border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900" aria-label="Filter jobs by team member">
                                 <Users className="h-4 w-4 mr-1.5 text-slate-500 shrink-0" />
-                                <SelectValue placeholder="All jobs" />
+                                <SelectValue placeholder="All" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={FILTER_ALL}>All jobs</SelectItem>
-                                {teamMembers.length > 0 && (
-                                    <SelectItem value={FILTER_UNASSIGNED}>
-                                        <span className="flex items-center gap-2">
-                                            <UserX className="h-3.5 w-3.5 text-slate-400" />
-                                            Unassigned
-                                        </span>
-                                    </SelectItem>
-                                )}
+                                <SelectItem value={FILTER_ALL}>All</SelectItem>
                                 {teamMembers.map((m) => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name || m.email}

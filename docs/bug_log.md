@@ -35,3 +35,17 @@
 
 ### Summary
 The critical **AI Agent** architecture has been rebuilt from context-stuffing to tool-use, resolving data-staleness and pricing issues. **Vercel deploy** is unblocked. **Search** and **Kanban drag** remain open for next sprint.
+
+## Sprint 24 Updates (2026-02-27)
+
+### P1 - High (Resolved)
+- [x] **Goldfish Effect after Support Ticket**: **FIXED**. Added sticky context pattern using `SYSTEM_CONTEXT_SIGNAL` + `appendTicketNote` tool/action so immediate follow-up details are appended to the same ticket.
+- [x] **Automated calling/texting page load failure**: **FIXED**. Settings page now handles partial fetch failures without becoming unusable.
+
+### P2 - Medium (Resolved)
+- [x] **Settings overlap (Notifications vs Automated calling & texting)**: **FIXED**. Removed duplicate automated communication controls from Notifications and consolidated behavior in one tab.
+- [x] **Display theme behavior**: **FIXED**. Restored Dark option, enabled true system auto theme, and improved dark palette readability.
+
+### P3 - Low (Resolved)
+- [x] **Billing label mismatch**: **FIXED**. Updated plan and manage button text (`Earlymark Pro`, `Manage`).
+- [x] **Privacy naming mismatch**: **FIXED**. Replaced legacy product naming with Earlymark AI, added Data Policy (DRAFT), removed data export request control.

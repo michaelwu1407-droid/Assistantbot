@@ -20,7 +20,7 @@ export function ManageSubscriptionButton({ workspaceId }: { workspaceId: string 
 
     return (
         <Button variant="outline" onClick={handleManage} disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Manage Billing & Invoices"}
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Manage"}
         </Button>
     );
 }

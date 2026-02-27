@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
@@ -44,8 +44,9 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
+    const router = useRouter()
     const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode } = useShellStore()
+    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath } = useShellStore()
 
     useEffect(() => {
         setMounted(true)
@@ -53,6 +54,26 @@ export function Sidebar({ className }: SidebarProps) {
 
     const handleSignOut = async () => {
         await logout()
+    }
+
+    const goToAdvanced = () => {
+        const target = lastAdvancedPath && lastAdvancedPath.startsWith("/dashboard")
+            ? lastAdvancedPath
+            : "/dashboard"
+        setViewMode("ADVANCED")
+        if (pathname !== target) {
+            router.push(target)
+        }
+    }
+
+    const goToBasic = () => {
+        if (pathname.startsWith("/dashboard")) {
+            setLastAdvancedPath(pathname)
+        }
+        setViewMode("BASIC")
+        if (pathname !== "/dashboard") {
+            router.push("/dashboard")
+        }
     }
 
     return (
@@ -69,7 +90,7 @@ export function Sidebar({ className }: SidebarProps) {
                         <TooltipTrigger asChild>
                             <button
                                 id="mode-toggle-btn"
-                                onClick={() => setViewMode(viewMode === "ADVANCED" ? "BASIC" : "ADVANCED")}
+                                onClick={() => (viewMode === "ADVANCED" ? goToBasic() : goToAdvanced())}
                                 className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
                             >
                                 <MessageSquare className="h-3.5 w-3.5" />

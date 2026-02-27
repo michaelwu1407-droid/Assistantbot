@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function createCheckoutSession(workspaceId: string) {
@@ -34,6 +35,11 @@ export async function createCheckoutSession(workspaceId: string) {
     }
 
     const session = await stripe.checkout.sessions.create({
+        metadata: {
+            workspace_id: workspaceId,
+            referred_user_id: userId,
+            referral_code: (await cookies()).get("referral_code")?.value || "",
+        },
         payment_method_types: ["card"],
         billing_address_collection: "auto",
         customer: customerId || undefined,

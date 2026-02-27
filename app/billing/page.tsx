@@ -31,7 +31,7 @@ export default async function BillingPaywallPage() {
                 {/* Logo */}
                 <div className="flex justify-center mb-6">
                     <div className="h-14 w-14 rounded-xl flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden">
-                        <img src="/Latest logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
+                        <img src="/latest-logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
                     </div>
                 </div>
 
@@ -75,3 +75,4 @@ export default async function BillingPaywallPage() {
         </div>
     );
 }
+

@@ -242,6 +242,7 @@ export async function getTeamMembers() {
   });
   return members.map((m) => ({
     ...m,
+    name: m.name || (m.email === authUser.email ? authUser.name : m.name),
     isCurrentUser: m.email === authUser.email,
   }));
 }

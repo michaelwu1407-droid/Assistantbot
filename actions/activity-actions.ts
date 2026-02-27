@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -206,4 +207,47 @@ export async function autoLogActivity(payload: {
     contactId: contact.id,
     dealId: activeDeal?.id,
   };
+}
+
+/**
+ * Append a NOTE activity to an existing ticket/deal.
+ */
+export async function appendTicketNote(ticketId: string, noteContent: string) {
+  const content = noteContent.trim();
+  if (!content) {
+    throw new Error("Note content is required.");
+  }
+
+  const authUser = await getAuthUser();
+  if (!authUser?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await db.user.findFirst({
+    where: { email: authUser.email },
+    select: { workspaceId: true },
+  });
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const ticket = await db.deal.findFirst({
+    where: { id: ticketId, workspaceId: user.workspaceId },
+    select: { id: true, contactId: true },
+  });
+  if (!ticket) {
+    throw new Error("Ticket not found.");
+  }
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Ticket note added",
+      content,
+      dealId: ticket.id,
+      contactId: ticket.contactId ?? undefined,
+    },
+  });
+
+  return `Note added to ticket #${ticket.id}.`;
 }

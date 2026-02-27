@@ -158,21 +158,10 @@ export default function AnalyticsPage() {
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Jobs won with Travis</p>
               <LayoutList className="h-5 w-5 text-muted-foreground/40" />
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-2xl font-bold text-midnight">{data.jobs.completed}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{scheduledCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Scheduled</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{pipelineCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Pipeline</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Pipeline = new requests + quotes sent</p>
+            <p className="text-3xl font-bold text-midnight">{data.jobs.wonWithTravis}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Jobs at scheduled stage or beyond, excluding manual jobs created already at scheduled+
+            </p>
           </CardContent>
         </Card>
       </div>

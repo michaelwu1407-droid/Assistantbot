@@ -15,6 +15,7 @@ import { Mail, Phone, Chrome } from "lucide-react";
 interface AuthState {
   email: string;
   password: string;
+  confirmPassword: string;
   name: string;
   phone: string;
   otp: string;
@@ -25,6 +26,8 @@ interface AuthState {
   method: "google" | "phone" | "email";
   phoneOtpSent: boolean;
   otpResendTimer: number;
+  emailStep: "email" | "password";
+  emailIntent: "signin" | "signup";
 }
 
 export function UnifiedAuth({ connectionError = false }: { connectionError?: boolean }) {
@@ -34,6 +37,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
   const [state, setState] = useState<AuthState>({
     email: "",
     password: "",
+    confirmPassword: "",
     name: "",
     phone: "",
     otp: "",
@@ -44,6 +48,8 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     method: "google",
     phoneOtpSent: false,
     otpResendTimer: 0,
+    emailStep: "email",
+    emailIntent: "signin",
   });
 
   useEffect(() => {
@@ -69,6 +75,20 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       setState(prev => ({ ...prev, user }));
     };
     checkUser();
+  }, [router, supabase]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const route = await checkUserRoute(session.user.id);
+        router.push(route);
+        router.refresh();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router, supabase]);
 
   useEffect(() => {
@@ -213,82 +233,106 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     }
   };
 
-  const handleEmailAuth = async () => {
-    updateState({ loading: true, message: "", needsConfirmation: false });
-
-    // Try sign in first
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: state.email,
-      password: state.password,
-    });
-
-    if (!signInError) {
-      // Sign in successful
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
-        MonitoringService.trackEvent("user_signed_in", { provider: "email" });
-        const route = await checkUserRoute(user.id);
-        router.push(route);
-      } else {
-        router.push("/dashboard");
-      }
-      router.refresh();
+  const handleEmailContinue = async () => {
+    const email = state.email.trim().toLowerCase();
+    if (!email) {
+      updateState({ message: "Please enter an email address." });
       return;
     }
 
-    // If sign in fails, try sign up
-    if (signInError.message.includes("Invalid login credentials")) {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: state.email,
-        password: state.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            confirmed_at: new Date().toISOString(),
-            name: state.name || state.email.split('@')[0],
-          }
-        },
+    updateState({
+      email: email,
+      emailStep: "password",
+      emailIntent: "signin",
+      password: "",
+      confirmPassword: "",
+      message: "",
+    });
+  };
+
+  const handleEmailAuth = async () => {
+    updateState({ loading: true, message: "", needsConfirmation: false });
+
+    const email = state.email.trim().toLowerCase();
+    const password = state.password;
+
+    if (state.emailIntent === "signin") {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (signUpError) {
-        updateState({ loading: false, message: signUpError.message });
-      } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+      if (!signInError) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          MonitoringService.identifyUser(user.id, { email: user.email, name: user.user_metadata?.name });
+          MonitoringService.trackEvent("user_signed_in", { provider: "email" });
+          const route = await checkUserRoute(user.id);
+          router.push(route);
+        } else {
+          router.push("/dashboard");
+        }
+        router.refresh();
+        return;
+      }
+
+      if (signInError.message.includes("Invalid login credentials")) {
         updateState({
           loading: false,
-          message: "Account already exists. Please check your credentials."
+          message: "Invalid email or password. Please try again."
+        });
+      } else if (signInError.message.includes("Email not confirmed")) {
+        updateState({
+          loading: false,
+          needsConfirmation: true,
+          message: "Email not confirmed. Check your inbox or resend confirmation."
         });
       } else {
-        // Sign up successful, try to sign in
-        const { error: finalSignInError } = await supabase.auth.signInWithPassword({
-          email: state.email,
-          password: state.password,
-        });
-
-        if (finalSignInError) {
-          updateState({
-            loading: false,
-            message: "Account created! Please sign in with your credentials."
-          });
-        } else {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            MonitoringService.identifyUser(user.id, { email: user.email, name: state.name });
-            MonitoringService.trackEvent("user_signed_up", { provider: "email" });
-          }
-          router.push("/billing");
-          router.refresh();
-        }
+        updateState({ loading: false, message: signInError.message });
       }
-    } else if (signInError.message.includes("Email not confirmed")) {
+      return;
+    }
+
+    if (password.length < 6) {
+      updateState({ loading: false, message: "Password must be at least 6 characters." });
+      return;
+    }
+
+    if (password !== state.confirmPassword) {
+      updateState({ loading: false, message: "Passwords do not match." });
+      return;
+    }
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          name: email.split("@")[0],
+        },
+      },
+    });
+
+    if (signUpError) {
+      updateState({ loading: false, message: signUpError.message });
+      return;
+    }
+
+    // Existing account fallback when detector missed auth-only users
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
       updateState({
         loading: false,
-        needsConfirmation: true,
-        message: "Email not confirmed. Check your inbox or resend confirmation."
+        message: "Unable to create account with that email. Try signing in instead."
       });
-    } else {
-      updateState({ loading: false, message: signInError.message });
+      return;
     }
+
+    updateState({
+      loading: false,
+      needsConfirmation: true,
+      message: "Account created. Check your email to verify. You will be signed in automatically after confirmation.",
+    });
   };
 
   const handleResendConfirmation = async () => {
@@ -336,7 +380,11 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         await handlePhoneAuth();
         break;
       case "email":
-        await handleEmailAuth();
+        if (state.emailStep === "email") {
+          await handleEmailContinue();
+        } else {
+          await handleEmailAuth();
+        }
         break;
     }
   };
@@ -347,7 +395,11 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
       otp: "",
       message: "",
       needsConfirmation: false,
-      otpResendTimer: 0
+      otpResendTimer: 0,
+      emailStep: "email",
+      emailIntent: "signin",
+      password: "",
+      confirmPassword: "",
     });
   };
 
@@ -372,7 +424,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         )}
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/Latest logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
+          <img src="/latest-logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
         </div>
 
         <div className="text-center mb-8">
@@ -490,31 +542,74 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
                   onChange={(e) => updateState({ email: e.target.value })}
                   placeholder="you@example.com"
                   required={state.method === "email"}
+                  disabled={state.emailStep === "password"}
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="password" className="text-midnight font-semibold text-sm">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={state.password}
-                  onChange={(e) => updateState({ password: e.target.value })}
-                  placeholder="Create a password"
-                  required={state.method === "email"}
-                />
-              </div>
+              {state.emailStep === "password" && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="password" className="text-midnight font-semibold text-sm">
+                      {state.emailIntent === "signin" ? "Password" : "Set Password"}
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={state.password}
+                      onChange={(e) => updateState({ password: e.target.value })}
+                      placeholder={state.emailIntent === "signin" ? "Enter your password" : "Create a password"}
+                      required={state.method === "email" && state.emailStep === "password"}
+                    />
+                  </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name" className="text-midnight font-semibold text-sm">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={state.name}
-                  onChange={(e) => updateState({ name: e.target.value })}
-                  placeholder="John Smith"
-                />
-              </div>
+                  {state.emailIntent === "signup" && (
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="confirmPassword" className="text-midnight font-semibold text-sm">Confirm Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={state.confirmPassword}
+                        onChange={(e) => updateState({ confirmPassword: e.target.value })}
+                        placeholder="Retype password"
+                        required={state.method === "email" && state.emailStep === "password" && state.emailIntent === "signup"}
+                      />
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() =>
+                      updateState({
+                        emailIntent: state.emailIntent === "signin" ? "signup" : "signin",
+                        password: "",
+                        confirmPassword: "",
+                        message: "",
+                      })
+                    }
+                  >
+                    {state.emailIntent === "signin" ? "New here? Create account" : "Already have an account? Sign in"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => updateState({
+                      emailStep: "email",
+                      emailIntent: "signin",
+                      password: "",
+                      confirmPassword: "",
+                      message: "",
+                    })}
+                  >
+                    Use different email
+                  </Button>
+                </>
+              )}
             </>
           )}
 
@@ -527,9 +622,21 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
               disabled={state.loading}
             >
               {state.loading ? (
-                state.method === "phone" && !state.phoneOtpSent ? "Sending Code..." : "Signing in..."
+                state.method === "phone" && !state.phoneOtpSent
+                  ? "Sending Code..."
+                  : state.method === "email" && state.emailStep === "email"
+                    ? "Checking..."
+                    : state.method === "email" && state.emailIntent === "signup"
+                      ? "Creating account..."
+                      : "Signing in..."
               ) : (
-                state.method === "phone" && !state.phoneOtpSent ? "Send Code" : "Sign In"
+                state.method === "phone" && !state.phoneOtpSent
+                  ? "Send Code"
+                  : state.method === "email" && state.emailStep === "email"
+                    ? "Continue"
+                    : state.method === "email" && state.emailIntent === "signup"
+                      ? "Create Account"
+                      : "Sign In"
               )}
             </Button>
           )}

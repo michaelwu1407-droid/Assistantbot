@@ -3,15 +3,36 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PhoneForwarded, PhoneOff, Shield } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { getCallForwardingSettings, updateCallForwardingSettings } from "@/actions/settings-actions"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 export function CallForwardingCard() {
-  const [active, setActive] = useState<"full" | "backup" | "off" | null>(null)
+  const [active, setActive] = useState<"full" | "backup" | "off">("off")
+  const [enabled, setEnabled] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const handleCopyInstruction = (label: string, code: string) => {
-    navigator.clipboard.writeText(code)
-    toast.success(`${label} code copied`)
+  useEffect(() => {
+    getCallForwardingSettings()
+      .then((s) => {
+        setEnabled(s.enabled)
+        setActive(s.mode)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const saveForwarding = async (nextEnabled: boolean, nextMode: "full" | "backup" | "off") => {
+    try {
+      const result = await updateCallForwardingSettings({ enabled: nextEnabled, mode: nextMode })
+      setEnabled(nextEnabled)
+      setActive(result.mode as "full" | "backup" | "off")
+      toast.success("Call forwarding settings saved")
+    } catch {
+      toast.error("Failed to save call forwarding settings")
+    }
   }
 
   return (
@@ -26,11 +47,25 @@ export function CallForwardingCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2">
+          <div>
+            <Label htmlFor="call-forwarding-enabled" className="text-sm font-medium">Enable call forwarding</Label>
+            <p className="text-xs text-slate-500">When enabled, your preferred forwarding mode is saved here.</p>
+          </div>
+          <Switch
+            id="call-forwarding-enabled"
+            checked={enabled}
+            disabled={loading}
+            onCheckedChange={(checked) => saveForwarding(checked, checked ? (active === "off" ? "full" : active) : "off")}
+          />
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-3">
           <Button
             variant={active === "full" ? "default" : "outline"}
             className="h-auto flex flex-col items-center gap-2 py-4"
-            onClick={() => setActive("full")}
+            disabled={!enabled || loading}
+            onClick={() => saveForwarding(true, "full")}
           >
             <Shield className="h-5 w-5" />
             <span>Enable 100% AI</span>
@@ -39,7 +74,8 @@ export function CallForwardingCard() {
           <Button
             variant={active === "backup" ? "default" : "outline"}
             className="h-auto flex flex-col items-center gap-2 py-4"
-            onClick={() => setActive("backup")}
+            disabled={!enabled || loading}
+            onClick={() => saveForwarding(true, "backup")}
           >
             <PhoneForwarded className="h-5 w-5" />
             <span>Backup AI</span>
@@ -48,7 +84,8 @@ export function CallForwardingCard() {
           <Button
             variant={active === "off" ? "default" : "outline"}
             className="h-auto flex flex-col items-center gap-2 py-4"
-            onClick={() => setActive("off")}
+            disabled={loading}
+            onClick={() => saveForwarding(false, "off")}
           >
             <PhoneOff className="h-5 w-5" />
             <span>Turn off AI</span>

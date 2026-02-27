@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { sendSMS } from "./messaging-actions";
 import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
+import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -335,6 +336,15 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
         });
       }
     }
+
+    try {
+      await maybeCreatePricingSuggestionFromConfirmedJob(jobId, {
+        trigger: "completed",
+        source: "updateJobStatus",
+      });
+    } catch (learningErr) {
+      console.warn("Pricing learning hook failed on updateJobStatus:", learningErr);
+    }
   }
 
   revalidatePath('/dashboard/tradie');
@@ -584,6 +594,15 @@ export async function markInvoicePaid(invoiceId: string) {
     data: { stage: "WON" },
   });
 
+  try {
+    await maybeCreatePricingSuggestionFromConfirmedJob(invoice.dealId, {
+      trigger: "completed",
+      source: "markInvoicePaid",
+    });
+  } catch (learningErr) {
+    console.warn("Pricing learning hook failed on markInvoicePaid:", learningErr);
+  }
+
   await db.activity.create({
     data: {
       type: "NOTE",
@@ -736,6 +755,15 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
         // contactId? We need to fetch it if we want to link it.
       }
     });
+
+    try {
+      await maybeCreatePricingSuggestionFromConfirmedJob(dealId, {
+        trigger: "completed",
+        source: "completeJob",
+      });
+    } catch (learningErr) {
+      console.warn("Pricing learning hook failed on completeJob:", learningErr);
+    }
 
     revalidatePath(`/dashboard/tradie/jobs/${dealId}`);
     return { success: true };

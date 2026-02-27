@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
 import Stripe from "stripe";
+import { processReferralConversionForCheckout } from "@/actions/referral-actions";
 
 export async function POST(req: Request) {
     const body = await req.text();
@@ -36,6 +37,14 @@ export async function POST(req: Request) {
     }
 
     try {
+        const alreadyProcessed = await db.webhookEvent.findFirst({
+            where: { provider: "stripe", eventType: event.id, status: "success" },
+            select: { id: true },
+        });
+        if (alreadyProcessed) {
+            return new NextResponse(null, { status: 200 });
+        }
+
         switch (event.type) {
             case "checkout.session.completed": {
                 const session = event.data.object as Stripe.Checkout.Session;
@@ -54,6 +63,18 @@ export async function POST(req: Request) {
                             stripeCurrentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
                         },
                     });
+
+                    const referralCode = (session.metadata?.referral_code ?? "").trim();
+                    const referredUserId = (session.metadata?.referred_user_id ?? "").trim();
+                    const referredWorkspaceId = (session.metadata?.workspace_id ?? session.client_reference_id ?? "").trim();
+
+                    if (referralCode && referredUserId && referredWorkspaceId) {
+                        try {
+                            await processReferralConversionForCheckout(referralCode, referredUserId, referredWorkspaceId);
+                        } catch (refErr) {
+                            console.error("[stripe webhook] referral conversion/apply failed:", refErr);
+                        }
+                    }
                 }
                 break;
             }
@@ -113,7 +134,7 @@ export async function POST(req: Request) {
         await db.webhookEvent.create({
             data: {
                 provider: "stripe",
-                eventType: event.type,
+                eventType: event.id,
                 status: "success",
                 payload: JSON.parse(JSON.stringify({ id: event.id, type: event.type })),
             },
@@ -128,7 +149,7 @@ export async function POST(req: Request) {
         await db.webhookEvent.create({
             data: {
                 provider: "stripe",
-                eventType: event.type,
+                eventType: event.id,
                 status: "error",
                 error: err.message,
             },

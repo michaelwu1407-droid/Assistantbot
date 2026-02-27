@@ -1,6 +1,6 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-02-27 (Documentation Consolidation & Twilio Migration)
+**Last Updated:** 2026-02-27 (Sticky Context + Settings Consolidation + Theme/Notification Updates)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
 
@@ -17,10 +17,10 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/schedule`** | ✅ Functional | - **NEW**: Add Month/Week/Day view toggle functionality. |
 | **`/dashboard/team`** | ✅ Functional | None |
 | **`/dashboard/reports`** | ✅ Functional | - **NEW**: Verify tracked data accuracy and PDF generation functionality. |
-| **`/dashboard/settings`** | ⚠️ Needs Overhaul | - **CRITICAL**: UI spacing issues (LHS content overlaps sidebar nav).<br>- **Profile/Knowledge Base**: Build business knowledge section for AI context.<br>- **Account Settings**: Remove duplicate email entry, fix "Delete Account" button placement.<br>- **Appearance/Display**: Consolidate useful items, fix default mode.<br>- **Billing/Invoicing**: Set up client payment integration.<br>- **Automations**: Verify functional rules and notifications.<br>- **Workspace**: Remove irrelevant fields, set working hours for agent. |
+| **`/dashboard/settings`** | ✅ Functional (Ongoing Polish) | - Automated communication overlap removed from Notifications and consolidated into Automated calling & texting.<br>- Billing labels updated (`Earlymark Pro`, `Manage`).<br>- Display now supports Light/Dark/System and system-auto behavior is active.<br>- Privacy naming aligned to Earlymark AI and includes Data Policy (DRAFT).<br>- Remaining: deeper payment/integration features and ongoing UX refinement. |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
-| **Chatbot Interface** | ⚠️ Needs Fixes | - **CRITICAL**: Fix "parts field" crash on basic queries ("What jobs do I have tomorrow?").<br>- **NEW**: Add voice-to-text microphone functionality.<br>- **NEW**: Implement conversation retrieval ("Show me my text history with Steven").<br>- **NEW**: Enhance task management ("Call John next Tuesday"). |
+| **Chatbot Interface** | ✅ Functional (Active Hardening) | - Sticky support-ticket context shipped: immediate post-ticket details append to the same ticket via `appendTicketNote`.<br>- Continue intent/fallback tuning for ambiguous phrasing and edge cases. |
 | **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
 | **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
 | **Vapi Webhook** | ✅ Functional | - Workspace resolution now uses strict `twilioPhoneNumber` matching on the dialed system number.<br>- Recording URL persisted in activity content (from `recordingUrl` or `artifact.recordingUrl`). |

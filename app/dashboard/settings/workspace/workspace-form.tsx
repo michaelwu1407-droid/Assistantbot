@@ -28,8 +28,8 @@ const workspaceFormSchema = z.object({
     name: z.string().min(2, {
         message: "Workspace name must be at least 2 characters.",
     }),
-    industry: z.string().min(1, {
-        message: "Please select an industry type."
+    specialty: z.string().min(1, {
+        message: "Please select your specialty."
     }),
     location: z.string().optional(),
 })
@@ -48,7 +48,7 @@ interface WorkspaceFormProps {
 // Default fallback
 const defaultValues: Partial<WorkspaceFormValues> = {
     name: "My Awesome Business",
-    industry: "TRADES",
+    specialty: "Plumber",
 }
 
 export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) {
@@ -62,8 +62,9 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
         try {
             await updateWorkspace(workspaceId, {
                 name: data.name,
-                industryType: data.industry as "TRADES" | "REAL_ESTATE",
-                location: data.location
+                industryType: "TRADES",
+                location: data.location,
+                tradeType: data.specialty,
             })
 
             toast.success("Workspace updated", {
@@ -98,24 +99,28 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                 />
                 <FormField
                     control={form.control}
-                    name="industry"
+                    name="specialty"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Industry</FormLabel>
+                            <FormLabel>Specialty</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select your industry" />
+                                        <SelectValue placeholder="Select your specialty" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="TRADES">Trades & Services</SelectItem>
-                                    <SelectItem value="REAL_ESTATE">Real Estate</SelectItem>
-                                    <SelectItem value="OTHER">Other</SelectItem>
+                                    <SelectItem value="Plumber">Plumber</SelectItem>
+                                    <SelectItem value="Electrician">Electrician</SelectItem>
+                                    <SelectItem value="Carpenter">Carpenter</SelectItem>
+                                    <SelectItem value="HVAC Technician">HVAC Technician</SelectItem>
+                                    <SelectItem value="Painter">Painter</SelectItem>
+                                    <SelectItem value="Roofer">Roofer</SelectItem>
+                                    <SelectItem value="Handyman">Handyman</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormDescription>
-                                This helps us tailor your experience.
+                                This should match your onboarding trade selection.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

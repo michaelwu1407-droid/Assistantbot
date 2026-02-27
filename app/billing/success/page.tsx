@@ -69,5 +69,5 @@ export default async function BillingSuccessPage({
         redirect("/billing");
     }
 
-    redirect("/dashboard?tutorial=true");
+    redirect("/auth/next");
 }

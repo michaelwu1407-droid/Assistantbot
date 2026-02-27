@@ -1,5 +1,25 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.4 (February 27, 2026)
+
+### Chatbot Sticky Context (Goldfish Fix)
+- Added `appendTicketNote(ticketId, noteContent)` in `actions/activity-actions.ts`.
+- Updated support-ticket creation return payload to include `displayMessage`, `ticketId`, and `SYSTEM_CONTEXT_SIGNAL`.
+- Registered `appendTicketNote` tool in `app/api/chat/route.ts`.
+- Added system rule to follow `SYSTEM_CONTEXT_SIGNAL` on the immediate next turn.
+- Added sticky next-turn logic in `/api/chat`: if user adds details right after ticket creation, details are appended to the same ticket.
+- Added optional fallback note-append hook in `actions/chat-fallback.ts`.
+
+### Settings and UX updates
+- Automated calling/texting page now degrades gracefully on partial fetch failures.
+- Removed duplicate pricing block from AI Assistant settings.
+- Learning rules in AI Assistant are now add/remove list items instead of a blank freeform box.
+- Notification settings now remove duplicated automated communication controls and include a test-notification action.
+- Billing labels updated to `Earlymark Pro` and `Manage`.
+- Privacy settings renamed from Pj Buddy to Earlymark AI, added `Data policy (DRAFT)`, and removed data export action.
+- Integrations forwarding email format updated to `[firstname]@[businessname].earlymark.ai` with numeric suffix collision handling.
+- Display/theme fixes: re-enabled true `System (auto)`, restored `Dark` selection, and improved dark theme tokens for readability.
+
 ## Version 2.3 (February 27, 2026)
 
 ### 📞 **Twilio Live Migration & Phone Provisioning**

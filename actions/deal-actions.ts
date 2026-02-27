@@ -10,6 +10,7 @@ import { evaluateAutomations } from "./automation-actions";
 import { createNotification } from "./notification-actions";
 import { getAuthUser } from "@/lib/auth";
 import { MonitoringService } from "@/lib/monitoring";
+import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -406,6 +407,17 @@ export async function updateDealStage(dealId: string, stage: string) {
       console.warn("Automation evaluation failed after stage update:", automationErr);
     }
 
+    if (prismaStage === "WON") {
+      try {
+        await maybeCreatePricingSuggestionFromConfirmedJob(parsed.data.dealId, {
+          trigger: "completed",
+          source: "updateDealStage",
+        });
+      } catch (learningErr) {
+        console.warn("Pricing learning hook failed after stage update:", learningErr);
+      }
+    }
+
     return { success: true };
   } catch (err) {
     console.error("updateDealStage error:", err);
@@ -478,6 +490,15 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
         type: "SUCCESS",
         link: `/dashboard/deals`,
       });
+    }
+
+    try {
+      await maybeCreatePricingSuggestionFromConfirmedJob(dealId, {
+        trigger: "completed",
+        source: "approveCompletion",
+      });
+    } catch (learningErr) {
+      console.warn("Pricing learning hook failed on approveCompletion:", learningErr);
     }
 
     revalidatePath("/dashboard");
@@ -630,6 +651,8 @@ export async function updateDeal(
     include: { workspace: { select: { autoUpdateGlossary: true } } }
   });
   if (!deal) return { success: false, error: "Deal not found" };
+  const stageMovedToWon = data.stage !== undefined && (STAGE_REVERSE[data.stage] ?? "") === "WON";
+  const draftConfirmed = deal.isDraft && data.isDraft === false;
 
   type DealUpdate = Parameters<typeof db.deal.update>[0]["data"];
   const update: DealUpdate = {};
@@ -679,6 +702,17 @@ export async function updateDeal(
       ...(userId && { userId }),
     },
   });
+
+  if (stageMovedToWon || draftConfirmed) {
+    try {
+      await maybeCreatePricingSuggestionFromConfirmedJob(dealId, {
+        trigger: stageMovedToWon ? "completed" : "draft_confirmed",
+        source: "updateDeal",
+      });
+    } catch (learningErr) {
+      console.warn("Pricing learning hook failed on updateDeal:", learningErr);
+    }
+  }
 
   return { success: true };
 }

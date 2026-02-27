@@ -1,11 +1,11 @@
 import React, { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/layout/Shell';
-import { ChatInterface } from "@/components/chatbot/chat-interface";
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getAuthUserId } from "@/lib/auth";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
+import { ChatInterface } from "@/components/chatbot/chat-interface";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ export default async function DashboardLayout({
   let workspaceId = "";
   let userId = "";
   let tutorialComplete = false;
+  let shouldRedirectToSetup = false;
 
   try {
     const authUserId = await getAuthUserId();
@@ -27,11 +28,19 @@ export default async function DashboardLayout({
     const workspace = await getOrCreateWorkspace(userId);
     workspaceId = workspace.id;
     tutorialComplete = workspace.tutorialComplete;
+
+    if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
+      shouldRedirectToSetup = true;
+    }
   } catch (error) {
     console.error("Layout failed to fetch workspace:", error);
     const msg = error instanceof Error ? error.message : String(error);
     const isConnectionError = /fetch|network|supabase|ECONNREFUSED|ETIMEDOUT/i.test(msg);
     redirect(isConnectionError ? "/auth?error=connection" : "/auth");
+  }
+
+  if (shouldRedirectToSetup) {
+    redirect("/setup");
   }
 
   return (

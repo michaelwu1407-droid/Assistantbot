@@ -5,7 +5,7 @@ import { WorkspaceForm } from "@/app/dashboard/settings/workspace/workspace-form
 
 interface MyBusinessDetailsProps {
   workspaceId: string
-  initialData: { name: string; industry: string; location: string }
+  initialData: { name: string; specialty: string; location: string }
 }
 
 export function MyBusinessDetails({ workspaceId, initialData }: MyBusinessDetailsProps) {
@@ -22,7 +22,7 @@ export function MyBusinessDetails({ workspaceId, initialData }: MyBusinessDetail
           workspaceId={workspaceId}
           initialData={{
             name: initialData.name,
-            industry: initialData.industry === "REAL_ESTATE" ? "REAL_ESTATE" : "TRADES",
+            specialty: initialData.specialty || "Plumber",
             location: initialData.location || undefined,
           }}
         />

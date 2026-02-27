@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { updateUserProfile } from "@/actions/user-actions";
 import { toast } from "sonner";
+import { useShellStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 
 interface ProfileFormProps {
   userId: string;
@@ -20,6 +22,8 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userId, initialData }: ProfileFormProps) {
+  const router = useRouter()
+  const setViewMode = useShellStore((s) => s.setViewMode)
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: initialData?.username || "",
@@ -37,6 +41,10 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
       };
 
       await updateUserProfile(userId, updateData);
+      setViewMode(formData.viewMode)
+      if (formData.viewMode === "BASIC") {
+        router.push("/dashboard")
+      }
 
       toast.success("Profile updated successfully!");
     } catch (error) {

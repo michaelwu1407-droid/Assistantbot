@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, getAuthUserId } from "@/lib/auth";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -289,12 +289,35 @@ export async function updateWorkspace(
     industryType?: "TRADES" | "REAL_ESTATE";
     location?: string;
     brandingColor?: string;
+    tradeType?: string;
   }
 ) {
   await db.workspace.update({
     where: { id: workspaceId },
-    data,
+    data: {
+      name: data.name,
+      type: data.type,
+      industryType: data.industryType,
+      location: data.location,
+      brandingColor: data.brandingColor,
+    },
   });
+
+  if (data.tradeType) {
+    const userId = await getAuthUserId();
+    await db.businessProfile.upsert({
+      where: { userId },
+      update: { tradeType: data.tradeType },
+      create: {
+        userId,
+        tradeType: data.tradeType,
+        baseSuburb: data.location || "",
+        serviceRadius: 20,
+        standardWorkHours: "Mon-Fri, 08:00-17:00",
+        emergencyService: false,
+      },
+    });
+  }
 
   return { success: true };
 }
@@ -317,6 +340,7 @@ export async function listWorkspaces(ownerId: string): Promise<WorkspaceView[]> 
  * business name, industry type, location, and additional business details.
  */
 export async function completeOnboarding(data: {
+  ownerName?: string;
   businessName: string;
   industryType: "TRADES";
   location: string;
@@ -331,19 +355,23 @@ export async function completeOnboarding(data: {
   agentMode?: "EXECUTE" | "ORGANIZE" | "FILTER";
   workingHoursStart?: string;
   workingHoursEnd?: string;
+  emergencyHoursStart?: string;
+  emergencyHoursEnd?: string;
   agendaNotifyTime?: string;
   wrapupNotifyTime?: string;
   autoUpdateGlossary?: boolean;
   autoCallLeads?: boolean;
   businessContact?: { phone?: string; email?: string; address?: string };
+  pricingServices?: { service: string; minFee?: number; maxFee?: number }[];
+  disableAiQuoting?: boolean;
   leadSources?: string[];
   emergencyBypass?: boolean;
   digestPreference?: "immediate" | "daily" | "weekly";
+  callForwardingEnabled?: boolean;
 }) {
   // Use the real authenticated user's workspace
   const { getAuthUserId } = await import("@/lib/auth");
   const userId = await getAuthUserId();
-
   if (!userId) {
     throw new Error("User not authenticated");
   }
@@ -372,12 +400,29 @@ export async function completeOnboarding(data: {
     where: { id: workspace.id },
     select: { settings: true },
   });
+  const userRecord = await db.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
   const currentSettings = (existing?.settings as Record<string, unknown>) ?? {};
   const settingsUpdate: Record<string, unknown> = { ...currentSettings };
-  if (data.businessContact) settingsUpdate.businessContact = data.businessContact;
+  const businessContactMerged = {
+    phone: data.businessContact?.phone || data.ownerPhone || undefined,
+    email: data.businessContact?.email || userRecord?.email || undefined,
+    address: data.businessContact?.address || data.location || undefined,
+  };
+  settingsUpdate.businessContact = businessContactMerged;
+  if (data.pricingServices !== undefined) settingsUpdate.pricingServices = data.pricingServices;
+  if (data.disableAiQuoting !== undefined) settingsUpdate.disableAiQuoting = data.disableAiQuoting;
   if (data.leadSources !== undefined) settingsUpdate.leadSources = data.leadSources;
   if (data.emergencyBypass !== undefined) settingsUpdate.emergencyBypass = data.emergencyBypass;
+  if (data.emergencyHoursStart !== undefined) settingsUpdate.emergencyHoursStart = data.emergencyHoursStart;
+  if (data.emergencyHoursEnd !== undefined) settingsUpdate.emergencyHoursEnd = data.emergencyHoursEnd;
   if (data.digestPreference) settingsUpdate.digestPreference = data.digestPreference;
+  if (data.callForwardingEnabled !== undefined) {
+    settingsUpdate.callForwardingEnabled = data.callForwardingEnabled;
+    settingsUpdate.callForwardingMode = data.callForwardingEnabled ? "full" : "off";
+  }
 
   // Persist onboarding data immediately (don't block on comms provisioning)
   await db.workspace.update({
@@ -397,6 +442,14 @@ export async function completeOnboarding(data: {
       ...(data.autoCallLeads !== undefined && { autoCallLeads: data.autoCallLeads }),
       ...(data.callOutFee !== undefined && { callOutFee: data.callOutFee }),
       ...(Object.keys(settingsUpdate).length > 0 && { settings: settingsUpdate as Prisma.JsonObject }),
+    },
+  });
+
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      ...(data.ownerName?.trim() ? { name: data.ownerName.trim() } : {}),
+      ...(data.ownerPhone?.trim() ? { phone: data.ownerPhone.trim() } : {}),
     },
   });
 
@@ -504,6 +557,9 @@ export async function checkUserRoute(userId: string): Promise<string> {
   try {
     const workspace = await getOrCreateWorkspace(userId);
     if (workspace.subscriptionStatus === "active") {
+      if (!workspace.onboardingComplete) {
+        return "/setup";
+      }
       return "/dashboard";
     }
     return "/billing";

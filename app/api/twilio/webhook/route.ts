@@ -75,6 +75,15 @@ export async function POST(req: NextRequest) {
             }
         })
 
+        const wsSettings = (workspace.settings as Record<string, unknown>) ?? {}
+        const autoRespondToMessages = (wsSettings.autoRespondToMessages as boolean) ?? true
+        if (!autoRespondToMessages) {
+            const twiml = new MessagingResponse()
+            return new NextResponse(twiml.toString(), {
+                headers: { "Content-Type": "text/xml" }
+            })
+        }
+
         // 4. Generate AI Response
         const aiResponseText = await generateSMSResponse(interaction.id, Body, workspace.id)
 

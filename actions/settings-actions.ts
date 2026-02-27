@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { getAuthUserId } from "@/lib/auth"
+import { getAuthUser, getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
@@ -51,6 +51,23 @@ export async function getWorkspaceSettings() {
         callAllowedEnd: (s.callAllowedEnd as string) ?? "20:00",
         softChase: (s.softChase as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 3, channel: "sms" },
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
+        callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
+        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "off",
+        emergencyBypass: (s.emergencyBypass as boolean) ?? false,
+        emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
+        emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
+        recordCalls: (s.recordCalls as boolean) ?? true,
+        transcriptionQuality: (s.transcriptionQuality as "standard" | "high") ?? "standard",
+        agentPersonality: (s.agentPersonality as "Professional" | "Friendly") ?? "Professional",
+        agentResponseLength: (s.agentResponseLength as number) ?? 50,
+        voiceEnabled: (s.voiceEnabled as boolean) ?? false,
+        voiceLanguage: (s.voiceLanguage as string) ?? "en-AU",
+        voiceType: (s.voiceType as "female" | "male" | "neutral") ?? "female",
+        voiceSpeed: (s.voiceSpeed as "0.8" | "1.0" | "1.2") ?? "1.0",
+        voiceGreeting: (s.voiceGreeting as string) ?? "",
+        voiceAfterHoursMessage: (s.voiceAfterHoursMessage as string) ?? "",
+        transcribeVoicemails: (s.transcribeVoicemails as boolean) ?? true,
+        autoRespondToMessages: (s.autoRespondToMessages as boolean) ?? true,
     }
 }
 
@@ -78,6 +95,21 @@ export async function updateWorkspaceSettings(input: {
     invoiceFollowUp?: { message?: string; triggerDays?: number; channel?: string }
     inboundEmailAlias?: string | null
     autoCallLeads?: boolean
+    emergencyBypass?: boolean
+    emergencyHoursStart?: string
+    emergencyHoursEnd?: string
+    recordCalls?: boolean
+    transcriptionQuality?: "standard" | "high"
+    agentPersonality?: "Professional" | "Friendly"
+    agentResponseLength?: number
+    voiceEnabled?: boolean
+    voiceLanguage?: string
+    voiceType?: "female" | "male" | "neutral"
+    voiceSpeed?: "0.8" | "1.0" | "1.2"
+    voiceGreeting?: string
+    voiceAfterHoursMessage?: string
+    transcribeVoicemails?: boolean
+    autoRespondToMessages?: boolean
 }) {
     const workspaceId = await getWorkspaceId()
 
@@ -85,6 +117,10 @@ export async function updateWorkspaceSettings(input: {
         "agentScriptStyle", "agentBusinessName", "agentOpeningMessage", "agentClosingMessage",
         "textAllowedStart", "textAllowedEnd", "callAllowedStart", "callAllowedEnd",
         "softChase", "invoiceFollowUp",
+        "emergencyBypass", "emergencyHoursStart", "emergencyHoursEnd",
+        "recordCalls", "transcriptionQuality", "agentPersonality", "agentResponseLength",
+        "voiceEnabled", "voiceLanguage", "voiceType", "voiceSpeed",
+        "voiceGreeting", "voiceAfterHoursMessage", "transcribeVoicemails", "autoRespondToMessages",
     ] as const
     let settingsUpdate: any = undefined
     const s = input as Record<string, unknown>
@@ -173,7 +209,58 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         callAllowedEnd: (s.callAllowedEnd as string) ?? "20:00",
         softChase: (s.softChase as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 3, channel: "sms" },
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
+        callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
+        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "off",
+        emergencyBypass: (s.emergencyBypass as boolean) ?? false,
+        emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
+        emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
+        recordCalls: (s.recordCalls as boolean) ?? true,
+        transcriptionQuality: (s.transcriptionQuality as "standard" | "high") ?? "standard",
+        agentPersonality: (s.agentPersonality as "Professional" | "Friendly") ?? "Professional",
+        agentResponseLength: (s.agentResponseLength as number) ?? 50,
+        voiceEnabled: (s.voiceEnabled as boolean) ?? false,
+        voiceLanguage: (s.voiceLanguage as string) ?? "en-AU",
+        voiceType: (s.voiceType as "female" | "male" | "neutral") ?? "female",
+        voiceSpeed: (s.voiceSpeed as "0.8" | "1.0" | "1.2") ?? "1.0",
+        voiceGreeting: (s.voiceGreeting as string) ?? "",
+        voiceAfterHoursMessage: (s.voiceAfterHoursMessage as string) ?? "",
+        transcribeVoicemails: (s.transcribeVoicemails as boolean) ?? true,
+        autoRespondToMessages: (s.autoRespondToMessages as boolean) ?? true,
     }
+}
+
+export async function getCallForwardingSettings(): Promise<{ enabled: boolean; mode: "full" | "backup" | "off" }> {
+    const workspaceId = await getWorkspaceId()
+    const workspace = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { settings: true },
+    })
+    const s = (workspace?.settings as Record<string, unknown>) ?? {}
+    const mode = (s.callForwardingMode as "full" | "backup" | "off") ?? "off"
+    const enabled = (s.callForwardingEnabled as boolean) ?? mode !== "off"
+    return { enabled, mode }
+}
+
+export async function updateCallForwardingSettings(input: { enabled: boolean; mode: "full" | "backup" | "off" }) {
+    const workspaceId = await getWorkspaceId()
+    const workspace = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { settings: true },
+    })
+    const current = (workspace?.settings as Record<string, unknown>) ?? {}
+    const nextMode = input.enabled ? (input.mode === "off" ? "full" : input.mode) : "off"
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: {
+            settings: {
+                ...current,
+                callForwardingEnabled: input.enabled,
+                callForwardingMode: nextMode,
+            },
+        },
+    })
+    revalidatePath("/dashboard/settings")
+    return { success: true, mode: nextMode }
 }
 
 export async function getBusinessContact(): Promise<{ phone?: string; email?: string; address?: string } | null> {
@@ -222,23 +309,57 @@ export async function getOrAllocateInboundEmail() {
 
 const INBOUND_LEAD_DOMAIN = process.env.INBOUND_LEAD_DOMAIN ?? "inbound.earlymark.ai"
 
+function toSlug(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+}
+
+function toFirstName(value?: string | null): string {
+    const raw = (value || "").trim()
+    const first = raw.split(/\s+/)[0] || ""
+    const safe = first.toLowerCase().replace(/[^a-z0-9]/g, "")
+    return safe || "user"
+}
+
 /** Get or allocate the lead-capture forwarding address [alias]@inbound.earlymark.ai for "Lead Won" emails. */
 export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     const workspaceId = await getWorkspaceId()
+    const authUser = await getAuthUser()
+    const domainBase = process.env.RESEND_FROM_DOMAIN ?? "earlymark.ai"
 
     let workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
-        select: { inboundEmailAlias: true },
+        select: {
+            inboundEmailAlias: true,
+            name: true,
+            users: {
+                select: { id: true, email: true, name: true },
+                orderBy: { id: "asc" },
+            },
+        },
     })
     if (!workspace) throw new Error("Workspace not found")
 
-    if (!workspace.inboundEmailAlias) {
-        const alias = `lead-${workspaceId.substring(0, 8)}-${Math.random().toString(36).substring(2, 6)}`
+    const businessSlug = toSlug(workspace.name || "business")
+    const currentUser = workspace.users.find((u) => u.email === authUser.email)
+    const firstNameBase = toFirstName(currentUser?.name || authUser.name || authUser.email?.split("@")[0])
+    const sameFirstUsers = workspace.users.filter((u) => toFirstName(u.name || u.email.split("@")[0]) === firstNameBase)
+    const sameFirstIndex = Math.max(0, sameFirstUsers.findIndex((u) => u.email === authUser.email))
+    const localPart = sameFirstIndex === 0 ? firstNameBase : `${firstNameBase}${sameFirstIndex}`
+    const uniqueAlias = `${localPart}-${businessSlug}`
+
+    if (!workspace.inboundEmailAlias || workspace.inboundEmailAlias !== uniqueAlias) {
         workspace = await db.workspace.update({
             where: { id: workspaceId },
-            data: { inboundEmailAlias: alias },
-            select: { inboundEmailAlias: true },
+            data: { inboundEmailAlias: uniqueAlias },
+            select: {
+                inboundEmailAlias: true,
+                name: true,
+                users: { select: { id: true, email: true, name: true }, orderBy: { id: "asc" } },
+            },
         })
     }
-    return `${workspace.inboundEmailAlias}@${INBOUND_LEAD_DOMAIN}`
+    return `${localPart}@${businessSlug}.${domainBase}`
 }

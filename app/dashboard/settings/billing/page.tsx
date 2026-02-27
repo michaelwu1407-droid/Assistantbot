@@ -23,7 +23,7 @@ export default async function BillingSettingsPage() {
                 <div className="flex flex-col">
                     <span className="text-sm font-semibold text-slate-500">Current Plan</span>
                     <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                        Pj Buddy Pro
+                        Earlymark Pro
                     </span>
                 </div>
 

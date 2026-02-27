@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
-import { logActivity } from "./activity-actions";
+import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { createTask } from "./task-actions";
 import { createNotification } from "./notification-actions";
@@ -702,6 +702,18 @@ export async function runLogActivity(params: { type: string, content: string, de
 }
 
 /**
+ * AI Tool Action: Append note to an existing support ticket.
+ */
+export async function runAppendTicketNote(params: { ticketId: string; noteContent: string }) {
+  try {
+    const result = await appendTicketNote(params.ticketId, params.noteContent);
+    return result;
+  } catch (err) {
+    return `Error appending ticket note: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
  * AI Tool Action: Create a Task/Reminder
  */
 export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
@@ -1378,7 +1390,11 @@ export async function handleSupportRequest(
   message: string,
   userId: string,
   workspaceId: string
-): Promise<string> {
+): Promise<{
+  displayMessage: string;
+  ticketId: string;
+  SYSTEM_CONTEXT_SIGNAL: string;
+}> {
   const lowerMessage = message.toLowerCase();
   
   // Extract support details
@@ -1404,11 +1420,15 @@ export async function handleSupportRequest(
   ]);
 
   if (!user || !workspace) {
-    return "I'm having trouble accessing your account details. Please try again or contact support directly.";
+    return {
+      displayMessage: "I'm having trouble accessing your account details. Please try again or contact support directly.",
+      ticketId: "unavailable",
+      SYSTEM_CONTEXT_SIGNAL: "[STATE: TICKET_CREATED] [TICKET_ID: unavailable] If the user's next message is a detail/correction, automatically call 'appendTicketNote' with this ID.",
+    };
   }
 
   // Log support request to activity feed
-  await db.activity.create({
+  const supportTicket = await db.activity.create({
     data: {
       type: "NOTE",
       title: `Chatbot Support Request: ${subject}`,
@@ -1416,21 +1436,39 @@ export async function handleSupportRequest(
     },
   });
 
+  const signal = `[STATE: TICKET_CREATED] [TICKET_ID: ${supportTicket.id}] If the user's next message is a detail/correction, automatically call 'appendTicketNote' with this ID.`;
+  const base = {
+    ticketId: supportTicket.id,
+    SYSTEM_CONTEXT_SIGNAL: signal,
+  };
+
   // Categorize and provide immediate help
   if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
-    return `I've logged your support request about phone/AI agent issues. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours to fix this.\n\nFor immediate help, you can also:\n• Call 1300 PJ BUDDY (Mon-Fri 9am-5pm)\n• Email support@pjbuddy.com`;
+    return {
+      ...base,
+      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 PJ BUDDY (Mon-Fri 9am-5pm) or email support@pjbuddy.com`,
+    };
   }
 
   if (lowerMessage.includes("billing") || lowerMessage.includes("payment") || lowerMessage.includes("subscription")) {
-    return `I've logged your billing support request. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email billing@pjbuddy.com\n• Call 1300 PJ BUDDY and select billing option`;
+    return {
+      ...base,
+      displayMessage: `Ticket #${supportTicket.id} created for billing support. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email billing@pjbuddy.com\n• Call 1300 PJ BUDDY and select billing option`,
+    };
   }
 
   if (lowerMessage.includes("feature") || lowerMessage.includes("request") || lowerMessage.includes("suggestion")) {
-    return `Great! I've logged your feature request. Our product team reviews all suggestions weekly.\n\nYour request has been tagged as "${priority}" priority and will be considered for future updates. We'll email you at ${user.email} when there's an update.`;
+    return {
+      ...base,
+      displayMessage: `Ticket #${supportTicket.id} created for your feature request. Our product team reviews suggestions weekly.\n\nYour request is tagged "${priority}" priority. We'll email you at ${user.email} when there's an update.`,
+    };
   }
 
   // General support
-  return `I've created a support ticket for you with subject: "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST).\n\nIs there anything else I can help you with while you wait?`;
+  return {
+    ...base,
+    displayMessage: `Ticket #${supportTicket.id} created with subject "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST).\n\nIf you'd like, add more details now and I'll attach them to this ticket.`,
+  };
 }
 
 /**

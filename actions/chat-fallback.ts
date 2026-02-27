@@ -3,9 +3,20 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { sendSupportAlert } from "./reminder-actions";
+import { appendTicketNote } from "./activity-actions";
 
 export async function handleChatFallback(message: string, metadata?: Record<string, any>) {
   try {
+    const stickyTicketId = typeof metadata?.stickyTicketId === "string" ? metadata.stickyTicketId : null;
+    if (stickyTicketId && typeof message === "string" && message.trim()) {
+      try {
+        const result = await appendTicketNote(stickyTicketId, message.trim());
+        return { success: true, message: result };
+      } catch {
+        // Continue to generic fallback escalation if ticket note append fails.
+      }
+    }
+
     // Log the failed request
     console.error("Chatbot could not fulfill request:", message);
     

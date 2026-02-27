@@ -27,6 +27,7 @@ export async function generateSMSResponse(
       workingHoursEnd: true,
       aiPreferences: true,
       callOutFee: true,
+      settings: true,
     },
   });
 
@@ -48,6 +49,15 @@ export async function generateSMSResponse(
   const hours = `${workspace?.workingHoursStart ?? "08:00"} to ${workspace?.workingHoursEnd ?? "17:00"}`;
   const callOutFee = workspace?.callOutFee ? Number(workspace.callOutFee) : 0;
   const preferences = workspace?.aiPreferences ?? "";
+  const settings = (workspace?.settings as Record<string, unknown>) ?? {};
+  const personality = (settings.agentPersonality as string) ?? "Professional";
+  const openingMessage = (settings.agentOpeningMessage as string) ?? "";
+  const closingMessage = (settings.agentClosingMessage as string) ?? "";
+  const responseLength = Number(settings.agentResponseLength ?? 50);
+  const sentenceGuidance =
+    responseLength <= 30 ? "Keep replies to 1 sentence." :
+    responseLength <= 70 ? "Keep replies to 1-2 sentences." :
+    "Keep replies to 1-3 sentences.";
 
   // Fetch glossary
   const repairItems = await db.repairItem.findMany({
@@ -77,10 +87,13 @@ export async function generateSMSResponse(
 
 RULES:
 - Keep responses SHORT (1-3 sentences max). This is SMS, not email.
-- Be friendly, professional, and helpful.
+- Tone: ${personality}. Be friendly, professional, and helpful.
+- ${sentenceGuidance}
 - Business hours: ${hours}.
 - ${modeInstruction}
 - PRICING HARD BRAKE: NEVER agree on a final price for custom work. ONLY quote a specific price if the exact requested work exists in the GLOSSARY OF APPROVED PRICES below. If it is NOT in the glossary, you MUST state that a firm quote requires an on-site assessment and mention the standard call-out fee is $${callOutFee}. Do not hallucinate or estimate prices.
+${openingMessage ? `- Prefer this opening style when suitable: "${openingMessage}"` : ""}
+${closingMessage ? `- Prefer this closing style when suitable: "${closingMessage}"` : ""}
 ${glossaryStr}
 ${preferences ? `\nBUSINESS PREFERENCES:\n${preferences}` : ""}
 

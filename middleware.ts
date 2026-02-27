@@ -61,7 +61,10 @@ export async function middleware(request: NextRequest) {
     : "";
   const connectSrc = [
     "'self'",
+    "https://maps.googleapis.com",
+    "https://maps.gstatic.com",
     "https://us.i.posthog.com",
+    "https://us-assets.i.posthog.com",
     "https://api.openai.com",
     "https://api.retellai.com",
     "https://api.stripe.com",
@@ -74,9 +77,9 @@ export async function middleware(request: NextRequest) {
   ].join(" ");
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
     `connect-src ${connectSrc}`,
-    "img-src 'self' data: https://us.i.posthog.com https://lh3.googleusercontent.com",
+    "img-src 'self' data: https://us.i.posthog.com https://lh3.googleusercontent.com https://maps.googleapis.com https://maps.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
   ].join("; ");

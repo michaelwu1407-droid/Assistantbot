@@ -7,6 +7,7 @@ import { WorkingHoursForm } from "@/components/settings/working-hours-form"
 import { BusinessContactForm } from "@/components/settings/business-contact-form"
 import { ServiceAreasSection } from "@/components/settings/service-areas-section"
 import { PricingForAgentSection } from "@/components/settings/pricing-for-agent-section"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -15,6 +16,10 @@ export default async function MyBusinessSettingsPage() {
   const workspace = await getOrCreateWorkspace(userId)
   const workspaceWithSettings = await getWorkspaceWithSettings(workspace.id)
   const businessContact = await getBusinessContact()
+  const profile = await db.businessProfile.findUnique({
+    where: { userId },
+    select: { tradeType: true },
+  })
 
   return (
     <div className="space-y-8">
@@ -32,7 +37,7 @@ export default async function MyBusinessSettingsPage() {
           workspaceId={workspace.id}
           initialData={{
             name: workspace.name,
-            industry: workspace.industryType ?? "TRADES",
+            specialty: profile?.tradeType ?? "Plumber",
             location: workspace.location ?? "",
           }}
         />
@@ -45,6 +50,8 @@ export default async function MyBusinessSettingsPage() {
           initialData={{
             workingHoursStart: (workspaceWithSettings as { workingHoursStart?: string })?.workingHoursStart ?? "08:00",
             workingHoursEnd: (workspaceWithSettings as { workingHoursEnd?: string })?.workingHoursEnd ?? "17:00",
+            emergencyHoursStart: (workspaceWithSettings as { emergencyHoursStart?: string })?.emergencyHoursStart ?? "",
+            emergencyHoursEnd: (workspaceWithSettings as { emergencyHoursEnd?: string })?.emergencyHoursEnd ?? "",
             agendaNotifyTime: (workspaceWithSettings as { agendaNotifyTime?: string })?.agendaNotifyTime ?? "07:30",
             wrapupNotifyTime: (workspaceWithSettings as { wrapupNotifyTime?: string })?.wrapupNotifyTime ?? "17:30",
           }}
@@ -53,7 +60,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Business contact</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Public-facing contact</h4>
         <BusinessContactForm initialData={businessContact ?? undefined} />
       </section>
       <Separator />

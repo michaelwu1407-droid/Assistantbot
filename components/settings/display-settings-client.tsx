@@ -3,18 +3,12 @@
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Sun, Globe, Accessibility, Smartphone } from "lucide-react"
-import { useState } from "react"
 
 export function DisplaySettingsClient() {
   const { theme, setTheme } = useTheme()
-  const [fontSize, setFontSize] = useState([100])
-  const [highContrast, setHighContrast] = useState(false)
-  const [touchFriendly, setTouchFriendly] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -25,7 +19,7 @@ export function DisplaySettingsClient() {
             Theme
           </CardTitle>
           <CardDescription>
-            Light, dark, or follow your system preference.
+            Choose light, dark, or follow your system preference.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -100,19 +94,13 @@ export function DisplaySettingsClient() {
             Accessibility
           </CardTitle>
           <CardDescription>
-            Font size, contrast, and screen reader options.
+            Browser-level accessibility controls are currently supported.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Font size</Label>
-            <Slider value={fontSize} onValueChange={setFontSize} min={80} max={140} step={10} />
-            <p className="text-xs text-slate-500">{fontSize[0]}%</p>
-          </div>
-          <div className="flex items-center justify-between">
-            <Label>High contrast</Label>
-            <Switch checked={highContrast} onCheckedChange={setHighContrast} />
-          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Use browser zoom, OS high-contrast mode, and screen reader settings. Dedicated in-app accessibility toggles are being built.
+          </p>
         </CardContent>
       </Card>
 
@@ -128,10 +116,7 @@ export function DisplaySettingsClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline">Install PWA</Button>
-          <div className="flex items-center justify-between">
-            <Label>Touch-friendly controls</Label>
-            <Switch checked={touchFriendly} onCheckedChange={setTouchFriendly} />
-          </div>
+          <p className="text-xs text-slate-500">Mobile touch preferences are applied automatically based on your device.</p>
         </CardContent>
       </Card>
     </div>

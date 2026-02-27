@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
+import { stripe } from "@/lib/stripe";
 
 export interface CreateReferralLinkParams {
   userId: string;
@@ -217,6 +218,123 @@ export async function processReferralConversion(referralCode: string, referredUs
     console.error("Error processing referral conversion:", error);
     return { success: false, error: "Failed to process conversion" };
   }
+}
+
+function estimateRemainingHalfPriceMonths(discountEndUnix?: number | null): number {
+  if (!discountEndUnix) return 0;
+  const now = Date.now();
+  const end = discountEndUnix * 1000;
+  if (end <= now) return 0;
+  const msPerMonth = 30 * 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.ceil((end - now) / msPerMonth));
+}
+
+async function applyHalfPriceMonthsToReferrer(referrerUserId: string, earnedMonths: number) {
+  if (earnedMonths <= 0) return { success: false, reason: "no_months" as const };
+
+  const workspace = await db.workspace.findFirst({
+    where: { ownerId: referrerUserId },
+    select: { id: true, stripeSubscriptionId: true, settings: true },
+  });
+  if (!workspace?.stripeSubscriptionId) {
+    return { success: false, reason: "no_subscription" as const };
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId, {
+    expand: ["discounts"],
+  });
+
+  const existingEnd =
+    ((subscription as any).discount?.end as number | null | undefined) ??
+    ((subscription as any).discounts?.data?.[0]?.end as number | null | undefined);
+  const existingMonths = estimateRemainingHalfPriceMonths(existingEnd);
+  const totalMonths = existingMonths + earnedMonths;
+  if (totalMonths <= 0) {
+    return { success: false, reason: "no_total_months" as const };
+  }
+
+  const coupon = await stripe.coupons.create({
+    percent_off: 50,
+    duration: "repeating",
+    duration_in_months: totalMonths,
+    name: `Earlymark referral 50% off (${totalMonths} month${totalMonths === 1 ? "" : "s"})`,
+  });
+
+  await stripe.subscriptions.update(workspace.stripeSubscriptionId, {
+    discounts: [{ coupon: coupon.id }],
+    proration_behavior: "none",
+  });
+
+  const settings = (workspace.settings as Record<string, unknown>) ?? {};
+  await db.workspace.update({
+    where: { id: workspace.id },
+    data: {
+      settings: {
+        ...settings,
+        referralHalfPriceMonthsRemaining: totalMonths,
+        referralLastAppliedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  return { success: true, totalMonths };
+}
+
+/**
+ * Idempotent conversion processor for Stripe webhook:
+ * - only applies once per referred workspace
+ * - increments referral counters
+ * - applies 50% off months to referrer subscription
+ */
+export async function processReferralConversionForCheckout(referralCode: string, referredUserId: string, referredWorkspaceId: string) {
+  const normalizedCode = referralCode.trim().toUpperCase();
+  if (!normalizedCode) return { success: false, error: "Missing referral code" };
+
+  const referredWorkspace = await db.workspace.findUnique({
+    where: { id: referredWorkspaceId },
+    select: { settings: true },
+  });
+  if (!referredWorkspace) return { success: false, error: "Referred workspace not found" };
+
+  const currentSettings = (referredWorkspace.settings as Record<string, unknown>) ?? {};
+  if ((currentSettings.referralConversionProcessed as boolean) === true) {
+    return { success: true, alreadyProcessed: true };
+  }
+
+  const referral = await db.referral.findUnique({
+    where: { referralCode: normalizedCode },
+    include: { program: true },
+  });
+  if (!referral) return { success: false, error: "Invalid referral code" };
+  if (referral.userId === referredUserId) return { success: false, error: "Self-referral is not allowed" };
+
+  await db.referral.update({
+    where: { id: referral.id },
+    data: {
+      status: "completed",
+      signupsCount: { increment: 1 },
+      conversionsCount: { increment: 1 },
+      referrerRewardEarned: { increment: referral.program.rewardValue },
+      referredRewardEarned: { increment: referral.program.referredRewardValue },
+    },
+  });
+
+  await db.workspace.update({
+    where: { id: referredWorkspaceId },
+    data: {
+      settings: {
+        ...currentSettings,
+        referralConversionProcessed: true,
+        referralCodeUsed: normalizedCode,
+        referralConvertedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  const monthsEarned = Math.max(1, Math.round(referral.program.rewardValue || 1));
+  const applied = await applyHalfPriceMonthsToReferrer(referral.userId, monthsEarned);
+
+  return { success: true, applied };
 }
 
 // Get active referral program

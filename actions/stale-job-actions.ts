@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { getAuthUserId } from "@/lib/auth"
 import { MonitoringService } from "@/lib/monitoring"
 import { logActivity } from "./activity-actions"
+import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning"
 
 // ─── Validation ─────────────────────────────────────────────────────
 
@@ -70,6 +71,17 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
         updatedAt: new Date(),
       },
     })
+
+    if (actualOutcome === "COMPLETED") {
+      try {
+        await maybeCreatePricingSuggestionFromConfirmedJob(dealId, {
+          trigger: "completed",
+          source: "reconcileStaleJob",
+        })
+      } catch (learningErr) {
+        console.warn("Pricing learning hook failed on reconcileStaleJob:", learningErr)
+      }
+    }
 
     // Log the reconciliation activity
     await logActivity({

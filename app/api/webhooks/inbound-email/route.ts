@@ -122,6 +122,46 @@ function parseLeadContactDetails(textBody: string): { phone: string | null; name
   return { phone, name };
 }
 
+function parseHHMM(value: string): { h: number; m: number } | null {
+  const match = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return { h, m };
+}
+
+function minutesNowInSydney(): number {
+  const time = new Date().toLocaleTimeString("en-AU", {
+    hour12: false,
+    timeZone: "Australia/Sydney",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const parsed = parseHHMM(time);
+  if (!parsed) return 0;
+  return parsed.h * 60 + parsed.m;
+}
+
+function isWithinAllowedCallWindow(settings: unknown): boolean {
+  const s = (settings as Record<string, unknown>) ?? {};
+  const startRaw = typeof s.callAllowedStart === "string" ? s.callAllowedStart : "08:00";
+  const endRaw = typeof s.callAllowedEnd === "string" ? s.callAllowedEnd : "20:00";
+  const start = parseHHMM(startRaw);
+  const end = parseHHMM(endRaw);
+  if (!start || !end) return true;
+  const now = minutesNowInSydney();
+  const startM = start.h * 60 + start.m;
+  const endM = end.h * 60 + end.m;
+  if (endM >= startM) return now >= startM && now <= endM;
+  return now >= startM || now <= endM;
+}
+
+function isUrgentLead(subject: string, body: string): boolean {
+  const text = `${subject} ${body}`.toLowerCase();
+  return /(urgent|emergency|asap|immediate|today|now|critical|priority)/.test(text);
+}
+
 // ─── Email Address Extraction ────────────────────────────────────────
 // Handles both "Name <email@x.com>" and plain "email@x.com" formats.
 
@@ -216,6 +256,7 @@ export async function POST(req: NextRequest) {
             autoCallLeads: true,
             retellAgentId: true,
             twilioPhoneNumber: true,
+            settings: true,
           },
         })
       : null;
@@ -248,6 +289,7 @@ export async function POST(req: NextRequest) {
           autoCallLeads: true,
           retellAgentId: true,
           twilioPhoneNumber: true,
+          settings: true,
         },
       });
     }
@@ -331,12 +373,22 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      const urgentLead = isUrgentLead(subject, textBody);
+      const withinCallWindow = isWithinAllowedCallWindow(workspace!.settings);
+      const blockAutoCall = urgentLead || !withinCallWindow;
+      const blockReason = urgentLead
+        ? "urgent"
+        : !withinCallWindow
+          ? "after_hours"
+          : null;
+
       let callTriggered = false;
       if (
         workspace!.autoCallLeads &&
         displayPhone &&
         workspace!.retellAgentId &&
-        workspace!.twilioPhoneNumber
+        workspace!.twilioPhoneNumber &&
+        !blockAutoCall
       ) {
         try {
           const tradieName = workspace!.name;
@@ -383,6 +435,30 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      if (workspace!.ownerId && blockAutoCall) {
+        await db.notification.create({
+          data: {
+            userId: workspace!.ownerId,
+            title: urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up",
+            message: `${leadName} from ${platform}. Review details and contact the lead directly.`,
+            type: "INFO",
+            link: `/dashboard/inbox?contact=${contact.id}`,
+          },
+        }).catch(() => {});
+
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Manual follow-up required",
+            content: urgentLead
+              ? "Urgent lead detected. Auto-calling is disabled for urgent leads; follow up manually."
+              : "Lead received outside allowed calling hours. Auto-calling skipped; follow up manually.",
+            contactId: contact.id,
+            dealId: deal.id,
+          },
+        }).catch(() => {});
+      }
+
       await db.webhookEvent.create({
         data: {
           provider: "resend",
@@ -395,6 +471,8 @@ export async function POST(req: NextRequest) {
             contactId: contact.id,
             dealId: deal.id,
             callTriggered,
+            autoCallBlocked: blockAutoCall,
+            autoCallBlockReason: blockReason,
           },
         },
       }).catch(() => {});
@@ -408,6 +486,8 @@ export async function POST(req: NextRequest) {
         dealId: deal.id,
         activityId: leadActivity.id,
         callTriggered,
+        autoCallBlocked: blockAutoCall,
+        autoCallBlockReason: blockReason,
       });
     }
 

@@ -1,9 +1,7 @@
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { FileText, Shield, Download } from "lucide-react"
+import { FileText, Shield } from "lucide-react"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -14,7 +12,7 @@ export default function PrivacySettingsPage() {
       <div>
         <h3 className="text-lg font-medium text-slate-900 dark:text-white">Data and privacy</h3>
         <p className="text-sm text-slate-500">
-          Terms, data handling, and export requests.
+          Terms and data handling policy.
         </p>
       </div>
       <Separator />
@@ -31,7 +29,7 @@ export default function PrivacySettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            By using Pj Buddy you agree to our terms of service and privacy policy.
+            By using Earlymark AI you agree to our terms of service and privacy policy.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" asChild>
@@ -58,10 +56,24 @@ export default function PrivacySettingsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Your CRM data (contacts, deals, messages) is stored securely and used only to provide the service. We do not sell your data. Retention follows our privacy policy.
           </p>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Request data export
-          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+        <CardHeader>
+          <CardTitle>Data policy</CardTitle>
+          <CardDescription>DRAFT</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            DRAFT: Earlymark AI processes customer and job data to run lead handling, scheduling, messaging, and reporting workflows.
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            DRAFT: Data is retained for operational needs, security monitoring, billing compliance, and account history unless deletion is requested under applicable law.
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            DRAFT: Access is restricted to authorized systems and personnel, and integrations only receive the minimum data needed to provide connected features.
+          </p>
         </CardContent>
       </Card>
     </div>

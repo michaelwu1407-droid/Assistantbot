@@ -1,5 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logging";
+import { cache } from "react";
+import type { User } from "@supabase/supabase-js";
+
+const getSessionUser = cache(async (): Promise<User> => {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error("User not authenticated");
+  }
+
+  return user;
+});
 
 /**
  * Get the current user's ID from Supabase.
@@ -7,19 +20,7 @@ import { logger } from "@/lib/logging";
 export async function getAuthUserId(): Promise<string> {
   try {
     logger.authFlow("Attempting to get user ID", { action: "getAuthUserId" });
-    
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error) {
-      logger.authError("Failed to get user from Supabase", { error: error.message, details: error }, error);
-      throw new Error("User not authenticated");
-    }
-
-    if (!user) {
-      logger.authError("No user found in Supabase session", { hasUser: false });
-      throw new Error("User not authenticated");
-    }
+    const user = await getSessionUser();
 
     logger.authFlow("Successfully retrieved user ID", { userId: user.id });
     return user.id;
@@ -39,19 +40,7 @@ export async function getAuthUserId(): Promise<string> {
 export async function getAuthUser(): Promise<{ id: string; name: string; email?: string; bio?: string; image?: string }> {
   try {
     logger.authFlow("Attempting to get user metadata", { action: "getAuthUser" });
-    
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error) {
-      logger.authError("Failed to get user metadata from Supabase", { error: error.message, details: error }, error);
-      throw new Error("User not authenticated");
-    }
-
-    if (!user) {
-      logger.authError("No user found in Supabase session for metadata", { hasUser: false });
-      throw new Error("User not authenticated");
-    }
+    const user = await getSessionUser();
 
     const userData = {
       id: user.id,
@@ -84,19 +73,7 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
 export async function getWorkspaceId(): Promise<string> {
   try {
     logger.authFlow("Attempting to get workspace ID", { action: "getWorkspaceId" });
-    
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error) {
-      logger.authError("Failed to get user from Supabase for workspace", { error: error.message, details: error }, error);
-      throw new Error("User not authenticated");
-    }
-
-    if (!user) {
-      logger.authError("No user found in Supabase session for workspace", { hasUser: false });
-      throw new Error("User not authenticated");
-    }
+    const user = await getSessionUser();
 
     // Get workspace from user metadata or create default workspace
     const workspaceId = user.user_metadata?.workspace_id;

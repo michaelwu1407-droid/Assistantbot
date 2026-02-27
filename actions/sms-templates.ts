@@ -9,16 +9,26 @@ import type { TriggerEvent } from "@prisma/client";
 
 const DEFAULT_TEMPLATES: Record<TriggerEvent, string> = {
   JOB_COMPLETE:
-    "Hi [Name], thanks for today! A review helps us heaps: [Link]",
-  ON_MY_WAY: "Hi [Name], I'm 20 mins away.",
-  LATE: "Hi [Name], stuck in traffic. 15 mins late.",
-  BOOKING_REMINDER_24H: "Hi [Name], just a reminder about your appointment tomorrow. Reply YES to confirm.",
+    "Hi [Name], thanks for today! A review helps us heaps: [Link]\n\nKind regards, Travis (AI assistant for [Company])",
+  ON_MY_WAY: "Hi [Name], I'm Travis, AI assistant for [Company]. Your tradie is about 20 minutes away.",
+  LATE: "Hi [Name], I'm Travis, AI assistant for [Company]. Quick heads up: we're running about 15 minutes late.",
+  BOOKING_REMINDER_24H: "Hi [Name], this is Travis, AI assistant for [Company]. Friendly reminder about your appointment tomorrow. Reply YES to confirm.",
 };
+
+function ensureTravisStyle(content: string, companyName: string): string {
+  const message = content.trim();
+  if (!message) return message;
+  const lower = message.toLowerCase();
+  if (lower.includes("travis") && lower.includes("ai assistant")) return message;
+  return `${message}\n\nKind regards, Travis (AI assistant for ${companyName})`;
+}
 
 // ─── Get all templates for current user ─────────────────────────────
 
 export async function getUserSmsTemplates() {
   const userId = await getAuthUserId();
+  const user = await db.user.findUnique({ where: { id: userId }, select: { workspace: { select: { name: true } } } });
+  const companyName = user?.workspace?.name || "your business";
 
   const templates = await db.smsTemplate.findMany({
     where: { userId },
@@ -30,7 +40,7 @@ export async function getUserSmsTemplates() {
     const existing = templates.find((t) => t.triggerEvent === event);
     return {
       triggerEvent: event,
-      content: existing?.content ?? DEFAULT_TEMPLATES[event],
+      content: (existing?.content ?? DEFAULT_TEMPLATES[event]).replace(/\[Company\]/g, companyName),
       isActive: existing?.isActive ?? true,
       id: existing?.id ?? null,
     };
@@ -46,11 +56,14 @@ export async function upsertSmsTemplate(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await getAuthUserId();
+    const user = await db.user.findUnique({ where: { id: userId }, select: { workspace: { select: { name: true } } } });
+    const companyName = user?.workspace?.name || "your business";
+    const styledContent = ensureTravisStyle(content.replace(/\[Company\]/g, companyName), companyName);
 
     await db.smsTemplate.upsert({
       where: { userId_triggerEvent: { userId, triggerEvent } },
-      create: { userId, triggerEvent, content, isActive },
-      update: { content, isActive },
+      create: { userId, triggerEvent, content: styledContent, isActive },
+      update: { content: styledContent, isActive },
     });
 
     revalidatePath("/dashboard/settings/sms-templates");

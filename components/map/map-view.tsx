@@ -56,12 +56,13 @@ interface MapViewProps {
 
 const DEFAULT_CENTER: [number, number] = [-37.8136, 144.9631]
 
-function hasRealPosition(job: Job): boolean {
-  return job.lat != null && job.lng != null
-}
-
 function getJobPosition(job: Job): [number, number] {
-  return [job.lat!, job.lng!]
+  if (job.lat != null && job.lng != null) {
+    return [job.lat, job.lng]
+  }
+  // Fallback so jobs still appear/list when geo hasn't been resolved yet.
+  const offset = (job.id.charCodeAt(0) % 10 - 5) * 0.004
+  return [DEFAULT_CENTER[0] + offset, DEFAULT_CENTER[1] + offset]
 }
 
 function FitBounds({ positions }: { positions: [number, number][] }) {
@@ -106,7 +107,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     const today: Job[] = []
     const upcoming: Job[] = []
     const now = new Date()
-    jobs.filter(hasRealPosition).forEach((j) => {
+    jobs.forEach((j) => {
       const d = j.scheduledAt ? new Date(j.scheduledAt) : null
       const isToday = todayIds ? todayIds.has(j.id) : d ? isSameDay(d, now) : false
       if (isToday) today.push(j)
@@ -180,8 +181,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   return (
     <div className="h-full w-full relative flex min-h-0">
       {/* Job List Sidebar — collapsible */}
-      {jobsToday.length > 0 && (
-        <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
+      <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center py-3 gap-2">
               <button
@@ -196,7 +196,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
               </button>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -231,7 +231,9 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
             <div className="flex-1 overflow-y-auto">
               {!isRouteMode ? (
                 // Standard List View
-                jobsToday.map((job) => {
+                jobsToday.length === 0 ? (
+                  <div className="p-4 text-sm text-slate-500">No jobs scheduled for today.</div>
+                ) : jobsToday.map((job) => {
                   const time = job.scheduledAt
                     ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
                     : "No time set"
@@ -393,10 +395,9 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
               )}
             </div>
           )}
-            </>
+            </div>
           )}
         </div>
-      )}
 
       {/* Map */}
       <div className="flex-1 min-w-0 relative min-h-[300px]">

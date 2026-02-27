@@ -20,7 +20,7 @@ const DEFAULT_RULES = [
     triggerType: "booking_reminder_24h",
     channel: "sms",
     messageTemplate:
-      "Hi {{clientName}}, this is a reminder that your appointment for {{jobTitle}} is scheduled for {{scheduledTime}} tomorrow. Reply CONFIRM to confirm or call us to reschedule. - {{businessName}}",
+      "Hi {{clientName}}, this is Travis, AI assistant for {{businessName}}. Reminder: your appointment for {{jobTitle}} is scheduled for {{scheduledTime}} tomorrow. Reply CONFIRM to confirm.",
     hoursOffset: -24,
   },
   {
@@ -28,7 +28,7 @@ const DEFAULT_RULES = [
     triggerType: "booking_confirmation",
     channel: "sms",
     messageTemplate:
-      "Hi {{clientName}}, your booking for {{jobTitle}} has been confirmed for {{scheduledTime}}. We look forward to seeing you! - {{businessName}}",
+      "Hi {{clientName}}, this is Travis, AI assistant for {{businessName}}. Your booking for {{jobTitle}} is confirmed for {{scheduledTime}}.",
     hoursOffset: 0,
   },
   {
@@ -36,7 +36,7 @@ const DEFAULT_RULES = [
     triggerType: "follow_up_after_job",
     channel: "sms",
     messageTemplate:
-      "Hi {{clientName}}, thanks for choosing {{businessName}}! We hope the {{jobTitle}} went well. If you have any feedback, we'd love to hear it. - {{businessName}}",
+      "Hi {{clientName}}, this is Travis, AI assistant for {{businessName}}. Thanks for choosing us for {{jobTitle}}. If you have any feedback, we'd love to hear it.",
     hoursOffset: 24,
   },
 ];

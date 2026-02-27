@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Send } from "lucide-react"
+import { Send, Plus } from "lucide-react"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { completeOnboarding } from "@/actions/workspace-actions"
+import { getOrAllocateLeadCaptureEmail } from "@/actions/settings-actions"
 
 type Message = {
     id: string
@@ -31,6 +32,12 @@ type DraftField = {
     placeholder?: string
     options?: { label: string; value: string }[]
     suffix?: string
+}
+
+type PricingServiceRow = {
+    service: string
+    minFee: string
+    maxFee: string
 }
 
 // ─── Fuzzy Matching Helpers ────────────────────────────────────────
@@ -142,7 +149,7 @@ export function SetupChat() {
     const [industryType, setIndustryType] = useState<"TRADES" | "REAL_ESTATE">("TRADES")
     const [location, setLocation] = useState("")
     const [tradeType, setTradeType] = useState("")
-    const [draftValues, setDraftValues] = useState<Record<string, string | number | boolean>>({})
+    const [draftValues, setDraftValues] = useState<Record<string, unknown>>({})
     const [onboardingStep, setOnboardingStep] = useState(0)
     const [onboardingData, setOnboardingData] = useState<{
         businessName?: string
@@ -153,6 +160,8 @@ export function SetupChat() {
         agentMode?: "EXECUTE" | "ORGANIZE" | "FILTER"
         workingHoursStart?: string
         workingHoursEnd?: string
+        emergencyHoursStart?: string
+        emergencyHoursEnd?: string
         agendaNotifyTime?: string
         wrapupNotifyTime?: string
         callOutFee?: number
@@ -163,7 +172,12 @@ export function SetupChat() {
         autoUpdateGlossary?: boolean
         digestPreference?: "immediate" | "daily" | "weekly"
         businessContact?: { phone?: string; email?: string; address?: string }
-    }>({})
+        pricingServices?: { service: string; minFee?: number; maxFee?: number }[]
+        disableAiQuoting?: boolean
+        leadCaptureMode?: "connect_inbox" | "manual_forward"
+        leadCaptureEmail?: string
+        callForwardingEnabled?: boolean
+    }>({ autoUpdateGlossary: true })
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -194,7 +208,7 @@ export function SetupChat() {
         }, 300)
     }
 
-    const handleChoice = (choice: { label: string; value: string }) => {
+    const handleChoice = async (choice: { label: string; value: string }) => {
         const userMsg: Message = {
             id: crypto.randomUUID(),
             role: "user",
@@ -226,6 +240,8 @@ export function SetupChat() {
                             fields: [
                                 { key: "workingHoursStart", label: "Start", type: "time", defaultValue: "08:00" },
                                 { key: "workingHoursEnd", label: "End", type: "time", defaultValue: "17:00" },
+                                { key: "emergencyHoursStart", label: "Emergency hours start (optional)", type: "time", defaultValue: "" },
+                                { key: "emergencyHoursEnd", label: "Emergency hours end (optional)", type: "time", defaultValue: "" },
                                 { key: "agendaNotifyTime", label: "Morning agenda notify", type: "time", defaultValue: "07:30" },
                                 { key: "wrapupNotifyTime", label: "Evening wrap-up notify", type: "time", defaultValue: "17:30" },
                             ]
@@ -239,6 +255,35 @@ export function SetupChat() {
         if (onboardingStep === 4) {
             const leadSources = choice.value === "later" ? [] : [choice.value]
             setOnboardingData(prev => ({ ...prev, leadSources }))
+            if (choice.value === "later") {
+                setOnboardingData(prev => ({ ...prev, emergencyBypass: false, autoUpdateGlossary: true }))
+                setOnboardingStep(8)
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "No stress - you can set up lead capture later in Settings. For urgent/after-hours leads, Travis will notify you in-app so you can review details and contact the lead yourself.",
+                            type: "text",
+                        },
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "How do you want your notification digest?",
+                            type: "choice",
+                            choices: [
+                                { label: "Immediate (as they happen)", value: "immediate" },
+                                { label: "Daily digest", value: "daily" },
+                                { label: "Weekly summary", value: "weekly" },
+                            ]
+                        }
+                    ])
+                }, 400)
+                return
+            }
+
             setOnboardingStep(5)
             setTimeout(() => {
                 setIsTyping(false)
@@ -247,9 +292,12 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "When a new lead comes in (e.g. from Hipages), should Travis call them immediately to lock in the job?",
+                        content: "By connecting Travis to your email, he can monitor leads and auto-reach out to lock down jobs. Want to connect your inbox now?",
                         type: "choice",
-                        choices: [{ label: "Yes, call new leads straight away", value: "yes" }, { label: "No, I'll follow up myself", value: "no" }]
+                        choices: [
+                            { label: "Yes, connect inbox", value: "connect_inbox" },
+                            { label: "No, I will forward emails", value: "manual_forward" },
+                        ]
                     }
                 ])
             }, 400)
@@ -257,50 +305,61 @@ export function SetupChat() {
         }
 
         if (onboardingStep === 5) {
-            setOnboardingData(prev => ({ ...prev, autoCallLeads: choice.value === "yes" }))
-            setOnboardingStep(6)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Should urgent or after-hours calls bypass the AI and ring you directly?",
-                        type: "choice",
-                        choices: [{ label: "Yes, ring me for urgent calls", value: "yes" }, { label: "No, let Travis handle them", value: "no" }]
-                    }
-                ])
-            }, 400)
-            return
-        }
+            if (choice.value === "connect_inbox") {
+                let leadCaptureEmail = ""
+                try {
+                    leadCaptureEmail = await getOrAllocateLeadCaptureEmail()
+                } catch {
+                    leadCaptureEmail = "lead-capture@inbound.earlymark.ai"
+                }
+                setOnboardingData(prev => ({ ...prev, autoCallLeads: true, leadCaptureMode: "connect_inbox", leadCaptureEmail }))
+                setOnboardingData(prev => ({ ...prev, emergencyBypass: false, autoUpdateGlossary: true }))
+                setOnboardingStep(8)
+                setTimeout(() => {
+                    setIsTyping(false)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: `Perfect. We'll finish setup, then take you to Integrations to connect Gmail/Outlook. Your lead-capture address is ${leadCaptureEmail}. For urgent/after-hours leads, Travis will notify you in-app so you can decide and contact the lead yourself.`, 
+                            type: "text",
+                        },
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: "How do you want your notification digest?",
+                            type: "choice",
+                            choices: [
+                                { label: "Immediate (as they happen)", value: "immediate" },
+                                { label: "Daily digest", value: "daily" },
+                                { label: "Weekly summary", value: "weekly" },
+                            ]
+                        }
+                    ])
+                }, 400)
+                return
+            }
 
-        if (onboardingStep === 6) {
-            setOnboardingData(prev => ({ ...prev, emergencyBypass: choice.value === "yes" }))
-            setOnboardingStep(7)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Let Travis learn from your conversations to improve quotes and behaviour over time?",
-                        type: "choice",
-                        choices: [{ label: "Yes, auto-learn", value: "yes" }, { label: "No, keep it fixed", value: "no" }]
-                    }
-                ])
-            }, 400)
-            return
-        }
-
-        if (onboardingStep === 7) {
-            setOnboardingData(prev => ({ ...prev, autoUpdateGlossary: choice.value === "yes" }))
+            let leadCaptureEmail = ""
+            try {
+                leadCaptureEmail = await getOrAllocateLeadCaptureEmail()
+            } catch {
+                leadCaptureEmail = "lead-capture@inbound.earlymark.ai"
+            }
+            setOnboardingData(prev => ({ ...prev, autoCallLeads: true, leadCaptureMode: "manual_forward", leadCaptureEmail }))
+            setOnboardingData(prev => ({ ...prev, emergencyBypass: false, autoUpdateGlossary: true }))
             setOnboardingStep(8)
             setTimeout(() => {
                 setIsTyping(false)
                 setMessages(prev => [
                     ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: `No worries. Forward lead emails to ${leadCaptureEmail} and Travis will lock down leads automatically. For urgent/after-hours leads, he will notify you in-app so you can review details and contact the lead yourself.`,
+                        type: "text",
+                    },
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
@@ -319,26 +378,7 @@ export function SetupChat() {
 
         if (onboardingStep === 8) {
             setOnboardingData(prev => ({ ...prev, digestPreference: choice.value as "immediate" | "daily" | "weekly" }))
-            setOnboardingStep(9)
-            setTimeout(() => {
-                setIsTyping(false)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: "Optional: Add a public phone or email for customers (so Travis can give it out). You can skip and add this later in Settings.",
-                        type: "draft-card",
-                        draftCard: {
-                            kind: "onboarding_business_contact",
-                            fields: [
-                                { key: "publicPhone", label: "Public phone", type: "text", defaultValue: "", placeholder: "e.g. +61 400 000 000" },
-                                { key: "publicEmail", label: "Public email", type: "text", defaultValue: "", placeholder: "hello@yourbusiness.com" },
-                            ]
-                        }
-                    }
-                ])
-            }, 400)
+            runCompleteOnboarding({ ...onboardingData, digestPreference: choice.value as "immediate" | "daily" | "weekly" })
             return
         }
 
@@ -347,7 +387,7 @@ export function SetupChat() {
         }, 300)
     }
 
-    const handleDraftConfirm = (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => {
+    const handleDraftConfirm = (values: Record<string, unknown>, kind?: DraftCardData["kind"]) => {
         setDraftValues(prev => ({ ...prev, ...values }))
 
         if (kind === "onboarding") {
@@ -355,6 +395,22 @@ export function SetupChat() {
             const businessNameVal = String(values.businessName || "").trim()
             const locationVal = resolveLocation(String(values.location || "").trim())
             const phoneVal = formatPhone(String(values.phone || "").trim())
+            const phoneDigits = phoneVal.replace(/\D/g, "")
+            const publicPhone = String(values.publicPhone || "").trim()
+            const publicEmail = String(values.publicEmail || "").trim()
+            const publicAddress = String(values.publicAddress || "").trim()
+
+            if (!phoneVal || phoneDigits.length < 8) {
+                const warnMsg: Message = {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: "Please add a valid personal mobile number. This is required for verification and urgent app alerts.",
+                    type: "text",
+                }
+                setMessages(prev => [...prev, warnMsg])
+                setIsTyping(false)
+                return
+            }
 
             const cleanedValues = {
                 ...values,
@@ -366,7 +422,21 @@ export function SetupChat() {
             const summary = Object.entries(cleanedValues)
                 .filter(([k, v]) => v !== "" && v !== undefined && k !== "company" && k !== "name")
                 .map(([k, v]) => {
-                    const label = k === "tradeType" ? "Trade" : k === "businessName" ? "Business" : k === "location" ? "Location" : k === "phone" ? "Mobile" : k
+                    const label = k === "tradeType"
+                        ? "Trade"
+                        : k === "businessName"
+                            ? "Business"
+                            : k === "location"
+                                ? "Location"
+                                : k === "phone"
+                                    ? "Mobile"
+                                    : k === "publicPhone"
+                                        ? "Public phone"
+                                        : k === "publicEmail"
+                                        ? "Public email"
+                                        : k === "publicAddress"
+                                            ? "Public address"
+                                            : k
                     return `${label}: ${v}`
                 })
                 .join(", ")
@@ -388,7 +458,11 @@ export function SetupChat() {
                 location: locationVal,
                 tradeType: tradeTypeVal,
                 phone: phoneVal,
+                callForwardingEnabled: Boolean(values.callForwardingEnabled),
                 industryType: "TRADES",
+                businessContact: (publicPhone || publicEmail)
+                    ? { phone: publicPhone || undefined, email: publicEmail || undefined, address: publicAddress || locationVal || undefined }
+                    : { address: publicAddress || locationVal || undefined },
             }))
             setOnboardingStep(1)
             setTimeout(() => {
@@ -420,11 +494,14 @@ export function SetupChat() {
         if (kind === "onboarding_hours") {
             const start = String(values.workingHoursStart ?? "08:00").trim()
             const end = String(values.workingHoursEnd ?? "17:00").trim()
+            const emergencyStart = String(values.emergencyHoursStart ?? "").trim()
+            const emergencyEnd = String(values.emergencyHoursEnd ?? "").trim()
             const agenda = String(values.agendaNotifyTime ?? "07:30").trim()
             const wrapup = String(values.wrapupNotifyTime ?? "17:30").trim()
-            setOnboardingData(prev => ({ ...prev, workingHoursStart: start, workingHoursEnd: end, agendaNotifyTime: agenda, wrapupNotifyTime: wrapup }))
+            setOnboardingData(prev => ({ ...prev, workingHoursStart: start, workingHoursEnd: end, emergencyHoursStart: emergencyStart || undefined, emergencyHoursEnd: emergencyEnd || undefined, agendaNotifyTime: agenda, wrapupNotifyTime: wrapup }))
             setOnboardingStep(3)
-            const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: `✅ Hours: ${start} – ${end}` }
+            const emergencySummary = emergencyStart && emergencyEnd ? `, emergency ${emergencyStart}-${emergencyEnd}` : ", no emergency hours"
+            const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: `✅ Hours: ${start} – ${end}${emergencySummary}` }
             setMessages(prev => [...prev, userMsg])
             setIsTyping(true)
             setTimeout(() => {
@@ -434,7 +511,7 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "What's your call-out fee (in $)? And how do you charge?",
+                        content: "Set your call-out fee and common service price ranges.",
                         type: "text"
                     },
                     {
@@ -445,14 +522,7 @@ export function SetupChat() {
                         draftCard: {
                             kind: "onboarding_pricing",
                             fields: [
-                                { key: "callOutFee", label: "Call-out fee ($)", type: "number", defaultValue: "", placeholder: "e.g. 89", suffix: "$" },
-                                {
-                                    key: "pricingMode", label: "Pricing mode", type: "select", defaultValue: "STANDARD", options: [
-                                        { label: "Book only (no call-out)", value: "BOOK_ONLY" },
-                                        { label: "Call-out + job", value: "CALL_OUT" },
-                                        { label: "Standard (quote per job)", value: "STANDARD" },
-                                    ]
-                                },
+                                { key: "callOutFee", label: "Call-out fee ($)", type: "number", defaultValue: "", placeholder: "", suffix: "$" },
                             ]
                         }
                     }
@@ -462,11 +532,31 @@ export function SetupChat() {
         }
 
         if (kind === "onboarding_pricing") {
-            const callOutFee = Number(values.callOutFee) || 0
-            const pricingMode = (values.pricingMode as "BOOK_ONLY" | "CALL_OUT" | "STANDARD") || "STANDARD"
-            setOnboardingData(prev => ({ ...prev, callOutFee, pricingMode }))
+            const disableAiQuoting = Boolean(values.disableAiQuoting)
+            const callOutFeeRaw = values.callOutFee
+            const callOutFee = disableAiQuoting
+                ? 0
+                : (callOutFeeRaw === "" || callOutFeeRaw == null ? 0 : Number(callOutFeeRaw) || 0)
+            const pricingMode: "BOOK_ONLY" | "CALL_OUT" | "STANDARD" = disableAiQuoting ? "BOOK_ONLY" : "STANDARD"
+            const rawServices = Array.isArray(values.pricingServices) ? values.pricingServices as PricingServiceRow[] : []
+            const pricingServices = disableAiQuoting
+                ? []
+                : rawServices
+                    .map((row) => ({
+                        service: String(row.service || "").trim(),
+                        minFee: row.minFee ? Number(row.minFee) : undefined,
+                        maxFee: row.maxFee ? Number(row.maxFee) : undefined,
+                    }))
+                    .filter((row) => row.service || row.minFee !== undefined || row.maxFee !== undefined)
+            setOnboardingData(prev => ({ ...prev, callOutFee, pricingMode, pricingServices, disableAiQuoting }))
             setOnboardingStep(4)
-            const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: `✅ Call-out $${callOutFee}, ${pricingMode}` }
+            const userMsg: Message = {
+                id: crypto.randomUUID(),
+                role: "user",
+                content: disableAiQuoting
+                    ? "✅ Travis will skip pricing quotes"
+                    : `✅ Call-out $${callOutFee}${pricingServices.length ? `, ${pricingServices.length} service rate${pricingServices.length > 1 ? "s" : ""}` : ""}`
+            }
             setMessages(prev => [...prev, userMsg])
             setIsTyping(true)
             setTimeout(() => {
@@ -476,33 +566,19 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "Where do your leads usually come from? (We'll set up email capture for these.)",
-                        type: "choice",
-                        choices: [
-                            { label: "Hipages", value: "hipages" },
-                            { label: "Airtasker", value: "airtasker" },
-                            { label: "Oneflare", value: "oneflare" },
-                            { label: "ServiceSeeking", value: "serviceseeking" },
-                            { label: "Google Ads / other", value: "google_other" },
-                            { label: "I'll set up later", value: "later" },
-                        ]
-                    }
+                            content: "Where do your leads usually come from? (We'll set up email capture for these.)",
+                            type: "choice",
+                            choices: [
+                                { label: "Google Ads", value: "google_ads" },
+                                { label: "Hipages", value: "hipages" },
+                                { label: "Airtasker", value: "airtasker" },
+                                { label: "Oneflare", value: "oneflare" },
+                                { label: "ServiceSeeking", value: "serviceseeking" },
+                                { label: "I'll set up later", value: "later" },
+                            ]
+                        }
                 ])
             }, 400)
-            return
-        }
-
-        if (kind === "onboarding_business_contact") {
-            const phone = String(values.publicPhone ?? "").trim()
-            const email = String(values.publicEmail ?? "").trim()
-            setOnboardingData(prev => ({
-                ...prev,
-                businessContact: (phone || email) ? { phone: phone || undefined, email: email || undefined } : undefined
-            }))
-            runCompleteOnboarding({
-                ...onboardingData,
-                businessContact: (phone || email) ? { phone: phone || undefined, email: email || undefined } : onboardingData.businessContact
-            })
             return
         }
 
@@ -537,14 +613,18 @@ export function SetupChat() {
             }
         ])
         completeOnboarding({
+            ownerName: userName,
             businessName: businessNameVal,
             industryType: "TRADES",
             location: locationVal,
             tradeType: tradeTypeVal,
             ownerPhone: phoneVal,
+            callForwardingEnabled: finalData.callForwardingEnabled,
             agentMode: finalData.agentMode,
             workingHoursStart: finalData.workingHoursStart,
             workingHoursEnd: finalData.workingHoursEnd,
+            emergencyHoursStart: finalData.emergencyHoursStart,
+            emergencyHoursEnd: finalData.emergencyHoursEnd,
             agendaNotifyTime: finalData.agendaNotifyTime,
             wrapupNotifyTime: finalData.wrapupNotifyTime,
             callOutFee: finalData.callOutFee,
@@ -552,9 +632,11 @@ export function SetupChat() {
             leadSources: finalData.leadSources,
             autoCallLeads: finalData.autoCallLeads,
             emergencyBypass: finalData.emergencyBypass,
-            autoUpdateGlossary: finalData.autoUpdateGlossary,
+            autoUpdateGlossary: true,
             digestPreference: finalData.digestPreference,
             businessContact: finalData.businessContact,
+            pricingServices: finalData.pricingServices,
+            disableAiQuoting: finalData.disableAiQuoting,
         }).then((result) => {
             const phoneNumber = result?.phoneNumber
             const provisioningError = result?.provisioningError
@@ -573,7 +655,10 @@ export function SetupChat() {
                     type: "text"
                 }
             ])
-            setTimeout(() => router.push("/dashboard?tutorial=true"), 2000)
+            const nextRoute = finalData.leadCaptureMode === "connect_inbox"
+                ? "/dashboard/settings/integrations?onboarding=connect_inbox"
+                : "/dashboard?tutorial=true"
+            setTimeout(() => router.push(nextRoute), 2000)
         }).catch(() => {
             setMessages(prev => [
                 ...prev,
@@ -584,7 +669,10 @@ export function SetupChat() {
                     type: "text"
                 }
             ])
-            setTimeout(() => router.push("/dashboard?tutorial=true"), 1500)
+            const fallbackRoute = finalData.leadCaptureMode === "connect_inbox"
+                ? "/dashboard/settings/integrations?onboarding=connect_inbox"
+                : "/dashboard?tutorial=true"
+            setTimeout(() => router.push(fallbackRoute), 1500)
         })
     }
 
@@ -615,6 +703,10 @@ export function SetupChat() {
                                 { key: "businessName", label: "Business name", type: "text", defaultValue: "", placeholder: "Your business name" },
                                 { key: "location", label: "Location", type: "text", defaultValue: "", placeholder: "e.g. Sydney, Melbourne, Brisbane" },
                                 { key: "phone", label: "Mobile", type: "text", defaultValue: "", placeholder: "Your mobile number" },
+                                { key: "callForwardingEnabled", label: "Forward calls to Travis", type: "toggle", defaultValue: true },
+                                { key: "publicPhone", label: "Public phone (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
+                                { key: "publicEmail", label: "Public email (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
+                                { key: "publicAddress", label: "Business address (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
                             ]
                         }
                     }
@@ -628,7 +720,7 @@ export function SetupChat() {
     const inputDisabled = isTyping || isLastMsgChoice || isLastMsgDraft
 
     return (
-        <div className="flex flex-col h-[600px] w-full max-w-2xl mx-auto glass-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
+        <div className="flex flex-col h-[min(64dvh,620px)] min-h-[460px] w-full max-w-2xl mx-auto glass-card rounded-2xl shadow-xl border border-border/50 overflow-hidden">
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-muted/10 custom-scrollbar">
                 <AnimatePresence>
@@ -730,95 +822,195 @@ export function SetupChat() {
 }
 
 // ─── Draft Card Component ────────────────────────────────────────
-function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (values: Record<string, string | number | boolean>, kind?: DraftCardData["kind"]) => void }) {
-    const [values, setValues] = useState<Record<string, string | number | boolean>>(() => {
-        const init: Record<string, string | number | boolean> = {}
+function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (values: Record<string, unknown>, kind?: DraftCardData["kind"]) => void }) {
+    const [values, setValues] = useState<Record<string, unknown>>(() => {
+        const init: Record<string, unknown> = {}
         data.fields.forEach(f => {
             init[f.key] = f.defaultValue
         })
         return init
     })
+    const [pricingRows, setPricingRows] = useState<PricingServiceRow[]>([
+        { service: "", minFee: "", maxFee: "" },
+        { service: "", minFee: "", maxFee: "" },
+        { service: "", minFee: "", maxFee: "" },
+    ])
+    const [disableAiQuoting, setDisableAiQuoting] = useState(false)
 
-    const updateValue = (key: string, value: string | number | boolean) => {
+    const updateValue = (key: string, value: unknown) => {
         setValues(prev => ({ ...prev, [key]: value }))
+    }
+
+    const addPricingRow = () => {
+        setPricingRows(prev => [...prev, { service: "", minFee: "", maxFee: "" }])
+    }
+
+    const updatePricingRow = (index: number, key: keyof PricingServiceRow, value: string) => {
+        setPricingRows(prev => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
+    }
+
+    const handleToggleDisableAiQuoting = (checked: boolean) => {
+        setDisableAiQuoting(checked)
+        if (checked) {
+            updateValue("callOutFee", "")
+            setPricingRows(prev => prev.map(() => ({ service: "", minFee: "", maxFee: "" })))
+        }
     }
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-zinc-900 rounded-xl border border-border shadow-lg p-5 space-y-4 max-w-sm"
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-border shadow-lg p-5 space-y-4 max-w-xl"
         >
             <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
-                {data.kind === "pricing" && "💰 Pricing Setup"}
-                {data.kind === "hours" && "🕐 Working Hours"}
-                {data.kind === "autonomy" && "🤖 AI Autonomy Level"}
+                {data.kind === "pricing" && "Pricing Setup"}
+                {data.kind === "hours" && "Working Hours"}
+                {data.kind === "autonomy" && "AI Autonomy Level"}
                 {data.kind === "onboarding" && "Your details"}
-                {data.kind === "onboarding_hours" && "🕐 Working hours"}
-                {data.kind === "onboarding_pricing" && "💰 Call-out & pricing"}
-                {data.kind === "onboarding_business_contact" && "📞 Public contact (optional)"}
+                {data.kind === "onboarding_hours" && "Working hours"}
+                {data.kind === "onboarding_pricing" && "Call-out and pricing"}
+                {data.kind === "onboarding_business_contact" && "Public contact (optional)"}
             </h3>
 
-            {data.fields.map((field) => (
-                <div key={field.key} className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
-                    {field.type === "number" && (
+            {data.kind === "onboarding_pricing" ? (
+                <>
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Call out fee</label>
                         <div className="flex items-center gap-2">
-                            {field.suffix === "$" && <span className="text-sm text-muted-foreground">$</span>}
+                            <span className="text-sm text-muted-foreground">$</span>
                             <Input
                                 type="number"
-                                value={values[field.key] as number}
-                                onChange={(e) => updateValue(field.key, parseFloat(e.target.value) || 0)}
-                                placeholder={field.placeholder}
+                                value={String(values.callOutFee ?? "")}
+                                onChange={(e) => updateValue("callOutFee", e.target.value)}
+                                placeholder=""
                                 className="h-9 text-sm"
+                                disabled={disableAiQuoting}
                             />
-                            {field.suffix && field.suffix !== "$" && (
-                                <span className="text-xs text-muted-foreground">{field.suffix}</span>
+                        </div>
+                    </div>
+
+                    <div className="rounded-md border border-border/60 p-3 space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                            Input your most common services and fee range (can always add more later)
+                        </p>
+
+                        <div className={disableAiQuoting ? "opacity-50 pointer-events-none" : ""}>
+                            <div className="grid grid-cols-12 gap-2 text-[11px] font-medium text-muted-foreground mb-1">
+                                <span className="col-span-6">Service</span>
+                                <span className="col-span-3">From ($)</span>
+                                <span className="col-span-3">To ($)</span>
+                            </div>
+                            <div className="space-y-2">
+                                {pricingRows.map((row, index) => (
+                                    <div key={`pricing-row-${index}`} className="grid grid-cols-12 gap-2">
+                                        <Input
+                                            type="text"
+                                            value={row.service}
+                                            onChange={(e) => updatePricingRow(index, "service", e.target.value)}
+                                            placeholder="e.g. Tap repair"
+                                            className="h-9 text-sm col-span-6"
+                                        />
+                                        <Input
+                                            type="number"
+                                            value={row.minFee}
+                                            onChange={(e) => updatePricingRow(index, "minFee", e.target.value)}
+                                            placeholder="80"
+                                            className="h-9 text-sm col-span-3"
+                                        />
+                                        <Input
+                                            type="number"
+                                            value={row.maxFee}
+                                            onChange={(e) => updatePricingRow(index, "maxFee", e.target.value)}
+                                            placeholder="140"
+                                            className="h-9 text-sm col-span-3"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" className="mt-2 px-2 justify-start" onClick={addPricingRow}>
+                                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                Add service row
+                            </Button>
+                        </div>
+                    </div>
+
+                    <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={disableAiQuoting}
+                            onChange={(e) => handleToggleDisableAiQuoting(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 accent-primary"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                            Don't let Travis quote these prices and focus on booking times only.
+                        </span>
+                    </label>
+                </>
+            ) : (
+                <>
+                    {data.fields.map((field) => (
+                        <div key={field.key} className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
+                            {field.type === "number" && (
+                                <div className="flex items-center gap-2">
+                                    {field.suffix === "$" && <span className="text-sm text-muted-foreground">$</span>}
+                                    <Input
+                                        type="number"
+                                        value={String(values[field.key] ?? "")}
+                                        onChange={(e) => updateValue(field.key, e.target.value === "" ? "" : parseFloat(e.target.value))}
+                                        placeholder={field.placeholder}
+                                        className="h-9 text-sm"
+                                    />
+                                    {field.suffix && field.suffix !== "$" && (
+                                        <span className="text-xs text-muted-foreground">{field.suffix}</span>
+                                    )}
+                                </div>
+                            )}
+                            {field.type === "text" && (
+                                <Input
+                                    type="text"
+                                    value={String(values[field.key] ?? "")}
+                                    onChange={(e) => updateValue(field.key, e.target.value)}
+                                    placeholder={field.placeholder}
+                                    className="h-9 text-sm"
+                                />
+                            )}
+                            {field.type === "time" && (
+                                <Input
+                                    type="time"
+                                    value={String(values[field.key] ?? "")}
+                                    onChange={(e) => updateValue(field.key, e.target.value)}
+                                    className="h-9 text-sm"
+                                />
+                            )}
+                            {field.type === "select" && (
+                                <select
+                                    value={String(values[field.key] ?? "")}
+                                    onChange={(e) => updateValue(field.key, e.target.value)}
+                                    className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+                                >
+                                    {field.options?.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {field.type === "toggle" && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateValue(field.key, !Boolean(values[field.key]))}
+                                        className={`w-10 h-5 rounded-full transition-colors ${values[field.key] ? "bg-primary" : "bg-muted"}`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${values[field.key] ? "translate-x-5" : "translate-x-0.5"}`} />
+                                    </button>
+                                    <span className="text-xs text-muted-foreground">{values[field.key] ? "Yes" : "No"}</span>
+                                </div>
                             )}
                         </div>
-                    )}
-                    {field.type === "text" && (
-                        <Input
-                            type="text"
-                            value={values[field.key] as string}
-                            onChange={(e) => updateValue(field.key, e.target.value)}
-                            placeholder={field.placeholder}
-                            className="h-9 text-sm"
-                        />
-                    )}
-                    {field.type === "time" && (
-                        <Input
-                            type="time"
-                            value={values[field.key] as string}
-                            onChange={(e) => updateValue(field.key, e.target.value)}
-                            className="h-9 text-sm"
-                        />
-                    )}
-                    {field.type === "select" && (
-                        <select
-                            value={values[field.key] as string}
-                            onChange={(e) => updateValue(field.key, e.target.value)}
-                            className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
-                        >
-                            {field.options?.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                    )}
-                    {field.type === "toggle" && (
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => updateValue(field.key, !(values[field.key] as boolean))}
-                                className={`w-10 h-5 rounded-full transition-colors ${values[field.key] ? "bg-primary" : "bg-muted"}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${values[field.key] ? "translate-x-5" : "translate-x-0.5"}`} />
-                            </button>
-                            <span className="text-xs text-muted-foreground">{values[field.key] ? "Yes" : "No"}</span>
-                        </div>
-                    )}
-                </div>
-            ))}
+                    ))}
+                </>
+            )}
 
             <div className="flex gap-2">
                 {data.kind === "onboarding_business_contact" && (
@@ -836,12 +1028,15 @@ function DraftCardUI({ data, onConfirm }: { data: DraftCardData; onConfirm: (val
                     type="button"
                     size="sm"
                     className={data.kind === "onboarding_business_contact" ? "flex-1" : "w-full"}
-                    onClick={() => onConfirm(values, data.kind)}
+                    onClick={() => onConfirm(data.kind === "onboarding_pricing" ? { ...values, disableAiQuoting, pricingServices: pricingRows } : values, data.kind)}
                     disabled={data.kind === "onboarding" && !String(values.phone ?? "").trim()}
                 >
-                    ✅ Confirm
+                    Confirm
                 </Button>
             </div>
         </motion.div>
     )
 }
+
+
+

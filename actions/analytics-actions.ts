@@ -35,6 +35,7 @@ export interface ReportsData {
     completed: number
     inProgress: number
     avgCompletionTime: number
+    wonWithTravis: number
   }
   team: {
     members: number
@@ -53,6 +54,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       value: true,
       stageChangedAt: true,
       createdAt: true,
+      metadata: true,
     },
   })
 
@@ -107,6 +109,28 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
         )
       : 0
 
+  const scheduledOrBeyondStages = new Set(["NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION", "WON"])
+  const jobsWonWithTravis = deals.filter((deal) => {
+    if (!scheduledOrBeyondStages.has(deal.stage)) return false
+
+    const metadata = (deal.metadata ?? {}) as Record<string, unknown>
+    const source = typeof metadata.source === "string" ? metadata.source.toLowerCase() : ""
+    const hasSystemSource =
+      Boolean(source) ||
+      Boolean(metadata.leadWonEmail) ||
+      typeof metadata.leadSource === "string" ||
+      typeof metadata.provider === "string" ||
+      typeof metadata.portal === "string"
+
+    const createdDirectlyAtCurrentStage =
+      Math.abs(new Date(deal.stageChangedAt).getTime() - new Date(deal.createdAt).getTime()) < 60_000
+
+    // Exclude only manual jobs created directly at scheduled-or-beyond stage.
+    if (!hasSystemSource && createdDirectlyAtCurrentStage) return false
+
+    return true
+  }).length
+
   return {
     revenue: {
       total: totalRevenue,
@@ -127,6 +151,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       completed,
       inProgress,
       avgCompletionTime: avgDays,
+      wonWithTravis: jobsWonWithTravis,
     },
     team: {
       members: 0,
