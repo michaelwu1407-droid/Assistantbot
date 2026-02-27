@@ -459,6 +459,18 @@ export async function POST(req: Request) {
     knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
     knowledgeBaseStr += "\nOn incoming voice calls, Travis (the voice agent) can transfer callers to the tradie's mobile if they ask to speak to the human; the tradie's number is stored in the app profile.";
 
+    // Fetch Glossary for Pricing Safeguards
+    const repairItems = await db.repairItem.findMany({
+      where: { workspaceId },
+      select: { title: true, description: true },
+    });
+    let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
+    if (repairItems.length > 0) {
+      glossaryStr += repairItems.map(item => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
+    } else {
+      glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
+    }
+
     // Build context strings (static workspace settings only — no data stuffing)
     const agentModeStr = settings?.agentMode === "EXECUTE"
       ? "\nAGENT OVERRIDE MODE: EXECUTE. You have full autonomy. Calculate the price based on standard glossary pricing below. If no exact match, make an educated estimate. You may execute creation, moving, scheduling, or proposing of jobs directly based on smart geolocation."
@@ -497,27 +509,28 @@ export async function POST(req: Request) {
       : "";
 
     const callOutFee = settings?.callOutFee || 0;
-    const pricingRulesStr = `\nSTRICT PRICING RULES:
-1. NEVER agree on a final price immediately UNLESS it is an EXACT match for a task in the Glossary below.
-2. Focus heavily on locking down the booking/assessment first.
-3. If asked for general pricing, quote the standard Call-Out Fee of $${callOutFee}. You can say something like "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
-4. If the user requests a common task that exists in the Glossary, you may quote that specific price range instead of the call-out fee.`;
+    const pricingRulesStr = `\nSTRICT PRICING RULES (HARD BRAKE):
+1. NEVER agree on a final price immediately UNLESS it is an EXACT match for a task explicitly listed in the GLOSSARY OF APPROVED PRICES below.
+2. If the user asks for a price for a task that is NOT in the Glossary, you MUST NOT invent, hallucinate, or estimate a specific cost. You MUST state that a firm quote requires an on-site assessment.
+3. Focus heavily on locking down the booking/assessment first.
+4. If asked for general pricing and the task is custom/not in the glossary, quote the standard Call-Out Fee of $${callOutFee}. Say: "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
+${glossaryStr}`;
 
     // === STEP A: "The Recall" (Pre-Generation Memory Search) ===
     console.log(`[Mem0] Starting memory recall for workspace: ${workspaceId}`);
-    
+
     // Extract user ID from headers or use workspaceId as fallback
     const userId = req.headers.get("x-user-id") || workspaceId;
     console.log(`[Mem0] User ID: ${userId}`);
-    
+
     // Get the last user message for memory search
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
     const lastMessageContent = lastUserMessage?.content || "";
     console.log(`[Mem0] Last message: "${lastMessageContent.substring(0, 50)}..."`);
-    
+
     let memoryContextStr = "";
     const memClient = getMemoryClient();
-    
+
     if (memClient && lastMessageContent) {
       try {
         console.log(`[Mem0] Searching for relevant memories...`);
@@ -525,15 +538,15 @@ export async function POST(req: Request) {
           user_id: userId,
           limit: 5,
         });
-        
+
         console.log(`[Mem0] Found ${searchResults.length} memories`);
-        
+
         if (searchResults.length > 0) {
           const facts = searchResults.map((memory: any, index: number) => {
             console.log(`[Mem0] Memory ${index + 1}: ${memory.memory}`);
             return `- ${memory.memory}`;
           }).join("\n");
-          
+
           memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nThe following facts are retrieved from previous conversations with this user:\n${facts}\n[[END MEMORY CONTEXT]]\n\nUse these facts to personalize your response.`;
         } else {
           console.log(`[Mem0] No relevant memories found`);
@@ -547,7 +560,7 @@ export async function POST(req: Request) {
       console.log(`[Mem0] Memory client not available or no message content`);
       memoryContextStr = "";
     }
-    
+
     console.log(`[Mem0] Memory context prepared, proceeding to stream generation`);
 
     const multiJobInstruction = useMultiJobFlow
@@ -900,20 +913,20 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
       onFinish: async ({ text }) => {
         // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
         console.log(`[Mem0] Starting memory storage...`);
-        
+
         const memClientForStorage = getMemoryClient();
         if (!memClientForStorage) {
           console.log(`[Mem0] Memory client not available for storage`);
           return;
         }
-        
+
         try {
           // Create the message pair for Mem0
           const messagesForMem0 = [
             { role: "user" as const, content: lastMessageContent },
             { role: "assistant" as const, content: text },
           ];
-          
+
           // Store in Mem0 asynchronously (non-blocking)
           memClientForStorage.add(messagesForMem0, {
             user_id: userId,
@@ -927,7 +940,7 @@ After any tool, briefly confirm in a friendly way. If a tool fails, say so and s
           }).catch((error) => {
             console.error("[Mem0] Error saving interaction:", error);
           });
-          
+
           // Note: Not awaiting to avoid blocking the response
         } catch (error) {
           console.error("[Mem0] Error in memory storage:", error);

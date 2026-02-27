@@ -49,6 +49,18 @@ export async function generateSMSResponse(
   const callOutFee = workspace?.callOutFee ? Number(workspace.callOutFee) : 0;
   const preferences = workspace?.aiPreferences ?? "";
 
+  // Fetch glossary
+  const repairItems = await db.repairItem.findMany({
+    where: { workspaceId },
+    select: { title: true, description: true },
+  });
+  let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
+  if (repairItems.length > 0) {
+    glossaryStr += repairItems.map(item => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
+  } else {
+    glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
+  }
+
   let modeInstruction = "";
   if (agentMode === "EXECUTE") {
     modeInstruction =
@@ -68,7 +80,8 @@ RULES:
 - Be friendly, professional, and helpful.
 - Business hours: ${hours}.
 - ${modeInstruction}
-- NEVER agree on a final price. If asked about cost, mention the standard call-out fee of $${callOutFee} and say a firm quote will be provided on-site.
+- PRICING HARD BRAKE: NEVER agree on a final price for custom work. ONLY quote a specific price if the exact requested work exists in the GLOSSARY OF APPROVED PRICES below. If it is NOT in the glossary, you MUST state that a firm quote requires an on-site assessment and mention the standard call-out fee is $${callOutFee}. Do not hallucinate or estimate prices.
+${glossaryStr}
 ${preferences ? `\nBUSINESS PREFERENCES:\n${preferences}` : ""}
 
 ${historyStr ? `RECENT CONVERSATION:\n${historyStr}\n` : ""}
