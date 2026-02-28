@@ -76,12 +76,53 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
         where: { workspaceId },
         select: { title: true, description: true },
     });
+
+    // Fetch historical price averages from completed invoices
+    let historicalPricingStr = "";
+    try {
+        const completedDeals = await db.deal.findMany({
+            where: { workspaceId, stage: "WON" },
+            select: { title: true, invoices: { select: { total: true }, take: 1 } },
+            orderBy: { updatedAt: "desc" },
+            take: 50,
+        });
+
+        // Group by normalized title and compute min/max/avg
+        const priceMap = new Map<string, number[]>();
+        for (const deal of completedDeals) {
+            const key = deal.title.toLowerCase().trim();
+            const total = deal.invoices[0]?.total ? Number(deal.invoices[0].total) : null;
+            if (total && total > 0) {
+                const arr = priceMap.get(key) || [];
+                arr.push(total);
+                priceMap.set(key, arr);
+            }
+        }
+
+        const historicalLines: string[] = [];
+        for (const [title, prices] of priceMap) {
+            if (prices.length >= 2) {
+                const min = Math.min(...prices);
+                const max = Math.max(...prices);
+                const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+                historicalLines.push(`- ${title}: Typically $${min}–$${max} (avg $${avg}, ${prices.length} past jobs)`);
+            }
+        }
+        if (historicalLines.length > 0) {
+            historicalPricingStr = "\n\nHISTORICAL PRICE RANGES (from past invoices — use as reference, not as quotes):\n" + historicalLines.join("\n");
+            historicalPricingStr += "\nNote: These are historical ranges only. Never quote them as fixed prices. Say 'Similar jobs have typically been between $X and $Y' if asked.";
+        }
+    } catch {
+        // Historical pricing lookup failed — non-critical
+    }
+
     let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
     if (repairItems.length > 0) {
         glossaryStr += repairItems.map(item => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
     } else {
         glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
     }
+    glossaryStr += historicalPricingStr;
 
     // Build context strings
     const agentModeStr = settings?.agentMode === "EXECUTE"

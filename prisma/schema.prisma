@@ -433,16 +433,18 @@ model Key {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  title     String
-  message   String
-  type      NotificationType @default(INFO)
-  read      Boolean          @default(false)
-  link      String?
-  
+  id             String           @id @default(cuid())
+  title          String
+  message        String
+  type           NotificationType @default(INFO)
+  read           Boolean          @default(false)
+  link           String?
+  actionType     String?          // e.g. CONFIRM_JOB, CALL_CLIENT, SEND_INVOICE, APPROVE_COMPLETION
+  actionPayload  Json?            // e.g. { dealId: "...", contactId: "..." }
+
   userId    String
   user      User             @relation(fields: [userId], references: [id])
-  
+
   createdAt DateTime         @default(now())
 }
 

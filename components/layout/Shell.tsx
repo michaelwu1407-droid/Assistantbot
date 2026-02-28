@@ -319,19 +319,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {/* Mobile Chat Sheet */}
           <Sheet open={mobileChatOpen} onOpenChange={setMobileChatOpen}>
             <SheetContent side="bottom" className="h-[85dvh] p-0 flex flex-col">
-              <SheetHeader className="shrink-0 flex flex-row items-center justify-between px-4 py-3 border-b border-border/50">
+              <SheetHeader className="shrink-0 flex flex-row items-center px-4 py-3 border-b border-border/50">
                 <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
                   <MessageSquare className="h-4 w-4 text-primary" />
                   AI Assistant
                 </SheetTitle>
-                <button
-                  type="button"
-                  onClick={() => setMobileChatOpen(false)}
-                  className="rounded-full p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-                  aria-label="Close chat"
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </SheetHeader>
               <div id="mobile-assistant-pane" className="flex-1 min-h-0 flex flex-col overflow-hidden">
                 {!isDesktop && mobileChatOpen ? chatbot : null}

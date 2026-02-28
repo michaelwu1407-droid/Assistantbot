@@ -321,7 +321,7 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
                 runGetClientContext(workspaceId, { clientName }),
         }),
         getTodaySummary: tool({
-            description: "Quick snapshot of today's scheduled jobs, overdue tasks, and recent message count. Use for 'What's on today?', 'Give me my daily summary', 'Morning brief', or when the user opens the chat without a specific question.",
+            description: "Daily briefing with preparation checks. Returns today's jobs with readiness flags (missing address, no phone, unassigned, unconfirmed, deposit not paid, materials needed). Use for 'What's on today?', 'Morning brief', 'Am I ready for today?', or when the user opens the chat. IMPORTANT: When presenting the briefing, lead with any preparation alerts so the tradie can fix issues BEFORE heading out.",
             inputSchema: z.object({}),
             execute: async () => runGetTodaySummary(workspaceId),
         }),

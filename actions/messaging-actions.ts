@@ -292,8 +292,15 @@ export async function sendBulkSMS(
   let failed = 0;
   const errors: string[] = [];
 
+  // Batch fetch all contacts in one query instead of N individual queries
+  const contacts = await db.contact.findMany({
+    where: { id: { in: contactIds } },
+    select: { id: true, name: true, phone: true },
+  });
+  const contactMap = new Map(contacts.map((c) => [c.id, c]));
+
   for (const contactId of contactIds) {
-    const contact = await db.contact.findUnique({ where: { id: contactId } });
+    const contact = contactMap.get(contactId);
     if (!contact || !contact.phone) {
       failed++;
       errors.push(`${contact?.name ?? contactId}: no phone number`);

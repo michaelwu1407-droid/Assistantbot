@@ -124,13 +124,24 @@ const UpdateStageSchema = z.object({
  */
 const DELETED_DAYS_THRESHOLD = 30;
 
-export async function getDeals(workspaceId: string, contactId?: string): Promise<DealView[]> {
+export async function getDeals(
+  workspaceId: string,
+  contactId?: string,
+  filters?: { excludeStages?: string[]; requireScheduled?: boolean; limit?: number }
+): Promise<DealView[]> {
   try {
     const where: Record<string, unknown> = { workspaceId };
     if (contactId) where.contactId = contactId;
+    if (filters?.excludeStages?.length) {
+      where.stage = { notIn: filters.excludeStages };
+    }
+    if (filters?.requireScheduled) {
+      where.scheduledAt = { not: null };
+    }
 
     const deals = await db.deal.findMany({
       where,
+      ...(filters?.limit ? { take: filters.limit } : {}),
       include: {
         contact: true,
         assignedTo: { select: { id: true, name: true } },

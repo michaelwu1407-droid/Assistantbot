@@ -28,9 +28,11 @@ export default async function DashboardMapPage() {
         if (!userId) throw new Error("User not authenticated")
 
         const workspace = await getOrCreateWorkspace(userId)
-        const allDeals = await getDeals(workspace.id)
-        // Same pipeline as kanban: exclude deleted; only show deals that have a schedule
-        const scheduledDeals = allDeals.filter((d) => d.stage !== "deleted" && d.scheduledAt != null)
+        // Server-side filtering: only fetch scheduled, non-deleted deals
+        const scheduledDeals = await getDeals(workspace.id, undefined, {
+            excludeStages: ["DELETED"],
+            requireScheduled: true,
+        })
         const displayJobs = scheduledDeals.map(dealToMapJob)
 
         const todayStart = new Date()

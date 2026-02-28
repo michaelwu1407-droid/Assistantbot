@@ -1,5 +1,54 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.5 (February 28, 2026)
+
+### On-Site Completion Workflow
+- **Job Completion Modal**: Full rewrite with Invoice Verifier section (labour hours, materials via MaterialPicker, running total).
+- **Customer Signature Capture**: Added SignaturePad component to completion modal for on-site signature collection.
+- **Dual-Action Filing**: "Save for Later" (stage INVOICED) vs "Confirm & Generate" (stage WON + Xero DRAFT invoice).
+- **Xero Draft Invoice**: `createXeroDraftInvoice()` always pushes as DRAFT for manager review. Non-blocking on Xero failure.
+- **Trigger Points**: "Finish Job" button on Tradie Dashboard, "Mark Done" button on Map View job cards.
+
+### Strict Triage & Bouncer Engine
+- **Lead Qualification**: Phase A (Bouncer) hard No-Go rules decline leads matching exclusion criteria. Phase B (Advisor) flags concerns without declining.
+- **Onboarding Step**: New "The Bouncer" step in onboarding wizard for exclusion criteria setup.
+- **System Prompt Guardrail**: `bouncerStr` injected into AI context with strict qualification hierarchy.
+- **Agent Flags**: `addAgentFlag` AI tool writes private triage warnings to deal cards (orange badges on dashboard).
+- **Real-Time Instruction Capture**: AI asks "decline or flag?" when user gives new exclusion rules, saves as `[HARD_CONSTRAINT]` or `[FLAG_ONLY]`.
+- **Mem0 Sync**: Exclusion criteria synced to Mem0 as `hard_constraint` metadata type.
+- **Schema**: Added `exclusionCriteria` to Workspace, `agentFlags` to Deal.
+
+### Performance Optimizations (#6)
+- **Chat Context Pruning**: Sliding window limits conversation history to last 20 messages sent to LLM. System messages always pass through.
+- **Bulk SMS N+1 Fix**: `sendBulkSMS()` now batch-fetches all contacts in one query instead of querying per-contact.
+- **Geocoding Batch Writes**: `batchGeocodeDeals()` collects all geocode results and writes them in a single DB transaction.
+- **Server-Side Map Filtering**: Map page now uses `getDeals()` with `excludeStages` and `requireScheduled` filters instead of fetching all deals and filtering client-side.
+- **getDeals() Filters**: Added optional `filters` parameter supporting `excludeStages`, `requireScheduled`, and `limit`.
+
+### Actionable Notifications (#4)
+- **Action Types**: Notifications now support `actionType` (CONFIRM_JOB, CALL_CLIENT, SEND_INVOICE, APPROVE_COMPLETION) and `actionPayload` fields.
+- **Action Buttons**: Notification dropdown shows colored action buttons (Confirm, Call, Invoice, Approve) when `actionType` is set.
+- **Schema**: Added `actionType` (String?) and `actionPayload` (Json?) to Notification model.
+
+### Preparation-Focused Morning Briefing (#2)
+- **Job Readiness Checks**: `getTodaySummary` now returns preparation flags per job: missing address, no phone, unassigned, unconfirmed, deposit not paid, materials mentioned.
+- **Preparation Alerts**: Global `preparationAlerts` array summarizes all issues across today's jobs.
+- **AI Behavior**: System prompt instructs Travis to lead with preparation alerts before showing schedule.
+- **Morning Notification**: Renamed to "Morning Briefing" with preparation-focused messaging and CONFIRM_JOB action type.
+
+### Historical Price Averages (#1)
+- **Invoice-Based Pricing**: `buildAgentContext()` now queries last 50 completed deals, groups by job title, and computes min/max/avg price ranges.
+- **Context Injection**: Historical price ranges injected into AI context as "HISTORICAL PRICE RANGES (from past invoices)".
+- **Guardrail**: AI told to say "Similar jobs have typically been between $X and $Y" — never quote as fixed prices.
+
+### Sidebar UI Fixes (#5)
+- **Active State Inversion**: Sidebar nav items and Settings button now use `bg-primary text-white` instead of `bg-mint-50 text-primary` for active state.
+- **Mobile Whitespace**: Reduced mobile sidebar padding from `py-4` to `py-2`.
+- **Double-X Fix**: Removed duplicate manual close button from mobile chat sheet (SheetContent already provides one via SheetPrimitive.Close).
+
+### Email Webhook (#8)
+- **Already Implemented**: Confirmed 3 active inbound email webhook endpoints (Resend, Gmail/Outlook push, generic parser), AI-powered lead capture, auto-reply generation, and delivery tracking. No additional work required.
+
 ## Version 2.4 (February 27, 2026)
 
 ### Chatbot Sticky Context (Goldfish Fix)

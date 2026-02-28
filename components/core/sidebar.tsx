@@ -115,7 +115,7 @@ export function Sidebar({ className }: SidebarProps) {
                                             className={cn(
                                                 "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                 isActive
-                                                    ? "bg-mint-50 text-primary shadow-sm"
+                                                    ? "bg-primary text-white shadow-sm"
                                                     : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                             )}
                                         >
@@ -144,7 +144,7 @@ export function Sidebar({ className }: SidebarProps) {
                                     className={cn(
                                         "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                         pathname.startsWith("/dashboard/settings")
-                                            ? "bg-mint-50 text-primary"
+                                            ? "bg-primary text-white"
                                             : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                     )}
                                 >

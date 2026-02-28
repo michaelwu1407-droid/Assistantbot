@@ -1,6 +1,6 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-02-27 (Sticky Context + Settings Consolidation + Theme/Notification Updates)
+**Last Updated:** 2026-02-28 (v2.5: On-Site Completion, Bouncer Engine, Performance, Actionable Notifications, Morning Briefing, Historical Pricing, Sidebar UI)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
 
@@ -41,11 +41,11 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Correspondence History**: Secondary box with ALL correspondence (email, text, call) in chronological conversation format
 
 ### **Core Workflow Features**
-- **Post-Job Workflow**: Send alert asking for resolution status and final invoiced amount
+- **Post-Job Workflow**: ✅ RESOLVED — On-site completion modal with Invoice Verifier, customer signature, dual-action filing (Save/Generate), Xero DRAFT push. Triggered from Map "Mark Done" and Tradie "Finish Job" buttons.
 - **Invoice Adjustments**: Easy adjustment via chatbox OR kanban cards
-- **Repair Glossary**: Build glossary for natural language job recognition (no estimated prices)
+- **Repair Glossary**: ✅ RESOLVED — Glossary system exists with RepairItem model + historical price averages from past invoices injected into AI context.
 - **Smart Routing**: Optimize booking for jobs within 15km/7 days of existing jobs
-- **Email Lead Interception**: Parse Hipages jobs from email inbox
+- **Email Lead Interception**: ✅ RESOLVED — 3 active email webhooks (Resend, Gmail/Outlook push, generic) with AI-powered HiPages/Airtasker/ServiceSeeking detection.
 
 ### **Agent Operational Modes**
 - **Execute Mode**: Total autonomy for booking/scheduling
@@ -54,9 +54,9 @@ This document tracks the functional status of each page and feature, explicitly 
 - **Pricing Rules**: Never agree on pricing upfront without confirmation (except user-set common tasks)
 
 ### **System-Wide Improvements**
-- **Daily Notifications**: Start/end of day agenda notifications (toggleable in settings)
+- **Daily Notifications**: ✅ RESOLVED — Morning Briefing with preparation-focused alerts (missing address, unconfirmed, unassigned, materials needed) + Evening Wrap-Up. Actionable notification buttons (Confirm, Call, Invoice, Approve).
 - **Search & Filtering**: Fast fuzzy search across entire application
-- **Sidebar Navigation**: Remove minimize button completely
+- **Sidebar Navigation**: ✅ RESOLVED — Active state inverted to `bg-primary text-white`, mobile whitespace tightened, double-X close bug fixed.
 - **Maps Sidebar**: Move Maps icon above Contacts icon
 
 ---
