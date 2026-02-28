@@ -222,6 +222,9 @@ model Deal {
 
   // AI Agent Triage Flags — warnings from the Bouncer/Advisor engine
   agentFlags     Json?     // Array of strings e.g. ["Far away (45km)", "Potential tire-kicker"]
+
+  // AI Triage Recommendation — the AI's suggestion before human override
+  aiTriageRecommendation String?  // "ACCEPT", "DECLINE", "QUOTE", "OUT_OF_AREA"
   
   lastActivityAt DateTime  @default(now())
   stageChangedAt DateTime  @default(now())
@@ -517,7 +520,8 @@ model BusinessProfile {
   tradeType          String   // Plumber, Sparky, HVAC, etc.
   website            String?
   baseSuburb         String
-  serviceRadius      Int      @default(20)
+  serviceRadius      Int      @default(20) // km
+  serviceSuburbs     Json?    // String[] — specific suburbs served
   standardWorkHours  String   @default("Mon-Fri, 07:00-15:30")
   emergencyService   Boolean  @default(false)
   emergencySurcharge Float?
@@ -541,6 +545,47 @@ model PricingSettings {
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+// ─── Business Knowledge Base ────────────────────────────────────────
+// Stores scraped + manual business rules that feed into the AI agent's
+// triage logic: services offered, pricing hints, and negative scope.
+
+enum KnowledgeCategory {
+  SERVICE
+  PRICING
+  NEGATIVE_SCOPE
+}
+
+model BusinessKnowledge {
+  id          String            @id @default(cuid())
+  category    KnowledgeCategory
+  ruleContent String            @db.Text  // e.g. "Tap Replacement" or "No Gas Fitting"
+  metadata    Json?             // Extra data: { price: 250, duration: "1h" }
+  source      String            @default("manual") // "scrape" | "manual" | "learned"
+
+  workspaceId String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([workspaceId, category])
+}
+
+// ─── Deviation / Learning Events ────────────────────────────────────
+
+model DeviationEvent {
+  id                     String   @id @default(cuid())
+  dealId                 String
+  aiRecommendation       String   // What AI suggested: "DECLINE", "OUT_OF_AREA"
+  userAction             String   // What user did: "BOOKED", "WON"
+  ruleContent            String?  // The negative-scope rule that was overridden
+  resolved               Boolean  @default(false) // User addressed the insight
+  resolvedAction         String?  // "KEEP_RULE" | "REMOVE_RULE"
+
+  workspaceId            String
+  createdAt              DateTime @default(now())
+
+  @@index([workspaceId, resolved])
 }
 
 // ─── One-Tap SMS / Email Templates ──────────────────────────────────

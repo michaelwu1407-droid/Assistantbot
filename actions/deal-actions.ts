@@ -11,6 +11,8 @@ import { createNotification } from "./notification-actions";
 import { getAuthUser } from "@/lib/auth";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
+import { triageIncomingLead, saveTriageRecommendation } from "@/lib/ai/triage";
+import { checkForDeviation } from "./learning-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -268,6 +270,19 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     },
   });
 
+  // Run triage classifier on new leads
+  try {
+    const triageResult = await triageIncomingLead(workspaceId, {
+      title,
+      address: address || undefined,
+      latitude: latitude ?? undefined,
+      longitude: longitude ?? undefined,
+    });
+    await saveTriageRecommendation(deal.id, triageResult);
+  } catch {
+    // Triage is non-critical — don't block deal creation
+  }
+
   MonitoringService.trackEvent("deal_created", {
     dealId: deal.id,
     workspaceId,
@@ -435,6 +450,13 @@ export async function updateDealStage(dealId: string, stage: string) {
       } catch (learningErr) {
         console.warn("Pricing learning hook failed after stage update:", learningErr);
       }
+    }
+
+    // Check for AI triage deviation (AI said decline, user overrode)
+    try {
+      await checkForDeviation(parsed.data.dealId, prismaStage, userId || "");
+    } catch {
+      // Non-critical — don't block stage change
     }
 
     return { success: true };

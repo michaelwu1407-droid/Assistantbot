@@ -209,15 +209,52 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
 4. If asked for general pricing and the task is custom/not in the glossary, quote the standard Call-Out Fee of $${callOutFee}. Say: "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
 ${glossaryStr}`;
 
+    // ── Business Knowledge — Negative Scope Rules ─────────────────
+    let knowledgeNegativeRules: string[] = [];
+    let knowledgeServicesStr = "";
+    try {
+        const negativeRules = await db.businessKnowledge.findMany({
+            where: { workspaceId, category: "NEGATIVE_SCOPE" },
+            select: { ruleContent: true },
+        });
+        knowledgeNegativeRules = negativeRules.map(r => r.ruleContent);
+
+        const serviceRules = await db.businessKnowledge.findMany({
+            where: { workspaceId, category: "SERVICE" },
+            select: { ruleContent: true, metadata: true },
+        });
+        if (serviceRules.length > 0) {
+            knowledgeServicesStr = "\n\nSERVICES OFFERED (from Knowledge Base):\n" +
+                serviceRules.map(s => {
+                    const meta = (s.metadata as Record<string, string>) || {};
+                    let line = `- ${s.ruleContent}`;
+                    if (meta.priceRange) line += ` (${meta.priceRange})`;
+                    if (meta.duration) line += ` — est. ${meta.duration}`;
+                    return line;
+                }).join("\n");
+        }
+    } catch {
+        // BusinessKnowledge table may not exist yet
+    }
+
     // ── Bouncer & Advisor Logic ──────────────────────────────────────
+    // Merge exclusionCriteria (legacy) with BusinessKnowledge negative scope rules
     const exclusionCriteria = workspaceInfo?.exclusionCriteria?.trim() || "";
+    const allNegativeRules = [
+        ...exclusionCriteria.split("\n").filter(Boolean),
+        ...knowledgeNegativeRules,
+    ].filter(Boolean);
+    const mergedExclusionStr = allNegativeRules.length > 0
+        ? allNegativeRules.map(r => `- ${r}`).join("\n")
+        : "";
+
     let bouncerStr = "";
-    if (exclusionCriteria) {
+    if (mergedExclusionStr) {
         bouncerStr = `\nLEAD QUALIFICATION — BOUNCER vs. ADVISOR (CRITICAL):
 
 PHASE A — THE HARD FILTER (Bouncer):
 The following are STRICT NO-GO rules. You are ONLY permitted to decline a lead if it matches one of these EXACTLY:
-${exclusionCriteria}
+${mergedExclusionStr}
 When a lead matches a No-Go rule: politely inform the caller — "I'm sorry, we don't currently handle [specific job type/location/condition]." — then end the triage.
 
 PHASE B — THE TRIAGE & FLAG (Advisor):
@@ -235,7 +272,7 @@ REAL-TIME INSTRUCTION CAPTURE: If the business owner says "Next time, don't take
         settings,
         userRole,
         isManager,
-        knowledgeBaseStr,
+        knowledgeBaseStr: knowledgeBaseStr + knowledgeServicesStr,
         agentModeStr,
         workingHoursStr,
         agentScriptStr,

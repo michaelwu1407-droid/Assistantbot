@@ -31,6 +31,11 @@ const sidebarNavSections: { label?: string; items: { title: string; href: string
     },
     {
         items: [
+            { title: "Knowledge Base", href: "/dashboard/settings/knowledge" },
+        ],
+    },
+    {
+        items: [
             { title: "Integrations", href: "/dashboard/settings/integrations" },
         ],
     },
