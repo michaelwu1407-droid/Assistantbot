@@ -278,11 +278,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               <button
                 type="button"
                 onClick={() => setMobileChatOpen(true)}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
                 title="Open chat"
                 aria-label="Open chat"
               >
-                <MessageSquare className="h-5 w-5 text-primary" />
+                <MessageSquare className="h-5 w-5 text-white" />
               </button>
             )}
           </div>
@@ -297,11 +297,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 chatbotPanelRef.current?.expand()
                 setChatbotExpanded(true)
               }}
-              className="hidden md:flex fixed bottom-5 right-5 z-[10000] h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
+              className="hidden md:flex fixed bottom-5 right-5 z-[10000] h-11 w-11 items-center justify-center rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-bounce-gentle"
               title="Open chat"
               aria-label="Open chat"
             >
-              <MessageSquare className="h-5 w-5 text-primary" />
+              <MessageSquare className="h-5 w-5 text-white" />
             </button>
           )}
 
@@ -309,11 +309,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <button
             type="button"
             onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
-            className="md:hidden fixed bottom-5 left-5 z-[10000] flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-lg hover:bg-slate-50 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            className="md:hidden fixed bottom-5 left-5 z-[10000] flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             title="Open navigation"
             aria-label="Open navigation menu"
           >
-            <Menu className="h-5 w-5 text-slate-700" />
+            <Menu className="h-5 w-5 text-white" />
           </button>
 
           {/* Mobile Chat Sheet */}

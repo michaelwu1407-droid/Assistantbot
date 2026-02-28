@@ -255,6 +255,15 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
           )}
 
 
+          {/* Lead Source badge */}
+          {deal.source && (
+            <div className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600">
+                {deal.source}
+              </span>
+            </div>
+          )}
+
           {/* Agent Triage Flags — warnings from AI Bouncer/Advisor engine */}
           {deal.agentFlags && deal.agentFlags.length > 0 && (
             <div className="flex flex-wrap gap-1">

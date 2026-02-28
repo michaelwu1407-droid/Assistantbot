@@ -1,5 +1,22 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.5.1 (February 28, 2026)
+
+### Sidebar Button Inversion (correction)
+- Inverted the **mobile hamburger button** (bottom-left FAB) and **chat window FAB** (bottom-right, both mobile and desktop) to `bg-primary text-white`. The sidebar nav items themselves remain unchanged (mint active state).
+- Fixed mobile sidebar whitespace: added `expanded` prop to `<Sidebar>` that suppresses the fixed 45px inline width when rendered inside the 200px mobile sheet, letting icons fill the full container.
+
+### Historical Pricing — Glossary Cross-Check
+- When a RepairItem glossary entry has a price, it is now the **primary source of truth**.
+- After computing historical invoice ranges, the context builder cross-checks: if the historical average falls outside the glossary range, a `⚠️ PRICING CONFLICTS DETECTED` warning is injected into the AI context, prompting Travis to ask the tradie to confirm before quoting.
+- Accepted single price or range formats: `$150`, `$100–200`, `$100 to $200`, `150`, `between 100 and 200`.
+
+### Webform Webhook & Lead Source Field
+- New endpoint: `POST /api/webhooks/webform` — accepts contact form submissions (JSON, multipart, url-encoded) from the tradie's website, creates/finds a contact, opens a NEW lead in the CRM, logs an activity, and notifies the workspace owner.
+- Optional `WEBFORM_WEBHOOK_SECRET` env var for shared-secret verification.
+- Added `source` field to Deal model (e.g. "website", "hipages", "airtasker", "phone", "referral").
+- Source badge displayed on deal cards in the CRM pipeline.
+
 ## Version 2.5 (February 28, 2026)
 
 ### On-Site Completion Workflow

@@ -40,9 +40,11 @@ const navItems = [
 
 interface SidebarProps {
     className?: string
+    /** When true (e.g. inside the mobile sheet), the sidebar expands to fill its container width */
+    expanded?: boolean
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, expanded }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
@@ -78,7 +80,7 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={{ width: SIDEBAR_WIDTH }}>
+            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
                     <img src="/latest-logo.png" alt="Earlymark" className="h-9 w-9 object-contain transition-all hover:scale-105 active:scale-95" />
@@ -115,7 +117,7 @@ export function Sidebar({ className }: SidebarProps) {
                                             className={cn(
                                                 "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                                 isActive
-                                                    ? "bg-primary text-white shadow-sm"
+                                                    ? "bg-mint-50 text-primary shadow-sm"
                                                     : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                             )}
                                         >
@@ -144,7 +146,7 @@ export function Sidebar({ className }: SidebarProps) {
                                     className={cn(
                                         "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
                                         pathname.startsWith("/dashboard/settings")
-                                            ? "bg-primary text-white"
+                                            ? "bg-mint-50 text-primary"
                                             : "text-muted-foreground hover:bg-secondary hover:text-midnight"
                                     )}
                                 >

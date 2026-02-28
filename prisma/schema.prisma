@@ -217,6 +217,9 @@ model Deal {
   actualOutcome  String?   // "COMPLETED", "NO_SHOW", "RESCHEDULED"
   outcomeNotes   String?   @db.Text
 
+  // Lead Source — where this job/lead originated
+  source         String?   // e.g. "website", "hipages", "airtasker", "phone", "referral", "direct"
+
   // AI Agent Triage Flags — warnings from the Bouncer/Advisor engine
   agentFlags     Json?     // Array of strings e.g. ["Far away (45km)", "Potential tire-kicker"]
   

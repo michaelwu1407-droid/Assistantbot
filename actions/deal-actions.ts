@@ -91,6 +91,8 @@ export interface DealView {
   outcomeNotes?: string | null;
   // AI Agent Triage Flags
   agentFlags?: string[];
+  // Lead Source
+  source?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -212,6 +214,8 @@ export async function getDeals(
         outcomeNotes: deal.outcomeNotes,
         // AI Agent Triage Flags
         agentFlags: Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : undefined,
+        // Lead Source
+        source: (deal as any).source ?? null,
       };
     });
   } catch (error) {

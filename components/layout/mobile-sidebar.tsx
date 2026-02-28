@@ -27,7 +27,7 @@ export function MobileSidebar() {
                     <SheetTitle>Navigation Menu</SheetTitle>
                 </SheetHeader>
                 <div className="h-full py-2">
-                    <Sidebar className="border-none bg-transparent w-full" />
+                    <Sidebar className="border-none bg-transparent w-full" expanded />
                 </div>
             </SheetContent>
         </Sheet>
