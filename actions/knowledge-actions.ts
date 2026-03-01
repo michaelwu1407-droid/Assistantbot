@@ -77,7 +77,7 @@ export async function addKnowledgeRule(
       data: {
         category,
         ruleContent: ruleContent.trim(),
-        metadata: metadata || undefined,
+        metadata: metadata ? (metadata as any) : undefined,
         source,
         workspaceId,
       },
@@ -100,7 +100,7 @@ export async function updateKnowledgeRule(
       where: { id },
       data: {
         ruleContent: ruleContent.trim(),
-        metadata: metadata || undefined,
+        metadata: metadata ? (metadata as any) : undefined,
       },
     });
     revalidatePath("/dashboard/settings/knowledge");
