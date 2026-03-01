@@ -2,6 +2,8 @@
 
 import { db } from "@/lib/db";
 import { startOfWeek, endOfWeek, subDays } from "date-fns";
+import { z } from "zod";
+import { runDashboardTask } from "@/lib/ai-service";
 
 export interface DashboardStats {
     weeklyRevenue: number;
@@ -57,4 +59,51 @@ export async function getFinancialStats(workspaceId: string): Promise<DashboardS
         outstandingDebt: outstandingInvoices._sum.total ? Number(outstandingInvoices._sum.total) : 0,
         activeDealsCount: activeDeals
     };
+}
+
+// ---------------------------------------------------------------------------
+// AI-Powered Dashboard Actions (Two-Tier Strategy)
+// ---------------------------------------------------------------------------
+
+const transcriptSummarySchema = z.object({
+    summary: z.string().describe("2-3 sentence summary of the call"),
+    actionItems: z.array(z.string()).describe("List of follow-up actions"),
+    sentiment: z
+        .enum(["positive", "neutral", "negative"])
+        .describe("Overall customer sentiment"),
+});
+
+/**
+ * Summarises a long call transcript using the **context** tier (Gemini).
+ * Gemini's large context window handles full transcripts efficiently.
+ */
+export async function summarizeCallTranscript(transcript: string) {
+    const result = await runDashboardTask({
+        tier: "context",
+        schema: transcriptSummarySchema,
+        prompt: `Summarise this call transcript for a tradie's CRM dashboard:\n\n${transcript}`,
+    });
+
+    return result.object;
+}
+
+const kanbanMoveSchema = z.object({
+    recommendedStage: z
+        .enum(["LEAD", "QUOTED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "WON", "LOST"])
+        .describe("The recommended next pipeline stage"),
+    reason: z.string().describe("One-sentence justification for the move"),
+});
+
+/**
+ * Decides the next Kanban pipeline move for a deal using the **logic** tier
+ * (DeepSeek V3). Pure business-logic reasoning at a fraction of the cost.
+ */
+export async function classifyNextKanbanMove(dealContext: string) {
+    const result = await runDashboardTask({
+        tier: "logic",
+        schema: kanbanMoveSchema,
+        prompt: `Given this deal context, recommend the next Kanban pipeline stage:\n\n${dealContext}`,
+    });
+
+    return result.object;
 }
