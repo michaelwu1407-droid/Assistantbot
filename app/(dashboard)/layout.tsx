@@ -28,20 +28,17 @@ export default async function DashboardLayout({
       throw new Error("User not authenticated");
     }
     userId = authUserId;
-    const workspace = await getOrCreateWorkspace(userId);
-    workspaceId = workspace.id;
-    tutorialComplete = workspace.tutorialComplete;
-
-    // Fetch user role for RBAC
-    try {
-      const dbUser = await db.user.findUnique({
+    // Run workspace fetch and user role lookup in parallel
+    const [workspace, dbUser] = await Promise.all([
+      getOrCreateWorkspace(userId),
+      db.user.findUnique({
         where: { id: userId },
         select: { role: true },
-      });
-      if (dbUser?.role) userRole = dbUser.role as UserRole;
-    } catch {
-      // Default to OWNER if lookup fails
-    }
+      }).catch(() => null),
+    ]);
+    workspaceId = workspace.id;
+    tutorialComplete = workspace.tutorialComplete;
+    if (dbUser?.role) userRole = dbUser.role as UserRole;
 
     if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
       shouldRedirectToSetup = true;

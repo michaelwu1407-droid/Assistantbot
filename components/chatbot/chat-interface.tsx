@@ -630,7 +630,8 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       return;
     }
     let cancelled = false;
-    getChatHistory(workspaceId)
+    // Load only last 20 messages for faster initial render
+    getChatHistory(workspaceId, 20)
       .then((history) => {
         if (!cancelled) setInitialMessages(historyToInitialMessages(history ?? []));
       })
@@ -639,15 +640,6 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
       });
     return () => { cancelled = true; };
   }, [workspaceId]);
-
-  if (initialMessages === null) {
-    return (
-      <div className="flex flex-col h-full bg-background/50 items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        <p className="text-xs text-muted-foreground mt-2">Loading chat...</p>
-      </div>
-    );
-  }
 
   if (!workspaceId) {
     return (
@@ -659,10 +651,11 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     );
   }
 
+  // Render chat immediately with empty messages — history loads in background
   return (
     <ChatWithHistory
       workspaceId={workspaceId}
-      initialMessages={initialMessages}
+      initialMessages={initialMessages ?? []}
     />
   );
 }
