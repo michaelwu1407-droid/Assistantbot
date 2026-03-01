@@ -19,7 +19,7 @@ export default async function DashboardPage(props: {
 
     // 1. Get User
     const authUser = await getAuthUser()
-    
+
     // Redirect if not authenticated
     if (!authUser) {
         redirect("/auth")
@@ -44,12 +44,13 @@ export default async function DashboardPage(props: {
         }
     } catch (error) {
         console.error("DashboardPage failed to load:", error);
+        require('fs').writeFileSync('tmp-error.txt', String(error) + "\n" + (error as any).stack);
         dbError = true;
     }
 
     // Note: Auth flow already handles subscription and onboarding redirects
     // Users should only reach here if they have active subscriptions
-    
+
     if (dbError || !workspace || !deals) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 gap-4">

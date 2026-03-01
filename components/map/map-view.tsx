@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronRight, Route, CheckCircle2 } from "lucide-react"
+import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronRight, Route, CheckCircle2, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
@@ -102,6 +102,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
   const [viewJobDealId, setViewJobDealId] = useState<string | null>(null)
+  const [viewJobTab, setViewJobTab] = useState<"activities" | "jobs" | "notes" | undefined>(undefined)
 
   const { jobsToday, jobsUpcoming } = useMemo(() => {
     const today: Job[] = []
@@ -182,222 +183,235 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     <div className="h-full w-full relative flex min-h-0">
       {/* Job List Sidebar — collapsible */}
       <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
-          {sidebarCollapsed ? (
-            <div className="flex flex-col items-center py-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed(false)}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 text-slate-600"
-                title="Expand Today's Jobs"
-              >
-                <MapPin className="h-4 w-4 text-teal-600" />
-                <span className="text-[10px] font-medium">Jobs</span>
-                <ChevronRight className="h-4 w-4 text-slate-400 rotate-180" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-teal-600" />
-                  Today&apos;s Jobs
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
-              </div>
-              <button type="button" onClick={() => setSidebarCollapsed(true)} className="p-2 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors" title="Minimise panel">
-                <ChevronRight className="h-5 w-5 rotate-180 stroke-[2.5]" />
-              </button>
-            </div>
-
+        {sidebarCollapsed ? (
+          <div className="flex flex-col items-center py-3 gap-2">
             <button
-              onClick={() => setIsRouteMode(!isRouteMode)}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-colors",
-                isRouteMode
-                  ? "bg-slate-900 text-white hover:bg-slate-800"
-                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-              )}
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+              title="Expand Today's Jobs"
             >
-              <Route className="h-4 w-4" />
-              {isRouteMode ? "Exit Route Mode" : "Enable Route Mode"}
+              <MapPin className="h-4 w-4 text-teal-600" />
+              <span className="text-[10px] font-medium">Jobs</span>
+              <ChevronRight className="h-4 w-4 text-slate-400 rotate-180" />
             </button>
           </div>
+        ) : (
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-teal-600" />
+                    Today&apos;s Jobs
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
+                </div>
+                <button type="button" onClick={() => setSidebarCollapsed(true)} className="p-2 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors" title="Minimise panel">
+                  <ChevronRight className="h-5 w-5 rotate-180 stroke-[2.5]" />
+                </button>
+              </div>
 
-          {/* Job Cards */}
-          {jobListExpanded && (
-            <div className="flex-1 overflow-y-auto">
-              {!isRouteMode ? (
-                // Standard List View
-                jobsToday.length === 0 ? (
-                  <div className="p-4 text-sm text-slate-500">No jobs scheduled for today.</div>
-                ) : jobsToday.map((job) => {
-                  const time = job.scheduledAt
-                    ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
-                    : "No time set"
-                  const isSelected = job.id === selectedJobId
-                  const isStarted = job.id === startedJobId
-                  return (
-                    <div key={job.id} className={cn(
-                      "border-b border-slate-100 transition-all",
-                      isSelected && "bg-blue-50",
-                      isStarted && "bg-emerald-50"
-                    )}>
-                      <button
-                        onClick={() => selectJob(job)}
-                        className={cn(
-                          "w-full text-left p-3 border-l-4 transition-all",
-                          isStarted
-                            ? "border-l-emerald-500"
-                            : isSelected
-                              ? "border-l-blue-500"
-                              : "border-l-transparent hover:bg-slate-50"
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={cn(
-                            "w-2.5 h-2.5 rounded-full shrink-0 mt-1.5",
-                            isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500"
-                          )} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{job.clientName}</p>
-                              {isStarted && (
-                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">
-                                  In Progress
+              <button
+                onClick={() => setIsRouteMode(!isRouteMode)}
+                className={cn(
+                  "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-colors",
+                  isRouteMode
+                    ? "bg-slate-900 text-white hover:bg-slate-800"
+                    : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                )}
+              >
+                <Route className="h-4 w-4" />
+                {isRouteMode ? "Exit Route Mode" : "Enable Route Mode"}
+              </button>
+            </div>
+
+            {/* Job Cards */}
+            {jobListExpanded && (
+              <div className="flex-1 overflow-y-auto">
+                {!isRouteMode ? (
+                  // Standard List View
+                  jobsToday.length === 0 ? (
+                    <div className="p-4 text-sm text-slate-500">No jobs scheduled for today.</div>
+                  ) : jobsToday.map((job) => {
+                    const time = job.scheduledAt
+                      ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+                      : "No time set"
+                    const isSelected = job.id === selectedJobId
+                    const isStarted = job.id === startedJobId
+                    return (
+                      <div key={job.id} className={cn(
+                        "border-b border-slate-100 transition-all",
+                        isSelected && "bg-blue-50",
+                        isStarted && "bg-emerald-50"
+                      )}>
+                        <button
+                          onClick={() => selectJob(job)}
+                          className={cn(
+                            "w-full text-left p-3 border-l-4 transition-all",
+                            isStarted
+                              ? "border-l-emerald-500"
+                              : isSelected
+                                ? "border-l-blue-500"
+                                : "border-l-transparent hover:bg-slate-50"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              "w-2.5 h-2.5 rounded-full shrink-0 mt-1.5",
+                              isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500"
+                            )} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-slate-900 truncate">{job.clientName}</p>
+                                {isStarted && (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                                    In Progress
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-600 truncate">{job.title}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className="text-xs text-slate-400 flex items-center gap-1 truncate">
+                                  <MapPin className="h-3 w-3 shrink-0" />{job.address}
                                 </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-600 truncate">{job.title}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs text-slate-400 flex items-center gap-1 truncate">
-                                <MapPin className="h-3 w-3 shrink-0" />{job.address}
+                              </div>
+                              <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <Clock className="h-3 w-3 shrink-0" />{time}
                               </span>
                             </div>
-                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                              <Clock className="h-3 w-3 shrink-0" />{time}
-                            </span>
                           </div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* View Job (deal card modal) / Open in Google Maps — only shown when selected */}
-                      {isSelected && (
-                        <div className="px-3 pb-3 flex flex-col gap-2">
-                          <button
-                            onClick={() => setViewJobDealId(job.id)}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                            View Job
-                          </button>
-                          <button
-                            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200"
-                          >
-                            <Navigation className="h-3.5 w-3.5" />
-                            Open in Google Maps
-                          </button>
-                          {isStarted && (
+                        {/* View Job (deal card modal) / Open in Google Maps — only shown when selected */}
+                        {isSelected && (
+                          <div className="px-3 pb-3 flex flex-col gap-2">
+                            <button
+                              onClick={() => {
+                                setViewJobTab(undefined)
+                                setViewJobDealId(job.id)
+                              }}
+                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                              View Job
+                            </button>
+                            <button
+                              onClick={() => {
+                                setViewJobTab("activities")
+                                setViewJobDealId(job.id)
+                              }}
+                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Message
+                            </button>
                             <button
                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200"
                             >
                               <Navigation className="h-3.5 w-3.5" />
-                              Navigate Again
+                              Open in Google Maps
                             </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-              ) : (
-                // Route Sequential View
-                <div className="p-3 flex flex-col h-full">
-                  {activeTargetJob ? (
-                    <div className="bg-white border-2 border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-                      <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Active Target</span>
+                            {isStarted && (
+                              <button
+                                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                              >
+                                <Navigation className="h-3.5 w-3.5" />
+                                Navigate Again
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="p-4 flex flex-col gap-3">
-                        <div>
-                          <h4 className="text-lg font-bold text-slate-900 leading-tight">{activeTargetJob.clientName}</h4>
-                          <p className="text-sm text-slate-600 mt-0.5">{activeTargetJob.title}</p>
+                    )
+                  })
+                ) : (
+                  // Route Sequential View
+                  <div className="p-3 flex flex-col h-full">
+                    {activeTargetJob ? (
+                      <div className="bg-white border-2 border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                        <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Active Target</span>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                          <div className="flex items-start gap-2 text-sm text-slate-700">
-                            <MapPin className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
-                            <span>{activeTargetJob.address}</span>
+                        <div className="p-4 flex flex-col gap-3">
+                          <div>
+                            <h4 className="text-lg font-bold text-slate-900 leading-tight">{activeTargetJob.clientName}</h4>
+                            <p className="text-sm text-slate-600 mt-0.5">{activeTargetJob.title}</p>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-                            <span>{activeTargetJob.scheduledAt ? new Date(activeTargetJob.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }) : "No time set"}</span>
+                          <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                            <div className="flex items-start gap-2 text-sm text-slate-700">
+                              <MapPin className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
+                              <span>{activeTargetJob.address}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-slate-700">
+                              <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                              <span>{activeTargetJob.scheduledAt ? new Date(activeTargetJob.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }) : "No time set"}</span>
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Route Actions */}
-                        <div className="flex flex-col gap-2 mt-2">
-                          <button
-                            onClick={() => startJob(activeTargetJob)}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                          >
-                            <Navigation className="h-4 w-4" />
-                            Navigate to Job
-                          </button>
-
-                          {activeTargetJob.id === startedJobId && (
+                          {/* Route Actions */}
+                          <div className="flex flex-col gap-2 mt-2">
                             <button
-                              onClick={() => finishJob(activeTargetJob)}
-                              disabled={isCompleting}
-                              className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white text-sm font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
+                              onClick={() => startJob(activeTargetJob)}
+                              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                             >
-                              <CheckCircle2 className="h-4 w-4" />
-                              {isCompleting ? "Finishing..." : "Complete & Next"}
+                              <Navigation className="h-4 w-4" />
+                              Navigate to Job
                             </button>
-                          )}
+
+                            {activeTargetJob.id === startedJobId && (
+                              <button
+                                onClick={() => finishJob(activeTargetJob)}
+                                disabled={isCompleting}
+                                className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white text-sm font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                {isCompleting ? "Finishing..." : "Complete & Next"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                          <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                        </div>
+                        <h4 className="text-base font-bold text-slate-900">All Done!</h4>
+                        <p className="text-sm text-slate-500 mt-1">You've completed all scheduled jobs for today.</p>
                       </div>
-                      <h4 className="text-base font-bold text-slate-900">All Done!</h4>
-                      <p className="text-sm text-slate-500 mt-1">You've completed all scheduled jobs for today.</p>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Future Queue summary */}
-                  {activeTargetJob && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-xs uppercase tracking-wider font-bold text-slate-400 mb-2 px-1">Up Next</p>
-                      <div className="space-y-2">
-                        {jobsToday.filter(j => j.status !== "COMPLETED" && j.id !== activeTargetJob.id).map((job, idx) => (
-                          <div key={job.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 opacity-60">
-                            <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold shrink-0">
-                              {idx + 2}
+                    {/* Future Queue summary */}
+                    {activeTargetJob && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <p className="text-xs uppercase tracking-wider font-bold text-slate-400 mb-2 px-1">Up Next</p>
+                        <div className="space-y-2">
+                          {jobsToday.filter(j => j.status !== "COMPLETED" && j.id !== activeTargetJob.id).map((job, idx) => (
+                            <div key={job.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 opacity-60">
+                              <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                {idx + 2}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-700 truncate">{job.clientName}</p>
+                                <p className="text-[10px] text-slate-500 truncate">{job.address}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-slate-700 truncate">{job.clientName}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{job.address}</p>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-            </div>
-          )}
-        </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Map */}
       <div className="flex-1 min-w-0 relative min-h-[300px]">
@@ -443,6 +457,15 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                         className="flex-1 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
                       >
                         <Navigation className="h-3 w-3" /> {job.id === startedJobId ? "Navigate" : "Start Job"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setViewJobTab("activities")
+                          setViewJobDealId(job.id)
+                        }}
+                        className="flex-1 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <MessageSquare className="h-3 w-3" /> Message
                       </button>
                       {isRouteMode && job.id === startedJobId && (
                         <button
@@ -536,7 +559,13 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
       <DealDetailModal
         dealId={viewJobDealId}
         open={!!viewJobDealId}
-        onOpenChange={(open) => !open && setViewJobDealId(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewJobDealId(null)
+            setViewJobTab(undefined)
+          }
+        }}
+        initialTab={viewJobTab}
       />
     </div>
   )

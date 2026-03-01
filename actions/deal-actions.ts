@@ -546,6 +546,14 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       console.warn("Pricing learning hook failed on approveCompletion:", learningErr);
     }
 
+    // Automate review request
+    try {
+      const { sendReviewRequestSMS } = await import("./messaging-actions");
+      await sendReviewRequestSMS(dealId);
+    } catch (reviewErr) {
+      console.warn("Review request hook failed on approveCompletion:", reviewErr);
+    }
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/deals");
     return { success: true };
@@ -794,10 +802,11 @@ export async function uploadDealPhoto(
     const { error: uploadError } = await supabase.storage.from("job-photos").upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage.from("job-photos").getPublicUrl(fileName);
+    const publicUrl = supabase.storage.from("job-photos").getPublicUrl(fileName).data.publicUrl;
+    const caption = formData.get("caption") as string | null;
 
     await db.jobPhoto.create({
-      data: { dealId, url: publicUrl, caption: null },
+      data: { dealId, url: publicUrl, caption: caption || null },
     });
 
     revalidatePath("/dashboard");

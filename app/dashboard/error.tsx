@@ -14,6 +14,7 @@ export default function Error({
     useEffect(() => {
         // Log the error to an error reporting service
         console.error(error)
+        fetch('/api/log-crash', { method: 'POST', body: JSON.stringify({ message: error.message, stack: error.stack }) }).catch(() => { })
     }, [error])
 
     return (

@@ -14,6 +14,7 @@ import { updateDeal, approveCompletion, rejectCompletion } from "@/actions/deal-
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Check, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
@@ -34,9 +35,10 @@ interface DealDetailModalProps {
   onOpenChange: (open: boolean) => void
   currentUserRole?: string
   onDealUpdated?: () => void
+  initialTab?: "activities" | "jobs" | "notes"
 }
 
-export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = "TEAM_MEMBER", onDealUpdated }: DealDetailModalProps) {
+export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = "TEAM_MEMBER", onDealUpdated, initialTab }: DealDetailModalProps) {
   const [deal, setDeal] = useState<any>(null)
   const [contactDeals, setContactDeals] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -91,6 +93,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
             onOpenChange={onOpenChange}
             currentUserRole={currentUserRole}
             onDealUpdated={onDealUpdated}
+            initialTab={initialTab}
           />
         )}
       </DialogContent>
@@ -104,14 +107,17 @@ function DealDetailContent({
   onOpenChange,
   currentUserRole,
   onDealUpdated,
+  initialTab,
 }: {
   deal: any
   contactDeals: any[]
   onOpenChange: (open: boolean) => void
   currentUserRole: string
   onDealUpdated?: () => void
+  initialTab?: "activities" | "jobs" | "notes"
 }) {
   const router = useRouter()
+  const [activeDetailTab, setActiveDetailTab] = useState<"activities" | "jobs" | "notes">(initialTab || "activities")
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
@@ -378,10 +384,23 @@ function DealDetailContent({
                 </Button>
               </Link>
             </div>
-            <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0 min-h-0">
-              <div className="border-b md:border-b-0 md:border-r border-slate-100 flex flex-col min-h-0">
-                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Past jobs</p>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0">
+              {["activities", "jobs", "notes"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveDetailTab(t as any)}
+                  className={cn(
+                    "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                    activeDetailTab === t ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  {t === "activities" ? "Communications" : t}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0">
+              {activeDetailTab === "jobs" && (
+                <div className="h-full overflow-y-auto p-3 space-y-2">
                   {contactDeals.length === 0 ? (
                     <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
                   ) : (
@@ -395,19 +414,46 @@ function DealDetailContent({
                         className="block w-full text-left p-2 rounded-lg border border-slate-100 hover:bg-slate-50 text-sm"
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
-                        <span className="text-slate-500 ml-2">${Number(d.value || 0).toLocaleString()}</span>
+                        {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
                         <span className="text-slate-400 text-xs block mt-0.5">{STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
                       </button>
                     ))
                   )}
                 </div>
-              </div>
-              <div className="flex flex-col min-h-0">
-                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Notes</p>
-                <div className="flex-1 overflow-y-auto p-3">
+              )}
+              {activeDetailTab === "notes" && (
+                <div className="h-full overflow-y-auto p-3">
                   <DealNotes dealId={deal.id} initialNotes={notes} />
                 </div>
-              </div>
+              )}
+              {activeDetailTab === "activities" && (
+                <div className="h-full overflow-hidden flex flex-col min-h-0">
+                  <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
+                  {/* Direct message mini-box */}
+                  <div className="p-3 border-t bg-slate-50/50 shrink-0">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Send a quick update..."
+                        className="bg-white h-9 text-xs"
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            const val = e.currentTarget.value.trim();
+                            if (!val) return;
+                            e.currentTarget.value = '';
+                            const { sendSMS } = await import("@/actions/messaging-actions");
+                            const res = await sendSMS(deal.contactId, val, deal.id);
+                            if (res.success) toast.success("Message sent");
+                            else toast.error(res.error || "Failed to send");
+                          }
+                        }}
+                      />
+                      <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/10">
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
