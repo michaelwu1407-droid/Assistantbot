@@ -348,7 +348,7 @@ export async function runGetTodaySummary(
     }
 
     // Job notes that mention materials
-    const desc = (j.description || "").toLowerCase();
+    const desc = (typeof meta.description === "string" ? meta.description : j.title || "").toLowerCase();
     if (desc.includes("material") || desc.includes("parts") || desc.includes("supplies")) {
       preparations.push("MATERIALS MENTIONED — verify you have required parts");
     }
