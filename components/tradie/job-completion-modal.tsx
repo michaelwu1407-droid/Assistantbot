@@ -44,7 +44,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     const [showActionSheet, setShowActionSheet] = useState(false);
 
     // Invoice Verifier state
-    const [laborHours, setLaborHours] = useState<number>(job?.scheduledDuration ?? 1);
+    const [laborHours, setLaborHours] = useState<number>(1);
     const [laborRate, setLaborRate] = useState<number>(85); // Default hourly rate
     const [materials, setMaterials] = useState<MaterialLine[]>([]);
 
