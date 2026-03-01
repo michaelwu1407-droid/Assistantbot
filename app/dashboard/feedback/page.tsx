@@ -1,4 +1,4 @@
-﻿import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { getWorkspaceFeedback } from "@/actions/feedback-actions"
 import { FeedbackWidget } from "@/components/crm/feedback-widget"

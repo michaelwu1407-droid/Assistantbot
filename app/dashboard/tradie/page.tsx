@@ -1,4 +1,4 @@
-﻿import { getAuthUserId } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth"
 import { getTodaySchedule, getTradieJobById } from "@/actions/tradie-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"

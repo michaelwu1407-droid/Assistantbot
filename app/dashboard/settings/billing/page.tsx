@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";

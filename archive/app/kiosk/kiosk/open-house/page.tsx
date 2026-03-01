@@ -1,4 +1,4 @@
-﻿import { KioskForm } from "@/components/agent/kiosk-form"
+import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { generateQRDataURL } from "@/lib/qrcode"
