@@ -65,9 +65,9 @@ export async function uploadJobPhoto(
     return { success: true, url: publicUrl };
   } catch (error) {
     console.error("Error uploading job photo:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to upload photo" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to upload photo"
     };
   }
 }
@@ -91,9 +91,9 @@ export async function getJobPhotos(dealId: string): Promise<{
     return { success: true, photos: data || [] };
   } catch (error) {
     console.error("Error fetching job photos:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to fetch photos" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch photos"
     };
   }
 }
@@ -142,9 +142,9 @@ export async function deleteJobPhoto(photoId: string): Promise<{
     return { success: true };
   } catch (error) {
     console.error("Error deleting job photo:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to delete photo" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete photo"
     };
   }
 }
@@ -178,9 +178,9 @@ export async function createJobNote(
     return { success: true, note: data };
   } catch (error) {
     console.error("Error creating job note:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to create note" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create note"
     };
   }
 }
@@ -207,9 +207,9 @@ export async function getJobNotes(dealId: string): Promise<{
     return { success: true, notes: data || [] };
   } catch (error) {
     console.error("Error fetching job notes:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to fetch notes" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch notes"
     };
   }
 }
@@ -239,9 +239,9 @@ export async function updateJobNote(
     return { success: true, note: data };
   } catch (error) {
     console.error("Error updating job note:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to update note" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update note"
     };
   }
 }
@@ -275,9 +275,9 @@ export async function deleteJobNote(noteId: string): Promise<{
     return { success: true };
   } catch (error) {
     console.error("Error deleting job note:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to delete note" 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete note"
     };
   }
 }

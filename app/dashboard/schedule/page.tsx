@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth"
 import { getDeals } from "@/actions/deal-actions"
 import { ScheduleCalendar } from "./schedule-calendar"
 import { getCurrentUserRole } from "@/lib/rbac"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -11,20 +12,30 @@ export default async function SchedulePage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
 
-    let deals
+    let deals: any[] = [], teamMembers: any[] = []
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
-        const allDeals = await getDeals(workspace.id)
+        const [allDeals, members] = await Promise.all([
+            getDeals(workspace.id),
+            db.user.findMany({
+                where: { workspaceId: workspace.id },
+                select: { id: true, name: true, email: true, role: true }
+            })
+        ])
         // Deleted jobs should not appear on the schedule
-        let filteredDeals = allDeals.filter((d) => d.stage !== "deleted")
+        let filteredDeals = allDeals.filter((d: any) => d.stage !== "deleted")
 
         // RBAC: Team members only see jobs assigned to them
         const role = await getCurrentUserRole()
         if (role === "TEAM_MEMBER") {
-            filteredDeals = filteredDeals.filter((d) => d.assignedToId === authUser.id)
+            filteredDeals = filteredDeals.filter((d: any) => d.assignedToId === authUser.id)
         }
 
         deals = filteredDeals
+        teamMembers = members.map((m: any) => ({
+            ...m,
+            name: m.name || m.email.split('@')[0]
+        }))
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">
@@ -40,7 +51,7 @@ export default async function SchedulePage() {
         <div className="h-full flex flex-col p-4 md:p-6 overflow-hidden">
             <h1 className="text-xl font-bold text-midnight mb-3 shrink-0">Schedule</h1>
             <div className="flex-1 min-h-0">
-                <ScheduleCalendar deals={deals} />
+                <ScheduleCalendar deals={deals} teamMembers={teamMembers} />
             </div>
         </div>
     )

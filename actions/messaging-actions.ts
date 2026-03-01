@@ -443,3 +443,43 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
     return { success: false, error: "Failed to send nudge SMS" };
   }
 }
+
+/**
+ * Send a review request SMS to a customer after a job is completed.
+ * Includes a placeholder link for Google Reviews.
+ */
+export async function sendReviewRequestSMS(dealId: string): Promise<MessageResult> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      include: { contact: true, workspace: true }
+    });
+
+    if (!deal || !deal.contact.phone) {
+      return { success: false, error: "No contact phone number found" };
+    }
+
+    const businessName = deal.workspace.name || "us";
+    const message = `Hi ${deal.contact.name}, thanks for letting ${businessName} help you with your job "${deal.title}". We hope you're happy with the results! If you have a moment, we'd love if you could leave us a quick review here: https://g.page/r/your-google-review-link. Thanks!`;
+
+    const result = await sendSMS(deal.contactId, message, dealId);
+
+    if (result.success) {
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Review Request Sent",
+          content: `Sent review request SMS to ${deal.contact.name}`,
+          dealId,
+          contactId: deal.contactId
+        }
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error sending review request SMS:", error);
+    return { success: false, error: "Failed to send review request SMS" };
+  }
+}
+
