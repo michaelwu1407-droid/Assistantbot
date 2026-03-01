@@ -3,10 +3,16 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useShellStore } from "@/lib/store"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
 }
+
+const MANAGER_ONLY_HREFS = new Set([
+    "/dashboard/settings/billing",
+    "/dashboard/settings/integrations",
+])
 
 const sidebarNavSections: { label?: string; items: { title: string; href: string }[] }[] = [
     {
@@ -27,6 +33,11 @@ const sidebarNavSections: { label?: string; items: { title: string; href: string
     {
         items: [
             { title: "AI Assistant", href: "/dashboard/settings/agent" },
+        ],
+    },
+    {
+        items: [
+            { title: "Knowledge Base", href: "/dashboard/settings/knowledge" },
         ],
     },
     {
@@ -64,6 +75,16 @@ const sidebarNavSections: { label?: string; items: { title: string; href: string
 
 function SidebarNav({ className, ...props }: { className?: string } & React.HTMLAttributes<HTMLElement>) {
     const pathname = usePathname()
+    const userRole = useShellStore((s) => s.userRole)
+    const isManager = userRole === "OWNER" || userRole === "MANAGER"
+
+    // RBAC: filter out manager-only settings for team members
+    const visibleSections = sidebarNavSections
+        .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => isManager || !MANAGER_ONLY_HREFS.has(item.href)),
+        }))
+        .filter((section) => section.items.length > 0)
 
     return (
         <nav
@@ -73,7 +94,7 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
             )}
             {...props}
         >
-            {sidebarNavSections.map((section, si) => (
+            {visibleSections.map((section, si) => (
                 <div key={si} className="lg:space-y-1">
                     {section.label && (
                         <p className="hidden lg:block px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">

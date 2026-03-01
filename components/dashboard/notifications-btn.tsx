@@ -1,21 +1,38 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Check, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bell, Check, Sparkles, Phone, FileText, CheckCircle2, ClipboardCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getNotifications, markAsRead, markAllAsRead, type NotificationView } from "@/actions/notification-actions"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+
+const ACTION_LABELS: Record<string, { label: string; icon: React.ElementType; className: string }> = {
+    CONFIRM_JOB: { label: "Confirm", icon: CheckCircle2, className: "bg-green-600 hover:bg-green-700 text-white" },
+    CALL_CLIENT: { label: "Call", icon: Phone, className: "bg-blue-600 hover:bg-blue-700 text-white" },
+    SEND_INVOICE: { label: "Invoice", icon: FileText, className: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+    APPROVE_COMPLETION: { label: "Approve", icon: ClipboardCheck, className: "bg-amber-600 hover:bg-amber-700 text-white" },
+}
 
 interface NotificationsBtnProps {
     userId: string
 }
 
 export function NotificationsBtn({ userId }: NotificationsBtnProps) {
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [notifications, setNotifications] = useState<NotificationView[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [loading, setLoading] = useState(false)
+
+    const handleAction = async (n: NotificationView) => {
+        await handleMarkRead(n.id)
+        if (n.link) {
+            router.push(n.link)
+        }
+        setIsOpen(false)
+    }
 
     const fetchNotifications = async () => {
         setLoading(true)
@@ -128,11 +145,23 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                 <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                                                     {n.message}
                                                 </p>
+                                                {n.actionType && ACTION_LABELS[n.actionType] && !n.read && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleAction(n); }}
+                                                        className={cn(
+                                                            "mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors",
+                                                            ACTION_LABELS[n.actionType].className
+                                                        )}
+                                                    >
+                                                        {(() => { const Icon = ACTION_LABELS[n.actionType!].icon; return <Icon className="h-3 w-3" />; })()}
+                                                        {ACTION_LABELS[n.actionType].label}
+                                                    </button>
+                                                )}
                                                 <p className="text-[10px] text-slate-400 mt-1.5">
                                                     {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
-                                            {!n.read && (
+                                            {!n.read && !n.actionType && (
                                                 <button
                                                     onClick={() => handleMarkRead(n.id)}
                                                     className="self-start text-slate-300 hover:text-blue-600 transition-colors"

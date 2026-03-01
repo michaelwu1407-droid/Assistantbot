@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Upload, X, Clock, Wrench, Plus, Trash2, FileText } from "lucide-react";
 import { MessageActionSheet } from "@/components/sms/message-action-sheet";
 import { MaterialPicker } from "@/components/tradie/material-picker";
+import { SignaturePad } from "@/components/tradie/signature-pad";
 import { Job } from "@/components/map/map-view";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     const [showActionSheet, setShowActionSheet] = useState(false);
 
     // Invoice Verifier state
-    const [laborHours, setLaborHours] = useState<number>(job?.scheduledDuration ?? 1);
+    const [laborHours, setLaborHours] = useState<number>(1);
     const [laborRate, setLaborRate] = useState<number>(85); // Default hourly rate
     const [materials, setMaterials] = useState<MaterialLine[]>([]);
 
@@ -357,6 +358,26 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                         <Button type="button" variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setFiles([])}>
                                             Clear all
                                         </Button>
+                                    )}
+                                </div>
+
+                                {/* Customer Signature */}
+                                <div className="space-y-3">
+                                    <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <PenLine className="h-4 w-4 text-indigo-500" />
+                                        Customer Signature {!signature && <span className="text-xs text-slate-400 font-normal">(Optional)</span>}
+                                    </label>
+                                    {signature ? (
+                                        <div className="space-y-2">
+                                            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-2 flex items-center justify-center">
+                                                <img src={signature} alt="Customer signature" className="max-h-[100px]" />
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setSignature(null)}>
+                                                Clear & Re-sign
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <SignaturePad onSave={setSignature} />
                                     )}
                                 </div>
                             </div>

@@ -387,6 +387,15 @@ export async function POST(req: Request) {
       return msgHasText || msgHasTools;
     });
 
+    // Context pruning: keep only the last MAX_HISTORY_MESSAGES to avoid unbounded
+    // token growth and rising latency/cost. System messages always pass through.
+    const MAX_HISTORY_MESSAGES = 20;
+    if (modelMessages.length > MAX_HISTORY_MESSAGES) {
+      const systemMsgs = modelMessages.filter((m: any) => m.role === "system");
+      const nonSystemMsgs = modelMessages.filter((m: any) => m.role !== "system");
+      modelMessages = [...systemMsgs, ...nonSystemMsgs.slice(-MAX_HISTORY_MESSAGES)];
+    }
+
     // Final safety: ensure last message is user with content. If history was entirely
     // filtered away, create a minimal user message from the extracted content.
     if (!modelMessages.length && content?.trim()) {
@@ -489,7 +498,7 @@ TOOLS — DATA RETRIEVAL (use these to look up information on demand):
 - showConfirmationCard: Show a Confirm/Cancel button for a data change. Call when you offer to update data so the user can click Confirm or type ok/agree/yes/confirm.
 - recordManualRevenue: Record revenue for a period. Call ONLY after the user has confirmed (typed confirm, ok, agree, yes, or clicked Confirm).
 - getClientContext: Full client profile — contact info, recent jobs, notes, messages. Use for "Tell me about X", "What's the history with Y?", or before contacting a client.
-- getTodaySummary: Quick snapshot of today's jobs, overdue tasks, and message count. Use for "What's on today?", "Give me my daily summary", "Morning brief".
+- getTodaySummary: PREPARATION-FOCUSED daily briefing. Returns today's jobs with readiness checks (missing address, no phone, unassigned, unconfirmed, deposit not paid, materials needed). Use for "What's on today?", "Morning brief", "Am I ready?". CRITICAL: When presenting results, LEAD with preparation alerts (e.g. "Heads up: 2 jobs need attention before you head out") and list specific issues so the tradie can fix them. Then show the schedule.
 - getAvailability: Check available time slots on a specific day. Use for "Am I free on Tuesday?", "What slots are open next Monday?", "When can I fit in a job?"
 - getConversationHistory: Retrieve text/call/email history with a specific contact.
 - createNotification: Create a scheduled notification or reminder alert.

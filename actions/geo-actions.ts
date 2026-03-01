@@ -148,18 +148,19 @@ export async function batchGeocode(workspaceId: string): Promise<{
   let geocoded = 0;
   let failed = 0;
 
+  // Batch geocode results and write to DB in one transaction
+  const updates: { id: string; latitude: number; longitude: number; address: string }[] = [];
+
   for (const deal of deals) {
     if (!deal.address) continue;
 
     const result = await geocodeAddress(deal.address);
     if (result) {
-      await db.deal.update({
-        where: { id: deal.id },
-        data: {
-          latitude: result.latitude,
-          longitude: result.longitude,
-          address: result.formattedAddress,
-        },
+      updates.push({
+        id: deal.id,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        address: result.formattedAddress,
       });
       geocoded++;
     } else {
@@ -168,6 +169,18 @@ export async function batchGeocode(workspaceId: string): Promise<{
 
     // Rate limit: Nominatim requires 1 req/sec
     await new Promise((resolve) => setTimeout(resolve, 1100));
+  }
+
+  // Batch write all geocoded results in a single transaction
+  if (updates.length > 0) {
+    await db.$transaction(
+      updates.map((u) =>
+        db.deal.update({
+          where: { id: u.id },
+          data: { latitude: u.latitude, longitude: u.longitude, address: u.address },
+        })
+      )
+    );
   }
 
   return { success: true, geocoded, failed };

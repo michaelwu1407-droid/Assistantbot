@@ -11,6 +11,8 @@ import { createNotification } from "./notification-actions";
 import { getAuthUser } from "@/lib/auth";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
+import { triageIncomingLead, saveTriageRecommendation } from "@/lib/ai/triage";
+import { checkForDeviation } from "./learning-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -91,6 +93,8 @@ export interface DealView {
   outcomeNotes?: string | null;
   // AI Agent Triage Flags
   agentFlags?: string[];
+  // Lead Source
+  source?: string | null;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -124,13 +128,24 @@ const UpdateStageSchema = z.object({
  */
 const DELETED_DAYS_THRESHOLD = 30;
 
-export async function getDeals(workspaceId: string, contactId?: string): Promise<DealView[]> {
+export async function getDeals(
+  workspaceId: string,
+  contactId?: string,
+  filters?: { excludeStages?: string[]; requireScheduled?: boolean; limit?: number }
+): Promise<DealView[]> {
   try {
     const where: Record<string, unknown> = { workspaceId };
     if (contactId) where.contactId = contactId;
+    if (filters?.excludeStages?.length) {
+      where.stage = { notIn: filters.excludeStages };
+    }
+    if (filters?.requireScheduled) {
+      where.scheduledAt = { not: null };
+    }
 
     const deals = await db.deal.findMany({
       where,
+      ...(filters?.limit ? { take: filters.limit } : {}),
       include: {
         contact: true,
         assignedTo: { select: { id: true, name: true } },
@@ -201,6 +216,8 @@ export async function getDeals(workspaceId: string, contactId?: string): Promise
         outcomeNotes: deal.outcomeNotes,
         // AI Agent Triage Flags
         agentFlags: Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : undefined,
+        // Lead Source
+        source: (deal as any).source ?? null,
       };
     });
   } catch (error) {
@@ -252,6 +269,19 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       contactId,
     },
   });
+
+  // Run triage classifier on new leads
+  try {
+    const triageResult = await triageIncomingLead(workspaceId, {
+      title,
+      address: address || undefined,
+      latitude: latitude ?? undefined,
+      longitude: longitude ?? undefined,
+    });
+    await saveTriageRecommendation(deal.id, triageResult);
+  } catch {
+    // Triage is non-critical — don't block deal creation
+  }
 
   MonitoringService.trackEvent("deal_created", {
     dealId: deal.id,
@@ -420,6 +450,13 @@ export async function updateDealStage(dealId: string, stage: string) {
       } catch (learningErr) {
         console.warn("Pricing learning hook failed after stage update:", learningErr);
       }
+    }
+
+    // Check for AI triage deviation (AI said decline, user overrode)
+    try {
+      await checkForDeviation(parsed.data.dealId, prismaStage, userId || "");
+    } catch {
+      // Non-critical — don't block stage change
     }
 
     return { success: true };

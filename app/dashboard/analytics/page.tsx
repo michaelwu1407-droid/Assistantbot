@@ -14,6 +14,7 @@ import {
   LayoutList,
 } from "lucide-react"
 import { useShellStore } from "@/lib/store"
+import { useRouter } from "next/navigation"
 import { getReportsData, type ReportsData } from "@/actions/analytics-actions"
 
 export default function AnalyticsPage() {
@@ -22,9 +23,18 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [revenueExpanded, setRevenueExpanded] = useState(false)
   const workspaceId = useShellStore((s) => s.workspaceId)
+  const userRole = useShellStore((s) => s.userRole)
+  const router = useRouter()
+
+  // RBAC: Team members cannot access reports
+  useEffect(() => {
+    if (userRole === "TEAM_MEMBER") {
+      router.replace("/dashboard")
+    }
+  }, [userRole, router])
 
   useEffect(() => {
-    if (!workspaceId) {
+    if (!workspaceId || userRole === "TEAM_MEMBER") {
       setLoading(false)
       return
     }

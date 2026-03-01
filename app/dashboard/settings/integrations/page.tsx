@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -11,13 +11,23 @@ import { toast } from "sonner"
 import { getOrAllocateInboundEmail } from "@/actions/settings-actions"
 import { connectXero } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
+import { useShellStore } from "@/lib/store"
 
 export default function IntegrationsPage() {
     const searchParams = useSearchParams()
+    const router = useRouter()
+    const userRole = useShellStore((s) => s.userRole)
     const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [email, setEmail] = useState<string>("")
     const [emailIntegrations, setEmailIntegrations] = useState<any[]>([])
+
+    // RBAC: Team members cannot access integrations
+    useEffect(() => {
+        if (userRole === "TEAM_MEMBER") {
+            router.replace("/dashboard/settings")
+        }
+    }, [userRole, router])
 
     useEffect(() => {
         const fetchEmail = async () => {

@@ -28,6 +28,9 @@ const OnboardingSchema = z.object({
   standardWorkHours: z.string().min(1),
   emergencyService: z.boolean(),
   emergencySurcharge: z.number().min(0).optional(),
+
+  // Step 4: Review Business Rules
+  serviceRadius: z.number().min(1).max(200).optional(),
 });
 
 export type OnboardingFormData = z.infer<typeof OnboardingSchema>;
@@ -63,6 +66,7 @@ export async function saveOnboardingData(
           tradeType: d.tradeType,
           website: d.website || null,
           baseSuburb: d.baseSuburb,
+          serviceRadius: d.serviceRadius ?? 20,
           standardWorkHours: d.standardWorkHours,
           emergencyService: d.emergencyService,
           emergencySurcharge: d.emergencyService ? d.emergencySurcharge : null,
@@ -71,6 +75,7 @@ export async function saveOnboardingData(
           tradeType: d.tradeType,
           website: d.website || null,
           baseSuburb: d.baseSuburb,
+          serviceRadius: d.serviceRadius ?? 20,
           standardWorkHours: d.standardWorkHours,
           emergencyService: d.emergencyService,
           emergencySurcharge: d.emergencyService ? d.emergencySurcharge : null,

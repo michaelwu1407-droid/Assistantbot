@@ -443,11 +443,21 @@ Click any customer to see:
 - **Automatic Tagging**: Photos linked to specific jobs
 - **Cloud Storage**: All media backed up automatically
 
-### 5.5 Completing Jobs & Signatures (Offline Mode)
-- **Offline Capability**: Work without internet
-- **Digital Signatures**: Customer sign-off on completion
-- **Instant Sync**: Data uploads when connection restored
-- **Payment Collection**: On-site payment processing
+### 5.5 On-Site Job Completion Workflow
+When you finish a job on-site, use the **"Finish Job"** button (Tradie Dashboard) or **"Mark Done"** button (Map View):
+
+1. **Invoice Verifier**: Review and adjust labour hours, hourly rate, and materials used. The running total updates live.
+2. **Materials**: Use the Material Picker to add parts/materials from your inventory.
+3. **Payment Status**: Toggle between "Paid on Site" or "Invoice Later".
+4. **Field Notes**: Add any context (e.g. "Found a separate leak in bathroom").
+5. **Photos/Files**: Upload before/after photos or documents.
+6. **Customer Signature**: Get the customer to sign on the signature pad (touch-friendly for mobile).
+7. **Dual-Action Filing**:
+   - **Save for Later**: Saves job details, moves to "Ready to Invoice" stage. No invoice created yet.
+   - **Confirm & Generate**: Creates the invoice with your verified line items, moves job to "Completed" (WON), and pushes a DRAFT invoice to Xero for manager review.
+8. **Review Request**: After completion, optionally send the customer a review request via SMS.
+
+**Important**: Xero invoices are always created as DRAFT — your manager/bookkeeper reviews before sending to the customer.
 
 ---
 
@@ -551,13 +561,33 @@ Click any customer to see:
 - **/contact**: Fast customer information retrieval
   📍 Type "/" in chat box → Choose from dropdown menu
 
-### 8.4 Teaching AI Your Preferences
+### 8.4 Morning Briefing (Preparation Check)
+Ask Travis "What's on today?" or "Am I ready for today?" to get a **preparation-focused** daily briefing.
+
+Travis checks each scheduled job for readiness issues:
+- **Missing Address**: Can't navigate if no address is set
+- **No Phone Number**: Can't call ahead if client has no phone
+- **Unassigned Job**: No team member allocated to the job
+- **Unconfirmed Job**: Job still in NEW or CONTACTED stage — customer hasn't confirmed
+- **Deposit Not Paid**: Job requires deposit but none recorded
+- **Materials Needed**: Job description mentions materials/parts/supplies
+
+Travis leads with any alerts (e.g. "Heads up: 2 jobs need attention before you head out") so you can fix issues before leaving.
+
+### 8.5 The Bouncer (Lead Qualification)
+During onboarding, you can set **strict exclusion rules** (e.g. "No 2-story roofs, no asbestos, no CBD jobs").
+
+- **Hard No-Go**: Travis will politely decline leads matching your exclusion criteria.
+- **Soft Flags**: For jobs that seem risky but don't match a rule, Travis adds a private flag visible on your dashboard (orange badge on the deal card).
+- **Real-Time Updates**: Tell Travis "Stop taking jobs for X" and he'll ask if you want to strictly decline or just flag them.
+
+### 8.6 Teaching AI Your Preferences
 - **Feedback Loop**: Correct AI responses to improve accuracy
 - **Preference Learning**: AI adapts to your communication style
 - **Business Context**: Teach industry-specific terminology
 - **Custom Instructions**: Set specific behaviors and responses
 
-### 8.5 Complex Multi-step Tasks
+### 8.7 Complex Multi-step Tasks
 ```
 "Find all electrical jobs in Sydney, create follow-up tasks for each, and schedule them for next week"
 ```

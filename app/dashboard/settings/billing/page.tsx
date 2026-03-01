@@ -1,11 +1,18 @@
+import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import { isManagerOrAbove } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingSettingsPage() {
+    // RBAC: Team members cannot access billing
+    if (!(await isManagerOrAbove())) {
+        redirect("/dashboard/settings");
+    }
+
     const userId = await getAuthUserId();
     const workspace = await getOrCreateWorkspace(userId);
 

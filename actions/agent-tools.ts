@@ -273,9 +273,10 @@ export async function runGetClientContext(
 export async function runGetTodaySummary(
   workspaceId: string
 ): Promise<{
-  todayJobs: { title: string; clientName: string; scheduledAt: string; address: string | null }[];
+  todayJobs: { title: string; clientName: string; scheduledAt: string; address: string | null; phone: string | null; assignedTo: string | null; preparations: string[] }[];
   overdueTasks: { title: string; dueAt: string }[];
   recentMessages: number;
+  preparationAlerts: string[];
 }> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -287,7 +288,10 @@ export async function runGetTodaySummary(
       workspaceId,
       scheduledAt: { gte: todayStart, lte: todayEnd },
     },
-    include: { contact: { select: { name: true } } },
+    include: {
+      contact: { select: { name: true, phone: true } },
+      assignedTo: { select: { name: true } },
+    },
     orderBy: { scheduledAt: "asc" },
   });
 
@@ -308,18 +312,66 @@ export async function runGetTodaySummary(
     },
   });
 
-  return {
-    todayJobs: todayJobs.map((j) => ({
+  // Preparation-focused checks for each job
+  const preparationAlerts: string[] = [];
+  const jobsWithPrep = todayJobs.map((j) => {
+    const preparations: string[] = [];
+    const meta = (j.metadata || {}) as Record<string, unknown>;
+
+    // Missing address = can't navigate
+    if (!j.address || j.address.trim().length < 5) {
+      preparations.push("NO ADDRESS — confirm location before leaving");
+      preparationAlerts.push(`${j.contact?.name || j.title}: missing address`);
+    }
+
+    // No contact phone = can't call ahead
+    if (!j.contact?.phone) {
+      preparations.push("NO PHONE — no way to contact client on the way");
+      preparationAlerts.push(`${j.contact?.name || j.title}: no phone number`);
+    }
+
+    // Unassigned job
+    if (!j.assignedToId) {
+      preparations.push("UNASSIGNED — no team member allocated");
+      preparationAlerts.push(`${j.contact?.name || j.title}: unassigned`);
+    }
+
+    // Draft/unconfirmed job (still in NEW or CONTACTED stage)
+    if (j.stage === "NEW" || j.stage === "CONTACTED") {
+      preparations.push("UNCONFIRMED — job not yet confirmed with customer");
+      preparationAlerts.push(`${j.contact?.name || j.title}: unconfirmed`);
+    }
+
+    // No deposit taken (if metadata tracks it)
+    if (meta.depositRequired && !meta.depositPaid) {
+      preparations.push("DEPOSIT NOT PAID — collect before starting work");
+    }
+
+    // Job notes that mention materials
+    const desc = (typeof meta.description === "string" ? meta.description : j.title || "").toLowerCase();
+    if (desc.includes("material") || desc.includes("parts") || desc.includes("supplies")) {
+      preparations.push("MATERIALS MENTIONED — verify you have required parts");
+    }
+
+    return {
       title: j.title,
       clientName: j.contact?.name || "Unknown",
       scheduledAt: j.scheduledAt?.toISOString() || "",
       address: j.address,
-    })),
+      phone: j.contact?.phone || null,
+      assignedTo: j.assignedTo?.name || null,
+      preparations,
+    };
+  });
+
+  return {
+    todayJobs: jobsWithPrep,
     overdueTasks: overdueTasks.map((t) => ({
       title: t.title,
       dueAt: t.dueAt?.toISOString() || "",
     })),
     recentMessages: recentMsgCount,
+    preparationAlerts,
   };
 }
 

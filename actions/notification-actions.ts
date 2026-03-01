@@ -11,6 +11,8 @@ export interface NotificationView {
   type: string;
   read: boolean;
   link: string | null;
+  actionType: string | null;
+  actionPayload: Record<string, unknown> | null;
   createdAt: Date;
 }
 
@@ -31,6 +33,8 @@ export async function getNotifications(userId: string): Promise<NotificationView
     type: n.type,
     read: n.read,
     link: n.link,
+    actionType: (n as any).actionType ?? null,
+    actionPayload: (n as any).actionPayload as Record<string, unknown> | null ?? null,
     createdAt: n.createdAt,
   }));
 }
@@ -70,6 +74,8 @@ export async function createNotification(data: {
   message: string;
   type?: string;
   link?: string;
+  actionType?: string;
+  actionPayload?: Record<string, unknown>;
 }) {
   await db.notification.create({
     data: {
@@ -78,6 +84,8 @@ export async function createNotification(data: {
       message: data.message,
       type: (data.type || "INFO") as any,
       link: data.link,
+      ...(data.actionType ? { actionType: data.actionType } : {}),
+      ...(data.actionPayload ? { actionPayload: data.actionPayload as any } : {}),
     },
   });
   return { success: true };
@@ -210,15 +218,17 @@ export async function ensureDailyNotifications(workspaceId: string) {
 
   if (agendaNotifyTime && currentMinutes >= getMinutes(agendaNotifyTime)) {
     const existing = await db.notification.findFirst({
-      where: { userId: dbUser.id, title: { contains: "Morning Agenda" }, createdAt: { gte: startOfDay } }
+      where: { userId: dbUser.id, title: { contains: "Morning Briefing" }, createdAt: { gte: startOfDay } }
     });
     if (!existing) {
       await createNotification({
         userId: dbUser.id,
-        title: "☀️ Morning Agenda",
-        message: "Good morning! Your daily AI schedule optimization has run. Click to view your dashboard.",
+        title: "☀️ Morning Briefing",
+        message: "Good morning! Check your daily briefing for job preparations — verify addresses, materials, and confirmations before heading out.",
         type: "INFO",
-        link: "/dashboard"
+        link: "/dashboard",
+        actionType: "CONFIRM_JOB",
+        actionPayload: { trigger: "morning_briefing" },
       });
     }
   }

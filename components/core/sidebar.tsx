@@ -28,25 +28,31 @@ import { useShellStore } from "@/lib/store"
 
 const SIDEBAR_WIDTH = 45
 
-const navItems = [
-    { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link" },
-    { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
-    { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
-    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
-    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
-    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
-    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
+const allNavItems = [
+    { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link", managerOnly: false },
+    { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link", managerOnly: true },
+    { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link", managerOnly: false },
+    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link", managerOnly: false },
+    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link", managerOnly: true },
+    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link", managerOnly: true },
+    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link", managerOnly: false },
 ]
 
 interface SidebarProps {
     className?: string
+    /** When true (e.g. inside the mobile sheet), the sidebar expands to fill its container width */
+    expanded?: boolean
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, expanded }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath } = useShellStore()
+    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
+
+    // RBAC: Filter nav items based on user role
+    const isManager = userRole === "OWNER" || userRole === "MANAGER"
+    const navItems = allNavItems.filter((item) => !item.managerOnly || isManager)
 
     useEffect(() => {
         setMounted(true)
@@ -78,7 +84,7 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={{ width: SIDEBAR_WIDTH }}>
+            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
                     <img src="/latest-logo.png" alt="Earlymark" className="h-9 w-9 object-contain transition-all hover:scale-105 active:scale-95" />

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 export type ViewMode = 'BASIC' | 'ADVANCED' | 'TUTORIAL'
 export type Persona = 'TRADIE' | 'AGENT'
+export type UserRole = 'OWNER' | 'MANAGER' | 'TEAM_MEMBER'
 
 interface ShellState {
   viewMode: ViewMode
@@ -11,6 +12,7 @@ interface ShellState {
   tutorialStepIndex: number
   workspaceId: string | null
   userId: string | null
+  userRole: UserRole
   mobileMenuOpen: boolean
   sidebarMinimized: boolean
   _hydrated: boolean
@@ -21,6 +23,7 @@ interface ShellState {
   setTutorialStepIndex: (index: number) => void
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
+  setUserRole: (role: UserRole) => void
   setMobileMenuOpen: (open: boolean) => void
   setSidebarMinimized: (minimized: boolean) => void
   toggleSidebarMinimized: () => void
@@ -35,6 +38,7 @@ export const useShellStore = create<ShellState>((set, get) => ({
   tutorialStepIndex: -1,
   workspaceId: null,
   userId: null,
+  userRole: 'OWNER' as UserRole,
   mobileMenuOpen: false,
   sidebarMinimized: false,
   _hydrated: false,
@@ -57,6 +61,7 @@ export const useShellStore = create<ShellState>((set, get) => ({
   setTutorialStepIndex: (index: number) => set({ tutorialStepIndex: index }),
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
   setUserId: (id: string) => set({ userId: id }),
+  setUserRole: (role: UserRole) => set({ userRole: role }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
   setSidebarMinimized: (minimized: boolean) => {
     try { localStorage.setItem('pj_sidebar_minimized', minimized ? 'true' : 'false') } catch { }
