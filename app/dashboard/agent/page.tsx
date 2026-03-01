@@ -1,4 +1,4 @@
-import { getOrCreateWorkspace } from "@/actions/workspace-actions";
+﻿import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { getDeals } from "@/actions/deal-actions";
 import { findMatches, getFreshLeads, getVendorReportData, MatchedContact } from "@/actions/agent-actions";
 import { AgentDashboardClient } from "@/components/agent/agent-dashboard-client";
@@ -13,7 +13,7 @@ export default async function AgentPage() {
   let userId: string;
 
   try {
-    userId = await getAuthUserId();
+    userId = (await getAuthUserId()) as string;
     workspace = await getOrCreateWorkspace(userId);
     listings = await getDeals(workspace.id);
     leads = await getFreshLeads(workspace.id);
@@ -61,3 +61,4 @@ export default async function AgentPage() {
     />
   );
 }
+

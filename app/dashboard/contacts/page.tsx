@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+﻿import { redirect } from "next/navigation"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { getContacts } from "@/actions/contact-actions"
@@ -8,7 +8,7 @@ import { isManagerOrAbove } from "@/lib/rbac"
 export const dynamic = 'force-dynamic'
 
 export default async function ContactsPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
 
     // RBAC: Team members cannot access contacts list
     if (!(await isManagerOrAbove())) {
@@ -20,3 +20,4 @@ export default async function ContactsPage() {
 
     return <ContactsClient contacts={contacts} />
 }
+

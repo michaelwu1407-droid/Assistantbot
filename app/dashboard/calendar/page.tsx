@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth"
+﻿import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getTodaySchedule } from "@/actions/tradie-actions"
 import { CalendarGrid } from "@/components/scheduler/calendar-grid"
@@ -12,7 +12,7 @@ import { Suspense } from "react"
 export const dynamic = "force-dynamic"
 
 export default async function CalendarPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const todayJobs = await getTodaySchedule(workspace.id)
 
@@ -96,3 +96,4 @@ export default async function CalendarPage() {
         </div>
     )
 }
+

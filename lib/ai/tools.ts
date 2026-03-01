@@ -241,7 +241,7 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
                 let activeUserId = userId;
                 if (!activeUserId) {
                     const { getAuthUserId } = await import("@/lib/auth");
-                    activeUserId = await getAuthUserId();
+                    activeUserId = (await getAuthUserId()) ?? undefined;
                 }
                 if (!activeUserId) return "Unable to identify user for support request.";
                 return handleSupportRequest(message, activeUserId, workspaceId);

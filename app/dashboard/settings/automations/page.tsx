@@ -1,4 +1,4 @@
-import { Separator } from "@/components/ui/separator"
+﻿import { Separator } from "@/components/ui/separator"
 import { AutomationList } from "./automation-list"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
@@ -7,7 +7,7 @@ import { getAutomations } from "@/actions/automation-actions"
 export const dynamic = "force-dynamic"
 
 export default async function AutomationsPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const automations = await getAutomations(workspace.id)
 
@@ -24,3 +24,4 @@ export default async function AutomationsPage() {
         </div>
     )
 }
+

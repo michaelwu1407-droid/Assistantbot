@@ -10,14 +10,18 @@ import { buildXeroAuthUrl } from "@/lib/xero";
 export async function connectXero(): Promise<{ url: string | null }> {
   try {
     const userId = await getAuthUserId();
-    const user = await db.user.findFirst({
-      where: { id: userId },
-      select: { workspaceId: true },
+    if (!userId) return { url: null };
+    const workspace = await db.workspace.findFirst({
+      where: {
+        users: {
+          some: { id: userId }
+        }
+      }
     });
 
-    if (!user) return { url: null };
+    if (!workspace) return { url: null };
 
-    const url = buildXeroAuthUrl(user.workspaceId);
+    const url = buildXeroAuthUrl(workspace.id);
     return { url };
   } catch (error) {
     console.error("[connectXero] Error:", error);

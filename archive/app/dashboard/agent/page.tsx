@@ -13,7 +13,15 @@ export default async function AgentPage() {
   let userId: string;
 
   try {
-    userId = await getAuthUserId();
+    const result = await getAuthUserId();
+    if (!result) {
+      return (
+        <div className="h-full flex items-center justify-center bg-slate-50 text-slate-400">
+          <p>Please log in.</p>
+        </div>
+      );
+    }
+    userId = result;
     workspace = await getOrCreateWorkspace(userId);
     listings = await getDeals(workspace.id);
     leads = await getFreshLeads(workspace.id);

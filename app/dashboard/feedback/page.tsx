@@ -1,4 +1,4 @@
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+﻿import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { getWorkspaceFeedback } from "@/actions/feedback-actions"
 import { FeedbackWidget } from "@/components/crm/feedback-widget"
@@ -6,7 +6,7 @@ import { FeedbackWidget } from "@/components/crm/feedback-widget"
 export const dynamic = "force-dynamic"
 
 export default async function FeedbackPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const feedback = await getWorkspaceFeedback(workspace.id)
 
@@ -20,3 +20,4 @@ export default async function FeedbackPage() {
         </div>
     )
 }
+

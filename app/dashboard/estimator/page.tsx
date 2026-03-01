@@ -1,4 +1,4 @@
-import { getDeals } from "@/actions/deal-actions"
+﻿import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { EstimatorForm } from "@/components/tradie/estimator-form"
@@ -6,7 +6,7 @@ import { EstimatorForm } from "@/components/tradie/estimator-form"
 export const dynamic = "force-dynamic"
 
 export default async function EstimatorPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const deals = await getDeals(workspace.id)
 
@@ -16,3 +16,4 @@ export default async function EstimatorPage() {
         </div>
     )
 }
+

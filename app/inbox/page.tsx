@@ -15,7 +15,9 @@ export default async function InboxPage() {
   let workspace, interactions, contactSegment: Record<string, "lead" | "existing"> = {};
   let dbError = false;
   try {
-    const userId = await getAuthUserId();
+    const result = await getAuthUserId();
+    if (!result) redirect("/auth");
+    const userId = result;
     workspace = await getOrCreateWorkspace(userId);
     const [activities, contacts] = await Promise.all([
       getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE"] }),

@@ -5,6 +5,9 @@ import { getAuthUserId } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get('workspaceId');
 
@@ -23,6 +26,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const dealData = await request.json();
 
     // This would typically call a createDeal action

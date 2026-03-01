@@ -47,10 +47,8 @@ export async function saveOnboardingData(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  let userId: string;
-  try {
-    userId = await getAuthUserId();
-  } catch {
+  const userId = await getAuthUserId();
+  if (!userId) {
     return { success: false, error: "Not authenticated" };
   }
 

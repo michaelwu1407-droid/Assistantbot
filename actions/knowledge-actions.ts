@@ -19,6 +19,7 @@ export interface KnowledgeRule {
 
 async function getWorkspaceId(): Promise<string> {
   const userId = await getAuthUserId();
+  if (!userId) throw new Error("Not authenticated");
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { workspaceId: true },
@@ -160,6 +161,7 @@ export async function updateServiceArea(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await getAuthUserId();
+    if (!userId) throw new Error("Not authenticated");
     await db.businessProfile.update({
       where: { userId },
       data: {
@@ -182,6 +184,7 @@ export async function getServiceArea(): Promise<{
 } | null> {
   try {
     const userId = await getAuthUserId();
+    if (!userId) return null;
     const profile = await db.businessProfile.findUnique({
       where: { userId },
       select: { serviceRadius: true, serviceSuburbs: true, baseSuburb: true },

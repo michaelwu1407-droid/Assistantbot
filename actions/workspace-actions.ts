@@ -305,6 +305,9 @@ export async function updateWorkspace(
 
   if (data.tradeType) {
     const userId = await getAuthUserId();
+    if (!userId) {
+      return { success: false, error: "User not authenticated" };
+    }
     await db.businessProfile.upsert({
       where: { userId },
       update: { tradeType: data.tradeType },

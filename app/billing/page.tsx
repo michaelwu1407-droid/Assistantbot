@@ -8,8 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default async function BillingPaywallPage() {
     let workspace;
+    let userId; // Declare userId here
     try {
-        const userId = await getAuthUserId();
+        const result = await getAuthUserId();
+        if (!result) redirect("/auth");
+        userId = result; // Assign to userId
         workspace = await getOrCreateWorkspace(userId);
     } catch (error) {
         redirect("/auth");

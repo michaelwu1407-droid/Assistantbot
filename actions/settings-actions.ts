@@ -8,6 +8,7 @@ import { AgentMode } from "@prisma/client"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
+    if (!userId) throw new Error("Not authenticated")
     const workspace = await getOrCreateWorkspace(userId)
     return workspace.id
 }
@@ -327,6 +328,7 @@ function toFirstName(value?: string | null): string {
 export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     const workspaceId = await getWorkspaceId()
     const authUser = await getAuthUser()
+    if (!authUser) throw new Error("Not authenticated")
     const domainBase = process.env.RESEND_FROM_DOMAIN ?? "earlymark.ai"
 
     let workspace = await db.workspace.findUnique({
@@ -345,7 +347,7 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     const businessSlug = toSlug(workspace.name || "business")
     const currentUser = workspace.users.find((u) => u.email === authUser.email)
     const firstNameBase = toFirstName(currentUser?.name || authUser.name || authUser.email?.split("@")[0])
-    const sameFirstUsers = workspace.users.filter((u) => toFirstName(u.name || u.email.split("@")[0]) === firstNameBase)
+    const sameFirstUsers = workspace.users.filter((u) => toFirstName(u.name || (u.email ? u.email.split("@")[0] : "")) === firstNameBase)
     const sameFirstIndex = Math.max(0, sameFirstUsers.findIndex((u) => u.email === authUser.email))
     const localPart = sameFirstIndex === 0 ? firstNameBase : `${firstNameBase}${sameFirstIndex}`
     const uniqueAlias = `${localPart}-${businessSlug}`

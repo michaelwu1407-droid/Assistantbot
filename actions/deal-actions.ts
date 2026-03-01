@@ -368,12 +368,14 @@ export async function updateDealStage(dealId: string, stage: string) {
         let userId: string | undefined;
         try {
           const auth = await getAuthUser();
-          userName = auth.name;
-          const dbUser = await db.user.findFirst({
-            where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
-            select: { id: true },
-          });
-          if (dbUser) userId = dbUser.id;
+          if (auth) {
+            userName = auth.name;
+            const dbUser = await db.user.findFirst({
+              where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+              select: { id: true },
+            });
+            if (dbUser) userId = dbUser.id;
+          }
         } catch {
           //
         }
@@ -409,12 +411,14 @@ export async function updateDealStage(dealId: string, stage: string) {
     let userId: string | undefined;
     try {
       const auth = await getAuthUser();
-      userName = auth.name;
-      const dbUser = await db.user.findFirst({
-        where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
-        select: { id: true },
-      });
-      if (dbUser) userId = dbUser.id;
+      if (auth) {
+        userName = auth.name;
+        const dbUser = await db.user.findFirst({
+          where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+          select: { id: true },
+        });
+        if (dbUser) userId = dbUser.id;
+      }
     } catch {
       // not authenticated (e.g. automation)
     }
@@ -647,12 +651,14 @@ export async function updateDealMetadata(
   let userId: string | undefined;
   try {
     const auth = await getAuthUser();
-    userName = auth.name;
-    const dbUser = await db.user.findFirst({
-      where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
-      select: { id: true },
-    });
-    if (dbUser) userId = dbUser.id;
+    if (auth) {
+      userName = auth.name;
+      const dbUser = await db.user.findFirst({
+        where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+        select: { id: true },
+      });
+      if (dbUser) userId = dbUser.id;
+    }
   } catch {
     // not authenticated
   }
@@ -723,12 +729,14 @@ export async function updateDeal(
   let userId: string | undefined;
   try {
     const auth = await getAuthUser();
-    userName = auth.name;
-    const dbUser = await db.user.findFirst({
-      where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
-      select: { id: true },
-    });
-    if (dbUser) userId = dbUser.id;
+    if (auth) {
+      userName = auth.name;
+      const dbUser = await db.user.findFirst({
+        where: { workspaceId: deal.workspaceId, email: auth.email ?? undefined },
+        select: { id: true },
+      });
+      if (dbUser) userId = dbUser.id;
+    }
   } catch {
     // not authenticated
   }

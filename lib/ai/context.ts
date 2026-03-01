@@ -50,7 +50,7 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
     ]);
 
     // ── Resolve user role (depends on authUser result) ───────────────────
-    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" = "TEAM_MEMBER";
+    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" | string = "TEAM_MEMBER";
 
     // Build role lookup promises based on what's available
     const roleLookups: Promise<void>[] = [];
@@ -62,7 +62,7 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
                 select: { role: true },
             }).then((dbUser) => {
                 if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-            }).catch(() => {})
+            }).catch(() => { })
         );
     }
 
@@ -73,7 +73,7 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
                 select: { role: true },
             }).then((dbUser) => {
                 if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-            }).catch(() => {})
+            }).catch(() => { })
         );
     }
 
