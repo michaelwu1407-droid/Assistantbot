@@ -139,7 +139,7 @@ export async function bulkImportKnowledge(
       data: rules.map((r) => ({
         category: r.category,
         ruleContent: r.ruleContent.trim(),
-        metadata: r.metadata || undefined,
+        metadata: r.metadata ? (r.metadata as any) : undefined,
         source: "scrape",
         workspaceId,
       })),
