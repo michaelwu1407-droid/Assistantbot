@@ -3,6 +3,9 @@
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { generateObject } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { z } from "zod";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -197,5 +200,67 @@ export async function getServiceArea(): Promise<{
     };
   } catch {
     return null;
+  }
+}
+
+// ─── AI Extraction ──────────────────────────────────────────────────
+
+export async function extractBusinessInfoFromUrl(url: string) {
+  try {
+    // 1. Fetch website HTML
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+      },
+      // 10 second timeout for fetch
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch website: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+
+    // 2. Strip HTML tags (very roughly) to get text content
+    const text = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 20000); // limit context significantly
+
+    // 3. Ask Gemini to extract details
+    const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) throw new Error("Missing Gemini API Key");
+
+    const google = createGoogleGenerativeAI({ apiKey });
+
+    const { object } = await generateObject({
+      model: google("gemini-2.0-flash-lite"),
+      schema: z.object({
+        services: z.array(
+          z.object({
+            service: z.string().describe("Name of the service offered"),
+            minFee: z.number().optional().describe("Minimum or starting fee if mentioned"),
+            maxFee: z.number().optional().describe("Maximum fee if mentioned"),
+          })
+        ),
+        exclusionCriteria: z
+          .string()
+          .optional()
+          .describe(
+            "Any limitations, boundaries, negative scope, or 'We don't do X' rules mentioned. Summarize briefly."
+          ),
+      }),
+      prompt: `Extract the business services, pricing, and any negative scope/exclusion criteria from this tradie/service business website text:\n\n${text}\n\nOnly include concrete services and real constraints if mentioned. If pricing isn't mentioned, leave fees undefined.`,
+    });
+
+    return { success: true, data: object };
+  } catch (err) {
+    console.error("[Knowledge] Extraction failed for", url, err);
+    return { success: false, error: "Failed to extract info from website" };
   }
 }

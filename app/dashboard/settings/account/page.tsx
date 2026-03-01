@@ -1,4 +1,4 @@
-﻿import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/separator"
 import { AccountForm } from "@/components/dashboard/account-form"
 import { getAuthUserId } from "@/lib/auth"
 import { getUserProfile } from "@/actions/user-actions"

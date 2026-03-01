@@ -1,4 +1,4 @@
-﻿import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "@/components/dashboard/profile-form"
 import { ReferralSettings } from "@/components/settings/referral-settings"
 import { PersonalPhoneCard } from "@/components/settings/personal-phone-card"

@@ -450,9 +450,17 @@ export async function completeOnboarding(data: {
     },
   });
 
-  // Sync exclusion rules to Mem0 as hard_constraint
+  // Sync exclusion rules to Mem0 as hard_constraint and BusinessKnowledge
   if (data.exclusionCriteria?.trim()) {
     try {
+      await db.businessKnowledge.create({
+        data: {
+          workspaceId: workspace.id,
+          category: "NEGATIVE_SCOPE",
+          ruleContent: data.exclusionCriteria.trim(),
+          source: "onboarding",
+        }
+      });
       const { getMemoryClient } = await import("@/lib/ai/context");
       const memClient = getMemoryClient();
       if (memClient) {
@@ -504,6 +512,46 @@ export async function completeOnboarding(data: {
       emergencySurcharge: data.emergencyService ? data.callOutFee : null,
     },
   });
+
+  // Persist Onboarding Services to AI Knowledge Base and Glossary
+  if (data.pricingServices && data.pricingServices.length > 0) {
+    const validServices = data.pricingServices.filter(s => s.service.trim() !== "");
+    if (validServices.length > 0) {
+      // 1. Add to Glossary (RepairItems) for hard quoting
+      await db.repairItem.createMany({
+        data: validServices.map(s => {
+          let desc = "";
+          if (s.minFee && s.maxFee) desc = `$${s.minFee} - $${s.maxFee}`;
+          else if (s.minFee) desc = `From $${s.minFee}`;
+          else if (s.maxFee) desc = `Up to $${s.maxFee}`;
+
+          return {
+            workspaceId: workspace.id,
+            title: s.service,
+            description: desc || "Price varies on assessment",
+          };
+        }),
+      });
+
+      // 2. Add to AI Knowledge Base for service discovery
+      await db.businessKnowledge.createMany({
+        data: validServices.map(s => {
+          let priceRange = "";
+          if (s.minFee && s.maxFee) priceRange = `$${s.minFee} - $${s.maxFee}`;
+          else if (s.minFee) priceRange = `From $${s.minFee}`;
+          else if (s.maxFee) priceRange = `Up to $${s.maxFee}`;
+
+          return {
+            workspaceId: workspace.id,
+            category: "SERVICE",
+            ruleContent: s.service,
+            source: "onboarding",
+            metadata: priceRange ? { priceRange } : undefined
+          };
+        })
+      });
+    }
+  }
 
   // Create Pricing Settings
   await db.pricingSettings.upsert({

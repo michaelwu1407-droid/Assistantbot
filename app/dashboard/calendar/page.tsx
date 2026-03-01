@@ -1,4 +1,4 @@
-﻿import { getAuthUserId } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getTodaySchedule } from "@/actions/tradie-actions"
 import { CalendarGrid } from "@/components/scheduler/calendar-grid"

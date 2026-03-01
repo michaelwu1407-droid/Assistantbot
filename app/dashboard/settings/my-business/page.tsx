@@ -1,4 +1,4 @@
-﻿import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/separator"
 import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace, getWorkspaceWithSettings } from "@/actions/workspace-actions"
 import { getBusinessContact } from "@/actions/settings-actions"

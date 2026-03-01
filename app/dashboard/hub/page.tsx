@@ -1,4 +1,4 @@
-﻿import { getAuthUserId } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getDeals } from "@/actions/deal-actions"
 import { KanbanBoard } from "@/components/crm/kanban-board"

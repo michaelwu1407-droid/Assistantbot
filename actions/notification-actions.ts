@@ -235,12 +235,29 @@ export async function ensureDailyNotifications(workspaceId: string) {
       where: { userId: dbUser.id, title: { contains: "Evening Wrap-Up" }, createdAt: { gte: startOfDay } }
     });
     if (!existing) {
+      // Check for any unresolved deviations today
+      const todayDeviations = await db.deviationEvent.count({
+        where: {
+          workspaceId,
+          resolved: false,
+          createdAt: { gte: startOfDay }
+        }
+      });
+
+      let message = "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.";
+      let link = "/dashboard/inbox";
+
+      if (todayDeviations > 0) {
+        message += ` Note: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules. Please review these so I can learn your latest preferences!`;
+        link = "/dashboard/settings/knowledge"; // View to resolve deviations
+      }
+
       await createNotification({
         userId: dbUser.id,
         title: "🌙 Evening Wrap-Up",
-        message: "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.",
+        message,
         type: "SUCCESS",
-        link: "/dashboard/inbox"
+        link
       });
     }
   }

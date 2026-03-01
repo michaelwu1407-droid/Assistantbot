@@ -1,4 +1,4 @@
-﻿import { getDeals } from "@/actions/deal-actions"
+import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"

@@ -1,4 +1,4 @@
-﻿import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/separator"
 import { AutomationList } from "./automation-list"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
