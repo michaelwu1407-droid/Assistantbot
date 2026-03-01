@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth"
 import { InboxView } from "@/components/crm/inbox-view"
 import { getActivities } from "@/actions/activity-actions"
 import { getContacts } from "@/actions/contact-actions"
+import { isManagerOrAbove } from "@/lib/rbac"
 
 export const dynamic = "force-dynamic"
 
@@ -12,6 +13,11 @@ const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const
 export default async function InboxPage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
+
+    // RBAC: Team members cannot access the global inbox
+    if (!(await isManagerOrAbove())) {
+        redirect("/dashboard")
+    }
 
     let interactions
     let contactSegment: Record<string, "lead" | "existing"> = {}

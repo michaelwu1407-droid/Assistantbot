@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send } from "lucide-react"
+import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send, MessageSquare, Mail, PhoneCall } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -86,8 +86,9 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                     {/* Tabs */}
                     <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="w-full grid grid-cols-4 bg-white border border-slate-200 p-1 h-12">
+                        <TabsList className="w-full grid grid-cols-5 bg-white border border-slate-200 p-1 h-12">
                             <TabsTrigger value="details">Details</TabsTrigger>
+                            <TabsTrigger value="chat">Chat</TabsTrigger>
                             <TabsTrigger value="diary">Diary</TabsTrigger>
                             <TabsTrigger value="billing">Billing</TabsTrigger>
                             <TabsTrigger value="handover">Handover</TabsTrigger>
@@ -100,6 +101,54 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                     {job.description}
                                 </p>
                             </Card>
+                        </TabsContent>
+
+                        {/* Conversation history — full chat thread for this job */}
+                        <TabsContent value="chat" className="mt-4 space-y-3">
+                            {(() => {
+                                const chatActivities = [...job.activities]
+                                    .filter((a: any) => ["CALL", "EMAIL", "NOTE"].includes(a.type))
+                                    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+                                if (chatActivities.length === 0) {
+                                    return (
+                                        <Card className="p-6 text-center text-slate-400 text-sm">
+                                            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                            No conversation history yet for this job.
+                                        </Card>
+                                    )
+                                }
+
+                                return chatActivities.map((activity: any) => {
+                                    const Icon = activity.type === "CALL" ? PhoneCall
+                                        : activity.type === "EMAIL" ? Mail
+                                        : MessageSquare
+                                    const colorClass = activity.type === "CALL" ? "text-blue-500 bg-blue-50"
+                                        : activity.type === "EMAIL" ? "text-purple-500 bg-purple-50"
+                                        : "text-emerald-500 bg-emerald-50"
+                                    const time = new Date(activity.createdAt)
+                                    const timeStr = time.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + " " + time.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
+
+                                    return (
+                                        <Card key={activity.id} className="p-3 border-slate-200 shadow-sm">
+                                            <div className="flex gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                    <Icon className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="text-sm font-medium text-slate-900 truncate">{activity.title}</p>
+                                                        <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeStr}</span>
+                                                    </div>
+                                                    {activity.content && (
+                                                        <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{activity.content}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )
+                                })
+                            })()}
                         </TabsContent>
 
                         <TabsContent value="diary" className="mt-4 space-y-4">

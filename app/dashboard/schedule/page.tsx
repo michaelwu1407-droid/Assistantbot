@@ -3,6 +3,7 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUser } from "@/lib/auth"
 import { getDeals } from "@/actions/deal-actions"
 import { ScheduleCalendar } from "./schedule-calendar"
+import { getCurrentUserRole } from "@/lib/rbac"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +16,15 @@ export default async function SchedulePage() {
         const workspace = await getOrCreateWorkspace(authUser.id)
         const allDeals = await getDeals(workspace.id)
         // Deleted jobs should not appear on the schedule
-        deals = allDeals.filter((d) => d.stage !== "deleted")
+        let filteredDeals = allDeals.filter((d) => d.stage !== "deleted")
+
+        // RBAC: Team members only see jobs assigned to them
+        const role = await getCurrentUserRole()
+        if (role === "TEAM_MEMBER") {
+            filteredDeals = filteredDeals.filter((d) => d.assignedToId === authUser.id)
+        }
+
+        deals = filteredDeals
     } catch {
         return (
             <div className="h-full flex items-center justify-center p-8">

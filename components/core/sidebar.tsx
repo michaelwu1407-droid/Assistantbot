@@ -28,14 +28,14 @@ import { useShellStore } from "@/lib/store"
 
 const SIDEBAR_WIDTH = 45
 
-const navItems = [
-    { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link" },
-    { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link" },
-    { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link" },
-    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link" },
-    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link" },
-    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link" },
-    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link" },
+const allNavItems = [
+    { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link", managerOnly: false },
+    { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link", managerOnly: true },
+    { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link", managerOnly: false },
+    { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link", managerOnly: false },
+    { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link", managerOnly: true },
+    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link", managerOnly: true },
+    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link", managerOnly: false },
 ]
 
 interface SidebarProps {
@@ -48,7 +48,11 @@ export function Sidebar({ className, expanded }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath } = useShellStore()
+    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
+
+    // RBAC: Filter nav items based on user role
+    const isManager = userRole === "OWNER" || userRole === "MANAGER"
+    const navItems = allNavItems.filter((item) => !item.managerOnly || isManager)
 
     useEffect(() => {
         setMounted(true)
