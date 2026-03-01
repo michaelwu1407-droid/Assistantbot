@@ -1,4 +1,4 @@
-import { Separator } from "@/components/ui/separator"
+﻿import { Separator } from "@/components/ui/separator"
 import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace, getWorkspaceWithSettings } from "@/actions/workspace-actions"
 import { getBusinessContact } from "@/actions/settings-actions"
@@ -12,7 +12,7 @@ import { db } from "@/lib/db"
 export const dynamic = "force-dynamic"
 
 export default async function MyBusinessSettingsPage() {
-  const userId = await getAuthUserId()
+  const userId = (await getAuthUserId()) as string;
   const workspace = await getOrCreateWorkspace(userId)
   const workspaceWithSettings = await getWorkspaceWithSettings(workspace.id)
   const businessContact = await getBusinessContact()
@@ -80,3 +80,4 @@ export default async function MyBusinessSettingsPage() {
     </div>
   )
 }
+

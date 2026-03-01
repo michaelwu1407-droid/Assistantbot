@@ -1,4 +1,4 @@
-import { Separator } from "@/components/ui/separator"
+﻿import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "@/components/dashboard/profile-form"
 import { ReferralSettings } from "@/components/settings/referral-settings"
 import { PersonalPhoneCard } from "@/components/settings/personal-phone-card"
@@ -11,7 +11,7 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 export const dynamic = "force-dynamic"
 
 export default async function AccountSettingsPage() {
-  const userId = await getAuthUserId()
+  const userId = (await getAuthUserId()) as string;
   const profile = await getUserProfile(userId)
   const workspace = await getOrCreateWorkspace(userId)
   const businessName = workspace?.name ?? ""
@@ -69,3 +69,4 @@ export default async function AccountSettingsPage() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-import { getDeals } from "@/actions/deal-actions"
+﻿import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"
@@ -24,7 +24,7 @@ function dealToMapJob(deal: { id: string; title: string; contactName: string; ad
 
 export default async function DashboardMapPage() {
     try {
-        const userId = await getAuthUserId()
+        const userId = (await getAuthUserId()) as string;
         if (!userId) throw new Error("User not authenticated")
 
         const workspace = await getOrCreateWorkspace(userId)
@@ -74,3 +74,4 @@ export default async function DashboardMapPage() {
         )
     }
 }
+

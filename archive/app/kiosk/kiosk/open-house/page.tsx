@@ -1,4 +1,4 @@
-import { KioskForm } from "@/components/agent/kiosk-form"
+﻿import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { generateQRDataURL } from "@/lib/qrcode"
@@ -18,7 +18,7 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         dealId = params.dealId
 
         if (!dealId) {
-            const userId = await getAuthUserId()
+            const userId = (await getAuthUserId()) as string;
             const workspace = await getOrCreateWorkspace(userId)
             const deals = await getDeals(workspace.id)
             const firstDeal = deals[0]
@@ -94,3 +94,4 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         </div>
     )
 }
+

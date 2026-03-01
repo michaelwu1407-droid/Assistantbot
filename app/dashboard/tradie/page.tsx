@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth"
+﻿import { getAuthUserId } from "@/lib/auth"
 import { getTodaySchedule, getTradieJobById } from "@/actions/tradie-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client"
@@ -11,7 +11,7 @@ export default async function TradiePage({
 }: {
     searchParams: Promise<{ jobId?: string }>
 }) {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const todayJobs = await getTodaySchedule(workspace.id)
 
@@ -56,3 +56,4 @@ export default async function TradiePage({
         </div>
     )
 }
+

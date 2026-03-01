@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
@@ -13,7 +13,7 @@ export default async function BillingSettingsPage() {
         redirect("/dashboard/settings");
     }
 
-    const userId = await getAuthUserId();
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId);
 
     return (
@@ -52,3 +52,5 @@ export default async function BillingSettingsPage() {
         </div>
     );
 }
+
+

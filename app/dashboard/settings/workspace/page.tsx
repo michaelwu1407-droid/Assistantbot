@@ -1,4 +1,4 @@
-import { Separator } from "@/components/ui/separator"
+﻿import { Separator } from "@/components/ui/separator"
 import { WorkspaceForm } from "./workspace-form"
 import { PipelineHealthForm } from "./pipeline-health-form"
 import { getOrCreateWorkspace, getWorkspaceWithSettings } from "@/actions/workspace-actions"
@@ -8,7 +8,7 @@ import { db } from "@/lib/db"
 export const dynamic = "force-dynamic";
 
 export default async function WorkspaceSettingsPage() {
-    const userId = await getAuthUserId();
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId);
     const workspaceWithSettings = await getWorkspaceWithSettings(workspace.id);
     const profile = await db.businessProfile.findUnique({
@@ -47,3 +47,5 @@ export default async function WorkspaceSettingsPage() {
         </div>
     )
 }
+
+

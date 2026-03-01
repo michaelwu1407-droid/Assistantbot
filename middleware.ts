@@ -10,20 +10,20 @@ export async function middleware(request: NextRequest) {
   const { searchParams } = url
 
   // Fix proxy headers for development
-  if (request.headers.get('x-forwarded-host') === 'localhost:3000' && 
-      request.headers.get('origin') === 'http://127.0.0.1:51280') {
+  if (request.headers.get('x-forwarded-host') === 'localhost:3000' &&
+    request.headers.get('origin') === 'http://127.0.0.1:51280') {
     response.headers.set('x-forwarded-host', '127.0.0.1:51280')
   }
 
   // Check for referral parameter
   const refCode = searchParams.get('ref')
-  
+
   if (refCode) {
     // Track the referral click
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
     const referrer = request.headers.get('referer') || 'direct'
-    
+
     // Extract UTM parameters
     const utmSource = searchParams.get('utm_source') || undefined
     const utmMedium = searchParams.get('utm_medium') || undefined
@@ -51,10 +51,10 @@ export async function middleware(request: NextRequest) {
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 // 30 days
     })
-    
+
     return response
   }
-  
+
   // Add CSP headers. connect-src MUST include Supabase or the browser blocks auth (Failed to fetch).
   const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
     ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
@@ -77,15 +77,15 @@ export async function middleware(request: NextRequest) {
   ].join(" ");
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
     `connect-src ${connectSrc}`,
-    "img-src 'self' data: https://us.i.posthog.com https://lh3.googleusercontent.com https://maps.googleapis.com https://maps.gstatic.com",
+    "img-src 'self' data: https://us.i.posthog.com https://us-assets.i.posthog.com https://lh3.googleusercontent.com https://maps.googleapis.com https://maps.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
   ].join("; ");
 
   response.headers.set("Content-Security-Policy", cspHeader);
-  
+
   return response
 }
 

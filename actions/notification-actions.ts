@@ -184,11 +184,8 @@ export async function sendTestNotification() {
  * if the current time has passed the configured user preferences and they haven't fired today.
  */
 export async function ensureDailyNotifications(workspaceId: string) {
-  const { getAuthUser } = await import("@/lib/auth");
-  let user;
-  try {
-    user = await getAuthUser();
-  } catch { return; }
+  const user = await getAuthUser();
+  if (!user) return;
 
   const dbUser = await db.user.findFirst({ where: { email: user.email ?? "", workspaceId } });
   if (!dbUser) return;

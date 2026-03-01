@@ -1,4 +1,4 @@
-import { Separator } from "@/components/ui/separator"
+﻿import { Separator } from "@/components/ui/separator"
 import { AccountForm } from "@/components/dashboard/account-form"
 import { getAuthUserId } from "@/lib/auth"
 import { getUserProfile } from "@/actions/user-actions"
@@ -6,7 +6,7 @@ import { getUserProfile } from "@/actions/user-actions"
 export const dynamic = "force-dynamic";
 
 export default async function AccountSettingsPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const profile = await getUserProfile(userId)
 
     return (
@@ -25,3 +25,4 @@ export default async function AccountSettingsPage() {
         </div>
     )
 }
+

@@ -30,7 +30,40 @@ function looksLikeFollowUpDetail(text: string): boolean {
 /** Cost-effective Gemini model for chat + tools */
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
 
-
+/** Shared helper: add schedule-proximity and duplicate warnings to a job draft. */
+async function addDraftWarnings(
+  draft: ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] },
+  workspaceId: string,
+  deals: Awaited<ReturnType<typeof getDeals>>,
+) {
+  const MIN_GAP_MINUTES = 60;
+  const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
+  if (draft.scheduleISO) {
+    const draftTime = new Date(draft.scheduleISO).getTime();
+    const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
+      !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
+    );
+    const before = withTime.filter((d) => new Date(d.scheduledAt).getTime() < draftTime).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+    const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    const tz = "Australia/Sydney";
+    const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) =>
+      `${(d.title || d.contactName || "Job").trim()} at ${new Date(d.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
+    if (before.length > 0 || after.length > 0) {
+      const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
+      draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");
+    }
+  }
+  const firstName = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
+  const descLower = (draft.workDescription ?? "").toLowerCase();
+  const hasDuplicate = deals.some((d) => {
+    const name = (d.contactName ?? "").toLowerCase();
+    const title = (d.title ?? "").toLowerCase();
+    if (!firstName || !name.includes(firstName)) return false;
+    if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
+    return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
+  });
+  if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+}
 
 export async function POST(req: Request) {
   try {
@@ -110,7 +143,9 @@ export async function POST(req: Request) {
       for (let i = 0; i < messages.length; i++) {
         const msg = messages[i] as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
         const text = getMessageText(msg).trim();
-        if (!text) continue;
+        // Skip messages that are obviously not multi-job: empty, short, or simple commands
+        if (!text || text.length < 30) continue;
+        if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo|good|great)\b/i.test(text)) continue;
         const parsed = await parseMultipleJobsWithAI(text);
         if (parsed && parsed.length >= 2) {
           jobsFromHistory = parsed;
@@ -129,41 +164,17 @@ export async function POST(req: Request) {
         if (nextCount < jobsFromHistory.length) {
           const jobIndex = nextCount;
           const nextJob = jobsFromHistory[jobIndex];
-          const draft = buildJobDraftFromParams(nextJob) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
+          const draft = buildJobDraftFromParams(nextJob) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
           draft.warnings = [];
           try {
-            const settings = await getWorkspaceSettingsById(workspaceId);
+            const [settings, deals] = await Promise.all([
+              getWorkspaceSettingsById(workspaceId),
+              getDeals(workspaceId),
+            ]);
             if (settings?.agentMode === "FILTER") {
               return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
             }
-            const deals = await getDeals(workspaceId);
-            const MIN_GAP_MINUTES = 60;
-            const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
-            if (draft.scheduleISO) {
-              const draftTime = new Date(draft.scheduleISO).getTime();
-              const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
-                !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
-              );
-              const before = withTime.filter((d) => new Date(d.scheduledAt).getTime() < draftTime).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
-              const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-              const tz = "Australia/Sydney";
-              const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) =>
-                `${(d.title || d.contactName || "Job").trim()} at ${new Date(d.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
-              if (before.length > 0 || after.length > 0) {
-                const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
-                draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");
-              }
-            }
-            const firstName = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
-            const descLower = (draft.workDescription ?? "").toLowerCase();
-            const hasDuplicate = deals.some((d) => {
-              const name = (d.contactName ?? "").toLowerCase();
-              const title = (d.title ?? "").toLowerCase();
-              if (!firstName || !name.includes(firstName)) return false;
-              if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
-              return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
-            });
-            if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+            await addDraftWarnings(draft, workspaceId, deals);
           } catch {
             // ignore
           }
@@ -187,52 +198,48 @@ export async function POST(req: Request) {
       }
     }
 
-    // One extraction call: works for natural language, dashed list, or mixed. No dependency on " - ".
-    const extractedJobs = await extractAllJobsFromParagraph(content);
+    // Extract user ID from headers or use workspaceId as fallback
+    const userId = req.headers.get("x-user-id") || workspaceId;
+    const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
+    const lastMessageContent = lastUserMessage?.content || "";
+
+    // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
+    // This is the critical speed optimization — these 3 operations are independent and
+    // were previously running sequentially, adding 1-3+ seconds of dead time.
+    const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
+      extractAllJobsFromParagraph(content),
+      buildAgentContext(workspaceId, userId),
+      fetchMemoryContext(userId, lastMessageContent),
+    ]);
+
+    const {
+      settings,
+      userRole,
+      knowledgeBaseStr,
+      agentModeStr,
+      workingHoursStr,
+      agentScriptStr,
+      allowedTimesStr,
+      preferencesStr,
+      pricingRulesStr,
+      bouncerStr,
+    } = agentContext;
+
+    // ── Handle job extraction results (draft card early-returns) ──
     const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
     const useMultiJobFlow = multipleJobs !== null;
-    const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
 
     if (useMultiJobFlow && multipleJobs && multipleJobs.length >= 2) {
       // Return first job as a proper draft card so the UI shows Confirm/Cancel (not AI text).
       const first = multipleJobs[0];
-      const draft = buildJobDraftFromParams(first) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
+      const draft = buildJobDraftFromParams(first) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
       draft.warnings = [];
       try {
-        const settings = await getWorkspaceSettingsById(workspaceId);
         if (settings?.agentMode === "FILTER") {
           return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
         }
         const deals = await getDeals(workspaceId);
-        const MIN_GAP_MINUTES = 60;
-        const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
-        if (draft.scheduleISO) {
-          const draftTime = new Date(draft.scheduleISO).getTime();
-          const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
-            !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
-          );
-          const before = withTime.filter((d) => new Date(d.scheduledAt).getTime() < draftTime).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
-          const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-          const tz = "Australia/Sydney";
-          const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) => {
-            const t = new Date(d.scheduledAt);
-            return `${(d.title || d.contactName || "Job").trim()} at ${t.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
-          };
-          if (before.length > 0 || after.length > 0) {
-            const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
-            draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");
-          }
-        }
-        const firstName = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
-        const descLower = (draft.workDescription ?? "").toLowerCase();
-        const hasDuplicate = deals.some((d) => {
-          const name = (d.contactName ?? "").toLowerCase();
-          const title = (d.title ?? "").toLowerCase();
-          if (!firstName || !name.includes(firstName)) return false;
-          if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
-          return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
-        });
-        if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+        await addDraftWarnings(draft, workspaceId, deals);
       } catch {
         // ignore
       }
@@ -243,7 +250,7 @@ export async function POST(req: Request) {
         execute: ({ writer }) => {
           writer.write({ type: "start" });
           writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "I'll process these one at a time. Here's the first one — edit if needed, then confirm and I'll create it and move to the next." });
+          writer.write({ type: "text-delta", id: textId, delta: "I’ll process these one at a time. Here’s the first one — edit if needed, then confirm and I’ll create it and move to the next." });
           writer.write({ type: "text-end", id: textId });
           writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
           writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining: true } });
@@ -253,56 +260,18 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
+    const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
     const parsed = useMultiJobFlow ? null : (singleJobFromParagraph ?? await parseJobWithAI(content));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
-      const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings?: string[] };
+      const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
       draft.warnings = [];
       try {
-        const settings = await getWorkspaceSettingsById(workspaceId);
         if (settings?.agentMode === "FILTER") {
           return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 })
         }
-
         const deals = await getDeals(workspaceId);
-        // Minimum gap between jobs (minutes). Show which appointments are before/after so the user can decide.
-        const MIN_GAP_MINUTES = 60;
-        const minGapMs = MIN_GAP_MINUTES * 60 * 1000;
-        if (draft.scheduleISO) {
-          const draftTime = new Date(draft.scheduleISO).getTime();
-          const withTime = deals.filter((d): d is typeof d & { scheduledAt: NonNullable<typeof d.scheduledAt> } =>
-            !!d.scheduledAt && Math.abs(new Date(d.scheduledAt).getTime() - draftTime) < minGapMs
-          );
-          const before = withTime
-            .filter((d) => new Date(d.scheduledAt).getTime() < draftTime)
-            .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
-          const after = withTime
-            .filter((d) => new Date(d.scheduledAt).getTime() > draftTime)
-            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-          const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) => {
-            const t = new Date(d.scheduledAt);
-            const time = t.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Australia/Sydney" });
-            const label = (d.title || d.contactName || "Job").trim();
-            return `${label} at ${time}`;
-          };
-          if (before.length > 0 || after.length > 0) {
-            const beforeStr = before.length > 0 ? fmt(before[0]) + " beforehand" : "";
-            const afterStr = after.length > 0 ? fmt(after[0]) + " after" : "";
-            const parts = [beforeStr, afterStr].filter(Boolean);
-            draft.warnings.push("You have " + parts.join(" and ") + ". Check if that’s too tight.");
-          }
-        }
-        const first = (draft.clientName ?? "").split(/\s+/)[0]?.toLowerCase() ?? "";
-        const descLower = (draft.workDescription ?? "").toLowerCase();
-        const hasDuplicate = deals.some((d) => {
-          const name = (d.contactName ?? "").toLowerCase();
-          const title = (d.title ?? "").toLowerCase();
-          if (!first || !name.includes(first)) return false;
-          if (descLower && (title.includes(descLower) || descLower.includes(title))) return true;
-          if (title && descLower && (title.includes("plumb") && descLower.includes("plumb"))) return true;
-          return false;
-        });
-        if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+        await addDraftWarnings(draft, workspaceId, deals);
       } catch {
         // ignore
       }
@@ -313,7 +282,7 @@ export async function POST(req: Request) {
         execute: ({ writer }) => {
           writer.write({ type: "start" });
           writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "Here's what I got — edit anything before confirming." });
+          writer.write({ type: "text-delta", id: textId, delta: "Here’s what I got — edit anything before confirming." });
           writer.write({ type: "text-end", id: textId });
           writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
           writer.write({ type: "tool-output-available", toolCallId, output: { draft } });
@@ -323,6 +292,7 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
+    // ── Prepare model messages for LLM ──
     const google = createGoogleGenerativeAI({ apiKey });
 
     let modelMessages: unknown[];
@@ -358,7 +328,7 @@ export async function POST(req: Request) {
         execute: ({ writer }) => {
           writer.write({ type: "start" });
           writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "I didn't quite catch that. Could you please provide more details?" });
+          writer.write({ type: "text-delta", id: textId, delta: "I didn’t quite catch that. Could you please provide more details?" });
           writer.write({ type: "text-end", id: textId });
           writer.write({ type: "finish" });
         },
@@ -407,33 +377,13 @@ export async function POST(req: Request) {
         execute: ({ writer }) => {
           writer.write({ type: "start" });
           writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "I didn't quite catch that. Could you rephrase?" });
+          writer.write({ type: "text-delta", id: textId, delta: "I didn’t quite catch that. Could you rephrase?" });
           writer.write({ type: "text-end", id: textId });
           writer.write({ type: "finish" });
         },
       });
       return createUIMessageStreamResponse({ stream });
     }
-
-    // Extract user ID from headers or use workspaceId as fallback
-    const userId = req.headers.get("x-user-id") || workspaceId;
-    const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
-    const lastMessageContent = lastUserMessage?.content || "";
-
-    const {
-      settings,
-      userRole,
-      knowledgeBaseStr,
-      agentModeStr,
-      workingHoursStr,
-      agentScriptStr,
-      allowedTimesStr,
-      preferencesStr,
-      pricingRulesStr,
-      bouncerStr,
-    } = await buildAgentContext(workspaceId, userId);
-
-    const memoryContextStr = await fetchMemoryContext(userId, lastMessageContent);
 
     const multiJobInstruction = useMultiJobFlow
       ? `\n\nMULTIPLE JOBS — CRITICAL: The user has pasted multiple jobs in one message. You MUST process them ONE AT A TIME. First call showJobDraftForConfirmation with ONLY the first job's details (clientName, workDescription, price, address, schedule, phone, email). Then say clearly: "This is the first one. Confirm and I'll create it, then we'll do the next." Do NOT call createJobNatural until the user has confirmed. After the user confirms (e.g. "confirm", "ok", "yes", "done"), call createJobNatural for that job, then call showJobDraftForConfirmation for the NEXT job. Repeat until all jobs are done.`

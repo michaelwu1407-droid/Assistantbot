@@ -108,6 +108,7 @@ export async function checkForDeviation(
 export async function getUnresolvedDeviations(): Promise<DeviationEventData[]> {
   try {
     const userId = await getAuthUserId();
+    if (!userId) return [];
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { workspaceId: true },
@@ -157,6 +158,11 @@ export async function resolveDeviation(
   action: "REMOVE_RULE" | "KEEP_RULE"
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const userId = await getAuthUserId();
+    if (!userId) {
+      return { success: false, error: "User not authenticated" };
+    }
+
     const deviation = await db.deviationEvent.findUnique({
       where: { id: deviationId },
     });

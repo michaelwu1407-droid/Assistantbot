@@ -27,8 +27,12 @@ function ensureTravisStyle(content: string, companyName: string): string {
 
 export async function getUserSmsTemplates() {
   const userId = await getAuthUserId();
-  const user = await db.user.findUnique({ where: { id: userId }, select: { workspace: { select: { name: true } } } });
-  const companyName = user?.workspace?.name || "your business";
+  if (!userId) return [];
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    include: { workspace: { select: { name: true } } }
+  });
+  const companyName = (user as any)?.workspace?.name || "your business";
 
   const templates = await db.smsTemplate.findMany({
     where: { userId },
@@ -56,8 +60,12 @@ export async function upsertSmsTemplate(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await getAuthUserId();
-    const user = await db.user.findUnique({ where: { id: userId }, select: { workspace: { select: { name: true } } } });
-    const companyName = user?.workspace?.name || "your business";
+    if (!userId) throw new Error("Not authenticated");
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { workspace: { select: { name: true } } }
+    });
+    const companyName = (user as any)?.workspace?.name || "your business";
     const styledContent = ensureTravisStyle(content.replace(/\[Company\]/g, companyName), companyName);
 
     await db.smsTemplate.upsert({
@@ -81,6 +89,7 @@ export async function getMessagePreview(
   triggerEvent: TriggerEvent
 ) {
   const userId = await getAuthUserId();
+  if (!userId) return null;
 
   const [deal, template] = await Promise.all([
     db.deal.findUnique({
@@ -138,6 +147,7 @@ export async function sendTemplateMessage(
 
     // Log as activity
     const userId = await getAuthUserId();
+    if (!userId) throw new Error("Not authenticated");
     const user = await db.user.findUnique({ where: { id: userId } });
 
     await db.activity.create({

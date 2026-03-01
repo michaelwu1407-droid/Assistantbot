@@ -8,6 +8,10 @@ export const dynamic = 'force-dynamic'
 export default async function SetupPage() {
     const userId = await getAuthUserId()
 
+    if (!userId) {
+        redirect("/auth")
+    }
+
     let alreadyOnboarded = false
     try {
         const workspace = await getOrCreateWorkspace(userId)
@@ -40,4 +44,3 @@ export default async function SetupPage() {
         </div>
     )
 }
-

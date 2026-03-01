@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth"
+﻿import { getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getDeals } from "@/actions/deal-actions"
 import { KanbanBoard } from "@/components/crm/kanban-board"
@@ -10,7 +10,7 @@ import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton"
 export const dynamic = "force-dynamic"
 
 export default async function HubPage() {
-    const userId = await getAuthUserId()
+    const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId)
     const deals = await getDeals(workspace.id)
 
@@ -73,3 +73,4 @@ export default async function HubPage() {
         </div>
     )
 }
+

@@ -8,53 +8,78 @@ import type { MemoryClient } from "mem0ai";
  * This is shared by both the Web dashboard chat UI and the headless WhatsApp agent.
  */
 export async function buildAgentContext(workspaceId: string, providedUserId?: string) {
-    const settings = await getWorkspaceSettingsById(workspaceId);
-
-    // Resolve current user's role in this workspace (for data-correction / manager-only rules)
-    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" = "TEAM_MEMBER";
-    try {
-        const authUser = await getAuthUser();
-        if (authUser?.email) {
-            const dbUser = await db.user.findFirst({
-                where: { workspaceId, email: authUser.email },
-                select: { role: true },
-            });
-            if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-        }
-    } catch {
-        // If auth fails (e.g. from a webhook), we fallback to TEAM_MEMBER
-    }
-
-    // If a specific userId is provided via webhook, try to find their role
-    if (providedUserId) {
-        try {
-            const dbUser = await db.user.findUnique({
-                where: { id: providedUserId },
-                select: { role: true },
-            });
-            if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-        } catch {
-            // Fallback
-        }
-    }
-
-    const isManager = userRole === "OWNER" || userRole === "MANAGER";
-
-    // Keep BusinessProfile and WorkspaceSettings in system prompt
-    const workspaceInfo = await db.workspace.findUnique({
-        where: { id: workspaceId },
-        select: { name: true, location: true, twilioPhoneNumber: true, exclusionCriteria: true },
-    });
-
-    let businessProfile: { tradeType: string; website: string | null; baseSuburb: string; serviceRadius: number; standardWorkHours: string; emergencyService: boolean; emergencySurcharge: number | null } | null = null;
-    try {
-        businessProfile = await db.businessProfile.findFirst({
+    // ── Parallel batch 1: all independent DB/auth queries ────────────────
+    const [
+        settings,
+        authUser,
+        workspaceInfo,
+        businessProfile,
+        repairItems,
+        completedDeals,
+        negativeRules,
+        serviceRules,
+    ] = await Promise.all([
+        getWorkspaceSettingsById(workspaceId),
+        getAuthUser().catch(() => null),
+        db.workspace.findUnique({
+            where: { id: workspaceId },
+            select: { name: true, location: true, twilioPhoneNumber: true, exclusionCriteria: true },
+        }),
+        db.businessProfile.findFirst({
             where: { user: { workspaceId } },
             select: { tradeType: true, website: true, baseSuburb: true, serviceRadius: true, standardWorkHours: true, emergencyService: true, emergencySurcharge: true },
-        });
-    } catch {
-        // BusinessProfile table may not exist yet
+        }).catch(() => null),
+        db.repairItem.findMany({
+            where: { workspaceId },
+            select: { title: true, description: true },
+        }),
+        db.deal.findMany({
+            where: { workspaceId, stage: "WON" },
+            select: { title: true, invoices: { select: { total: true }, take: 1 } },
+            orderBy: { updatedAt: "desc" },
+            take: 50,
+        }).catch(() => [] as { title: string; invoices: { total: any }[] }[]),
+        db.businessKnowledge.findMany({
+            where: { workspaceId, category: "NEGATIVE_SCOPE" },
+            select: { ruleContent: true },
+        }).catch(() => [] as { ruleContent: string }[]),
+        db.businessKnowledge.findMany({
+            where: { workspaceId, category: "SERVICE" },
+            select: { ruleContent: true, metadata: true },
+        }).catch(() => [] as { ruleContent: string; metadata: unknown }[]),
+    ]);
+
+    // ── Resolve user role (depends on authUser result) ───────────────────
+    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" | string = "TEAM_MEMBER";
+
+    // Build role lookup promises based on what's available
+    const roleLookups: Promise<void>[] = [];
+
+    if (authUser?.email) {
+        roleLookups.push(
+            db.user.findFirst({
+                where: { workspaceId, email: authUser.email },
+                select: { role: true },
+            }).then((dbUser) => {
+                if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
+            }).catch(() => { })
+        );
     }
+
+    if (providedUserId) {
+        roleLookups.push(
+            db.user.findUnique({
+                where: { id: providedUserId },
+                select: { role: true },
+            }).then((dbUser) => {
+                if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
+            }).catch(() => { })
+        );
+    }
+
+    if (roleLookups.length > 0) await Promise.all(roleLookups);
+
+    const isManager = userRole === "OWNER" || userRole === "MANAGER";
 
     let knowledgeBaseStr = "\nBUSINESS IDENTITY:";
     if (workspaceInfo?.name) knowledgeBaseStr += `\n- Business Name: ${workspaceInfo.name}`;
@@ -71,21 +96,9 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
     knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
     knowledgeBaseStr += "\nOn incoming voice calls, Travis (the voice agent) can transfer callers to the tradie's mobile if they ask to speak to the human; the tradie's number is stored in the app profile.";
 
-    // Fetch Glossary for Pricing Safeguards
-    const repairItems = await db.repairItem.findMany({
-        where: { workspaceId },
-        select: { title: true, description: true },
-    });
-
     // Fetch historical price averages from completed invoices
     let historicalPricingStr = "";
     try {
-        const completedDeals = await db.deal.findMany({
-            where: { workspaceId, stage: "WON" },
-            select: { title: true, invoices: { select: { total: true }, take: 1 } },
-            orderBy: { updatedAt: "desc" },
-            take: 50,
-        });
 
         // Group by normalized title and compute min/max/avg
         const priceMap = new Map<string, number[]>();
@@ -209,32 +222,18 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
 4. If asked for general pricing and the task is custom/not in the glossary, quote the standard Call-Out Fee of $${callOutFee}. Say: "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
 ${glossaryStr}`;
 
-    // ── Business Knowledge — Negative Scope Rules ─────────────────
-    let knowledgeNegativeRules: string[] = [];
+    // ── Business Knowledge (already fetched in parallel batch above) ──
+    const knowledgeNegativeRules = negativeRules.map(r => r.ruleContent);
     let knowledgeServicesStr = "";
-    try {
-        const negativeRules = await db.businessKnowledge.findMany({
-            where: { workspaceId, category: "NEGATIVE_SCOPE" },
-            select: { ruleContent: true },
-        });
-        knowledgeNegativeRules = negativeRules.map(r => r.ruleContent);
-
-        const serviceRules = await db.businessKnowledge.findMany({
-            where: { workspaceId, category: "SERVICE" },
-            select: { ruleContent: true, metadata: true },
-        });
-        if (serviceRules.length > 0) {
-            knowledgeServicesStr = "\n\nSERVICES OFFERED (from Knowledge Base):\n" +
-                serviceRules.map(s => {
-                    const meta = (s.metadata as Record<string, string>) || {};
-                    let line = `- ${s.ruleContent}`;
-                    if (meta.priceRange) line += ` (${meta.priceRange})`;
-                    if (meta.duration) line += ` — est. ${meta.duration}`;
-                    return line;
-                }).join("\n");
-        }
-    } catch {
-        // BusinessKnowledge table may not exist yet
+    if (serviceRules.length > 0) {
+        knowledgeServicesStr = "\n\nSERVICES OFFERED (from Knowledge Base):\n" +
+            serviceRules.map(s => {
+                const meta = (s.metadata as Record<string, string>) || {};
+                let line = `- ${s.ruleContent}`;
+                if (meta.priceRange) line += ` (${meta.priceRange})`;
+                if (meta.duration) line += ` — est. ${meta.duration}`;
+                return line;
+            }).join("\n");
     }
 
     // ── Bouncer & Advisor Logic ──────────────────────────────────────

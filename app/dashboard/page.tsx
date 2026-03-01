@@ -30,9 +30,14 @@ export default async function DashboardPage(props: {
 
     try {
         workspace = await getOrCreateWorkspace(userId)
-        await ensureOwnerHasUserRow(workspace)
-        deals = await getDeals(workspace.id)
-        teamMembers = await getTeamMembers()
+        // Run independent queries in parallel once workspace is available
+        const [, dealsResult, teamResult] = await Promise.all([
+            ensureOwnerHasUserRow(workspace),
+            getDeals(workspace.id),
+            getTeamMembers(),
+        ])
+        deals = dealsResult
+        teamMembers = teamResult
         const currentMember = teamMembers.find((m) => m.isCurrentUser)
         if (currentMember?.name?.trim()) {
             userName = currentMember.name

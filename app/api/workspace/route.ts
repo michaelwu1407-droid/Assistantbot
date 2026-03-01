@@ -5,11 +5,11 @@ import { getAuthUserId } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const workspace = await getOrCreateWorkspace(userId);
     return NextResponse.json(workspace);
   } catch (error) {
@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const workspaceData = await request.json();
 
     // This would typically call an updateWorkspace action

@@ -28,53 +28,56 @@ export default async function DashboardLayout({
   let shouldRedirectToBilling = false;
   let shouldRedirectToSetup = false;
 
+  let shouldRedirectToAuth = false;
+
   try {
-    userId = await getAuthUserId();
-    if (!userId) {
+    const authId = await getAuthUserId();
+    if (!authId) {
       logger.authFlow("No userId in dashboard layout, redirecting to /auth", { component: "DashboardLayout" });
-      redirect("/auth");
-    }
+      shouldRedirectToAuth = true;
+    } else {
+      userId = authId;
+      logger.authFlow("Getting workspace for dashboard layout", { userId, component: "DashboardLayout" });
+      const workspace = await getOrCreateWorkspace(userId);
+      workspaceId = workspace.id;
+      tutorialComplete = workspace.tutorialComplete;
+      onboardingComplete = workspace.onboardingComplete;
 
-    logger.authFlow("Getting workspace for dashboard layout", { userId, component: "DashboardLayout" });
-    const workspace = await getOrCreateWorkspace(userId);
-    workspaceId = workspace.id;
-    tutorialComplete = workspace.tutorialComplete;
-    onboardingComplete = workspace.onboardingComplete;
+      // Fetch user role for RBAC
+      try {
+        const dbUser = await db.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        });
+        if (dbUser?.role) userRole = dbUser.role as UserRole;
+      } catch {
+        // Default to OWNER if lookup fails
+      }
 
-    // Fetch user role for RBAC
-    try {
-      const dbUser = await db.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
-      if (dbUser?.role) userRole = dbUser.role as UserRole;
-    } catch {
-      // Default to OWNER if lookup fails
-    }
-
-    logger.authFlow("Dashboard layout workspace data", {
-      component: "DashboardLayout",
-      workspaceId,
-      subscriptionStatus: workspace.subscriptionStatus,
-      tutorialComplete
-    });
-
-    // Gating mechanism - explicitly mandate a paid Stripe tier
-    if (workspace.subscriptionStatus !== "active") {
-      logger.authFlow("User subscription not active, redirecting to billing", {
+      logger.authFlow("Dashboard layout workspace data", {
         component: "DashboardLayout",
         workspaceId,
-        subscriptionStatus: workspace.subscriptionStatus
+        subscriptionStatus: workspace.subscriptionStatus,
+        tutorialComplete
       });
-      shouldRedirectToBilling = true;
-    }
 
-    if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
-      shouldRedirectToSetup = true;
+      // Gating mechanism - explicitly mandate a paid Stripe tier
+      if (workspace.subscriptionStatus !== "active") {
+        logger.authFlow("User subscription not active, redirecting to billing", {
+          component: "DashboardLayout",
+          workspaceId,
+          subscriptionStatus: workspace.subscriptionStatus
+        });
+        shouldRedirectToBilling = true;
+      }
+
+      if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
+        shouldRedirectToSetup = true;
+      }
     }
   } catch (error) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    logger.workspaceError("Layout failed to fetch workspace", { 
+    logger.workspaceError("Layout failed to fetch workspace", {
       component: "DashboardLayout",
       error: errorObj.message
     }, errorObj);
@@ -83,6 +86,10 @@ export default async function DashboardLayout({
   }
 
   // Redirect triggered outside the try/catch to avoid intercepting Next.js internal redirect throws
+  if (shouldRedirectToAuth) {
+    redirect("/auth");
+  }
+
   if (shouldRedirectToBilling) {
     redirect("/billing");
   }
@@ -102,4 +109,3 @@ export default async function DashboardLayout({
     </DashboardProvider>
   );
 }
-

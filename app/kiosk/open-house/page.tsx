@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
@@ -13,24 +14,31 @@ interface PageProps {
 export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
     let dealId: string | undefined;
     let dealTitle = "123 Main Street";
+
     try {
         const params = await searchParams
         dealId = params.dealId
 
         if (!dealId) {
-            const userId = await getAuthUserId()
-            const workspace = await getOrCreateWorkspace(userId)
-            const deals = await getDeals(workspace.id)
-            const firstDeal = deals[0]
+            const authUserId = await getAuthUserId();
+            if (!authUserId) redirect("/auth");
+
+            const workspace = await getOrCreateWorkspace(authUserId);
+            const deals = await getDeals(workspace.id);
+            const firstDeal = deals[0];
+
             if (firstDeal) {
-                dealId = firstDeal.id
-                dealTitle = firstDeal.title
+                dealId = firstDeal.id;
+                dealTitle = firstDeal.title;
             }
         }
-    } catch {
+    } catch (err) {
+        // If it's a redirect, re-throw it so Next.js can handle it
+        if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50">
-                <p className="text-slate-500">Database not initialized. Please push the schema first.</p>
+                <p className="text-slate-500">Database not initialized or session expired.</p>
             </div>
         )
     }
