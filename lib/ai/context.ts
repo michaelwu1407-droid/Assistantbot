@@ -3,11 +3,43 @@ import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getAuthUser } from "@/lib/auth";
 import type { MemoryClient } from "mem0ai";
 
+type BuildAgentContextOptions = {
+    includeHistoricalPricing?: boolean;
+};
+
+type AgentContextPayload = {
+    settings: Awaited<ReturnType<typeof getWorkspaceSettingsById>>;
+    userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" | string;
+    isManager: boolean;
+    knowledgeBaseStr: string;
+    agentModeStr: string;
+    workingHoursStr: string;
+    agentScriptStr: string;
+    allowedTimesStr: string;
+    preferencesStr: string;
+    pricingRulesStr: string;
+    bouncerStr: string;
+};
+
+const AGENT_CONTEXT_CACHE_TTL_MS = 30_000;
+const agentContextCache = new Map<string, { expiresAt: number; value: AgentContextPayload }>();
+
 /**
  * Builds the comprehensive prompt context for the AI agent given a workspace and user.
  * This is shared by both the Web dashboard chat UI and the headless WhatsApp agent.
  */
-export async function buildAgentContext(workspaceId: string, providedUserId?: string) {
+export async function buildAgentContext(
+    workspaceId: string,
+    providedUserId?: string,
+    options?: BuildAgentContextOptions
+): Promise<AgentContextPayload> {
+    const includeHistoricalPricing = options?.includeHistoricalPricing ?? true;
+    const cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
+    const cached = agentContextCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+    }
+
     // ── Parallel batch 1: all independent DB/auth queries ────────────────
     const [
         settings,
@@ -33,12 +65,14 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
             where: { workspaceId },
             select: { title: true, description: true },
         }),
-        db.deal.findMany({
-            where: { workspaceId, stage: "WON" },
-            select: { title: true, invoices: { select: { total: true }, take: 1 } },
-            orderBy: { updatedAt: "desc" },
-            take: 50,
-        }).catch(() => [] as { title: string; invoices: { total: any }[] }[]),
+        includeHistoricalPricing
+            ? db.deal.findMany({
+                where: { workspaceId, stage: "WON" },
+                select: { title: true, invoices: { select: { total: true }, take: 1 } },
+                orderBy: { updatedAt: "desc" },
+                take: 50,
+            }).catch(() => [] as { title: string; invoices: { total: any }[] }[])
+            : Promise.resolve([] as { title: string; invoices: { total: any }[] }[]),
         db.businessKnowledge.findMany({
             where: { workspaceId, category: "NEGATIVE_SCOPE" },
             select: { ruleContent: true },
@@ -98,7 +132,8 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
 
     // Fetch historical price averages from completed invoices
     let historicalPricingStr = "";
-    try {
+    if (includeHistoricalPricing) {
+        try {
 
         // Group by normalized title and compute min/max/avg
         const priceMap = new Map<string, number[]>();
@@ -165,8 +200,9 @@ export async function buildAgentContext(workspaceId: string, providedUserId?: st
             historicalPricingStr += "\n\n⚠️ PRICING CONFLICTS DETECTED (glossary vs actual invoices — verify before quoting):\n" +
                 pricingConflicts.map(c => `- ${c}`).join("\n");
         }
-    } catch {
-        // Historical pricing lookup failed — non-critical
+        } catch {
+            // Historical pricing lookup failed - non-critical
+        }
     }
 
     let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
@@ -267,7 +303,7 @@ REAL-TIME INSTRUCTION CAPTURE: If the business owner says "Next time, don't take
         bouncerStr = `\nLEAD QUALIFICATION GUARDRAIL: You have no exclusion rules configured. You MUST NOT decline any lead for any reason. Always proceed with full triage. If you suspect a job is low-value or problematic, add a private note to the internal_notes field for the owner to review. NEVER turn away business.`;
     }
 
-    return {
+    const contextValue: AgentContextPayload = {
         settings,
         userRole,
         isManager,
@@ -280,10 +316,25 @@ REAL-TIME INSTRUCTION CAPTURE: If the business owner says "Next time, don't take
         pricingRulesStr,
         bouncerStr,
     };
+
+    if (agentContextCache.size >= 200) {
+        const now = Date.now();
+        for (const [key, value] of agentContextCache.entries()) {
+            if (value.expiresAt <= now) agentContextCache.delete(key);
+        }
+    }
+    agentContextCache.set(cacheKey, {
+        expiresAt: Date.now() + AGENT_CONTEXT_CACHE_TTL_MS,
+        value: contextValue,
+    });
+
+    return contextValue;
 }
 
 // Lazy initialization of Mem0 Memory Client
 let memoryClient: MemoryClient | null = null;
+const MEMORY_CACHE_TTL_MS = 20_000;
+const memorySearchCache = new Map<string, { expiresAt: number; value: string }>();
 
 export function getMemoryClient(): MemoryClient | null {
     if (!memoryClient && process.env.MEM0_API_KEY) {
@@ -307,34 +358,43 @@ export function getMemoryClient(): MemoryClient | null {
  */
 export async function fetchMemoryContext(userId: string, query: string): Promise<string> {
     const memClient = getMemoryClient();
+    const normalizedQuery = query.trim();
+    if (!memClient || !normalizedQuery) return "";
+
+    const cacheKey = `${userId}:${normalizedQuery.toLowerCase()}`;
+    const cached = memorySearchCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+    }
+
     let memoryContextStr = "";
+    try {
+        const searchResults = await memClient.search(normalizedQuery, {
+            user_id: userId,
+            limit: 5,
+        });
 
-    if (memClient && query) {
-        try {
-            console.log(`[Mem0] Searching for relevant memories...`);
-            const searchResults = await memClient.search(query, {
-                user_id: userId,
-                limit: 5,
-            });
-
-            console.log(`[Mem0] Found ${searchResults.length} memories`);
-
-            if (searchResults && searchResults.length > 0) {
-                const facts = searchResults.map((memory: any, index: number) => {
-                    return `- ${memory.memory}`;
-                }).join("\n");
-
-                memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nThe following facts are retrieved from previous conversations with this user:\n${facts}\n[[END MEMORY CONTEXT]]\n\nUse these facts to personalize your response.`;
-            } else {
-                memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nNo previous context found for this query.\n[[END MEMORY CONTEXT]]`;
-            }
-        } catch (error) {
-            console.error("[Mem0] Error searching memories:", error);
-            memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nUnable to retrieve memories at this time.\n[[END MEMORY CONTEXT]]`;
+        if (searchResults && searchResults.length > 0) {
+            const facts = searchResults
+                .map((memory: any) => `- ${memory.memory}`)
+                .join("\n");
+            memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nThe following facts are retrieved from previous conversations with this user:\n${facts}\n[[END MEMORY CONTEXT]]\n\nUse these facts to personalize your response.`;
         }
-    } else {
+    } catch (error) {
+        console.error("[Mem0] Error searching memories:", error);
         memoryContextStr = "";
     }
+
+    if (memorySearchCache.size >= 400) {
+        const now = Date.now();
+        for (const [key, value] of memorySearchCache.entries()) {
+            if (value.expiresAt <= now) memorySearchCache.delete(key);
+        }
+    }
+    memorySearchCache.set(cacheKey, {
+        expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+        value: memoryContextStr,
+    });
 
     return memoryContextStr;
 }

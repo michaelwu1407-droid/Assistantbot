@@ -8,6 +8,7 @@ import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } 
 import { appendTicketNote } from "@/actions/activity-actions";
 import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
 import { getAgentTools } from "@/lib/ai/tools";
+import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -29,6 +30,122 @@ function looksLikeFollowUpDetail(text: string): boolean {
 
 /** Cost-effective Gemini model for chat + tools */
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+
+type ParsedJob = {
+  clientName: string;
+  workDescription: string;
+  price: number;
+  address?: string;
+  schedule?: string;
+  phone?: string;
+  email?: string;
+};
+
+type MultiJobState = {
+  jobs: ParsedJob[];
+  nextIndex: number;
+};
+
+function sanitizeParsedJob(raw: unknown): ParsedJob | null {
+  if (!raw || typeof raw !== "object") return null;
+  const job = raw as Record<string, unknown>;
+  const clientName = String(job.clientName ?? "").trim();
+  const workDescription = String(job.workDescription ?? "").trim();
+  if (!clientName || !workDescription) return null;
+  const price = Number(job.price ?? 0);
+  return {
+    clientName,
+    workDescription,
+    price: Number.isFinite(price) ? price : 0,
+    address: typeof job.address === "string" ? job.address : undefined,
+    schedule: typeof job.schedule === "string" ? job.schedule : undefined,
+    phone: typeof job.phone === "string" ? job.phone : undefined,
+    email: typeof job.email === "string" ? job.email : undefined,
+  };
+}
+
+function extractLatestMultiJobState(messages: unknown[]): MultiJobState | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i] as { role?: string; parts?: unknown[] };
+    if (message?.role !== "assistant" || !Array.isArray(message.parts)) continue;
+    for (let j = message.parts.length - 1; j >= 0; j--) {
+      const part = message.parts[j] as { output?: { multiJobState?: unknown } };
+      const rawState = part?.output?.multiJobState as { jobs?: unknown[]; nextIndex?: number } | undefined;
+      if (!rawState || !Array.isArray(rawState.jobs)) continue;
+      const jobs = rawState.jobs.map(sanitizeParsedJob).filter(Boolean) as ParsedJob[];
+      const nextIndex = Number(rawState.nextIndex ?? 0);
+      if (!jobs.length || !Number.isInteger(nextIndex) || nextIndex < 0 || nextIndex > jobs.length) continue;
+      return { jobs, nextIndex };
+    }
+  }
+  return null;
+}
+
+function getUserMessageText(message: unknown): string {
+  const m = message as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
+  if (m?.role !== "user") return "";
+  const textPart = m.parts?.find((p) => p.type === "text");
+  return (textPart?.text ?? (typeof m.content === "string" ? m.content : "") ?? "").trim();
+}
+
+function findMostRecentMultiJobCandidate(messages: unknown[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const text = getUserMessageText(messages[i]);
+    if (!text || text.length < 30) continue;
+    if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo|good|great)\b/i.test(text)) continue;
+    return text;
+  }
+  return null;
+}
+
+function shouldAttemptStructuredJobExtraction(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 15) return false;
+  const lower = trimmed.toLowerCase();
+  if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/.test(lower)) return false;
+  const strongSignals =
+    /(create|add|book|new job|log|needs|need|repair|install|replace|quote)/i.test(trimmed) ||
+    /\$\s*\d+/.test(trimmed) ||
+    /\b\d{8,}\b/.test(trimmed) ||
+    /@/.test(trimmed) ||
+    /\b(tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(trimmed) ||
+    /\b\d{1,2}\s?(am|pm)\b/i.test(trimmed);
+  if (strongSignals) return true;
+  const likelyQuestion = /^(what|show|list|how|why|who|when|where)\b/i.test(lower) || trimmed.includes("?");
+  if (likelyQuestion) return false;
+  const commaCount = (trimmed.match(/,/g) ?? []).length;
+  return commaCount >= 2 && /\d/.test(trimmed);
+}
+
+function shouldIncludeHistoricalPricing(text: string): boolean {
+  return /\b(price|pricing|quote|quoted|cost|how much|rate|fee|invoice)\b/i.test(text) || /\$/.test(text);
+}
+
+function shouldFetchMemory(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/i.test(trimmed.toLowerCase())) return false;
+  if (trimmed.split(/\s+/).length <= 2) return false;
+  return true;
+}
+
+function getAdaptiveMaxSteps(text: string): number {
+  const trimmed = text.trim().toLowerCase();
+  if (/^(next|confirm|cancel|ok|okay|yes|no|done|undo)\b/.test(trimmed)) return 2;
+  if (trimmed.length < 80) return 3;
+  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 5;
+  return 4;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutHandle = setTimeout(() => resolve(fallback), timeoutMs);
+  });
+  const result = await Promise.race([promise, timeoutPromise]);
+  if (timeoutHandle) clearTimeout(timeoutHandle);
+  return result;
+}
 
 /** Shared helper: add schedule-proximity and duplicate warnings to a job draft. */
 async function addDraftWarnings(
@@ -98,6 +215,7 @@ export async function POST(req: Request) {
     if (!content && typeof body.prompt === "string") content = body.prompt.trim();
     if (!content && typeof body.input === "string") content = body.input.trim();
     if (!content && typeof body.message === "string") content = body.message.trim();
+    const requestStartedAt = nowMs();
 
     // Sticky context: if previous assistant turn created a support ticket,
     // treat the immediate next user message as an addendum note.
@@ -130,86 +248,99 @@ export async function POST(req: Request) {
 
     if (content) saveUserMessage(workspaceId, content).catch(() => { });
 
-    // "Next" in multi-job flow: find original multi-job message in history and return the next job's draft card (no AI)
+    // "Next" in multi-job flow: use persisted multi-job state from previous tool outputs.
     const isNextMessage = /^\s*next\s*(job)?\s*(please)?\s*$/i.test(content.trim()) || content.trim().toLowerCase() === "next";
     if (isNextMessage && Array.isArray(messages) && messages.length >= 2) {
-      const getMessageText = (m: { role?: string; parts?: { type?: string; text?: string }[]; content?: string }) => {
-        if (m?.role !== "user") return "";
-        const textPart = m.parts?.find((p: { type?: string }) => p.type === "text");
-        return (textPart as { text?: string } | undefined)?.text ?? (typeof (m as { content?: string }).content === "string" ? (m as { content: string }).content : "") ?? "";
-      };
-      let jobsFromHistory: Awaited<ReturnType<typeof parseMultipleJobsWithAI>> = null;
-      let multiJobMessageIndex = -1;
-      for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i] as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
-        const text = getMessageText(msg).trim();
-        // Skip messages that are obviously not multi-job: empty, short, or simple commands
-        if (!text || text.length < 30) continue;
-        if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo|good|great)\b/i.test(text)) continue;
-        const parsed = await parseMultipleJobsWithAI(text);
-        if (parsed && parsed.length >= 2) {
-          jobsFromHistory = parsed;
-          multiJobMessageIndex = i;
-          break;
+      const cachedMultiJobState = extractLatestMultiJobState(messages);
+      let jobsFromHistory: ParsedJob[] | null = cachedMultiJobState?.jobs ?? null;
+      let jobIndex = cachedMultiJobState?.nextIndex ?? 0;
+
+      // Backward-compatible fallback when state is unavailable in old messages.
+      if (!jobsFromHistory) {
+        const candidate = findMostRecentMultiJobCandidate(messages);
+        if (candidate) {
+          const parsedFallback = await withTimeout(parseMultipleJobsWithAI(candidate), 1500, null);
+          if (parsedFallback && parsedFallback.length >= 2) {
+            jobsFromHistory = parsedFallback.map((job) => ({
+              clientName: job.clientName,
+              workDescription: job.workDescription,
+              price: job.price,
+              address: job.address,
+              schedule: job.schedule,
+              phone: job.phone,
+              email: job.email,
+            }));
+            jobIndex = Math.min(1, jobsFromHistory.length - 1);
+          }
         }
       }
-      if (jobsFromHistory && multiJobMessageIndex >= 0) {
-        let nextCount = 0;
-        for (let i = multiJobMessageIndex + 1; i < messages.length; i++) {
-          const msg = messages[i] as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
-          if (msg?.role !== "user") continue;
-          const text = getMessageText(msg).trim().toLowerCase();
-          if (text === "next" || /^next\s*(job)?\s*(please)?\s*$/.test(text)) nextCount++;
-        }
-        if (nextCount < jobsFromHistory.length) {
-          const jobIndex = nextCount;
-          const nextJob = jobsFromHistory[jobIndex];
-          const draft = buildJobDraftFromParams(nextJob) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
-          draft.warnings = [];
-          try {
-            const [settings, deals] = await Promise.all([
-              getWorkspaceSettingsById(workspaceId),
-              getDeals(workspaceId),
-            ]);
-            if (settings?.agentMode === "FILTER") {
-              return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
-            }
-            await addDraftWarnings(draft, workspaceId, deals);
-          } catch {
-            // ignore
+
+      if (jobsFromHistory && jobIndex < jobsFromHistory.length) {
+        const nextJob = jobsFromHistory[jobIndex];
+        const draft = buildJobDraftFromParams(nextJob) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
+        draft.warnings = [];
+        try {
+          const [settings, deals] = await Promise.all([
+            getWorkspaceSettingsById(workspaceId),
+            getDeals(workspaceId),
+          ]);
+          if (settings?.agentMode === "FILTER") {
+            return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
           }
-          const multiJobRemaining = jobIndex < jobsFromHistory.length - 1;
-          const textId = "text-multi-next";
-          const toolCallId = `showJobDraft-multi-${jobIndex + 1}`;
-          const toolInput = { clientName: draft.clientName ?? "", workDescription: draft.workDescription ?? "Job", price: Number(String(draft.price).replace(/,/g, "")) || 0, address: draft.address || undefined, schedule: draft.rawSchedule || undefined, phone: draft.phone || undefined, email: draft.email || undefined };
-          const stream = createUIMessageStream({
-            execute: ({ writer }) => {
-              writer.write({ type: "start" });
-              writer.write({ type: "text-start", id: textId });
-              writer.write({ type: "text-delta", id: textId, delta: multiJobRemaining ? "Here's the next one — edit if needed, then confirm or cancel." : "Here's the last one — edit if needed, then confirm." });
-              writer.write({ type: "text-end", id: textId });
-              writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
-              writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining } });
-              writer.write({ type: "finish" });
-            },
-          });
-          return createUIMessageStreamResponse({ stream });
+          await addDraftWarnings(draft, workspaceId, deals);
+        } catch {
+          // ignore
         }
+
+        const nextIndex = jobIndex + 1;
+        const multiJobRemaining = nextIndex < jobsFromHistory.length;
+        const textId = "text-multi-next";
+        const toolCallId = `showJobDraft-multi-${jobIndex + 1}`;
+        const toolInput = {
+          clientName: draft.clientName ?? "",
+          workDescription: draft.workDescription ?? "Job",
+          price: Number(String(draft.price).replace(/,/g, "")) || 0,
+          address: draft.address || undefined,
+          schedule: draft.rawSchedule || undefined,
+          phone: draft.phone || undefined,
+          email: draft.email || undefined,
+        };
+        const nextState: MultiJobState = { jobs: jobsFromHistory, nextIndex };
+        const stream = createUIMessageStream({
+          execute: ({ writer }) => {
+            writer.write({ type: "start" });
+            writer.write({ type: "text-start", id: textId });
+            writer.write({ type: "text-delta", id: textId, delta: multiJobRemaining ? "Here's the next one — edit if needed, then confirm or cancel." : "Here's the last one — edit if needed, then confirm." });
+            writer.write({ type: "text-end", id: textId });
+            writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
+            writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining, multiJobState: nextState } });
+            writer.write({ type: "finish" });
+          },
+        });
+        return createUIMessageStreamResponse({ stream });
       }
     }
 
     // Extract user ID from headers or use workspaceId as fallback
     const userId = req.headers.get("x-user-id") || workspaceId;
+    const preprocessingStartedAt = nowMs();
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
-    const lastMessageContent = lastUserMessage?.content || "";
+    const lastMessageContent = getUserMessageText(lastUserMessage) || content;
+    const shouldRunStructuredExtraction = shouldAttemptStructuredJobExtraction(content);
+    const includeHistoricalPricing = shouldIncludeHistoricalPricing(content);
+    const shouldGetMemoryContext = shouldFetchMemory(lastMessageContent);
 
     // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
     // This is the critical speed optimization — these 3 operations are independent and
     // were previously running sequentially, adding 1-3+ seconds of dead time.
     const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
-      extractAllJobsFromParagraph(content),
-      buildAgentContext(workspaceId, userId),
-      fetchMemoryContext(userId, lastMessageContent),
+      shouldRunStructuredExtraction
+        ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
+        : Promise.resolve([]),
+      buildAgentContext(workspaceId, userId, { includeHistoricalPricing }),
+      shouldGetMemoryContext
+        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 700, "")
+        : Promise.resolve(""),
     ]);
 
     const {
@@ -224,6 +355,7 @@ export async function POST(req: Request) {
       pricingRulesStr,
       bouncerStr,
     } = agentContext;
+    const preprocessingMs = nowMs() - preprocessingStartedAt;
 
     // ── Handle job extraction results (draft card early-returns) ──
     const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
@@ -246,6 +378,18 @@ export async function POST(req: Request) {
       const textId = "text-multi-draft";
       const toolCallId = "showJobDraft-multi-1";
       const toolInput = { clientName: draft.clientName ?? "", workDescription: draft.workDescription ?? "Job", price: Number(String(draft.price).replace(/,/g, "")) || 0, address: draft.address || undefined, schedule: draft.rawSchedule || undefined, phone: draft.phone || undefined, email: draft.email || undefined };
+      const initialState: MultiJobState = {
+        jobs: multipleJobs.map((job) => ({
+          clientName: job.clientName,
+          workDescription: job.workDescription,
+          price: job.price,
+          address: job.address,
+          schedule: job.schedule,
+          phone: job.phone,
+          email: job.email,
+        })),
+        nextIndex: 1,
+      };
       const stream = createUIMessageStream({
         execute: ({ writer }) => {
           writer.write({ type: "start" });
@@ -253,7 +397,7 @@ export async function POST(req: Request) {
           writer.write({ type: "text-delta", id: textId, delta: "I’ll process these one at a time. Here’s the first one — edit if needed, then confirm and I’ll create it and move to the next." });
           writer.write({ type: "text-end", id: textId });
           writer.write({ type: "tool-input-available", toolCallId, toolName: "showJobDraftForConfirmation", input: toolInput });
-          writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining: true } });
+          writer.write({ type: "tool-output-available", toolCallId, output: { draft, multiJobRemaining: true, multiJobState: initialState } });
           writer.write({ type: "finish" });
         },
       });
@@ -261,7 +405,10 @@ export async function POST(req: Request) {
     }
 
     const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
-    const parsed = useMultiJobFlow ? null : (singleJobFromParagraph ?? await parseJobWithAI(content));
+    const parsed = useMultiJobFlow
+      ? null
+      : (singleJobFromParagraph ??
+        (shouldRunStructuredExtraction ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
@@ -389,6 +536,15 @@ export async function POST(req: Request) {
       ? `\n\nMULTIPLE JOBS — CRITICAL: The user has pasted multiple jobs in one message. You MUST process them ONE AT A TIME. First call showJobDraftForConfirmation with ONLY the first job's details (clientName, workDescription, price, address, schedule, phone, email). Then say clearly: "This is the first one. Confirm and I'll create it, then we'll do the next." Do NOT call createJobNatural until the user has confirmed. After the user confirms (e.g. "confirm", "ok", "yes", "done"), call createJobNatural for that job, then call showJobDraftForConfirmation for the NEXT job. Repeat until all jobs are done.`
       : "";
 
+    let toolCallsMs = 0;
+    const tools = instrumentToolsWithLatency(
+      getAgentTools(workspaceId, settings, userId),
+      (toolName, durationMs) => {
+        toolCallsMs += durationMs;
+        recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
+      },
+    );
+    const llmStartedAt = nowMs();
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
       system: `You are Travis, a concise CRM assistant for tradies. Keep responses SHORT and punchy — tradies are busy. No essays. Use "jobs" not "meetings".
@@ -462,9 +618,17 @@ MULTI-JOB FOLLOW-UP — CRITICAL: When the user replies with "Next" or "next job
 
 After any tool, briefly confirm in a friendly way. If a tool fails, say so and suggest what to try. Never return empty responses.`,
       messages: modelMessages as any,
-      tools: getAgentTools(workspaceId, settings, userId),
-      stopWhen: stepCountIs(5),
+      tools,
+      stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
       onFinish: async ({ text }) => {
+        const llmPhaseMs = nowMs() - llmStartedAt;
+        const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
+        const totalMs = nowMs() - requestStartedAt;
+        recordLatencyMetric("chat.web.preprocessing_ms", preprocessingMs);
+        recordLatencyMetric("chat.web.tool_calls_ms", toolCallsMs);
+        recordLatencyMetric("chat.web.model_ms", modelMs);
+        recordLatencyMetric("chat.web.total_ms", totalMs);
+
         // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
         console.log(`[Mem0] Starting memory storage...`);
 

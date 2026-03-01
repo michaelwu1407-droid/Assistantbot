@@ -35,9 +35,9 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
   return (
     <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
       <CardHeader>
-        <CardTitle>Public-facing contact</CardTitle>
+        <CardTitle>Business details</CardTitle>
         <CardDescription>
-          Shown to customers when the AI agent provides your contact details.
+          Contact and address details Travis can share with customers.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

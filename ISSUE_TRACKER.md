@@ -1,8 +1,16 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-02-28 (v2.5: On-Site Completion, Bouncer Engine, Performance, Actionable Notifications, Morning Briefing, Historical Pricing, Sidebar UI)
+**Last Updated:** 2026-03-01 (v2.5.2: AI latency telemetry instrumentation + adaptive chat performance)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
+
+## Operational Telemetry
+
+- New internal latency endpoint: `GET /api/internal/telemetry/latency` (and `DELETE` reset).
+- Captures rolling latency metrics with percentile-ready samples for:
+  - Web chat: preprocessing, tool calls, model, total.
+  - Headless agent: preprocessing, tool calls, model, total.
+  - Per-tool execution timings for both paths.
 
 ## Application Pages & Features Matrix
 

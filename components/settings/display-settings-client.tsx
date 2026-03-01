@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -9,6 +10,19 @@ import { Sun, Globe, Accessibility, Smartphone } from "lucide-react"
 
 export function DisplaySettingsClient() {
   const { theme, setTheme } = useTheme()
+  const [fontScale, setFontScale] = useState("100")
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("ui-font-scale") || "100"
+    setFontScale(stored)
+    document.documentElement.style.fontSize = `${stored}%`
+  }, [])
+
+  const handleFontScaleChange = (value: string) => {
+    setFontScale(value)
+    window.localStorage.setItem("ui-font-scale", value)
+    document.documentElement.style.fontSize = `${value}%`
+  }
 
   return (
     <div className="space-y-6">
@@ -94,13 +108,25 @@ export function DisplaySettingsClient() {
             Accessibility
           </CardTitle>
           <CardDescription>
-            Browser-level accessibility controls are currently supported.
+            Apply in-app text scaling for better readability.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Use browser zoom, OS high-contrast mode, and screen reader settings. Dedicated in-app accessibility toggles are being built.
-          </p>
+          <div className="space-y-2">
+            <Label>Text size</Label>
+            <Select value={fontScale} onValueChange={handleFontScaleChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="90">Small (90%)</SelectItem>
+                <SelectItem value="100">Default (100%)</SelectItem>
+                <SelectItem value="110">Large (110%)</SelectItem>
+                <SelectItem value="120">Extra large (120%)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">This updates app font size immediately and persists on this browser.</p>
+          </div>
         </CardContent>
       </Card>
 

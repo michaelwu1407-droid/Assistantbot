@@ -1,5 +1,20 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.5.2 (March 1, 2026)
+
+### AI Quality + Latency Optimization
+- Chat API now uses adaptive preprocessing:
+  - Structured job extraction only runs when intent signals indicate job creation details.
+  - Historical pricing context is fetched only for pricing-related prompts.
+  - Memory retrieval is skipped for low-value short turns and timeout-capped when used.
+- Multi-job flow now persists and reuses `multiJobState` in tool output, so `"next"` no longer re-parses prior chat history in a loop.
+- Adaptive tool-step budget added (`stepCountIs(getAdaptiveMaxSteps(...))`) to speed up short turns while preserving depth on complex requests.
+- Added short-TTL caching in `buildAgentContext()` and `fetchMemoryContext()` to reduce repeat DB/memory work during active chat sessions.
+- Removed per-response `router.refresh()` in chat UI to reduce post-response jank and improve perceived speed.
+- Applied the same adaptive context/memory strategy to the headless AI agent (`lib/services/ai-agent.ts`) for parity with dashboard chat behavior.
+- Added rolling latency telemetry with P50/P95-ready samples for `preprocessing`, `tool_calls`, `model`, and `total` across web chat and headless agent.
+- Added internal telemetry endpoint `GET /api/internal/telemetry/latency` (and `DELETE` to reset) for runtime bottleneck inspection.
+
 ## Version 2.5.1 (February 28, 2026)
 
 ### Sidebar Button Inversion (correction)

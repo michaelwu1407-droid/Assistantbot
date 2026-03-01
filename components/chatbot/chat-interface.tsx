@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useChat } from '@ai-sdk/react';
 import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
@@ -232,7 +231,6 @@ function ChatWithHistory({
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
   /** When user cancels a job draft, we hide the card and show "Cancelled". */
@@ -258,7 +256,6 @@ function ChatWithHistory({
     }),
     messages: initialMessages.length > 0 ? initialMessages : undefined,
     onFinish: ({ message }) => {
-      router.refresh();
       let content = getMessageTextFromParts(message.parts);
       if (!content.trim() && typeof (message as { content?: string }).content === 'string')
         content = (message as any).content;

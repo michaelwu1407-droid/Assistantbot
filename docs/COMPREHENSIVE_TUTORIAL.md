@@ -702,3 +702,36 @@ AI breaks down complex requests into individual actions.
 **Tutorial Complete!** You now have everything needed to run your business efficiently with Pj Buddy.
 
 *Last Updated: February 27, 2026*
+# Module 12: Latency Telemetry (Admin Operations)
+
+Use this when diagnosing slow AI responses.
+
+## Endpoint Access
+- `GET /api/internal/telemetry/latency`
+- `DELETE /api/internal/telemetry/latency` to clear rolling samples.
+
+In production, include:
+- Header: `x-telemetry-key`
+- Value: `TELEMETRY_ADMIN_KEY`
+
+## Key Metrics
+- Web chat:
+  - `chat.web.preprocessing_ms`
+  - `chat.web.tool_calls_ms`
+  - `chat.web.model_ms`
+  - `chat.web.total_ms`
+- Headless agent:
+  - `chat.headless.preprocessing_ms`
+  - `chat.headless.tool_calls_ms`
+  - `chat.headless.model_ms`
+  - `chat.headless.total_ms`
+- Per tool:
+  - `chat.web.tool.<tool_name>_ms`
+  - `chat.headless.tool.<tool_name>_ms`
+
+## How to Read
+- `p50Ms`: typical latency.
+- `p95Ms`: tail latency (bad-user-experience zone).
+- If `tool_calls_ms` is high, optimize tools/query paths.
+- If `model_ms` is high, optimize prompt size/model/tool-step budget.
+- If `preprocessing_ms` is high, optimize context/memory/extraction work.
