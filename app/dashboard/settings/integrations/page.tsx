@@ -121,7 +121,7 @@ export default function IntegrationsPage() {
             <div>
                 <h3 className="text-lg font-medium">Integrations</h3>
                 <p className="text-sm text-muted-foreground">
-                    Connect Pj Buddy to your external tools.
+                    Connect Earlymark to your external tools.
                 </p>
             </div>
             <Separator />
@@ -135,7 +135,7 @@ export default function IntegrationsPage() {
                             <CardTitle>Instant Lead Capture</CardTitle>
                         </div>
                         <CardDescription>
-                            Connect your Gmail or Outlook account to automatically capture leads from Hipages, Airtasker, ServiceSeeking and more. Our AI will instantly parse leads and send intro SMS to win the speed-to-lead race.
+                            This is usually connected during onboarding. If it was skipped, connect Gmail or Outlook here to capture leads automatically from Hipages, Airtasker, ServiceSeeking and more.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">

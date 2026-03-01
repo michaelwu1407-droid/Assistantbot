@@ -159,12 +159,12 @@ export function DealEditForm({
       {teamMembers.length > 0 && (
         <div className="space-y-2">
           <Label htmlFor="assignedTo">Assigned to {stage === "scheduled" ? "(required)" : ""}</Label>
-          <Select value={assignedToId} onValueChange={setAssignedToId}>
+          <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
             <SelectTrigger id="assignedTo" className="max-w-md">
               <SelectValue placeholder={stage === "scheduled" ? "Select team member" : "Optional"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__unassigned__">None</SelectItem>
               {teamMembers.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
                   {m.name || m.email}

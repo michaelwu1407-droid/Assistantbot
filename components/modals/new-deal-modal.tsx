@@ -46,10 +46,13 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
     const [newContactName, setNewContactName] = useState("")
     const [newContactEmail, setNewContactEmail] = useState("")
     const [newContactPhone, setNewContactPhone] = useState("")
+    const [newContactType, setNewContactType] = useState<"PERSON" | "BUSINESS">("PERSON")
+    const [newContactCompany, setNewContactCompany] = useState("")
 
     const [isLoading, setIsLoading] = useState(false)
     const [isFetchingContacts, setIsFetchingContacts] = useState(false)
     const [contactError, setContactError] = useState("")
+    const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
     useEffect(() => {
         if (isOpen && workspaceId) {
@@ -72,6 +75,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setAttemptedSubmit(true)
         if (!title) return
         if (mode === "select" && !contactId) return
         if (stage === "scheduled" && !assignedToId) {
@@ -83,6 +87,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
             // Require at least email or phone
             if (!newContactEmail && !newContactPhone) {
                 setContactError("Please provide at least an email or phone number.")
+                return
+            }
+            if (newContactType === "BUSINESS" && !newContactCompany.trim()) {
+                setContactError("Business name is required when client type is Business.")
                 return
             }
         }
@@ -97,6 +105,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                     name: newContactName,
                     email: newContactEmail || undefined,
                     phone: newContactPhone || undefined,
+                    company: newContactType === "BUSINESS" ? newContactCompany || undefined : undefined,
+                    contactType: newContactType,
                     workspaceId
                 })
 
@@ -135,8 +145,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                 setNewContactName("")
                 setNewContactEmail("")
                 setNewContactPhone("")
+                setNewContactType("PERSON")
+                setNewContactCompany("")
                 setMode("create")
                 setContactError("")
+                setAttemptedSubmit(false)
 
                 onClose()
                 router.refresh()
@@ -155,15 +168,14 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
     const isCreateDisabled = isLoading ||
         !title ||
         (mode === "select" ? !contactId : !newContactName)
+    const shouldHighlightContactMethod = attemptedSubmit && mode === "create" && !newContactEmail.trim() && !newContactPhone.trim()
+    const shouldHighlightBusinessName = attemptedSubmit && mode === "create" && newContactType === "BUSINESS" && !newContactCompany.trim()
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[88vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Create New Job</DialogTitle>
-                    <DialogDescription>
-                        Add a new job to your pipeline. First name, job description, and a contact method are required.
-                    </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
@@ -173,15 +185,15 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                             <Label htmlFor="title" className="text-right">
                                 Job description *
                             </Label>
-                            <Input
-                                id="title"
-                                placeholder="e.g. Kitchen Renovation"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
+                                <Input
+                                    id="title"
+                                    placeholder="e.g. Kitchen Renovation"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    className={`col-span-3 ${attemptedSubmit && !title.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                    required
+                                />
+                            </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="value" className="text-right">
                                 Value ($)
@@ -250,12 +262,12 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                 <Label htmlFor="assignedTo" className="text-right">
                                     Assigned to {stage === "scheduled" ? "*" : ""}
                                 </Label>
-                                <Select value={assignedToId} onValueChange={setAssignedToId}>
+                                <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
                                     <SelectTrigger id="assignedTo" className="col-span-3">
                                         <SelectValue placeholder={stage === "scheduled" ? "Select team member (required)" : "Optional"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
+                                        <SelectItem value="__unassigned__">None</SelectItem>
                                         {teamMembers.map((m) => (
                                             <SelectItem key={m.id} value={m.id}>
                                                 {m.name || m.email}
@@ -272,7 +284,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                     {/* Contact Selection / Creation */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <Label>Client / Contact *</Label>
+                            <Label>Client *</Label>
                             <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[200px]">
                                 <TabsList className="grid w-full grid-cols-2 h-8">
                                     <TabsTrigger value="select" className="text-xs">Select</TabsTrigger>
@@ -287,7 +299,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                     Existing
                                 </Label>
                                 <Select value={contactId} onValueChange={setContactId}>
-                                    <SelectTrigger className="col-span-3">
+                                    <SelectTrigger className={`col-span-3 ${attemptedSubmit && mode === "select" && !contactId ? "border-red-500 focus-visible:ring-red-500" : ""}`}>
                                         <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a contact"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -311,7 +323,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                         <Input
                                             id="new-name"
                                             placeholder="John Doe"
-                                            className="pl-9"
+                                            className={`pl-9 ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactName}
                                             onChange={e => setNewContactName(e.target.value)}
                                             required
@@ -328,7 +340,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                             id="new-email"
                                             type="email"
                                             placeholder="john@example.com"
-                                            className="pl-9"
+                                            className={`pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactEmail}
                                             onChange={e => setNewContactEmail(e.target.value)}
                                         />
@@ -342,11 +354,38 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                             id="new-phone"
                                             type="tel"
                                             placeholder="0400 000 000"
-                                            className="pl-9"
+                                            className={`pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactPhone}
                                             onChange={e => setNewContactPhone(e.target.value)}
                                         />
                                     </div>
+                                </div>
+                                {newContactType === "BUSINESS" && (
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="new-company" className="text-right text-xs">Business name *</Label>
+                                        <div className="col-span-3">
+                                            <Input
+                                                id="new-company"
+                                                placeholder="e.g. Acme Plumbing"
+                                                value={newContactCompany}
+                                                onChange={e => setNewContactCompany(e.target.value)}
+                                                className={shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right text-xs">Client type *</Label>
+                                    <Tabs
+                                        value={newContactType}
+                                        onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")}
+                                        className="col-span-3"
+                                    >
+                                        <TabsList className="grid w-full grid-cols-2 h-8">
+                                            <TabsTrigger value="PERSON" className="text-xs">Person</TabsTrigger>
+                                            <TabsTrigger value="BUSINESS" className="text-xs">Business</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
                                 </div>
                                 <p className="text-[11px] text-slate-500 text-right">* Email or phone required</p>
                                 {contactError && (

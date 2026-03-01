@@ -100,6 +100,21 @@ Multi-channel support with AI-powered assistance:
 - **Storage**: Supabase Storage (files/docs)
 - **Security**: End-to-end encryption for OAuth tokens
 
+### **Latency Telemetry (P50/P95)**
+- Internal endpoint: `GET /api/internal/telemetry/latency`
+- Reset endpoint: `DELETE /api/internal/telemetry/latency`
+- Production access: send `x-telemetry-key` header matching `TELEMETRY_ADMIN_KEY`
+- Metrics captured (rolling window):
+  - `chat.web.preprocessing_ms`
+  - `chat.web.tool_calls_ms`
+  - `chat.web.model_ms`
+  - `chat.web.total_ms`
+  - `chat.headless.preprocessing_ms`
+  - `chat.headless.tool_calls_ms`
+  - `chat.headless.model_ms`
+  - `chat.headless.total_ms`
+  - per-tool timings: `chat.web.tool.<tool>_ms`, `chat.headless.tool.<tool>_ms`
+
 ---
 
 ## 📱 **Platform Features Overview**
@@ -209,6 +224,7 @@ TWILIO_AUTH_TOKEN=your-token
 # AI Services
 GEMINI_API_KEY=your-gemini-key
 RETELL_API_KEY=your-retell-key
+TELEMETRY_ADMIN_KEY=your-telemetry-admin-key
 
 # OAuth for Lead Capture
 GMAIL_CLIENT_ID=your-gmail-client

@@ -1,7 +1,6 @@
 import { Separator } from "@/components/ui/separator"
 import { ProfileForm } from "@/components/dashboard/profile-form"
 import { ReferralSettings } from "@/components/settings/referral-settings"
-import { PersonalPhoneCard } from "@/components/settings/personal-phone-card"
 import { CallForwardingCard } from "@/components/settings/call-forwarding-card"
 import { AccountSecurityCard } from "@/components/settings/account-security-card"
 import { getAuthUserId } from "@/lib/auth"
@@ -21,7 +20,7 @@ export default async function AccountSettingsPage() {
       <div>
         <h3 className="text-lg font-medium text-slate-900 dark:text-white">Account</h3>
         <p className="text-sm text-slate-500">
-          Keep your profile, phone, and security up to date.
+          Keep your profile, phone setup, security, and referrals up to date.
         </p>
       </div>
       <Separator />
@@ -40,28 +39,21 @@ export default async function AccountSettingsPage() {
       </section>
       <Separator />
 
-      {/* 2. Personal phone */}
+      {/* 2. Personal phone + call forwarding */}
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Personal phone</h4>
-        <PersonalPhoneCard />
-      </section>
-      <Separator />
-
-      {/* 3. Call forwarding */}
-      <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Call forwarding</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Personal phone and call forwarding</h4>
         <CallForwardingCard />
       </section>
       <Separator />
 
-      {/* 4. Security */}
+      {/* 3. Security */}
       <section>
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Security</h4>
         <AccountSecurityCard userId={userId} businessName={businessName} />
       </section>
       <Separator />
 
-      {/* 5. Referral settings */}
+      {/* 4. Referral settings */}
       <section>
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Referral settings</h4>
         <ReferralSettings userId={userId} />

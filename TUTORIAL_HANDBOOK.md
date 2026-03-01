@@ -149,6 +149,26 @@ Notes: "speaks Spanish only"
    - Use AI calls for complex multilingual conversations
    - Consider customer communication preferences
 
+### Latency Diagnostics (Admin)
+
+If responses feel slow, use the internal latency telemetry endpoint to isolate the bottleneck.
+
+#### Endpoint
+- `GET /api/internal/telemetry/latency`
+- `DELETE /api/internal/telemetry/latency` (reset rolling samples)
+
+#### Security
+- In production, send header: `x-telemetry-key: <TELEMETRY_ADMIN_KEY>`
+
+#### What to Inspect
+- `chat.web.preprocessing_ms` / `chat.headless.preprocessing_ms`
+- `chat.web.tool_calls_ms` / `chat.headless.tool_calls_ms`
+- `chat.web.model_ms` / `chat.headless.model_ms`
+- `chat.web.total_ms` / `chat.headless.total_ms`
+- Per-tool timings: `chat.web.tool.<tool>_ms`, `chat.headless.tool.<tool>_ms`
+
+Use `p50Ms` for typical performance and `p95Ms` for tail latency (slowest user experience).
+
 ---
 
 ## Need Help?

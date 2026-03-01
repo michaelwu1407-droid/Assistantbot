@@ -4,13 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { updateUserProfile } from "@/actions/user-actions";
 import { toast } from "sonner";
-import { useShellStore } from "@/lib/store";
-import { useRouter } from "next/navigation";
 
 interface ProfileFormProps {
   userId: string;
@@ -22,12 +19,9 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userId, initialData }: ProfileFormProps) {
-  const router = useRouter()
-  const setViewMode = useShellStore((s) => s.setViewMode)
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: initialData?.username || "",
-    viewMode: initialData?.viewMode || "BASIC" as "BASIC" | "ADVANCED",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,14 +31,9 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
     try {
       const updateData = {
         username: formData.username,
-        viewMode: formData.viewMode,
       };
 
       await updateUserProfile(userId, updateData);
-      setViewMode(formData.viewMode)
-      if (formData.viewMode === "BASIC") {
-        router.push("/dashboard")
-      }
 
       toast.success("Profile updated successfully!");
     } catch (error) {
@@ -90,25 +79,6 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
                 Email cannot be changed here. Contact support if needed.
               </p>
             </div>
-          </div>
-
-          <Separator className="bg-slate-100 dark:bg-slate-800" />
-
-          {/* Advanced Mode Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="advanced-mode" className="text-base font-medium">Advanced Mode</Label>
-              <p className="text-sm text-slate-500">
-                Enable advanced features, reports, and team views.
-              </p>
-            </div>
-            <Switch
-              id="advanced-mode"
-              checked={formData.viewMode === "ADVANCED"}
-              onCheckedChange={(checked) =>
-                setFormData(prev => ({ ...prev, viewMode: checked ? "ADVANCED" : "BASIC" }))
-              }
-            />
           </div>
 
           <Separator className="bg-slate-100 dark:bg-slate-800" />

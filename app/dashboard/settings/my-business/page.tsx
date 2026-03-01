@@ -60,7 +60,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Public-facing contact</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Business details</h4>
         <BusinessContactForm initialData={businessContact ?? undefined} />
       </section>
       <Separator />
@@ -72,7 +72,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Pricing information for agent</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Pricing information</h4>
         <PricingForAgentSection
           initialCallOutFee={(workspaceWithSettings as { callOutFee?: number })?.callOutFee ?? 0}
         />

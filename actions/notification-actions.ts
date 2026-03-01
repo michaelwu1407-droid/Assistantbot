@@ -249,7 +249,7 @@ export async function ensureDailyNotifications(workspaceId: string) {
 
       if (todayDeviations > 0) {
         message += ` Note: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules. Please review these so I can learn your latest preferences!`;
-        link = "/dashboard/settings/knowledge"; // View to resolve deviations
+        link = "/dashboard/settings/my-business"; // Review refusal rules in My business
       }
 
       await createNotification({

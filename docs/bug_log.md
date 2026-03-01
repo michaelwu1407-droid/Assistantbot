@@ -49,3 +49,14 @@ The critical **AI Agent** architecture has been rebuilt from context-stuffing to
 ### P3 - Low (Resolved)
 - [x] **Billing label mismatch**: **FIXED**. Updated plan and manage button text (`Earlymark Pro`, `Manage`).
 - [x] **Privacy naming mismatch**: **FIXED**. Replaced legacy product naming with Earlymark AI, added Data Policy (DRAFT), removed data export request control.
+
+## Sprint 25 Updates (2026-03-01)
+
+### P1 - High (Resolved)
+- [x] **No latency visibility for AI chat performance**: **FIXED**. Added rolling latency telemetry for web chat and headless agent with split timing for pre-processing, tool calls, model time, and total request duration.
+
+### P2 - Medium (Resolved)
+- [x] **No percentile view for slow-tail responses**: **FIXED**. Added internal telemetry snapshot endpoint with percentile-ready metrics (P50/P95) and reset support:
+  - `GET /api/internal/telemetry/latency`
+  - `DELETE /api/internal/telemetry/latency`
+- [x] **Telemetry endpoint access control in production**: **FIXED**. Added header-gated auth via `TELEMETRY_ADMIN_KEY` (`x-telemetry-key`).

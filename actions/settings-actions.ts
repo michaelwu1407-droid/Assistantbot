@@ -53,7 +53,8 @@ export async function getWorkspaceSettings() {
         softChase: (s.softChase as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 3, channel: "sms" },
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
-        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "off",
+        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 20,
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
         emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
@@ -211,7 +212,8 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         softChase: (s.softChase as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 3, channel: "sms" },
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
-        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "off",
+        callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 20,
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
         emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
@@ -230,26 +232,28 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
     }
 }
 
-export async function getCallForwardingSettings(): Promise<{ enabled: boolean; mode: "full" | "backup" | "off" }> {
+export async function getCallForwardingSettings(): Promise<{ enabled: boolean; mode: "full" | "backup" | "off"; delaySec: number }> {
     const workspaceId = await getWorkspaceId()
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
         select: { settings: true },
     })
     const s = (workspace?.settings as Record<string, unknown>) ?? {}
-    const mode = (s.callForwardingMode as "full" | "backup" | "off") ?? "off"
+    const mode = (s.callForwardingMode as "full" | "backup" | "off") ?? "backup"
     const enabled = (s.callForwardingEnabled as boolean) ?? mode !== "off"
-    return { enabled, mode }
+    const delaySec = Number(s.callForwardingDelaySec ?? 20)
+    return { enabled, mode, delaySec }
 }
 
-export async function updateCallForwardingSettings(input: { enabled: boolean; mode: "full" | "backup" | "off" }) {
+export async function updateCallForwardingSettings(input: { enabled: boolean; mode: "full" | "backup" | "off"; delaySec?: number }) {
     const workspaceId = await getWorkspaceId()
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
         select: { settings: true },
     })
     const current = (workspace?.settings as Record<string, unknown>) ?? {}
-    const nextMode = input.enabled ? (input.mode === "off" ? "full" : input.mode) : "off"
+    const nextMode = input.enabled ? (input.mode === "off" ? "backup" : input.mode) : "off"
+    const nextDelay = Math.max(10, Math.min(45, Number(input.delaySec ?? 20)))
     await db.workspace.update({
         where: { id: workspaceId },
         data: {
@@ -257,6 +261,7 @@ export async function updateCallForwardingSettings(input: { enabled: boolean; mo
                 ...current,
                 callForwardingEnabled: input.enabled,
                 callForwardingMode: nextMode,
+                callForwardingDelaySec: nextDelay,
             },
         },
     })

@@ -14,7 +14,6 @@ import { toast } from "sonner"
 import { User, Mail, Phone, CalendarClock, AlertCircle, ChevronLeft } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
-import { cn } from "@/lib/utils"
 
 interface TeamMemberOption {
     id: string
@@ -46,10 +45,13 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     const [newContactName, setNewContactName] = useState("")
     const [newContactEmail, setNewContactEmail] = useState("")
     const [newContactPhone, setNewContactPhone] = useState("")
+    const [newContactType, setNewContactType] = useState<"PERSON" | "BUSINESS">("PERSON")
+    const [newContactCompany, setNewContactCompany] = useState("")
 
     const [isLoading, setIsLoading] = useState(false)
     const [isFetchingContacts, setIsFetchingContacts] = useState(false)
     const [contactError, setContactError] = useState("")
+    const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
     useEffect(() => {
         if (workspaceId) {
@@ -67,6 +69,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
+        setAttemptedSubmit(true)
         if (!title) return
         if (mode === "select" && !contactId) return
         if (stage === "scheduled" && !assignedToId) {
@@ -77,6 +80,10 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
             if (!newContactName) return
             if (!newContactEmail && !newContactPhone) {
                 setContactError("Please provide at least an email or phone number.")
+                return
+            }
+            if (newContactType === "BUSINESS" && !newContactCompany.trim()) {
+                setContactError("Business name is required when client type is Business.")
                 return
             }
         }
@@ -90,6 +97,8 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                     name: newContactName,
                     email: newContactEmail || undefined,
                     phone: newContactPhone || undefined,
+                    company: newContactType === "BUSINESS" ? newContactCompany || undefined : undefined,
+                    contactType: newContactType,
                     workspaceId
                 })
 
@@ -129,9 +138,11 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     }
 
     const isCreateDisabled = isLoading || !title || (mode === "select" ? !contactId : !newContactName)
+    const shouldHighlightContactMethod = attemptedSubmit && mode === "create" && !newContactEmail.trim() && !newContactPhone.trim()
+    const shouldHighlightBusinessName = attemptedSubmit && mode === "create" && newContactType === "BUSINESS" && !newContactCompany.trim()
 
     return (
-        <Card className="w-full max-w-2xl bg-white shadow-xl border-slate-200">
+        <Card className="w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-white shadow-xl border-slate-200">
             <CardHeader className="border-b bg-slate-50/50 rounded-t-xl">
                 <div className="flex items-center gap-2 mb-2">
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-8 w-8 -ml-2">
@@ -139,9 +150,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                     </Button>
                     <CardTitle className="text-xl">New Booking</CardTitle>
                 </div>
-                <CardDescription>
-                    Add a new job to your pipeline. Required fields: description, client name, and a contact method.
-                </CardDescription>
+                <CardDescription>Fields marked with * are required.</CardDescription>
             </CardHeader>
 
             <form onSubmit={handleSubmit}>
@@ -154,7 +163,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 placeholder="e.g. Toilet Repair, Kitchen Reno..."
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="h-11"
+                                className={`h-11 ${attemptedSubmit && !title.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                 required
                             />
                         </div>
@@ -203,12 +212,12 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="assignedTo" className="text-xs font-bold uppercase tracking-wider text-slate-500">Assign To {stage === "scheduled" ? "*" : ""}</Label>
-                                <Select value={assignedToId} onValueChange={setAssignedToId}>
+                                <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
                                     <SelectTrigger id="assignedTo" className="h-11">
                                         <SelectValue placeholder="Optional" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">None (Unassigned)</SelectItem>
+                                        <SelectItem value="__unassigned__">None (Unassigned)</SelectItem>
                                         {teamMembers.map((m) => (
                                             <SelectItem key={m.id} value={m.id}>{m.name || m.email}</SelectItem>
                                         ))}
@@ -236,7 +245,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
                     <div className="border-t border-slate-100 pt-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Customer Details *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Client *</Label>
                             <Tabs value={mode} onValueChange={(v) => { setMode(v as any); setContactError("") }} className="w-[180px]">
                                 <TabsList className="grid w-full grid-cols-2 h-8">
                                     <TabsTrigger value="select" className="text-[10px] font-bold">SELECT</TabsTrigger>
@@ -248,7 +257,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                         {mode === "select" ? (
                             <div className="space-y-2">
                                 <Select value={contactId} onValueChange={setContactId}>
-                                    <SelectTrigger className="h-11">
+                                    <SelectTrigger className={`h-11 ${attemptedSubmit && mode === "select" && !contactId ? "border-red-500 focus-visible:ring-red-500" : ""}`}>
                                         <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a customer"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -265,7 +274,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                     <Label htmlFor="new-name" className="text-[10px] font-bold text-slate-400 ml-1">NAME *</Label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                        <Input id="new-name" placeholder="Full Name" className="h-11 pl-10 bg-white" value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
+                                        <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-white ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
@@ -273,16 +282,37 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         <Label htmlFor="new-email" className="text-[10px] font-bold text-slate-400 ml-1">EMAIL</Label>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                            <Input id="new-email" type="email" placeholder="email@address.com" className="h-11 pl-10 bg-white" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
+                                            <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-white ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
                                         <Label htmlFor="new-phone" className="text-[10px] font-bold text-slate-400 ml-1">PHONE</Label>
                                         <div className="relative">
                                             <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className="h-11 pl-10 bg-white" value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
+                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-white ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
                                         </div>
                                     </div>
+                                </div>
+                                {newContactType === "BUSINESS" && (
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="new-company" className="text-[10px] font-bold text-slate-400 ml-1">BUSINESS NAME *</Label>
+                                        <Input
+                                            id="new-company"
+                                            placeholder="Business name"
+                                            className={`h-11 bg-white ${shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            value={newContactCompany}
+                                            onChange={e => setNewContactCompany(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 ml-1">CLIENT TYPE *</Label>
+                                    <Tabs value={newContactType} onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")} className="w-full">
+                                        <TabsList className="grid w-full grid-cols-2 h-8">
+                                            <TabsTrigger value="PERSON" className="text-[10px] font-bold">PERSON</TabsTrigger>
+                                            <TabsTrigger value="BUSINESS" className="text-[10px] font-bold">BUSINESS</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
                                 </div>
                                 {contactError && <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
                             </div>
