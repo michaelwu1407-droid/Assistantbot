@@ -20,6 +20,9 @@ enum AgentMode {
   EXECUTE
   ORGANIZE
   FILTER
+  EXECUTION
+  DRAFT
+  INFO_ONLY
 }
 
 enum IndustryType {
@@ -34,7 +37,7 @@ enum DealStage {
   SCHEDULED
   PIPELINE
   INVOICED
-  PENDING_COMPLETION  // Team member moved to completed; awaiting manager approval
+  PENDING_COMPLETION // Team member moved to completed; awaiting manager approval
   WON
   LOST
   DELETED
@@ -74,18 +77,18 @@ model Workspace {
   onboardingComplete Boolean       @default(false)
   tutorialComplete   Boolean       @default(false)
   brandingColor      String?
-  settings           Json? @default("{}")
-  
+  settings           Json?         @default("{}")
+
   // Twilio SaaS Subaccount details for dynamic AI agent phone numbers
-  twilioSubaccountId    String?
-  twilioPhoneNumber     String?
-  twilioPhoneNumberSid  String?
-  twilioSipTrunkSid     String?
+  twilioSubaccountId        String?
+  twilioPhoneNumber         String?
+  twilioPhoneNumberSid      String?
+  twilioSipTrunkSid         String?
   twilioSubaccountAuthToken String?
 
   // Retell AI Voice Agent
-  retellAgentId         String?
-  
+  retellAgentId String?
+
   // Stripe Billing & Subscriptions
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?   @unique
@@ -94,99 +97,99 @@ model Workspace {
   subscriptionStatus     String?   @default("inactive")
 
   // Agent & Automation Settings
-  agentMode          AgentMode @default(ORGANIZE)
-  workingHoursStart  String?   @default("08:00")
-  workingHoursEnd    String?   @default("17:00")
-  agendaNotifyTime   String?   @default("07:30")
-  wrapupNotifyTime   String?   @default("17:30")
-  
+  agentMode         AgentMode @default(ORGANIZE)
+  workingHoursStart String?   @default("08:00")
+  workingHoursEnd   String?   @default("17:00")
+  agendaNotifyTime  String?   @default("07:30")
+  wrapupNotifyTime  String?   @default("17:30")
+
   // Job Reminder Settings
-  jobReminderHours   Int?      @default(24)
-  enableJobReminders Boolean   @default(true)
-  enableTripSms      Boolean   @default(true)
-  
-  users              User[]
-  deals              Deal[]
-  contacts           Contact[]
-  messageTemplates   MessageTemplate[]
-  automations        Automation[]
-  chatMessages       ChatMessage[]
-  materials          Material[]
-  keys               Key[]
-  repairItems        RepairItem[]
-  
+  jobReminderHours   Int?    @default(24)
+  enableJobReminders Boolean @default(true)
+  enableTripSms      Boolean @default(true)
+
+  users            User[]
+  deals            Deal[]
+  contacts         Contact[]
+  messageTemplates MessageTemplate[]
+  automations      Automation[]
+  chatMessages     ChatMessage[]
+  materials        Material[]
+  keys             Key[]
+  repairItems      RepairItem[]
+
   // Self-Learning & NLP Behavioral State
-  aiPreferences      String?     @db.Text
-  autoUpdateGlossary Boolean     @default(true)
+  aiPreferences      String? @db.Text
+  autoUpdateGlossary Boolean @default(true)
 
   // Strict Triage & Bouncer — hard "No-Go" rules for lead qualification
-  exclusionCriteria  String?     @db.Text
+  exclusionCriteria String? @db.Text
 
   // Integrations & Billing Directives
-  callOutFee         Decimal?    @default(0)
-  inboundEmail       String?     @unique
+  callOutFee        Decimal? @default(0)
+  inboundEmail      String?  @unique
   // Alias for lead-capture address: [alias]@inbound.earlymark.ai (or INBOUND_LEAD_DOMAIN).
-  inboundEmailAlias  String?     @unique
+  inboundEmailAlias String?  @unique
   // When true, inbound "Lead Won" emails (HiPages, Airtasker, etc.) trigger an immediate Retell call to the lead.
-  autoCallLeads      Boolean     @default(false)
+  autoCallLeads     Boolean  @default(false)
 
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  name        String?
-  phone       String?   // Personal phone number for app communication
-  bio         String?
-  urls        Json?     // Stores array of { value: string }
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  phone        String? // Personal phone number for app communication
+  bio          String?
+  urls         Json? // Stores array of { value: string }
   hasOnboarded Boolean  @default(false)
-  role        UserRole  @default(OWNER)
+  role         UserRole @default(OWNER)
 
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  activities  Activity[]
-  notifications Notification[]
+  workspaceId       String
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id])
+  activities        Activity[]
+  notifications     Notification[]
   emailIntegrations EmailIntegration[]
 
   // View preference
-  viewMode    String?   @default("BASIC") // BASIC, ADVANCED
+  viewMode String? @default("BASIC") // BASIC, ADVANCED
 
   // Onboarding & Templates
-  businessProfile  BusinessProfile?
-  pricingSettings  PricingSettings?
-  smsTemplates     SmsTemplate[]
+  businessProfile BusinessProfile?
+  pricingSettings PricingSettings?
+  smsTemplates    SmsTemplate[]
 
-  assignedDeals    Deal[]   @relation("AssignedDeals")
-  jobNotes         JobNote[] @relation("JobNotes")
-  
+  assignedDeals Deal[]    @relation("AssignedDeals")
+  jobNotes      JobNote[] @relation("JobNotes")
+
   // Referral System
-  referrals        Referral[]
+  referrals Referral[]
 }
 
 // ─── Email Integration Model ─────────────────────────────────────────────
 
 model EmailIntegration {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  provider     String   // "gmail" or "outlook"
-  emailAddress String   // User's email address
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider     String // "gmail" or "outlook"
+  emailAddress String // User's email address
+
   // OAuth tokens (encrypted at rest)
-  accessToken  String   // Encrypted access token
-  refreshToken String?  // Encrypted refresh token
-  tokenExpiry DateTime? // When access token expires
-  
+  accessToken  String // Encrypted access token
+  refreshToken String? // Encrypted refresh token
+  tokenExpiry  DateTime? // When access token expires
+
   // Integration status
-  isActive     Boolean  @default(true)
-  lastSyncAt   DateTime?
-  webhookId    String?  // Gmail watch ID or Graph subscription ID
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive   Boolean   @default(true)
+  lastSyncAt DateTime?
+  webhookId  String? // Gmail watch ID or Graph subscription ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, provider])
 }
@@ -198,83 +201,83 @@ model Deal {
   value          Decimal?
   invoicedAmount Float?
   isDraft        Boolean   @default(false)
-  
+
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
-  metadata       Json?     
-  
+  metadata Json?
+
   // Geo-scheduling
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  
+  address   String?
+  latitude  Float?
+  longitude Float?
+
   // Job / Event Scheduling
-  scheduledAt    DateTime?
-  jobStatus      JobStatus? // For Tradie workflow
-  safetyCheckCompleted Boolean   @default(false)
-  
+  scheduledAt          DateTime?
+  jobStatus            JobStatus? // For Tradie workflow
+  safetyCheckCompleted Boolean    @default(false)
+
   // Stale Job Recovery System
-  isStale        Boolean   @default(false)
-  actualOutcome  String?   // "COMPLETED", "NO_SHOW", "RESCHEDULED"
-  outcomeNotes   String?   @db.Text
+  isStale       Boolean @default(false)
+  actualOutcome String? // "COMPLETED", "NO_SHOW", "RESCHEDULED"
+  outcomeNotes  String? @db.Text
 
   // Lead Source — where this job/lead originated
-  source         String?   // e.g. "website", "hipages", "airtasker", "phone", "referral", "direct"
+  source String? // e.g. "website", "hipages", "airtasker", "phone", "referral", "direct"
 
   // AI Agent Triage Flags — warnings from the Bouncer/Advisor engine
-  agentFlags     Json?     // Array of strings e.g. ["Far away (45km)", "Potential tire-kicker"]
+  agentFlags Json? // Array of strings e.g. ["Far away (45km)", "Potential tire-kicker"]
 
   // AI Triage Recommendation — the AI's suggestion before human override
-  aiTriageRecommendation String?  // "ACCEPT", "DECLINE", "QUOTE", "OUT_OF_AREA"
-  
-  lastActivityAt DateTime  @default(now())
-  stageChangedAt DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  workspaceId    String
-  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  aiTriageRecommendation String? // "ACCEPT", "DECLINE", "QUOTE", "OUT_OF_AREA"
 
-  contactId      String
-  contact        Contact   @relation(fields: [contactId], references: [id])
+  lastActivityAt DateTime @default(now())
+  stageChangedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id])
 
   // Team member assignment
-  assignedToId   String?
-  assignedTo     User?     @relation("AssignedDeals", fields: [assignedToId], references: [id])
-  
-  activities     Activity[]
-  tasks          Task[]
-  invoices       Invoice[]
-  openHouseLogs  OpenHouseLog[]
-  buyerFeedback  BuyerFeedback[]
-  jobPhotos      JobPhoto[]
-  jobNotes       JobNote[]
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedDeals", fields: [assignedToId], references: [id])
+
+  activities       Activity[]
+  tasks            Task[]
+  invoices         Invoice[]
+  openHouseLogs    OpenHouseLog[]
+  buyerFeedback    BuyerFeedback[]
+  jobPhotos        JobPhoto[]
+  jobNotes         JobNote[]
   customerFeedback CustomerFeedback[]
 }
 
 model Contact {
-  id          String    @id @default(cuid())
-  name        String
-  email       String?
-  phone       String?
-  company     String?
-  avatarUrl   String?
-  address     String?
-  
+  id        String  @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  avatarUrl String?
+  address   String?
+
   // Preferences for Matchmaker (e.g., { "budget": 1200000, "bedrooms": 3 })
   preferences Json?
   metadata    Json?
-  
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  deals       Deal[]
-  activities  Activity[]
-  tasks       Task[]
-  keysHeld    Key[]
-  feedback    BuyerFeedback[]
+
+  workspaceId      String
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id])
+  deals            Deal[]
+  activities       Activity[]
+  tasks            Task[]
+  keysHeld         Key[]
+  feedback         BuyerFeedback[]
   customerFeedback CustomerFeedback[] @relation("CustomerFeedback")
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Activity {
@@ -283,228 +286,228 @@ model Activity {
   title       String
   description String?
   content     String?
-  
-  userId      String?
-  user        User?        @relation(fields: [userId], references: [id])
-  
-  dealId      String?
-  deal        Deal?        @relation(fields: [dealId], references: [id])
-  
-  contactId   String?
-  contact     Contact?     @relation(fields: [contactId], references: [id])
-  
-  createdAt   DateTime     @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id])
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
-  completed   Boolean  @default(false)
+  completed   Boolean   @default(false)
   completedAt DateTime?
   dueAt       DateTime?
-  
-  dealId      String?
-  deal        Deal?    @relation(fields: [dealId], references: [id])
-  
-  contactId   String?
-  contact     Contact? @relation(fields: [contactId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id])
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Invoice {
-  id          String    @id @default(cuid())
-  number      String    @unique
-  status      String    // DRAFT, ISSUED, PAID, VOID
-  subtotal    Decimal
-  tax         Decimal
-  total       Decimal
-  lineItems   Json
-  
-  issuedAt    DateTime?
-  paidAt      DateTime?
-  
-  dealId      String
-  deal        Deal      @relation(fields: [dealId], references: [id])
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String  @id @default(cuid())
+  number    String  @unique
+  status    String // DRAFT, ISSUED, PAID, VOID
+  subtotal  Decimal
+  tax       Decimal
+  total     Decimal
+  lineItems Json
+
+  issuedAt DateTime?
+  paidAt   DateTime?
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MessageTemplate {
-  id          String    @id @default(cuid())
-  name        String
-  category    String    // follow-up, quote, meeting, etc
-  subject     String?
-  body        String
-  variables   String?   // JSON array of variable names
-  
+  id        String  @id @default(cuid())
+  name      String
+  category  String // follow-up, quote, meeting, etc
+  subject   String?
+  body      String
+  variables String? // JSON array of variable names
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Automation {
   id          String    @id @default(cuid())
   name        String
   enabled     Boolean   @default(true)
-  trigger     Json      // { event: "deal_stale", threshold: 7 }
-  action      Json      // { type: "notify", message: "..." }
+  trigger     Json // { event: "deal_stale", threshold: 7 }
+  action      Json // { type: "notify", message: "..." }
   lastFiredAt DateTime?
-  
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ChatMessage {
-  id          String    @id @default(cuid())
-  role        String    // user, assistant
-  content     String
-  metadata    Json?
-  
+  id       String @id @default(cuid())
+  role     String // user, assistant
+  content  String
+  metadata Json?
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
-  createdAt   DateTime  @default(now())
+
+  createdAt DateTime @default(now())
 }
 
 model OpenHouseLog {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   attendeeName    String
   attendeeEmail   String?
   attendeePhone   String?
-  interestedLevel Int      @default(0) // 0-5
+  interestedLevel Int     @default(0) // 0-5
   notes           String?
-  
-  dealId          String
-  deal            Deal     @relation(fields: [dealId], references: [id])
-  
-  visitedAt       DateTime @default(now())
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id])
+
+  visitedAt DateTime @default(now())
 }
 
 model Material {
-  id          String    @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  unit        String    // e.g. "m", "hr", "each"
+  unit        String // e.g. "m", "hr", "each"
   price       Decimal
-  category    String?   // "Plumbing", "Electrical"
-  
+  category    String? // "Plumbing", "Electrical"
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BuyerFeedback {
   id            String   @id @default(cuid())
-  interestLevel String   // HOT, WARM, COLD
+  interestLevel String // HOT, WARM, COLD
   priceOpinion  Decimal?
   notes         String?
-  
-  dealId        String
-  deal          Deal     @relation(fields: [dealId], references: [id])
-  
-  contactId     String
-  contact       Contact  @relation(fields: [contactId], references: [id])
-  
-  createdAt     DateTime @default(now())
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id])
+
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Key {
-  id          String   @id @default(cuid())
-  code        String   // e.g. "K-101"
-  description String?  // "Front door key"
-  status      String   // AVAILABLE, CHECKED_OUT, LOST
-  
+  id          String  @id @default(cuid())
+  code        String // e.g. "K-101"
+  description String? // "Front door key"
+  status      String // AVAILABLE, CHECKED_OUT, LOST
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  
+
   // If checked out
-  holderId    String?
-  holder      Contact? @relation(fields: [holderId], references: [id])
-  
+  holderId String?
+  holder   Contact? @relation(fields: [holderId], references: [id])
+
   checkedOutAt DateTime?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Notification {
-  id             String           @id @default(cuid())
-  title          String
-  message        String
-  type           NotificationType @default(INFO)
-  read           Boolean          @default(false)
-  link           String?
-  actionType     String?          // e.g. CONFIRM_JOB, CALL_CLIENT, SEND_INVOICE, APPROVE_COMPLETION
-  actionPayload  Json?            // e.g. { dealId: "...", contactId: "..." }
+  id            String           @id @default(cuid())
+  title         String
+  message       String
+  type          NotificationType @default(INFO)
+  read          Boolean          @default(false)
+  link          String?
+  actionType    String? // e.g. CONFIRM_JOB, CALL_CLIENT, SEND_INVOICE, APPROVE_COMPLETION
+  actionPayload Json? // e.g. { dealId: "...", contactId: "..." }
 
-  userId    String
-  user      User             @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  createdAt DateTime         @default(now())
+  createdAt DateTime @default(now())
 }
 
 model JobPhoto {
-  id        String   @id @default(cuid())
-  url       String
-  caption   String?
-  
-  dealId    String
-  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  
+  id      String  @id @default(cuid())
+  url     String
+  caption String?
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 }
 
 model JobNote {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  authorId  String
-  
-  dealId    String
-  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  
-  author    User     @relation("JobNotes", fields: [authorId], references: [id])
-  
+  id       String @id @default(cuid())
+  content  String @db.Text
+  authorId String
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  author User @relation("JobNotes", fields: [authorId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model CustomerFeedback {
-  id          String   @id @default(cuid())
-  score       Int      // 1-10 rating
-  comment     String?
-  resolved    Boolean  @default(false)
-  resolution  String?  // Internal resolution notes
+  id         String  @id @default(cuid())
+  score      Int // 1-10 rating
+  comment    String?
+  resolved   Boolean @default(false)
+  resolution String? // Internal resolution notes
 
-  dealId      String?
-  deal        Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
 
-  contactId   String
-  contact     Contact  @relation("CustomerFeedback", fields: [contactId], references: [id])
+  contactId String
+  contact   Contact @relation("CustomerFeedback", fields: [contactId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RepairItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 // ─── Onboarding Wizard ──────────────────────────────────────────────
@@ -516,35 +519,64 @@ enum PricingMode {
 }
 
 model BusinessProfile {
-  id                 String   @id @default(cuid())
-  tradeType          String   // Plumber, Sparky, HVAC, etc.
+  id                 String  @id @default(cuid())
+  tradeType          String // Plumber, Sparky, HVAC, etc.
   website            String?
+  businessName       String?
+  publicPhone        String? // Public-facing business phone
+  publicEmail        String? // Public-facing business email
+  physicalAddress    String? // Physical business location
   baseSuburb         String
-  serviceRadius      Int      @default(20) // km
-  serviceSuburbs     Json?    // String[] — specific suburbs served
-  standardWorkHours  String   @default("Mon-Fri, 07:00-15:30")
-  emergencyService   Boolean  @default(false)
+  serviceRadius      Int     @default(20) // km
+  serviceSuburbs     Json? // String[] — specific suburbs served
+  standardWorkHours  String  @default("Mon-Fri, 07:00-15:30")
+  emergencyService   Boolean @default(false)
   emergencySurcharge Float?
+  emergencyHandling  String? @db.Text // After-hours handling logic description
+  specialNotes       String? @db.Text // Free-text unique business rules ("What Else?")
+  referralSource     String? // "How did you hear about us?"
 
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceItems ServiceItem[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Service Items with Tracey Training ──────────────────────────
+// Each service the business offers, with optional pricing and
+// "Teach Tracey" instructions for nuanced handling.
+
+model ServiceItem {
+  id          String  @id @default(cuid())
+  serviceName String
+  callOutFee  Float? // Global or per-service call-out fee
+  priceMin    Float? // Minimum price
+  priceMax    Float? // Maximum price
+  traceyNotes String? @db.Text // "Teach Tracey" column — nuance per service
+
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessProfileId])
 }
 
 model PricingSettings {
-  id          String      @id @default(cuid())
-  mode        PricingMode @default(STANDARD)
-  callOutFee  Float?      @default(89.0)
-  waiveFee    Boolean     @default(true)
-  menuItems   Json?       // Array of { name: string, price: number }
+  id         String      @id @default(cuid())
+  mode       PricingMode @default(STANDARD)
+  callOutFee Float?      @default(89.0)
+  waiveFee   Boolean     @default(true)
+  menuItems  Json? // Array of { name: string, price: number }
 
-  userId      String      @unique
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─── Business Knowledge Base ────────────────────────────────────────
@@ -560,13 +592,13 @@ enum KnowledgeCategory {
 model BusinessKnowledge {
   id          String            @id @default(cuid())
   category    KnowledgeCategory
-  ruleContent String            @db.Text  // e.g. "Tap Replacement" or "No Gas Fitting"
-  metadata    Json?             // Extra data: { price: 250, duration: "1h" }
+  ruleContent String            @db.Text // e.g. "Tap Replacement" or "No Gas Fitting"
+  metadata    Json? // Extra data: { price: 250, duration: "1h" }
   source      String            @default("manual") // "scrape" | "manual" | "learned"
 
   workspaceId String
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([workspaceId, category])
 }
@@ -574,16 +606,16 @@ model BusinessKnowledge {
 // ─── Deviation / Learning Events ────────────────────────────────────
 
 model DeviationEvent {
-  id                     String   @id @default(cuid())
-  dealId                 String
-  aiRecommendation       String   // What AI suggested: "DECLINE", "OUT_OF_AREA"
-  userAction             String   // What user did: "BOOKED", "WON"
-  ruleContent            String?  // The negative-scope rule that was overridden
-  resolved               Boolean  @default(false) // User addressed the insight
-  resolvedAction         String?  // "KEEP_RULE" | "REMOVE_RULE"
+  id               String  @id @default(cuid())
+  dealId           String
+  aiRecommendation String // What AI suggested: "DECLINE", "OUT_OF_AREA"
+  userAction       String // What user did: "BOOKED", "WON"
+  ruleContent      String? // The negative-scope rule that was overridden
+  resolved         Boolean @default(false) // User addressed the insight
+  resolvedAction   String? // "KEEP_RULE" | "REMOVE_RULE"
 
-  workspaceId            String
-  createdAt              DateTime @default(now())
+  workspaceId String
+  createdAt   DateTime @default(now())
 
   @@index([workspaceId, resolved])
 }
@@ -606,18 +638,18 @@ enum UserRole {
 }
 
 model WorkspaceInvite {
-  id          String    @id @default(cuid())
-  token       String    @unique @default(cuid())
-  email       String?
-  role        UserRole  @default(TEAM_MEMBER)
+  id    String   @id @default(cuid())
+  token String   @unique @default(cuid())
+  email String?
+  role  UserRole @default(TEAM_MEMBER)
 
   workspaceId String
   invitedById String
 
-  acceptedAt  DateTime?
-  expiresAt   DateTime
+  acceptedAt DateTime?
+  expiresAt  DateTime
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([token])
   @@index([workspaceId])
@@ -626,19 +658,19 @@ model WorkspaceInvite {
 // ─── Automated Communication Rules ─────────────────────────────────
 
 model AutomatedMessageRule {
-  id              String    @id @default(cuid())
+  id              String  @id @default(cuid())
   name            String
-  enabled         Boolean   @default(true)
-  triggerType     String    // "booking_reminder_24h", "booking_confirmation", "follow_up_after_job", "no_show_alert"
-  channel         String    @default("sms") // "sms", "email", "both"
-  messageTemplate String    @db.Text
+  enabled         Boolean @default(true)
+  triggerType     String // "booking_reminder_24h", "booking_confirmation", "follow_up_after_job", "no_show_alert"
+  channel         String  @default("sms") // "sms", "email", "both"
+  messageTemplate String  @db.Text
 
-  hoursOffset     Int       @default(-24) // negative = before event, positive = after event
+  hoursOffset Int @default(-24) // negative = before event, positive = after event
 
-  workspaceId     String
+  workspaceId String
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workspaceId])
 }
@@ -649,11 +681,11 @@ model SmsTemplate {
   content      String
   isActive     Boolean      @default(true)
 
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, triggerEvent])
 }
@@ -662,12 +694,12 @@ model SmsTemplate {
 // Tracks the last successful webhook event per provider for diagnostics.
 
 model WebhookEvent {
-  id        String   @id @default(cuid())
-  provider  String   // "stripe" | "resend" | "twilio" | "retell"
-  eventType String   // e.g. "checkout.session.completed", "email.delivered"
-  status    String   @default("success") // "success" | "error"
-  payload   Json?    // Sanitised event summary (no secrets)
-  error     String?  // Error message if status is "error"
+  id        String  @id @default(cuid())
+  provider  String // "stripe" | "resend" | "twilio" | "retell"
+  eventType String // e.g. "checkout.session.completed", "email.delivered"
+  status    String  @default("success") // "success" | "error"
+  payload   Json? // Sanitised event summary (no secrets)
+  error     String? // Error message if status is "error"
 
   createdAt DateTime @default(now())
 
@@ -675,55 +707,55 @@ model WebhookEvent {
 }
 
 model ReferralProgram {
-  id          String   @id @default(cuid())
-  name        String   // "Earlymark Pro Referral"
-  description String?
-  rewardType   String   // "cash" | "credit" | "discount"
-  rewardValue  Float    // e.g. 29.00 for $29 credit
-  rewardCurrency String @default("USD")
-  isActive    Boolean  @default(true)
-  
-  referredRewardType   String   // What the referred user gets
-  referredRewardValue  Float    // e.g. 10.00 for $10 discount
+  id             String  @id @default(cuid())
+  name           String // "Earlymark Pro Referral"
+  description    String?
+  rewardType     String // "cash" | "credit" | "discount"
+  rewardValue    Float // e.g. 29.00 for $29 credit
+  rewardCurrency String  @default("USD")
+  isActive       Boolean @default(true)
+
+  referredRewardType     String // What the referred user gets
+  referredRewardValue    Float // e.g. 10.00 for $10 discount
   referredRewardCurrency String @default("USD")
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   referrals Referral[]
 }
 
 model Referral {
-  id          String   @id @default(cuid())
-  userId      String
-  programId   String
+  id           String  @id @default(cuid())
+  userId       String
+  programId    String
   referralCode String  @unique // Unique code for the referrer
-  referredById  String? // User ID of person who referred (if applicable)
-  status      String   @default("pending") // "pending" | "completed" | "rewarded"
-  
+  referredById String? // User ID of person who referred (if applicable)
+  status       String  @default("pending") // "pending" | "completed" | "rewarded"
+
   // Tracking
-  clicksCount Int      @default(0)
-  signupsCount Int     @default(0)
+  clicksCount      Int @default(0)
+  signupsCount     Int @default(0)
   conversionsCount Int @default(0)
-  
+
   // Rewards
   referrerRewardEarned Float @default(0)
   referredRewardEarned Float @default(0)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  program   ReferralProgram @relation(fields: [programId], references: [id])
-  clicks    ReferralClick[]
-  
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program ReferralProgram @relation(fields: [programId], references: [id])
+  clicks  ReferralClick[]
+
   @@unique([userId, programId])
   @@index([referralCode])
   @@index([status])
 }
 
 model ReferralClick {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   referralId  String
   ipAddress   String?
   userAgent   String?
@@ -731,26 +763,25 @@ model ReferralClick {
   utmSource   String?
   utmMedium   String?
   utmCampaign String?
-  
+
   createdAt DateTime @default(now())
-  
+
   referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
-  
+
   @@index([referralId])
   @@index([createdAt])
 }
 
 model VerificationCode {
   id String @id @default(cuid())
-  
-  userId String
+
+  userId      String
   phoneNumber String
-  
-  code String
+
+  code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@unique([userId, phoneNumber])
   @@map("verification_codes")
 }
-

@@ -11,6 +11,12 @@ export interface ScrapeResult {
   suburbs?: string[];
   negativeScope: string[];   // "We do not service X"
   rawSummary?: string;
+  // Enhanced fields for Tracey-Led onboarding
+  businessName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  tradeType?: string;
 }
 
 /**
@@ -62,22 +68,28 @@ export async function scrapeWebsite(
     const google = createGoogleGenerativeAI({ apiKey });
     const result = await generateText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      system: `You are a business intelligence extractor. Given the text content of a trades/service business website, extract the following into a JSON object:
+      system: `You are a business intelligence extractor for Australian trade/service businesses. Given the text content of a website, extract the following into a JSON object:
 
-1. "services": Array of objects { "name": string, "priceRange": string|null, "duration": string|null }
+1. "businessName": string|null — the business name as shown on the website
+2. "phone": string|null — the business phone number (Australian format preferred, e.g. "0412 345 678" or "(02) 1234 5678")
+3. "email": string|null — the business contact email
+4. "address": string|null — the physical business address or location
+5. "tradeType": string|null — the type of trade (e.g. "Plumber", "Electrician", "HVAC Technician")
+
+6. "services": Array of objects { "name": string, "priceRange": string|null, "duration": string|null }
    - Extract all services/jobs they offer
-   - Include price ranges if mentioned (e.g. "$150-$300")
+   - Include price ranges if mentioned in AUD (e.g. "$150-$300")
    - Include estimated duration if mentioned (e.g. "1-2 hours")
 
-2. "operatingHours": string|null — their listed operating hours
+7. "operatingHours": string|null — their listed operating hours
 
-3. "suburbs": string[]|null — specific suburbs, postcodes, or locations they serve
+8. "suburbs": string[]|null — specific suburbs, postcodes, or locations they serve
 
-4. "negativeScope": string[] — things they explicitly say they DO NOT do
+9. "negativeScope": string[] — things they explicitly say they DO NOT do
    - Look for phrases like "We do not service...", "Not available for...", "Excluding..."
    - Return as clean phrases like "No Gas Fitting", "No Roof Work"
 
-5. "rawSummary": A 2-sentence summary of what this business does.
+10. "rawSummary": A 2-sentence summary of what this business does.
 
 Return ONLY valid JSON. No markdown, no code fences.`,
       prompt: `Extract business intelligence from this website content:\n\n${textContent}`,
@@ -112,6 +124,11 @@ Return ONLY valid JSON. No markdown, no code fences.`,
         suburbs: parsed.suburbs || undefined,
         negativeScope: parsed.negativeScope || [],
         rawSummary: parsed.rawSummary || undefined,
+        businessName: (parsed as any).businessName || undefined,
+        phone: (parsed as any).phone || undefined,
+        email: (parsed as any).email || undefined,
+        address: (parsed as any).address || undefined,
+        tradeType: (parsed as any).tradeType || undefined,
       },
     };
   } catch (err) {
