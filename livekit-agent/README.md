@@ -2,20 +2,21 @@
 
 Self-hosted voice AI receptionist for the Earlymark CRM, powered by [LiveKit Agents](https://docs.livekit.io/agents/).
 
-This is a standalone Python microservice that runs alongside the main Next.js CRM app.
+This is a standalone TypeScript service that runs alongside the main Next.js CRM app.
 
 ## Stack
 
 | Component | Provider | Model |
 |-----------|----------|-------|
 | STT | Deepgram | nova-3 |
-| LLM | Groq | llama-4-maverick-17b-instruct |
-| TTS | Cartesia | sonic-english |
-| VAD | Silero | — |
+| LLM | Groq | llama-3.3-70b-versatile |
+| TTS | Cartesia | sonic-3 (or sonic-3-2026-01-12) |
+| Voice ID | Cartesia | a4a16c5e-5902-4732-b9b6-2a48efd2e11b (Aussie Female) |
+| VAD | Silero | default |
 
 ## Prerequisites
 
-- Python 3.11+
+- Node.js 20+
 - A running [LiveKit server](https://docs.livekit.io/home/self-hosting/local/) (self-hosted or LiveKit Cloud)
 - SIP trunk configured to route Twilio calls to LiveKit (see [LiveKit SIP docs](https://docs.livekit.io/sip/))
 - API keys for Deepgram, Groq, and Cartesia
@@ -24,37 +25,37 @@ This is a standalone Python microservice that runs alongside the main Next.js CR
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt
+npm install
 
 # 2. Configure environment
 cp .env.example .env.local
 # Edit .env.local with your API keys
 
-# 3. Run in development mode (auto-reload)
-python agent.py dev
+# 3. Run in development mode
+npm run dev
 
 # 4. Run in production
-python agent.py start
+npm run start
 ```
 
 ## Architecture
 
 ```
-Twilio → SIP Trunk → LiveKit Server → This Agent
-                                          ├── Deepgram (STT)
-                                          ├── Groq (LLM + tool calls)
-                                          └── Cartesia (TTS)
+Twilio -> SIP Trunk -> LiveKit Server -> This Agent
+                                         |-- Deepgram (STT)
+                                         |-- Groq (LLM + tool calls)
+                                         `-- Cartesia (TTS)
 ```
 
 Inbound calls flow through Twilio's SIP trunk to a LiveKit room. This agent joins the room, transcribes speech, processes it through the LLM (with CRM tool access), and responds with synthesized speech.
 
-## CRM Integration (TODO)
+## Canonical Voice Config
 
-The `check_availability` and `update_lead` tools are currently mocked. To connect them to the real CRM:
+- TTS: Cartesia Sonic 3 (`sonic-3` or `sonic-3-2026-01-12`)
+- STT: Deepgram Nova-3
+- LLM: Groq Llama 3.3 70B (`llama-3.3-70b-versatile`)
+- Voice ID: `a4a16c5e-5902-4732-b9b6-2a48efd2e11b`
 
-1. **Option A**: HTTP calls to the Next.js API routes
-2. **Option B**: Direct Supabase/PostgreSQL queries from Python
+## Retell Status
 
-## Reverting to Retell
-
-The original Retell AI integration is preserved in the main app at `app/api/retell/`. See the README there for revert instructions.
+Retell AI is archived and not the active voice runtime.
