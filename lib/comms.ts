@@ -5,14 +5,22 @@
  *
  * Call flow:
  *   Inbound:  PSTN → Twilio number → Elastic SIP trunk → LiveKit SIP ingest
- *             → livekit-agent Python microservice (/livekit-agent/agent.py)
+ *             → livekit-agent TypeScript microservice (/livekit-agent/agent.ts)
  *   Outbound: livekit-agent → Twilio SIP trunk → PSTN
  *
+ * Agent stack (see /livekit-agent/agent.ts):
+ *   STT  → Deepgram
+ *   LLM  → DeepInfra (Llama-3.3-70B-Instruct via OpenAI-compatible API)
+ *   TTS  → Cartesia
+ *
  * Required env vars:
- *   LIVEKIT_URL         wss://your-project.livekit.cloud
- *   LIVEKIT_API_KEY     LiveKit API key
- *   LIVEKIT_API_SECRET  LiveKit API secret
- *   LIVEKIT_SIP_URI     sip: URI for the Twilio origination URL (LiveKit inbound)
+ *   LIVEKIT_URL          wss://your-project.livekit.cloud
+ *   LIVEKIT_API_KEY      LiveKit API key
+ *   LIVEKIT_API_SECRET   LiveKit API secret
+ *   LIVEKIT_SIP_URI      sip: URI for the Twilio origination URL (LiveKit inbound)
+ *   DEEPINFRA_API_KEY    DeepInfra API key (for LLM)
+ *   DEEPGRAM_API_KEY     Deepgram API key (for STT)
+ *   CARTESIA_API_KEY     Cartesia API key (for TTS)
  *
  * Legacy routes at /app/api/retell/ are kept for reference only — they receive no traffic.
  */
