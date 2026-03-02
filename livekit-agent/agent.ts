@@ -49,7 +49,7 @@ export default defineAgent({
       tts,
     });
 
-    const session = new voice.AgentSession();
+    const session = new voice.AgentSession({});
     await session.start({
       agent,
       room: ctx.room,

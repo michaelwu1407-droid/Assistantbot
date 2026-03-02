@@ -18,8 +18,10 @@ const fadeUp = (delay = 0) => ({
     initial: { opacity: 0, y: 28 },
     whileInView: { opacity: 1, y: 0 } as any,
     viewport: { once: true, margin: "-60px" },
-    transition: { duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.6, delay, ease: EASE_STANDARD },
 });
+
+const EASE_STANDARD: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -272,7 +274,7 @@ function FeatureCarousel() {
                                 key={feature.title}
                                 layout
                                 animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
-                                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                transition={{ duration: 0.4, ease: EASE_STANDARD }}
                                 className={`rounded-3xl p-7 flex flex-col gap-4 ${
                                     isCentre
                                         ? "bg-midnight text-white shadow-xl"
