@@ -546,7 +546,7 @@ export async function POST(req: Request) {
     const llmStartedAt = nowMs();
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      maxTokens: 1024,
+      maxOutputTokens: 1024,
       system: `You are Tracey, a concise CRM assistant for tradies. Be SHORT and punchy — no essays. Say "jobs" not "meetings".
 ${knowledgeBaseStr}
 ${agentModeStr}
