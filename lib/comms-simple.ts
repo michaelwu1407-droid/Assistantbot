@@ -1,3 +1,14 @@
+/**
+ * VOICE ARCHITECTURE — for AI agents and developers
+ * ──────────────────────────────────────────────────
+ * Voice platform: LiveKit (NOT Retell — Retell was fully removed)
+ * This is the simplified provisioner for trial Twilio accounts (no subaccounts).
+ * See lib/comms.ts for full architecture notes.
+ *
+ * Required env vars: LIVEKIT_SIP_URI (optional — trunk created without origination if missing),
+ * TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+ */
+
 import { db } from "@/lib/db";
 import { twilioMasterClient } from "@/lib/twilio";
 

@@ -1,3 +1,22 @@
+/**
+ * VOICE ARCHITECTURE — for AI agents and developers
+ * ──────────────────────────────────────────────────
+ * Voice platform: LiveKit (NOT Retell — Retell was fully removed)
+ *
+ * Call flow:
+ *   Inbound:  PSTN → Twilio number → Elastic SIP trunk → LiveKit SIP ingest
+ *             → livekit-agent Python microservice (/livekit-agent/agent.py)
+ *   Outbound: livekit-agent → Twilio SIP trunk → PSTN
+ *
+ * Required env vars:
+ *   LIVEKIT_URL         wss://your-project.livekit.cloud
+ *   LIVEKIT_API_KEY     LiveKit API key
+ *   LIVEKIT_API_SECRET  LiveKit API secret
+ *   LIVEKIT_SIP_URI     sip: URI for the Twilio origination URL (LiveKit inbound)
+ *
+ * Legacy routes at /app/api/retell/ are kept for reference only — they receive no traffic.
+ */
+
 import { db } from "@/lib/db";
 import { twilioMasterClient, createTwilioSubaccount, getSubaccountClient } from "@/lib/twilio";
 

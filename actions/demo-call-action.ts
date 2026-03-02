@@ -1,5 +1,17 @@
 "use server";
 
+/**
+ * Demo call action — triggered from the homepage "Interview Tracey" form.
+ *
+ * VOICE PLATFORM: LiveKit (Retell removed)
+ * The livekit-agent Python microservice (/livekit-agent/agent.py) handles
+ * outbound SIP calls. To wire up automatic dialling, have the microservice
+ * poll a queue or expose a REST endpoint and call it here with the prospect's
+ * phone number, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET.
+ *
+ * For now, the request is logged and ops are notified manually.
+ */
+
 type DemoCallData = {
     firstName: string;
     lastName: string;
