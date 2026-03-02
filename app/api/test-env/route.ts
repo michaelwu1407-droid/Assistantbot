@@ -8,8 +8,8 @@ export async function GET() {
     const envCheck = {
       TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ? "✅ SET" : "❌ MISSING",
       TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ? "✅ SET" : "❌ MISSING", 
-      RETELL_API_KEY: process.env.RETELL_API_KEY ? "✅ SET" : "❌ MISSING",
-      RETELL_AGENT_ID: process.env.RETELL_AGENT_ID ? "✅ SET" : "❌ MISSING",
+      LIVEKIT_URL: process.env.LIVEKIT_URL ? "✅ SET" : "❌ MISSING",
+      LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY ? "✅ SET" : "❌ MISSING",
       DATABASE_URL: process.env.DATABASE_URL ? "✅ SET" : "❌ MISSING",
       DIRECT_URL: process.env.DIRECT_URL ? "✅ SET" : "❌ MISSING",
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ? "✅ SET" : "❌ MISSING",
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
     const envCheck = {
       TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ? "✅ SET" : "❌ MISSING",
       TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ? "✅ SET" : "❌ MISSING", 
-      RETELL_API_KEY: process.env.RETELL_API_KEY ? "✅ SET" : "❌ MISSING",
-      RETELL_AGENT_ID: process.env.RETELL_AGENT_ID ? "✅ SET" : "❌ MISSING",
+      LIVEKIT_URL: process.env.LIVEKIT_URL ? "✅ SET" : "❌ MISSING",
+      LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY ? "✅ SET" : "❌ MISSING",
       DATABASE_URL: process.env.DATABASE_URL ? "✅ SET" : "❌ MISSING",
       DIRECT_URL: process.env.DIRECT_URL ? "✅ SET" : "❌ MISSING",
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ? "✅ SET" : "❌ MISSING",

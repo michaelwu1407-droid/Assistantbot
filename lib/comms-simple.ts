@@ -1,4 +1,3 @@
-import Retell from "retell-sdk";
 import { db } from "@/lib/db";
 import { twilioMasterClient } from "@/lib/twilio";
 
@@ -17,13 +16,13 @@ interface CommsSetupResult {
 
 /**
  * Simplified phone provisioning for trial accounts:
- * 
+ *
  * 1. Buy a local Australian (+61) number with SMS + Voice on main account
- * 2. Create an Elastic SIP Trunk so Retell can route calls
- * 3. Import the number into Retell AI and bind the voice agent
+ * 2. Create an Elastic SIP Trunk pointing to LiveKit SIP
+ * 3. Persist everything to the database
  * 4. Send a Welcome SMS to the Tradie's mobile
  * 5. Log every step to the Activity Feed
- * 
+ *
  * This version works with trial Twilio accounts that can't create subaccounts.
  */
 export async function initializeSimpleComms(
@@ -31,15 +30,13 @@ export async function initializeSimpleComms(
   businessName: string,
   ownerPhone: string
 ): Promise<CommsSetupResult> {
-  const retellApiKey = process.env.RETELL_API_KEY;
-  const retellAgentId = process.env.RETELL_AGENT_ID;
+  const livekitSipUri = process.env.LIVEKIT_SIP_URI;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://assistantbot-zeta.vercel.app";
 
   // Detailed environment logging
   console.log("[SIMPLE-COMMS] Environment check:", {
     hasTwilioClient: !!twilioMasterClient,
-    retellApiKey: retellApiKey ? "✅ SET" : "❌ MISSING",
-    retellAgentId: retellAgentId ? "✅ SET" : "❌ MISSING",
+    livekitSipUri: livekitSipUri ? "✅ SET" : "⚠️ NOT SET (optional)",
     appUrl,
     workspaceId,
     businessName,
@@ -48,11 +45,6 @@ export async function initializeSimpleComms(
 
   if (!twilioMasterClient) {
     const error = "Twilio credentials not configured";
-    console.error("[SIMPLE-COMMS] ERROR:", error);
-    return { success: false, error, stageReached: "pre-check" };
-  }
-  if (!retellApiKey || !retellAgentId) {
-    const error = "Retell API key or Agent ID not configured";
     console.error("[SIMPLE-COMMS] ERROR:", error);
     return { success: false, error, stageReached: "pre-check" };
   }
@@ -149,25 +141,27 @@ export async function initializeSimpleComms(
     );
 
     // ────────────────────────────────────────────────────────────────
-    // 2. Create Elastic SIP Trunk for Retell AI
+    // 2. Create Elastic SIP Trunk for LiveKit Voice Agent
     // ────────────────────────────────────────────────────────────────
     stageReached = "sip-trunk";
     console.log("[SIMPLE-COMMS] Stage: sip-trunk");
 
     const trunk = await twilioMasterClient.trunking.v1.trunks.create({
-      friendlyName: `${businessName} - Retell SIP`,
+      friendlyName: `${businessName} - LiveKit SIP`,
     });
 
-    // Add an origination URI so Retell can route inbound calls
-    await twilioMasterClient.trunking.v1
-      .trunks(trunk.sid)
-      .originationUrls.create({
-        friendlyName: "Retell Inbound",
-        sipUrl: "sip:retell@sip.retellai.com",
-        priority: 1,
-        weight: 1,
-        enabled: true,
-      });
+    // Add an origination URI so LiveKit can route inbound calls
+    if (livekitSipUri) {
+      await twilioMasterClient.trunking.v1
+        .trunks(trunk.sid)
+        .originationUrls.create({
+          friendlyName: "LiveKit Inbound",
+          sipUrl: livekitSipUri,
+          priority: 1,
+          weight: 1,
+          enabled: true,
+        });
+    }
 
     // Associate the purchased number with the SIP trunk
     await twilioMasterClient.trunking.v1
@@ -183,34 +177,11 @@ export async function initializeSimpleComms(
     await logActivity(
       workspaceId,
       "SIP Trunk Configured",
-      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}`
+      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}`
     );
 
     // ────────────────────────────────────────────────────────────────
-    // 3. Register Number with Retell AI & Bind Agent
-    // ────────────────────────────────────────────────────────────────
-    stageReached = "retell-import";
-
-    const retellClient = new Retell({ apiKey: retellApiKey });
-
-    const retellPhone = await retellClient.phoneNumber.import({
-      phone_number: purchasedNumber.phoneNumber,
-      termination_uri: terminationUri,
-      inbound_agent_id: retellAgentId,
-      outbound_agent_id: retellAgentId,
-      nickname: `${businessName} - Pj Buddy`,
-      sip_trunk_auth_username: accountSid,
-      sip_trunk_auth_password: process.env.TWILIO_AUTH_TOKEN!,
-    });
-
-    await logActivity(
-      workspaceId,
-      "Retell AI Voice Agent Connected",
-      `Number ${retellPhone.phone_number} linked to agent ${retellAgentId}`
-    );
-
-    // ────────────────────────────────────────────────────────────────
-    // 4. Persist Everything to Database
+    // 3. Persist Everything to Database
     // ────────────────────────────────────────────────────────────────
     stageReached = "db-update";
 
@@ -221,12 +192,17 @@ export async function initializeSimpleComms(
         twilioPhoneNumber: purchasedNumber.phoneNumber,
         twilioPhoneNumberSid: purchasedNumber.sid,
         twilioSipTrunkSid: trunk.sid,
-        retellAgentId: retellAgentId,
       },
     });
 
+    await logActivity(
+      workspaceId,
+      "LiveKit Voice Agent Connected",
+      `Number ${purchasedNumber.phoneNumber} routed via LiveKit SIP trunk`
+    );
+
     // ────────────────────────────────────────────────────────────────
-    // 5. Send Welcome SMS to the Tradie
+    // 4. Send Welcome SMS to the Tradie
     // ────────────────────────────────────────────────────────────────
     stageReached = "welcome-sms";
 

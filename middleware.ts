@@ -66,7 +66,6 @@ export async function middleware(request: NextRequest) {
     "https://us.i.posthog.com",
     "https://us-assets.i.posthog.com",
     "https://api.openai.com",
-    "https://api.retellai.com",
     "https://api.stripe.com",
     // Only add Sentry URLs in production
     ...(process.env.NODE_ENV === "production" ? [

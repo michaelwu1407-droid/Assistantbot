@@ -10,8 +10,8 @@ export async function GET() {
       env: {
         hasTwilioSid: !!process.env.TWILIO_ACCOUNT_SID,
         hasTwilioToken: !!process.env.TWILIO_AUTH_TOKEN,
-        hasRetellKey: !!process.env.RETELL_API_KEY,
-        hasRetellAgent: !!process.env.RETELL_AGENT_ID,
+        hasLivekitUrl: !!process.env.LIVEKIT_URL,
+        hasLivekitKey: !!process.env.LIVEKIT_API_KEY,
       }
     });
   } catch (error: any) {

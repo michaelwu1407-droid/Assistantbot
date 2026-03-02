@@ -150,7 +150,7 @@ export async function getPhoneNumberStatus() {
         name: true,
         twilioPhoneNumber: true,
         twilioSubaccountId: true,
-        retellAgentId: true,
+        twilioSipTrunkSid: true,
       },
     })
   ]);
@@ -170,7 +170,7 @@ export async function getPhoneNumberStatus() {
     hasPhoneNumber: !!workspace.twilioPhoneNumber,
     phoneNumber: workspace.twilioPhoneNumber,
     hasSubaccount: !!workspace.twilioSubaccountId,
-    hasVoiceAgent: !!workspace.retellAgentId,
+    hasVoiceAgent: !!workspace.twilioSipTrunkSid,
     setupComplete: !!workspace.twilioPhoneNumber && !!workspace.twilioSubaccountId,
   };
 }

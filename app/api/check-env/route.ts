@@ -11,12 +11,11 @@ export async function GET(request: NextRequest) {
       phoneNumber: !!process.env.TWILIO_PHONE_NUMBER,
       whatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
     },
-    retell: {
-      apiKey: !!process.env.RETELL_API_KEY,
-      agentId: !!process.env.RETELL_AGENT_ID,
-      responseEngineId: !!process.env.RETELL_RESPONSE_ENGINE_ID,
-      primaryVoiceId: !!process.env.RETELL_PRIMARY_VOICE_ID,
-      fallbackVoiceId: !!process.env.RETELL_FALLBACK_VOICE_ID,
+    livekit: {
+      url: !!process.env.LIVEKIT_URL,
+      apiKey: !!process.env.LIVEKIT_API_KEY,
+      apiSecret: !!process.env.LIVEKIT_API_SECRET,
+      sipUri: !!process.env.LIVEKIT_SIP_URI,
     },
     // Other important env vars
     app: {
@@ -27,10 +26,9 @@ export async function GET(request: NextRequest) {
     },
     // Show masked values for debugging (partial)
     masked: {
-      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ? 
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?
         process.env.TWILIO_ACCOUNT_SID.substring(0, 8) + "..." : null,
-      retellAgentId: process.env.RETELL_AGENT_ID ? 
-        process.env.RETELL_AGENT_ID.substring(0, 8) + "..." : null,
+      livekitUrl: process.env.LIVEKIT_URL ?? null,
     }
   };
 
@@ -38,8 +36,9 @@ export async function GET(request: NextRequest) {
   
   if (!env.twilio.accountSid) missing.push("TWILIO_ACCOUNT_SID");
   if (!env.twilio.authToken) missing.push("TWILIO_AUTH_TOKEN");
-  if (!env.retell.apiKey) missing.push("RETELL_API_KEY");
-  if (!env.retell.agentId) missing.push("RETELL_AGENT_ID");
+  if (!env.livekit.url) missing.push("LIVEKIT_URL");
+  if (!env.livekit.apiKey) missing.push("LIVEKIT_API_KEY");
+  if (!env.livekit.apiSecret) missing.push("LIVEKIT_API_SECRET");
 
   return NextResponse.json({
     timestamp: new Date().toISOString(),
