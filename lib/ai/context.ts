@@ -127,8 +127,7 @@ export async function buildAgentContext(
         if (businessProfile.standardWorkHours) knowledgeBaseStr += `\n- Standard Hours: ${businessProfile.standardWorkHours}`;
         if (businessProfile.emergencyService) knowledgeBaseStr += `\n- Emergency Service: Available${businessProfile.emergencySurcharge ? ` (+$${businessProfile.emergencySurcharge} surcharge)` : ""}`;
     }
-    knowledgeBaseStr += "\nUse this information when texting, calling, or emailing customers on behalf of the business. Always represent the business professionally.";
-    knowledgeBaseStr += "\nOn incoming voice calls, Travis (the voice agent) can transfer callers to the tradie's mobile if they ask to speak to the human; the tradie's number is stored in the app profile.";
+    knowledgeBaseStr += "\nUse this info when contacting customers. Represent the business professionally. On voice calls, Travis can transfer to the tradie's mobile.";
 
     // Fetch historical price averages from completed invoices
     let historicalPricingStr = "";
@@ -229,14 +228,14 @@ export async function buildAgentContext(
     const defaultClosing = `Kind regards, Travis (AI assistant for ${businessName})`;
     const parts: string[] = [];
     if (openingMsg) {
-        parts.push(`\nAGENT INTRODUCTION (customers only): When YOU contact a CUSTOMER (SMS, email, or call to them — not in this dashboard chat), START with this exact opening (or very close): "${openingMsg}". Do NOT use this when replying in the dashboard chat to the business owner.`);
+        parts.push(`\nAGENT INTRO (outbound customer msgs only, NOT dashboard): Start with: "${openingMsg}"`);
     } else {
-        parts.push(`\nAGENT INTRODUCTION (customers only): When YOU contact a CUSTOMER (SMS, email, or call to them — not in this dashboard chat), START with: "${defaultOpening}". Do NOT use this when replying in the dashboard chat to the business owner.`);
+        parts.push(`\nAGENT INTRO (outbound customer msgs only, NOT dashboard): Start with: "${defaultOpening}"`);
     }
     if (closingMsg) {
-        parts.push(`\nAGENT SIGN-OFF (customers only): When YOU contact a CUSTOMER, END messages with this exact sign-off (or very close): "${closingMsg}". Do NOT use this sign-off when replying in the dashboard chat to the business owner.`);
+        parts.push(`\nAGENT SIGN-OFF (outbound customer msgs only, NOT dashboard): End with: "${closingMsg}"`);
     } else {
-        parts.push(`\nAGENT SIGN-OFF (customers only): When YOU contact a CUSTOMER, END with: "${defaultClosing}". Do NOT use this sign-off when replying in the dashboard chat to the business owner.`);
+        parts.push(`\nAGENT SIGN-OFF (outbound customer msgs only, NOT dashboard): End with: "${defaultClosing}"`);
     }
     const agentScriptStr = parts.join("");
 
@@ -251,11 +250,10 @@ export async function buildAgentContext(
         : "";
 
     const callOutFee = settings?.callOutFee || 0;
-    const pricingRulesStr = `\nSTRICT PRICING RULES (HARD BRAKE):
-1. NEVER agree on a final price immediately UNLESS it is an EXACT match for a task explicitly listed in the GLOSSARY OF APPROVED PRICES below.
-2. If the user asks for a price for a task that is NOT in the Glossary, you MUST NOT invent, hallucinate, or estimate a specific cost. You MUST state that a firm quote requires an on-site assessment.
-3. Focus heavily on locking down the booking/assessment first.
-4. If asked for general pricing and the task is custom/not in the glossary, quote the standard Call-Out Fee of $${callOutFee}. Say: "Our standard call-out fee is $${callOutFee} which covers the assessment, then we can give you a firm quote."
+    const pricingRulesStr = `\nPRICING RULES:
+1. Only quote a final price for tasks with an EXACT match in the GLOSSARY below. Never invent prices.
+2. Unlisted tasks: "A firm quote requires an on-site assessment." Focus on locking the booking.
+3. For custom work, quote the call-out fee: "Our call-out fee is $${callOutFee} covering the assessment, then we give a firm quote."
 ${glossaryStr}`;
 
     // ── Business Knowledge (already fetched in parallel batch above) ──
@@ -285,22 +283,16 @@ ${glossaryStr}`;
 
     let bouncerStr = "";
     if (mergedExclusionStr) {
-        bouncerStr = `\nLEAD QUALIFICATION — BOUNCER vs. ADVISOR (CRITICAL):
-
-PHASE A — THE HARD FILTER (Bouncer):
-The following are STRICT NO-GO rules. You are ONLY permitted to decline a lead if it matches one of these EXACTLY:
+        bouncerStr = `\nLEAD QUALIFICATION:
+NO-GO rules (decline ONLY on exact match):
 ${mergedExclusionStr}
-When a lead matches a No-Go rule: politely inform the caller — "I'm sorry, we don't currently handle [specific job type/location/condition]." — then end the triage.
+On match: politely decline ("We don't currently handle [type]") and end triage.
 
-PHASE B — THE TRIAGE & FLAG (Advisor):
-If the job does NOT violate any of the above No-Go rules, you MUST proceed with triage. Even if the job looks low-value, far away, or technically difficult, you are NOT allowed to decline it.
-Continue triage normally: ask for address, issue, urgency. Fill the Job Draft Card. If you have concerns (e.g. "This lead is 45km away", "Potential tire-kicker", "High-risk location"), add them to the internal_notes field as a private flag. The owner/manager will see these flags on their dashboard.
+All other leads: MUST proceed with full triage regardless of value/distance/difficulty. Capture all details. Use addAgentFlag for concerns — you have ZERO authority to decline leads not on the No-Go list.
 
-CRITICAL GUARDRAIL: You are a professional assistant, not the business owner. You have ZERO authority to turn away business unless it matches a pre-defined Hard Constraint above. If a job seems "bad" but isn't on the No-Go list, your job is to capture every detail perfectly and add a private note to the user explaining your concern. NEVER assume a No-Go.
-
-REAL-TIME INSTRUCTION CAPTURE: If the business owner says "Next time, don't take jobs for X" or "Stop accepting Y", you MUST clarify: "Should I strictly decline these from now on, or just flag them for you?" If they say "Decline": use the updateAiPreferences tool to save a new hard_constraint. If they say "Flag": use updateAiPreferences to save it as a behavioral_preference (flag only, don't decline).`;
+If owner says "stop taking X": clarify "Strictly decline or just flag?" → use updateAiPreferences with [HARD_CONSTRAINT] or [FLAG_ONLY].`;
     } else {
-        bouncerStr = `\nLEAD QUALIFICATION GUARDRAIL: You have no exclusion rules configured. You MUST NOT decline any lead for any reason. Always proceed with full triage. If you suspect a job is low-value or problematic, add a private note to the internal_notes field for the owner to review. NEVER turn away business.`;
+        bouncerStr = `\nLEAD QUALIFICATION: No exclusion rules. NEVER decline any lead. Proceed with full triage. Use addAgentFlag for concerns.`;
     }
 
     const contextValue: AgentContextPayload = {
