@@ -26,8 +26,10 @@ Goal: Capture details/requests for the user and check availability.`;
 
 export default defineAgent({
   entry: async (ctx) => {
-    const llm = openai.LLM.withGroq({
+    const llm = new openai.LLM({
       model: 'llama-3.3-70b-versatile',
+      apiKey: process.env.DEEPINFRA_API_KEY,
+      baseURL: 'https://api.deepinfra.com/v1/openai',
     });
 
     const stt = new deepgram.STT({
