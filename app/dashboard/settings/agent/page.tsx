@@ -83,7 +83,7 @@ export default function AgentSettingsPage() {
       <div>
         <h3 className="text-lg font-medium">AI Assistant</h3>
         <p className="text-sm text-muted-foreground">
-          Configure how Travis thinks and behaves as an assistant. Call and text handling is in Automated calling and texting.
+          Configure how Tracey thinks and behaves as an assistant. Call and text handling is in Automated calling and texting.
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export default function AgentSettingsPage() {
             <Bot className="h-5 w-5 text-indigo-500" />
             <CardTitle>Autonomy mode</CardTitle>
           </div>
-          <CardDescription>How much Travis can do automatically.</CardDescription>
+          <CardDescription>How much Tracey can do automatically.</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup
@@ -173,7 +173,7 @@ export default function AgentSettingsPage() {
             <MessageSquare className="h-5 w-5 text-green-500" />
             <CardTitle>WhatsApp Assistant</CardTitle>
           </div>
-          <CardDescription>Chat to Travis via WhatsApp to manage your business on the road.</CardDescription>
+          <CardDescription>Chat to Tracey via WhatsApp to manage your business on the road.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">

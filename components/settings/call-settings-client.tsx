@@ -77,9 +77,9 @@ const DEFAULT_SETTINGS: SettingsState = {
   voiceLanguage: "en-AU",
   voiceType: "female",
   voiceSpeed: "1.0",
-  voiceGreeting: "Hi, I'm Travis, AI assistant for your business.",
-  agentOpeningMessage: "Hi, I'm Travis, AI assistant for your business.",
-  agentClosingMessage: "Kind regards, Travis (AI assistant for your business)",
+  voiceGreeting: "Hi, I'm Tracey, AI assistant for your business.",
+  agentOpeningMessage: "Hi, I'm Tracey, AI assistant for your business.",
+  agentClosingMessage: "Kind regards, Tracey (AI assistant for your business)",
   voiceAfterHoursMessage: "",
   transcribeVoicemails: true,
   autoRespondToMessages: true,
@@ -87,14 +87,14 @@ const DEFAULT_SETTINGS: SettingsState = {
 
 function ensureSmsSignature(message: string, businessName: string) {
   const trimmed = message.trim()
-  const signature = `Kind regards, Travis (AI assistant for ${businessName})`
+  const signature = `Kind regards, Tracey (AI assistant for ${businessName})`
   if (!trimmed) return signature
-  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Travis\s*\(AI assistant for .*?\)\s*$/i, "").trim()
+  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Tracey\s*\(AI assistant for .*?\)\s*$/i, "").trim()
   return `${withoutSignature}\n\n${signature}`
 }
 
 function ensureCallIntro(message: string, businessName: string) {
-  const prefix = `Hi, I'm Travis, AI assistant for ${businessName}.`
+  const prefix = `Hi, I'm Tracey, AI assistant for ${businessName}.`
   const trimmed = message.trim()
   if (!trimmed) return prefix
   if (/^hi,\s*i'm travis,\s*ai assistant for /i.test(trimmed)) return trimmed
@@ -102,10 +102,10 @@ function ensureCallIntro(message: string, businessName: string) {
 }
 
 function ensureCallSignoff(message: string, businessName: string) {
-  const signature = `Kind regards, Travis (AI assistant for ${businessName})`
+  const signature = `Kind regards, Tracey (AI assistant for ${businessName})`
   const trimmed = message.trim()
   if (!trimmed) return signature
-  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Travis\s*\(AI assistant for .*?\)\s*$/i, "").trim()
+  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Tracey\s*\(AI assistant for .*?\)\s*$/i, "").trim()
   return `${withoutSignature}\n\n${signature}`
 }
 
@@ -188,8 +188,8 @@ export function CallSettingsClient() {
             enableTripSms: ws.enableTripSms,
             agentScriptStyle: ws.agentScriptStyle as "opening" | "closing" | undefined,
             agentBusinessName: ws.agentBusinessName,
-            agentOpeningMessage: ws.agentOpeningMessage || `Hi, I'm Travis, AI assistant for ${ws.agentBusinessName || "your business"}.`,
-            agentClosingMessage: ws.agentClosingMessage || `Kind regards, Travis (AI assistant for ${ws.agentBusinessName || "your business"})`,
+            agentOpeningMessage: ws.agentOpeningMessage || `Hi, I'm Tracey, AI assistant for ${ws.agentBusinessName || "your business"}.`,
+            agentClosingMessage: ws.agentClosingMessage || `Kind regards, Tracey (AI assistant for ${ws.agentBusinessName || "your business"})`,
             textAllowedStart: ws.textAllowedStart,
             textAllowedEnd: ws.textAllowedEnd,
             callAllowedStart: ws.callAllowedStart,
@@ -208,7 +208,7 @@ export function CallSettingsClient() {
             voiceLanguage: ws.voiceLanguage,
             voiceType: ws.voiceType,
             voiceSpeed: ws.voiceSpeed,
-            voiceGreeting: ws.voiceGreeting || `Hi, I'm Travis, AI assistant for ${ws.agentBusinessName || "your business"}.`,
+            voiceGreeting: ws.voiceGreeting || `Hi, I'm Tracey, AI assistant for ${ws.agentBusinessName || "your business"}.`,
             voiceAfterHoursMessage: ws.voiceAfterHoursMessage,
             transcribeVoicemails: ws.transcribeVoicemails,
             autoRespondToMessages: ws.autoRespondToMessages,
@@ -347,7 +347,7 @@ export function CallSettingsClient() {
       <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle>Handling hours</CardTitle>
-          <CardDescription>When Travis is allowed to schedule, text, and call.</CardDescription>
+          <CardDescription>When Tracey is allowed to schedule, text, and call.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -486,7 +486,7 @@ export function CallSettingsClient() {
                   onChange={(e) => setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, messageTemplate: e.target.value } : r)))}
                   rows={3}
                 />
-                <p className="text-xs text-slate-500">Sign-off is fixed and auto-appended: Kind regards, Travis (AI assistant for {businessName}).</p>
+                <p className="text-xs text-slate-500">Sign-off is fixed and auto-appended: Kind regards, Tracey (AI assistant for {businessName}).</p>
               </div>
               <Button size="sm" variant="outline" onClick={() => saveRule(rule)} disabled={savingRuleId === rule.id}>
                 {savingRuleId === rule.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
@@ -544,15 +544,15 @@ export function CallSettingsClient() {
           </div>
           <div className="space-y-2">
             <Label>Business-hours greeting</Label>
-            <Textarea value={settings.voiceGreeting || ""} onChange={(e) => setSettings((s) => (s ? { ...s, voiceGreeting: e.target.value } : s))} placeholder={`Hi, I'm Travis, AI assistant for ${businessName}.`} />
-            <p className="text-xs text-slate-500">All calls always start with: Hi, I'm Travis, AI assistant for {businessName}.</p>
+            <Textarea value={settings.voiceGreeting || ""} onChange={(e) => setSettings((s) => (s ? { ...s, voiceGreeting: e.target.value } : s))} placeholder={`Hi, I'm Tracey, AI assistant for ${businessName}.`} />
+            <p className="text-xs text-slate-500">All calls always start with: Hi, I'm Tracey, AI assistant for {businessName}.</p>
           </div>
           <div className="space-y-2">
             <Label>Opening message</Label>
             <Textarea
               value={settings.agentOpeningMessage || ""}
               onChange={(e) => setSettings((s) => (s ? { ...s, agentOpeningMessage: e.target.value } : s))}
-              placeholder={`Hi, I'm Travis, AI assistant for ${businessName}.`}
+              placeholder={`Hi, I'm Tracey, AI assistant for ${businessName}.`}
             />
           </div>
           <div className="space-y-2">
@@ -560,7 +560,7 @@ export function CallSettingsClient() {
             <Textarea
               value={settings.agentClosingMessage || ""}
               onChange={(e) => setSettings((s) => (s ? { ...s, agentClosingMessage: e.target.value } : s))}
-              placeholder={`Kind regards, Travis (AI assistant for ${businessName})`}
+              placeholder={`Kind regards, Tracey (AI assistant for ${businessName})`}
             />
           </div>
           <div className="space-y-2">

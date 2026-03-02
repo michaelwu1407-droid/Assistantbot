@@ -9,18 +9,18 @@ import type { TriggerEvent } from "@prisma/client";
 
 const DEFAULT_TEMPLATES: Record<TriggerEvent, string> = {
   JOB_COMPLETE:
-    "Hi [Name], thanks for today! A review helps us heaps: [Link]\n\nKind regards, Travis (AI assistant for [Company])",
-  ON_MY_WAY: "Hi [Name], I'm Travis, AI assistant for [Company]. Your tradie is about 20 minutes away.",
-  LATE: "Hi [Name], I'm Travis, AI assistant for [Company]. Quick heads up: we're running about 15 minutes late.",
-  BOOKING_REMINDER_24H: "Hi [Name], this is Travis, AI assistant for [Company]. Friendly reminder about your appointment tomorrow. Reply YES to confirm.",
+    "Hi [Name], thanks for today! A review helps us heaps: [Link]\n\nKind regards, Tracey (AI assistant for [Company])",
+  ON_MY_WAY: "Hi [Name], I'm Tracey, AI assistant for [Company]. Your tradie is about 20 minutes away.",
+  LATE: "Hi [Name], I'm Tracey, AI assistant for [Company]. Quick heads up: we're running about 15 minutes late.",
+  BOOKING_REMINDER_24H: "Hi [Name], this is Tracey, AI assistant for [Company]. Friendly reminder about your appointment tomorrow. Reply YES to confirm.",
 };
 
-function ensureTravisStyle(content: string, companyName: string): string {
+function ensureTraceyStyle(content: string, companyName: string): string {
   const message = content.trim();
   if (!message) return message;
   const lower = message.toLowerCase();
   if (lower.includes("travis") && lower.includes("ai assistant")) return message;
-  return `${message}\n\nKind regards, Travis (AI assistant for ${companyName})`;
+  return `${message}\n\nKind regards, Tracey (AI assistant for ${companyName})`;
 }
 
 // ─── Get all templates for current user ─────────────────────────────
@@ -66,7 +66,7 @@ export async function upsertSmsTemplate(
       include: { workspace: { select: { name: true } } }
     });
     const companyName = (user as any)?.workspace?.name || "your business";
-    const styledContent = ensureTravisStyle(content.replace(/\[Company\]/g, companyName), companyName);
+    const styledContent = ensureTraceyStyle(content.replace(/\[Company\]/g, companyName), companyName);
 
     await db.smsTemplate.upsert({
       where: { userId_triggerEvent: { userId, triggerEvent } },

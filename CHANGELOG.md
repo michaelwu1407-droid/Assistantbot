@@ -23,7 +23,7 @@
 
 ### Historical Pricing — Glossary Cross-Check
 - When a RepairItem glossary entry has a price, it is now the **primary source of truth**.
-- After computing historical invoice ranges, the context builder cross-checks: if the historical average falls outside the glossary range, a `⚠️ PRICING CONFLICTS DETECTED` warning is injected into the AI context, prompting Travis to ask the tradie to confirm before quoting.
+- After computing historical invoice ranges, the context builder cross-checks: if the historical average falls outside the glossary range, a `⚠️ PRICING CONFLICTS DETECTED` warning is injected into the AI context, prompting Tracey to ask the tradie to confirm before quoting.
 - Accepted single price or range formats: `$150`, `$100–200`, `$100 to $200`, `150`, `between 100 and 200`.
 
 ### Webform Webhook & Lead Source Field
@@ -65,7 +65,7 @@
 ### Preparation-Focused Morning Briefing (#2)
 - **Job Readiness Checks**: `getTodaySummary` now returns preparation flags per job: missing address, no phone, unassigned, unconfirmed, deposit not paid, materials mentioned.
 - **Preparation Alerts**: Global `preparationAlerts` array summarizes all issues across today's jobs.
-- **AI Behavior**: System prompt instructs Travis to lead with preparation alerts before showing schedule.
+- **AI Behavior**: System prompt instructs Tracey to lead with preparation alerts before showing schedule.
 - **Morning Notification**: Renamed to "Morning Briefing" with preparation-focused messaging and CONFIRM_JOB action type.
 
 ### Historical Price Averages (#1)

@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
         </Select>
       </div>
 
-      {/* 3 Key Cards: Revenue | Customers | Jobs won with Travis */}
+      {/* 3 Key Cards: Revenue | Customers | Jobs won with Tracey */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Card 1: Revenue — click to expand trend */}
@@ -161,14 +161,14 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Card 3: Jobs won with Travis */}
+        {/* Card 3: Jobs won with Tracey */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Jobs won with Travis</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Jobs won with Tracey</p>
               <LayoutList className="h-5 w-5 text-muted-foreground/40" />
             </div>
-            <p className="text-3xl font-bold text-midnight">{data.jobs.wonWithTravis}</p>
+            <p className="text-3xl font-bold text-midnight">{data.jobs.wonWithTracey}</p>
             <p className="text-xs text-muted-foreground mt-2">
               Jobs at scheduled stage or beyond, excluding manual jobs created already at scheduled+
             </p>

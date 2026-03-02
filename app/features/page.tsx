@@ -8,7 +8,7 @@ const FEATURE_CARDS = [
   {
     icon: Hammer,
     title: "🤖 AI Agent Communication",
-    description: "Travis AI handles automated outreach using your business number",
+    description: "Tracey AI handles automated outreach using your business number",
     items: ["Automated calls & texts", "Job reminders & trip SMS", "24/7 availability"],
   },
   {
@@ -20,7 +20,7 @@ const FEATURE_CARDS = [
 ]
 
 const FEATURE_LIST = [
-  { icon: MessageSquare, title: "🤖 AI-Powered Automation", desc: "Travis AI handles appointment reminders, follow-ups, and customer outreach using your business phone number. Available 24/7 for your customers." },
+  { icon: MessageSquare, title: "🤖 AI-Powered Automation", desc: "Tracey AI handles appointment reminders, follow-ups, and customer outreach using your business phone number. Available 24/7 for your customers." },
   { icon: Zap, title: "📱 Personal Communication", desc: "Maintain direct relationships with one-click calling and texting from your personal number. Perfect for complex discussions and personal touch." },
   { icon: Clock, title: "⚡ Smart Reminders", desc: "Automated job reminders 24 hours before appointments and 'on my way' SMS when you start driving. Never miss a follow-up again." },
 ]

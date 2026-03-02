@@ -7,9 +7,9 @@
 **Your users (the business owners/tradies) have MULTIPLE ways to communicate with their end customers:**
 
 ## **🤖 1. AI Agent Communication (Chatbot)**
-**Location**: Inbox Tab → Chat with Travis AI
+**Location**: Inbox Tab → Chat with Tracey AI
 
-**What users can say to Travis:**
+**What users can say to Tracey:**
 - "Call [customer name] about their job tomorrow"
 - "Text [customer name] to confirm the appointment time"  
 - "Message [customer name] that I'm running 10 minutes late"
@@ -35,7 +35,7 @@
 
 | Method | Who Talks | Phone Number Used | When to Use |
 |--------|------------|-------------------|-------------|
-| **AI Agent** | Travis AI | Your App's Twilio Number | Quick requests, automated outreach |
+| **AI Agent** | Tracey AI | Your App's Twilio Number | Quick requests, automated outreach |
 | **Manual** | User (You) | User's Personal Number | Direct conversations, complex discussions |
 
 ---
@@ -203,7 +203,7 @@ Go to: https://dashboard.clerk.com
 ## **🎯 USER EXPERIENCE**
 
 ### **For Quick/Automated Communication:**
-- **Use Travis AI**: "Text Mary about the job tomorrow"
+- **Use Tracey AI**: "Text Mary about the job tomorrow"
 - **Result**: AI sends text using app's Twilio number
 
 ### **For Personal/Direct Communication:**
@@ -244,7 +244,7 @@ window.location.href = `sms:${customer.phone}`;
 - "Call [customer]" → Use AI agent (Twilio number)
 - "Text [customer]" → Use AI agent (Twilio number)  
 - "Message [customer]" → Use AI agent (Twilio number)
-- "Ask Travis to call" → Use AI agent (Twilio number)
+- "Ask Tracey to call" → Use AI agent (Twilio number)
 
 ### **When User Wants Manual:**
 - User will click Call/Text buttons directly

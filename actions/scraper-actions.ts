@@ -29,7 +29,7 @@ export async function scrapeWebsite(
     const response = await fetch(websiteUrl, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; TravisBot/1.0; +https://earlymark.ai)",
+          "Mozilla/5.0 (compatible; TraceyBot/1.0; +https://earlymark.ai)",
       },
       signal: AbortSignal.timeout(10000),
     });

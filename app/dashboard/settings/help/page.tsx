@@ -9,7 +9,7 @@ const handbookSections = [
   {
     title: "Onboarding",
     content:
-      "Setup captures business details, hours, pricing context, lead-source preferences, call routing, and inbox connection so Travis can start handling leads immediately.",
+      "Setup captures business details, hours, pricing context, lead-source preferences, call routing, and inbox connection so Tracey can start handling leads immediately.",
   },
   {
     title: "AI assistant modes",
@@ -24,12 +24,12 @@ const handbookSections = [
   {
     title: "Scheduling and routing",
     content:
-      "Use chat commands for availability checks, rescheduling, and daily planning. Travis schedules within your configured working window.",
+      "Use chat commands for availability checks, rescheduling, and daily planning. Tracey schedules within your configured working window.",
   },
   {
     title: "Pricing and refusal rules",
     content:
-      "Manage pricing ranges and refusal rules in Settings -> My business so Travis can quote consistently and decline unsupported requests.",
+      "Manage pricing ranges and refusal rules in Settings -> My business so Tracey can quote consistently and decline unsupported requests.",
   },
 ];
 
@@ -92,7 +92,7 @@ export default function HelpSettingsPage() {
       <div className="pt-2 space-y-3">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-emerald-600" />
-          Travis handbook
+          Tracey handbook
         </h3>
         {handbookSections.map((section) => (
           <details key={section.title} className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">

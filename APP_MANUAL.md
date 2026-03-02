@@ -45,7 +45,7 @@ The platform uses a dedicated **Dual-Number Architecture** to separate personal 
 
 #### 🤖 AI Agent Business Number (Customer-Facing)
 - **Provisioning**: Automatically provisioned by the system via **Twilio Subaccounts** once onboarding is complete. Each workspace receives its own unique, dedicated phone number.
-- **Purpose**: All outward-facing communication between the AI Agent (Travis/Voice Agent) and end customers. 
+- **Purpose**: All outward-facing communication between the AI Agent (Tracey/Voice Agent) and end customers. 
 - **Ownership**: The user does NOT have this number on their physical phone. They interact with customers using this number exclusively through the Pj Buddy web/mobile app interface.
 - **Management**: This number is **READ-ONLY** for the user. It is set during account creation and should not be changed by the user. 
 - **Changes**: If a business number change is required, the user must contact support. This is a security measure to prevent unauthorized communication hijacking.

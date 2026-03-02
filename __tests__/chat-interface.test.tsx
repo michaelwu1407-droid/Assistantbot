@@ -12,7 +12,7 @@ describe('ChatInterface', () => {
   it('renders chat interface with initial message', () => {
     render(<ChatInterface />);
     
-    expect(screen.getByText("Hi! I'm Travis, your personal assistant. Here to give you an early mark!")).toBeInTheDocument();
+    expect(screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!")).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Type your message...')).toBeInTheDocument();
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
@@ -21,7 +21,7 @@ describe('ChatInterface', () => {
     render(<ChatInterface />);
     
     // Check for the initial assistant message
-    const assistantMessage = screen.getByText("Hi! I'm Travis, your personal assistant. Here to give you an early mark!");
+    const assistantMessage = screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!");
     expect(assistantMessage).toBeInTheDocument();
     
     // The message should be in a container with proper styling

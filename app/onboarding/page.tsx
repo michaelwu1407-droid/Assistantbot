@@ -224,7 +224,7 @@ export default function OnboardingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Set up Travis
+            Set up Tracey
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             Tell your AI agent how to run your business.
@@ -293,7 +293,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setWebsite(e.target.value)}
                   />
                   <p className="text-xs text-slate-500">
-                    Travis will scan your website to pre-fill your business rules.
+                    Tracey will scan your website to pre-fill your business rules.
                   </p>
                 </div>
               </>
@@ -312,7 +312,7 @@ export default function OnboardingPage() {
                   <div>
                     <p className="font-medium text-sm">Book Only Mode</p>
                     <p className="text-xs text-slate-500">
-                      Travis never quotes prices. He only books site visits.
+                      Tracey never quotes prices. He only books site visits.
                     </p>
                   </div>
                   <Switch checked={bookOnly} onCheckedChange={setBookOnly} />
@@ -395,7 +395,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setBaseSuburb(e.target.value)}
                   />
                   <p className="text-xs text-slate-500">
-                    Travis uses this to estimate travel times.
+                    Tracey uses this to estimate travel times.
                   </p>
                 </div>
 
@@ -411,7 +411,7 @@ export default function OnboardingPage() {
                   <div>
                     <p className="font-medium text-sm">Emergency / After-Hours?</p>
                     <p className="text-xs text-slate-500">
-                      Allow Travis to accept emergency callouts.
+                      Allow Tracey to accept emergency callouts.
                     </p>
                   </div>
                   <Switch
@@ -443,7 +443,7 @@ export default function OnboardingPage() {
                   <p className="text-sm text-slate-500 mt-1">
                     {scrapeData
                       ? "We found some details from your website. Review and adjust."
-                      : "Set your service area and tell Travis what jobs to refuse."}
+                      : "Set your service area and tell Tracey what jobs to refuse."}
                   </p>
                 </div>
 
@@ -469,7 +469,7 @@ export default function OnboardingPage() {
                     className="w-full"
                   />
                   <p className="text-xs text-slate-500">
-                    Travis will flag jobs outside this radius from {baseSuburb || "your base"}.
+                    Tracey will flag jobs outside this radius from {baseSuburb || "your base"}.
                   </p>
                 </div>
 
@@ -497,7 +497,7 @@ export default function OnboardingPage() {
                 <div className="space-y-3">
                   <Label>What jobs do you REFUSE?</Label>
                   <p className="text-xs text-slate-500">
-                    Travis will automatically decline these. You can change this later in Settings.
+                    Tracey will automatically decline these. You can change this later in Settings.
                   </p>
                   <div className="flex gap-2">
                     <Input
@@ -534,7 +534,7 @@ export default function OnboardingPage() {
                     ))}
                     {negativeScope.length === 0 && (
                       <p className="text-sm text-slate-400 italic">
-                        No refusal rules set. Travis will accept all job types.
+                        No refusal rules set. Tracey will accept all job types.
                       </p>
                     )}
                   </div>
@@ -550,7 +550,7 @@ export default function OnboardingPage() {
                 </div>
                 <h3 className="text-xl font-semibold">Connect your AI Assistant</h3>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto">
-                  Manage your business via chat while on the road. Travis is available 24/7 on WhatsApp.
+                  Manage your business via chat while on the road. Tracey is available 24/7 on WhatsApp.
                 </p>
 
                 <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 max-w-xs mx-auto space-y-4">
@@ -562,7 +562,7 @@ export default function OnboardingPage() {
                   </div>
                   <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white gap-2">
                     <a href={waLink} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Message Travis
+                      <ExternalLink className="h-4 w-4" /> Message Tracey
                     </a>
                   </Button>
                 </div>
