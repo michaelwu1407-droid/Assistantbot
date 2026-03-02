@@ -14,7 +14,13 @@ async function generate() {
   const room = process.argv[3] || 'test-room';
 
   const at = new AccessToken(apiKey, apiSecret, { identity });
-  at.addGrant({ roomJoin: true, room });
+  at.addGrant({
+    roomJoin: true,
+    room,
+    canPublish: true,
+    canSubscribe: true,
+    canPublishData: true,
+  });
 
   const token = await at.toJwt();
   console.log('\n--- LIVEKIT TEST TOKEN ---\n');
