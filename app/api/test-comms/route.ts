@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
       availableNumbers: null as { local: string[]; mobile: string[]; totalAvailable: number } | { error: string } | null,
       error: null as string | null
     },
-    retell: {
+    livekit: {
       configured: false,
+      url: false,
       apiKey: false,
-      agentId: false
+      apiSecret: false,
     },
     provisioning: {
       lastResult: null as { success: boolean; phoneNumber?: string; stageReached?: string; error?: string } | null,
@@ -30,8 +31,8 @@ export async function GET(request: NextRequest) {
   results.environment = {
     TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
-    RETELL_API_KEY: !!process.env.RETELL_API_KEY,
-    RETELL_AGENT_ID: !!process.env.RETELL_AGENT_ID,
+    LIVEKIT_URL: !!process.env.LIVEKIT_URL,
+    LIVEKIT_API_KEY: !!process.env.LIVEKIT_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL
   };
 
@@ -80,16 +81,17 @@ export async function GET(request: NextRequest) {
     results.twilio.error = error instanceof Error ? error.message : "Unknown error";
   }
 
-  // Check Retell configuration
-  results.retell = {
-    configured: !!(process.env.RETELL_API_KEY && process.env.RETELL_AGENT_ID),
-    apiKey: !!process.env.RETELL_API_KEY,
-    agentId: !!process.env.RETELL_AGENT_ID
+  // Check LiveKit configuration
+  results.livekit = {
+    configured: !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET),
+    url: !!process.env.LIVEKIT_URL,
+    apiKey: !!process.env.LIVEKIT_API_KEY,
+    apiSecret: !!process.env.LIVEKIT_API_SECRET,
   };
 
   // Test full provisioning with sample data
   try {
-    if (results.twilio.configured && results.retell.configured) {
+    if (results.twilio.configured && results.livekit.configured) {
       const testResult = await initializeTradieComms(
         "test-workspace-" + Date.now(),
         "Test Business",

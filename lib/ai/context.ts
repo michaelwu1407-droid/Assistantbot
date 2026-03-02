@@ -127,7 +127,7 @@ export async function buildAgentContext(
         if (businessProfile.standardWorkHours) knowledgeBaseStr += `\n- Standard Hours: ${businessProfile.standardWorkHours}`;
         if (businessProfile.emergencyService) knowledgeBaseStr += `\n- Emergency Service: Available${businessProfile.emergencySurcharge ? ` (+$${businessProfile.emergencySurcharge} surcharge)` : ""}`;
     }
-    knowledgeBaseStr += "\nUse this info when contacting customers. Represent the business professionally. On voice calls, Travis can transfer to the tradie's mobile.";
+    knowledgeBaseStr += "\nUse this info when contacting customers. Represent the business professionally. On voice calls, Tracey can transfer to the tradie's mobile.";
 
     // Fetch historical price averages from completed invoices
     let historicalPricingStr = "";
@@ -224,8 +224,8 @@ export async function buildAgentContext(
     const businessName = (settings as { agentBusinessName?: string })?.agentBusinessName?.trim() || workspaceInfo?.name || "this business";
     const openingMsg = (settings as { agentOpeningMessage?: string })?.agentOpeningMessage?.trim();
     const closingMsg = (settings as { agentClosingMessage?: string })?.agentClosingMessage?.trim();
-    const defaultOpening = `Hi I'm Travis, the AI assistant for ${businessName}`;
-    const defaultClosing = `Kind regards, Travis (AI assistant for ${businessName})`;
+    const defaultOpening = `Hi I'm Tracey, the AI assistant for ${businessName}`;
+    const defaultClosing = `Kind regards, Tracey (AI assistant for ${businessName})`;
     const parts: string[] = [];
     if (openingMsg) {
         parts.push(`\nAGENT INTRO (outbound customer msgs only, NOT dashboard): Start with: "${openingMsg}"`);

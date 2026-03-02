@@ -1,6 +1,6 @@
 # Retell Voice Agent: Transfer Call & Receptionist Behavior
 
-Use this when configuring your Retell AI voice agent (Travis) so callers can be transferred to the tradie.
+Use this when configuring your Retell AI voice agent (Tracey) so callers can be transferred to the tradie.
 
 ## 1. Tool definition: `transfer_call`
 
@@ -27,7 +27,7 @@ Your backend must implement the transfer (e.g. Twilio/Retell transfer API). The 
 
 ## 2. System prompt snippet (voice agent)
 
-Add this to the **voice agent’s** system prompt in Retell so Travis can offer transfer when appropriate:
+Add this to the **voice agent’s** system prompt in Retell so Tracey can offer transfer when appropriate:
 
 ```
 You are the receptionist for the business. If the caller asks to speak to [Tradie Name] or the business owner, first ask if you can take a message or help with something specific. If they insist or say it's urgent or an emergency, use the transfer_call tool to connect them to the tradie's mobile number. Do not transfer for general enquiries you can handle (quotes, booking, availability).

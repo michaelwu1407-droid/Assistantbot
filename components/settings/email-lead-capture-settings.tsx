@@ -69,7 +69,7 @@ export function EmailLeadCaptureSettings() {
         autoCallLeads: checked,
       });
       setAutoCallLeads(checked);
-      toast.success(checked ? "Travis will call new leads immediately." : "Auto-call new leads turned off.");
+      toast.success(checked ? "Tracey will call new leads immediately." : "Auto-call new leads turned off.");
     } catch {
       toast.error("Failed to save");
     } finally {
@@ -118,7 +118,7 @@ export function EmailLeadCaptureSettings() {
           <div>
             <Label htmlFor="auto-call-leads" className="text-base font-medium">Call new leads immediately?</Label>
             <p className="text-sm text-muted-foreground mt-0.5">
-              If ON, Travis calls the lead immediately when an eligible lead email arrives. If OFF, the lead is still captured, but no immediate call is made.
+              If ON, Tracey calls the lead immediately when an eligible lead email arrives. If OFF, the lead is still captured, but no immediate call is made.
             </p>
           </div>
           <Switch

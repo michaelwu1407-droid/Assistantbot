@@ -87,7 +87,7 @@ export async function processAgentCommand(userId: string, message: string): Prom
         } = agentContext;
         const preprocessingMs = nowMs() - preprocessingStartedAt;
 
-        const systemPrompt = `You are Travis, a concise CRM assistant for tradies. Be SHORT and punchy — no essays. Say "jobs" not "meetings".
+        const systemPrompt = `You are Tracey, a concise CRM assistant for tradies. Be SHORT and punchy — no essays. Say "jobs" not "meetings".
 ${knowledgeBaseStr}
 ${agentModeStr}
 ${workingHoursStr}

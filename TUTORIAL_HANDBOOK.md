@@ -33,7 +33,7 @@ Earlymark is your AI-powered business assistant that helps you manage customers,
 - Assign jobs to team members
 - Monitor job progress and completion
 
-### AI Assistant (Travis)
+### AI Assistant (Tracey)
 - Natural language commands for common tasks
 - Automated communications with customers
 - Intelligent scheduling and reminders
@@ -56,14 +56,14 @@ Earlymark is your AI-powered business assistant that helps you manage customers,
 
 ## Multilingual Support
 
-Earlymark supports customers who speak different languages through our AI assistant Travis.
+Earlymark supports customers who speak different languages through our AI assistant Tracey.
 
 ### Adding Language Preferences
 
 When creating a new customer, use the **Notes** field to specify language preferences:
 
 #### How to Add Language Notes:
-1. **Message Travis**: "New customer John Smith needs plumbing work"
+1. **Message Tracey**: "New customer John Smith needs plumbing work"
 2. **Draft Card Appears**: Review the customer details
 3. **Add Language Notes**: In the Notes field, enter:
    - "speaks Chinese"
@@ -82,7 +82,7 @@ Notes: Arabic speaker, uses formal address
 
 ### Supported Languages
 
-Travis AI can communicate with customers in:
+Tracey AI can communicate with customers in:
 
 - **Chinese (Mandarin)** - Uses `zh-CN-XiaoxiaoNeural` voice
 - **Spanish** - Uses `es-ES-ElviraNeural` voice
@@ -97,12 +97,12 @@ Travis AI can communicate with customers in:
 
 #### AI Calls:
 1. **Customer Creation**: User adds language preference in notes
-2. **AI Call**: Travis calls customer using appropriate voice
+2. **AI Call**: Tracey calls customer using appropriate voice
 3. **Language Detection**: AI detects and responds in customer's language
 4. **Natural Conversation**: Customer speaks their preferred language
 
 #### SMS Communications:
-- Travis sends SMS in preferred language when possible
+- Tracey sends SMS in preferred language when possible
 - Language preferences are noted in customer profile
 - Automatic translation for common messages
 
@@ -115,7 +115,7 @@ Notes: "speaks Spanish only"
 ```
 
 **Expected Behavior:**
-- Travis calls using Spanish voice model
+- Tracey calls using Spanish voice model
 - AI responds in Spanish during conversation
 - SMS messages sent in Spanish when appropriate
 
@@ -128,7 +128,7 @@ Notes: "speaks Spanish only"
 
 #### For Team Members:
 - Check customer language preferences before calling
-- Use Travis AI for automatic language handling
+- Use Tracey AI for automatic language handling
 - Review call logs for quality assurance
 
 ### Troubleshooting
@@ -176,7 +176,7 @@ Use `p50Ms` for typical performance and `p95Ms` for tail latency (slowest user e
 ### Support Channels:
 - **Email**: support@earlymark.com
 - **Phone**: 1300 PJ BUDDY
-- **AI Assistant**: Ask Travis in the chat interface
+- **AI Assistant**: Ask Tracey in the chat interface
 
 ### Additional Resources:
 - Check the Settings → Help section for detailed guides

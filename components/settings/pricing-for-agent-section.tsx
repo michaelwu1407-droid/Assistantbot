@@ -178,7 +178,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           Pricing and service response rules
         </CardTitle>
         <CardDescription>
-          Auto-populates from onboarding website/doc imports. Add or refine rows anytime so Travis can quote consistently.
+          Auto-populates from onboarding website/doc imports. Add or refine rows anytime so Tracey can quote consistently.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -203,7 +203,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
         <div className="space-y-2">
           <Label>Service pricing table</Label>
           <p className="text-xs text-slate-500">
-            Add your common services and fee range. Use comments to explain how Travis should answer price questions.
+            Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
           <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
             <table className="w-full text-sm">
@@ -281,7 +281,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
         <div className="space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
           <Label>Refusal rules</Label>
           <p className="text-xs text-slate-500">
-            Don&apos;t let Travis quote these prices and focus on booking times only for these request types.
+            Don&apos;t let Tracey quote these prices and focus on booking times only for these request types.
           </p>
           <div className="flex gap-2">
             <Input

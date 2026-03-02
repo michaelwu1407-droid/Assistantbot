@@ -35,7 +35,7 @@ export interface ReportsData {
     completed: number
     inProgress: number
     avgCompletionTime: number
-    wonWithTravis: number
+    wonWithTracey: number
   }
   team: {
     members: number
@@ -110,7 +110,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       : 0
 
   const scheduledOrBeyondStages = new Set(["NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION", "WON"])
-  const jobsWonWithTravis = deals.filter((deal) => {
+  const jobsWonWithTracey = deals.filter((deal) => {
     if (!scheduledOrBeyondStages.has(deal.stage)) return false
 
     const metadata = (deal.metadata ?? {}) as Record<string, unknown>
@@ -151,7 +151,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       completed,
       inProgress,
       avgCompletionTime: avgDays,
-      wonWithTravis: jobsWonWithTravis,
+      wonWithTracey: jobsWonWithTracey,
     },
     team: {
       members: 0,

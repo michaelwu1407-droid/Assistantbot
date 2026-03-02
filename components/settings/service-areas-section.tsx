@@ -62,7 +62,7 @@ export function ServiceAreasSection() {
           Service areas
         </CardTitle>
         <CardDescription>
-          Travis uses this to flag out-of-area jobs. Add suburb exceptions on top of your base radius.
+          Tracey uses this to flag out-of-area jobs. Add suburb exceptions on top of your base radius.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

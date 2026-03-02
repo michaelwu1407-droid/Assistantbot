@@ -1,6 +1,6 @@
 // ─── Tutorial Steps (16 cards) ───────────────────────────────────────
 // Steps 1–12: Welcome, chat mode, dashboard, nav (inbox → settings).
-// Steps 13–16: Travis Handbook pointer, We're Listening, Finish.
+// Steps 13–16: Tracey Handbook pointer, We're Listening, Finish.
 // Each step spotlights a feature/button/area and shows a chat example
 
 export interface TutorialStep {
@@ -20,14 +20,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // ══════════════════════════════════════════════════════════════
     // SECTION 1: WELCOME & INTRO (Steps 1-5)
     // ══════════════════════════════════════════════════════════════
-    { id: "welcome", targetId: null, title: "Welcome to Earlymark! 🎉", message: "I'm Travis, your AI assistant. My goal is to handle the boring admin so you can focus on the tools. Let's take a quick tour!", actionLabel: "Let's Go", section: "Welcome" },
+    { id: "welcome", targetId: null, title: "Welcome to Earlymark! 🎉", message: "I'm Tracey, your AI assistant. My goal is to handle the boring admin so you can focus on the tools. Let's take a quick tour!", actionLabel: "Let's Go", section: "Welcome" },
     { id: "two-modes", targetId: "chat-mode-window", title: "Two Modes, One App", message: "**Chat mode** — The EASIEST way to use Earlymark is to just type what you want.\n\n**Advanced mode** — Toggle this on to play with the full dashboard and features yourself.", actionLabel: "Got it" },
     { id: "lets-explore", targetId: null, title: "Let's Explore! 🗺️", message: "I'll walk you through the key features. Everything I show you, you can also just type to me in the chatbox.", actionLabel: "Show me" },
 
     // ══════════════════════════════════════════════════════════════
     // SECTION 2: BASIC MODE & CHAT (Steps 6-20)
     // ══════════════════════════════════════════════════════════════
-    { id: "basic-mode", targetId: "assistant-pane", title: "Chat Mode — Your AI Companion", message: "This is where the magic happens. Chat mode hides complex widgets, leaving you with an intelligent chat. You can also send these same commands to Travis via **WhatsApp Assistant**!", chatExample: { input: "New repair job for Frank at 300 George St for $600 tomorrow 2pm", output: "Job \"Repair\" created for Frank at 300 George St, $600, scheduled tomorrow 2pm." }, position: "left", actionLabel: "Next", section: "Chat Mode", resizeHandleId: "assistant-resize-handle" },
+    { id: "basic-mode", targetId: "assistant-pane", title: "Chat Mode — Your AI Companion", message: "This is where the magic happens. Chat mode hides complex widgets, leaving you with an intelligent chat. You can also send these same commands to Tracey via **WhatsApp Assistant**!", chatExample: { input: "New repair job for Frank at 300 George St for $600 tomorrow 2pm", output: "Job \"Repair\" created for Frank at 300 George St, $600, scheduled tomorrow 2pm." }, position: "left", actionLabel: "Next", section: "Chat Mode", resizeHandleId: "assistant-resize-handle" },
 
     // ══════════════════════════════════════════════════════════════
     // SECTION 3: ADVANCED MODE & DASHBOARD
@@ -38,7 +38,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // ══════════════════════════════════════════════════════════════
     // SECTION 4: SIDEBAR NAVIGATION
     // ══════════════════════════════════════════════════════════════
-    { id: "nav-inbox", targetId: "main-canvas", title: "📬 Unified Inbox", message: "See your conversation with each customer in one place — across emails, texts, calls.\n* Travis answers calls, takes messages, and routes emergencies.\n* Use Travis to send automated messages or initiate outbound calls. Or do it yourself too.\n* Oh...and Travis can call the customer in different languages.", actionLabel: "Next" },
+    { id: "nav-inbox", targetId: "main-canvas", title: "📬 Unified Inbox", message: "See your conversation with each customer in one place — across emails, texts, calls.\n* Tracey answers calls, takes messages, and routes emergencies.\n* Use Tracey to send automated messages or initiate outbound calls. Or do it yourself too.\n* Oh...and Tracey can call the customer in different languages.", actionLabel: "Next" },
     { id: "nav-schedule", targetId: "main-canvas", title: "📅 Smart Schedule", message: "Your visual calendar.", actionLabel: "Next" },
     { id: "nav-map", targetId: "map-link", title: "🗺️ Interactive Route Map", message: "See all active jobs plotted on a live map with color-coded pins.\n\nOpen the **Today's Jobs** list on the left to see your run for the day — tap a job to jump to it on the map.", actionLabel: "Next" },
     { id: "nav-contacts", targetId: "contacts-link", title: "👥 Contact Directory", message: "Every person auto-saved to CRM. View job history, contact details, notes.\n\nSort between **individual** or **business** customers.", actionLabel: "Next" },
@@ -48,7 +48,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // ══════════════════════════════════════════════════════════════
     // TRAVIS HANDBOOK & WRAP-UP (Steps 13–17)
     // ══════════════════════════════════════════════════════════════
-    { id: "travis-handbook", targetId: "settings-link", title: "📖 Travis Handbook", message: "There's a lot more Travis can do — agent modes, top commands, WhatsApp Assistant scheduling, and more.\n\nOpen **Settings → Help** anytime to read the full **Travis Handbook**, organised by category.", actionLabel: "Next", section: "Wrap Up" },
+    { id: "travis-handbook", targetId: "settings-link", title: "📖 Tracey Handbook", message: "There's a lot more Tracey can do — agent modes, top commands, WhatsApp Assistant scheduling, and more.\n\nOpen **Settings → Help** anytime to read the full **Tracey Handbook**, organised by category.", actionLabel: "Next", section: "Wrap Up" },
     { id: "bonus-feedback", targetId: null, title: "💬 We're Listening", message: "Found something that could be better? Just type 'feedback' in chat and tell us. We read every message.", actionLabel: "Next" },
     { id: "replay-finish", targetId: null, title: "You're Ready to Roll! 🚀", message: "That's everything! You can replay this tutorial anytime from **Settings → Help**.\n\nTo get started, try asking me:\n\n📱 \"Create a new test job\"\n📱 \"What's on my schedule?\"\n📱 \"Show me my pipeline\"\n\nI'm always here to help. Let's build your business together!", actionLabel: "Start Using Earlymark", section: "Wrap Up" },
 ]

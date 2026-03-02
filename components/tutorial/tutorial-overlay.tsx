@@ -75,7 +75,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         }
     }, [viewMode, currentStepIndex, router])
 
-    // Navigate to Settings → Help when showing the Travis Handbook step
+    // Navigate to Settings → Help when showing the Tracey Handbook step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "travis-handbook") {
             router.push("/dashboard/settings/help")
@@ -125,9 +125,9 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
             {/* Schedule step: custom bullets (no generic examples) */}
             {step.id === "nav-schedule" && (
                 <ul className="list-disc list-inside text-sm text-black mb-3 space-y-1 pl-1">
-                    <li>Jobs auto-slot when Travis creates them.</li>
-                    <li>Travis auto-checks for clashes and suggests alternatives.</li>
-                    <li>Best of all, Travis can group nearby jobs together to minimise travel.</li>
+                    <li>Jobs auto-slot when Tracey creates them.</li>
+                    <li>Tracey auto-checks for clashes and suggests alternatives.</li>
+                    <li>Best of all, Tracey can group nearby jobs together to minimise travel.</li>
                 </ul>
             )}
 
@@ -273,7 +273,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                 </div>
             )}
 
-            {/* Settings + Travis Handbook steps: no spotlight, bottom middle, wider and shorter card */}
+            {/* Settings + Tracey Handbook steps: no spotlight, bottom middle, wider and shorter card */}
             {(step.id === "nav-settings" || step.id === "travis-handbook") && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
                     <motion.div

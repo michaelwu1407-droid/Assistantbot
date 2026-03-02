@@ -74,12 +74,12 @@ export function AIReceptionistSettings() {
             <CardTitle>AI Receptionist & Call Forwarding</CardTitle>
           </div>
           <CardDescription>
-            Forward your incoming calls to Travis so you never miss a job while on the tools. Set up your business phone number above first.
+            Forward your incoming calls to Tracey so you never miss a job while on the tools. Set up your business phone number above first.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Once your AI agent phone number is configured, you can use the options here to forward calls from your personal phone (e.g. from Google Ads, hipages, Airtasker) to Travis.
+            Once your AI agent phone number is configured, you can use the options here to forward calls from your personal phone (e.g. from Google Ads, hipages, Airtasker) to Tracey.
           </p>
         </CardContent>
       </Card>
@@ -98,26 +98,26 @@ export function AIReceptionistSettings() {
           <CardTitle>AI Receptionist & Call Forwarding</CardTitle>
         </div>
         <CardDescription>
-          Forward calls to Travis so you never miss a job while on the tools. Use these one-tap options on your mobile to turn forwarding on or off. Works with calls from Google Ads, hipages, Airtasker, and your main business line.
+          Forward calls to Tracey so you never miss a job while on the tools. Use these one-tap options on your mobile to turn forwarding on or off. Works with calls from Google Ads, hipages, Airtasker, and your main business line.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg bg-muted/50 p-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Travis (AI) number</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tracey (AI) number</p>
           <p className="mt-1 flex items-center gap-2 font-mono text-sm">
             <Phone className="h-4 w-4 text-emerald-600" />
             {status.phoneNumber}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
-          On your mobile, tap a button below. Your carrier will set up call forwarding to Travis. Tap &quot;Turn Off AI&quot; when you want to take calls directly again.
+          On your mobile, tap a button below. Your carrier will set up call forwarding to Tracey. Tap &quot;Turn Off AI&quot; when you want to take calls directly again.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Button
             asChild
             className="bg-emerald-600 hover:bg-emerald-700"
           >
-            <a href={`tel:**21*${agentDigits}${HASH}`} title="Forward all calls to Travis">
+            <a href={`tel:**21*${agentDigits}${HASH}`} title="Forward all calls to Tracey">
               Enable 100% AI Receptionist
             </a>
           </Button>
@@ -133,7 +133,7 @@ export function AIReceptionistSettings() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Green: forwards every call to Travis. Blue: forwards only if you don’t answer (e.g. after ~15s). Gray: disables forwarding so calls ring your phone.
+          Green: forwards every call to Tracey. Blue: forwards only if you don’t answer (e.g. after ~15s). Gray: disables forwarding so calls ring your phone.
         </p>
       </CardContent>
     </Card>

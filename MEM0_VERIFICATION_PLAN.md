@@ -1,7 +1,7 @@
 # Mem0 Integration Verification Plan
 
 ## Overview
-This document provides testing procedures to verify the Mem0 long-term memory integration for Travis (Earlymark AI Assistant).
+This document provides testing procedures to verify the Mem0 long-term memory integration for Tracey (Earlymark AI Assistant).
 
 ## Prerequisites
 - Ensure `MEM0_API_KEY` is set in your `.env.local` file
@@ -12,7 +12,7 @@ This document provides testing procedures to verify the Mem0 long-term memory in
 
 ## Test 1: Store a Memory (The Learning)
 
-**Objective:** Verify that Travis can learn and store user preferences.
+**Objective:** Verify that Tracey can learn and store user preferences.
 
 ### Curl Command
 ```bash
@@ -52,7 +52,7 @@ curl -X POST http://localhost:3000/api/chat \
 
 ## Test 2: Retrieve a Memory (The Recall)
 
-**Objective:** Verify that Travis can recall previously stored information.
+**Objective:** Verify that Tracey can recall previously stored information.
 
 ### Curl Command
 ```bash
@@ -85,14 +85,14 @@ curl -X POST http://localhost:3000/api/chat \
 ### Success Criteria
 - ✅ Console shows `[Mem0] Found X memories` (where X > 0)
 - ✅ Memory content is displayed in console
-- ✅ Travis responds with the correct hourly rate ($100)
+- ✅ Tracey responds with the correct hourly rate ($100)
 - ✅ Response includes context from previous conversation
 
 ---
 
 ## Test 3: Multiple Memories Context
 
-**Objective:** Verify that Travis can handle multiple stored facts.
+**Objective:** Verify that Tracey can handle multiple stored facts.
 
 ### Step 3a: Store Multiple Facts
 ```bash
@@ -260,7 +260,7 @@ MEM0_API_KEY=your_mem0_api_key_here
 3. **Run Tests:**
    - Execute the curl commands above
    - Verify console logs show expected output
-   - Confirm Travis recalls information correctly
+   - Confirm Tracey recalls information correctly
 
 4. **Production Deployment:**
    - Add `MEM0_API_KEY` to Vercel environment variables

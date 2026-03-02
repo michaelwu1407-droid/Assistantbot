@@ -67,7 +67,7 @@ export function CallForwardingCard() {
           Personal phone and call forwarding
         </CardTitle>
         <CardDescription>
-          Backup AI is the default: your phone rings first, then Travis answers after 20 seconds if you miss the call.
+          Backup AI is the default: your phone rings first, then Tracey answers after 20 seconds if you miss the call.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ export function CallForwardingCard() {
           >
             <Shield className="h-5 w-5" />
             <span>100% AI</span>
-            <span className="text-xs font-normal opacity-90">All calls go to Travis</span>
+            <span className="text-xs font-normal opacity-90">All calls go to Tracey</span>
           </Button>
           <Button
             variant={active === "backup" ? "default" : "outline"}
@@ -120,7 +120,7 @@ export function CallForwardingCard() {
           >
             <PhoneForwarded className="h-5 w-5" />
             <span>Backup AI</span>
-            <span className="text-xs font-normal opacity-90">Missed calls route to Travis</span>
+            <span className="text-xs font-normal opacity-90">Missed calls route to Tracey</span>
           </Button>
           <Button
             variant={active === "off" ? "default" : "outline"}
