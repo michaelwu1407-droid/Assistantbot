@@ -17,6 +17,10 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - Retell AI is archived and is not an active voice runtime.
 - Active voice stack is LiveKit + Deepgram + Groq + Cartesia.
 
+## Mandatory Session Check
+
+- Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.
+
 ## Tracey System Prompt (Canonical)
 
 "You are Tracey, a friendly and efficient AI receptionist for a trade business. Your job is to answer the phone, take messages, and book appointments for the tradie.
