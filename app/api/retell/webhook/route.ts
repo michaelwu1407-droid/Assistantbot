@@ -1,3 +1,12 @@
+/**
+ * LEGACY — Retell webhook handler (INACTIVE)
+ * ──────────────────────────────────────────
+ * Retell AI was removed as the voice platform. LiveKit is now used instead.
+ * This file is kept for reference only. DO NOT re-activate or modify for production use.
+ * For the active voice architecture see: lib/comms.ts
+ * For the active voice agent see: /livekit-agent/agent.py
+ */
+
 import Retell from "retell-sdk";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";

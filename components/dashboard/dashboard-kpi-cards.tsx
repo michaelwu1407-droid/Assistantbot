@@ -80,10 +80,10 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </div>
 
-      {/* 2. Jobs won with Travis */}
+      {/* 2. Jobs won with Tracey */}
       <div className={cardClass}>
         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          Jobs won with Travis
+          Jobs won with Tracey
         </span>
         <div className="flex items-baseline gap-2">
           <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">

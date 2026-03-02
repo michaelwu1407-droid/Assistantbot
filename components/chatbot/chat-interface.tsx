@@ -323,7 +323,7 @@ function ChatWithHistory({
           <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
               <p className="text-[10px] md:text-xs leading-relaxed text-slate-800 dark:text-foreground">
-                Hi! I&apos;m Travis, your personal assistant. Here to give you an early mark!
+                Hi! I&apos;m Tracey, your personal assistant. Here to give you an early mark!
               </p>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>

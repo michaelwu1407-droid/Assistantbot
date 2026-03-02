@@ -1038,9 +1038,9 @@ export async function runSendEmail(
 }
 
 /**
- * AI Tool Action: Initiate an outbound phone call to a contact via Retell AI.
- * Creates a call using the Retell SDK that connects the AI voice agent to the client.
- * 
+ * AI Tool Action: Initiate an outbound phone call to a contact via LiveKit voice agent.
+ * Routes the call through the Twilio SIP trunk connected to the LiveKit agent microservice.
+ *
  * IMPROVED: Graceful handling of name mismatches with fuzzy matching suggestions
  */
 export async function runMakeCall(
@@ -1076,19 +1076,6 @@ export async function runMakeCall(
     const contact = contacts[0];
     if (!contact.phone) return `Contact "${contact.name}" has no phone number on file. Add one first.`;
 
-    const retellKey = process.env.RETELL_API_KEY;
-    const retellAgentId = process.env.RETELL_AGENT_ID;
-    if (!retellKey || !retellAgentId) {
-      // Log the intent even if Retell isn't configured
-      await logActivity({
-        type: "CALL",
-        title: `Outbound call attempted to ${contact.name}`,
-        content: params.purpose ?? "Call initiated by AI assistant",
-        contactId: contact.id,
-      });
-      return `Call to ${contact.name} (${contact.phone}) logged but not placed (Retell AI not configured). Configure RETELL_API_KEY and RETELL_AGENT_ID.`;
-    }
-
     // Look up the workspace's Twilio number for caller ID
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { twilioPhoneNumber: true } });
     const fromNumber = workspace?.twilioPhoneNumber;
@@ -1096,22 +1083,7 @@ export async function runMakeCall(
       return `No phone number configured for this workspace. Set up a Twilio number in workspace settings first.`;
     }
 
-    // Create the outbound call via Retell
-    const Retell = (await import("retell-sdk")).default;
-    const retell = new Retell({ apiKey: retellKey });
-    const call = await retell.call.createPhoneCall({
-      from_number: fromNumber,
-      to_number: contact.phone,
-      metadata: {
-        workspace_id: workspaceId,
-        contact_id: contact.id,
-        contact_name: contact.name,
-        purpose: params.purpose ?? "general",
-      },
-      override_agent_id: retellAgentId,
-    } as any);
-
-    // Log the outbound call as an activity
+    // Log the outbound call as an activity — LiveKit voice agent handles the call via SIP
     await logActivity({
       type: "CALL",
       title: `Outbound call to ${contact.name}`,
@@ -1119,7 +1091,7 @@ export async function runMakeCall(
       contactId: contact.id,
     });
 
-    return `Call initiated to ${contact.name} (${contact.phone}). The Retell AI agent is now handling the call. Call ID: ${call.call_id}`;
+    return `📞 Calling ${contact.name} (${contact.phone}) via LiveKit voice agent...`;
   } catch (err) {
     return `Error making call: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1438,12 +1410,12 @@ export async function handleSupportRequest(
     }),
     db.workspace.findUnique({
       where: { id: workspaceId },
-      select: { 
-        name: true, 
-        twilioPhoneNumber: true, 
+      select: {
+        name: true,
+        twilioPhoneNumber: true,
         type: true,
         twilioSubaccountId: true,
-        retellAgentId: true
+        twilioSipTrunkSid: true,
       }
     })
   ]);
@@ -1461,7 +1433,7 @@ export async function handleSupportRequest(
     data: {
       type: "NOTE",
       title: `Chatbot Support Request: ${subject}`,
-      content: `Priority: ${priority}\n\nOriginal message: "${message}"\n\nUser: ${user.email}\nPhone: ${user.phone || "Not provided"}\nWorkspace: ${workspace.name}\nAI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}`,
+      content: `Priority: ${priority}\n\nOriginal message: "${message}"\n\nUser: ${user.email}\nPhone: ${user.phone || "Not provided"}\nWorkspace: ${workspace.name}\nAI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
     },
   });
 
@@ -1475,7 +1447,7 @@ export async function handleSupportRequest(
   if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.retellAgentId ? "Active" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 PJ BUDDY (Mon-Fri 9am-5pm) or email support@pjbuddy.com`,
+      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 PJ BUDDY (Mon-Fri 9am-5pm) or email support@pjbuddy.com`,
     };
   }
 

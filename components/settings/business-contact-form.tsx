@@ -37,7 +37,7 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
       <CardHeader>
         <CardTitle>Business details</CardTitle>
         <CardDescription>
-          Contact and address details Travis can share with customers.
+          Contact and address details Tracey can share with customers.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

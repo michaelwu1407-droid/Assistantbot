@@ -269,7 +269,7 @@ For advanced users: You can hook Pj Buddy up to thousands of other apps using Za
 - **Header**: User profile, notifications, search
 - **Sidebar**: Main navigation (Home, Jobs, Calendar, etc.)
 - **Main Area**: Active content based on selected page
-- **Chat Interface**: Bottom-right AI assistant (Travis)
+- **Chat Interface**: Bottom-right AI assistant (Tracey)
 
 ### 1.3 Navigation & The Sidebar
 - **Home**: Dashboard overview and activity feed
@@ -285,7 +285,7 @@ Type in the chat interface:
 ```
 "New customer John Smith needs plumbing work at 123 Main St"
 ```
-Travis will create a draft deal with customer details.
+Tracey will create a draft deal with customer details.
 
 ### 1.5 Global Search (Cmd+K)
 Press **Cmd+K** (Mac) or **Ctrl+K** (Windows) for instant search across:
@@ -294,7 +294,7 @@ Press **Cmd+K** (Mac) or **Ctrl+K** (Windows) for instant search across:
 - Communications history
 - Settings and help
 
-💡 **NEW USER TIP**: If you get stuck, just ask Travis AI "What do I do next?"
+💡 **NEW USER TIP**: If you get stuck, just ask Tracey AI "What do I do next?"
 
 ---
 
@@ -368,7 +368,7 @@ Click any deal card to view:
 - Customer gets automatic notification
 
 ### 3.4 AI Availability Checking
-Travis automatically:
+Tracey automatically:
 - Checks existing bookings
 - Avoids double-booking
 - Suggests optimal times
@@ -562,9 +562,9 @@ When you finish a job on-site, use the **"Finish Job"** button (Tradie Dashboard
   📍 Type "/" in chat box → Choose from dropdown menu
 
 ### 8.4 Morning Briefing (Preparation Check)
-Ask Travis "What's on today?" or "Am I ready for today?" to get a **preparation-focused** daily briefing.
+Ask Tracey "What's on today?" or "Am I ready for today?" to get a **preparation-focused** daily briefing.
 
-Travis checks each scheduled job for readiness issues:
+Tracey checks each scheduled job for readiness issues:
 - **Missing Address**: Can't navigate if no address is set
 - **No Phone Number**: Can't call ahead if client has no phone
 - **Unassigned Job**: No team member allocated to the job
@@ -572,14 +572,14 @@ Travis checks each scheduled job for readiness issues:
 - **Deposit Not Paid**: Job requires deposit but none recorded
 - **Materials Needed**: Job description mentions materials/parts/supplies
 
-Travis leads with any alerts (e.g. "Heads up: 2 jobs need attention before you head out") so you can fix issues before leaving.
+Tracey leads with any alerts (e.g. "Heads up: 2 jobs need attention before you head out") so you can fix issues before leaving.
 
 ### 8.5 The Bouncer (Lead Qualification)
 During onboarding, you can set **strict exclusion rules** (e.g. "No 2-story roofs, no asbestos, no CBD jobs").
 
-- **Hard No-Go**: Travis will politely decline leads matching your exclusion criteria.
-- **Soft Flags**: For jobs that seem risky but don't match a rule, Travis adds a private flag visible on your dashboard (orange badge on the deal card).
-- **Real-Time Updates**: Tell Travis "Stop taking jobs for X" and he'll ask if you want to strictly decline or just flag them.
+- **Hard No-Go**: Tracey will politely decline leads matching your exclusion criteria.
+- **Soft Flags**: For jobs that seem risky but don't match a rule, Tracey adds a private flag visible on your dashboard (orange badge on the deal card).
+- **Real-Time Updates**: Tell Tracey "Stop taking jobs for X" and he'll ask if you want to strictly decline or just flag them.
 
 ### 8.6 Teaching AI Your Preferences
 - **Feedback Loop**: Correct AI responses to improve accuracy
@@ -686,7 +686,7 @@ AI breaks down complex requests into individual actions.
 ## 📞 Support & Help
 
 ### Getting Help:
-- **AI Assistant**: Ask Travis anything in the chat
+- **AI Assistant**: Ask Tracey anything in the chat
 - **Help Center**: Settings → Help → Documentation
 - **Email Support**: support@earlymark.com
 - **Phone Support**: 1300 PJ BUDDY

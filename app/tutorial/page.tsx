@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Bot, MessageSquare, Calendar, DollarSign, Users, Zap, Send, FileText, Radio, Headphones, Mail } from "lucide-react"
 
 export const metadata = {
-  title: "Tutorial | Travis Handbook – Earlymark",
-  description: "Learn how to use Earlymark and Travis AI: agent modes, commands, communications, scheduling, and follow-up skills.",
+  title: "Tutorial | Tracey Handbook – Earlymark",
+  description: "Learn how to use Earlymark and Tracey AI: agent modes, commands, communications, scheduling, and follow-up skills.",
 }
 
 const SECTIONS = [
@@ -14,18 +14,18 @@ const SECTIONS = [
     id: "agent-modes",
     icon: Bot,
     title: "Agent Modes",
-    description: "Control how autonomous Travis is. Set this in Settings → Agent Capabilities.",
+    description: "Control how autonomous Tracey is. Set this in Settings → Agent Capabilities.",
     content: [
-      { name: "Execute", body: "Full autonomy. Travis schedules, prices, and creates jobs independently. Best when you trust the AI to act on your behalf." },
-      { name: "Organize", body: "Travis proposes, you approve. Draft cards appear for confirmation before anything is created or sent. Recommended for most users." },
-      { name: "Filter", body: "Screening only. Travis collects info and suggests next steps but does not schedule, price, or send messages without your say-so." },
+      { name: "Execute", body: "Full autonomy. Tracey schedules, prices, and creates jobs independently. Best when you trust the AI to act on your behalf." },
+      { name: "Organize", body: "Tracey proposes, you approve. Draft cards appear for confirmation before anything is created or sent. Recommended for most users." },
+      { name: "Filter", body: "Screening only. Tracey collects info and suggests next steps but does not schedule, price, or send messages without your say-so." },
     ],
   },
   {
     id: "commands",
     icon: Zap,
     title: "Top Common Commands",
-    description: "Try these in the chat to get the most out of Travis.",
+    description: "Try these in the chat to get the most out of Tracey.",
     list: [
       { cmd: "What's on today?", desc: "Daily summary and first job setup" },
       { cmd: "Create a new test job", desc: "Add a job via chat" },
@@ -42,27 +42,27 @@ const SECTIONS = [
     icon: MessageSquare,
     title: "Communications",
     description: "Inbox, SMS, email, and AI voice in one place.",
-    body: "See conversations with each customer across emails, texts, and calls. Travis can send automated messages, initiate outbound calls, and answer calls in different languages. Use the Inbox from the sidebar or ask Travis to message or call a customer.",
+    body: "See conversations with each customer across emails, texts, and calls. Tracey can send automated messages, initiate outbound calls, and answer calls in different languages. Use the Inbox from the sidebar or ask Tracey to message or call a customer.",
   },
   {
     id: "outbound-leads",
     icon: Radio,
     title: "Outbound & Leads",
     description: "Handle leads from hipages, Google Ads, Airtasker, and your own outbound.",
-    body: "Leads that haven't converted yet (no job scheduled) appear in the Inbox under \"Leads\". Use the Leads / Existing toggle to switch between new leads and existing customers who already have jobs or are further down the pipeline. Respond to leads from any source in one place — Travis can message or call them, and you can reply from the Inbox.",
+    body: "Leads that haven't converted yet (no job scheduled) appear in the Inbox under \"Leads\". Use the Leads / Existing toggle to switch between new leads and existing customers who already have jobs or are further down the pipeline. Respond to leads from any source in one place — Tracey can message or call them, and you can reply from the Inbox.",
   },
   {
     id: "ai-receptionist",
     icon: Headphones,
     title: "AI Receptionist & Call Forwarding",
-    description: "Forward your phone to Travis so you never miss a job.",
-    body: "In Settings → Phone you can forward incoming calls (e.g. from Google Ads, hipages, or your main line) to Travis. Use \"Enable 100% AI Receptionist\" to send every call to Travis, or \"Backup AI Receptionist\" so he only picks up if you don't answer. If a caller asks to speak to you, Travis can transfer them to your mobile.",
+    description: "Forward your phone to Tracey so you never miss a job.",
+    body: "In Settings → Phone you can forward incoming calls (e.g. from Google Ads, hipages, or your main line) to Tracey. Use \"Enable 100% AI Receptionist\" to send every call to Tracey, or \"Backup AI Receptionist\" so he only picks up if you don't answer. If a caller asks to speak to you, Tracey can transfer them to your mobile.",
   },
   {
     id: "email-lead-capture",
     icon: Mail,
     title: "Email Lead Capture & Auto-Response",
-    description: "Forward \"Lead Won\" emails to Travis and optionally call the lead instantly.",
+    description: "Forward \"Lead Won\" emails to Tracey and optionally call the lead instantly.",
     body: "In Settings → Integrations, use the Auto-Lead Response card. You get a unique forwarding address (e.g. you@inbound.earlymark.ai). Set up a Gmail filter to forward \"Lead Won\" emails from HiPages, Airtasker, or ServiceSeeking to that address. We create the contact and deal, parse the lead's phone and name, and—if you turn it on—trigger an immediate Retell AI call to lock down the job.",
   },
   {
@@ -77,7 +77,7 @@ const SECTIONS = [
     icon: DollarSign,
     title: "Pricing & Quoting",
     description: "Call-out fee, price ranges, and AI-generated quotes.",
-    body: "Set your call-out fee and typical price ranges in Settings. Then ask Travis to \"Quote blocked drain for Mary\" or \"What's $1,250 plus GST?\" for quick calculations.",
+    body: "Set your call-out fee and typical price ranges in Settings. Then ask Tracey to \"Quote blocked drain for Mary\" or \"What's $1,250 plus GST?\" for quick calculations.",
   },
   {
     id: "crm",
@@ -91,14 +91,14 @@ const SECTIONS = [
     icon: Send,
     title: "Soft Chase (Lead Follow-up)",
     description: "A default follow-up message for new leads not yet converted.",
-    body: "In Settings → Agent Capabilities you can configure the follow-up message and when it is sent (e.g. 3 days or 1 day after the lead). Travis sends this as either an email or text so you never leave a lead cold.",
+    body: "In Settings → Agent Capabilities you can configure the follow-up message and when it is sent (e.g. 3 days or 1 day after the lead). Tracey sends this as either an email or text so you never leave a lead cold.",
   },
   {
     id: "invoice-follow-up",
     icon: FileText,
     title: "Unpaid Invoice Follow-up",
     description: "Automatic follow-up for unpaid invoices.",
-    body: "In Settings → Agent Capabilities you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Travis sends this by email or text to help you get paid faster.",
+    body: "In Settings → Agent Capabilities you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Tracey sends this by email or text to help you get paid faster.",
   },
 ]
 
@@ -116,10 +116,10 @@ export default function TutorialPage() {
               </div>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-midnight">
-              Travis Handbook
+              Tracey Handbook
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-lg max-w-xl mx-auto">
-              Your guide to Earlymark and the Travis AI assistant. Everything in one place.
+              Your guide to Earlymark and the Tracey AI assistant. Everything in one place.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               {SECTIONS.map((s) => {

@@ -2,13 +2,6 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ChevronDown } from "lucide-react"
 
 export function Navbar() {
     return (
@@ -23,43 +16,37 @@ export function Navbar() {
 
             {/* Navigation Links - Centered */}
             <div className="hidden md:flex items-center gap-8">
+                <Link href="/" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                    Home
+                </Link>
                 <Link href="/features" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
-                    Features
+                    Product
                 </Link>
                 <Link href="/tutorial" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Tutorial
                 </Link>
-                <DropdownMenu>
-                    <DropdownMenuTrigger className="text-sm font-medium text-slate-body hover:text-midnight transition-colors bg-transparent border-none p-0 flex items-center gap-1 focus:outline-none cursor-pointer">
-                        Solutions <ChevronDown className="h-4 w-4 opacity-50" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="rounded-2xl border-border shadow-ott-elevated">
-                        <DropdownMenuItem asChild>
-                            <Link href="/industries/trades" className="cursor-pointer rounded-xl">Trades</Link>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
                 <Link href="#pricing" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Pricing
                 </Link>
-                <Link href="#contact" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                <Link href="/contact" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Contact
                 </Link>
             </div>
 
             {/* CTA */}
             <div className="flex items-center gap-3">
-                <Link href="/contact">
+                <Link href="/contact" className="hidden sm:block">
                     <Button variant="ghost" size="sm" className="text-midnight font-medium">
                         Contact us
                     </Button>
                 </Link>
                 <Link href="/auth">
-                    <Button size="sm">
-                        Log in / Sign up
+                    <Button size="sm" variant="mint">
+                        Log in / Get started
                     </Button>
                 </Link>
             </div>
         </nav>
     )
 }
+

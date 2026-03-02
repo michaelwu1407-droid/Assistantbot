@@ -49,7 +49,7 @@ interface InboxViewProps {
   initialInteractions: ActivityView[]
   /** Map contactId -> "lead" | "existing". Contacts not in map are treated as "lead". */
   contactSegment?: Record<string, ContactSegment>
-  /** Required for "Tell Travis" mode so the chat API can run in the correct workspace. */
+  /** Required for "Tell Tracey" mode so the chat API can run in the correct workspace. */
   workspaceId?: string
 }
 
@@ -187,7 +187,7 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
           toast.error(result.error || "Failed to send")
         }
       } else {
-        // Ask Travis — route through chatbot API (requires workspaceId)
+        // Ask Tracey — route through chatbot API (requires workspaceId)
         if (!workspaceId) {
           toast.error("Workspace not loaded. Refresh the page and try again.")
           setSending(false)
@@ -206,11 +206,11 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
             }),
           })
           if (res.ok) {
-            toast.success(`Travis is handling the message to ${selectedContact.name}`)
+            toast.success(`Tracey is handling the message to ${selectedContact.name}`)
             setMessageText("")
           } else {
             const text = await res.text()
-            let errMsg = "Travis couldn't send that message."
+            let errMsg = "Tracey couldn't send that message."
             try {
               const err = JSON.parse(text)
               if (err?.error && typeof err.error === "string") errMsg = err.error
@@ -220,8 +220,8 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
             toast.error(errMsg)
           }
         } catch (e) {
-          toast.error("Could not reach Travis. Check your connection and try again.")
-          console.error("[Inbox] Ask Travis request failed:", e)
+          toast.error("Could not reach Tracey. Check your connection and try again.")
+          console.error("[Inbox] Ask Tracey request failed:", e)
         }
       }
     } catch {
@@ -522,7 +522,7 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
               )}
             </div>
 
-            {/* ─── Bottom: Ask Travis / Direct Message ─────── */}
+            {/* ─── Bottom: Ask Tracey / Direct Message ─────── */}
             <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
               {/* Mode toggle */}
               <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
@@ -532,7 +532,7 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
                     messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Bot className="h-3.5 w-3.5" /> Ask Travis
+                  <Bot className="h-3.5 w-3.5" /> Ask Tracey
                 </button>
                 <button
                   onClick={() => setMessageMode("direct")}
@@ -548,7 +548,7 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
               <div className="flex gap-2">
                 <Input
                   placeholder={messageMode === "travis"
-                    ? `Tell Travis what to do with ${selectedContact.name}...`
+                    ? `Tell Tracey what to do with ${selectedContact.name}...`
                     : `Text ${selectedContact.name} directly...`
                   }
                   className="flex-1 bg-background/50 border-border/50"
@@ -575,7 +575,7 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
                 <p className="text-[10px] text-red-400 mt-1">No phone number on file — add one to send direct messages.</p>
               )}
               {messageMode === "travis" && (
-                <p className="text-[10px] text-muted-foreground mt-1">Travis will handle communication with this customer on your behalf.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Tracey will handle communication with this customer on your behalf.</p>
               )}
             </div>
           </>

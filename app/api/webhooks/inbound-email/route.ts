@@ -254,7 +254,6 @@ export async function POST(req: NextRequest) {
             inboundEmail: true,
             inboundEmailAlias: true,
             autoCallLeads: true,
-            retellAgentId: true,
             twilioPhoneNumber: true,
             settings: true,
           },
@@ -287,7 +286,6 @@ export async function POST(req: NextRequest) {
           inboundEmail: true,
           inboundEmailAlias: true,
           autoCallLeads: true,
-          retellAgentId: true,
           twilioPhoneNumber: true,
           settings: true,
         },
@@ -382,58 +380,9 @@ export async function POST(req: NextRequest) {
           ? "after_hours"
           : null;
 
-      let callTriggered = false;
-      if (
-        workspace!.autoCallLeads &&
-        displayPhone &&
-        workspace!.retellAgentId &&
-        workspace!.twilioPhoneNumber &&
-        !blockAutoCall
-      ) {
-        try {
-          const tradieName = workspace!.name;
-          const Retell = (await import("retell-sdk")).default;
-          const retell = new Retell({ apiKey: process.env.RETELL_API_KEY! });
-          await retell.call.createPhoneCall({
-            from_number: workspace!.twilioPhoneNumber,
-            to_number: displayPhone.startsWith("0") ? `+61${displayPhone.slice(1)}` : displayPhone,
-            metadata: {
-              workspace_id: workspace!.id,
-              contact_id: contact.id,
-              platform_name: platform,
-              lead_name: leadName,
-              script_context: `You are calling because ${tradieName} just accepted a lead on ${platform}. You want to book the quote immediately.`,
-            },
-            override_agent_id: workspace!.retellAgentId!,
-          } as any);
-          callTriggered = true;
-          await db.activity.create({
-            data: {
-              type: "CALL",
-              title: "Outbound call to lead (auto)",
-              content: `Auto call triggered for ${platform} lead ${leadName}`,
-              contactId: contact.id,
-              dealId: deal.id,
-            },
-          });
-        } catch (callErr) {
-          const errMsg = callErr instanceof Error ? callErr.message : String(callErr);
-          console.error("[inbound-email] Retell lead call failed:", callErr);
-          Sentry.captureException(callErr, {
-            tags: { webhook: "resend", stage: "lead_auto_call", workspaceId: workspace!.id },
-            extra: { platform, contactId: contact.id, dealId: deal.id, leadName },
-          });
-          await db.activity.create({
-            data: {
-              type: "NOTE",
-              title: "Auto call to lead failed",
-              content: `Could not place automatic call to ${leadName}: ${errMsg}`,
-              contactId: contact.id,
-              dealId: deal.id,
-            },
-          }).catch(() => {});
-        }
-      }
+      // Auto-call via LiveKit: outbound calls are handled by the livekit-agent Python microservice via SIP trunk.
+      // When autoCallLeads is enabled, the microservice picks up and dials the lead.
+      const callTriggered = false;
 
       if (workspace!.ownerId && blockAutoCall) {
         await db.notification.create({

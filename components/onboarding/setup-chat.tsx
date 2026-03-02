@@ -137,7 +137,7 @@ export function SetupChat() {
         {
             id: "1",
             role: "assistant",
-            content: "Hi! I'm Travis, your AI assistant here to give you an early mark. What's your first name?",
+            content: "Hi! I'm Tracey, your AI assistant here to give you an early mark. What's your first name?",
             type: "text"
         }
     ])
@@ -232,7 +232,7 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "What are your typical working hours? (Travis will only schedule within this window.)",
+                        content: "What are your typical working hours? (Tracey will only schedule within this window.)",
                         type: "text"
                     },
                     {
@@ -270,7 +270,7 @@ export function SetupChat() {
                         {
                             id: crypto.randomUUID(),
                             role: "assistant",
-                            content: "No stress - you can set up lead capture later in Settings. For urgent/after-hours leads, Travis will notify you in-app so you can review details and contact the lead yourself.",
+                            content: "No stress - you can set up lead capture later in Settings. For urgent/after-hours leads, Tracey will notify you in-app so you can review details and contact the lead yourself.",
                             type: "text",
                         },
                         {
@@ -297,7 +297,7 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "By connecting Travis to your email, he can monitor leads and auto-reach out to lock down jobs. Want to connect your inbox now?",
+                        content: "By connecting Tracey to your email, he can monitor leads and auto-reach out to lock down jobs. Want to connect your inbox now?",
                         type: "choice",
                         choices: [
                             { label: "Yes, connect inbox", value: "connect_inbox" },
@@ -327,7 +327,7 @@ export function SetupChat() {
                         {
                             id: crypto.randomUUID(),
                             role: "assistant",
-                            content: `Perfect. We'll finish setup, then take you to Integrations to connect Gmail/Outlook. Your lead-capture address is ${leadCaptureEmail}. For urgent/after-hours leads, Travis will notify you in-app so you can decide and contact the lead yourself.`,
+                            content: `Perfect. We'll finish setup, then take you to Integrations to connect Gmail/Outlook. Your lead-capture address is ${leadCaptureEmail}. For urgent/after-hours leads, Tracey will notify you in-app so you can decide and contact the lead yourself.`,
                             type: "text",
                         },
                         {
@@ -362,7 +362,7 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: `No worries. Forward lead emails to ${leadCaptureEmail} and Travis will lock down leads automatically. For urgent/after-hours leads, he will notify you in-app so you can review details and contact the lead yourself.`,
+                        content: `No worries. Forward lead emails to ${leadCaptureEmail} and Tracey will lock down leads automatically. For urgent/after-hours leads, he will notify you in-app so you can review details and contact the lead yourself.`,
                         type: "text",
                     },
                     {
@@ -533,13 +533,13 @@ export function SetupChat() {
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "A few more settings so Travis can work the way you want.",
+                        content: "A few more settings so Tracey can work the way you want.",
                         type: "text"
                     },
                     {
                         id: crypto.randomUUID(),
                         role: "assistant",
-                        content: "How should Travis handle incoming requests from clients?",
+                        content: "How should Tracey handle incoming requests from clients?",
                         type: "choice",
                         choices: [
                             { label: "Execute (full autonomy)", value: "EXECUTE" },
@@ -685,7 +685,7 @@ export function SetupChat() {
                 id: crypto.randomUUID(),
                 role: "user",
                 content: disableAiQuoting
-                    ? "✅ Travis will skip pricing quotes"
+                    ? "✅ Tracey will skip pricing quotes"
                     : `✅ Call-out $${callOutFee}${pricingServices.length ? `, ${pricingServices.length} service rate${pricingServices.length > 1 ? "s" : ""}` : ""}`
             }
             setMessages(prev => [...prev, userMsg])
@@ -719,7 +719,7 @@ export function SetupChat() {
                         {
                             id: crypto.randomUUID(),
                             role: "assistant",
-                            content: "Any jobs Travis should strictly turn away? These are hard 'No-Go' rules — Travis will politely decline anything that matches. Leave blank to accept all leads.",
+                            content: "Any jobs Tracey should strictly turn away? These are hard 'No-Go' rules — Tracey will politely decline anything that matches. Leave blank to accept all leads.",
                             type: "text"
                         },
                         {
@@ -896,10 +896,10 @@ export function SetupChat() {
                                 { key: "businessName", label: "Business name", type: "text", defaultValue: "", placeholder: "Your business name" },
                                 { key: "location", label: "Location", type: "text", defaultValue: "", placeholder: "e.g. Sydney, Melbourne, Brisbane" },
                                 { key: "phone", label: "Mobile", type: "text", defaultValue: "", placeholder: "Your mobile number" },
-                                { key: "callForwardingEnabled", label: "Forward calls to Travis", type: "toggle", defaultValue: true },
-                                { key: "publicPhone", label: "Public phone (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
-                                { key: "publicEmail", label: "Public email (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
-                                { key: "publicAddress", label: "Business address (optional)", type: "text", defaultValue: "", placeholder: "Shown by Travis to customers" },
+                                { key: "callForwardingEnabled", label: "Forward calls to Tracey", type: "toggle", defaultValue: true },
+                                { key: "publicPhone", label: "Public phone (optional)", type: "text", defaultValue: "", placeholder: "Shown by Tracey to customers" },
+                                { key: "publicEmail", label: "Public email (optional)", type: "text", defaultValue: "", placeholder: "Shown by Tracey to customers" },
+                                { key: "publicAddress", label: "Business address (optional)", type: "text", defaultValue: "", placeholder: "Shown by Tracey to customers" },
                             ]
                         }
                     }
@@ -1147,7 +1147,7 @@ function DraftCardUI({ data, fetchedInfo, onConfirm }: { data: DraftCardData; fe
                             className="mt-0.5 h-4 w-4 accent-primary"
                         />
                         <span className="text-xs text-muted-foreground">
-                            Don't let Travis quote these prices and focus on booking times only.
+                            Don't let Tracey quote these prices and focus on booking times only.
                         </span>
                     </label>
                 </>
