@@ -91,6 +91,9 @@ This document tracks the functional status of each page and feature, explicitly 
 - **CHAT-6 (Conciseness):** 🔜 TODO — AI chatbot responses are too verbose. Update system prompt to enforce short, punchy replies. Tradies want quick answers, not essays.
 - **CHAT-7 (Jobs not Meetings):** 🔜 TODO — Replace all references to "meetings" with "jobs" across AI system prompts, tool descriptions, and UI copy.
 
+### Marketing & Growth
+- **SEO-1 (Hyper-Targeted Landing Pages):** 🔜 PENDING — Create programmatic, vertical-specific landing pages (e.g., `/electricians`, `/plumbers`, `/landscapers`) to dominate long-tail search traffic targeting specific trades looking for AI receptionists/operations managers.
+
 ### Home Page
 - **Home-1 (Activity Card):** ✅ FIXED — Activity card clicks now open a DealDetailModal instead of navigating away.
 - **Home-2 (New Deal Button):** ✅ FIXED — Default mode reset to "create" tab after submission.
