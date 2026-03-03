@@ -37,3 +37,11 @@
 - [ ] Implement: Incoming Call Webhook Handler <!-- id: 603 -->
 - [ ] Implement: Incoming SMS Webhook Handler <!-- id: 604 -->
 - [ ] Implement: CRM Logging for AI Interactions <!-- id: 605 -->
+
+## Phase 7: Tracey Onboarding Hardening (Handoff)
+- [x] Save detailed implementation plan to `docs/onboarding_hardening_plan.md` <!-- id: 701 -->
+- [ ] Implement schema preprocessing + validation hardening (`actions/tracey-onboarding.ts`) <!-- id: 702 -->
+- [ ] Make onboarding writes idempotent for `BusinessKnowledge` and `RepairItem` <!-- id: 703 -->
+- [ ] Wrap core writes in transaction and isolate external side-effects <!-- id: 704 -->
+- [ ] Add onboarding tests (normalization, idempotency, failure modes) <!-- id: 705 -->
+- [ ] Validate full onboarding flow end-to-end on staging <!-- id: 706 -->

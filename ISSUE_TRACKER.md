@@ -12,6 +12,12 @@ This document tracks the functional status of each page and feature, explicitly 
   - Headless agent: preprocessing, tool calls, model, total.
   - Per-tool execution timings for both paths.
 
+## Onboarding Handoff (2026-03-03)
+
+- Detailed implementation spec saved: `docs/onboarding_hardening_plan.md`.
+- Status: Planning complete, implementation pending.
+- Next agent should execute Phase 7 items in `docs/task.md` (IDs 702-706).
+
 ## Application Pages & Features Matrix
 
 | Route / Feature | Status | Unresolved Issues / TODOs |
