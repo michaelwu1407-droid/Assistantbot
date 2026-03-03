@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { processAgentCommand } from "@/lib/services/ai-agent";
 import twilio from "twilio";
+import { classifyMessage } from "@/lib/spam-classifier";
+import { db } from "@/lib/db";
 
 export const maxDuration = 60; // Allow 60s for Vercel Pro/Hobby wait times
 
@@ -74,8 +76,28 @@ export async function POST(req: Request) {
         }
 
         // Authorized User: pass to AI logic handler safely in background
-        const processPromise = processAgentCommand(user.id, body)
-            .then(async (aiResponse) => {
+        const processPromise = (async () => {
+            try {
+                // ─── Spam Check ─────────────────────────────────────────────────
+                const spamResult = await classifyMessage(user.id, body, `whatsapp:${cleanNumber}`);
+
+                if (spamResult.classification === "spam") {
+                    console.log(`[WhatsApp Webhook] Spam filtered: ${spamResult.reason}`);
+                    await db.activity.create({
+                        data: {
+                            type: "NOTE",
+                            title: "💬 SMS/WhatsApp Filtered: Spam",
+                            userId: user.id,
+                            content: `From: ${cleanNumber}\nMessage: ${body}\nReason: ${spamResult.reason}\nConfidence: ${(spamResult.confidence * 100).toFixed(0)}%\n\nIf this was a real message, tell Tracey: "A message from ${cleanNumber} was marked as spam — it's actually real, please learn from it."`,
+                        },
+                    });
+                    // Do not process further, but don't send an error to the user
+                    return;
+                }
+
+                // ─── Real Message Processing ────────────────────────────────────
+                const aiResponse = await processAgentCommand(user.id, body);
+
                 // Reply to user
                 if (twilioClient && twilioWhatsAppNumber) {
                     await twilioClient.messages.create({
@@ -84,8 +106,7 @@ export async function POST(req: Request) {
                         body: aiResponse
                     });
                 }
-            })
-            .catch(async (aiErr) => {
+            } catch (aiErr) {
                 console.error("[WhatsApp Webhook] Error processing AI command:", aiErr);
                 // Send a generic error reply
                 if (twilioClient && twilioWhatsAppNumber) {
@@ -99,7 +120,8 @@ export async function POST(req: Request) {
                         console.error("[WhatsApp Webhook] Error sending fallback system error:", twilioErr);
                     }
                 }
-            });
+            }
+        })();
 
         waitUntil(processPromise);
 

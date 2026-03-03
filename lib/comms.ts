@@ -190,7 +190,37 @@ export async function initializeTradieComms(
     );
 
     // ────────────────────────────────────────────────────────────────
-    // 5. Send Welcome SMS to the Tradie
+    // 5. Create UsageTrigger (Billing Circuit Breaker)
+    // ────────────────────────────────────────────────────────────────
+    stageReached = "usage-trigger";
+
+    try {
+      await subClient.usage.triggers.create({
+        friendlyName: `${businessName} daily limit`,
+        usageCategory: 'totalprice',
+        triggerBy: 'price',
+        triggerValue: '50.00',
+        recurring: 'daily',
+        callbackUrl: `${appUrl}/api/webhooks/twilio-usage`,
+        callbackMethod: 'POST',
+      });
+      await logActivity(
+        workspaceId,
+        "Billing Circuit Breaker Active",
+        "Voice calls will automatically disable if daily Twilio spend exceeds $50 to prevent unexpected charges."
+      );
+    } catch (triggerErr) {
+      console.error("[initializeTradieComms] Usage trigger creation failed:", triggerErr);
+      // Non-fatal, just log and continue
+      await logActivity(
+        workspaceId,
+        "Billing Circuit Breaker Warning",
+        "Failed to configure the $50 daily limit trigger automatically. Please contact support."
+      );
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 6. Send Welcome SMS to the Tradie
     // ────────────────────────────────────────────────────────────────
     stageReached = "welcome-sms";
 
@@ -238,7 +268,7 @@ export async function initializeTradieComms(
       workspaceId,
       "Comms Setup Failed",
       `Error at stage '${stageReached}': ${message}`
-    ).catch(() => {}); // Don't let logging failure mask the real error
+    ).catch(() => { }); // Don't let logging failure mask the real error
 
     return { success: false, error: message, stageReached };
   }

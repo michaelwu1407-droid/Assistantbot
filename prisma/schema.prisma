@@ -86,8 +86,9 @@ model Workspace {
   twilioSipTrunkSid         String?
   twilioSubaccountAuthToken String?
 
-  // Retell AI Voice Agent
-  retellAgentId String?
+  // Voice Agent — LiveKit (Retell/Vapi are ARCHIVED, do NOT use)
+  retellAgentId String? // DEPRECATED — kept for migration compatibility
+  voiceEnabled  Boolean @default(true) // Circuit breaker: flipped by Twilio UsageTrigger
 
   // Stripe Billing & Subscriptions
   stripeCustomerId       String?   @unique
@@ -130,7 +131,7 @@ model Workspace {
   inboundEmail      String?  @unique
   // Alias for lead-capture address: [alias]@inbound.earlymark.ai (or INBOUND_LEAD_DOMAIN).
   inboundEmailAlias String?  @unique
-  // When true, inbound "Lead Won" emails (HiPages, Airtasker, etc.) trigger an immediate Retell call to the lead.
+  // When true, inbound "Lead Won" emails (HiPages, Airtasker, etc.) trigger an immediate callback to the lead.
   autoCallLeads     Boolean  @default(false)
 
   createdAt DateTime @default(now())
@@ -587,6 +588,8 @@ enum KnowledgeCategory {
   SERVICE
   PRICING
   NEGATIVE_SCOPE
+  TRUSTED_LEAD_PATTERN  // Learned from false-positive spam classifications
+  SPAM_PATTERN          // Confirmed spam patterns for future filtering
 }
 
 model BusinessKnowledge {
@@ -695,7 +698,7 @@ model SmsTemplate {
 
 model WebhookEvent {
   id        String  @id @default(cuid())
-  provider  String // "stripe" | "resend" | "twilio" | "retell"
+  provider  String // "stripe" | "resend" | "twilio" | "livekit"
   eventType String // e.g. "checkout.session.completed", "email.delivered"
   status    String  @default("success") // "success" | "error"
   payload   Json? // Sanitised event summary (no secrets)
