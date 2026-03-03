@@ -113,7 +113,7 @@ export async function getDealsWithLocation(
     const dealWithContact = d as typeof d & {
       contact: { company: string | null };
     };
-    
+
     return {
       id: d.id,
       title: d.title,
@@ -184,4 +184,83 @@ export async function batchGeocode(workspaceId: string): Promise<{
   }
 
   return { success: true, geocoded, failed };
+}
+
+// ─── Smart Routing (Proximity Check) ────────────────────────────────
+
+/**
+ * Calculate distance between two coordinate pairs using the Haversine formula.
+ * Returns distance in kilometers.
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
+/**
+ * Find nearby bookings within 5km and ± 2 days of a target date.
+ * Returns the closest matching deal if one exists.
+ */
+export async function findNearbyBookings(
+  workspaceId: string,
+  latitude: number,
+  longitude: number,
+  targetDate: Date,
+  excludeDealId?: string
+) {
+  // Define ± 2 days window
+  const startDate = new Date(targetDate);
+  startDate.setDate(startDate.getDate() - 2);
+
+  const endDate = new Date(targetDate);
+  endDate.setDate(endDate.getDate() + 2);
+
+  const candidates = await db.deal.findMany({
+    where: {
+      workspaceId,
+      id: excludeDealId ? { not: excludeDealId } : undefined,
+      scheduledAt: { gte: startDate, lte: endDate },
+      latitude: { not: null },
+      longitude: { not: null },
+      stage: { in: ["SCHEDULED", "NEGOTIATION", "CONTACTED", "WON", "INVOICED"] },
+      jobStatus: { notIn: ["COMPLETED", "CANCELLED"] }
+    },
+    select: {
+      id: true,
+      title: true,
+      latitude: true,
+      longitude: true,
+      scheduledAt: true,
+      contact: { select: { address: true } }
+    }
+  });
+
+  let closestMatch = null;
+  let minDistance = 5.0; // Max threshold is 5km
+
+  for (const deal of candidates) {
+    if (deal.latitude === null || deal.longitude === null) continue;
+    const distance = calculateDistance(latitude, longitude, deal.latitude, deal.longitude);
+
+    if (distance <= minDistance) {
+      minDistance = distance;
+      closestMatch = {
+        id: deal.id,
+        title: deal.title,
+        distance,
+        scheduledAt: deal.scheduledAt,
+      };
+    }
+  }
+
+  return closestMatch;
 }

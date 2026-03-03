@@ -13,6 +13,7 @@ import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 import { triageIncomingLead, saveTriageRecommendation } from "@/lib/ai/triage";
 import { checkForDeviation } from "./learning-actions";
+import { findNearbyBookings } from "./geo-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -281,6 +282,26 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     await saveTriageRecommendation(deal.id, triageResult);
   } catch {
     // Triage is non-critical — don't block deal creation
+  }
+
+  // Smart Routing: Proximity check for scheduled jobs
+  if (scheduledAt && latitude !== undefined && longitude !== undefined) {
+    try {
+      const nearby = await findNearbyBookings(workspaceId, latitude, longitude, new Date(scheduledAt), deal.id);
+      if (nearby) {
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Smart Routing Alert",
+            content: `Consider grouping this booking with "${nearby.title}", which is scheduled for ${nearby.scheduledAt?.toLocaleDateString()} and is only ${nearby.distance.toFixed(1)}km away.`,
+            dealId: deal.id,
+            contactId,
+          }
+        });
+      }
+    } catch (routeErr) {
+      console.warn("Smart routing check failed during deal creation:", routeErr);
+    }
   }
 
   MonitoringService.trackEvent("deal_created", {
@@ -768,6 +789,33 @@ export async function updateDeal(
       });
     } catch (learningErr) {
       console.warn("Pricing learning hook failed on updateDeal:", learningErr);
+    }
+  }
+
+  // Smart Routing check if schedule date or address was updated
+  if (data.scheduledAt !== undefined || data.address !== undefined) {
+    const updatedDeal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { scheduledAt: true, latitude: true, longitude: true, workspaceId: true, contactId: true }
+    });
+
+    if (updatedDeal?.scheduledAt && updatedDeal.latitude && updatedDeal.longitude) {
+      try {
+        const nearby = await findNearbyBookings(updatedDeal.workspaceId, updatedDeal.latitude, updatedDeal.longitude, updatedDeal.scheduledAt, dealId);
+        if (nearby) {
+          await db.activity.create({
+            data: {
+              type: "NOTE",
+              title: "Smart Routing Alert",
+              content: `Since you rescheduled or moved this job, consider grouping it with "${nearby.title}", which is scheduled for ${nearby.scheduledAt?.toLocaleDateString()} and is only ${nearby.distance.toFixed(1)}km away.`,
+              dealId: dealId,
+              contactId: updatedDeal.contactId ?? undefined,
+            }
+          });
+        }
+      } catch (routeErr) {
+        console.warn("Smart routing check failed during deal update:", routeErr);
+      }
     }
   }
 

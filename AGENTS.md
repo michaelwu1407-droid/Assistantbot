@@ -14,8 +14,15 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 
 ## Platform Decision
 
-- Retell AI is archived and is not an active voice runtime.
-- Active voice stack is LiveKit + Deepgram + Groq + Cartesia.
+> **⛔ Retell AI and Vapi are ARCHIVED and INACTIVE. Do NOT use, reference, or re-enable them.**
+> - All Retell webhook routes (`/api/retell/*`) return **410 Gone**.
+> - The `create-retell-agent.ts` script is guarded with `process.exit(1)`.
+> - There are no `RETELL_*` or `VAPI_*` environment variables in production.
+
+- **Active voice stack**: LiveKit Agents + Deepgram (STT) + Groq (LLM) + Cartesia (TTS)
+- **Active comms**: Twilio (SMS, phone provisioning, SIP trunking to LiveKit)
+- See `lib/comms.ts` for full architecture documentation.
+- See `livekit-agent/agent.ts` for the voice agent implementation.
 
 ## Mandatory Session Check
 
