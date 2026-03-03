@@ -19,6 +19,20 @@ export interface ScrapeResult {
   tradeType?: string;
 }
 
+// Helper to clean up strings
+const sanitizeString = (s?: string) => {
+  if (!s) return undefined;
+  const trimmed = s.trim();
+  return trimmed === "" ? undefined : trimmed;
+};
+
+// Helper to clean up arrays and remove duplicates
+const sanitizeArray = (arr?: string[]) => {
+  if (!arr || !Array.isArray(arr)) return [];
+  const cleaned = arr.map(s => s?.trim()).filter(Boolean);
+  return Array.from(new Set(cleaned));
+};
+
 /**
  * Scrape a business website and extract structured intelligence via LLM.
  * This is a lightweight fetch + LLM extraction — no headless browser needed.
@@ -101,7 +115,7 @@ Return ONLY valid JSON. No markdown, no code fences.`,
       .replace(/```\s*/g, "")
       .trim();
 
-    let parsed: ScrapeResult;
+    let parsed: any;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
@@ -111,24 +125,34 @@ Return ONLY valid JSON. No markdown, no code fences.`,
         data: {
           services: [],
           negativeScope: [],
-          rawSummary: result.text.slice(0, 500),
+          rawSummary: sanitizeString(result.text.slice(0, 500)),
         },
       };
     }
 
+    // Sanitize and normalize the extracted data
+    const rawServices = Array.isArray(parsed.services) ? parsed.services : [];
+    const sanitizedServices = rawServices
+      .map((s: any) => ({
+        name: sanitizeString(s?.name),
+        priceRange: sanitizeString(s?.priceRange),
+        duration: sanitizeString(s?.duration),
+      }))
+      .filter((s: any) => s.name); // Drop services without a name
+
     return {
       success: true,
       data: {
-        services: parsed.services || [],
-        operatingHours: parsed.operatingHours || undefined,
-        suburbs: parsed.suburbs || undefined,
-        negativeScope: parsed.negativeScope || [],
-        rawSummary: parsed.rawSummary || undefined,
-        businessName: (parsed as any).businessName || undefined,
-        phone: (parsed as any).phone || undefined,
-        email: (parsed as any).email || undefined,
-        address: (parsed as any).address || undefined,
-        tradeType: (parsed as any).tradeType || undefined,
+        services: sanitizedServices,
+        operatingHours: sanitizeString(parsed.operatingHours),
+        suburbs: sanitizeArray(parsed.suburbs),
+        negativeScope: sanitizeArray(parsed.negativeScope),
+        rawSummary: sanitizeString(parsed.rawSummary),
+        businessName: sanitizeString(parsed.businessName),
+        phone: sanitizeString(parsed.phone),
+        email: sanitizeString(parsed.email),
+        address: sanitizeString(parsed.address),
+        tradeType: sanitizeString(parsed.tradeType),
       },
     };
   } catch (err) {
