@@ -1,6 +1,6 @@
 # ISSUE TRACKER
 
-**Last Updated:** 2026-03-01 (v2.5.2: AI latency telemetry instrumentation + adaptive chat performance)
+**Last Updated:** 2026-03-04 (v2.6.0: Onboarding hardened, Retell/Vapi archived → LiveKit, tutorial restart added)
 
 This document tracks the functional status of each page and feature, explicitly listing any unresolved issues. It also serves as an archive for all historically encountered and resolved issues.
 
@@ -12,11 +12,9 @@ This document tracks the functional status of each page and feature, explicitly 
   - Headless agent: preprocessing, tool calls, model, total.
   - Per-tool execution timings for both paths.
 
-## Onboarding Handoff (2026-03-03)
+## Onboarding Hardening (2026-03-03)
+- ✅ **RESOLVED (Commit 97a5faf)**: Onboarding flow hardened with input normalization (URLs/Phones), `db.$transaction` for core writes, and idempotency (prevents duplicate records). 
 
-- Detailed implementation spec saved: `docs/onboarding_hardening_plan.md`.
-- Status: Planning complete, implementation pending.
-- Next agent should execute Phase 7 items in `docs/task.md` (IDs 702-706).
 
 ## Application Pages & Features Matrix
 
@@ -37,8 +35,9 @@ This document tracks the functional status of each page and feature, explicitly 
 | **Chatbot Interface** | ✅ Functional (Active Hardening) | - Sticky support-ticket context shipped: immediate post-ticket details append to the same ticket via `appendTicketNote`.<br>- Continue intent/fallback tuning for ambiguous phrasing and edge cases. |
 | **SMS Agent** | ✅ Functional | - `lib/ai/sms-agent.ts` now uses Gemini 2.0 Flash with full workspace context. |
 | **Twilio Webhook** | ✅ Functional | - Core SMS routing works. AI responses use scaffolding SMS agent above. |
-| **Vapi Webhook** | ✅ Functional | - Workspace resolution now uses strict `twilioPhoneNumber` matching on the dialed system number.<br>- Recording URL persisted in activity content (from `recordingUrl` or `artifact.recordingUrl`). |
-| **Retell Webhook/SMS** | ⚠️ Partial | - Infrastructure is solid (signature verification, workspace routing, stage mapping).<br>- Requires Retell dashboard setup (Response Engine, Voice, Tools).<br>- Env vars not documented. User has API key & identity ID — setup deferred.<br>- **Feature Request**: Must configure Retell AI gracefully to handle multi-languages natively. |
+| **Vapi Webhook** | 📦 Archived | - **DISCONTINUED**: Vapi was replaced by **LiveKit Agents** for voice. Route removed from codebase. |
+| **Retell Webhook/SMS** | 📦 Archived | - **DISCONTINUED**: System migrated to **LiveKit Agents** for voice and **Twilio** for SMS. Routes return 410 Gone. |
+
 | **Google Calendar Integration** | ❌ Scaffolding | - "Connect" button is a fake `setTimeout` mock — no OAuth. |
 | **MYOB / Auth / Mail** | ✅ Functional | None |
 
@@ -75,45 +74,12 @@ This document tracks the functional status of each page and feature, explicitly 
 
 ---
 
-## 🌐 Multilingual Support Implementation (From MULTILINGUAL_SETUP.md)
+## 🌐 Multilingual Support Implementation (LiveKit Migration)
 
-### **Environment Configuration Required**
-- **RETELL-1 (API Setup):** 🔜 PENDING — Add Retell AI environment variables for multilingual support:
-  - `RETELL_API_KEY` - Retell API key
-  - `RETELL_AGENT_ID` - Agent ID for multilingual support
-  - `RETELL_RESPONSE_ENGINE_ID` - Response engine for language detection
-  - `RETELL_PRIMARY_VOICE_ID` - Default voice (e.g., `zh-CN-XiaoxiaoNeural`)
-  - `RETELL_FALLBACK_VOICE_ID` - Fallback to English voice
-  - Individual language voice IDs (Chinese, Spanish, French, German, etc.)
+### **Infrastructure Update**
+- **LIVEKIT-1 (LiveKit Agents):** Using LiveKit for all voice agent operations. Retell AI is deprecated.
+- **LIVEKIT-2 (Multilingual):** Voice agents must handle multi-language detection natively within the LiveKit agent runtime.
 
-### **Retell AI Integration**
-- **RETELL-2 (Agent Configuration):** 🔜 TODO — Configure multilingual agent in Retell Dashboard:
-  - Create response engine with language detection
-  - Add language-specific instructions for customer communication
-  - Set up voice models for supported languages
-  - Test language detection and response accuracy
-
-### **AI System Integration**
-- **RETELL-3 (Voice Selection Logic):** 🔜 TODO — Implement dynamic voice selection based on customer notes:
-  - Parse customer notes for language preferences
-  - Map language keywords to appropriate voice IDs
-  - Integrate with call-making logic in `lib/comms-simple.ts`
-  - Add fallback to English when language not supported
-
-### **SMS Translation Support**
-- **RETELL-4 (SMS Translation):** 🔜 TODO — Add translation capabilities for SMS communications:
-  - Integrate translation service (Google Translate API)
-  - Store customer language preferences
-  - Auto-translate common SMS messages
-  - Add language preference to SMS metadata
-
-### **Testing & Quality Assurance**
-- **RETELL-5 (Testing Suite):** 🔜 TODO — Create comprehensive testing for multilingual features:
-  - Test customer creation with language notes
-  - Verify AI calls use correct voice models
-  - Test language detection accuracy
-  - Validate SMS translation quality
-  - Monitor call logs for language handling issues
 
 ---
 

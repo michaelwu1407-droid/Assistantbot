@@ -1,3 +1,15 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  ARCHIVED — DO NOT RUN                                         ║
+ * ║  Retell AI has been fully replaced by LiveKit Agents (2026-03) ║
+ * ║  See /livekit-agent/ for the active voice agent.               ║
+ * ╚══════════════════════════════════════════════════════════════════╝
+ */
+
+console.error("⛔ DEPRECATED: Retell AI has been replaced by LiveKit Agents. Do not run this script.");
+console.error("   See /livekit-agent/ for the active voice agent.");
+process.exit(1);
+
 import Retell from "retell-sdk";
 
 /**

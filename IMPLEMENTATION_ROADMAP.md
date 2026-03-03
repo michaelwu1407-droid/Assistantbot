@@ -10,10 +10,12 @@
 - **Phase 2:** Auth migrated from Supabase to Clerk — DONE
 - **Phase 3:** Chat UI responsiveness (dvh, safe-area, responsive breakpoints) — DONE
 - **Phase 4:** Chat refactored to Vercel AI SDK `useChat` + `/api/chat` route — DONE
+- **Phase 5:** Onboarding hardened with transactions and input sanitisation — DONE
 
 ---
 
-## PHASE 5: Integrate Open Source CRM Components (Future)
+## PHASE 6: Integrate Open Source CRM Components (Future)
+
 
 ### Recommended Source: Atomic CRM (MIT License)
 **Repo:** https://github.com/marmelab/atomic-crm

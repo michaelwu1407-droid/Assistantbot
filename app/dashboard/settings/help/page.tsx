@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, Phone, Activity, BookOpen } from "lucide-react";
+import { HelpCircle, Phone, Activity, BookOpen, GraduationCap } from "lucide-react";
+import { useShellStore } from "@/lib/store";
 
 const handbookSections = [
   {
@@ -34,12 +36,36 @@ const handbookSections = [
 ];
 
 export default function HelpSettingsPage() {
+  const router = useRouter();
+  const { resetTutorial } = useShellStore();
+
+  const handleRestartTutorial = () => {
+    resetTutorial();
+    router.push("/dashboard");
+  };
+
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Help</h2>
         <p className="text-muted-foreground mt-1">Support, handbook, and system status.</p>
       </div>
+
+      {/* Restart Tutorial Card */}
+      <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            Guided tutorial
+          </CardTitle>
+          <CardDescription>Walk through Tracey&apos;s features with the interactive step-by-step tutorial.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleRestartTutorial} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            Restart tutorial
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -20,6 +20,7 @@ interface ShellState {
   setLastAdvancedPath: (path: string) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
+  resetTutorial: () => void
   setTutorialStepIndex: (index: number) => void
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
@@ -57,6 +58,10 @@ export const useShellStore = create<ShellState>((set, get) => ({
   setTutorialComplete: () => {
     try { localStorage.setItem('pj_tutorial_complete', 'true') } catch { }
     set({ tutorialComplete: true })
+  },
+  resetTutorial: () => {
+    try { localStorage.removeItem('pj_tutorial_complete') } catch { }
+    set({ tutorialComplete: false, tutorialStepIndex: 0, viewMode: 'TUTORIAL' })
   },
   setTutorialStepIndex: (index: number) => set({ tutorialStepIndex: index }),
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
