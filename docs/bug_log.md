@@ -59,4 +59,4 @@ The critical **AI Agent** architecture has been rebuilt from context-stuffing to
 - [x] **No percentile view for slow-tail responses**: **FIXED**. Added internal telemetry snapshot endpoint with percentile-ready metrics (P50/P95) and reset support:
   - `GET /api/internal/telemetry/latency`
   - `DELETE /api/internal/telemetry/latency`
-- [x] **Telemetry endpoint access control in production**: **FIXED**. Added header-gated auth via `TELEMETRY_ADMIN_KEY` (`x-telemetry-key`).
+- [x] **Telemetry endpoint access control in production**: **LIVE**. Added header-gated auth via `TELEMETRY_ADMIN_KEY` (`x-telemetry-key`) and deployed to production.
