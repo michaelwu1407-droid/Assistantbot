@@ -44,7 +44,6 @@ export async function buildAgentContext(
     // ── Parallel batch 1: all independent DB/auth queries ────────────────
     const [
         settings,
-        authUser,
         workspaceInfo,
         businessProfile,
         repairItems,
@@ -52,9 +51,9 @@ export async function buildAgentContext(
         negativeRules,
         serviceRules,
         businessDocuments,
+        userRoleResult,
     ] = await Promise.all([
         getWorkspaceSettingsById(workspaceId),
-        getAuthUser().catch(() => null),
         db.workspace.findUnique({
             where: { id: workspaceId },
             select: { name: true, location: true, twilioPhoneNumber: true, exclusionCriteria: true },
@@ -87,38 +86,22 @@ export async function buildAgentContext(
             where: { workspaceId },
             select: { name: true, description: true, fileUrl: true },
         }).catch(() => [] as { name: string; description: string; fileUrl: string }[]),
+        (async () => {
+            let role = "TEAM_MEMBER";
+            const [authUser, providedUser] = await Promise.all([
+                getAuthUser().catch(() => null),
+                providedUserId ? db.user.findUnique({ where: { id: providedUserId }, select: { role: true } }).catch(() => null) : null
+            ]);
+            if (providedUser?.role) return providedUser.role;
+            if (authUser?.email) {
+                const dbUser = await db.user.findFirst({ where: { workspaceId, email: authUser.email }, select: { role: true } }).catch(() => null);
+                if (dbUser?.role) return dbUser.role;
+            }
+            return role;
+        })(),
     ]);
 
-    // ── Resolve user role (depends on authUser result) ───────────────────
-    let userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" | string = "TEAM_MEMBER";
-
-    // Build role lookup promises based on what's available
-    const roleLookups: Promise<void>[] = [];
-
-    if (authUser?.email) {
-        roleLookups.push(
-            db.user.findFirst({
-                where: { workspaceId, email: authUser.email },
-                select: { role: true },
-            }).then((dbUser) => {
-                if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-            }).catch(() => { })
-        );
-    }
-
-    if (providedUserId) {
-        roleLookups.push(
-            db.user.findUnique({
-                where: { id: providedUserId },
-                select: { role: true },
-            }).then((dbUser) => {
-                if (dbUser?.role) userRole = dbUser.role as "OWNER" | "MANAGER" | "TEAM_MEMBER";
-            }).catch(() => { })
-        );
-    }
-
-    if (roleLookups.length > 0) await Promise.all(roleLookups);
-
+    const userRole = userRoleResult;
     const isManager = userRole === "OWNER" || userRole === "MANAGER";
 
     let knowledgeBaseStr = "\nBUSINESS IDENTITY:";
