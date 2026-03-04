@@ -3,11 +3,14 @@ import { trackReferralClick } from "@/actions/referral-actions"
 import { updateSession } from "@/lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
-  // Refresh Supabase session so login/logout in another browser or tab stays in sync
-  let response = await updateSession(request)
-
   const url = request.nextUrl
-  const { searchParams } = url
+  const { searchParams, pathname } = url
+
+  // Refresh Supabase session ONLY on page navigations, NOT APIs, to avoid 200ms+ cold starts on every /api request
+  let response = NextResponse.next({ request });
+  if (!pathname.startsWith('/api')) {
+    response = await updateSession(request)
+  }
 
   // Fix proxy headers for development
   if (request.headers.get('x-forwarded-host') === 'localhost:3000' &&

@@ -620,7 +620,9 @@ After tool use, briefly confirm the result.`,
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    const response = result.toUIMessageStreamResponse();
+    response.headers.set("Server-Timing", `preprocessing;dur=${preprocessingMs}, llm_startup;dur=${nowMs() - llmStartedAt}, tool_calls;dur=${toolCallsMs}`);
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
     console.error("Chat API error:", error);
