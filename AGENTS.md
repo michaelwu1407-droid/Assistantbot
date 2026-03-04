@@ -39,3 +39,14 @@ Tone: Casual, professional, and Australian.
 Constraint: Keep responses short, punchy, and helpful. Do not yap.
 
 Goal: Capture details/requests for the user and check availability."
+
+## Latency & Performance Guidelines (Critical)
+
+The AI assistant must be highly responsive to maintain a natural conversation flow. Pay strict attention to "cold start" and "warm up" delays.
+
+**Recent Findings & Optimizations (March 2026):**
+1. **Middleware Overhead:** Do NOT call blocking DB operations (like `supabase.auth.getUser()`) in `middleware.ts` for `/api/*` routes. This adds 150-300ms of pre-processing lag. Next.js API routes natively extract auth securely.
+2. **Parallel Preprocessing:** In `api/chat/route.ts`, `buildAgentContext` and `fetchMemoryContext` must run concurrently via `Promise.all()`. Database queries inside `buildAgentContext` must also run concurrently, including user role/auth lookups. No sequential waterfalls!
+3. **Database Region:** The `DATABASE_URL` pooler must map to the same region as the Vercel function (`ap-southeast-2` / Sydney).
+4. **Server-Timing Headers:** The chat API should return `Server-Timing` headers mapping the exact durations of `preprocessing`, `llm_startup`, and `tool_calls` for easy browser-based latency profiling.
+5. **Tool Calls:** The `searchWorkspaceKnowledge` tool has been removed to drop a ~1.2s lag spike; context (rules, faqs, documents) is now aggressively injected into the system prompt during the `buildAgentContext` phase instead.
