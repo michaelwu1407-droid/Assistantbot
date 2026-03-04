@@ -45,12 +45,12 @@ const TraceyOnboardingSchema = z.object({
   email: z.string().trim().email("Valid email required"),
   businessName: z.string().trim().min(1, "Business name is required"),
   websiteUrl: z.preprocess((val) => {
-    if (!val || typeof val !== "string") return "";
+    if (!val || typeof val !== "string") return undefined;
     const trimmed = val.trim();
-    if (trimmed === "") return "";
+    if (trimmed === "") return undefined;
     if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
     return trimmed;
-  }, z.string().url("Invalid URL format").optional().or(z.literal(""))),
+  }, z.string().url("Invalid URL format").optional()),
 
   // Step 2: Autonomy Selector
   agentMode: z.enum(["EXECUTION", "DRAFT", "INFO_ONLY"]),

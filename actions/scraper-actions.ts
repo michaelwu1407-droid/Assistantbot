@@ -74,7 +74,7 @@ export async function scrapeWebsite(
     }
 
     // 2. LLM Extraction
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
       return { success: false, error: "AI API key not configured" };
     }
