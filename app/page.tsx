@@ -275,11 +275,10 @@ function FeatureCarousel() {
                                 layout
                                 animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
                                 transition={{ duration: 0.4, ease: EASE_STANDARD }}
-                                className={`rounded-3xl p-7 flex flex-col gap-4 ${
-                                    isCentre
+                                className={`rounded-3xl p-7 flex flex-col gap-4 ${isCentre
                                         ? "bg-midnight text-white shadow-xl"
                                         : "bg-white border border-border"
-                                } ${i !== 1 ? "hidden md:flex" : "flex"}`}
+                                    } ${i !== 1 ? "hidden md:flex" : "flex"}`}
                             >
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isCentre ? "bg-primary/20" : "bg-mint-50"}`}>
                                     <Icon className="w-6 h-6 text-primary" />
@@ -416,11 +415,10 @@ function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old"
         <div className="flex flex-wrap gap-2 items-center">
             {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium leading-snug ${
-                        isOld
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium leading-snug ${isOld
                             ? "bg-red-50 text-red-700 border border-red-100"
                             : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                    }`}>
+                        }`}>
                         <span className="text-sm">{step.icon}</span>
                         <span>{step.label}</span>
                     </div>
@@ -443,7 +441,7 @@ export default function Home() {
             {/* ── B. Hero ── */}
             <section className="pt-32 pb-24 px-6 relative overflow-hidden">
                 <div className="absolute inset-0 -z-10 ott-glow" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] -z-10 rounded-full bg-primary/5 blur-3xl" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] -z-10 rounded-full bg-primary/20 blur-[100px] pointer-events-none" />
 
                 <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8">
                     <motion.div {...fadeUp(0)} className="ott-badge-mint">
