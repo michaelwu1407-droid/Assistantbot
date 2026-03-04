@@ -276,8 +276,8 @@ function FeatureCarousel() {
                                 animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
                                 transition={{ duration: 0.4, ease: EASE_STANDARD }}
                                 className={`rounded-3xl p-7 flex flex-col gap-4 ${isCentre
-                                        ? "bg-midnight text-white shadow-xl"
-                                        : "bg-white border border-border"
+                                    ? "bg-midnight text-white shadow-xl"
+                                    : "bg-white border border-border"
                                     } ${i !== 1 ? "hidden md:flex" : "flex"}`}
                             >
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isCentre ? "bg-primary/20" : "bg-mint-50"}`}>
@@ -416,8 +416,8 @@ function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old"
             {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
                     <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium leading-snug ${isOld
-                            ? "bg-red-50 text-red-700 border border-red-100"
-                            : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        ? "bg-red-50 text-red-700 border border-red-100"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-100"
                         }`}>
                         <span className="text-sm">{step.icon}</span>
                         <span>{step.label}</span>
@@ -457,19 +457,9 @@ export default function Home() {
                     </motion.h1>
 
                     <motion.div {...fadeUp(0.12)} className="text-lg text-slate-body leading-relaxed max-w-xl">
-                        <p className="font-semibold text-midnight mb-3">Earlymark helps businesses:</p>
-                        <div className="flex flex-col gap-2 text-left">
-                            {[
-                                "Win more customers and revenue",
-                                "Make life easier by automating customer interaction and admin",
-                                "Provide a reliable and better customer experience",
-                            ].map((point, i) => (
-                                <div key={i} className="flex items-start gap-2.5">
-                                    <Check className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                                    <span>{point}</span>
-                                </div>
-                            ))}
-                        </div>
+                        <p className="font-medium text-slate-500 mb-6">
+                            Automate your customer interactions, schedule appointments directly into your calendar, and manage your pipeline, all through natural conversation.
+                        </p>
                     </motion.div>
 
                     <motion.div {...fadeUp(0.18)} className="flex flex-col sm:flex-row gap-3">
@@ -480,16 +470,54 @@ export default function Home() {
                         </Link>
                         <Link href="/auth">
                             <Button size="lg" variant="mint">
-                                Get started free
-                                <ArrowRight className="ml-2 h-4 w-4" />
+                                Hire Tracey
                             </Button>
                         </Link>
                     </motion.div>
+
+                    {/* Value Pillars */}
+                    <motion.div {...fadeUp(0.24)} className="mt-16 w-full max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
+                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
+                                <Zap className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
+                                Win more customers
+                            </h3>
+                            <p className="text-sm text-slate-500 leading-relaxed">
+                                Respond to leads instantly 24/7. Never miss a potential new job because you were on the tools.
+                            </p>
+                        </div>
+
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
+                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
+                                <Bot className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
+                                Automate your admin
+                            </h3>
+                            <p className="text-sm text-slate-500 leading-relaxed">
+                                Tracey logs jobs, manages your CRM pipeline, and sends quotes. Get your evenings back.
+                            </p>
+                        </div>
+
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
+                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
+                                <MessageSquare className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
+                                Better customer experience
+                            </h3>
+                            <p className="text-sm text-slate-500 leading-relaxed">
+                                Provide immediate, reliable, and professional communication that sets you apart from competitors.
+                            </p>
+                        </div>
+                    </motion.div>
                 </div>
-            </section>
+            </section >
 
             {/* ── C. Meet Tracey ── */}
-            <section id="meet-tracey" className="py-24 px-6 bg-[#F8FAFC]">
+            < section id="meet-tracey" className="py-24 px-6 bg-[#F8FAFC]" >
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-14">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
@@ -500,28 +528,58 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <div className="grid lg:grid-cols-3 gap-8 items-start">
-                        {/* LHS 2/3 — comparison rows */}
-                        <div className="lg:col-span-2 flex flex-col gap-6">
-                            <motion.div {...fadeUp(0.06)} className="bg-white rounded-3xl border border-red-100 p-7 shadow-sm">
-                                <div className="flex items-center gap-2 mb-5">
-                                    <span className="text-xl">😩</span>
-                                    <span className="font-bold text-red-500 text-xs uppercase tracking-widest">The old way</span>
-                                </div>
-                                <ProcessFlow steps={OLD_WAY} variant="old" />
-                            </motion.div>
+                    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+                        <motion.div {...fadeUp(0.06)} className="bg-white rounded-3xl border border-red-100 p-7 shadow-sm">
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="text-xl">😩</span>
+                                <span className="font-bold text-red-500 text-xs uppercase tracking-widest">The old way</span>
+                            </div>
+                            <ProcessFlow steps={OLD_WAY} variant="old" />
+                        </motion.div>
 
-                            <motion.div {...fadeUp(0.1)} className="bg-white rounded-3xl border border-emerald-100 p-7 shadow-sm">
-                                <div className="flex items-center gap-2 mb-5">
-                                    <span className="text-xl">🤖</span>
-                                    <span className="font-bold text-emerald-600 text-xs uppercase tracking-widest">The Tracey way</span>
+                        <motion.div {...fadeUp(0.1)} className="bg-white rounded-3xl border border-emerald-100 p-7 shadow-sm">
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="text-xl">🤖</span>
+                                <span className="font-bold text-emerald-600 text-xs uppercase tracking-widest">The Tracey way</span>
+                            </div>
+                            <ProcessFlow steps={TRACEY_WAY} variant="tracey" />
+                        </motion.div>
+                    </div>
+                </div>
+            </section >
+
+            {/* ── C.5: Tracey lives in your CRM ── */}
+            < section className="py-24 px-6 relative overflow-hidden" >
+                <div className="container mx-auto max-w-7xl">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                        {/* LHS — Text and Video Demo */}
+                        <div className="flex flex-col gap-8">
+                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em] leading-tight">
+                                Tracey lives in your CRM. It will contact customers for you and run your CRM so you don&apos;t have to.
+                            </motion.h2>
+
+                            <motion.div {...fadeUp(0.06)} className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-white pt-6 px-4 pb-0">
+                                {/* Chrome header decoration */}
+                                <div className="absolute top-0 left-0 right-0 h-8 bg-white/50 border-b border-border flex items-center px-4 gap-1.5 backdrop-blur-sm z-10">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                                 </div>
-                                <ProcessFlow steps={TRACEY_WAY} variant="tracey" />
+                                <div className="mt-4 rounded-t-xl overflow-hidden border border-border border-b-0 bg-[#0F172A] aspect-video relative flex items-center justify-center">
+                                    <video
+                                        src="/advanced-mode-demo.mp4"
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
+                                        className="w-full h-full object-cover opacity-90"
+                                    />
+                                </div>
                             </motion.div>
                         </div>
 
-                        {/* RHS 1/3 — interview form */}
-                        <motion.div {...fadeUp(0.14)} className="bg-white rounded-3xl border border-border p-7 shadow-md lg:sticky lg:top-20">
+                        {/* RHS — Interview Form */}
+                        <motion.div {...fadeUp(0.1)} className="bg-white/80 backdrop-blur-md rounded-3xl border border-border p-7 shadow-xl">
                             <div className="flex items-center gap-2 mb-1">
                                 <Bot className="w-5 h-5 text-primary" />
                                 <h3 className="font-bold text-midnight text-lg">Interview Tracey for free</h3>
@@ -533,10 +591,10 @@ export default function Home() {
                         </motion.div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ── D. Hire Tracey Today ── */}
-            <section id="product" className="py-24 px-6">
+            < section id="product" className="py-24 px-6" >
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <div className="ott-badge-mint mb-4">Built for tradies</div>
@@ -578,10 +636,10 @@ export default function Home() {
                         </motion.div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* ── E. Tracey Features Carousel ── */}
-            <section className="py-24 px-6 bg-[#F8FAFC]">
+            < section className="py-24 px-6 bg-[#F8FAFC]" >
                 <div className="container mx-auto max-w-6xl flex flex-col gap-14">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
@@ -610,10 +668,10 @@ export default function Home() {
                         </Link>
                     </motion.div>
                 </div>
-            </section>
+            </section >
 
             {/* ── F. Footer ── */}
-            <footer className="bg-midnight text-white/55 py-16 px-6">
+            < footer className="bg-midnight text-white/55 py-16 px-6" >
                 <div className="container mx-auto max-w-6xl">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
                         {/* Col 1: Brand */}
@@ -679,7 +737,7 @@ export default function Home() {
                         <p className="text-sm">Made for tradies, by tradies. 🇦🇺</p>
                     </div>
                 </div>
-            </footer>
-        </div>
+            </footer >
+        </div >
     );
 }
