@@ -440,11 +440,11 @@ export default function Home() {
 
             {/* ── B. Hero ── */}
             <section className="pt-32 pb-24 px-6 relative overflow-hidden">
-                <div className="absolute inset-0 -z-10 ott-glow" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] -z-10 rounded-full bg-primary/20 blur-[100px] pointer-events-none" />
+                {/* Ambient Radial Glow */}
+                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[120vw] max-w-[1400px] h-[800px] -z-10 rounded-[100%] bg-primary/20 blur-[120px] pointer-events-none" />
 
                 <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8">
-                    
+
                     <motion.h1
                         {...fadeUp(0.06)}
                         className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
