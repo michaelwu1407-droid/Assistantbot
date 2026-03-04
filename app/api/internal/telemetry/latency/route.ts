@@ -17,7 +17,7 @@ export async function GET(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  return new Response(JSON.stringify(getLatencySnapshot()), {
+  return new Response(JSON.stringify(await getLatencySnapshot()), {
     headers: { "Content-Type": "application/json" },
   });
 }
@@ -29,7 +29,7 @@ export async function DELETE(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  resetLatencyTelemetry();
+  await resetLatencyTelemetry();
   return new Response(JSON.stringify({ ok: true }), {
     headers: { "Content-Type": "application/json" },
   });

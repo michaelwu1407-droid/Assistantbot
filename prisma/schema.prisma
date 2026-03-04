@@ -807,3 +807,13 @@ model VerificationCode {
   @@unique([userId, phoneNumber])
   @@map("verification_codes")
 }
+
+model TelemetryMetric {
+  id        String   @id @default(cuid())
+  metric    String
+  duration  Int
+  createdAt DateTime @default(now())
+
+  @@index([metric, createdAt])
+  @@map("telemetry_metrics")
+}
