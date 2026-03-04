@@ -20,7 +20,7 @@ This document tracks the functional status of each page and feature, explicitly 
 
 | Route / Feature | Status | Unresolved Issues / TODOs |
 |-----------------|--------|---------------------------|
-| **`/dashboard`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) ✅ FIXED |
+| **`/dashboard`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) ✅ FIXED<br>- Add highly visible 5-step Onboarding Setup Widget for new users ✅ FIXED |
 | **`/dashboard/agent`** | 📦 Archived | Real estate features sunsetted. |
 | **`/dashboard/tradie`** | ✅ Functional | - FE-8 bottom sheet swipe polished (lower threshold, tighter spring, touch-action: none). |
 | **`/dashboard/contacts`** | ✅ Functional | None |
@@ -29,7 +29,7 @@ This document tracks the functional status of each page and feature, explicitly 
 | **`/dashboard/schedule`** | ✅ Functional | - **NEW**: Add Month/Week/Day view toggle functionality. |
 | **`/dashboard/team`** | ✅ Functional | None |
 | **`/dashboard/reports`** | ✅ Functional | - **NEW**: Verify tracked data accuracy and PDF generation functionality. |
-| **`/dashboard/settings`** | ✅ Functional (Ongoing Polish) | - Automated communication overlap removed from Notifications and consolidated into Automated calling & texting.<br>- Billing labels updated (`Earlymark Pro`, `Manage`).<br>- Display now supports Light/Dark/System and system-auto behavior is active.<br>- Privacy naming aligned to Earlymark AI and includes Data Policy (DRAFT).<br>- Remaining: deeper payment/integration features and ongoing UX refinement. |
+| **`/dashboard/settings`** | ✅ Functional (Ongoing Polish) | - Automated communication overlap removed from Notifications and consolidated into Automated calling & texting.<br>- Automated AI Attachment library implemented for sharing custom PDF/Doc pricing matrices and knowledge.<br>- Display now supports Light/Dark/System and system-auto behavior is active.<br>- Remaining: deeper payment/integration features and ongoing UX refinement. |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
 | **Chatbot Interface** | ✅ Functional (Active Hardening) | - Sticky support-ticket context shipped: immediate post-ticket details append to the same ticket via `appendTicketNote`.<br>- Continue intent/fallback tuning for ambiguous phrasing and edge cases. |

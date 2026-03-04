@@ -10,6 +10,7 @@ import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
 import { ensureDailyNotifications } from "@/actions/notification-actions"
 import { Header } from "./header"
+import { SetupWidget } from "./setup-widget"
 
 interface TeamMemberOption {
     id: string
@@ -55,6 +56,10 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                     onFilterByUserChange={setFilterByUserId}
                     onNewDeal={() => setIsNewDealModalOpen(true)}
                 />
+
+                <div className="px-1 sm:px-0 mt-1">
+                    <SetupWidget />
+                </div>
 
                 {/* Dashboard Content Grid — no containment; shape + colour separate the two zones */}
                 <div className="flex flex-col flex-1 min-h-0 gap-0">

@@ -354,6 +354,7 @@ export async function POST(req: Request) {
       preferencesStr,
       pricingRulesStr,
       bouncerStr,
+      attachmentsStr,
     } = agentContext;
     const preprocessingMs = nowMs() - preprocessingStartedAt;
 
@@ -556,6 +557,7 @@ ${allowedTimesStr}
 ${preferencesStr}
 ${pricingRulesStr}
 ${bouncerStr}
+${attachmentsStr}
 ${memoryContextStr}
 
 MESSAGING: On "message/text/tell/send [name]" → call sendSms immediately, no confirmation. Send the user's EXACT words — never rewrite or refuse. Track pronouns ("her"/"him") from context. Confirm: "✅ Sent to [Name]: \"[msg]\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.

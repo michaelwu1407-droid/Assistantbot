@@ -19,6 +19,7 @@ type AgentContextPayload = {
     preferencesStr: string;
     pricingRulesStr: string;
     bouncerStr: string;
+    attachmentsStr: string;
 };
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 30_000;
@@ -50,6 +51,7 @@ export async function buildAgentContext(
         completedDeals,
         negativeRules,
         serviceRules,
+        businessDocuments,
     ] = await Promise.all([
         getWorkspaceSettingsById(workspaceId),
         getAuthUser().catch(() => null),
@@ -81,6 +83,10 @@ export async function buildAgentContext(
             where: { workspaceId, category: "SERVICE" },
             select: { ruleContent: true, metadata: true },
         }).catch(() => [] as { ruleContent: string; metadata: unknown }[]),
+        db.businessDocument.findMany({
+            where: { workspaceId },
+            select: { name: true, description: true, fileUrl: true },
+        }).catch(() => [] as { name: string; description: string; fileUrl: string }[]),
     ]);
 
     // ── Resolve user role (depends on authUser result) ───────────────────
@@ -134,71 +140,71 @@ export async function buildAgentContext(
     if (includeHistoricalPricing) {
         try {
 
-        // Group by normalized title and compute min/max/avg
-        const priceMap = new Map<string, number[]>();
-        for (const deal of completedDeals) {
-            const key = deal.title.toLowerCase().trim();
-            const total = deal.invoices[0]?.total ? Number(deal.invoices[0].total) : null;
-            if (total && total > 0) {
-                const arr = priceMap.get(key) || [];
-                arr.push(total);
-                priceMap.set(key, arr);
+            // Group by normalized title and compute min/max/avg
+            const priceMap = new Map<string, number[]>();
+            for (const deal of completedDeals) {
+                const key = deal.title.toLowerCase().trim();
+                const total = deal.invoices[0]?.total ? Number(deal.invoices[0].total) : null;
+                if (total && total > 0) {
+                    const arr = priceMap.get(key) || [];
+                    arr.push(total);
+                    priceMap.set(key, arr);
+                }
             }
-        }
 
-        // Helper: extract a numeric price range from a glossary description string
-        // Handles "$150", "$100-200", "$100 to $200", "150", "between 100 and 200", etc.
-        const parseGlossaryRange = (desc: string): { min: number; max: number } | null => {
-            const cleaned = desc.replace(/\$/g, "");
-            const rangeMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)/i);
-            if (rangeMatch) return { min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
-            const singleMatch = cleaned.match(/(\d+(?:\.\d+)?)/);
-            if (singleMatch) { const v = parseFloat(singleMatch[1]); return { min: v * 0.8, max: v * 1.2 }; } // ±20% tolerance for single price
-            return null;
-        };
+            // Helper: extract a numeric price range from a glossary description string
+            // Handles "$150", "$100-200", "$100 to $200", "150", "between 100 and 200", etc.
+            const parseGlossaryRange = (desc: string): { min: number; max: number } | null => {
+                const cleaned = desc.replace(/\$/g, "");
+                const rangeMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)/i);
+                if (rangeMatch) return { min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
+                const singleMatch = cleaned.match(/(\d+(?:\.\d+)?)/);
+                if (singleMatch) { const v = parseFloat(singleMatch[1]); return { min: v * 0.8, max: v * 1.2 }; } // ±20% tolerance for single price
+                return null;
+            };
 
-        // Build a map of glossary prices for quick lookup (lower-case title → range)
-        const glossaryRangeMap = new Map<string, { min: number; max: number }>();
-        for (const item of repairItems) {
-            if (item.description) {
-                const range = parseGlossaryRange(item.description);
-                if (range) glossaryRangeMap.set(item.title.toLowerCase().trim(), range);
+            // Build a map of glossary prices for quick lookup (lower-case title → range)
+            const glossaryRangeMap = new Map<string, { min: number; max: number }>();
+            for (const item of repairItems) {
+                if (item.description) {
+                    const range = parseGlossaryRange(item.description);
+                    if (range) glossaryRangeMap.set(item.title.toLowerCase().trim(), range);
+                }
             }
-        }
 
-        const historicalLines: string[] = [];
-        const pricingConflicts: string[] = [];
+            const historicalLines: string[] = [];
+            const pricingConflicts: string[] = [];
 
-        for (const [title, prices] of priceMap) {
-            if (prices.length >= 2) {
-                const min = Math.min(...prices);
-                const max = Math.max(...prices);
-                const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
-                historicalLines.push(`- ${title}: Typically $${min}–$${max} (avg $${avg}, ${prices.length} past jobs)`);
+            for (const [title, prices] of priceMap) {
+                if (prices.length >= 2) {
+                    const min = Math.min(...prices);
+                    const max = Math.max(...prices);
+                    const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+                    historicalLines.push(`- ${title}: Typically $${min}–$${max} (avg $${avg}, ${prices.length} past jobs)`);
 
-                // Cross-check against glossary — if glossary has a range for this item,
-                // the historical average MUST fall within it. Otherwise flag the discrepancy.
-                const glossaryRange = glossaryRangeMap.get(title);
-                if (glossaryRange) {
-                    const histOverlapsGlossary = min <= glossaryRange.max && max >= glossaryRange.min;
-                    if (!histOverlapsGlossary) {
-                        pricingConflicts.push(
-                            `"${title}": glossary says $${glossaryRange.min}–$${glossaryRange.max} but historical invoices show $${min}–$${max}. ` +
-                            `POSSIBLE MISINFORMATION — ask the tradie to confirm the correct price before quoting.`
-                        );
+                    // Cross-check against glossary — if glossary has a range for this item,
+                    // the historical average MUST fall within it. Otherwise flag the discrepancy.
+                    const glossaryRange = glossaryRangeMap.get(title);
+                    if (glossaryRange) {
+                        const histOverlapsGlossary = min <= glossaryRange.max && max >= glossaryRange.min;
+                        if (!histOverlapsGlossary) {
+                            pricingConflicts.push(
+                                `"${title}": glossary says $${glossaryRange.min}–$${glossaryRange.max} but historical invoices show $${min}–$${max}. ` +
+                                `POSSIBLE MISINFORMATION — ask the tradie to confirm the correct price before quoting.`
+                            );
+                        }
                     }
                 }
             }
-        }
-        if (historicalLines.length > 0) {
-            historicalPricingStr = "\n\nHISTORICAL PRICE RANGES (from past invoices — use as reference, not as quotes):\n" + historicalLines.join("\n");
-            historicalPricingStr += "\nNOTE: Glossary approved prices are the PRIMARY source of truth. Historical ranges are secondary reference only.";
-            historicalPricingStr += "\nNever quote historical ranges as fixed prices. Say 'Similar jobs have typically been between $X and $Y' if asked.";
-        }
-        if (pricingConflicts.length > 0) {
-            historicalPricingStr += "\n\n⚠️ PRICING CONFLICTS DETECTED (glossary vs actual invoices — verify before quoting):\n" +
-                pricingConflicts.map(c => `- ${c}`).join("\n");
-        }
+            if (historicalLines.length > 0) {
+                historicalPricingStr = "\n\nHISTORICAL PRICE RANGES (from past invoices — use as reference, not as quotes):\n" + historicalLines.join("\n");
+                historicalPricingStr += "\nNOTE: Glossary approved prices are the PRIMARY source of truth. Historical ranges are secondary reference only.";
+                historicalPricingStr += "\nNever quote historical ranges as fixed prices. Say 'Similar jobs have typically been between $X and $Y' if asked.";
+            }
+            if (pricingConflicts.length > 0) {
+                historicalPricingStr += "\n\n⚠️ PRICING CONFLICTS DETECTED (glossary vs actual invoices — verify before quoting):\n" +
+                    pricingConflicts.map(c => `- ${c}`).join("\n");
+            }
         } catch {
             // Historical pricing lookup failed - non-critical
         }
@@ -206,7 +212,7 @@ export async function buildAgentContext(
 
     let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
     if (repairItems.length > 0) {
-        glossaryStr += repairItems.map(item => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
+        glossaryStr += repairItems.map((item: any) => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
     } else {
         glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
     }
@@ -257,11 +263,11 @@ export async function buildAgentContext(
 ${glossaryStr}`;
 
     // ── Business Knowledge (already fetched in parallel batch above) ──
-    const knowledgeNegativeRules = negativeRules.map(r => r.ruleContent);
+    const knowledgeNegativeRules = negativeRules.map((r: any) => r.ruleContent);
     let knowledgeServicesStr = "";
     if (serviceRules.length > 0) {
         knowledgeServicesStr = "\n\nSERVICES OFFERED (from Knowledge Base):\n" +
-            serviceRules.map(s => {
+            serviceRules.map((s: any) => {
                 const meta = (s.metadata as Record<string, string>) || {};
                 let line = `- ${s.ruleContent}`;
                 if (meta.priceRange) line += ` (${meta.priceRange})`;
@@ -307,6 +313,9 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
         preferencesStr,
         pricingRulesStr,
         bouncerStr,
+        attachmentsStr: businessDocuments.length > 0
+            ? `\n\nBUSINESS ATTACHMENTS (Available to send to customers via URL):\n` + businessDocuments.map((d: any) => `- ${d.name}: ${d.description} -> URL: ${d.fileUrl}`).join("\n") + `\nIf a customer requests this info, provide them the URL.`
+            : "",
     };
 
     if (agentContextCache.size >= 200) {

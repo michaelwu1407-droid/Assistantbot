@@ -83,7 +83,8 @@ export async function processAgentCommand(userId: string, message: string): Prom
             agentScriptStr,
             allowedTimesStr,
             preferencesStr,
-            pricingRulesStr
+            pricingRulesStr,
+            attachmentsStr
         } = agentContext;
         const preprocessingMs = nowMs() - preprocessingStartedAt;
 
@@ -95,6 +96,7 @@ ${agentScriptStr}
 ${allowedTimesStr}
 ${preferencesStr}
 ${pricingRulesStr}
+${attachmentsStr}
 ${memoryContextStr}
 
 MESSAGING: On "message/text/tell/send [name]" → call sendSms immediately, no confirmation. Send EXACT words. Confirm: "✅ Sent to [Name]: \"[msg]\"". Track pronouns from context.

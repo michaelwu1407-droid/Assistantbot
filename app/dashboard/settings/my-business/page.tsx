@@ -7,6 +7,7 @@ import { WorkingHoursForm } from "@/components/settings/working-hours-form"
 import { BusinessContactForm } from "@/components/settings/business-contact-form"
 import { ServiceAreasSection } from "@/components/settings/service-areas-section"
 import { PricingForAgentSection } from "@/components/settings/pricing-for-agent-section"
+import { AttachmentLibrarySection } from "@/components/settings/attachment-library-section"
 import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
@@ -19,6 +20,11 @@ export default async function MyBusinessSettingsPage() {
   const profile = await db.businessProfile.findUnique({
     where: { userId },
     select: { tradeType: true },
+  })
+
+  const documents = await db.businessDocument.findMany({
+    where: { workspaceId: workspace.id },
+    orderBy: { createdAt: 'desc' }
   })
 
   return (
@@ -76,6 +82,17 @@ export default async function MyBusinessSettingsPage() {
         <PricingForAgentSection
           initialCallOutFee={(workspaceWithSettings as { callOutFee?: number })?.callOutFee ?? 0}
         />
+      </section>
+      <Separator />
+
+      <section>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" id="attachment-library">
+          AI Attachment Library
+        </h4>
+        <p className="text-sm text-slate-500 mb-4">
+          Upload PDF guides, price lists, or insurance forms. The AI agent will automatically email these to callers when requested.
+        </p>
+        <AttachmentLibrarySection documents={documents as any[]} />
       </section>
     </div>
   )

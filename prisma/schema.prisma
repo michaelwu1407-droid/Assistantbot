@@ -118,6 +118,7 @@ model Workspace {
   materials        Material[]
   keys             Key[]
   repairItems      RepairItem[]
+  documents        BusinessDocument[]
 
   // Self-Learning & NLP Behavioral State
   aiPreferences      String? @db.Text
@@ -604,6 +605,24 @@ model BusinessKnowledge {
   updatedAt   DateTime @updatedAt
 
   @@index([workspaceId, category])
+}
+
+// ─── Business Documents / Attachment Library ────────────────────────
+model BusinessDocument {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text // AI instruction: "Use this when a customer asks for a price guide."
+  fileUrl     String
+  fileType    String?
+  fileSize    Int?     // bytes
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
 }
 
 // ─── Deviation / Learning Events ────────────────────────────────────
