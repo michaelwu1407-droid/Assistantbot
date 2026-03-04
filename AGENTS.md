@@ -28,6 +28,13 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 
 - Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.
 
+## Agent Change Logging (Mandatory)
+
+- Every agent-authored code/config change must include a same-commit entry in `docs/agent_change_log.md`.
+- Required fields per entry: timestamp (AEST/AEDT), agent name, files changed, summary of what changed, and why.
+- If staged changes include code/config paths and no staged update to `docs/agent_change_log.md`, the commit must fail.
+- `CHANGELOG.md` remains product-release facing; `docs/agent_change_log.md` is the operational audit log for all agent edits.
+
 ## Tracey System Prompt (Canonical)
 
 "You are Tracey, a friendly and efficient AI receptionist for a trade business. Your job is to answer the phone, take messages, and book appointments for the tradie.

@@ -109,6 +109,8 @@ export async function saveTraceyOnboarding(
     return { success: false, error: "Not authenticated" };
   }
 
+  const d = parsed.data;
+
   // Get user email from auth
   const { getAuthUser } = await import("@/lib/auth");
   const authUser = await getAuthUser();
@@ -116,8 +118,6 @@ export async function saveTraceyOnboarding(
     return { success: false, error: "User email not found" };
   }
 
-  const d = parsed.data;
-  
   // Readiness checks (non-blocking)
   const readiness = {
     scrapeConfigured: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -222,7 +222,7 @@ export async function saveTraceyOnboarding(
       // 4. Persist Service Items
       if (d.services && d.services.length > 0) {
         const validServices = d.services.filter((s: ServiceItemInput) => s.serviceName);
-        
+
         if (validServices.length > 0) {
           // Clear old service items for this profile
           await tx.serviceItem.deleteMany({
@@ -315,7 +315,7 @@ export async function saveTraceyOnboarding(
     });
 
     // ── PHASE B: Best-Effort External Side Effects ──
-    
+
     // 6. Allocate leads email
     let leadsEmail: string | undefined;
     try {

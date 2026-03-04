@@ -16,16 +16,16 @@ export function Navbar() {
 
             {/* Navigation Links - Centered */}
             <div className="hidden md:flex items-center gap-8">
-                <Link href="/" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                <Link href="/" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Home
                 </Link>
-                <Link href="/features" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                <Link href="/features" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Product
                 </Link>
-                <Link href="/tutorial" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                <Link href="/tutorial" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Tutorial
                 </Link>
-                <Link href="#pricing" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
+                <Link href="#pricing" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Pricing
                 </Link>
             </div>
@@ -33,12 +33,12 @@ export function Navbar() {
             {/* CTA */}
             <div className="flex items-center gap-3">
                 <Link href="/contact" className="hidden sm:block">
-                    <Button variant="ghost" size="sm" className="text-midnight font-medium">
+                    <Button variant="ghost" size="sm" className="text-[15px] text-midnight font-medium">
                         Contact us
                     </Button>
                 </Link>
                 <Link href="/auth">
-                    <Button size="sm" variant="mint">
+                    <Button size="sm" variant="mint" className="text-[15px] font-medium">
                         Log in / Get started
                     </Button>
                 </Link>

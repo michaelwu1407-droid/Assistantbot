@@ -44,7 +44,7 @@ const TRACEY_WAY = [
 const HIRE_FEATURES = [
     {
         title: "Never miss a job again",
-        desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously.",
+        desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
         icon: Clock,
         bg: "bg-mint-50",
         color: "text-primary",
@@ -57,8 +57,8 @@ const HIRE_FEATURES = [
         color: "text-blue-500",
     },
     {
-        title: "AI that speaks your language",
-        desc: "Tracey learns your preferences and delivers a better, simpler and more human experience.",
+        title: "AI that actually works",
+        desc: "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
         icon: Zap,
         bg: "bg-violet-50",
         color: "text-violet-500",
@@ -439,11 +439,34 @@ export default function Home() {
             <Navbar />
 
             {/* ── B. Hero ── */}
-            <section className="pt-32 pb-24 px-6 relative overflow-hidden">
-                {/* Ambient Radial Glow */}
-                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[120vw] max-w-[1400px] h-[800px] -z-10 rounded-[100%] bg-primary/20 blur-[120px] pointer-events-none" />
+            <section className="pt-32 pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
+                {/* Reference-style ambient field in green palette */}
+                <div
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    style={{
+                        background: `
+                          radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),
+                          radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),
+                          radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)
+                        `,
+                    }}
+                />
+                <div
+                    className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60"
+                    style={{
+                        background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)",
+                        clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)",
+                    }}
+                />
+                <div
+                    className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60"
+                    style={{
+                        background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)",
+                        clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)",
+                    }}
+                />
 
-                <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8">
+                <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8 relative z-10">
 
                     <motion.h1
                         {...fadeUp(0.06)}
@@ -453,62 +476,47 @@ export default function Home() {
                         <span className="text-primary">early mark</span>
                     </motion.h1>
 
-                    <motion.div {...fadeUp(0.12)} className="text-lg text-slate-body leading-relaxed max-w-xl">
-                        <p className="font-medium text-slate-500 mb-6">
-                            Automate your customer interactions, schedule appointments directly into your calendar, and manage your pipeline, all through natural conversation.
+                    {/* Value Pillars */}
+                    <motion.div {...fadeUp(0.12)} className="w-full max-w-[1200px] mx-auto">
+                        <p className="mb-4 text-xs md:text-sm font-semibold tracking-[0.18em] uppercase text-slate-600">
+                            Earlymark helps businesses
                         </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
+                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
+                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
+                                    <span>Win more customers and revenue</span>
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
+                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
+                                    <span>Make life easier by automating customer interaction and admin</span>
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
+                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
+                                    <span>Provide a reliable and better customer experience</span>
+                                </p>
+                            </div>
+                        </div>
                     </motion.div>
 
                     <motion.div {...fadeUp(0.18)} className="flex flex-col sm:flex-row gap-3">
-                        <Link href="#meet-tracey">
-                            <Button size="lg" variant="outline">
-                                Meet Tracey
-                            </Button>
-                        </Link>
                         <Link href="/auth">
                             <Button size="lg" variant="mint">
-                                Hire Tracey
+                                Get started
                             </Button>
                         </Link>
-                    </motion.div>
-
-                    {/* Value Pillars */}
-                    <motion.div {...fadeUp(0.24)} className="mt-16 w-full max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
-                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
-                                <Zap className="w-6 h-6" />
-                            </div>
-                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
-                                Win more customers
-                            </h3>
-                            <p className="text-sm text-slate-500 leading-relaxed">
-                                Respond to leads instantly 24/7. Never miss a potential new job because you were on the tools.
-                            </p>
-                        </div>
-
-                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
-                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
-                                <Bot className="w-6 h-6" />
-                            </div>
-                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
-                                Automate your admin
-                            </h3>
-                            <p className="text-sm text-slate-500 leading-relaxed">
-                                Tracey logs jobs, manages your CRM pipeline, and sends quotes. Get your evenings back.
-                            </p>
-                        </div>
-
-                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white flex flex-col items-start text-left">
-                            <div className="bg-mint-50 p-2.5 rounded-xl mb-4 text-primary">
-                                <MessageSquare className="w-6 h-6" />
-                            </div>
-                            <h3 className="font-bold text-[20px] text-midnight mb-2 text-balance leading-snug">
-                                Better customer experience
-                            </h3>
-                            <p className="text-sm text-slate-500 leading-relaxed">
-                                Provide immediate, reliable, and professional communication that sets you apart from competitors.
-                            </p>
-                        </div>
+                        <Link href="#interview-assistant">
+                            <Button size="lg" variant="outline">
+                                Interview your assistant
+                            </Button>
+                        </Link>
                     </motion.div>
                 </div>
             </section >
@@ -525,58 +533,88 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <div className="max-w-4xl mx-auto flex flex-col gap-6">
-                        <motion.div {...fadeUp(0.06)} className="bg-white rounded-3xl border border-red-100 p-7 shadow-sm">
-                            <div className="flex items-center gap-2 mb-5">
-                                <span className="text-xl">😩</span>
-                                <span className="font-bold text-red-500 text-xs uppercase tracking-widest">The old way</span>
-                            </div>
-                            <ProcessFlow steps={OLD_WAY} variant="old" />
-                        </motion.div>
+                    <motion.div
+                        {...fadeUp(0.06)}
+                        className="max-w-6xl mx-auto rounded-3xl overflow-hidden border border-border shadow-sm bg-white grid md:grid-cols-2"
+                    >
+                        <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-border bg-[#FAF7F8]">
+                            <h3 className="text-2xl font-bold text-rose-600 mb-6">The old way</h3>
 
-                        <motion.div {...fadeUp(0.1)} className="bg-white rounded-3xl border border-emerald-100 p-7 shadow-sm">
-                            <div className="flex items-center gap-2 mb-5">
-                                <span className="text-xl">🤖</span>
-                                <span className="font-bold text-emerald-600 text-xs uppercase tracking-widest">The Tracey way</span>
+                            <div className="space-y-6 text-left">
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">Customer calls</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Pause what you&apos;re doing, play phone tag, miss out</span></li>
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Waste time explaining services and prices</span></li>
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Manually find time and book the job</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">Get on the tools</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Constantly interrupted by new leads</span></li>
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Miss out on revenue for missed calls</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">After the job</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Chase payment or forget</span></li>
+                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Risk a bad review while you&apos;re at it</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <ProcessFlow steps={TRACEY_WAY} variant="tracey" />
-                        </motion.div>
-                    </div>
+                        </div>
+
+                        <div className="p-8 md:p-10 bg-[#EEF3FF]">
+                            <h3 className="text-2xl font-bold text-primary mb-6">Tracey does it for you</h3>
+
+                            <div className="space-y-6 text-left">
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">Customer calls</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey picks up 24/7</span></li>
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey shares the info you&apos;ve taught it</span></li>
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey books the job for you</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">Get on the tools</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey smart schedules nearby jobs together</span></li>
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey navigates you to the job</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-midnight mb-2">After the job</h4>
+                                    <ul className="space-y-2 text-slate-body">
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Collect payment instantly or Tracey will auto follow up</span></li>
+                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey politely asks for a good review</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
             </section >
 
             {/* ── C.5: Tracey lives in your CRM ── */}
-            < section className="py-24 px-6 relative overflow-hidden" >
+            < section id="interview-assistant" className="py-24 px-6 relative overflow-hidden bg-[#1E232B]" >
                 <div className="container mx-auto max-w-7xl">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-                        {/* LHS — Text and Video Demo */}
+                        {/* LHS — Text */}
                         <div className="flex flex-col gap-8">
-                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. It will contact customers for you and run your CRM so you don&apos;t have to.
+                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
+                                Tracey lives in your CRM. It will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
-
-                            <motion.div {...fadeUp(0.06)} className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-white pt-6 px-4 pb-0">
-                                {/* Chrome header decoration */}
-                                <div className="absolute top-0 left-0 right-0 h-8 bg-white/50 border-b border-border flex items-center px-4 gap-1.5 backdrop-blur-sm z-10">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                                </div>
-                                <div className="mt-4 rounded-t-xl overflow-hidden border border-border border-b-0 bg-[#0F172A] aspect-video relative flex items-center justify-center">
-                                    <video
-                                        src="/advanced-mode-demo.mp4"
-                                        autoPlay
-                                        loop
-                                        muted
-                                        playsInline
-                                        className="w-full h-full object-cover opacity-90"
-                                    />
-                                </div>
-                            </motion.div>
                         </div>
 
                         {/* RHS — Interview Form */}
-                        <motion.div {...fadeUp(0.1)} className="bg-white/80 backdrop-blur-md rounded-3xl border border-border p-7 shadow-xl">
+                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 p-7 shadow-xl">
                             <div className="flex items-center gap-2 mb-1">
                                 <Bot className="w-5 h-5 text-primary" />
                                 <h3 className="font-bold text-midnight text-lg">Interview Tracey for free</h3>
@@ -602,41 +640,53 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    {/* Feature cards */}
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {HIRE_FEATURES.map((f, i) => {
-                            const Icon = f.icon;
-                            return (
-                                <motion.div
-                                    key={f.title}
-                                    {...fadeUp(i * 0.08)}
-                                    className="bg-white rounded-3xl border border-border p-7 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow"
-                                >
-                                    <div className={`w-12 h-12 rounded-2xl ${f.bg} flex items-center justify-center`}>
-                                        <Icon className={`w-6 h-6 ${f.color}`} />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
-                                    <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
+                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-start">
+                        {/* LHS: Tracey in action */}
+                        <div className="w-full">
+                            <motion.p {...fadeUp()} className="text-left text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
+                                Tracey in action
+                            </motion.p>
+                            <motion.div {...fadeUp(0.06)}>
+                                <ChatDemo />
+                            </motion.div>
+                        </div>
 
-                    {/* Live chat demo */}
-                    <div className="max-w-2xl mx-auto w-full">
-                        <motion.p {...fadeUp()} className="text-center text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
-                            Tracey in action
-                        </motion.p>
-                        <motion.div {...fadeUp(0.06)}>
-                            <ChatDemo />
-                        </motion.div>
+                        {/* RHS: Key benefit boxes */}
+                        <div className="grid grid-cols-1 gap-6">
+                            {HIRE_FEATURES.map((f, i) => {
+                                const Icon = f.icon;
+                                return (
+                                    <motion.div
+                                        key={f.title}
+                                        {...fadeUp(i * 0.08)}
+                                        className="bg-white rounded-3xl border border-border p-7 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                        <div className={`w-12 h-12 rounded-2xl ${f.bg} flex items-center justify-center`}>
+                                            <Icon className={`w-6 h-6 ${f.color}`} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
+                                        <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </section >
 
             {/* ── E. Tracey Features Carousel ── */}
-            < section className="py-24 px-6 bg-[#F8FAFC]" >
-                <div className="container mx-auto max-w-6xl flex flex-col gap-14">
+            < section className="py-24 px-6 bg-[#F8FAFC] relative overflow-hidden isolate" >
+                <div
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    style={{
+                        background: `
+                          radial-gradient(90% 56% at 50% 90%, rgba(34,197,94,0.26) 0%, rgba(34,197,94,0.10) 36%, rgba(34,197,94,0.00) 72%),
+                          radial-gradient(70% 40% at 50% 18%, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.00) 76%)
+                        `,
+                        filter: "blur(16px)",
+                    }}
+                />
+                <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
                             Everything you need,<br />nothing you don&apos;t
@@ -650,16 +700,20 @@ export default function Home() {
                         <FeatureCarousel />
                     </motion.div>
 
+                    <motion.h3 {...fadeUp(0.08)} className="text-center text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+                            Give yourself an <span className="text-primary">early mark</span> today
+                    </motion.h3>
+
                     <motion.div {...fadeUp(0.1)} className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Link href="/auth">
                             <Button size="lg" variant="mint">
-                                Get started free
+                                Get started
                                 <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
-                        <Link href="/contact">
+                        <Link href="/contact#contact-form">
                             <Button size="lg" variant="outline">
-                                Contact us
+                                Get a demo
                             </Button>
                         </Link>
                     </motion.div>

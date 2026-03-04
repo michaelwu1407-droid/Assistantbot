@@ -1,10 +1,19 @@
-echo "🔍 Running TypeScript check before commit..."
+echo "Running TypeScript check before commit..."
 npx tsc --noEmit
 
 if [ $? -ne 0 ]; then
-  echo "❌ TypeScript errors found. Commit aborted."
+  echo "TypeScript errors found. Commit aborted."
   echo "Fix the errors above and try again."
   exit 1
 fi
 
-echo "✅ TypeScript check passed!"
+echo "TypeScript check passed!"
+echo "Checking agent change log coverage..."
+node scripts/check-agent-change-log.mjs
+
+if [ $? -ne 0 ]; then
+  echo "Agent change log check failed. Commit aborted."
+  exit 1
+fi
+
+echo "Agent change log check passed!"

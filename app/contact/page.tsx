@@ -122,7 +122,7 @@ export default function ContactPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                <form id="contact-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="department">Department</Label>
                     <Select value={department} onValueChange={setDepartment}>

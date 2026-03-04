@@ -264,7 +264,7 @@ function ChatWithHistory({
     onError: async (err) => {
       console.error("Chat error:", err);
       toast.error(err?.message ?? "Couldn't get a response. Check your connection and try again.");
-      
+
       // Send fallback alert to support
       try {
         await handleChatFallback(

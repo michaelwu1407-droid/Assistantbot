@@ -409,13 +409,12 @@ export function TraceyOnboarding() {
             return (
               <div key={s.label} className="flex flex-col items-center gap-1 flex-1">
                 <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                    isActive
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
                       ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
                       : isDone
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
                         : "bg-slate-200 text-slate-400 dark:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 </div>
@@ -516,16 +515,14 @@ export function TraceyOnboarding() {
                           <button
                             key={mode}
                             onClick={() => setAgentMode(mode)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                              isSelected
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                              }`}>
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                                }`}>
                                 <ModeIcon className="h-5 w-5" />
                               </div>
                               <div className="flex-1">
@@ -641,7 +638,7 @@ export function TraceyOnboarding() {
                       <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <Clock className="h-4 w-4" /> Working Hours
                       </h3>
-                      
+
                       {/* Days of week toggles */}
                       <div className="space-y-3">
                         <Label className="text-xs text-slate-500">Select working days</Label>
@@ -656,11 +653,10 @@ export function TraceyOnboarding() {
                                   const currentHours = standardWorkHours || "Mon-Fri, 08:00-17:00";
                                   setStandardWorkHours(currentHours);
                                 }}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                  isSelected
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isSelected
                                     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                                     : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"
-                                }`}
+                                  }`}
                               >
                                 {day}
                               </button>
@@ -929,11 +925,10 @@ export function TraceyOnboarding() {
                           <button
                             key={mode}
                             onClick={() => { setSimMode(mode); setSimStep(0) }}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                              simMode === mode
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${simMode === mode
                                 ? "bg-emerald-600 text-white shadow"
                                 : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
+                              }`}
                           >
                             <ModeIcon className="h-3.5 w-3.5" />
                             {title}
@@ -948,13 +943,12 @@ export function TraceyOnboarding() {
                         <button
                           key={label}
                           onClick={() => setSimStep(i)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
-                            simStep === i
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${simStep === i
                               ? "bg-emerald-600 text-white"
                               : i < simStep
                                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                          }`}
+                            }`}
                         >
                           {label}
                         </button>
@@ -1024,11 +1018,10 @@ export function TraceyOnboarding() {
                           <button
                             key={voice.id}
                             onClick={() => setSelectedVoice(voice.id)}
-                            className={`flex-1 p-3 rounded-lg border text-left transition-all ${
-                              selectedVoice === voice.id
+                            className={`flex-1 p-3 rounded-lg border text-left transition-all ${selectedVoice === voice.id
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium">{voice.label}</span>
@@ -1149,7 +1142,7 @@ export function TraceyOnboarding() {
                 )}
 
                 {/* ──── Navigation ──── */}
-                {step < 5 && (
+                {step < 6 && (
                   <div className="flex justify-between pt-6">
                     {step > 0 ? (
                       <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
@@ -1167,7 +1160,7 @@ export function TraceyOnboarding() {
                     </Button>
                   </div>
                 )}
-                {step === 5 && !provisionResult && (
+                {step === 6 && !provisionResult && (
                   <div className="pt-2">
                     <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
                       <ChevronLeft className="h-4 w-4" /> Back
