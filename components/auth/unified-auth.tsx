@@ -416,7 +416,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         {/* Back to website home page */}
         <Link
           href="/"
-          className="absolute top-4 left-4 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          className="absolute top-4 left-4 p-2 rounded-full text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 transition-colors border border-border/20"
           aria-label="Back to website"
         >
           <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

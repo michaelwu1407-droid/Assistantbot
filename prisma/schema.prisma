@@ -537,6 +537,7 @@ model BusinessProfile {
   emergencyHandling  String? @db.Text // After-hours handling logic description
   specialNotes       String? @db.Text // Free-text unique business rules ("What Else?")
   referralSource     String? // "How did you hear about us?"
+  acceptsMultilingual Boolean @default(false) // Whether Tracey can accept jobs from non-English speakers
 
   userId       String        @unique
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

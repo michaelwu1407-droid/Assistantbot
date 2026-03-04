@@ -219,12 +219,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               />
               </div>
 
-              {/* Right Chatbot - Collapsed by default; when expanded, minimum width so messages aren't squeezed (user can expand further) */}
+              {/* Right Chatbot - Collapsed by default; when expanded, takes up more screen space */}
               <ResizablePanel
                 ref={chatbotPanelRef}
-                defaultSize={0}
-                minSize={28}
-                maxSize={50}
+                defaultSize={35}
+                minSize={35}
+                maxSize={65}
                 collapsible={true}
                 collapsedSize={0}
                 onCollapse={() => setChatbotExpanded(false)}
@@ -251,7 +251,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
                 <div
                   id="assistant-pane"
-                  className="h-[calc(100%-57px)] w-full min-w-[320px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
+                  className="h-[calc(100%-57px)] w-full min-w-[400px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
                   onClick={() => {
                     if (!chatbotExpanded) {
                       chatbotPanelRef.current?.expand()
