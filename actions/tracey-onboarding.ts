@@ -74,6 +74,7 @@ const TraceyOnboardingSchema = z.object({
 
   // Step 6: Provisioning
   referralSource: z.string().trim().optional(),
+  acceptsMultilingual: z.boolean().default(false),
 }).transform(data => {
   // Enforce emergency consistency
   if (!data.emergencyService) {
@@ -108,6 +109,13 @@ export async function saveTraceyOnboarding(
     return { success: false, error: "Not authenticated" };
   }
 
+  // Get user email from auth
+  const { getAuthUser } = await import("@/lib/auth");
+  const authUser = await getAuthUser();
+  if (!authUser?.email) {
+    return { success: false, error: "User email not found" };
+  }
+
   const d = parsed.data;
   
   // Readiness checks (non-blocking)
@@ -128,15 +136,32 @@ export async function saveTraceyOnboarding(
 
     // ── PHASE A: Transactional Core Writes ──
     await db.$transaction(async (tx) => {
-      // 1. Update User record
-      await tx.user.update({
+      // 1. Check if user exists, update if so, otherwise create
+      const existingUser = await tx.user.findUnique({
         where: { id: userId },
-        data: {
-          name: d.ownerName,
-          phone: d.phone,
-          hasOnboarded: true,
-        },
       });
+
+      if (existingUser) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            name: d.ownerName,
+            phone: d.phone,
+            hasOnboarded: true,
+          },
+        });
+      } else {
+        await tx.user.create({
+          data: {
+            id: userId,
+            email: authUser.email!,
+            name: d.ownerName,
+            phone: d.phone,
+            hasOnboarded: true,
+            workspaceId: workspace.id,
+          },
+        });
+      }
 
       // 2. Update Workspace
       await tx.workspace.update({
@@ -173,6 +198,7 @@ export async function saveTraceyOnboarding(
           emergencyHandling: d.emergencyHandling || null,
           specialNotes: d.specialNotes || null,
           referralSource: d.referralSource || null,
+          acceptsMultilingual: d.acceptsMultilingual,
         },
         update: {
           tradeType: d.tradeType,
@@ -189,6 +215,7 @@ export async function saveTraceyOnboarding(
           emergencyHandling: d.emergencyHandling || null,
           specialNotes: d.specialNotes || null,
           referralSource: d.referralSource || null,
+          acceptsMultilingual: d.acceptsMultilingual,
         },
       });
 

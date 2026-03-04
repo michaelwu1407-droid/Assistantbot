@@ -55,26 +55,25 @@ const TRADE_TYPES = [
 ]
 
 const TRACEY_VOICES = [
-  { id: "aussie-female", label: "Aussie Tracey (Default)", description: "Casual, warm, Australian female" },
+  { id: "aussie-female", label: "Casual Tracey (Default)", description: "Casual, warm, Australian female" },
   { id: "pro-female", label: "Professional Tracey", description: "Polished, professional tone" },
-  { id: "friendly-male", label: "Mate Tracey", description: "Friendly Australian male" },
 ]
 
 const MODE_DESCRIPTIONS: Record<AgentMode, { title: string; icon: typeof Zap; description: string; traceyLine: string }> = {
   EXECUTION: {
-    title: "Execution",
+    title: "Execute",
     icon: Zap,
     description: "Full autonomy — Tracey contacts customers, quotes prices, and arranges bookings on your behalf.",
     traceyLine: "Leave it with me! I'll handle the customer from first call to booking confirmation. You just show up and do what you do best.",
   },
   DRAFT: {
-    title: "Draft",
+    title: "Review & approve",
     icon: FileEdit,
     description: "Tracey chats with customers and drafts responses & deals for your approval before sending.",
     traceyLine: "I'll chat with the customer and get all the details, then send you a quick summary to approve before anything goes out.",
   },
   INFO_ONLY: {
-    title: "Info Only",
+    title: "Info only",
     icon: Eye,
     description: "Tracey only summarises enquiries and alerts you. No outbound customer contact.",
     traceyLine: "I'll keep my ears open and give you neat summaries of every enquiry — you handle the rest when you're ready.",
@@ -170,6 +169,7 @@ const STEPS = [
   { label: "Contact Card", icon: User },
   { label: "Tracey Modes", icon: Zap },
   { label: "Business Review", icon: Building2 },
+  { label: "Email Setup", icon: Mail },
   { label: "Services & Pricing", icon: MessageSquare },
   { label: "Try Tracey", icon: Play },
   { label: "Go Live", icon: Send },
@@ -207,9 +207,10 @@ export function TraceyOnboarding() {
   const [emergencySurcharge, setEmergencySurcharge] = useState(350)
   const [emergencyHandling, setEmergencyHandling] = useState("")
   const [specialNotes, setSpecialNotes] = useState("")
+  const [acceptsMultilingual, setAcceptsMultilingual] = useState(false)
 
   // Step 4: Services & Pricing
-  const [globalCallOutFee, setGlobalCallOutFee] = useState(89)
+  const [globalCallOutFee, setGlobalCallOutFee] = useState<number | undefined>(undefined)
   const [services, setServices] = useState<ServiceRow[]>([
     { serviceName: "", callOutFee: undefined, priceMin: undefined, priceMax: undefined, traceyNotes: "" },
   ])
@@ -243,7 +244,16 @@ export function TraceyOnboarding() {
         if (result.data.tradeType && !tradeType) setTradeType(result.data.tradeType)
         if (result.data.phone && !publicPhone) setPublicPhone(result.data.phone)
         if (result.data.email && !publicEmail) setPublicEmail(result.data.email)
-        if (result.data.address && !physicalAddress) setPhysicalAddress(result.data.address)
+        if (result.data.address && !physicalAddress) {
+          setPhysicalAddress(result.data.address)
+          // Auto-extract suburb from address if not already set
+          if (!baseSuburb && result.data.address) {
+            const suburbMatch = result.data.address.match(/([^,]+),?\s*(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)?\s*\d{4}/i)
+            if (suburbMatch) {
+              setBaseSuburb(suburbMatch[1].trim())
+            }
+          }
+        }
         if (result.data.operatingHours) setStandardWorkHours(result.data.operatingHours)
         if (result.data.suburbs?.length && !baseSuburb) setBaseSuburb(result.data.suburbs[0])
         // Pre-fill services
@@ -349,6 +359,7 @@ export function TraceyOnboarding() {
           traceyNotes: s.traceyNotes,
         })),
         referralSource,
+        acceptsMultilingual,
       }
 
       const result = await saveTraceyOnboarding(data)
@@ -435,13 +446,13 @@ export function TraceyOnboarding() {
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> Your Name</Label>
                         <Input
-                          placeholder="e.g. Michael"
+                          placeholder="John Smith"
                           value={ownerName}
                           onChange={(e) => setOwnerName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone (AU)</Label>
+                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone</Label>
                         <Input
                           placeholder="04XX XXX XXX"
                           value={phone}
@@ -630,18 +641,65 @@ export function TraceyOnboarding() {
                       <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <Clock className="h-4 w-4" /> Working Hours
                       </h3>
-                      <Input
-                        value={standardWorkHours}
-                        onChange={(e) => setStandardWorkHours(e.target.value)}
-                        placeholder="Mon-Fri, 07:00-15:30"
-                      />
+                      
+                      {/* Days of week toggles */}
+                      <div className="space-y-3">
+                        <Label className="text-xs text-slate-500">Select working days</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                            const isSelected = standardWorkHours.toLowerCase().includes(day.toLowerCase());
+                            return (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => {
+                                  const currentHours = standardWorkHours || "Mon-Fri, 08:00-17:00";
+                                  setStandardWorkHours(currentHours);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                  isSelected
+                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                    : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"
+                                }`}
+                              >
+                                {day}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-500">Start Time</Label>
+                          <Input
+                            type="time"
+                            value={standardWorkHours.split("-")[0]?.trim() || "08:00"}
+                            onChange={(e) => {
+                              const endTime = standardWorkHours.split("-")[1]?.trim() || "17:00";
+                              setStandardWorkHours(`${e.target.value}-${endTime}`);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-500">End Time</Label>
+                          <Input
+                            type="time"
+                            value={standardWorkHours.split("-")[1]?.trim() || "17:00"}
+                            onChange={(e) => {
+                              const startTime = standardWorkHours.split("-")[0]?.trim() || "08:00";
+                              setStandardWorkHours(`${startTime}-${e.target.value}`);
+                            }}
+                          />
+                        </div>
+                      </div>
 
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <p className="font-medium text-sm flex items-center gap-1.5">
                             <Shield className="h-4 w-4 text-amber-500" /> Emergency / After-Hours
                           </p>
-                          <p className="text-xs text-slate-500">Allow Tracey to accept emergency callouts.</p>
+                          <p className="text-xs text-slate-500">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
                         </div>
                         <Switch checked={emergencyService} onCheckedChange={setEmergencyService} />
                       </div>
@@ -682,21 +740,76 @@ export function TraceyOnboarding() {
                   </div>
                 )}
 
-                {/* ──── STEP 4: Automated Pricing & Instruction Table ──── */}
+                {/* ──── STEP 4: Email Configuration ──── */}
                 {step === 3 && (
+                  <div className="space-y-5">
+                    <TraceyBubble text="Let's set up how Tracey will handle your emails. She can monitor your inbox and automatically respond to leads!" />
+
+                    {/* Email Integration Info */}
+                    <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox
+                      </h3>
+                      <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>Tracey monitors your inbox 24/7 for new lead emails from platforms like HiPages, Airtasker, and ServiceSeeking</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>She extracts customer details and creates deals automatically in your CRM</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>Tracey can auto-respond to leads with your availability and pricing</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>All customer conversations are organized in one unified inbox</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Public Email Display */}
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" /> Business Email for Leads
+                      </Label>
+                      <Input
+                        placeholder="leads@yourbusiness.com"
+                        value={publicEmail}
+                        onChange={(e) => setPublicEmail(e.target.value)}
+                      />
+                      <p className="text-xs text-slate-500">
+                        This is the email address customers will use to contact you, and where Tracey will monitor for new leads.
+                      </p>
+                    </div>
+
+                    {/* What happens next */}
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                      <p className="text-xs text-emerald-800 dark:text-emerald-200">
+                        <strong>After onboarding:</strong> You&apos;ll get a unique @earlymark.ai email address that you can forward to from your Gmail/Outlook, or connect directly via OAuth for seamless lead capture.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ──── STEP 5: Automated Pricing & Instruction Table ──── */}
+                {step === 4 && (
                   <div className="space-y-5">
                     <TraceyBubble text={`I${scrapeData?.services?.length ? "'ve pulled some services from your website. " : "'ll need to know your services so I can "}quote accurately and handle enquiries. Tweak, add, or delete anything below.`} />
 
                     {/* Global Call-Out Fee */}
                     <div className="flex items-center gap-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
                       <div className="flex-1">
-                        <Label className="text-sm font-medium">Global Call-Out Fee (AUD)</Label>
+                        <Label className="text-sm font-medium">Call-out fee</Label>
                         <p className="text-xs text-slate-500">Applied to all services unless overridden per service.</p>
                       </div>
                       <Input
                         type="number"
-                        value={globalCallOutFee}
-                        onChange={(e) => setGlobalCallOutFee(Number(e.target.value))}
+                        value={globalCallOutFee || ""}
+                        onChange={(e) => setGlobalCallOutFee(e.target.value ? Number(e.target.value) : undefined)}
+                        placeholder="0"
                         className="w-28"
                       />
                     </div>
@@ -776,11 +889,22 @@ export function TraceyOnboarding() {
                         <Plus className="h-3.5 w-3.5" /> Add Service
                       </Button>
                     </div>
+
+                    {/* Multilingual Support */}
+                    <div className="flex items-center justify-between rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
+                      <div>
+                        <p className="font-medium text-sm flex items-center gap-1.5">
+                          <Globe className="h-4 w-4 text-emerald-500" /> Multilingual Jobs
+                        </p>
+                        <p className="text-xs text-slate-500">Can Tracey accept jobs from customers who speak languages other than English?</p>
+                      </div>
+                      <Switch checked={acceptsMultilingual} onCheckedChange={setAcceptsMultilingual} />
+                    </div>
                   </div>
                 )}
 
-                {/* ──── STEP 5: Interactive Scenario Simulator ──── */}
-                {step === 4 && (
+                {/* ──── STEP 6: Interactive Scenario Simulator ──── */}
+                {step === 5 && (
                   <div className="space-y-5">
                     <TraceyBubble text="Here's a sneak peek at how I'll handle a real customer call. Switch between modes to see the difference!" />
 
@@ -920,8 +1044,8 @@ export function TraceyOnboarding() {
                   </div>
                 )}
 
-                {/* ──── STEP 6: Provisioning & Closing ──── */}
-                {step === 5 && (
+                {/* ──── STEP 7: Provisioning & Closing ──── */}
+                {step === 6 && (
                   <div className="space-y-5">
                     {!provisionResult ? (
                       <>
@@ -950,7 +1074,7 @@ export function TraceyOnboarding() {
                           <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Your <strong>@earlymark.ai</strong> leads email will be issued</span>
+                              <span>Tracey&apos;s email for {businessName} will be issued</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />

@@ -17,8 +17,8 @@ const SECTIONS = [
     description: "Control how autonomous Tracey is. Set this in Settings → Agent Capabilities.",
     content: [
       { name: "Execute", body: "Full autonomy. Tracey schedules, prices, and creates jobs independently. Best when you trust the AI to act on your behalf." },
-      { name: "Organize", body: "Tracey proposes, you approve. Draft cards appear for confirmation before anything is created or sent. Recommended for most users." },
-      { name: "Filter", body: "Screening only. Tracey collects info and suggests next steps but does not schedule, price, or send messages without your say-so." },
+      { name: "Review & approve", body: "Tracey proposes, you approve. Draft cards appear for confirmation before anything is created or sent. Recommended for most users." },
+      { name: "Info only", body: "Screening only. Tracey collects info and suggests next steps but does not schedule, price, or send messages without your say-so." },
     ],
   },
   {

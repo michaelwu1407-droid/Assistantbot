@@ -320,7 +320,7 @@ function ChatWithHistory({
     <div className="flex flex-col h-full bg-transparent">
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar pb-32">
         {messages.length === 0 && !isLoading && (
-          <div className="flex flex-col gap-5 max-w-2xl mx-auto mt-4">
+          <div className="flex flex-col gap-5 max-w-4xl mx-auto mt-4">
             <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
               <p className="text-[10px] md:text-xs leading-relaxed text-slate-800 dark:text-foreground">
                 Hi! I&apos;m Tracey, your personal assistant. Here to give you an early mark!
@@ -337,7 +337,7 @@ function ChatWithHistory({
             <div key={message.id ? `${message.id}-${index}` : `msg-${index}`}>
               <div
                 className={cn(
-                  "flex gap-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  "flex gap-3 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300",
                   isUser ? "flex-row-reverse" : "flex-row"
                 )}
               >
@@ -520,7 +520,7 @@ function ChatWithHistory({
         })}
 
         {isLoading && (
-          <div className="flex gap-3 max-w-3xl mx-auto animate-in fade-in">
+          <div className="flex gap-3 max-w-4xl mx-auto animate-in fade-in">
             <div className="rounded-2xl rounded-bl-md px-5 py-3 shadow-sm border border-border/50 bg-white/80">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -531,7 +531,7 @@ function ChatWithHistory({
         )}
 
         {isOnlyWelcomeMessage && !isLoading && messages.length <= 1 && (
-          <div className="max-w-2xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-3xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <p className="text-[10px] font-medium text-slate-500 dark:text-muted-foreground mb-3">Quick actions</p>
             <div className="grid grid-cols-2 gap-2">
               {QUICK_ACTIONS.map((action, index) => (
@@ -557,7 +557,7 @@ function ChatWithHistory({
 
       {/* Input Area */}
       <div className="shrink-0 pt-4 pb-6 px-4 border-t border-border/10 bg-gradient-to-t from-background via-background to-transparent md:px-6 absolute bottom-0 left-0 right-0 z-20">
-        <form onSubmit={handleSubmit} className="flex w-full max-w-3xl mx-auto gap-3">
+        <form onSubmit={handleSubmit} className="flex w-full max-w-4xl mx-auto gap-3">
           <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
             <Textarea
               id="chat-input"

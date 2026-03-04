@@ -446,10 +446,7 @@ export default function Home() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] -z-10 rounded-full bg-primary/5 blur-3xl" />
 
                 <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8">
-                    <motion.div {...fadeUp(0)} className="ott-badge-mint">
-                        Australia&apos;s AI Business Assistant
-                    </motion.div>
-
+                    
                     <motion.h1
                         {...fadeUp(0.06)}
                         className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
@@ -541,7 +538,6 @@ export default function Home() {
             <section id="product" className="py-24 px-6">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <div className="ott-badge-mint mb-4">Built for tradies</div>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
                             Hire Tracey today
                         </h2>
@@ -625,7 +621,7 @@ export default function Home() {
                                 <span className="text-white font-bold text-lg tracking-tight">Earlymark</span>
                             </div>
                             <p className="text-sm leading-relaxed max-w-xs">
-                                AI-powered CRM and customer communication for modern trade businesses.
+                                AI-powered assistant and CRM for the modern business.
                             </p>
                         </div>
 
@@ -678,7 +674,6 @@ export default function Home() {
 
                     <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-sm">© 2025 Earlymark. All rights reserved.</p>
-                        <p className="text-sm">Made for tradies, by tradies. 🇦🇺</p>
                     </div>
                 </div>
             </footer>
