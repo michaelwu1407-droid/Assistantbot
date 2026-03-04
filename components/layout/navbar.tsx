@@ -28,9 +28,6 @@ export function Navbar() {
                 <Link href="#pricing" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
                     Pricing
                 </Link>
-                <Link href="/contact" className="text-sm font-medium text-slate-body hover:text-midnight transition-colors">
-                    Contact
-                </Link>
             </div>
 
             {/* CTA */}
