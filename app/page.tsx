@@ -487,23 +487,20 @@ export default function Home() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-3 w-full">
-                                    <Check className="w-8 h-8 text-secondary flex-shrink-0" />
-                                    <span className="text-center flex-1">Win more customers and revenue</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
+                                    Win more customers and revenue
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-3 w-full">
-                                    <Check className="w-8 h-8 text-secondary flex-shrink-0" />
-                                    <span className="text-center flex-1">Make life easier by automating customer interaction and admin</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
+                                    Make life easier by automating customer interaction and admin
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-3 w-full">
-                                    <Check className="w-8 h-8 text-secondary flex-shrink-0" />
-                                    <span className="text-center flex-1">Provide a reliable and better customer experience</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
+                                    Provide a reliable and better customer experience
                                 </p>
                             </div>
                         </div>
