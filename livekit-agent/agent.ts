@@ -379,7 +379,7 @@ export default defineAgent({
     const session = new voice.AgentSession({
       turnDetection: 'stt',
       voiceOptions: {
-        minInterruptionDuration: 0.8,
+        minInterruptionDuration: 0.4,
         minInterruptionWords: 2,
       },
     });
