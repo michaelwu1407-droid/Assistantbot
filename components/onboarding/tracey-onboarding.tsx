@@ -79,9 +79,46 @@ function matchTradeType(scraped: string): string {
   return partial || scraped
 }
 
-function parseOperatingHours(raw: string): string {
+function parseOperatingHoursStructured(raw: string): { days: string[]; start: string; end: string } {
+  const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  const DAY_MAP: Record<string, string> = {
+    mon: "Mon", monday: "Mon", tue: "Tue", tuesday: "Tue",
+    wed: "Wed", wednesday: "Wed", thu: "Thu", thursday: "Thu",
+    fri: "Fri", friday: "Fri", sat: "Sat", saturday: "Sat",
+    sun: "Sun", sunday: "Sun",
+  }
+
+  // Extract days
+  let days: string[] = []
+  const lower = raw.toLowerCase()
+  // Check for range like "mon-fri" or "monday-friday"
+  const rangeMatch = lower.match(/(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\s*[-–to]+\s*(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)/i)
+  if (rangeMatch) {
+    const startDay = DAY_MAP[rangeMatch[1].toLowerCase()]
+    const endDay = DAY_MAP[rangeMatch[2].toLowerCase()]
+    if (startDay && endDay) {
+      const si = ALL_DAYS.indexOf(startDay)
+      const ei = ALL_DAYS.indexOf(endDay)
+      if (si >= 0 && ei >= 0) {
+        for (let i = si; i <= ei; i++) days.push(ALL_DAYS[i])
+      }
+    }
+  }
+  // Check for individual day mentions
+  if (days.length === 0) {
+    for (const [key, val] of Object.entries(DAY_MAP)) {
+      if (lower.includes(key) && !days.includes(val)) days.push(val)
+    }
+    // Sort by standard order
+    days.sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b))
+  }
+  if (days.length === 0) days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+  // Extract times
   const timePattern = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi
   const matches = [...raw.matchAll(timePattern)]
+  let start = "08:00"
+  let end = "17:00"
   if (matches.length >= 2) {
     const toTime = (m: RegExpMatchArray) => {
       let h = parseInt(m[1])
@@ -91,9 +128,11 @@ function parseOperatingHours(raw: string): string {
       if (ampm === "am" && h === 12) h = 0
       return `${String(h).padStart(2, "0")}:${min}`
     }
-    return `${toTime(matches[0])} - ${toTime(matches[1])}`
+    start = toTime(matches[0])
+    end = toTime(matches[1])
   }
-  return raw
+
+  return { days, start, end }
 }
 
 const TRACEY_VOICES = [
@@ -130,20 +169,37 @@ const MODE_DESCRIPTIONS: Record<AgentMode, { title: string; icon: typeof Zap; de
 
 const SCENARIO_STEPS = ["Greeting", "Service Enquiry", "Booking/Price", "Goodbye"] as const
 
-function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }> {
+interface ScenarioContext {
+  businessName: string
+  tradeType: string
+  serviceName: string
+  priceRange: string
+  callOutFee: string
+}
+
+function getScenarioDialogue(
+  mode: AgentMode,
+  ctx: ScenarioContext
+): Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }> {
+  const biz = ctx.businessName || "our team"
+  const trade = ctx.tradeType?.toLowerCase() || "tradie"
+  const svc = ctx.serviceName || "repair"
+  const price = ctx.priceRange || "$150-$250"
+  const fee = ctx.callOutFee || "$89"
+
   const dialogues: Record<AgentMode, Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }>> = {
     EXECUTION: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! Sorry to hear about the leak. Let me get that sorted for you right away. Can I grab your name and address?",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. Sorry to hear you need urgent help. Let me get that sorted for you right away. Can I grab your name and address?`,
       },
       "Service Enquiry": {
-        customer: "Yeah, it's Sarah at 42 Smith St, Parramatta. How much will it cost?",
-        tracey: "Thanks Sarah! A tap repair is usually between $150-$250 depending on the issue. I'll book our plumber in for you.",
+        customer: `Yeah, it's Sarah at 42 Smith St, Parramatta. How much will a ${svc} cost?`,
+        tracey: `Thanks Sarah! A ${svc} is usually between ${price} depending on the issue. I'll book our ${trade} in for you.`,
       },
       "Booking/Price": {
         customer: "That sounds fine. When can someone come?",
-        tracey: "I've got a slot tomorrow at 10am. I'll lock that in for you and send a confirmation text. The call-out fee of $89 is waived if you go ahead with the repair.",
+        tracey: `I've got a slot tomorrow at 10am. I'll lock that in for you and send a confirmation text. The call-out fee of ${fee} is waived if you go ahead with the ${svc}.`,
       },
       Goodbye: {
         customer: "Perfect, thanks!",
@@ -152,16 +208,16 @@ function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[numb
     },
     DRAFT: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! Sorry about the leak. Let me take your details and I'll get our plumber to confirm availability for you.",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. Let me take your details and I'll get our ${trade} to confirm availability for you.`,
       },
       "Service Enquiry": {
-        customer: "Yeah, it's Sarah at 42 Smith St, Parramatta. How much will it cost?",
-        tracey: "Thanks Sarah! I'll put together a draft quote for the tap repair and send it to the boss for approval. I'll get back to you shortly.",
+        customer: `Yeah, it's Sarah at 42 Smith St, Parramatta. How much will a ${svc} cost?`,
+        tracey: `Thanks Sarah! I'll put together a draft quote for the ${svc} and send it to the boss for approval. I'll get back to you shortly.`,
       },
       "Booking/Price": {
         customer: "Okay, how long will that take?",
-        tracey: "[Draft sent to you for review] Sarah needs a tap repair at 42 Smith St, Parramatta. Suggested: $150-$250 range, tomorrow 10am slot.",
+        tracey: `[Draft sent to you for review] Sarah needs a ${svc} at 42 Smith St, Parramatta. Suggested: ${price} range, tomorrow 10am slot.`,
       },
       Goodbye: {
         customer: "Thanks for letting me know.",
@@ -170,20 +226,20 @@ function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[numb
     },
     INFO_ONLY: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! I'll take down the details and pass them straight to our plumber.",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. I'll take down the details and pass them straight to our ${trade}.`,
       },
       "Service Enquiry": {
-        customer: "It's Sarah at 42 Smith St, Parramatta. Can you give me a quote?",
-        tracey: "I've noted that down, Sarah. Our plumber will give you a call back with a quote and availability.",
+        customer: `It's Sarah at 42 Smith St, Parramatta. Can you give me a quote for a ${svc}?`,
+        tracey: `I've noted that down, Sarah. Our ${trade} will give you a call back with a quote and availability.`,
       },
       "Booking/Price": {
         customer: "When will I hear back?",
-        tracey: "I'll flag this as urgent and the plumber should be in touch within the hour.",
+        tracey: `I'll flag this as urgent and the ${trade} should be in touch within the hour.`,
       },
       Goodbye: {
         customer: "Alright, thanks.",
-        tracey: "[Alert sent to you] New urgent enquiry: Sarah, 42 Smith St Parramatta — leaking kitchen tap. Awaiting your callback.",
+        tracey: `[Alert sent to you] New urgent enquiry: Sarah, 42 Smith St Parramatta — needs ${svc}. Awaiting your callback.`,
       },
     },
   }
@@ -248,9 +304,13 @@ export function TraceyOnboarding() {
   const [physicalAddress, setPhysicalAddress] = useState("")
   const [baseSuburb, setBaseSuburb] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
-  const [standardWorkHours, setStandardWorkHours] = useState("Mon-Fri, 07:00-15:30")
+  const [workDays, setWorkDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"])
+  const [workStartTime, setWorkStartTime] = useState("07:00")
+  const [workEndTime, setWorkEndTime] = useState("15:30")
   const [emergencyService, setEmergencyService] = useState(false)
   const [emergencySurcharge, setEmergencySurcharge] = useState(350)
+  const [emergencyStartTime, setEmergencyStartTime] = useState("17:00")
+  const [emergencyEndTime, setEmergencyEndTime] = useState("07:00")
   const [emergencyHandling, setEmergencyHandling] = useState("")
   const [specialNotes, setSpecialNotes] = useState("")
   const [acceptsMultilingual, setAcceptsMultilingual] = useState(false)
@@ -359,7 +419,16 @@ export function TraceyOnboarding() {
             }
           }
         }
-        if (result.data.operatingHours) setStandardWorkHours(parseOperatingHours(result.data.operatingHours))
+        if (result.data.operatingHours) {
+          const parsed = parseOperatingHoursStructured(result.data.operatingHours)
+          setWorkDays(parsed.days)
+          setWorkStartTime(parsed.start)
+          setWorkEndTime(parsed.end)
+        }
+        if (result.data.emergencyAvailable) {
+          setEmergencyService(true)
+          if (result.data.emergencyHours) setEmergencyHandling(result.data.emergencyHours)
+        }
         if (result.data.suburbs?.length && !baseSuburb) setBaseSuburb(result.data.suburbs[0])
         // Pre-fill services
         if (result.data.services?.length) {
@@ -388,17 +457,16 @@ export function TraceyOnboarding() {
     }
   }, [step, websiteUrl, triggerScrape])
 
-  // Pre-generate leads email when entering step 3 (Email Configuration)
+  // Generate leads email preview client-side from owner name + business name
   useEffect(() => {
-    if (step === 3 && !preGenLeadsEmail) {
-      // Dynamically import to avoid loading on other steps
-      import("@/actions/settings-actions").then(({ getOrAllocateLeadCaptureEmail }) => {
-        getOrAllocateLeadCaptureEmail()
-          .then((email) => setPreGenLeadsEmail(email))
-          .catch(() => setPreGenLeadsEmail(null))
-      })
+    if (step === 3 && !preGenLeadsEmail && ownerName && businessName) {
+      const toSlug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      const firstName = (ownerName.trim().split(/\s+/)[0] || "user").toLowerCase().replace(/[^a-z0-9]/g, "")
+      const bizSlug = toSlug(businessName)
+      const domainBase = "earlymark.ai"
+      setPreGenLeadsEmail(`${firstName}@${bizSlug}.${domainBase}`)
     }
-  }, [step, preGenLeadsEmail])
+  }, [step, preGenLeadsEmail, ownerName, businessName])
 
   // Eagerly provision phone number when entering step 6 (Go Live)
   useEffect(() => {
@@ -408,6 +476,7 @@ export function TraceyOnboarding() {
       fetch("/api/workspace/setup-comms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName, ownerPhone: phone }),
       })
         .then((res) => res.json())
         .then((data) => {
@@ -541,7 +610,7 @@ export function TraceyOnboarding() {
         physicalAddress,
         baseSuburb,
         serviceRadius,
-        standardWorkHours,
+        standardWorkHours: `${workDays.join(", ")}, ${workStartTime}-${workEndTime}`,
         emergencyService,
         emergencySurcharge: emergencyService ? emergencySurcharge : undefined,
         emergencyHandling,
@@ -837,14 +906,20 @@ export function TraceyOnboarding() {
                         <Label className="text-xs text-slate-500">Select working days</Label>
                         <div className="flex flex-wrap gap-2">
                           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
-                            const isSelected = standardWorkHours.toLowerCase().includes(day.toLowerCase());
+                            const isSelected = workDays.includes(day);
                             return (
                               <button
                                 key={day}
                                 type="button"
                                 onClick={() => {
-                                  const currentHours = standardWorkHours || "Mon-Fri, 08:00-17:00";
-                                  setStandardWorkHours(currentHours);
+                                  setWorkDays((prev) =>
+                                    prev.includes(day)
+                                      ? prev.filter((d) => d !== day)
+                                      : [...prev, day].sort((a, b) =>
+                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(a) -
+                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(b)
+                                        )
+                                  );
                                 }}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isSelected
                                     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
@@ -863,22 +938,16 @@ export function TraceyOnboarding() {
                           <Label className="text-xs text-slate-500">Start Time</Label>
                           <Input
                             type="time"
-                            value={standardWorkHours.split("-")[0]?.trim() || "08:00"}
-                            onChange={(e) => {
-                              const endTime = standardWorkHours.split("-")[1]?.trim() || "17:00";
-                              setStandardWorkHours(`${e.target.value}-${endTime}`);
-                            }}
+                            value={workStartTime}
+                            onChange={(e) => setWorkStartTime(e.target.value)}
                           />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-slate-500">End Time</Label>
                           <Input
                             type="time"
-                            value={standardWorkHours.split("-")[1]?.trim() || "17:00"}
-                            onChange={(e) => {
-                              const startTime = standardWorkHours.split("-")[0]?.trim() || "08:00";
-                              setStandardWorkHours(`${startTime}-${e.target.value}`);
-                            }}
+                            value={workEndTime}
+                            onChange={(e) => setWorkEndTime(e.target.value)}
                           />
                         </div>
                       </div>
@@ -895,6 +964,24 @@ export function TraceyOnboarding() {
 
                       {emergencyService && (
                         <div className="space-y-3 animate-in fade-in duration-300 pl-4 border-l-2 border-amber-300">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-slate-500">Emergency Start</Label>
+                              <Input
+                                type="time"
+                                value={emergencyStartTime}
+                                onChange={(e) => setEmergencyStartTime(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-slate-500">Emergency End</Label>
+                              <Input
+                                type="time"
+                                value={emergencyEndTime}
+                                onChange={(e) => setEmergencyEndTime(e.target.value)}
+                              />
+                            </div>
+                          </div>
                           <div className="space-y-1.5">
                             <Label>Emergency Surcharge (AUD)</Label>
                             <Input
@@ -1040,7 +1127,7 @@ export function TraceyOnboarding() {
                               <span className="font-semibold text-sm">Connect Seamlessly</span>
                               <Badge variant="secondary" className="text-[10px]">Recommended</Badge>
                             </div>
-                            <p className="text-xs text-slate-500 mt-0.5">Connect your Gmail or Outlook directly via OAuth for instant lead capture</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Connect your Gmail or Outlook directly for instant lead capture</p>
                           </div>
                         </div>
                       </button>
@@ -1068,14 +1155,44 @@ export function TraceyOnboarding() {
                     </div>
 
                     {inboxConnectionType === "oauth" && (
-                      <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4">
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                          After onboarding, you&apos;ll be able to connect your Gmail or Outlook account directly. Tracey will monitor for new leads automatically.
+                      <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Connect your email account so Tracey can start monitoring for new leads immediately.
                         </p>
-                        <Button variant="outline" size="sm" className="gap-2" disabled>
-                          <Globe className="h-4 w-4" />
-                          Connect after onboarding
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/auth/email-provider?provider=gmail")
+                                const data = await res.json()
+                                if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
+                                else toast.error("Failed to start Gmail connection")
+                              } catch { toast.error("Failed to connect Gmail") }
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                            Connect Gmail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/auth/email-provider?provider=outlook")
+                                const data = await res.json()
+                                if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
+                                else toast.error("Failed to start Outlook connection")
+                              } catch { toast.error("Failed to connect Outlook") }
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                            Connect Outlook
+                          </Button>
+                        </div>
                       </div>
                     )}
 
@@ -1285,7 +1402,16 @@ export function TraceyOnboarding() {
                           {/* Customer message */}
                           <div className="flex items-start gap-2 justify-end">
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg rounded-tr-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode)[SCENARIO_STEPS[simStep]].customer}
+                              {getScenarioDialogue(simMode, {
+                                businessName,
+                                tradeType,
+                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                priceRange: (() => {
+                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                })(),
+                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                              })[SCENARIO_STEPS[simStep]].customer}
                             </div>
                             <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
                               <User className="h-3.5 w-3.5 text-blue-600" />
@@ -1298,7 +1424,16 @@ export function TraceyOnboarding() {
                               <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
                             </div>
                             <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode)[SCENARIO_STEPS[simStep]].tracey}
+                              {getScenarioDialogue(simMode, {
+                                businessName,
+                                tradeType,
+                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                priceRange: (() => {
+                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                })(),
+                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                              })[SCENARIO_STEPS[simStep]].tracey}
                             </div>
                           </div>
                         </motion.div>

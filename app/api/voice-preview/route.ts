@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const CARTESIA_API_URL = "https://api.cartesia.ai/tts/bytes";
-const CARTESIA_MODEL = "sonic-2024-10-01";
+const CARTESIA_MODEL = "sonic-3";
 
 const ALLOWED_VOICE_IDS = new Set([
   "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "X-API-Key": apiKey,
-        "Cartesia-Version": "2024-06-10",
+        "Cartesia-Version": "2025-04-16",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

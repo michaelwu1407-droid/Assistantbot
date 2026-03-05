@@ -17,6 +17,8 @@ export interface ScrapeResult {
   email?: string;
   address?: string;
   tradeType?: string;
+  emergencyAvailable?: boolean;
+  emergencyHours?: string;
 }
 
 // Helper to clean up strings
@@ -105,6 +107,9 @@ export async function scrapeWebsite(
 
 10. "rawSummary": A 2-sentence summary of what this business does.
 
+11. "emergencyAvailable": boolean — true if the business mentions emergency, after-hours, or 24/7 callout services
+12. "emergencyHours": string|null — the listed emergency/after-hours availability (e.g. "24/7", "After 5pm weekdays and weekends")
+
 Return ONLY valid JSON. No markdown, no code fences.`,
       prompt: `Extract business intelligence from this website content:\n\n${textContent}`,
     });
@@ -153,6 +158,8 @@ Return ONLY valid JSON. No markdown, no code fences.`,
         email: sanitizeString(parsed.email),
         address: sanitizeString(parsed.address),
         tradeType: sanitizeString(parsed.tradeType),
+        emergencyAvailable: !!parsed.emergencyAvailable,
+        emergencyHours: sanitizeString(parsed.emergencyHours),
       },
     };
   } catch (err) {

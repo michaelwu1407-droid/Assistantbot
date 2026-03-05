@@ -63,6 +63,13 @@ const HIRE_FEATURES = [
         bg: "bg-violet-50",
         color: "text-violet-500",
     },
+    {
+        title: "Total control",
+        desc: "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
+        icon: Users,
+        bg: "bg-slate-50",
+        color: "text-slate-600",
+    },
 ];
 
 const FEATURE_CARDS = [
