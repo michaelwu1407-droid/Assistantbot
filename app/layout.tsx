@@ -20,6 +20,7 @@ const fontSans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+// Updated favicon and logo assets - v3
 export const metadata: Metadata = {
   title: "Earlymark — CRM for SMEs",
   description: "High-velocity CRM platform with Hub and Spoke architecture",
