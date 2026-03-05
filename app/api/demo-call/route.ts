@@ -64,9 +64,14 @@ export async function POST(req: NextRequest) {
   try {
     // Convert wss:// URL to https:// for the API client
     const httpUrl = LIVEKIT_URL.replace("wss://", "https://");
+    console.log("[demo-call] Using LiveKit URL:", httpUrl);
+    console.log("[demo-call] API Key present:", !!LIVEKIT_API_KEY);
+    console.log("[demo-call] API Secret present:", !!LIVEKIT_API_SECRET);
+    
     const sipClient = new SipClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
     const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log("[demo-call] Creating room:", roomName);
 
     // Create the room first - SIP participant needs an existing room
     const roomClient = new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
       emptyTimeout: 300, // 5 minutes
       maxParticipants: 2,
     });
-    console.log("[demo-call] Room created:", roomName);
+    console.log("[demo-call] Room created successfully:", roomName);
 
     // Create outbound SIP participant — this dials the prospect's phone
     // and connects them into the LiveKit room where the agent will join
