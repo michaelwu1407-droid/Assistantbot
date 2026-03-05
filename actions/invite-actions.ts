@@ -65,18 +65,18 @@ export async function createInvite(params: {
             select: { name: true },
           });
 
-          const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pj-buddy.com'}/invite/join?token=${invite.token}`;
+          const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://earlymark.ai'}/invite/join?token=${invite.token}`;
 
           await resend.emails.send({
-            from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'pj-buddy.com'}`,
+            from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'earlymark.ai'}`,
             to: [params.email],
-            subject: `You're invited to join ${workspace?.name || 'Pj Buddy'}`,
+            subject: `You're invited to join ${workspace?.name || 'Earlymark'}`,
             html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
               <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                 <h2 style="color: #1e293b; margin-bottom: 8px;">You're Invited!</h2>
                 <p style="color: #475569; margin-bottom: 20px;">
-                  You've been invited to join <strong>${workspace?.name || 'Pj Buddy'}</strong> as a ${params.role.toLowerCase().replace('_', ' ')}.
+                  You've been invited to join <strong>${workspace?.name || 'Earlymark'}</strong> as a ${params.role.toLowerCase().replace('_', ' ')}.
                 </p>
                 <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
                   <p style="color: #64748b; margin: 0 0 10px 0;">Click the link below to accept the invitation:</p>

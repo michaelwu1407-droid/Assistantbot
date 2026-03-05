@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "X-API-Key": apiKey,
-        "Cartesia-Version": "2025-04-16",
+        "Cartesia-Version": "2024-06-10",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         language: "en",
         output_format: {
           container: "mp3",
+          encoding: "mp3",
           bit_rate: 128000,
           sample_rate: 44100,
         },

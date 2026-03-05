@@ -34,6 +34,9 @@ import {
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
 import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
+import { createInvite } from "@/actions/invite-actions"
+import { createClient } from "@/lib/supabase/client"
+import { PlacesAutocomplete } from "@/components/ui/places-autocomplete"
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -273,7 +276,6 @@ const STEPS = [
   { label: "Business Review", icon: Building2 },
   { label: "Email Setup", icon: Mail },
   { label: "Services & Pricing", icon: MessageSquare },
-  { label: "Try Tracey", icon: Play },
   { label: "Go Live", icon: Send },
 ]
 
@@ -288,6 +290,19 @@ export function TraceyOnboarding() {
   const [email, setEmail] = useState("")
   const [businessName, setBusinessName] = useState("")
   const [websiteUrl, setWebsiteUrl] = useState("")
+
+  // Auth autofill: read Supabase session on mount
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        if (user.email && !email) setEmail(user.email)
+        if (user.phone && !phone) setPhone(user.phone)
+        const nameFromMetadata = user.user_metadata?.name
+        if (nameFromMetadata && !ownerName) setOwnerName(nameFromMetadata)
+      }
+    })
+  }, [])
 
   // Background scrape state
   const [scraping, setScraping] = useState(false)
@@ -381,8 +396,9 @@ export function TraceyOnboarding() {
     }
   }, [playingVoiceId, stopVoicePreview])
 
-  // Step 6: Provisioning
+  // Step 5: Provisioning
   const [referralSource, setReferralSource] = useState("")
+  const [teamMemberEmails, setTeamMemberEmails] = useState("")
   const [provisionResult, setProvisionResult] = useState<{
     phoneNumber?: string
     leadsEmail?: string
@@ -475,10 +491,15 @@ export function TraceyOnboarding() {
     }
   }, [step, preGenLeadsEmail, ownerName, businessName])
 
-  // Eagerly provision phone number when entering step 6 (Go Live)
+  // Eagerly provision phone number when entering step 5 (Go Live)
   useEffect(() => {
-    if (step === 6 && !eagerPhoneNumber && !eagerProvisioningLoading && businessName && phone) {
+    if (step === 5 && !eagerPhoneNumber && !eagerProvisioningLoading && businessName && phone) {
       setEagerProvisioningLoading(true)
+      const timeoutId = setTimeout(() => {
+        // Timeout fallback: stop loading after 8 seconds even if no number
+        setEagerProvisioningLoading(false)
+      }, 8000)
+      
       // Call the setup-comms API to provision phone number
       fetch("/api/workspace/setup-comms", {
         method: "POST",
@@ -487,11 +508,14 @@ export function TraceyOnboarding() {
       })
         .then((res) => res.json())
         .then((data) => {
+          clearTimeout(timeoutId)
           if (data.result?.phoneNumber) {
             setEagerPhoneNumber(data.result.phoneNumber)
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          console.error("[onboarding] Phone provisioning failed:", err)
           // Silent fail - provisioning will be retried on activate
         })
         .finally(() => setEagerProvisioningLoading(false))
@@ -507,7 +531,6 @@ export function TraceyOnboarding() {
       case 2: return tradeType !== "" && baseSuburb.trim() !== ""
       case 3: return true
       case 4: return true
-      case 5: return true
       default: return false
     }
   }
@@ -604,6 +627,21 @@ export function TraceyOnboarding() {
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
+      // Send invites to team members if any
+      if (teamMemberEmails.trim()) {
+        const emails = teamMemberEmails.split(/[;\n,]/).map(e => e.trim()).filter(e => e.length > 0)
+        for (const email of emails) {
+          if (email.includes('@')) {
+            try {
+              await createInvite({ role: "TEAM_MEMBER", email })
+            } catch (inviteErr) {
+              console.error(`Failed to invite ${email}:`, inviteErr)
+              // Continue with other invites even if one fails
+            }
+          }
+        }
+      }
+
       const data: TraceyOnboardingData = {
         ownerName,
         phone,
@@ -811,6 +849,120 @@ export function TraceyOnboarding() {
 
                     {/* Tracey Feedback for selected mode */}
                     <TraceyBubble text={MODE_DESCRIPTIONS[agentMode].traceyLine} />
+
+                    {/* Scenario Simulator - shows how Tracey handles calls in each mode */}
+                    <div className="border-t pt-5 mt-4 space-y-4">
+                      <TraceyBubble text="Here's a sneak peek at how I'll handle a real customer call. Switch between modes to see the difference!" />
+
+                      {/* Mode Switcher for Simulator */}
+                      <div className="flex gap-2 justify-center">
+                        {(Object.keys(MODE_DESCRIPTIONS) as AgentMode[]).map((mode) => {
+                          const { title, icon: ModeIcon } = MODE_DESCRIPTIONS[mode]
+                          return (
+                            <button
+                              key={mode}
+                              onClick={() => { setSimMode(mode); setSimStep(0) }}
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${simMode === mode
+                                  ? "bg-emerald-600 text-white shadow"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                                }`}
+                            >
+                              <ModeIcon className="h-3.5 w-3.5" />
+                              {title}
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* Scenario Steps */}
+                      <div className="flex gap-1 justify-center mb-2">
+                        {SCENARIO_STEPS.map((label, i) => (
+                          <button
+                            key={label}
+                            onClick={() => setSimStep(i)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${simStep === i
+                                ? "bg-emerald-600 text-white"
+                                : i < simStep
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                  : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                              }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Conversation Display */}
+                      <div className="rounded-xl border bg-white dark:bg-slate-900 p-4 space-y-4 min-h-[160px]">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={`${simMode}-${simStep}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="space-y-3"
+                          >
+                            {/* Customer message */}
+                            <div className="flex items-start gap-2 justify-end">
+                              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg rounded-tr-none px-3 py-2 text-sm max-w-[80%]">
+                                {getScenarioDialogue(simMode, {
+                                  businessName,
+                                  tradeType,
+                                  serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                  priceRange: (() => {
+                                    const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                    return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                  })(),
+                                  callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                                })[SCENARIO_STEPS[simStep]].customer}
+                              </div>
+                              <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
+                                <User className="h-3.5 w-3.5 text-blue-600" />
+                              </div>
+                            </div>
+
+                            {/* Tracey response */}
+                            <div className="flex items-start gap-2">
+                              <div className="shrink-0 w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+                                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                              </div>
+                              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-3 py-2 text-sm max-w-[80%]">
+                                {getScenarioDialogue(simMode, {
+                                  businessName,
+                                  tradeType,
+                                  serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                  priceRange: (() => {
+                                    const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                    return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                  })(),
+                                  callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                                })[SCENARIO_STEPS[simStep]].tracey}
+                              </div>
+                            </div>
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Scenario Navigation */}
+                      <div className="flex justify-between">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSimStep(Math.max(0, simStep - 1))}
+                          disabled={simStep === 0}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSimStep(Math.min(SCENARIO_STEPS.length - 1, simStep + 1))}
+                          disabled={simStep === SCENARIO_STEPS.length - 1}
+                        >
+                          Next <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -865,10 +1017,10 @@ export function TraceyOnboarding() {
                         </div>
                         <div className="space-y-1.5">
                           <Label>Physical Address</Label>
-                          <Input
-                            placeholder="123 Trade St, Suburb"
+                          <PlacesAutocomplete
                             value={physicalAddress}
-                            onChange={(e) => setPhysicalAddress(e.target.value)}
+                            onChange={setPhysicalAddress}
+                            placeholder="123 Trade St, Suburb"
                           />
                         </div>
                       </div>
@@ -1340,180 +1492,26 @@ export function TraceyOnboarding() {
                   </div>
                 )}
 
-                {/* ──── STEP 6: Interactive Scenario Simulator ──── */}
+                {/* ──── STEP 5: Provisioning & Closing ──── */}
                 {step === 5 && (
-                  <div className="space-y-5">
-                    <TraceyBubble text="Here's a sneak peek at how I'll handle a real customer call. Switch between modes to see the difference!" />
-
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="text-xs text-slate-400 flex items-center gap-1 cursor-help">
-                            <Info className="h-3 w-3" /> You can change how I respond or teach me new things anytime in Settings.
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs text-xs">After onboarding, go to Settings &gt; AI Preferences to fine-tune Tracey&apos;s behaviour, voice, and rules.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    {/* Mode Switcher */}
-                    <div className="flex gap-2 justify-center">
-                      {(Object.keys(MODE_DESCRIPTIONS) as AgentMode[]).map((mode) => {
-                        const { title, icon: ModeIcon } = MODE_DESCRIPTIONS[mode]
-                        return (
-                          <button
-                            key={mode}
-                            onClick={() => { setSimMode(mode); setSimStep(0) }}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${simMode === mode
-                                ? "bg-emerald-600 text-white shadow"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
-                              }`}
-                          >
-                            <ModeIcon className="h-3.5 w-3.5" />
-                            {title}
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    {/* Scenario Steps */}
-                    <div className="flex gap-1 justify-center mb-2">
-                      {SCENARIO_STEPS.map((label, i) => (
-                        <button
-                          key={label}
-                          onClick={() => setSimStep(i)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${simStep === i
-                              ? "bg-emerald-600 text-white"
-                              : i < simStep
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                            }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Conversation Display */}
-                    <div className="rounded-xl border bg-white dark:bg-slate-900 p-4 space-y-4 min-h-[200px]">
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={`${simMode}-${simStep}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="space-y-3"
-                        >
-                          {/* Customer message */}
-                          <div className="flex items-start gap-2 justify-end">
-                            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg rounded-tr-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode, {
-                                businessName,
-                                tradeType,
-                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
-                                priceRange: (() => {
-                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
-                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
-                                })(),
-                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
-                              })[SCENARIO_STEPS[simStep]].customer}
-                            </div>
-                            <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                              <User className="h-3.5 w-3.5 text-blue-600" />
-                            </div>
-                          </div>
-
-                          {/* Tracey response */}
-                          <div className="flex items-start gap-2">
-                            <div className="shrink-0 w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                            </div>
-                            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode, {
-                                businessName,
-                                tradeType,
-                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
-                                priceRange: (() => {
-                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
-                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
-                                })(),
-                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
-                              })[SCENARIO_STEPS[simStep]].tracey}
-                            </div>
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Scenario Navigation */}
-                    <div className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSimStep(Math.max(0, simStep - 1))}
-                        disabled={simStep === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Prev
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSimStep(Math.min(SCENARIO_STEPS.length - 1, simStep + 1))}
-                        disabled={simStep === SCENARIO_STEPS.length - 1}
-                      >
-                        Next <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-
-                    {/* Voice Selector */}
-                    <div className="space-y-2 border-t pt-4">
-                      <Label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase">
-                        <Volume2 className="h-3.5 w-3.5" /> Tracey&apos;s Voice
-                      </Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {TRACEY_VOICES.map((voice) => (
-                          <button
-                            key={voice.id}
-                            onClick={() => setSelectedVoice(voice.id)}
-                            className={`p-3 rounded-lg border text-left transition-all ${selectedVoice === voice.id
-                                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                              }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium">{voice.label}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                disabled={loadingVoiceId === voice.id}
-                                onClick={(e) => { e.stopPropagation(); playVoicePreview(voice.id) }}
-                              >
-                                {loadingVoiceId === voice.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : playingVoiceId === voice.id ? (
-                                  <Square className="h-3 w-3" />
-                                ) : (
-                                  <Play className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{voice.description}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ──── STEP 7: Provisioning & Closing ──── */}
-                {step === 6 && (
                   <div className="space-y-5">
                     {!provisionResult ? (
                       <>
                         <TraceyBubble text="Almost there! One quick question before I go live..." />
+
+                        {/* Team Members Field */}
+                        <div className="space-y-1.5">
+                          <Label className="flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5" /> Add Team Members (optional)
+                          </Label>
+                          <Textarea
+                            placeholder="jane@biz.com; john@biz.com"
+                            value={teamMemberEmails}
+                            onChange={(e) => setTeamMemberEmails(e.target.value)}
+                            rows={2}
+                          />
+                          <p className="text-xs text-slate-500">Enter email addresses separated by semicolons (;). They&apos;ll receive an invite to join your workspace.</p>
+                        </div>
 
                         <div className="space-y-1.5">
                           <Label>How did you hear about us?</Label>
@@ -1542,14 +1540,14 @@ export function TraceyOnboarding() {
                                 {eagerProvisioningLoading ? (
                                   <span className="flex items-center gap-2">
                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                    Provisioning your dedicated AU phone number...
+                                    Provisioning your dedicated phone number...
                                   </span>
                                 ) : eagerPhoneNumber ? (
                                   <span>
-                                    Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{eagerPhoneNumber}</strong>
+                                    Your dedicated phone number: <strong className="text-emerald-600 font-mono">{eagerPhoneNumber}</strong>
                                   </span>
                                 ) : (
-                                  "Tracey's dedicated AU phone number will be provisioned instantly"
+                                  "Tracey's dedicated phone number will be provisioned instantly"
                                 )}
                               </span>
                             </li>
@@ -1626,7 +1624,7 @@ export function TraceyOnboarding() {
                 )}
 
                 {/* ──── Navigation ──── */}
-                {step < 6 && (
+                {step < 5 && (
                   <div className="flex justify-between pt-6">
                     {step > 0 ? (
                       <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
@@ -1644,7 +1642,7 @@ export function TraceyOnboarding() {
                     </Button>
                   </div>
                 )}
-                {step === 6 && !provisionResult && (
+                {step === 5 && !provisionResult && (
                   <div className="pt-2">
                     <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
                       <ChevronLeft className="h-4 w-4" /> Back
