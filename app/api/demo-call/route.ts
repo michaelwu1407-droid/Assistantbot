@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       {
         participantName: firstName,
         participantIdentity: `demo-caller-${normalizedPhone}`,
-        roomMetadata: JSON.stringify({
+        metadata: JSON.stringify({
           callType: "demo",
           callerName: firstName,
           businessName: businessName,
