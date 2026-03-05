@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
 export function Navbar() {
@@ -9,7 +10,7 @@ export function Navbar() {
             {/* Brand */}
             <Link href="/" className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center">
-                    <img src="/latest-logo.png?v=20250305-1" alt="Earlymark" className="h-9 w-9 object-contain" />
+                    <Image src="/latest-logo.png?v=4" alt="Earlymark Logo" width={32} height={32} className="rounded-lg" />
                 </div>
                 <span className="text-lg font-bold tracking-tight text-midnight">Earlymark</span>
             </Link>

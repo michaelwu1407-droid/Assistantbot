@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
@@ -87,7 +88,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
             <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
-                    <img src="/latest-logo.png?v=20250305-1" alt="Earlymark" className="h-9 w-9 object-contain transition-all hover:scale-105 active:scale-95" />
+                    <Image src="/latest-logo.png?v=4" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" />
                 </div>
 
                 {/* Mode Toggle (Advanced/Chat) */}

@@ -20,16 +20,16 @@ const fontSans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-// Updated favicon and logo assets - v3
+// Updated favicon and logo assets - EA logo v4
 export const metadata: Metadata = {
   title: "Earlymark — CRM for SMEs",
   description: "High-velocity CRM platform with Hub and Spoke architecture",
   icons: {
     icon: [
-      { url: "/favicon.ico?v=3", sizes: "any" },
-      { url: "/latest-logo.png?v=3", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico?v=4", sizes: "any" },
+      { url: "/latest-logo.png?v=4", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/latest-logo.png?v=3",
+    apple: "/latest-logo.png?v=4",
   },
 };
 
