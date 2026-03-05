@@ -49,6 +49,20 @@ lint_errors.txt
 # vercel
 .vercel
 
+# Server scripts with secrets (keep local)
+setup-inbound-sip.mjs
+restart-agent.sh
+start-agent.sh
+start-agent-local.sh
+deploy-agent.sh
+setup-agent-service.sh
+
+# Debug/test scripts (low value)
+check-sip-trunk.mjs
+fix-sip-trunk.mjs
+fix-network.sh
+test-sip-call.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

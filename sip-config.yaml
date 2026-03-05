@@ -1,0 +1,10 @@
+api_key: APIAooiVTvuVU3w
+api_secret: hFjFKVYTm4C25HipisQUPw7TmY4u1xcTrjRsEDwPP5E
+ws_url: wss://live.earlymark.ai
+redis:
+  address: 127.0.0.1:6379
+sip_port: 5060
+rtp_port: 10000-20000
+use_external_ip: true
+logging:
+  level: debug

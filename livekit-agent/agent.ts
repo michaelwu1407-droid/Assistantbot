@@ -219,8 +219,11 @@ export default defineAgent({
       baseURL: 'https://api.deepinfra.com/v1/openai',
     });
 
+    const dgKey = process.env.DEEPGRAM_API_KEY || '';
+    console.log(`[agent] Deepgram key length: ${dgKey.length}`);
     const stt = new deepgram.STT({
       model: 'nova-3',
+      apiKey: dgKey,
     });
 
     const tts = new cartesia.TTS({
@@ -272,6 +275,7 @@ export default defineAgent({
     console.log(`${logPrefix}   timers: wrap-up ${isEarlymarkCall ? '3' : '8'}min / hard cap ${isEarlymarkCall ? '5' : '10'}min`);
     console.log(`${logPrefix}   model:  ${llmModel}`);
     console.log(`${logPrefix}   caller: ${callerFirstName || 'unknown'} | biz: ${callerBusiness || 'unknown'}`);
+    console.log(`${logPrefix}   env:    DEEPGRAM=${process.env.DEEPGRAM_API_KEY ? 'SET' : 'MISSING'} CARTESIA=${process.env.CARTESIA_API_KEY ? 'SET' : 'MISSING'} DEEPINFRA=${process.env.DEEPINFRA_API_KEY ? 'SET' : 'MISSING'}`);
     console.log(`${logPrefix} ════════════════════════════════════════════════`);
 
     // Inject caller info directly into system prompt so LLM has full context
@@ -283,8 +287,8 @@ export default defineAgent({
 
     if (callType === 'demo') {
       systemPrompt += callerFirstName
-        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}. Your opening MUST follow this exact script:\n1. "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?"\n2. Wait for them to confirm, then say: "Hi ${callerFirstName}, my name is Tracey and I'm calling from Earlymark AI."\n3. Then say: "I understand you're interested in our AI assistant and CRM services, is that right?"\n4. Wait for their response. If they confirm, offer to demo what you can do for their business or pitch why they should choose Earlymark.`
-        : `\n\nNOTE: Caller name unknown. Open with: "Hi there, my name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then wait for their response.`;
+        ? `\n\nIMPORTANT — OPENING: Say exactly this and nothing else: "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}? My name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then STOP and wait for them to respond. Do NOT call any tools yet.`
+        : `\n\nIMPORTANT — OPENING: Say exactly: "Hi there, my name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then STOP and wait. Do NOT call any tools yet.`;
     }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
@@ -314,7 +318,7 @@ export default defineAgent({
     // Also subscribe to any tracks that were published before we registered the listener
     for (const [, rp] of ctx.room.remoteParticipants) {
       for (const [, pub] of rp.trackPublications) {
-        if (!pub.isSubscribed) {
+        if (!(pub as any).subscribed) {
           console.log(`${logPrefix} [TRACK] late-subscribing: kind=${pub.kind} participant=${rp.identity}`);
           try { (pub as any).setSubscribed(true); } catch { /* ignore */ }
         }
@@ -376,7 +380,7 @@ export default defineAgent({
 
     // ── Initial greeting ────────────────────────────────────────────
     // Use userInput to trigger LLM — more reliable than instructions for small models
-    await session.generateReply({ userInput: '[The phone is ringing and has been answered. Follow your opening script exactly, starting with line 1.]' });
+    await session.generateReply({ userInput: '[Call connected. Say your opening line. Do NOT call any tools.]' });
     console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
