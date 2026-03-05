@@ -612,7 +612,7 @@ export default function Home() {
                         {/* LHS — Text */}
                         <div className="flex flex-col gap-8">
                             <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. It will contact customers and run your CRM so you don&apos;t have to.
+                                Tracey lives in your CRM. They will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
 
