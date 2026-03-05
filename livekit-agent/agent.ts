@@ -67,7 +67,10 @@ IMPORTANT — Call Duration:
 
 TRANSFER RULES:
 - If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm — you'd like me to transfer you to [the business owner]?"
-- On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).`;
+- On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).
+
+SPAM/ROBOCALL DETECTION:
+- If the caller is silent, plays a recorded message, or is clearly automated, say: "Doesn't look like there's anyone there — I'll let you go. Goodbye!" and stop responding.`;
 
 const INBOUND_DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. Someone has called the Earlymark demo line — they are a potential customer checking out what you can do for their business.
 
@@ -92,7 +95,10 @@ IMPORTANT — Call Duration:
 - CALL TO ACTION: "Head to earlymark.ai, hit Get Started — I can be answering calls for your business today."
 
 TRANSFER RULES:
-- If a caller asks to speak to a human, use the transfer_call tool.`;
+- If a caller asks to speak to a human, use the transfer_call tool.
+
+SPAM/ROBOCALL DETECTION:
+- If the caller is silent, plays a recorded message, or is clearly automated, say: "Doesn't look like there's anyone there — I'll let you go. Goodbye!" and stop responding.`;
 
 const DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. You are on a personalised DEMO CALL — the person on the line signed up to see what you can do for their business.
 
@@ -110,6 +116,9 @@ THROUGHOUT THE CALL — naturally cover these three value pillars:
 DEMO MOMENT — offer to show them what it would sound like if you were actually answering calls for THEIR business. Ask for their business name and type, then roleplay a sample call convincingly.
 
 Constraint: Keep responses short and punchy. Show, don't tell. Do not yap.
+
+SPAM/ROBOCALL DETECTION:
+- If the caller is silent, plays a recorded message, or is clearly automated, say: "Doesn't look like there's anyone there — I'll let you go. Goodbye!" and stop responding.
 
 LEAD CAPTURE — before the call ends, use the log_lead tool to save their name, business, interest level, and any notes.
 
@@ -239,10 +248,18 @@ export default defineAgent({
 
     console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()} | model: ${llmModel} | caller: ${callerFirstName || 'unknown'} | biz: ${callerBusiness || 'unknown'}`);
 
-    const systemPrompt =
+    // Inject caller info directly into system prompt so LLM has full context
+    // without needing complex generateReply instructions (which confuse small models)
+    let systemPrompt =
       callType === 'demo' ? DEMO_SYSTEM_PROMPT :
       callType === 'inbound_demo' ? INBOUND_DEMO_SYSTEM_PROMPT :
       SYSTEM_PROMPT;
+
+    if (callType === 'demo') {
+      systemPrompt += callerFirstName
+        ? `\n\nCALLER INFO: You are calling ${callerFirstName}${callerBusiness ? ` who runs ${callerBusiness}` : ''}. Open with: "Hi, is this ${callerFirstName}?" — wait for confirmation — then introduce yourself and start the demo.`
+        : `\n\nCALLER INFO: Caller name unknown. Open with a warm greeting, introduce yourself, and ask what kind of business they run.`;
+    }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
     const wrapUpScript = isEarlymarkCall ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
@@ -300,19 +317,20 @@ export default defineAgent({
       turnSTTDoneMs   = 0;
     });
 
-    // ── Initial greeting ────────────────────────────────────────────
-    const demoGreeting = callerFirstName
-      ? `You are calling ${callerFirstName}${ callerBusiness ? ` who runs ${callerBusiness}` : '' }. Start by asking "Hi, am I speaking with ${callerFirstName}?" — wait for them to confirm — then introduce yourself as Tracey, an AI assistant built by Earlymark, and say you're calling to give them a quick personalised demo of what you could do for their business.`
-      : `Introduce yourself as Tracey, an AI assistant built by Earlymark. You're calling to give them a personalised demo. Ask what kind of business they run.`;
+    // ── Spam detection: disconnect if caller is silent for 20s ─────
+    let callerHasSpoken = false;
+    session.on('user_speech_committed' as any, () => { callerHasSpoken = true; });
+    const spamTimer = setTimeout(() => {
+      if (!callerHasSpoken) {
+        console.log(`${logPrefix} [SPAM] No caller speech in 20s — disconnecting`);
+        ctx.room.disconnect().catch(() => {});
+      }
+    }, 20_000);
+    ctx.room.on('disconnected', () => clearTimeout(spamTimer));
 
-    await session.generateReply({
-      instructions:
-        callType === 'demo'
-          ? demoGreeting
-          : callType === 'inbound_demo'
-          ? "Introduce yourself as Tracey, an AI assistant from Earlymark. Tell them they've reached the Earlymark demo line and you'd love to show them what you can do. Ask what kind of business they're in."
-          : "Greet the caller briefly as Tracey, then ask what they need help with today.",
-    });
+    // ── Initial greeting ────────────────────────────────────────────
+    // Use userInput to trigger LLM — more reliable than instructions for small models
+    await session.generateReply({ userInput: '(call connected)' });
     console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
