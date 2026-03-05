@@ -1,16 +1,27 @@
 /**
  * Earlymark LiveKit Voice Agent (TypeScript / Node SDK)
  * =====================================================
- * Canonical stack:
- *   STT  -> Deepgram Nova-3
- *   LLM  -> Groq Llama 3.3 70B (OpenAI-compatible endpoint)
- *   TTS  -> Cartesia Sonic 3
- *   Voice ID -> a4a16c5e-5902-4732-b9b6-2a48efd2e11b
+ * TWO VERSIONS OF TRACEY:
  *
- * Features:
- *   - 8-min wrap-up warning + 10-min hard disconnect
- *   - Human handoff tool (on-clock → Twilio dial, off-clock → urgent CRM flag)
+ *   TRACEY_USER     (callType: normal)
+ *   → Acts as receptionist for a paying Earlymark customer's business
+ *   → 8-min wrap-up, 10-min hard cap
+ *
+ *   TRACEY_EARLYMARK (callType: demo | inbound_demo)
+ *   → Acts as Earlymark's own AI sales agent
+ *   → Pitches Earlymark, captures leads, gives CTA
+ *   → 3-min wrap-up, 5-min hard cap
+ *
+ * Stack:
+ *   STT  -> Deepgram Nova-3
+ *   LLM  -> DeepInfra (default: Llama 3.1 8B for low latency; override via VOICE_LLM_MODEL)
+ *   TTS  -> Cartesia Sonic 3
+ *
+ * Latency notes:
+ *   - 8B model chosen for voice (TTFT ~200-400ms vs 1-2s for 70B)
+ *   - Set VOICE_LLM_MODEL=meta-llama/Llama-3.3-70B-Instruct to use 70B if quality needed
  */
+
 
 import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv';
@@ -172,7 +183,8 @@ export default defineAgent({
       },
     });
 
-    const llmModel = process.env.VOICE_LLM_MODEL || 'meta-llama/Llama-3.3-70B-Instruct';
+    // 8B model default = ~200-400ms TTFT vs 1-2s for 70B — critical for voice latency
+    const llmModel = process.env.VOICE_LLM_MODEL || 'meta-llama/Meta-Llama-3.1-8B-Instruct';
     const llm = new openai.LLM({
       model: llmModel,
       apiKey: process.env.DEEPINFRA_API_KEY,
@@ -181,6 +193,10 @@ export default defineAgent({
 
     const stt = new deepgram.STT({
       model: 'nova-3',
+      language: 'en-AU',
+      smartFormat: false,
+      interim_results: true,
+      endpointing: 300,
     });
 
     const tts = new cartesia.TTS({
@@ -212,16 +228,20 @@ export default defineAgent({
       } catch { /* ignore */ }
     }
 
-    const isDemo = callType === 'demo';
-    console.log(`[agent] Call type: ${callType.toUpperCase()}`);
+    // TRACEY_EARLYMARK = demo OR inbound_demo (Earlymark's own calls, 5-min cap)
+    // TRACEY_USER      = normal (provisioned for a paying customer, 10-min cap)
+    const isEarlymarkCall = callType === 'demo' || callType === 'inbound_demo';
+    const logPrefix = isEarlymarkCall ? '[TRACEY_EARLYMARK]' : '[TRACEY_USER]';
+
+    console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()} | model: ${llmModel}`);
 
     const systemPrompt =
       callType === 'demo' ? DEMO_SYSTEM_PROMPT :
       callType === 'inbound_demo' ? INBOUND_DEMO_SYSTEM_PROMPT :
       SYSTEM_PROMPT;
-    const wrapUpMs = isDemo ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
-    const hardCutMs = isDemo ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
-    const wrapUpScript = isDemo ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
+    const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
+    const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
+    const wrapUpScript = isEarlymarkCall ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
 
     const agent = new voice.Agent({
       instructions: systemPrompt,
@@ -254,7 +274,7 @@ export default defineAgent({
     // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {
       try {
-        console.log(`[agent] ${isDemo ? '3' : '8'}-min mark reached — triggering wrap-up`);
+        console.log(`${logPrefix} ${isEarlymarkCall ? '3' : '8'}-min mark reached — triggering wrap-up`);
         await session.generateReply({ instructions: wrapUpScript });
       } catch (err) {
         console.error('[agent] Wrap-up reply failed:', err);
@@ -264,11 +284,11 @@ export default defineAgent({
     // ── Timer: hard disconnect ──────────────────────────────────────
     const hardCutTimer = setTimeout(async () => {
       try {
-        console.log(`[agent] ${isDemo ? '5' : '10'}-min mark reached — disconnecting`);
+        console.log(`${logPrefix} ${isEarlymarkCall ? '5' : '10'}-min hard cap — disconnecting`);
         await session.generateReply({
-          instructions: isDemo
+          instructions: isEarlymarkCall
             ? "Use the log_lead tool to save their details if you haven't already, then thank them warmly and give the CTA: 'Head to earlymark.ai, hit Get Started — I can be answering calls for your business today. Early adopters get a special rate.'"
-            : "Use the log_lead tool to save their details if you haven't already, then thank them and let them know the Earlymark team will follow up soon. Give the CTA: 'If you'd like to get started today, head to earlymark.ai.'",
+            : "Thank the caller, let them know their request has been noted, and say goodbye.",
         });
         setTimeout(() => {
           ctx.room.disconnect().catch(() => { });
