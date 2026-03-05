@@ -7,6 +7,21 @@ const nextConfig = {
   },
   // Allow cross-origin requests from development proxy and fix server actions
   allowedDevOrigins: ['127.0.0.1:51280', 'localhost:3000'],
+  // Allow query strings for cache-busting on images
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    localPatterns: [
+      {
+        pathname: '/**',
+        search: '**',
+      },
+    ],
+  },
 }
 
 // Injected content via Sentry wizard below
