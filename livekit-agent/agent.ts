@@ -280,7 +280,7 @@ export default defineAgent({
 
     if (callType === 'demo') {
       systemPrompt += callerFirstName
-        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` and they run ${callerBusiness}` : ''}. Your opening line should be "Hi, is this ${callerFirstName}?" and wait for them to say yes before continuing.`
+        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}. Your opening line should be "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?" and wait for them to say yes before continuing.`
         : `\n\nNOTE: Caller name unknown. Open with a warm greeting and introduce yourself.`;
     }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
@@ -302,7 +302,14 @@ export default defineAgent({
     await session.start({
       agent,
       room: ctx.room,
-      inputOptions: { participantIdentity: participant.identity },
+    });
+
+    // ── Track diagnostic: log when caller audio arrives ──────────────
+    ctx.room.on('trackSubscribed', (track: any, pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
+    });
+    ctx.room.on('trackPublished', (pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
     });
 
     // ── Per-component latency instrumentation ────────────────────────
