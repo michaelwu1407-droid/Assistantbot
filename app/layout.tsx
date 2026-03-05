@@ -25,9 +25,10 @@ export const metadata: Metadata = {
   description: "High-velocity CRM platform with Hub and Spoke architecture",
   icons: {
     icon: [
-      { url: "/latest-logo.png?v=2", sizes: "512x512", type: "image/png" }
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/latest-logo.png?v=3", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/latest-logo.png?v=2",
+    apple: "/latest-logo.png?v=3",
   },
 };
 
