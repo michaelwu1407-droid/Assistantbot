@@ -351,9 +351,16 @@ export function TraceyOnboarding() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voiceId, text: VOICE_PREVIEW_TEXT }),
       })
-      if (!res.ok) throw new Error("TTS failed")
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errData.error || `TTS failed (${res.status})`)
+      }
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      if (!blob.size || blob.type === "application/json") {
+        throw new Error("Empty or invalid audio response")
+      }
+      const audioBlob = new Blob([blob], { type: "audio/mpeg" })
+      const url = URL.createObjectURL(audioBlob)
       const audio = new Audio(url)
       audioRef.current = audio
       audio.onended = () => {
@@ -367,8 +374,8 @@ export function TraceyOnboarding() {
       }
       await audio.play()
       setPlayingVoiceId(voiceId)
-    } catch {
-      toast.error("Voice preview unavailable")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Voice preview unavailable")
     } finally {
       setLoadingVoiceId(null)
     }
@@ -480,8 +487,8 @@ export function TraceyOnboarding() {
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data.phoneNumber) {
-            setEagerPhoneNumber(data.phoneNumber)
+          if (data.result?.phoneNumber) {
+            setEagerPhoneNumber(data.result.phoneNumber)
           }
         })
         .catch(() => {
@@ -957,7 +964,7 @@ export function TraceyOnboarding() {
                           <p className="font-medium text-sm flex items-center gap-1.5">
                             <Shield className="h-4 w-4 text-amber-500" /> Emergency hours
                           </p>
-                          <p className="text-xs text-slate-500">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
+                          <p className="text-xs text-slate-500">Tracey will notify you for approval and not accept without permission.</p>
                         </div>
                         <Switch checked={emergencyService} onCheckedChange={setEmergencyService} />
                       </div>
@@ -1217,7 +1224,7 @@ export function TraceyOnboarding() {
                           </Button>
                         </div>
                         <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2">
-                          Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.
+                          Set up auto forward or forward yourself.
                         </p>
                       </div>
                     )}

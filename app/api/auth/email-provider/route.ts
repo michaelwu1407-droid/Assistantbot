@@ -6,8 +6,8 @@ import { encrypt, decrypt } from "@/lib/encryption";
 // ─── OAuth Configuration ───────────────────────────────────────────────
 
 const GMAIL_CONFIG = {
-  clientId: process.env.GMAIL_CLIENT_ID!,
-  clientSecret: process.env.GMAIL_CLIENT_SECRET!,
+  clientId: process.env.GOOGLE_CLIENT_ID!,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
   redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/gmail/callback`,
   scopes: [
     "https://www.googleapis.com/auth/gmail.readonly",

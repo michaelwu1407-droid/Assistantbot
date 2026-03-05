@@ -24,11 +24,21 @@ loadEnv({ path: '.env.local' });
 
 // ─── Constants ──────────────────────────────────────────────────────
 
-const WRAP_UP_MS = 8 * 60 * 1000;   // 8 minutes
-const HARD_CUT_MS = 10 * 60 * 1000; // 10 minutes
+// ─── Timer configs ───────────────────────────────────────────────
+
+const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;   // 8 minutes
+const NORMAL_HARD_CUT_MS = 10 * 60 * 1000; // 10 minutes
+
+const DEMO_WRAP_UP_MS = 3 * 60 * 1000;     // 3 minutes
+const DEMO_HARD_CUT_MS = 5 * 60 * 1000;    // 5 minutes
 
 const WRAP_UP_SCRIPT =
   "Hey, just to be candid this is taking longer than expected and I'm sorry if I haven't been able to help with everything you need so far. Let me pass this on to my manager so they can better help you ASAP. Did you have anything else you wanted me to share?";
+
+const DEMO_WRAP_UP_SCRIPT =
+  "Hey I've really enjoyed chatting with you! Just so you know, I'm available right now at a special early-adopter rate — and businesses in your area are already signing up. Before I go, is there anything else you'd like to see me do?";
+
+// ─── System Prompts ──────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are Tracey, a friendly and efficient AI receptionist for a trade business. Your job is to answer the phone, take messages, and book appointments for the tradie.
 
@@ -47,6 +57,26 @@ IMPORTANT — Call Duration:
 TRANSFER RULES:
 - If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm — you'd like me to transfer you to [the business owner]?"
 - On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).`;
+
+const DEMO_SYSTEM_PROMPT = `You are Tracey, an AI receptionist made by Earlymark. You are on a DEMO CALL — the person on the line is a potential customer evaluating whether to hire you for their business.
+
+Identity: You ARE Tracey from Earlymark. You are interviewing for a job as their AI receptionist.
+
+Tone: Confident, warm, and Australian. Be impressive but not pushy.
+
+Goal: Convince the caller to sign up for Earlymark by demonstrating your capabilities. Throughout the call, naturally weave in:
+- You can answer calls 24/7, book jobs, quote prices, follow up on leads, and chase payments
+- You learn their preferences and get better over time
+- You're multilingual and can handle SMS, email, and voice
+- Businesses in their area are already signing up — they don't want to fall behind
+- There's a special early-adopter rate available right now for a limited time
+- They can set exactly how much autonomy you have — full control stays with them
+
+Constraint: Keep responses short and punchy. Show, don't tell — if they ask you to demo something, roleplay it convincingly. Do not yap.
+
+IMPORTANT — Call Duration:
+- This is a 5-minute demo call. At around 3 minutes you'll get a wrap-up instruction.
+- End with a clear call to action: "Head to earlymark.ai and sign up — I'll be ready to start taking calls for you today."`;
 
 // ─── Agent Entry ────────────────────────────────────────────────────
 
@@ -97,8 +127,33 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
+    // ── Detect demo vs normal call via room metadata ─────────────
+    let isDemo = false;
+    try {
+      const roomMeta = ctx.room.metadata;
+      if (roomMeta) {
+        const meta = JSON.parse(roomMeta);
+        isDemo = meta.callType === 'demo';
+      }
+    } catch { /* no metadata or invalid JSON — default to normal */ }
+
+    // Also check participant attributes
+    if (!isDemo) {
+      try {
+        const attrs = participant.attributes;
+        if (attrs && (attrs as any).callType === 'demo') isDemo = true;
+      } catch { /* ignore */ }
+    }
+
+    console.log(`[agent] Call type: ${isDemo ? 'DEMO' : 'NORMAL'}`);
+
+    const systemPrompt = isDemo ? DEMO_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const wrapUpMs = isDemo ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
+    const hardCutMs = isDemo ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
+    const wrapUpScript = isDemo ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
+
     const agent = new voice.Agent({
-      instructions: SYSTEM_PROMPT,
+      instructions: systemPrompt,
       stt,
       llm,
       tts,
@@ -113,28 +168,30 @@ export default defineAgent({
 
     // ── Initial greeting ────────────────────────────────────────────
     await session.generateReply({
-      instructions:
-        "Greet the caller briefly as Tracey, then ask what they need help with today.",
+      instructions: isDemo
+        ? "Introduce yourself as Tracey from Earlymark. You're here to show the caller what you can do for their business. Be confident and warm."
+        : "Greet the caller briefly as Tracey, then ask what they need help with today.",
     });
 
-    // ── Timer: 8-min wrap-up ────────────────────────────────────────
+    // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {
       try {
-        console.log('[agent] 8-min mark reached — triggering wrap-up');
-        await session.generateReply({ instructions: WRAP_UP_SCRIPT });
+        console.log(`[agent] ${isDemo ? '3' : '8'}-min mark reached — triggering wrap-up`);
+        await session.generateReply({ instructions: wrapUpScript });
       } catch (err) {
         console.error('[agent] Wrap-up reply failed:', err);
       }
-    }, WRAP_UP_MS);
+    }, wrapUpMs);
 
-    // ── Timer: 10-min hard disconnect ───────────────────────────────
+    // ── Timer: hard disconnect ──────────────────────────────────────
     const hardCutTimer = setTimeout(async () => {
       try {
-        console.log('[agent] 10-min mark reached — disconnecting');
+        console.log(`[agent] ${isDemo ? '5' : '10'}-min mark reached — disconnecting`);
         await session.generateReply({
-          instructions: "Thank the caller for their time, let them know their message will be passed on, and say goodbye.",
+          instructions: isDemo
+            ? "Thank them for their time, remind them to sign up at earlymark.ai, and say goodbye warmly."
+            : "Thank the caller for their time, let them know their message will be passed on, and say goodbye.",
         });
-        // Give 10 seconds for the goodbye, then force close
         setTimeout(() => {
           ctx.room.disconnect().catch(() => { });
         }, 10_000);
@@ -142,7 +199,7 @@ export default defineAgent({
         console.error('[agent] Hard-cut disconnect failed:', err);
         ctx.room.disconnect().catch(() => { });
       }
-    }, HARD_CUT_MS);
+    }, hardCutMs);
 
     // Clean up timers when room disconnects naturally
     ctx.room.on('disconnected', () => {

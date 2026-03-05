@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
         model_id: CARTESIA_MODEL,
         transcript: text,
         voice: { mode: "id", id: voiceId },
+        language: "en",
         output_format: {
           container: "mp3",
           bit_rate: 128000,
@@ -65,17 +66,19 @@ export async function POST(req: NextRequest) {
       const errText = await response.text();
       console.error("[voice-preview] Cartesia error:", response.status, errText);
       return NextResponse.json(
-        { error: "TTS generation failed" },
+        { error: `TTS generation failed: ${response.status} ${errText.slice(0, 200)}` },
         { status: 502 }
       );
     }
 
-    const audioBytes = await response.arrayBuffer();
+    const audioBuffer = Buffer.from(await response.arrayBuffer());
+    console.log(`[voice-preview] Success: ${audioBuffer.length} bytes`);
 
-    return new NextResponse(audioBytes, {
+    return new NextResponse(audioBuffer, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
+        "Content-Length": String(audioBuffer.length),
         "Cache-Control": "public, max-age=86400",
       },
     });
