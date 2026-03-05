@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // and connects them into the LiveKit room where the agent will join
     const participant = await sipClient.createSipParticipant(
       process.env.LIVEKIT_SIP_TRUNK_ID || "", // SIP trunk ID for outbound
-      `sip:${normalizedPhone}@${process.env.LIVEKIT_SIP_TERMINATION_URI || "pstn.twilio.com"}`,
+      normalizedPhone,
       roomName,
       {
         participantName: firstName,
