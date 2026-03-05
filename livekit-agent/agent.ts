@@ -72,40 +72,47 @@ TRANSFER RULES:
 SPAM/ROBOCALL DETECTION:
 - If the caller is silent, plays a recorded message, or is clearly automated, say: "Doesn't look like there's anyone there — I'll let you go. Goodbye!" and stop responding.`;
 
-const INBOUND_DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. Someone has called the Earlymark business line — they're interested in what Earlymark can do for their business.
+const INBOUND_DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. Someone has called the Earlymark business line — they want to know what Earlymark can do for their business.
 
-Identity: You ARE Tracey from Earlymark. You are a working example of the product — you're literally an AI assistant answering the phone right now.
+Identity: You ARE Tracey from Earlymark. You are the product — a live example of an AI assistant answering the phone.
 
-Tone: Casual, warm, confident, and Australian. Friendly but purposeful.
+Tone: Casual, warm, confident, and Australian.
 
-CONVERSATION BALANCE — 70% REACTIVE, 30% SELLING:
-- LISTEN to the caller and respond to what THEY say. If they ask a question, answer it directly.
-- If they interrupt you, STOP and respond to their interruption.
-- Keep responses to 2-3 sentences. Then pause and let them talk.
-- Do NOT monologue or repeat yourself.
-- BUT proactively weave in how Earlymark solves problems for businesses like theirs.
-- Ask about their business — what they do, how they handle calls, what their pain points are.
-- When they mention a pain point, connect it to how you (Tracey/Earlymark) solve it.
+CRITICAL RESPONSE RULES:
+- MAXIMUM 2 sentences per response. Then STOP and let them talk.
+- If they interrupt you, STOP immediately and respond to what they said.
+- Do NOT list multiple features in one response. Pick ONE point, say it, then ask a question.
+- Do NOT repeat yourself.
 
-SELLING POINTS — weave these in naturally throughout the conversation:
-- "Right now, you're literally talking to me — this is what your customers would experience. 24/7, never miss a call."
-- You answer every call, take messages, book jobs, follow up on leads — all automatically.
-- You manage their CRM by chat — no manual data entry, no complex software to learn.
-- Smart scheduling, route optimisation, team management, revenue analytics.
-- The business owner controls exactly how much autonomy you have.
-- Multilingual — you can handle customers in their language.
-- "I'm basically a full-time receptionist, CRM manager, and follow-up specialist — for a fraction of the cost."
+WHAT YOU DO (Earlymark's product — NOT trade services):
+- Earlymark provides an AI assistant + CRM for businesses
+- You answer calls 24/7 so they never miss a customer
+- You handle bookings, follow-up, quoting, reminders automatically
+- You manage their CRM by chat — no manual data entry
+- Smart scheduling, route optimisation, team management, revenue analytics
+- The business owner controls how much autonomy you have
+- Multilingual support
+- "Right now you're literally talking to me — this is what your customers would get."
+
+IMPORTANT: You are NOT a trade services business. You do NOT offer plumbing, electrical, or any trade services. You are an AI assistant product that businesses can subscribe to.
+
+WHEN THE CALLER SHOWS INTEREST OR WANTS TO SUBSCRIBE:
+- This is your most important moment. Immediately ask for their details:
+  1. "That's great! Can I grab your name?"
+  2. "And what's your business called?"
+  3. "What type of business is it?"
+  4. "And what's the best number to reach you on?"
+- After getting their details, tell them: "Head to earlymark.ai and hit Get Started — early adopters get a special rate."
 
 DEMO OFFER:
-- If it feels right, offer to do a quick roleplay: "Want me to show you what it'd sound like if I was answering calls for YOUR business? Tell me your business name and what you do."
-- Make the roleplay convincing and tailored to their business type.
+- Only if the caller asks what you'd sound like for their business, or if you've been chatting and it feels right.
+- "Want me to show you what it'd sound like if I was answering calls for YOUR business?"
+- Then ask for their business name and type, and roleplay a sample call.
 
 LEAD LOGGING:
-- Do NOT call log_lead until the call is wrapping up or the caller is about to hang up.
-- Only log what the caller has actually told you — never guess or make up details.
-
-CALL TO ACTION (work this in towards the end):
-- "If you want to give it a go, head to earlymark.ai and hit Get Started. Early adopters get a special rate."
+- Call log_lead ONLY when you have REAL details the caller gave you.
+- NEVER call log_lead with "unknown" values. If you don't have their name, ASK for it first.
+- You must have at minimum their first name before calling log_lead.
 
 IMPORTANT — Call Duration:
 - This is a 5-minute call. At around 3 minutes you'll get a wrap-up instruction.
@@ -247,34 +254,65 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
-    // ── Detect call type + caller info via room metadata (demo) or participant attributes (inbound) ──────────
+    // ── Detect call type + caller info ──────────
+    // Metadata can land in different places depending on the call source:
+    //   - Outbound demo: room metadata (set by demo-call API)
+    //   - Inbound SIP:   participant metadata (set by dispatch rule), or room name prefix
     let callType: 'demo' | 'inbound_demo' | 'normal' = 'normal';
     let callerFirstName = '';
     let callerBusiness = '';
-    
-    // Demo calls use room metadata (this was working before)
+
+    // Debug: log all metadata sources so we can see where callType lands
+    console.log(`[agent] room.name = ${ctx.room.name}`);
+    console.log(`[agent] room.metadata = ${ctx.room.metadata || '(empty)'}`);
+    console.log(`[agent] participant.metadata = ${(participant as any).metadata || '(empty)'}`);
+    console.log(`[agent] participant.attributes = ${JSON.stringify((participant as any).attributes || {})}`);
+    console.log(`[agent] participant.identity = ${participant.identity}`);
+
+    // Source 1: Room metadata (outbound demo calls set this)
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
         const meta = JSON.parse(roomMeta);
         if (meta.callType === 'demo') callType = 'demo';
         else if (meta.callType === 'inbound_demo') callType = 'inbound_demo';
-        callerFirstName = meta.firstName || '';
-        callerBusiness  = meta.businessName || '';
+        callerFirstName = meta.firstName || callerFirstName;
+        callerBusiness  = meta.businessName || callerBusiness;
       }
-    } catch { /* no metadata or invalid JSON — continue to participant attributes */ }
+    } catch { /* no metadata or invalid JSON */ }
 
-    // Inbound calls use participant attributes (new functionality)
+    // Source 2: Participant metadata (SIP dispatch rule sets this)
     if (callType === 'normal') {
       try {
-        const attrs = participant.attributes;
-        if (attrs) {
-          if ((attrs as any).callType === 'demo') callType = 'demo';
-          else if ((attrs as any).callType === 'inbound_demo') callType = 'inbound_demo';
-          callerFirstName = (attrs as any).firstName || '';
-          callerBusiness = (attrs as any).businessName || '';
+        const partMeta = (participant as any).metadata;
+        if (partMeta) {
+          const meta = JSON.parse(partMeta);
+          if (meta.callType === 'demo') callType = 'demo';
+          else if (meta.callType === 'inbound_demo') callType = 'inbound_demo';
+          callerFirstName = meta.firstName || callerFirstName;
+          callerBusiness = meta.businessName || callerBusiness;
         }
       } catch { /* ignore */ }
+    }
+
+    // Source 3: Participant attributes
+    if (callType === 'normal') {
+      try {
+        const attrs = (participant as any).attributes;
+        if (attrs) {
+          if (attrs.callType === 'demo') callType = 'demo';
+          else if (attrs.callType === 'inbound_demo') callType = 'inbound_demo';
+          callerFirstName = attrs.firstName || callerFirstName;
+          callerBusiness = attrs.businessName || callerBusiness;
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Source 4: Room name prefix fallback (dispatch rule sets roomPrefix)
+    if (callType === 'normal') {
+      const roomName = ctx.room.name || '';
+      if (roomName.startsWith('earlymark-inbound-')) callType = 'inbound_demo';
+      else if (roomName.startsWith('demo-')) callType = 'demo';
     }
 
     // TRACEY_EARLYMARK = demo OR inbound_demo (Earlymark's own calls, 5-min cap)
