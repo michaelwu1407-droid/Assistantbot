@@ -299,7 +299,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                     <Card className="w-full h-full max-w-full p-5 !bg-sky-100 dark:!bg-sky-900 text-card-foreground border-sky-300 dark:border-sky-700 shadow-2xl relative flex flex-col min-h-0 overflow-hidden">
                         {currentStepIndex === 0 && (
                             <div className="absolute -top-6 -left-6 h-12 w-12 rounded-full flex items-center justify-center shadow-lg ring-4 ring-background overflow-hidden bg-background">
-                                <img src="/latest-logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
+                                <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-12 w-12 object-contain" />
                             </div>
                         )}
                         <div className="mt-2 flex-1 min-h-0 overflow-y-auto">
@@ -322,7 +322,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                             <div className="flex flex-col items-center text-center space-y-4">
                                 {currentStepIndex === 0 && (
                                     <div className="h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl mb-2 overflow-hidden">
-                                        <img src="/latest-logo.png" alt="Earlymark" className="h-16 w-16 object-contain" />
+                                        <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-16 w-16 object-contain" />
                                     </div>
                                 )}
                                 {cardContent}

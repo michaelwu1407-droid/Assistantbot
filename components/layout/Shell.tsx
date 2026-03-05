@@ -151,7 +151,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-transparent border-b border-border/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden bg-primary">
-                  <img src="/latest-logo.png" alt="Earlymark" className="h-8 w-8 object-contain" />
+                  <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-8 w-8 object-contain" />
                 </div>
                 <span className="font-semibold text-slate-900 dark:text-foreground">Chat</span>
               </div>

@@ -664,7 +664,7 @@ export function TraceyOnboarding() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="mx-auto h-14 w-14 rounded-xl flex items-center justify-center shadow-md overflow-hidden mb-3">
-            <img src="/latest-logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
+            <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-14 w-14 object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Meet Tracey

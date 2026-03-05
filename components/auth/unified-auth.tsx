@@ -436,7 +436,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         )}
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/latest-logo.png" alt="Earlymark" className="h-12 w-12 object-contain" />
+          <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-12 w-12 object-contain" />
         </div>
 
         <div className="text-center mb-8">
