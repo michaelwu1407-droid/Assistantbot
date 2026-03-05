@@ -304,12 +304,15 @@ export default defineAgent({
       room: ctx.room,
     });
 
-    // ── Track diagnostic: log when caller audio arrives ──────────────
+    // ── Track diagnostic: see if agent subscribes to late-joining SIP participant ──
     ctx.room.on('trackSubscribed', (track: any, pub: any, p: any) => {
       console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
     });
     ctx.room.on('trackPublished', (pub: any, p: any) => {
       console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
+    });
+    ctx.room.on('participantConnected', (p: any) => {
+      console.log(`${logPrefix} [PARTICIPANT] connected: identity=${p.identity} isAgent=${p.isAgent}`);
     });
 
     // ── Per-component latency instrumentation ────────────────────────
