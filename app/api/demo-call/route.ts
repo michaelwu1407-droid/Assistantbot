@@ -74,11 +74,18 @@ export async function POST(req: NextRequest) {
     console.log("[demo-call] Creating room:", roomName);
 
     // Create the room first - SIP participant needs an existing room
+    // Room metadata is read by the agent to personalise the greeting
     const roomClient = new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
     await roomClient.createRoom({
       name: roomName,
       emptyTimeout: 300, // 5 minutes
       maxParticipants: 2,
+      metadata: JSON.stringify({
+        callType: "demo",
+        firstName,
+        businessName,
+        phone: normalizedPhone,
+      }),
     });
     console.log("[demo-call] Room created successfully:", roomName);
 

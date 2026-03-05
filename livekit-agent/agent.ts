@@ -207,14 +207,18 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
-    // ── Detect call type via room metadata / participant attributes ──
+    // ── Detect call type + caller info via room metadata ──────────
     let callType: 'demo' | 'inbound_demo' | 'normal' = 'normal';
+    let callerFirstName = '';
+    let callerBusiness = '';
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
         const meta = JSON.parse(roomMeta);
         if (meta.callType === 'demo') callType = 'demo';
         else if (meta.callType === 'inbound_demo') callType = 'inbound_demo';
+        callerFirstName = meta.firstName || '';
+        callerBusiness  = meta.businessName || '';
       }
     } catch { /* no metadata or invalid JSON — default to normal */ }
 
@@ -233,7 +237,7 @@ export default defineAgent({
     const isEarlymarkCall = callType === 'demo' || callType === 'inbound_demo';
     const logPrefix = isEarlymarkCall ? '[TRACEY_EARLYMARK]' : '[TRACEY_USER]';
 
-    console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()} | model: ${llmModel}`);
+    console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()} | model: ${llmModel} | caller: ${callerFirstName || 'unknown'} | biz: ${callerBusiness || 'unknown'}`);
 
     const systemPrompt =
       callType === 'demo' ? DEMO_SYSTEM_PROMPT :
@@ -261,15 +265,26 @@ export default defineAgent({
       inputOptions: { participantIdentity: participant.identity },
     });
 
+    // ── Latency timer: measure time to first response audio ─────────
+    const t0 = Date.now();
+    session.on('agent_speech_committed' as any, () => {
+      console.log(`${logPrefix} [LATENCY] Time to first response audio: ${Date.now() - t0}ms`);
+    });
+
     // ── Initial greeting ────────────────────────────────────────────
+    const demoGreeting = callerFirstName
+      ? `You are calling ${callerFirstName}${ callerBusiness ? ` who runs ${callerBusiness}` : '' }. Start by asking "Hi, am I speaking with ${callerFirstName}?" — wait for them to confirm — then introduce yourself as Tracey, an AI assistant built by Earlymark, and say you're calling to give them a quick personalised demo of what you could do for their business.`
+      : `Introduce yourself as Tracey, an AI assistant built by Earlymark. You're calling to give them a personalised demo. Ask what kind of business they run.`;
+
     await session.generateReply({
       instructions:
         callType === 'demo'
-          ? "Introduce yourself as Tracey, an AI assistant built by Earlymark. Tell them you're here to give them a personalised demo of what you could do for their business. Ask what kind of business they run."
+          ? demoGreeting
           : callType === 'inbound_demo'
           ? "Introduce yourself as Tracey, an AI assistant from Earlymark. Tell them they've reached the Earlymark demo line and you'd love to show them what you can do. Ask what kind of business they're in."
           : "Greet the caller briefly as Tracey, then ask what they need help with today.",
     });
+    console.log(`${logPrefix} [LATENCY] Initial greeting generated in ${Date.now() - t0}ms`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {
