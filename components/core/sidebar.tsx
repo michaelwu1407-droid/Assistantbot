@@ -88,7 +88,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
             <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
                 {/* Logo / Brand */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
-                    <Image src="/latest-logo.png?v=4" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" />
+                    <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" />
                 </div>
 
                 {/* Mode Toggle (Advanced/Chat) */}

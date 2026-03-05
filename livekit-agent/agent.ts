@@ -287,8 +287,8 @@ export default defineAgent({
 
     if (callType === 'demo') {
       systemPrompt += callerFirstName
-        ? `\n\nIMPORTANT — OPENING: Say exactly this and nothing else: "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}? My name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then STOP and wait for them to respond. Do NOT call any tools yet.`
-        : `\n\nIMPORTANT — OPENING: Say exactly: "Hi there, my name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then STOP and wait. Do NOT call any tools yet.`;
+        ? `\n\nIMPORTANT — CONVERSATION FLOW:\n- The call has just been answered. The system has already said: "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?"\n- Wait for the caller to respond.\n- Once they confirm, say: "Hi ${callerFirstName}, my name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?"\n- Wait for their response. If they confirm, offer to demo what you can do or pitch why they should choose Earlymark.\n- Do NOT call any tools until you've established rapport.`
+        : `\n\nIMPORTANT — CONVERSATION FLOW:\n- The call has just been answered. The system has already said: "Hi there, this is Tracey calling from Earlymark AI."\n- Continue with: "I understand you're interested in our AI assistant and CRM services, is that right?"\n- Wait for their response. If they confirm, offer to demo or pitch.\n- Do NOT call any tools until you've established rapport.`;
     }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
@@ -325,10 +325,21 @@ export default defineAgent({
       }
     }
 
-    const session = new voice.AgentSession({});
+    const session = new voice.AgentSession({
+      turnDetection: 'stt',
+      voiceOptions: {
+        minInterruptionDuration: 0.8,
+        minInterruptionWords: 2,
+      },
+    });
     await session.start({
       agent,
       room: ctx.room,
+    });
+
+    // Log any STT/TTS/LLM errors for diagnostics
+    session.on('error' as any, (ev: any) => {
+      console.error(`${logPrefix} [ERROR] ${ev?.error?.message || JSON.stringify(ev)}`);
     });
 
     // ── Per-component latency instrumentation ────────────────────────
@@ -379,9 +390,13 @@ export default defineAgent({
     ctx.room.on('disconnected', () => { if (spamTimer) clearTimeout(spamTimer); });
 
     // ── Initial greeting ────────────────────────────────────────────
-    // Use userInput to trigger LLM — more reliable than instructions for small models
-    await session.generateReply({ userInput: '[Call connected. Say your opening line. Do NOT call any tools.]' });
-    console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
+    // Use session.say() for line 1 — bypasses LLM entirely, guaranteed delivery
+    const greetingLine1 = callerFirstName
+      ? `Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?`
+      : `Hi there, this is Tracey calling from Earlymark AI.`;
+    session.say(greetingLine1, { allowInterruptions: false });
+    console.log(`${logPrefix} [GREETING] Line 1 spoken via session.say(): "${greetingLine1}"`);
+    console.log(`${logPrefix} [GREETING] Waiting for user response before LLM takes over`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {

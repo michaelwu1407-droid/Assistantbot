@@ -213,7 +213,7 @@ export function AuthSelector() {
       <div className="w-full max-w-md ott-card bg-card p-8 relative z-10">
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <Image src="/latest-logo.png?v=4" alt="Earlymark Logo" width={32} height={32} className="rounded-lg" />
+          <Image src="/latest-logo.png" alt="Earlymark Logo" width={32} height={32} className="rounded-lg" />
         </div>
 
         <div className="text-center mb-8">
