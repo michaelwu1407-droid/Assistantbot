@@ -14,10 +14,10 @@ Rule: every agent change commit must include an entry in this file.
 
 ## Entries
 
-### 2026-03-05 02:15 (AEDT) - codex
-- Files: `app/page.tsx`
-- What changed: Updated first `Hire Tracey` feature description to add multilingual messaging: `With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?`
-- Why: Match requested marketing copy update.
+### 2026-03-05 16:30 (AEDT) - cascade
+- Files: `app/page.tsx`, `actions/demo-call-action.ts`, `app/api/demo-call/route.ts`, `livekit-agent/agent.ts`, `components/onboarding/tracey-onboarding.tsx`, `app/api/auth/email-provider/route.ts`, `app/api/voice-preview/route.ts`
+- What changed: Complete homepage and onboarding fixes: value pill tick alignment, removed Bot icon, wired up real outbound demo calls via LiveKit SIP, added 5-min demo cap with sales messaging, restructured Hire Tracey section with zigzag layout and placeholder screenshots, updated features heading to "One platform to run it all", fixed Gmail OAuth env var mismatch, shortened emergency hours text, updated auto-forward instructions, fixed phone provisioning response path, improved voice preview error handling.
+- Why: Address all 11 reported UI/UX and functional issues across homepage and onboarding flow.
 
 ### 2026-03-05 02:14 (AEDT) - codex
 - Files: `app/page.tsx`
