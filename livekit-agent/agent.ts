@@ -195,7 +195,7 @@ export default defineAgent({
       model: 'nova-3',
       language: 'en-AU',
       smartFormat: false,
-      interim_results: true,
+      interimResults: true,
       endpointing: 300,
     });
 
@@ -265,10 +265,39 @@ export default defineAgent({
       inputOptions: { participantIdentity: participant.identity },
     });
 
-    // ── Latency timer: measure time to first response audio ─────────
-    const t0 = Date.now();
+    // ── Per-component latency instrumentation ────────────────────────
+    // To analyse: grep LATENCY /tmp/agent.log
+    //
+    // RECOMMENDED FIXES (in order of impact):
+    //   1. GROQ:       swap DeepInfra for Groq → 70B quality at 8B speed (~-200ms, quality UP)
+    //   2. ENDPOINTING: lower 300ms→150ms in STT config (~-150ms, minor risk)
+    //   3. GREETING:   pre-cache opening TTS audio (~-800ms perceived on first turn)
+    //   4. REGION:     move agent to US-East region (~-400ms, all API round trips halve)
+
+    let turnSpeechEndMs = 0;
+    let turnSTTDoneMs   = 0;
+
+    session.on('user_speech_committed' as any, (ev: any) => {
+      turnSpeechEndMs = Date.now();
+      const transcript = ev?.alternatives?.[0]?.transcript || ev?.transcript || '(no transcript)';
+      console.log(`${logPrefix} [LATENCY:STT_DONE] transcript_len=${String(transcript).length} t=${turnSpeechEndMs}`);
+    });
+
+    session.on('agent_speech_started' as any, () => {
+      const now = Date.now();
+      if (turnSpeechEndMs) {
+        const ttfr = now - turnSpeechEndMs;
+        console.log(`${logPrefix} [LATENCY:TTFR] ${ttfr}ms speech-end→first-audio | fix: groq+endpointing saves ~350ms`);
+        if (ttfr > 1500) console.log(`${logPrefix} [LATENCY:SLOW] ${ttfr}ms — check LLM region/model size`);
+      }
+    });
+
     session.on('agent_speech_committed' as any, () => {
-      console.log(`${logPrefix} [LATENCY] Time to first response audio: ${Date.now() - t0}ms`);
+      if (turnSTTDoneMs) {
+        console.log(`${logPrefix} [LATENCY:LLM+TTS] ${Date.now() - turnSTTDoneMs}ms stt-done→speech-committed`);
+      }
+      turnSpeechEndMs = 0;
+      turnSTTDoneMs   = 0;
     });
 
     // ── Initial greeting ────────────────────────────────────────────
@@ -284,7 +313,7 @@ export default defineAgent({
           ? "Introduce yourself as Tracey, an AI assistant from Earlymark. Tell them they've reached the Earlymark demo line and you'd love to show them what you can do. Ask what kind of business they're in."
           : "Greet the caller briefly as Tracey, then ask what they need help with today.",
     });
-    console.log(`${logPrefix} [LATENCY] Initial greeting generated in ${Date.now() - t0}ms`);
+    console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {
