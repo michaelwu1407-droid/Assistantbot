@@ -233,10 +233,12 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
-    // ── Detect call type + caller info via room metadata ──────────
+    // ── Detect call type + caller info via room metadata (demo) or participant attributes (inbound) ──────────
     let callType: 'demo' | 'inbound_demo' | 'normal' = 'normal';
     let callerFirstName = '';
     let callerBusiness = '';
+    
+    // Demo calls use room metadata (this was working before)
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
@@ -246,14 +248,17 @@ export default defineAgent({
         callerFirstName = meta.firstName || '';
         callerBusiness  = meta.businessName || '';
       }
-    } catch { /* no metadata or invalid JSON — default to normal */ }
+    } catch { /* no metadata or invalid JSON — continue to participant attributes */ }
 
+    // Inbound calls use participant attributes (new functionality)
     if (callType === 'normal') {
       try {
         const attrs = participant.attributes;
         if (attrs) {
           if ((attrs as any).callType === 'demo') callType = 'demo';
           else if ((attrs as any).callType === 'inbound_demo') callType = 'inbound_demo';
+          callerFirstName = (attrs as any).firstName || '';
+          callerBusiness = (attrs as any).businessName || '';
         }
       } catch { /* ignore */ }
     }
@@ -302,6 +307,7 @@ export default defineAgent({
     await session.start({
       agent,
       room: ctx.room,
+      inputOptions: { participantIdentity: participant.identity }, // This was working before
     });
 
     // ── Track diagnostic: see if agent subscribes to late-joining SIP participant ──
