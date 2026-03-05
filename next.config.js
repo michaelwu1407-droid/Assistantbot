@@ -50,6 +50,25 @@ module.exports = withSentryConfig(nextConfig, {
   // side errors will fail.
   // tunnelRoute: "/monitoring",
 
+  // Add Content Security Policy headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
+              "worker-src 'self' blob:",
+              "img-src 'self' data: blob:",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
+  },
+
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
     // See the following for more information:
