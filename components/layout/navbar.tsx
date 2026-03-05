@@ -9,7 +9,7 @@ export function Navbar() {
             {/* Brand */}
             <Link href="/" className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center">
-                    <img src="/latest-logo.png" alt="Earlymark" className="h-9 w-9 object-contain" />
+                    <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-9 w-9 object-contain" />
                 </div>
                 <span className="text-lg font-bold tracking-tight text-midnight">Earlymark</span>
             </Link>
