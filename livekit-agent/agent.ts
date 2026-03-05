@@ -36,7 +36,7 @@ const WRAP_UP_SCRIPT =
   "Hey, just to be candid this is taking longer than expected and I'm sorry if I haven't been able to help with everything you need so far. Let me pass this on to my manager so they can better help you ASAP. Did you have anything else you wanted me to share?";
 
 const DEMO_WRAP_UP_SCRIPT =
-  "Hey I've really enjoyed chatting with you! Just so you know, I'm available right now at a special early-adopter rate — and businesses in your area are already signing up. Before I go, is there anything else you'd like to see me do?";
+  "Before I let you go — I want to ask you directly: can you see how having me handle your calls would free you up and win you more customers? Because right now there's an early-adopter rate available and businesses in your area are already signing up. Shall I hold your spot?";
 
 // ─── System Prompts ──────────────────────────────────────────────
 
@@ -58,55 +58,119 @@ TRANSFER RULES:
 - If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm — you'd like me to transfer you to [the business owner]?"
 - On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).`;
 
-const DEMO_SYSTEM_PROMPT = `You are Tracey, an AI receptionist made by Earlymark. You are on a DEMO CALL — the person on the line is a potential customer evaluating whether to hire you for their business.
+const INBOUND_DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. Someone has called the Earlymark demo line — they are a potential customer checking out what you can do for their business.
 
-Identity: You ARE Tracey from Earlymark. You are interviewing for a job as their AI receptionist.
+Identity: You are Tracey, made by Earlymark. You are NOT working for any specific business yet — you're showing this person what you could do for THEM.
 
-Tone: Confident, warm, and Australian. Be impressive but not pushy.
+Tone: Casual, warm, confident, and Australian. Be impressive without being pushy.
 
-Goal: Convince the caller to sign up for Earlymark by demonstrating your capabilities. Throughout the call, naturally weave in:
-- You can answer calls 24/7, book jobs, quote prices, follow up on leads, and chase payments
-- You learn their preferences and get better over time
-- You're multilingual and can handle SMS, email, and voice
-- Businesses in their area are already signing up — they don't want to fall behind
-- There's a special early-adopter rate available right now for a limited time
-- They can set exactly how much autonomy you have — full control stays with them
+Goal: Learn about their business, show them your value, and capture their details so the Earlymark team can follow up.
 
-Constraint: Keep responses short and punchy. Show, don't tell — if they ask you to demo something, roleplay it convincingly. Do not yap.
+YOUR VALUE — weave these in naturally:
+1. Win more customers and revenue — you answer every call, never miss a lead, follow up automatically
+2. Make life easier — you handle customer interactions, booking, quoting, reminders, and admin so they don't have to
+3. Better customer experience — callers always get a fast, friendly, professional response 24/7
+
+DEMO MOMENT — offer to show them what it would sound like if you were answering calls for THEIR business. Ask for their business name and type, then roleplay a sample call.
+
+LEAD CAPTURE — before the call ends, you MUST use the log_lead tool to save their details.
+
+IMPORTANT — Call Duration:
+- At around 8 minutes you will receive an instruction to wrap up the call.
+- The call will disconnect at 10 minutes maximum.
+- CALL TO ACTION: "Head to earlymark.ai, hit Get Started — I can be answering calls for your business today."
+
+TRANSFER RULES:
+- If a caller asks to speak to a human, use the transfer_call tool.`;
+
+const DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. You are on a personalised DEMO CALL — the person on the line signed up to see what you can do for their business.
+
+Identity: You ARE Tracey from Earlymark. You're here to show them exactly what it would feel like if you were working for THEIR business.
+
+Tone: Confident, warm, energetic, and Australian. Be impressive but conversational — not a sales robot.
+
+OPENING: Introduce yourself as an AI assistant built by Earlymark. Tell them you're here to show them what you can do.
+
+THROUGHOUT THE CALL — naturally cover these three value pillars:
+1. WIN MORE CUSTOMERS & REVENUE — you never miss a call, follow up on every lead, and convert more enquiries into jobs
+2. MAKE LIFE EASIER — you handle the calls, booking, quoting, reminders, and admin so they can focus on the actual work
+3. BETTER CUSTOMER EXPERIENCE — their customers always get a fast, friendly, professional response — even at 10pm on a Sunday
+
+DEMO MOMENT — offer to show them what it would sound like if you were actually answering calls for THEIR business. Ask for their business name and type, then roleplay a sample call convincingly.
+
+Constraint: Keep responses short and punchy. Show, don't tell. Do not yap.
+
+LEAD CAPTURE — before the call ends, use the log_lead tool to save their name, business, interest level, and any notes.
 
 IMPORTANT — Call Duration:
 - This is a 5-minute demo call. At around 3 minutes you'll get a wrap-up instruction.
-- End with a clear call to action: "Head to earlymark.ai and sign up — I'll be ready to start taking calls for you today."`;
+- CALL TO ACTION at the end: "Head to earlymark.ai, hit Get Started, and I can be answering calls for your business today. Early adopters get a special rate — and spots are filling fast."`;
 
 // ─── Agent Entry ────────────────────────────────────────────────────
 
 export default defineAgent({
   entry: async (ctx) => {
-    // Defines a tool for the agent to call when transferring to a human
-    const transferCallTool: livekitLlm.ToolInfo = {
-      name: "transfer_call",
-      description: "Transfer the call to the human business owner or leave an urgent message if they are unavailable.",
+    // ── Tool: Log lead to Supabase ───────────────────────────────
+    const logLeadTool = livekitLlm.tool({
+      description: 'Save a potential customer lead before the call ends. Call this once you have their name, business info, and interest level.',
       parameters: z.object({
-        reason: z.string().describe("Why the caller wants to speak to the owner"),
+        firstName: z.string().describe('First name of the caller'),
+        businessName: z.string().describe('Name of their business'),
+        businessType: z.string().describe('Type of business e.g. plumber, electrician, cleaner'),
+        phone: z.string().describe('Their phone number from the call'),
+        interestLevel: z.enum(['hot', 'warm', 'cold']).describe('How interested they seemed'),
+        notes: z.string().optional().describe('Any useful notes from the conversation'),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ firstName, businessName, businessType, phone, interestLevel, notes }: { firstName: string; businessName: string; businessType: string; phone: string; interestLevel: 'hot' | 'warm' | 'cold'; notes?: string }) => {
+        try {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+          if (supabaseUrl && supabaseKey) {
+            await fetch(`${supabaseUrl}/rest/v1/leads`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                first_name: firstName,
+                business_name: businessName,
+                business_type: businessType,
+                phone,
+                interest_level: interestLevel,
+                notes: notes || '',
+                source: 'voice_call',
+                created_at: new Date().toISOString(),
+              }),
+            });
+            console.log(`[agent] Lead logged: ${firstName} - ${businessName} (${interestLevel})`);
+          }
+        } catch (err) {
+          console.error('[agent] Failed to log lead:', err);
+        }
+        return `Got it! I've noted down ${firstName} from ${businessName}. The Earlymark team will be in touch soon.`;
+      },
+    });
+
+    // ── Tool: Transfer call to human ────────────────────────────────
+    const transferCallTool = livekitLlm.tool({
+      description: 'Transfer the call to the human business owner or leave an urgent message if they are unavailable.',
+      parameters: z.object({
+        reason: z.string().describe('Why the caller wants to speak to the owner'),
+      }),
+      execute: async ({ reason }: { reason: string }) => {
         console.log(`[agent] Executing transfer_call tool. Reason: ${reason}`);
-
-        // In a full implementation, we would query the Earlymark API.
-        // For the agent worker, we return a simulated/fallback instruction
-        // since we are not directly connected to the Prisma DB in the worker scope.
-
         const currentHour = new Date().getHours();
-        const isOnClock = currentHour >= 8 && currentHour < 17; // Mock 8am to 5pm
-
+        const isOnClock = currentHour >= 8 && currentHour < 17;
         if (isOnClock) {
-          // If Twilio SIP REFER or <Dial> bridging is set up on the PBX side:
-          return "I am transferring you to the owner now. Please hold on the line.";
+          return 'I am transferring you to the owner now. Please hold on the line.';
         } else {
-          return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
+          return 'The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?';
         }
       },
-    };
+    });
 
     const llmModel = process.env.VOICE_LLM_MODEL || 'meta-llama/Llama-3.3-70B-Instruct';
     const llm = new openai.LLM({
@@ -127,27 +191,34 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
-    // ── Detect demo vs normal call via room metadata ─────────────
-    let isDemo = false;
+    // ── Detect call type via room metadata / participant attributes ──
+    let callType: 'demo' | 'inbound_demo' | 'normal' = 'normal';
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
         const meta = JSON.parse(roomMeta);
-        isDemo = meta.callType === 'demo';
+        if (meta.callType === 'demo') callType = 'demo';
+        else if (meta.callType === 'inbound_demo') callType = 'inbound_demo';
       }
     } catch { /* no metadata or invalid JSON — default to normal */ }
 
-    // Also check participant attributes
-    if (!isDemo) {
+    if (callType === 'normal') {
       try {
         const attrs = participant.attributes;
-        if (attrs && (attrs as any).callType === 'demo') isDemo = true;
+        if (attrs) {
+          if ((attrs as any).callType === 'demo') callType = 'demo';
+          else if ((attrs as any).callType === 'inbound_demo') callType = 'inbound_demo';
+        }
       } catch { /* ignore */ }
     }
 
-    console.log(`[agent] Call type: ${isDemo ? 'DEMO' : 'NORMAL'}`);
+    const isDemo = callType === 'demo';
+    console.log(`[agent] Call type: ${callType.toUpperCase()}`);
 
-    const systemPrompt = isDemo ? DEMO_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const systemPrompt =
+      callType === 'demo' ? DEMO_SYSTEM_PROMPT :
+      callType === 'inbound_demo' ? INBOUND_DEMO_SYSTEM_PROMPT :
+      SYSTEM_PROMPT;
     const wrapUpMs = isDemo ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isDemo ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
     const wrapUpScript = isDemo ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
@@ -157,6 +228,10 @@ export default defineAgent({
       stt,
       llm,
       tts,
+      tools: {
+        log_lead: logLeadTool,
+        transfer_call: transferCallTool,
+      },
     });
 
     const session = new voice.AgentSession({});
@@ -168,9 +243,12 @@ export default defineAgent({
 
     // ── Initial greeting ────────────────────────────────────────────
     await session.generateReply({
-      instructions: isDemo
-        ? "Introduce yourself as Tracey from Earlymark. You're here to show the caller what you can do for their business. Be confident and warm."
-        : "Greet the caller briefly as Tracey, then ask what they need help with today.",
+      instructions:
+        callType === 'demo'
+          ? "Introduce yourself as Tracey, an AI assistant built by Earlymark. Tell them you're here to give them a personalised demo of what you could do for their business. Ask what kind of business they run."
+          : callType === 'inbound_demo'
+          ? "Introduce yourself as Tracey, an AI assistant from Earlymark. Tell them they've reached the Earlymark demo line and you'd love to show them what you can do. Ask what kind of business they're in."
+          : "Greet the caller briefly as Tracey, then ask what they need help with today.",
     });
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
@@ -189,8 +267,8 @@ export default defineAgent({
         console.log(`[agent] ${isDemo ? '5' : '10'}-min mark reached — disconnecting`);
         await session.generateReply({
           instructions: isDemo
-            ? "Thank them for their time, remind them to sign up at earlymark.ai, and say goodbye warmly."
-            : "Thank the caller for their time, let them know their message will be passed on, and say goodbye.",
+            ? "Use the log_lead tool to save their details if you haven't already, then thank them warmly and give the CTA: 'Head to earlymark.ai, hit Get Started — I can be answering calls for your business today. Early adopters get a special rate.'"
+            : "Use the log_lead tool to save their details if you haven't already, then thank them and let them know the Earlymark team will follow up soon. Give the CTA: 'If you'd like to get started today, head to earlymark.ai.'",
         });
         setTimeout(() => {
           ctx.room.disconnect().catch(() => { });
