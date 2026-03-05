@@ -488,19 +488,19 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
                                 <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Win more customers and revenue
+                                    Win more customers. Win more revenue
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
                                 <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Make life easier by automating customer interaction and admin
+                                    Make life easier. Automate customer admin
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
                                 <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Provide a reliable and better customer experience
+                                    Provide a better, more reliable customer experience
                                 </p>
                             </div>
                         </div>
