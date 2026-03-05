@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SipClient } from "livekit-server-sdk";
+import { SipClient, RoomServiceClient } from "livekit-server-sdk";
 
 /**
  * POST /api/demo-call
@@ -67,6 +67,15 @@ export async function POST(req: NextRequest) {
     const sipClient = new SipClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
     const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // Create the room first - SIP participant needs an existing room
+    const roomClient = new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+    await roomClient.createRoom({
+      name: roomName,
+      emptyTimeout: 300, // 5 minutes
+      maxParticipants: 2,
+    });
+    console.log("[demo-call] Room created:", roomName);
 
     // Create outbound SIP participant — this dials the prospect's phone
     // and connects them into the LiveKit room where the agent will join
