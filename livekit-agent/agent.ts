@@ -90,8 +90,7 @@ DEMO MOMENT — offer to show them what it would sound like if you were answerin
 LEAD CAPTURE — before the call ends, you MUST use the log_lead tool to save their details.
 
 IMPORTANT — Call Duration:
-- At around 8 minutes you will receive an instruction to wrap up the call.
-- The call will disconnect at 10 minutes maximum.
+- This is a 5-minute demo call. At around 3 minutes you'll get a wrap-up instruction.
 - CALL TO ACTION: "Head to earlymark.ai, hit Get Started — I can be answering calls for your business today."
 
 TRANSFER RULES:
@@ -105,8 +104,6 @@ const DEMO_SYSTEM_PROMPT = `You are Tracey, an AI assistant built by Earlymark. 
 Identity: You ARE Tracey from Earlymark. You're here to show them exactly what it would feel like if you were working for THEIR business.
 
 Tone: Confident, warm, energetic, and Australian. Be impressive but conversational — not a sales robot.
-
-OPENING: Introduce yourself as an AI assistant built by Earlymark. Tell them you're here to show them what you can do.
 
 THROUGHOUT THE CALL — naturally cover these three value pillars:
 1. WIN MORE CUSTOMERS & REVENUE — you never miss a call, follow up on every lead, and convert more enquiries into jobs
@@ -289,38 +286,32 @@ export default defineAgent({
     //   3. GREETING:   pre-cache opening TTS audio (~-800ms perceived on first turn)
     //   4. REGION:     move agent to US-East region (~-400ms, all API round trips halve)
 
+    // ── Unified event listeners: latency + spam detection ──────────
     let turnSpeechEndMs = 0;
-    let turnSTTDoneMs   = 0;
+    let callerHasSpoken = false;
+    let spamTimer: ReturnType<typeof setTimeout> | null = null;
 
     session.on('user_speech_committed' as any, (ev: any) => {
+      callerHasSpoken = true;
       turnSpeechEndMs = Date.now();
       const transcript = ev?.alternatives?.[0]?.transcript || ev?.transcript || '(no transcript)';
-      console.log(`${logPrefix} [LATENCY:STT_DONE] transcript_len=${String(transcript).length} t=${turnSpeechEndMs}`);
+      console.log(`${logPrefix} [LATENCY:STT_DONE] transcript_len=${String(transcript).length}`);
     });
 
     session.on('agent_speech_started' as any, () => {
-      const now = Date.now();
       if (turnSpeechEndMs) {
-        const ttfr = now - turnSpeechEndMs;
-        console.log(`${logPrefix} [LATENCY:TTFR] ${ttfr}ms speech-end→first-audio | fix: groq+endpointing saves ~350ms`);
+        const ttfr = Date.now() - turnSpeechEndMs;
+        console.log(`${logPrefix} [LATENCY:TTFR] ${ttfr}ms speech-end→first-audio`);
         if (ttfr > 1500) console.log(`${logPrefix} [LATENCY:SLOW] ${ttfr}ms — check LLM region/model size`);
       }
     });
 
     session.on('agent_speech_committed' as any, () => {
-      if (turnSTTDoneMs) {
-        console.log(`${logPrefix} [LATENCY:LLM+TTS] ${Date.now() - turnSTTDoneMs}ms stt-done→speech-committed`);
+      if (turnSpeechEndMs) {
+        console.log(`${logPrefix} [LATENCY:FULL_TURN] ${Date.now() - turnSpeechEndMs}ms stt-done→speech-committed`);
       }
       turnSpeechEndMs = 0;
-      turnSTTDoneMs   = 0;
-    });
-
-    // ── Spam detection: disconnect if caller silent 30s after greeting ends ──
-    let callerHasSpoken = false;
-    let spamTimer: ReturnType<typeof setTimeout> | null = null;
-    session.on('user_speech_committed' as any, () => { callerHasSpoken = true; });
-    // Start spam clock only once Tracey finishes her opening line
-    session.on('agent_speech_committed' as any, () => {
+      // Start spam timer after first agent utterance if caller hasn't spoken
       if (!callerHasSpoken && !spamTimer) {
         spamTimer = setTimeout(() => {
           if (!callerHasSpoken) {
@@ -330,18 +321,19 @@ export default defineAgent({
         }, 30_000);
       }
     });
+
     ctx.room.on('disconnected', () => { if (spamTimer) clearTimeout(spamTimer); });
 
     // ── Initial greeting ────────────────────────────────────────────
     // Use userInput to trigger LLM — more reliable than instructions for small models
-    await session.generateReply({ userInput: '(call connected)' });
+    await session.generateReply({ userInput: '[The phone is now connected. Say your opening line.]' });
     console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
     const wrapUpTimer = setTimeout(async () => {
       try {
         console.log(`${logPrefix} ${isEarlymarkCall ? '3' : '8'}-min mark reached — triggering wrap-up`);
-        await session.generateReply({ instructions: wrapUpScript });
+        await session.generateReply({ userInput: `[SYSTEM: ${wrapUpScript}]` });
       } catch (err) {
         console.error('[agent] Wrap-up reply failed:', err);
       }
@@ -352,9 +344,9 @@ export default defineAgent({
       try {
         console.log(`${logPrefix} ${isEarlymarkCall ? '5' : '10'}-min hard cap — disconnecting`);
         await session.generateReply({
-          instructions: isEarlymarkCall
-            ? "Use the log_lead tool to save their details if you haven't already, then thank them warmly and give the CTA: 'Head to earlymark.ai, hit Get Started — I can be answering calls for your business today. Early adopters get a special rate.'"
-            : "Thank the caller, let them know their request has been noted, and say goodbye.",
+          userInput: isEarlymarkCall
+            ? "[SYSTEM: Time is up. Log the lead now with the log_lead tool if you haven't already. Then thank them and give the CTA: Head to earlymark.ai, hit Get Started.]"
+            : "[SYSTEM: Time is up. Thank the caller, confirm their request has been noted, and say goodbye.]",
         });
         setTimeout(() => {
           ctx.room.disconnect().catch(() => { });
