@@ -66,11 +66,6 @@ export async function POST(req: NextRequest) {
       {
         participantName: firstName,
         participantIdentity: `demo-caller-${normalizedPhone}`,
-        metadata: JSON.stringify({
-          callType: "demo",
-          callerName: firstName,
-          businessName: businessName,
-        }),
       }
     );
 
