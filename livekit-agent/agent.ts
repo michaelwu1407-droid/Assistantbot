@@ -285,8 +285,8 @@ export default defineAgent({
 
     if (callType === 'demo') {
       systemPrompt += callerFirstName
-        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}. Your opening line should be "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?" and wait for them to say yes before continuing.`
-        : `\n\nNOTE: Caller name unknown. Open with a warm greeting and introduce yourself.`;
+        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}. Your opening MUST follow this exact script:\n1. "Hi, is this ${callerFirstName}${callerBusiness ? ` from ${callerBusiness}` : ''}?"\n2. Wait for them to confirm, then say: "Hi ${callerFirstName}, my name is Tracey and I'm calling from Earlymark AI."\n3. Then say: "I understand you're interested in our AI assistant and CRM services, is that right?"\n4. Wait for their response. If they confirm, offer to demo what you can do for their business or pitch why they should choose Earlymark.`
+        : `\n\nNOTE: Caller name unknown. Open with: "Hi there, my name is Tracey and I'm calling from Earlymark AI. I understand you're interested in our AI assistant and CRM services, is that right?" Then wait for their response.`;
     }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
@@ -303,22 +303,30 @@ export default defineAgent({
       },
     });
 
+    // ── Explicit track subscription (fixes SIP audio not reaching STT) ────
+    // AutoSubscribe.AUDIO_ONLY may miss late-arriving SIP tracks.
+    // Force-subscribe to every remote audio track as soon as it appears.
+    ctx.room.on('trackPublished', (pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
+      try { pub.setSubscribed(true); } catch { /* ignore */ }
+    });
+    ctx.room.on('trackSubscribed', (track: any, pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
+    });
+    // Also subscribe to any tracks that were published before we registered the listener
+    for (const [, rp] of ctx.room.remoteParticipants) {
+      for (const [, pub] of rp.trackPublications) {
+        if (!pub.isSubscribed) {
+          console.log(`${logPrefix} [TRACK] late-subscribing: kind=${pub.kind} participant=${rp.identity}`);
+          try { (pub as any).setSubscribed(true); } catch { /* ignore */ }
+        }
+      }
+    }
+
     const session = new voice.AgentSession({});
     await session.start({
       agent,
       room: ctx.room,
-      inputOptions: { participantIdentity: participant.identity }, // This was working before
-    });
-
-    // ── Track diagnostic: see if agent subscribes to late-joining SIP participant ──
-    ctx.room.on('trackSubscribed', (track: any, pub: any, p: any) => {
-      console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
-    });
-    ctx.room.on('trackPublished', (pub: any, p: any) => {
-      console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
-    });
-    ctx.room.on('participantConnected', (p: any) => {
-      console.log(`${logPrefix} [PARTICIPANT] connected: identity=${p.identity} isAgent=${p.isAgent}`);
     });
 
     // ── Per-component latency instrumentation ────────────────────────
@@ -370,7 +378,7 @@ export default defineAgent({
 
     // ── Initial greeting ────────────────────────────────────────────
     // Use userInput to trigger LLM — more reliable than instructions for small models
-    await session.generateReply({ userInput: '[The phone is now connected. Say your opening line.]' });
+    await session.generateReply({ userInput: '[The phone is ringing and has been answered. Follow your opening script exactly, starting with line 1.]' });
     console.log(`${logPrefix} [LATENCY:GREETING] Initial greeting generated`);
 
     // ── Timer: wrap-up ──────────────────────────────────────────────
