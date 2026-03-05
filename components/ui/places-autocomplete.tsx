@@ -44,28 +44,36 @@ export function PlacesAutocomplete({ value, onChange, placeholder = "Enter addre
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
   useEffect(() => {
-    if (!apiKey) return
+    if (!apiKey) {
+      console.error("PlacesAutocomplete: No API key found")
+      return
+    }
 
     setIsLoading(true)
+    console.log("PlacesAutocomplete: Loading Google Maps with API key")
     loadGoogleMaps(apiKey)
       .then(() => {
         if (window.google?.maps?.places) {
           autocompleteService.current = new window.google.maps.places.AutocompleteService()
           sessionToken.current = new window.google.maps.places.AutocompleteSessionToken()
+          console.log("PlacesAutocomplete: Google Maps loaded successfully")
         }
         setIsLoading(false)
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("PlacesAutocomplete: Failed to load Google Maps", error)
         setIsLoading(false)
       })
   }, [apiKey])
 
   const fetchSuggestions = (input: string) => {
     if (!autocompleteService.current || !input || input.length < 3) {
+      console.log("PlacesAutocomplete: Skipping fetch - service:", !!autocompleteService.current, "input length:", input.length)
       setSuggestions([])
       return
     }
 
+    console.log("PlacesAutocomplete: Fetching suggestions for:", input)
     autocompleteService.current.getPlacePredictions(
       { 
         input,
@@ -73,6 +81,7 @@ export function PlacesAutocomplete({ value, onChange, placeholder = "Enter addre
         componentRestrictions: { country: "au" }
       },
       (predictions, status) => {
+        console.log("PlacesAutocomplete: Response - status:", status, "predictions:", predictions?.length || 0)
         if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
           setSuggestions(predictions)
           setShowSuggestions(true)

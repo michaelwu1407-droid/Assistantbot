@@ -8,7 +8,7 @@ import { logger } from "@/lib/logging";
 
 // ─── Australian Phone Validation ────────────────────────────────
 
-const auPhoneRegex = /^(\+?61|0)[2-578]\d{8}$/;
+const auPhoneRegex = /^(\+?61|0)[2-578]\d{8}$|^04\d{8}$/;
 
 function normaliseAuPhone(phone: string): string {
   const cleaned = phone.replace(/[\s\-()]/g, "");

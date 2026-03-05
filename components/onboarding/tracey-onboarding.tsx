@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,7 +28,7 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import {
-  Loader2, Globe, User, Phone, Mail, Building2,
+  Loader2, Globe, User, Users, Phone, Mail, Building2,
   Zap, FileEdit, Eye, ChevronRight, ChevronLeft,
   Plus, Trash2, CheckCircle2, MapPin, Clock, Shield,
   MessageSquare, Play, Square, Volume2, Sparkles, Info, Send,
@@ -261,7 +263,7 @@ function TraceyBubble({ text, animate = true }: { text: string; animate?: boolea
       <div className="shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
         <Sparkles className="h-4 w-4 text-emerald-600" />
       </div>
-      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-emerald-900 dark:text-emerald-100 max-w-md">
+      <div className="bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-emerald-900 dark:text-emerald-100 max-w-md">
         {text}
       </div>
     </motion.div>
@@ -361,17 +363,23 @@ export function TraceyOnboarding() {
     stopVoicePreview()
     setLoadingVoiceId(voiceId)
     try {
+      console.log("Voice preview: Requesting audio for voice:", voiceId)
       const res = await fetch("/api/voice-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voiceId, text: VOICE_PREVIEW_TEXT }),
       })
+      console.log("Voice preview: Response status:", res.status, res.headers.get("content-type"))
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: "Unknown error" }))
+        console.error("Voice preview: API error:", errData)
         throw new Error(errData.error || `TTS failed (${res.status})`)
       }
       const blob = await res.blob()
+      console.log("Voice preview: Blob size:", blob.size, "type:", blob.type)
       if (!blob.size || blob.type === "application/json") {
+        const errorText = await blob.text()
+        console.error("Voice preview: Invalid blob:", errorText)
         throw new Error("Empty or invalid audio response")
       }
       const audioBlob = new Blob([blob], { type: "audio/mpeg" })
@@ -382,7 +390,8 @@ export function TraceyOnboarding() {
         setPlayingVoiceId(null)
         URL.revokeObjectURL(url)
       }
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error("Voice preview: Audio playback error:", e)
         setPlayingVoiceId(null)
         URL.revokeObjectURL(url)
         toast.error("Audio playback failed")
@@ -717,21 +726,26 @@ export function TraceyOnboarding() {
             const isActive = i === step
             const isDone = i < step
             return (
-              <div key={s.label} className="flex flex-col items-center gap-1 flex-1">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
-                      ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
-                      : isDone
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                        : "bg-slate-200 text-slate-400 dark:bg-slate-800"
-                    }`}
-                >
-                  {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              <React.Fragment key={s.label}>
+                <div className="flex flex-col items-center gap-1 flex-1">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
+                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
+                        : isDone
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                          : "bg-slate-200 text-slate-400 dark:bg-slate-800"
+                      }`}
+                  >
+                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  </div>
+                  <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
+                    {s.label}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
-                  {s.label}
-                </span>
-              </div>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-slate-300"}`} />
+                )}
+              </React.Fragment>
             )
           })}
         </div>
@@ -817,7 +831,7 @@ export function TraceyOnboarding() {
 
                     <TraceyBubble text="How much freedom do you want to give me? Pick a mode — you can always change it later in Settings." />
 
-                    <div className="space-y-3">
+                    <div className="flex gap-3 flex-col sm:flex-row">
                       {(Object.keys(MODE_DESCRIPTIONS) as AgentMode[]).map((mode) => {
                         const { title, icon: ModeIcon, description } = MODE_DESCRIPTIONS[mode]
                         const isSelected = agentMode === mode
@@ -825,7 +839,7 @@ export function TraceyOnboarding() {
                           <button
                             key={mode}
                             onClick={() => setAgentMode(mode)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
+                            className={`flex-1 text-left p-4 rounded-xl border-2 transition-all ${isSelected
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                               }`}
