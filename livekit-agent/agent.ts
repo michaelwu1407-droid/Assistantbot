@@ -241,7 +241,13 @@ export default defineAgent({
     const isEarlymarkCall = callType === 'demo' || callType === 'inbound_demo';
     const logPrefix = isEarlymarkCall ? '[TRACEY_EARLYMARK]' : '[TRACEY_USER]';
 
-    console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()} | model: ${llmModel} | caller: ${callerFirstName || 'unknown'} | biz: ${callerBusiness || 'unknown'}`);
+    console.log(`${logPrefix} ════════════════════════════════════════════════`);
+    console.log(`${logPrefix} Call started — type: ${callType.toUpperCase()}`);
+    console.log(`${logPrefix}   mode:   ${isEarlymarkCall ? 'TRACEY_EARLYMARK (demo/inbound leads)' : 'TRACEY_USER (paying customer)'}`);
+    console.log(`${logPrefix}   timers: wrap-up ${isEarlymarkCall ? '3' : '8'}min / hard cap ${isEarlymarkCall ? '5' : '10'}min`);
+    console.log(`${logPrefix}   model:  ${llmModel}`);
+    console.log(`${logPrefix}   caller: ${callerFirstName || 'unknown'} | biz: ${callerBusiness || 'unknown'}`);
+    console.log(`${logPrefix} ════════════════════════════════════════════════`);
 
     // Inject caller info directly into system prompt so LLM has full context
     // without needing complex generateReply instructions (which confuse small models)
