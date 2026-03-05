@@ -29,7 +29,8 @@ import {
   Loader2, Globe, User, Phone, Mail, Building2,
   Zap, FileEdit, Eye, ChevronRight, ChevronLeft,
   Plus, Trash2, CheckCircle2, MapPin, Clock, Shield,
-  MessageSquare, Play, Volume2, Sparkles, Info, Send,
+  MessageSquare, Play, Square, Volume2, Sparkles, Info, Send,
+  File as FileIcon,
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
 import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
@@ -54,10 +55,94 @@ const TRADE_TYPES = [
   "Landscaper", "Pest Control", "Cleaner", "Handyman", "Other",
 ]
 
+const TRADE_TYPE_ALIASES: Record<string, string> = {
+  plumbing: "Plumber", plumbers: "Plumber", plumber: "Plumber",
+  electrical: "Electrician", electricians: "Electrician", electrician: "Electrician",
+  hvac: "HVAC Technician", "air conditioning": "HVAC Technician", "aircon": "HVAC Technician",
+  carpentry: "Carpenter", carpenters: "Carpenter", carpenter: "Carpenter",
+  locksmith: "Locksmith", locksmiths: "Locksmith",
+  roofing: "Roofer", roofers: "Roofer", roofer: "Roofer",
+  painting: "Painter", painters: "Painter", painter: "Painter",
+  tiling: "Tiler", tilers: "Tiler", tiler: "Tiler",
+  landscaping: "Landscaper", landscapers: "Landscaper", landscaper: "Landscaper",
+  "pest control": "Pest Control", "pest": "Pest Control",
+  cleaning: "Cleaner", cleaners: "Cleaner", cleaner: "Cleaner",
+  handyman: "Handyman", "handy man": "Handyman",
+}
+
+function matchTradeType(scraped: string): string {
+  const lower = scraped.toLowerCase().trim()
+  if (TRADE_TYPE_ALIASES[lower]) return TRADE_TYPE_ALIASES[lower]
+  const exact = TRADE_TYPES.find((t) => t.toLowerCase() === lower)
+  if (exact) return exact
+  const partial = TRADE_TYPES.find((t) => lower.includes(t.toLowerCase()) || t.toLowerCase().includes(lower))
+  return partial || scraped
+}
+
+function parseOperatingHoursStructured(raw: string): { days: string[]; start: string; end: string } {
+  const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  const DAY_MAP: Record<string, string> = {
+    mon: "Mon", monday: "Mon", tue: "Tue", tuesday: "Tue",
+    wed: "Wed", wednesday: "Wed", thu: "Thu", thursday: "Thu",
+    fri: "Fri", friday: "Fri", sat: "Sat", saturday: "Sat",
+    sun: "Sun", sunday: "Sun",
+  }
+
+  // Extract days
+  let days: string[] = []
+  const lower = raw.toLowerCase()
+  // Check for range like "mon-fri" or "monday-friday"
+  const rangeMatch = lower.match(/(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\s*[-–to]+\s*(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)/i)
+  if (rangeMatch) {
+    const startDay = DAY_MAP[rangeMatch[1].toLowerCase()]
+    const endDay = DAY_MAP[rangeMatch[2].toLowerCase()]
+    if (startDay && endDay) {
+      const si = ALL_DAYS.indexOf(startDay)
+      const ei = ALL_DAYS.indexOf(endDay)
+      if (si >= 0 && ei >= 0) {
+        for (let i = si; i <= ei; i++) days.push(ALL_DAYS[i])
+      }
+    }
+  }
+  // Check for individual day mentions
+  if (days.length === 0) {
+    for (const [key, val] of Object.entries(DAY_MAP)) {
+      if (lower.includes(key) && !days.includes(val)) days.push(val)
+    }
+    // Sort by standard order
+    days.sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b))
+  }
+  if (days.length === 0) days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+  // Extract times
+  const timePattern = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi
+  const matches = [...raw.matchAll(timePattern)]
+  let start = "08:00"
+  let end = "17:00"
+  if (matches.length >= 2) {
+    const toTime = (m: RegExpMatchArray) => {
+      let h = parseInt(m[1])
+      const min = m[2] || "00"
+      const ampm = (m[3] || "").toLowerCase()
+      if (ampm === "pm" && h < 12) h += 12
+      if (ampm === "am" && h === 12) h = 0
+      return `${String(h).padStart(2, "0")}:${min}`
+    }
+    start = toTime(matches[0])
+    end = toTime(matches[1])
+  }
+
+  return { days, start, end }
+}
+
 const TRACEY_VOICES = [
-  { id: "aussie-female", label: "Casual Tracey (Default)", description: "Casual, warm, Australian female" },
-  { id: "pro-female", label: "Professional Tracey", description: "Polished, professional tone" },
+  { id: "a4a16c5e-5902-4732-b9b6-2a48efd2e11b", label: "Casual Tracey (Default)", description: "Casual, warm, Australian female" },
+  { id: "8985388c-1332-4ce7-8d55-789628aa3df4", label: "Professional Tracey", description: "Polished, professional tone" },
+  { id: "7d7d769c-5ab1-4dd5-bb17-ec8d4b69d03d", label: "Friendly Tracey", description: "Upbeat, approachable style" },
+  { id: "ba0add52-783c-4ec0-8b9c-7a6b60f99d1c", label: "Confident Tracey", description: "Bold, assertive delivery" },
 ]
+
+const VOICE_PREVIEW_TEXT = "G'day! I'm Tracey, your AI receptionist. How can I help you today?"
 
 const MODE_DESCRIPTIONS: Record<AgentMode, { title: string; icon: typeof Zap; description: string; traceyLine: string }> = {
   EXECUTION: {
@@ -84,20 +169,37 @@ const MODE_DESCRIPTIONS: Record<AgentMode, { title: string; icon: typeof Zap; de
 
 const SCENARIO_STEPS = ["Greeting", "Service Enquiry", "Booking/Price", "Goodbye"] as const
 
-function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }> {
+interface ScenarioContext {
+  businessName: string
+  tradeType: string
+  serviceName: string
+  priceRange: string
+  callOutFee: string
+}
+
+function getScenarioDialogue(
+  mode: AgentMode,
+  ctx: ScenarioContext
+): Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }> {
+  const biz = ctx.businessName || "our team"
+  const trade = ctx.tradeType?.toLowerCase() || "tradie"
+  const svc = ctx.serviceName || "repair"
+  const price = ctx.priceRange || "$150-$250"
+  const fee = ctx.callOutFee || "$89"
+
   const dialogues: Record<AgentMode, Record<typeof SCENARIO_STEPS[number], { customer: string; tracey: string }>> = {
     EXECUTION: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! Sorry to hear about the leak. Let me get that sorted for you right away. Can I grab your name and address?",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. Sorry to hear you need urgent help. Let me get that sorted for you right away. Can I grab your name and address?`,
       },
       "Service Enquiry": {
-        customer: "Yeah, it's Sarah at 42 Smith St, Parramatta. How much will it cost?",
-        tracey: "Thanks Sarah! A tap repair is usually between $150-$250 depending on the issue. I'll book our plumber in for you.",
+        customer: `Yeah, it's Sarah at 42 Smith St, Parramatta. How much will a ${svc} cost?`,
+        tracey: `Thanks Sarah! A ${svc} is usually between ${price} depending on the issue. I'll book our ${trade} in for you.`,
       },
       "Booking/Price": {
         customer: "That sounds fine. When can someone come?",
-        tracey: "I've got a slot tomorrow at 10am. I'll lock that in for you and send a confirmation text. The call-out fee of $89 is waived if you go ahead with the repair.",
+        tracey: `I've got a slot tomorrow at 10am. I'll lock that in for you and send a confirmation text. The call-out fee of ${fee} is waived if you go ahead with the ${svc}.`,
       },
       Goodbye: {
         customer: "Perfect, thanks!",
@@ -106,16 +208,16 @@ function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[numb
     },
     DRAFT: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! Sorry about the leak. Let me take your details and I'll get our plumber to confirm availability for you.",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. Let me take your details and I'll get our ${trade} to confirm availability for you.`,
       },
       "Service Enquiry": {
-        customer: "Yeah, it's Sarah at 42 Smith St, Parramatta. How much will it cost?",
-        tracey: "Thanks Sarah! I'll put together a draft quote for the tap repair and send it to the boss for approval. I'll get back to you shortly.",
+        customer: `Yeah, it's Sarah at 42 Smith St, Parramatta. How much will a ${svc} cost?`,
+        tracey: `Thanks Sarah! I'll put together a draft quote for the ${svc} and send it to the boss for approval. I'll get back to you shortly.`,
       },
       "Booking/Price": {
         customer: "Okay, how long will that take?",
-        tracey: "[Draft sent to you for review] Sarah needs a tap repair at 42 Smith St, Parramatta. Suggested: $150-$250 range, tomorrow 10am slot.",
+        tracey: `[Draft sent to you for review] Sarah needs a ${svc} at 42 Smith St, Parramatta. Suggested: ${price} range, tomorrow 10am slot.`,
       },
       Goodbye: {
         customer: "Thanks for letting me know.",
@@ -124,20 +226,20 @@ function getScenarioDialogue(mode: AgentMode): Record<typeof SCENARIO_STEPS[numb
     },
     INFO_ONLY: {
       Greeting: {
-        customer: "Hi, I need a plumber urgently — my kitchen tap is leaking everywhere!",
-        tracey: "G'day! I'll take down the details and pass them straight to our plumber.",
+        customer: `Hi, I need a ${trade} urgently — can someone help me today?`,
+        tracey: `G'day! You've reached ${biz}. I'll take down the details and pass them straight to our ${trade}.`,
       },
       "Service Enquiry": {
-        customer: "It's Sarah at 42 Smith St, Parramatta. Can you give me a quote?",
-        tracey: "I've noted that down, Sarah. Our plumber will give you a call back with a quote and availability.",
+        customer: `It's Sarah at 42 Smith St, Parramatta. Can you give me a quote for a ${svc}?`,
+        tracey: `I've noted that down, Sarah. Our ${trade} will give you a call back with a quote and availability.`,
       },
       "Booking/Price": {
         customer: "When will I hear back?",
-        tracey: "I'll flag this as urgent and the plumber should be in touch within the hour.",
+        tracey: `I'll flag this as urgent and the ${trade} should be in touch within the hour.`,
       },
       Goodbye: {
         customer: "Alright, thanks.",
-        tracey: "[Alert sent to you] New urgent enquiry: Sarah, 42 Smith St Parramatta — leaking kitchen tap. Awaiting your callback.",
+        tracey: `[Alert sent to you] New urgent enquiry: Sarah, 42 Smith St Parramatta — needs ${svc}. Awaiting your callback.`,
       },
     },
   }
@@ -202,9 +304,13 @@ export function TraceyOnboarding() {
   const [physicalAddress, setPhysicalAddress] = useState("")
   const [baseSuburb, setBaseSuburb] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
-  const [standardWorkHours, setStandardWorkHours] = useState("Mon-Fri, 07:00-15:30")
+  const [workDays, setWorkDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"])
+  const [workStartTime, setWorkStartTime] = useState("07:00")
+  const [workEndTime, setWorkEndTime] = useState("15:30")
   const [emergencyService, setEmergencyService] = useState(false)
   const [emergencySurcharge, setEmergencySurcharge] = useState(350)
+  const [emergencyStartTime, setEmergencyStartTime] = useState("17:00")
+  const [emergencyEndTime, setEmergencyEndTime] = useState("07:00")
   const [emergencyHandling, setEmergencyHandling] = useState("")
   const [specialNotes, setSpecialNotes] = useState("")
   const [acceptsMultilingual, setAcceptsMultilingual] = useState(false)
@@ -218,7 +324,55 @@ export function TraceyOnboarding() {
   // Step 5: Simulator
   const [simMode, setSimMode] = useState<AgentMode>("EXECUTION")
   const [simStep, setSimStep] = useState(0)
-  const [selectedVoice, setSelectedVoice] = useState("aussie-female")
+  const [selectedVoice, setSelectedVoice] = useState("a4a16c5e-5902-4732-b9b6-2a48efd2e11b")
+  const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null)
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const stopVoicePreview = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+      audioRef.current = null
+    }
+    setPlayingVoiceId(null)
+  }, [])
+
+  const playVoicePreview = useCallback(async (voiceId: string) => {
+    if (playingVoiceId === voiceId) {
+      stopVoicePreview()
+      return
+    }
+    stopVoicePreview()
+    setLoadingVoiceId(voiceId)
+    try {
+      const res = await fetch("/api/voice-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voiceId, text: VOICE_PREVIEW_TEXT }),
+      })
+      if (!res.ok) throw new Error("TTS failed")
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => {
+        setPlayingVoiceId(null)
+        URL.revokeObjectURL(url)
+      }
+      audio.onerror = () => {
+        setPlayingVoiceId(null)
+        URL.revokeObjectURL(url)
+        toast.error("Audio playback failed")
+      }
+      await audio.play()
+      setPlayingVoiceId(voiceId)
+    } catch {
+      toast.error("Voice preview unavailable")
+    } finally {
+      setLoadingVoiceId(null)
+    }
+  }, [playingVoiceId, stopVoicePreview])
 
   // Step 6: Provisioning
   const [referralSource, setReferralSource] = useState("")
@@ -227,6 +381,17 @@ export function TraceyOnboarding() {
     leadsEmail?: string
     provisioningError?: string
   } | null>(null)
+  const [eagerPhoneNumber, setEagerPhoneNumber] = useState<string | null>(null)
+  const [eagerProvisioningLoading, setEagerProvisioningLoading] = useState(false)
+
+  // Step 3 (Email): Inbox connection
+  const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
+  const [preGenLeadsEmail, setPreGenLeadsEmail] = useState<string | null>(null)
+
+  // Step 2: Document uploads
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{ name: string; path: string; fileType?: string; fileSize?: number }>>([])
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // ── Background Scraping ──
 
@@ -241,7 +406,7 @@ export function TraceyOnboarding() {
         setScrapeData(result.data)
         // Pre-fill fields from scrape data
         if (result.data.businessName && !businessName) setBusinessName(result.data.businessName)
-        if (result.data.tradeType && !tradeType) setTradeType(result.data.tradeType)
+        if (result.data.tradeType && !tradeType) setTradeType(matchTradeType(result.data.tradeType))
         if (result.data.phone && !publicPhone) setPublicPhone(result.data.phone)
         if (result.data.email && !publicEmail) setPublicEmail(result.data.email)
         if (result.data.address && !physicalAddress) {
@@ -254,7 +419,16 @@ export function TraceyOnboarding() {
             }
           }
         }
-        if (result.data.operatingHours) setStandardWorkHours(result.data.operatingHours)
+        if (result.data.operatingHours) {
+          const parsed = parseOperatingHoursStructured(result.data.operatingHours)
+          setWorkDays(parsed.days)
+          setWorkStartTime(parsed.start)
+          setWorkEndTime(parsed.end)
+        }
+        if (result.data.emergencyAvailable) {
+          setEmergencyService(true)
+          if (result.data.emergencyHours) setEmergencyHandling(result.data.emergencyHours)
+        }
         if (result.data.suburbs?.length && !baseSuburb) setBaseSuburb(result.data.suburbs[0])
         // Pre-fill services
         if (result.data.services?.length) {
@@ -282,6 +456,40 @@ export function TraceyOnboarding() {
       triggerScrape()
     }
   }, [step, websiteUrl, triggerScrape])
+
+  // Generate leads email preview client-side from owner name + business name
+  useEffect(() => {
+    if (step === 3 && !preGenLeadsEmail && ownerName && businessName) {
+      const toSlug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      const firstName = (ownerName.trim().split(/\s+/)[0] || "user").toLowerCase().replace(/[^a-z0-9]/g, "")
+      const bizSlug = toSlug(businessName)
+      const domainBase = "earlymark.ai"
+      setPreGenLeadsEmail(`${firstName}@${bizSlug}.${domainBase}`)
+    }
+  }, [step, preGenLeadsEmail, ownerName, businessName])
+
+  // Eagerly provision phone number when entering step 6 (Go Live)
+  useEffect(() => {
+    if (step === 6 && !eagerPhoneNumber && !eagerProvisioningLoading && businessName && phone) {
+      setEagerProvisioningLoading(true)
+      // Call the setup-comms API to provision phone number
+      fetch("/api/workspace/setup-comms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName, ownerPhone: phone }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.phoneNumber) {
+            setEagerPhoneNumber(data.phoneNumber)
+          }
+        })
+        .catch(() => {
+          // Silent fail - provisioning will be retried on activate
+        })
+        .finally(() => setEagerProvisioningLoading(false))
+    }
+  }, [step, eagerPhoneNumber, eagerProvisioningLoading, businessName, phone])
 
   // ── Validation ──
 
@@ -327,6 +535,63 @@ export function TraceyOnboarding() {
     )
   }
 
+  // ── Document Upload ──
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setUploadingFile(file)
+    }
+  }
+
+  const handleDocumentUpload = async () => {
+    if (!uploadingFile) return
+    
+    setIsUploading(true)
+    try {
+      // Dynamically import to avoid loading on other steps
+      const { getUploadUrl } = await import("@/actions/storage-actions")
+      const tokenRes = await getUploadUrl(uploadingFile.name, "documents")
+      
+      if (!tokenRes.success || !tokenRes.signedUrl || !tokenRes.path) {
+        throw new Error(tokenRes.error || "Failed to get upload URL")
+      }
+
+      // Upload to Supabase
+      const uploadRes = await fetch(tokenRes.signedUrl, {
+        method: "PUT",
+        body: uploadingFile,
+        headers: { "Content-Type": uploadingFile.type },
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error("Upload failed")
+      }
+
+      // Add to local state
+      setUploadedDocs((prev) => [
+        ...prev,
+        {
+          name: uploadingFile.name,
+          path: tokenRes.path!,
+          fileType: uploadingFile.type,
+          fileSize: uploadingFile.size,
+        },
+      ])
+      
+      toast.success(`Uploaded ${uploadingFile.name}`)
+      setUploadingFile(null)
+    } catch (err) {
+      toast.error("Upload failed: " + (err instanceof Error ? err.message : "Unknown error"))
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const removeDocument = (index: number) => {
+    setUploadedDocs((prev) => prev.filter((_, i) => i !== index))
+  }
+
   // ── Submit ──
 
   const handleSubmit = async () => {
@@ -345,7 +610,7 @@ export function TraceyOnboarding() {
         physicalAddress,
         baseSuburb,
         serviceRadius,
-        standardWorkHours,
+        standardWorkHours: `${workDays.join(", ")}, ${workStartTime}-${workEndTime}`,
         emergencyService,
         emergencySurcharge: emergencyService ? emergencySurcharge : undefined,
         emergencyHandling,
@@ -479,7 +744,7 @@ export function TraceyOnboarding() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Website URL (optional)</Label>
+                      <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Website URL</Label>
                       <Input
                         placeholder="https://yoursite.com.au"
                         value={websiteUrl}
@@ -489,7 +754,7 @@ export function TraceyOnboarding() {
                         }}
                       />
                       <p className="text-xs text-slate-500">
-                        Tracey will scan your site in the background to pre-fill your business details.
+                        Tracey will pre-fill your details using your website
                       </p>
                     </div>
                   </div>
@@ -528,9 +793,6 @@ export function TraceyOnboarding() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-sm">{title}</span>
-                                  {mode === "EXECUTION" && (
-                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Default</Badge>
-                                  )}
                                 </div>
                                 <p className="text-xs text-slate-500 mt-0.5">{description}</p>
                               </div>
@@ -644,14 +906,20 @@ export function TraceyOnboarding() {
                         <Label className="text-xs text-slate-500">Select working days</Label>
                         <div className="flex flex-wrap gap-2">
                           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
-                            const isSelected = standardWorkHours.toLowerCase().includes(day.toLowerCase());
+                            const isSelected = workDays.includes(day);
                             return (
                               <button
                                 key={day}
                                 type="button"
                                 onClick={() => {
-                                  const currentHours = standardWorkHours || "Mon-Fri, 08:00-17:00";
-                                  setStandardWorkHours(currentHours);
+                                  setWorkDays((prev) =>
+                                    prev.includes(day)
+                                      ? prev.filter((d) => d !== day)
+                                      : [...prev, day].sort((a, b) =>
+                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(a) -
+                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(b)
+                                        )
+                                  );
                                 }}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isSelected
                                     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
@@ -670,22 +938,16 @@ export function TraceyOnboarding() {
                           <Label className="text-xs text-slate-500">Start Time</Label>
                           <Input
                             type="time"
-                            value={standardWorkHours.split("-")[0]?.trim() || "08:00"}
-                            onChange={(e) => {
-                              const endTime = standardWorkHours.split("-")[1]?.trim() || "17:00";
-                              setStandardWorkHours(`${e.target.value}-${endTime}`);
-                            }}
+                            value={workStartTime}
+                            onChange={(e) => setWorkStartTime(e.target.value)}
                           />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-slate-500">End Time</Label>
                           <Input
                             type="time"
-                            value={standardWorkHours.split("-")[1]?.trim() || "17:00"}
-                            onChange={(e) => {
-                              const startTime = standardWorkHours.split("-")[0]?.trim() || "08:00";
-                              setStandardWorkHours(`${startTime}-${e.target.value}`);
-                            }}
+                            value={workEndTime}
+                            onChange={(e) => setWorkEndTime(e.target.value)}
                           />
                         </div>
                       </div>
@@ -693,7 +955,7 @@ export function TraceyOnboarding() {
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <p className="font-medium text-sm flex items-center gap-1.5">
-                            <Shield className="h-4 w-4 text-amber-500" /> Emergency / After-Hours
+                            <Shield className="h-4 w-4 text-amber-500" /> Emergency hours
                           </p>
                           <p className="text-xs text-slate-500">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
                         </div>
@@ -702,6 +964,24 @@ export function TraceyOnboarding() {
 
                       {emergencyService && (
                         <div className="space-y-3 animate-in fade-in duration-300 pl-4 border-l-2 border-amber-300">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-slate-500">Emergency Start</Label>
+                              <Input
+                                type="time"
+                                value={emergencyStartTime}
+                                onChange={(e) => setEmergencyStartTime(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-slate-500">Emergency End</Label>
+                              <Input
+                                type="time"
+                                value={emergencyEndTime}
+                                onChange={(e) => setEmergencyEndTime(e.target.value)}
+                              />
+                            </div>
+                          </div>
                           <div className="space-y-1.5">
                             <Label>Emergency Surcharge (AUD)</Label>
                             <Input
@@ -733,6 +1013,70 @@ export function TraceyOnboarding() {
                         rows={3}
                       />
                     </div>
+
+                    {/* Document Upload */}
+                    <div className="space-y-3 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900">
+                      <Label className="flex items-center gap-2">
+                        <FileIcon className="h-4 w-4 text-emerald-500" />
+                        Upload Documents (optional)
+                      </Label>
+                      <p className="text-xs text-slate-500">
+                        Upload price lists, insurance forms, or any documents Tracey should reference.
+                      </p>
+                      
+                      {/* File upload input */}
+                      <div className="flex gap-2">
+                        <Input
+                          type="file"
+                          onChange={handleFileSelect}
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={handleDocumentUpload}
+                          disabled={!uploadingFile || isUploading}
+                          size="sm"
+                          className="gap-1.5"
+                        >
+                          {isUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4" />
+                          )}
+                          {isUploading ? "Uploading..." : "Upload"}
+                        </Button>
+                      </div>
+
+                      {/* Uploaded files list */}
+                      {uploadedDocs.length > 0 && (
+                        <div className="space-y-2">
+                          {uploadedDocs.map((doc, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-2 bg-white dark:bg-slate-950 rounded border"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileIcon className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span className="text-sm truncate">{doc.name}</span>
+                                {doc.fileSize && (
+                                  <span className="text-xs text-slate-400">
+                                    ({(doc.fileSize / 1024).toFixed(1)} KB)
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeDocument(index)}
+                                className="h-6 w-6 text-slate-400 hover:text-red-500 shrink-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -744,49 +1088,139 @@ export function TraceyOnboarding() {
                     {/* Email Integration Info */}
                     <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox
+                        <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox [{agentMode === "EXECUTION" ? "Execute" : agentMode === "DRAFT" ? "Review" : "Info Only"}]
                       </h3>
                       <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span>Tracey monitors your inbox 24/7 for new lead emails from platforms like HiPages, Airtasker, and ServiceSeeking</span>
+                          <span>Tracey monitors and extracts from your inbox 24/7 new leads</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span>She extracts customer details and creates deals automatically in your CRM</span>
+                          <span>She extracts details and creates deals automatically in the CRM</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span>Tracey can auto-respond to leads with your availability and pricing</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span>All customer conversations are organized in one unified inbox</span>
+                          <span>Tracey can auto-respond to leads</span>
                         </li>
                       </ul>
                     </div>
 
-                    {/* Public Email Display */}
-                    <div className="space-y-1.5">
-                      <Label className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5" /> Business Email for Leads
-                      </Label>
-                      <Input
-                        placeholder="leads@yourbusiness.com"
-                        value={publicEmail}
-                        onChange={(e) => setPublicEmail(e.target.value)}
-                      />
-                      <p className="text-xs text-slate-500">
-                        This is the email address customers will use to contact you, and where Tracey will monitor for new leads.
-                      </p>
+                    {/* Connection Options */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Choose how to connect your inbox:</Label>
+                      
+                      {/* Option 1: Connect Seamlessly (OAuth) */}
+                      <button
+                        onClick={() => setInboxConnectionType("oauth")}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${inboxConnectionType === "oauth"
+                            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
+                            : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "oauth" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                            <Globe className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm">Connect Seamlessly</span>
+                              <Badge variant="secondary" className="text-[10px]">Recommended</Badge>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">Connect your Gmail or Outlook directly for instant lead capture</p>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Auto-Forward */}
+                      <button
+                        onClick={() => setInboxConnectionType("forward")}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${inboxConnectionType === "forward"
+                            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
+                            : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "forward" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                            <Mail className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-semibold text-sm">Auto-Forward</span>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Set up a forwarding rule from your email to: <strong className="text-emerald-600">{preGenLeadsEmail || "Loading..."}</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </button>
                     </div>
 
-                    {/* What happens next */}
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                      <p className="text-xs text-emerald-800 dark:text-emerald-200">
-                        <strong>After onboarding:</strong> You&apos;ll get a unique @earlymark.ai email address that you can forward to from your Gmail/Outlook, or connect directly via OAuth for seamless lead capture.
-                      </p>
-                    </div>
+                    {inboxConnectionType === "oauth" && (
+                      <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Connect your email account so Tracey can start monitoring for new leads immediately.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/auth/email-provider?provider=gmail")
+                                const data = await res.json()
+                                if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
+                                else toast.error("Failed to start Gmail connection")
+                              } catch { toast.error("Failed to connect Gmail") }
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                            Connect Gmail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/auth/email-provider?provider=outlook")
+                                const data = await res.json()
+                                if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
+                                else toast.error("Failed to start Outlook connection")
+                              } catch { toast.error("Failed to connect Outlook") }
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                            Connect Outlook
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {inboxConnectionType === "forward" && preGenLeadsEmail && (
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                        <p className="text-xs text-emerald-800 dark:text-emerald-200 mb-2">
+                          <strong>Your forwarding address:</strong>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono text-emerald-700 dark:text-emerald-400 select-all">
+                            {preGenLeadsEmail}
+                          </code>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              navigator.clipboard.writeText(preGenLeadsEmail)
+                              toast.success("Copied to clipboard")
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                        <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2">
+                          Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -968,7 +1402,16 @@ export function TraceyOnboarding() {
                           {/* Customer message */}
                           <div className="flex items-start gap-2 justify-end">
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg rounded-tr-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode)[SCENARIO_STEPS[simStep]].customer}
+                              {getScenarioDialogue(simMode, {
+                                businessName,
+                                tradeType,
+                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                priceRange: (() => {
+                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                })(),
+                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                              })[SCENARIO_STEPS[simStep]].customer}
                             </div>
                             <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
                               <User className="h-3.5 w-3.5 text-blue-600" />
@@ -981,7 +1424,16 @@ export function TraceyOnboarding() {
                               <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
                             </div>
                             <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(simMode)[SCENARIO_STEPS[simStep]].tracey}
+                              {getScenarioDialogue(simMode, {
+                                businessName,
+                                tradeType,
+                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
+                                priceRange: (() => {
+                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
+                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
+                                })(),
+                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
+                              })[SCENARIO_STEPS[simStep]].tracey}
                             </div>
                           </div>
                         </motion.div>
@@ -1013,20 +1465,32 @@ export function TraceyOnboarding() {
                       <Label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase">
                         <Volume2 className="h-3.5 w-3.5" /> Tracey&apos;s Voice
                       </Label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {TRACEY_VOICES.map((voice) => (
                           <button
                             key={voice.id}
                             onClick={() => setSelectedVoice(voice.id)}
-                            className={`flex-1 p-3 rounded-lg border text-left transition-all ${selectedVoice === voice.id
+                            className={`p-3 rounded-lg border text-left transition-all ${selectedVoice === voice.id
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                               }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium">{voice.label}</span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toast.info(`Voice preview: "${voice.label}" — audio playback coming soon!`) }}>
-                                <Play className="h-3 w-3" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                disabled={loadingVoiceId === voice.id}
+                                onClick={(e) => { e.stopPropagation(); playVoicePreview(voice.id) }}
+                              >
+                                {loadingVoiceId === voice.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : playingVoiceId === voice.id ? (
+                                  <Square className="h-3 w-3" />
+                                ) : (
+                                  <Play className="h-3 w-3" />
+                                )}
                               </Button>
                             </div>
                             <p className="text-[10px] text-slate-500 mt-0.5">{voice.description}</p>
@@ -1063,15 +1527,28 @@ export function TraceyOnboarding() {
                         </div>
 
                         <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
-                          <h3 className="font-semibold text-sm">What happens next:</h3>
+                          <h3 className="font-semibold text-sm">What happens when you activate:</h3>
                           <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Tracey&apos;s email for {businessName} will be issued</span>
+                              <span>
+                                {eagerProvisioningLoading ? (
+                                  <span className="flex items-center gap-2">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Provisioning your dedicated AU phone number...
+                                  </span>
+                                ) : eagerPhoneNumber ? (
+                                  <span>
+                                    Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{eagerPhoneNumber}</strong>
+                                  </span>
+                                ) : (
+                                  "Tracey's dedicated AU phone number will be provisioned instantly"
+                                )}
+                              </span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Tracey&apos;s dedicated AU phone number will be provisioned</span>
+                              <span>Your leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> will be activated</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
