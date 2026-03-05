@@ -221,8 +221,6 @@ export default defineAgent({
 
     const stt = new deepgram.STT({
       model: 'nova-3',
-      language: 'en-AU',
-      endpointing: 300,
     });
 
     const tts = new cartesia.TTS({
