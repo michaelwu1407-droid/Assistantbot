@@ -484,23 +484,23 @@ export default function Home() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
-                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
-                                    <span>Win more customers and revenue</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-2">
+                                    <Check className="w-6 h-6 text-secondary flex-shrink-0" />
+                                    <span className="text-center flex-1">Win more customers and revenue</span>
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
-                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
-                                    <span>Make life easier by automating customer interaction and admin</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-2">
+                                    <Check className="w-6 h-6 text-secondary flex-shrink-0" />
+                                    <span className="text-center flex-1">Make life easier by automating customer interaction and admin</span>
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)]">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-start gap-2">
-                                    <span className="text-secondary text-lg leading-none mt-0.5">✓</span>
-                                    <span>Provide a reliable and better customer experience</span>
+                                <p className="text-white text-sm md:text-base font-semibold leading-snug flex items-center gap-2">
+                                    <Check className="w-6 h-6 text-secondary flex-shrink-0" />
+                                    <span className="text-center flex-1">Provide a reliable and better customer experience</span>
                                 </p>
                             </div>
                         </div>
