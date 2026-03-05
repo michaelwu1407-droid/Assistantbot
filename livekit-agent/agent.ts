@@ -203,8 +203,6 @@ export default defineAgent({
     const stt = new deepgram.STT({
       model: 'nova-3',
       language: 'en-AU',
-      smartFormat: false,
-      interimResults: true,
       endpointing: 300,
     });
 
@@ -257,8 +255,8 @@ export default defineAgent({
 
     if (callType === 'demo') {
       systemPrompt += callerFirstName
-        ? `\n\nCALLER INFO: You are calling ${callerFirstName}${callerBusiness ? ` who runs ${callerBusiness}` : ''}. Open with: "Hi, is this ${callerFirstName}?" — wait for confirmation — then introduce yourself and start the demo.`
-        : `\n\nCALLER INFO: Caller name unknown. Open with a warm greeting, introduce yourself, and ask what kind of business they run.`;
+        ? `\n\nNOTE: The person you are calling is named ${callerFirstName}${callerBusiness ? ` and they run ${callerBusiness}` : ''}. Your opening line should be "Hi, is this ${callerFirstName}?" and wait for them to say yes before continuing.`
+        : `\n\nNOTE: Caller name unknown. Open with a warm greeting and introduce yourself.`;
     }
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
@@ -317,16 +315,22 @@ export default defineAgent({
       turnSTTDoneMs   = 0;
     });
 
-    // ── Spam detection: disconnect if caller is silent for 20s ─────
+    // ── Spam detection: disconnect if caller silent 30s after greeting ends ──
     let callerHasSpoken = false;
+    let spamTimer: ReturnType<typeof setTimeout> | null = null;
     session.on('user_speech_committed' as any, () => { callerHasSpoken = true; });
-    const spamTimer = setTimeout(() => {
-      if (!callerHasSpoken) {
-        console.log(`${logPrefix} [SPAM] No caller speech in 20s — disconnecting`);
-        ctx.room.disconnect().catch(() => {});
+    // Start spam clock only once Tracey finishes her opening line
+    session.on('agent_speech_committed' as any, () => {
+      if (!callerHasSpoken && !spamTimer) {
+        spamTimer = setTimeout(() => {
+          if (!callerHasSpoken) {
+            console.log(`${logPrefix} [SPAM] No caller speech 30s after greeting — disconnecting`);
+            ctx.room.disconnect().catch(() => {});
+          }
+        }, 30_000);
       }
-    }, 20_000);
-    ctx.room.on('disconnected', () => clearTimeout(spamTimer));
+    });
+    ctx.room.on('disconnected', () => { if (spamTimer) clearTimeout(spamTimer); });
 
     // ── Initial greeting ────────────────────────────────────────────
     // Use userInput to trigger LLM — more reliable than instructions for small models
