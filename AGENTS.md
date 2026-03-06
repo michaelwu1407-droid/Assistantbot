@@ -51,6 +51,15 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **LLM target**: Llama `3.3 70B`, tuned for sub-`800ms` conversational latency.
 - **STT endpointing target**: Deepgram endpointing tuned to `200ms` when balancing speed against unnatural interruptions.
 
+## Voice Agent Regression Guardrails
+
+- **Demo opener**: For `demo` calls, line 1 must be only `Hi, is this [name] from [business]?` via `session.say()`. After the caller answers, Tracey should then introduce herself as `Tracey from Earlymark AI`. Do not collapse those into one sentence again.
+- **Australian delivery**: Tracey must stay Australian for the full call. Do not drift into US-style phrasing, cadence, or pronunciation cues as the conversation continues.
+- **Latency ceiling**: Treat `llmTtftMs > 1200` as a regression for the demo flow. The March 6, 2026 demo-call log showed overlap and interruption once turn latency rose into the `1351-2276ms` range.
+- **Turn shape**: Demo-call replies should stay short, especially immediately after the caller confirms identity. Long first replies increase talk-over risk on phone calls.
+- **Lead capture timing**: Do not call `log_lead` immediately after the caller says only `yes` or confirms identity. Wait until there is enough real information to satisfy the schema and reflect genuine interest.
+- **SIP audio safety**: Keep explicit remote-track subscription logging/handling in place for SIP demo calls. If logs show no `voice-user-turn` events after greeting, inspect `[TRACK] published/subscribed` first.
+
 ## Mandatory Session Check
 
 - Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.
