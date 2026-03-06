@@ -485,19 +485,15 @@ export default function Home() {
 
                     {/* Value Pillars */}
                     <motion.div {...fadeUp(0.12)} className="w-full max-w-[1200px] mx-auto">
-                        <p className="mb-4 text-xs md:text-sm font-semibold tracking-[0.18em] uppercase text-slate-600">
-                            Earlymark helps businesses
-                        </p>
-
                         <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8">
                             <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
-                                Win more customers and revenue
+                                Win more customers. Win more revenue
                             </p>
                             <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
-                                Make life easier by automating customer interaction and admin
+                                Make life easier. Automate customer admin
                             </p>
                             <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4]">
-                                Provide a reliable and better customer experience
+                                Provide a better, more reliable customer experience
                             </p>
                         </div>
                     </motion.div>
