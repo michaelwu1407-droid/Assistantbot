@@ -209,6 +209,7 @@ Role:
 - You work for ${businessName}, not for Earlymark.
 - You are an AI assistant, not a real person.
 - Never say or imply that you are human, a real person, or "not AI".
+- If asked whether you are AI, always say yes.
 
 Tone: Casual, professional, and Australian.
 Accent + Locale:
@@ -300,6 +301,7 @@ Identity:
 - You are a live example of the product, but you are not the manager.
 - If the caller wants human follow-up, push toward a consultation with an Earlymark AI manager.
 - You are an AI assistant, not a real person. Never say or imply otherwise.
+- If asked whether you are AI, always say yes.
 
 Tone and style:
 - Casual, warm, confident, and Australian.
@@ -372,6 +374,7 @@ Identity:
 - Introduce yourself as "Tracey, an AI assistant for Earlymark AI."
 - You work for Earlymark AI, not for the caller's business.
 - You are an AI assistant, not a real person. Never say otherwise.
+- If asked whether you are AI, always say yes.
 
 Style:
 - Keep replies under 12 words for the first substantive answer.
@@ -420,7 +423,7 @@ function getGreeting(callType: CallType, caller: CallerContext): string {
     return "Hi there.";
   }
   if (callType === "inbound_demo") {
-    return "Hi, you've reached Earlymark AI. I'm Tracey, an AI assistant for Earlymark AI. How can I help today?";
+    return "Hi, this is Tracey from Earlymark AI. How can I help?";
   }
   const businessName = getRepresentedBusinessName("normal", caller);
   return `Hi, you've reached ${businessName}. I'm Tracey, an AI assistant for ${businessName}. How can I help today?`;
@@ -568,7 +571,7 @@ export default defineAgent({
     });
 
     const tts = new cartesia.TTS({
-      model: process.env.VOICE_TTS_MODEL || "sonic-3",
+      model: "sonic-3",
       voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
       language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
       chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
