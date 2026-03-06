@@ -119,6 +119,7 @@ model Workspace {
   keys             Key[]
   repairItems      RepairItem[]
   documents        BusinessDocument[]
+  voiceCalls       VoiceCall[]
 
   // Self-Learning & NLP Behavioral State
   aiPreferences      String? @db.Text
@@ -277,6 +278,7 @@ model Contact {
   keysHeld         Key[]
   feedback         BuyerFeedback[]
   customerFeedback CustomerFeedback[] @relation("CustomerFeedback")
+  voiceCalls       VoiceCall[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -299,6 +301,37 @@ model Activity {
   contact   Contact? @relation(fields: [contactId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+model VoiceCall {
+  id                  String    @id @default(cuid())
+  callId              String    @unique
+  source              String    @default("livekit")
+  callType            String
+  roomName            String
+  participantIdentity String
+  workspaceId         String?
+  workspace           Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  contactId           String?
+  contact             Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  callerPhone         String?
+  calledPhone         String?
+  callerName          String?
+  businessName        String?
+  transcriptText      String?   @db.Text
+  transcriptTurns     Json?
+  summary             String?   @db.Text
+  latency             Json?
+  leadCapture         Json?
+  metadata            Json?
+  startedAt           DateTime
+  endedAt             DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([workspaceId, createdAt])
+  @@index([contactId, createdAt])
+  @@index([callType, createdAt])
 }
 
 model Task {

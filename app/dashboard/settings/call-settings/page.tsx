@@ -1,5 +1,6 @@
 import { Separator } from "@/components/ui/separator"
 import { CallSettingsClient } from "@/components/settings/call-settings-client"
+import { RecentVoiceCalls } from "@/components/settings/recent-voice-calls"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +17,7 @@ export default function CallSettingsPage() {
       </div>
       <Separator />
       <CallSettingsClient />
+      <RecentVoiceCalls />
     </div>
   )
 }

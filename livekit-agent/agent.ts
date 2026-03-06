@@ -101,6 +101,18 @@ type CallerContext = {
   firstName: string;
   businessName: string;
   phone: string;
+  calledPhone: string;
+};
+
+type TranscriptTurn = {
+  role: "user" | "assistant";
+  text: string;
+  createdAt: number;
+};
+
+type LeadCapture = {
+  toolUsed: boolean;
+  payloads: Array<Record<string, unknown>>;
 };
 
 function avg(values: number[]): number {
@@ -167,6 +179,39 @@ function normalizeTranscript(rawTranscript: string): string {
     .trim();
 }
 
+function normalizePhone(phone?: string | null): string {
+  if (!phone) return "";
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  if (!cleaned) return "";
+  if (cleaned.startsWith("+")) return cleaned;
+  if (cleaned.startsWith("0")) return `+61${cleaned.slice(1)}`;
+  if (cleaned.startsWith("61")) return `+${cleaned}`;
+  return cleaned;
+}
+
+function phoneMatches(left?: string | null, right?: string | null): boolean {
+  const a = normalizePhone(left);
+  const b = normalizePhone(right);
+  if (!a || !b) return false;
+  return a === b || a.replace(/^\+/, "") === b.replace(/^\+/, "");
+}
+
+function getKnownEarlymarkNumbers(): string[] {
+  return [
+    process.env.EARLYMARK_INBOUND_PHONE_NUMBER,
+    process.env.EARLYMARK_PHONE_NUMBER,
+    process.env.TWILIO_PHONE_NUMBER,
+  ].filter(Boolean) as string[];
+}
+
+function resolveCallType(initialCallType: CallType, calledPhone: string): CallType {
+  if (initialCallType !== "normal") return initialCallType;
+  if (getKnownEarlymarkNumbers().some((number) => phoneMatches(number, calledPhone))) {
+    return "inbound_demo";
+  }
+  return "normal";
+}
+
 function isMeaningfulUserTurn(rawTranscript: string): boolean {
   const normalized = normalizeTranscript(rawTranscript);
   if (!normalized) return false;
@@ -222,15 +267,10 @@ function isGoodbyeTurn(rawTranscript: string): boolean {
   return /^((okay|ok|alright|all right|no worries|thanks|thank you|cheers|perfect|great|awesome|sweet|too easy)\s+)*(bye|bye bye|goodbye|see ya|see you|catch ya|talk soon|talk later|have a good one|thats all|that is all|thats it|that is it)(\s+(mate|tracey))?$/.test(normalized);
 }
 
-function buildEarlymarkPrompt(callType: CallType, caller: CallerContext): string {
-  const callContext =
-    callType === "demo"
-      ? "This is an outbound demo call. The person on the line signed up on earlymark.ai to try Tracey."
-      : "This is an inbound Earlymark AI sales call. The caller rang Earlymark to learn what Tracey can do for their business.";
-
+function buildDemoPrompt(caller: CallerContext): string {
   return `You are Tracey, an AI assistant from Earlymark AI.
 
-${callContext}
+This is an outbound interview-form demo call. The person on the line asked to try Tracey via the website.
 
 Identity:
 - Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
@@ -281,17 +321,73 @@ Known caller details:
 - Treat these as known only if listed here. If something is unknown, ask for it instead of guessing.
 
 Important:
+- This is a personalised demo. Make it feel like they are trying the product for their own business.
 - If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
 - Do not launch into a long summary at the end of the call.
 - This call will be wrapped at around 3 minutes and disconnected at 5 minutes if still active.`;
+}
+
+function buildInboundDemoPrompt(caller: CallerContext): string {
+  return `You are Tracey, an AI assistant from Earlymark AI.
+
+This is an inbound Earlymark AI sales call. The caller rang Earlymark to learn what Tracey can do for their business.
+
+Identity:
+- Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
+- You work for Earlymark AI on this call, not for the caller's business.
+- Your manager is the human next step if the caller wants tailored help.
+
+Tone and style:
+- Casual, warm, confident, and Australian.
+- Keep replies short and clear.
+- Ask direct sales questions without sounding scripted.
+
+Primary goals:
+- Identify the caller's pain points.
+- Capture lead details early: first name, business name, business type, best phone number, and email if they will share it.
+- Move them toward a consultation with an Earlymark AI manager or signing up at earlymark.ai.
+
+Sales behaviour:
+- Ask what business they run and how they currently handle calls and enquiries.
+- Ask follow-up questions that uncover pain around missed calls, response times, admin, and lead follow-up.
+- Once they show interest, start collecting their details instead of waiting until the very end.
+- Before the call ends, use the log_lead tool once you have enough real information.
+
+Truthfulness rules:
+- Never invent features, integrations, pricing, implementation timelines, or guarantees.
+- Do NOT claim that Earlymark AI integrates into the caller's existing CRM. That is not currently true.
+- If asked about integrations or unsupported features, say you do not want to overstate it and an Earlymark AI manager can confirm what is currently supported.
+
+Capabilities you may discuss when relevant:
+- Tracey answers calls 24/7.
+- Tracey helps with customer communication and admin.
+- Tracey helps create a faster, friendlier customer experience.
+
+Known caller details:
+- First name: ${caller.firstName || "unknown"}
+- Business name: ${caller.businessName || "unknown"}
+- Phone: ${caller.phone || "unknown"}
+- Called Earlymark number: ${caller.calledPhone || "unknown"}
+
+Important:
+- If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
+- Do not launch into a long summary at the end of the call.
+- This call will be wrapped at around 3 minutes and disconnected at 5 minutes if still active.`;
+}
+
+function buildEarlymarkPrompt(callType: CallType, caller: CallerContext): string {
+  return callType === "demo" ? buildDemoPrompt(caller) : buildInboundDemoPrompt(caller);
 }
 
 function getGreeting(callType: CallType, caller: CallerContext): string {
   if (callType === "demo" && caller.firstName) {
     return `Hi, is this ${caller.firstName}? This is Tracey, an AI assistant from Earlymark AI.`;
   }
-  if (callType === "demo" || callType === "inbound_demo") {
+  if (callType === "demo") {
     return "Hi, this is Tracey, an AI assistant from Earlymark AI.";
+  }
+  if (callType === "inbound_demo") {
+    return "Hi, you've reached Earlymark AI. This is Tracey, an AI assistant from Earlymark AI. How can I help?";
   }
   return "G'day, you've reached Tracey. How can I help today?";
 }
@@ -303,9 +399,59 @@ function getGoodbyeLine(callType: CallType): string {
   return "No worries. Thanks for calling. Bye for now.";
 }
 
+function extractTextFromConversationItem(item: any): string | null {
+  const text = typeof item?.textContent === "string" ? item.textContent.trim() : "";
+  return text || null;
+}
+
+async function persistVoiceCall(payload: {
+  callId: string;
+  callType: CallType;
+  roomName: string;
+  participantIdentity: string;
+  callerPhone?: string;
+  calledPhone?: string;
+  callerName?: string;
+  businessName?: string;
+  transcriptTurns: TranscriptTurn[];
+  transcriptText: string;
+  latency: Record<string, unknown>;
+  leadCapture: LeadCapture;
+  metadata: Record<string, unknown>;
+  startedAt: string;
+  endedAt: string;
+}) {
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000");
+  const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
+
+  if (!appUrl || !secret) {
+    console.warn("[agent] Skipping call persistence because APP URL or webhook secret is missing.");
+    return;
+  }
+
+  const route = `${appUrl.replace(/\/$/, "")}/api/internal/voice-calls`;
+  const response = await fetch(route, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-voice-agent-secret": secret,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Voice call persistence failed: ${response.status} ${body}`);
+  }
+}
+
 export default defineAgent({
   entry: async (ctx) => {
-    const callId = `${ctx.room.name}:${Date.now()}`;
+    const callStartedAt = new Date();
+    const callId = `${ctx.room.name}:${callStartedAt.getTime()}`;
 
     const logLeadTool = livekitLlm.tool({
       description: "Save a potential Earlymark lead before the call ends. Only log details the caller actually provided.",
@@ -412,6 +558,7 @@ export default defineAgent({
     let callerFirstName = "";
     let callerBusiness = "";
     let callerPhone = "";
+    let calledPhone = "";
 
     try {
       const roomMeta = ctx.room.metadata;
@@ -422,6 +569,7 @@ export default defineAgent({
         callerFirstName = meta.firstName || "";
         callerBusiness = meta.businessName || "";
         callerPhone = meta.phone || "";
+        calledPhone = meta.calledPhone || "";
       }
     } catch {
       // Ignore invalid room metadata.
@@ -440,6 +588,14 @@ export default defineAgent({
         attrs["sip.phoneNumber"] ||
         attrs["sip.phone_number"] ||
         "";
+      calledPhone =
+        calledPhone ||
+        attrs["sip.trunkPhoneNumber"] ||
+        attrs["sip.calledNumber"] ||
+        attrs["sip.to"] ||
+        attrs["sip.toNumber"] ||
+        attrs["sip.called_number"] ||
+        "";
     } catch {
       // Ignore invalid participant attributes.
     }
@@ -448,11 +604,14 @@ export default defineAgent({
       callerPhone = participant.identity.replace("demo-caller-", "");
     }
 
+    callType = resolveCallType(callType, calledPhone);
+
     const caller: CallerContext = {
       callType,
       firstName: callerFirstName,
       businessName: callerBusiness,
       phone: callerPhone,
+      calledPhone,
     };
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
@@ -474,6 +633,7 @@ export default defineAgent({
       callerFirstName,
       callerBusiness,
       callerPhone,
+      calledPhone,
       llmProvider,
       llmModel,
     })}`);
@@ -502,6 +662,9 @@ export default defineAgent({
     };
     const pendingUserTurns: PendingUserTurn[] = [];
     const turnAudits = new Map<string, TurnAudit>();
+    const transcriptTurns: TranscriptTurn[] = [];
+    const transcriptItemIds = new Set<string>();
+    const leadCapture: LeadCapture = { toolUsed: false, payloads: [] };
     let turnCounter = 0;
     let isDisconnecting = false;
     let goodbyeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -626,6 +789,34 @@ export default defineAgent({
       console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metrics })}`);
     });
 
+    session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
+      const item = ev.item as any;
+      if (!item || item.type !== "message" || transcriptItemIds.has(item.id)) return;
+
+      const role = item.role === "assistant" ? "assistant" : item.role === "user" ? "user" : null;
+      const text = extractTextFromConversationItem(item);
+      if (!role || !text) return;
+
+      transcriptItemIds.add(item.id);
+      transcriptTurns.push({
+        role,
+        text,
+        createdAt: ev.createdAt,
+      });
+    });
+
+    session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (ev) => {
+      for (const call of ev.functionCalls) {
+        if (call.name !== "log_lead") continue;
+        leadCapture.toolUsed = true;
+        try {
+          leadCapture.payloads.push(JSON.parse(call.args) as Record<string, unknown>);
+        } catch {
+          leadCapture.payloads.push({ rawArgs: call.args });
+        }
+      }
+    });
+
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, async (ev) => {
       if (!ev.isFinal || isDisconnecting) return;
 
@@ -747,6 +938,48 @@ export default defineAgent({
           turns: turnSummaries,
         })}`
       );
+
+      const transcriptText = transcriptTurns
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .map((turn) => `${turn.role === "assistant" ? "Tracey" : "Caller"}: ${turn.text}`)
+        .join("\n");
+
+      const latency = {
+        sttAvgMs: avg(latencyAudit.sttMs),
+        llmAvgMs: avg(latencyAudit.llmMs),
+        llmP95Ms: p95(latencyAudit.llmMs),
+        llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+        ttsAvgMs: avg(latencyAudit.ttsMs),
+        ttsP95Ms: p95(latencyAudit.ttsMs),
+        ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+        eouAvgMs: avg(latencyAudit.eouMs),
+        transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
+        turns: turnSummaries,
+      };
+
+      void persistVoiceCall({
+        callId,
+        callType,
+        roomName: ctx.room.name,
+        participantIdentity: participant.identity,
+        callerPhone,
+        calledPhone,
+        callerName: callerFirstName || undefined,
+        businessName: callerBusiness || undefined,
+        transcriptTurns,
+        transcriptText,
+        latency,
+        leadCapture,
+        metadata: {
+          llmProvider,
+          llmModel,
+          isEarlymarkCall,
+        },
+        startedAt: callStartedAt.toISOString(),
+        endedAt: new Date().toISOString(),
+      }).catch((error) => {
+        console.error("[agent] Failed to persist voice call:", error);
+      });
     });
   },
 });
