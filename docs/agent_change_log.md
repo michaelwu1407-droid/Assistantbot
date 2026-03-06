@@ -344,3 +344,8 @@ Rule: every agent change commit must include an entry in this file.
 
 - Follow-up: Wired the new shared `onOpenActivity` header prop through the other dashboard variants with no-op handlers so the shared header stays type-safe without altering non-homepage behavior.
 
+### 2026-03-07 11:38 (AEDT) - codex
+- Files: `components/crm/inbox-view.tsx`, `docs/agent_change_log.md`
+- What changed: Fixed Inbox `Ask Tracey` so it now sends the selected contact context plus the user's actual instruction to the chat API, instead of force-wrapping every request as an outbound SMS command.
+- Why: CRM-edit requests like “add his email to the file” were being misrouted into the `sendSms` path, so Tracey said it was handling a message but never updated the contact record.
+

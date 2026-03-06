@@ -201,12 +201,23 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
             body: JSON.stringify({
               workspaceId,
               messages: [
-                { role: "user", content: `Send this message to ${selectedContact.name} (contact in this workspace): "${messageText.trim()}". Use the sendSms tool with contactName "${selectedContact.name}" and the message exactly as quoted.` }
+                {
+                  role: "user",
+                  content: `Selected contact in this workspace:
+Name: ${selectedContact.name}
+Phone: ${selectedContact.phone || "none on file"}
+Email: ${selectedContact.email || "none on file"}
+
+User request: ${messageText.trim()}
+
+If the request is to update this contact's CRM details, use the CRM update tools and do not send a message.
+If the request is to contact the customer, use the appropriate customer-contact tool.`
+                }
               ],
             }),
           })
           if (res.ok) {
-            toast.success(`Tracey is handling the message to ${selectedContact.name}`)
+            toast.success(`Tracey is handling ${selectedContact.name}`)
             setMessageText("")
           } else {
             const text = await res.text()
