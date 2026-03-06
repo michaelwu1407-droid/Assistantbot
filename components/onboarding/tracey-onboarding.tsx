@@ -300,7 +300,7 @@ export function TraceyOnboarding() {
   // Step 2: Autonomy Selector
   const [agentMode, setAgentMode] = useState<AgentMode>("EXECUTION")
 
-  // Step 3: Scrape Review & Business Deep-Dive
+  // Step 3: Business identity and operating rules
   const [tradeType, setTradeType] = useState("")
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
@@ -806,7 +806,7 @@ export function TraceyOnboarding() {
                 {/* ──── STEP 1: Draft Contact Card ──── */}
                 {step === 0 && (
                   <div className="space-y-5">
-                    <TraceyBubble text="G'day! Let's get you set up. Fill in your details below and I'll start learning about your business." />
+                    <TraceyBubble text="G'day! Let's get you set up. Fill in your details below and we'll get Tracey ready for your business." />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -848,7 +848,7 @@ export function TraceyOnboarding() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500">
-                      Tracey will pre-fill your business details from your website so you only correct what matters.
+                      Add your website if you have one. We&apos;ll use it to help pre-fill details in the next step.
                     </p>
                   </div>
                 )}
@@ -960,11 +960,11 @@ export function TraceyOnboarding() {
                   </div>
                 )}
 
-                {/* ──── STEP 3: Scrape Review & Business Deep-Dive ──── */}
+                {/* ──── STEP 3: Business Identity & Operating Rules ──── */}
                 {step === 2 && (
                   <div className="space-y-5">
                     {scrapeData ? (
-                      <TraceyBubble text="I found some details from your website! Have a look and adjust anything that's not right." />
+                      <TraceyBubble text="Have a look through these business details and adjust anything that&apos;s not right." />
                     ) : (
                       <TraceyBubble text="Tell me about your business so I know how to handle calls and enquiries." />
                     )}
@@ -1239,7 +1239,7 @@ export function TraceyOnboarding() {
                     {/* Email Integration Info */}
                     <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox [{agentMode === "EXECUTION" ? "Execute" : agentMode === "DRAFT" ? "Review" : "Info Only"}]
+                        <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox [{agentMode === "EXECUTION" ? "Execute" : agentMode === "DRAFT" ? "Review & approve" : "Info only"}]
                       </h3>
                       <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                         <li className="flex items-start gap-2">
@@ -1378,7 +1378,7 @@ export function TraceyOnboarding() {
                 {/* ──── STEP 5: Automated Pricing & Instruction Table ──── */}
                 {step === 4 && (
                   <div className="space-y-5">
-                    <TraceyBubble text={`I${scrapeData?.services?.length ? "'ve pulled some services from your website. " : "'ll need to know your services so I can "}quote accurately and handle enquiries. Tweak, add, or delete anything below.`} />
+                    <TraceyBubble text={`I${scrapeData?.services?.length ? "'ve pre-filled a few services for you. " : "'ll need your services here so I can "}quote accurately and handle enquiries. Tweak, add, or delete anything below.`} />
 
                     {/* Global Call-Out Fee */}
                     <div className="flex items-center gap-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
@@ -1518,7 +1518,7 @@ export function TraceyOnboarding() {
                                 {provisioningStatus === "provisioning" ? (
                                   <span className="flex items-center gap-2">
                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                    Provisioning your dedicated AU phone number...
+                                    Setting up your dedicated AU phone number...
                                   </span>
                                 ) : resolvedPhoneNumber ? (
                                   <span>
@@ -1529,7 +1529,7 @@ export function TraceyOnboarding() {
                                     Number provisioning failed. Retry below before activation.
                                   </span>
                                 ) : (
-                                  "We are checking your Earlymark number setup now."
+                                  "We are getting your Earlymark number ready now."
                                 )}
                               </span>
                             </li>

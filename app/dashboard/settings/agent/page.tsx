@@ -103,15 +103,15 @@ export default function AgentSettingsPage() {
           >
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
               <RadioGroupItem value="EXECUTE" id="agent-mode-execute" />
-              <span>Execute (full autonomy)</span>
+              <span>Execute</span>
             </Label>
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
               <RadioGroupItem value="ORGANIZE" id="agent-mode-organize" />
-              <span>Organize (propose, you confirm)</span>
+              <span>Review &amp; approve</span>
             </Label>
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
               <RadioGroupItem value="FILTER" id="agent-mode-filter" />
-              <span>Filter (reception only)</span>
+              <span>Info only</span>
             </Label>
           </RadioGroup>
         </CardContent>
