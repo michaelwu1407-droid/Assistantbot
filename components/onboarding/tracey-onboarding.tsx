@@ -49,7 +49,15 @@ interface ServiceRow {
   traceyNotes: string
 }
 
-type ProvisioningStatus = "idle" | "provisioning" | "already_provisioned" | "provisioned" | "failed"
+type ProvisioningStatus =
+  | "idle"
+  | "requested"
+  | "not_requested"
+  | "provisioning"
+  | "already_provisioned"
+  | "provisioned"
+  | "blocked_duplicate"
+  | "failed"
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -428,6 +436,19 @@ export function TraceyOnboarding() {
     (provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
     Boolean(resolvedPhoneNumber)
 
+  const provisioningStatusMessage =
+    provisioningStatus === "provisioning"
+      ? "Setting up your dedicated AU mobile number..."
+      : provisioningStatus === "requested"
+        ? "Provisioning is queued until Stripe payment completes."
+        : provisioningStatus === "not_requested"
+          ? "This workspace was paid without mobile-number provisioning enabled in billing."
+          : provisioningStatus === "blocked_duplicate"
+            ? "Provisioning is blocked during beta because this owner phone is already linked to another provisioned workspace."
+            : provisioningStatus === "failed"
+              ? "Number provisioning failed. Retry below before activation."
+              : "We are getting your Earlymark number ready now."
+
   useEffect(() => {
     let active = true
 
@@ -539,20 +560,19 @@ export function TraceyOnboarding() {
       })
 
       const data = await res.json().catch(() => ({}))
+      const backendStatus = (data?.provisioningStatus ?? "failed") as ProvisioningStatus
       const provisionedNumber = data?.phoneNumber ?? data?.result?.phoneNumber ?? null
 
-      if (!res.ok || !provisionedNumber) {
+      if (!res.ok) {
         setResolvedPhoneNumber(null)
-        setProvisioningStatus("failed")
+        setProvisioningStatus(backendStatus)
         setProvisioningError(data?.error || "We could not provision your Earlymark number. Please try again.")
         return
       }
 
       setResolvedPhoneNumber(provisionedNumber)
-      setProvisioningError(null)
-      setProvisioningStatus(
-        data?.provisioningStatus === "already_provisioned" ? "already_provisioned" : "provisioned"
-      )
+      setProvisioningStatus(backendStatus)
+      setProvisioningError(provisionedNumber ? null : data?.error || null)
     } catch (error) {
       setResolvedPhoneNumber(null)
       setProvisioningStatus("failed")
@@ -1537,21 +1557,21 @@ export function TraceyOnboarding() {
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                               <span>
-                                {provisioningStatus === "provisioning" ? (
-                                  <span className="flex items-center gap-2">
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                    Setting up your dedicated AU phone number...
-                                  </span>
-                                ) : resolvedPhoneNumber ? (
+                                {resolvedPhoneNumber ? (
                                   <span>
                                     Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{resolvedPhoneNumber}</strong>
                                   </span>
-                                ) : provisioningStatus === "failed" ? (
-                                  <span className="text-red-600 dark:text-red-400">
-                                    Number provisioning failed. Retry below before activation.
-                                  </span>
                                 ) : (
-                                  "We are getting your Earlymark number ready now."
+                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" || provisioningStatus === "not_requested" ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-300"}>
+                                    {provisioningStatus === "provisioning" ? (
+                                      <span className="flex items-center gap-2">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        {provisioningStatusMessage}
+                                      </span>
+                                    ) : (
+                                      provisioningStatusMessage
+                                    )}
+                                  </span>
                                 )}
                               </span>
                             </li>
@@ -1655,8 +1675,14 @@ export function TraceyOnboarding() {
                             </>
                           ) : !canActivateTracey ? (
                             <>
-                              <Loader2 className="h-4 w-4" />
-                              Waiting for your number
+                              <Loader2 className={`h-4 w-4 ${provisioningStatus === "provisioning" ? "animate-spin" : ""}`} />
+                              {provisioningStatus === "not_requested"
+                                ? "Enable number provisioning in billing"
+                                : provisioningStatus === "blocked_duplicate"
+                                  ? "Provisioning blocked"
+                                  : provisioningStatus === "requested"
+                                    ? "Waiting for payment confirmation"
+                                    : "Waiting for your number"}
                             </>
                           ) : (
                             <>

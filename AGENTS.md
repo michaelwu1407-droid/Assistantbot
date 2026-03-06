@@ -80,6 +80,12 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - Treat the latest measured bottleneck as the starting point. Do not guess from prompts alone when logs already show whether the delay is in STT, LLM TTFT, or TTS.
 - For inbound Earlymark calls, treat `llmTtftMs > 1200` or `ttsTtfbMs > 900` as a regression threshold worth fixing.
 
+## Critical Surface Regression Rule
+
+- Treat `app/page.tsx`, onboarding provisioning flow, and billing-to-provisioning handoff as critical surfaces. Do not do broad overwrite commits on these files without comparing against the last known-good accepted commit first.
+- Homepage restores must start from the last accepted good commit for the relevant section, then re-apply newer approved copy changes on top. Do not partially fix a mixed file from memory.
+- Twilio provisioning must stay centralized through `lib/onboarding-provision.ts`. Do not add or keep direct provisioning paths in onboarding actions, settings, or other side routes that bypass the billing gate and duplicate-provision checks.
+
 ## Mandatory Session Check
 
 - Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.

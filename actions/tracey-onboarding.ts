@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logging";
 import { sendProvisionedWelcomeSmsIfNeeded } from "@/lib/welcome-sms";
 import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "./workspace-actions";
+import { ensureWorkspaceProvisioned, type WorkspaceProvisioningStatus } from "@/lib/onboarding-provision";
 
 // ─── Australian Phone Validation ────────────────────────────────
 
@@ -103,7 +104,7 @@ function deriveBaseSuburbFromAddress(address: string): string {
 
 async function persistProvisioningState(params: {
   workspaceId: string;
-  status: "already_provisioned" | "provisioned" | "failed" | "ready";
+  status: WorkspaceProvisioningStatus | "ready";
   phoneNumber?: string;
   error?: string;
 }) {
@@ -358,7 +359,7 @@ export async function saveTraceyOnboarding(
       logger.error("Failed to allocate leads email", { error: String(err), workspaceId: workspace.id });
     }
 
-    // 7. Provision Twilio phone number
+    // 7. Resolve Twilio number through the centralized billing-gated provisioning path
     let phoneNumber: string | undefined;
     let provisioningError: string | undefined;
     try {
@@ -375,31 +376,32 @@ export async function saveTraceyOnboarding(
           phoneNumber,
         });
       } else {
-        const { provisionTradieCommsWithFallback } = await import("@/lib/comms-provision");
-        const result = await provisionTradieCommsWithFallback(
-          workspace.id,
-          d.businessName,
-          d.phone
-        );
+        const result = await ensureWorkspaceProvisioned({
+          workspaceId: workspace.id,
+          businessName: d.businessName,
+          ownerPhone: d.phone,
+          triggerSource: "onboarding-activation",
+        });
         if (result.success && result.phoneNumber) {
           phoneNumber = result.phoneNumber;
           await persistProvisioningState({
             workspaceId: workspace.id,
-            status: "provisioned",
+            status: result.provisioningStatus,
             phoneNumber,
           });
-        } else if (!result.success && result.error) {
-          provisioningError = result.error;
+        } else {
+          provisioningError = result.error || "Tracey's phone number must be provisioned before activation.";
           await persistProvisioningState({
             workspaceId: workspace.id,
-            status: "failed",
-            error: result.error,
+            status: result.provisioningStatus,
+            error: provisioningError,
           });
-          logger.error("Comms provisioning failed during Tracey onboarding", {
+          logger.error("Comms provisioning was unavailable during Tracey onboarding activation", {
             workspaceId: workspace.id,
-            error: result.error,
+            error: provisioningError,
             stageReached: result.stageReached,
             mode: result.mode,
+            provisioningStatus: result.provisioningStatus,
           });
         }
       }

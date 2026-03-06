@@ -3,6 +3,11 @@
 Operational audit log for all AI agent code/config edits.  
 Rule: every agent change commit must include an entry in this file.
 
+### 2026-03-07 00:10 (AEDT) - codex
+- Files: `app/page.tsx`, `docs/agent_change_log.md`
+- What changed: Restored the intended homepage hero and CRM section wording. The hero now says `Your AI assistant & CRM — here to give you an early mark`, and the CRM section now says `Tracey lives in your CRM. They will contact customers and run your CRM so you don't have to.`
+- Why: These were not deployment misses; the older copy was still present in `main`, so production was correctly rendering outdated strings that had drifted back into the repo.
+
 ## Entry Template
 
 ```md
@@ -271,4 +276,9 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `actions/chat-actions.ts`, `docs/agent_change_log.md`, `lib/ai/tools.ts`
 - What changed: Added the next CRM-chatbot operations tranche. Bulk tools now support explicit-ID deal selection for bulk stage moves, bulk assignment, bulk disposition changes, and bulk reminder creation with per-item success/skip/block summaries. Added targeted reverse tools for reverting a recorded deal stage move, unassigning a deal, restoring a lost/deleted/archived deal, and reversing invoice status transitions to valid prior states. Added invoice tools for creating a draft invoice from a deal, issuing an invoice, marking an invoice paid, sending invoice reminders through the existing customer-contact mode guard, and showing invoice plus accounting-sync status.
 - Why: The chatbot needed practical high-leverage CRM control beyond single-record edits while staying explicit and reversible. This tranche follows the agreed design: deals-first bulk actions, targeted reversals instead of magical rollback, and invoice operations centered on draft/issue/paid/remind/status rather than full invoice editing.
+
+### 2026-03-07 00:18 (AEDT) - codex
+- Files: `app/page.tsx`, `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `lib/onboarding-provision.ts`, `AGENTS.md`, `docs/agent_change_log.md`
+- What changed: Restored the homepage from the last accepted `Hire Tracey today` layout by bringing back the centered chat demo plus zigzag feature-card section, kept the approved hero heading copy, kept the CRM pronoun fix (`They`), and removed the interview-form header icon again. Removed the direct Twilio provisioning path from onboarding activation so onboarding now resolves numbers only through the centralized billing-gated provisioning helper, added a dedicated `onboarding-activation` trigger source, and expanded onboarding UI state handling to surface `requested`, `not_requested`, and `blocked_duplicate` instead of flattening those outcomes into generic failure. Added a critical-surface regression rule to `AGENTS.md` covering homepage restores and centralized provisioning.
+- Why: The repo had regressed into a mixed homepage state after a later whole-file overwrite, and onboarding could still bypass the beta provisioning gate and duplicate-number protection by provisioning directly during activation. This change restores the accepted homepage baseline and closes the duplicate provisioning path so billing, onboarding, and provisioning all obey the same source of truth.
 

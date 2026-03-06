@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowRight, ChevronLeft, ChevronRight,
     Phone, MessageSquare, Calendar, MapPin, Users,
-    BarChart3, Zap, Bot, Clock,
+    BarChart3, Zap, Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -45,30 +45,26 @@ const HIRE_FEATURES = [
     {
         title: "Never miss a job again",
         desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
-        icon: Clock,
-        bg: "bg-mint-50",
-        color: "text-primary",
+        screenshotLabel: "Incoming call handling",
+        screenshotBg: "from-emerald-500/20 to-emerald-600/10",
     },
     {
         title: "No more admin. Chat with your CRM.",
         desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
-        icon: MessageSquare,
-        bg: "bg-blue-50",
-        color: "text-blue-500",
+        screenshotLabel: "Chat-powered CRM",
+        screenshotBg: "from-blue-500/20 to-blue-600/10",
     },
     {
         title: "AI that actually works",
         desc: "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
-        icon: Zap,
-        bg: "bg-violet-50",
-        color: "text-violet-500",
+        screenshotLabel: "Smart conversations",
+        screenshotBg: "from-violet-500/20 to-violet-600/10",
     },
     {
         title: "Total control",
         desc: "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
-        icon: Users,
-        bg: "bg-slate-50",
-        color: "text-slate-600",
+        screenshotLabel: "Autonomy settings",
+        screenshotBg: "from-slate-500/20 to-slate-600/10",
     },
 ];
 
@@ -479,7 +475,7 @@ export default function Home() {
                         {...fadeUp(0.06)}
                         className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
                     >
-                        Your AI assistant — here to give you an{" "}
+                        Your AI assistant & CRM — here to give you an{" "}
                         <span className="text-primary">early mark</span>
                     </motion.h1>
 
@@ -601,16 +597,13 @@ export default function Home() {
                         {/* LHS — Text */}
                         <div className="flex flex-col gap-8">
                             <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. It will contact customers and run your CRM so you don&apos;t have to.
+                                Tracey lives in your CRM. They will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
 
                         {/* RHS — Interview Form */}
                         <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 p-7 shadow-xl">
-                            <div className="flex items-center gap-2 mb-1">
-                                <Bot className="w-5 h-5 text-primary" />
-                                <h3 className="font-bold text-midnight text-lg">Interview Tracey for free</h3>
-                            </div>
+                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">
                                 Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.
                             </p>
@@ -632,36 +625,41 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-start">
-                        {/* LHS: Tracey in action */}
-                        <div className="w-full">
-                            <motion.p {...fadeUp()} className="text-left text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
-                                Tracey in action
-                            </motion.p>
-                            <motion.div {...fadeUp(0.06)}>
-                                <ChatDemo />
-                            </motion.div>
-                        </div>
+                    <div className="max-w-2xl mx-auto w-full">
+                        <motion.p {...fadeUp()} className="text-center text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
+                            Tracey in action
+                        </motion.p>
+                        <motion.div {...fadeUp(0.06)}>
+                            <ChatDemo />
+                        </motion.div>
+                    </div>
 
-                        {/* RHS: Key benefit boxes */}
-                        <div className="grid grid-cols-1 gap-6">
-                            {HIRE_FEATURES.map((f, i) => {
-                                const Icon = f.icon;
-                                return (
-                                    <motion.div
-                                        key={f.title}
-                                        {...fadeUp(i * 0.08)}
-                                        className="bg-white rounded-3xl border border-border p-7 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow"
-                                    >
-                                        <div className={`w-12 h-12 rounded-2xl ${f.bg} flex items-center justify-center`}>
-                                            <Icon className={`w-6 h-6 ${f.color}`} />
-                                        </div>
+                    <div className="flex flex-col gap-10 mt-4">
+                        {HIRE_FEATURES.map((f, i) => {
+                            const isEven = i % 2 === 0;
+                            return (
+                                <motion.div
+                                    key={f.title}
+                                    {...fadeUp(i * 0.08)}
+                                    className={`grid md:grid-cols-2 gap-6 items-center ${!isEven ? "md:direction-rtl" : ""}`}
+                                >
+                                    <div className={`bg-white rounded-3xl border border-border p-7 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow ${!isEven ? "md:order-2" : "md:order-1"}`}>
                                         <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
                                         <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
+                                    </div>
+
+                                    <div className={`rounded-3xl bg-gradient-to-br ${f.screenshotBg} border border-border/50 overflow-hidden aspect-[4/3] flex items-center justify-center ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                                        <div className="text-center px-6">
+                                            <div className="w-16 h-16 rounded-2xl bg-white/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 shadow-sm">
+                                                <div className="w-8 h-8 rounded-lg bg-midnight/10" />
+                                            </div>
+                                            <p className="text-xs font-medium text-midnight/50 uppercase tracking-wider">{f.screenshotLabel}</p>
+                                            <p className="text-[10px] text-midnight/30 mt-1">Screenshot coming soon</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
             </section >

@@ -10,7 +10,7 @@ function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
   return settings as Record<string, unknown>;
 }
 
-type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check";
+type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation";
 
 export type WorkspaceProvisioningStatus =
   | "not_requested"
