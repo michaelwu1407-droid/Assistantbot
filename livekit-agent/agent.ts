@@ -636,9 +636,13 @@ export default defineAgent({
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
     const llmProvider = (
-      isEarlymarkCall
-        ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "deepinfra"))
-        : (process.env.VOICE_LLM_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "deepinfra"))
+      process.env.GROQ_API_KEY
+        ? "groq"
+        : (
+            isEarlymarkCall
+              ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || "deepinfra")
+              : (process.env.VOICE_LLM_PROVIDER || "deepinfra")
+          )
     ).toLowerCase();
     const llmModel =
       (isEarlymarkCall ? process.env.EARLYMARK_VOICE_LLM_MODEL : process.env.VOICE_LLM_MODEL) ||
