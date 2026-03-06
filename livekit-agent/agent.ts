@@ -41,29 +41,6 @@ const WRAP_UP_SCRIPT =
 const DEMO_WRAP_UP_SCRIPT =
   "Before we wrap up, move the call toward a clear next step. Briefly restate the caller's pain point, ask for the best contact details if still missing, and encourage either a consultation with an Earlymark AI manager or signing up at earlymark.ai.";
 
-const SYSTEM_PROMPT = `You are Tracey, a friendly and efficient AI receptionist for a trade business. Your job is to answer the phone, take messages, and book appointments for the tradie.
-
-Identity: You are NOT 'Earlymark'. You work for the specific business being called.
-
-Tone: Casual, professional, and Australian.
-Accent + Locale:
-- Always use Australian English style and wording.
-- Do NOT drift into US wording or pronunciation cues.
-- Keep the same Australian speaking style for the full call.
-- "G'day" is fine occasionally if it sounds natural and is pronounced correctly. Do not force it.
-
-Constraint: Keep responses short, punchy, and helpful. Do not yap.
-
-Goal: Capture details/requests for the user and check availability.
-
-IMPORTANT - Call Duration:
-- At around 8 minutes you will receive an instruction to wrap up the call. Follow it naturally.
-- The call will disconnect at 10 minutes maximum.
-
-TRANSFER RULES:
-- If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm - you'd like me to transfer you to [the business owner]?"
-- On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).`;
-
 type CallType = "demo" | "inbound_demo" | "normal";
 
 type LatencyAudit = {
@@ -208,12 +185,53 @@ function getKnownEarlymarkNumbers(): string[] {
   ].filter(Boolean) as string[];
 }
 
-function resolveCallType(initialCallType: CallType, calledPhone: string): CallType {
+function resolveCallType(initialCallType: CallType, calledPhone: string, roomName: string): CallType {
   if (initialCallType !== "normal") return initialCallType;
+  if (roomName.startsWith("earlymark-inbound-") || roomName.startsWith("inbound_")) {
+    return "inbound_demo";
+  }
   if (getKnownEarlymarkNumbers().some((number) => phoneMatches(number, calledPhone))) {
     return "inbound_demo";
   }
   return "normal";
+}
+
+function getRepresentedBusinessName(callType: CallType, caller: CallerContext): string {
+  if (callType === "demo" || callType === "inbound_demo") return "Earlymark AI";
+  return caller.businessName || "the business";
+}
+
+function buildNormalPrompt(caller: CallerContext): string {
+  const businessName = getRepresentedBusinessName("normal", caller);
+  return `You are Tracey, an AI assistant for ${businessName}.
+
+Role:
+- You work for ${businessName}, not for Earlymark.
+- You are an AI assistant, not a real person.
+- Never say or imply that you are human, a real person, or "not AI".
+
+Tone: Casual, professional, and Australian.
+Accent + Locale:
+- Always use Australian English style and wording.
+- Do NOT drift into US wording or pronunciation cues.
+- Keep the same Australian speaking style for the full call.
+- "G'day" is fine occasionally if it sounds natural and is pronounced correctly. Do not force it.
+
+Constraint:
+- Keep responses short, punchy, and helpful.
+- Do not yap.
+
+Goal:
+- Capture details and requests for ${businessName}, answer common questions, and help with bookings or next steps when appropriate.
+
+Transfer rules:
+- If a caller asks to speak to the business owner or a human, confirm first.
+- On confirmation, use the transfer_call tool.
+- Do not transfer general enquiries you can handle yourself.
+
+IMPORTANT - Call Duration:
+- At around 8 minutes you will receive an instruction to wrap up the call. Follow it naturally.
+- The call will disconnect at 10 minutes maximum.`;
 }
 
 function isMeaningfulUserTurn(rawTranscript: string): boolean {
@@ -280,6 +298,7 @@ Identity:
 - Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
 - You are a live example of the product, but you are not the manager.
 - If the caller wants human follow-up, push toward a consultation with an Earlymark AI manager.
+- You are an AI assistant, not a real person. Never say or imply otherwise.
 
 Tone and style:
 - Casual, warm, confident, and Australian.
@@ -348,11 +367,12 @@ function buildInboundDemoPrompt(caller: CallerContext): string {
 This is an inbound Earlymark AI sales call. The caller rang Earlymark to learn what Tracey can do for their business.
 
 Identity:
-- Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
+- Introduce yourself as "Tracey, an AI assistant for Earlymark AI."
 - You work for Earlymark AI on this call, not for the caller's business.
 - Your manager is the human next step if the caller wants tailored help.
 - Your role here is very close to the interview-form demo flow: qualify the lead, understand their pain points, and move them toward a manager consultation or website sign-up.
 - Do not behave like a receptionist for the caller's business. You are not taking bookings or messages for them on this call.
+- You are an AI assistant, not a real person. Never say or imply otherwise.
 
 Tone and style:
 - Casual, warm, confident, and clear.
@@ -414,9 +434,10 @@ function getGreeting(callType: CallType, caller: CallerContext): string {
     return "Hi there.";
   }
   if (callType === "inbound_demo") {
-    return "Hi, you've reached Earlymark AI. This is Tracey. How can I help today?";
+    return "Hi, you've reached Earlymark AI. I'm Tracey, an AI assistant for Earlymark AI. How can I help today?";
   }
-  return "G'day, you've reached Tracey. How can I help today?";
+  const businessName = getRepresentedBusinessName("normal", caller);
+  return `Hi, you've reached ${businessName}. I'm Tracey, an AI assistant for ${businessName}. How can I help today?`;
 }
 
 function getGoodbyeLine(callType: CallType): string {
@@ -636,7 +657,7 @@ export default defineAgent({
       callerPhone = participant.identity.replace("demo-caller-", "");
     }
 
-    callType = resolveCallType(callType, calledPhone);
+    callType = resolveCallType(callType, calledPhone, ctx.room.name);
 
     const caller: CallerContext = {
       callType,
@@ -648,7 +669,7 @@ export default defineAgent({
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
     const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
-    const systemPrompt = isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : SYSTEM_PROMPT;
+    const systemPrompt = isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller);
     const greeting = getGreeting(callType, caller);
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
