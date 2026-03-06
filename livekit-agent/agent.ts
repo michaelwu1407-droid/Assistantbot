@@ -139,8 +139,8 @@ export default defineAgent({
     const stt = new deepgram.STT({
       model: (process.env.VOICE_STT_MODEL as any) || 'nova-3',
       language: process.env.VOICE_STT_LANGUAGE || "en-AU",
-      interimResults: false,
-      endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 350),
+      interimResults: true,
+      endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 250),
       noDelay: true,
       punctuate: true,
       smartFormat: true,
@@ -164,8 +164,8 @@ export default defineAgent({
       tools: {
         transfer_call: transferCallTool,
       },
-      turnDetection: "vad",
-      minConsecutiveSpeechDelay: Number(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS || 300),
+      turnDetection: "stt",
+      minConsecutiveSpeechDelay: Number(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS || 180),
     });
 
     const latencyAudit: LatencyAudit = {
@@ -179,12 +179,12 @@ export default defineAgent({
     };
 
     const session = new voice.AgentSession({
-      turnDetection: "vad",
+      turnDetection: "stt",
       voiceOptions: {
         preemptiveGeneration: true,
-        minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 280),
-        maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 1200),
-        minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 400),
+        minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 180),
+        maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 700),
+        minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 250),
         minInterruptionWords: Number(process.env.VOICE_MIN_INTERRUPTION_WORDS || 2),
         allowInterruptions: true,
       },
