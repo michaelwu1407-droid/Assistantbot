@@ -349,3 +349,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Fixed Inbox `Ask Tracey` so it now sends the selected contact context plus the user's actual instruction to the chat API, instead of force-wrapping every request as an outbound SMS command.
 - Why: CRM-edit requests like “add his email to the file” were being misrouted into the `sendSms` path, so Tracey said it was handling a message but never updated the contact record.
 
+### 2026-03-07 11:46 (AEDT) - codex
+- Files: `components/crm/inbox-view.tsx`, `docs/agent_change_log.md`
+- What changed: Replaced the inbox left-panel lead/existing/all segmented control with two dropdown filters: customer type and date. Added latest/oldest sorting plus a custom time-period dialog with start/end dates and an explicit Apply action.
+- Why: The inbox needed more flexible filtering and sorting than the old 3-button customer-type toggle could provide.
+

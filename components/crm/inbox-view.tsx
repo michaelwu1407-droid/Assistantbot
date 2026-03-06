@@ -1,16 +1,31 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft, Bot, Send } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft, Bot, Send, SlidersHorizontal, ArrowDownAZ } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
 import { toast } from "sonner"
 import Link from "next/link"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const FAKE_TUTORIAL_INBOX_CONTACT_ID = "tutorial-john-smith"
 const FAKE_TUTORIAL_INBOX: ActivityView[] = [
@@ -61,6 +76,7 @@ const typeLabel: Record<string, string> = {
 
 type DetailTab = "conversations" | "activity"
 type MessageMode = "travis" | "direct"
+type DateFilter = "latest" | "oldest" | "custom"
 
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
   const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way", "deal created"]
@@ -76,6 +92,12 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
   const [search, setSearch] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
   const [segmentFilter, setSegmentFilter] = useState<ContactSegment | "all">("all")
+  const [dateFilter, setDateFilter] = useState<DateFilter>("latest")
+  const [customDateDialogOpen, setCustomDateDialogOpen] = useState(false)
+  const [draftStartDate, setDraftStartDate] = useState("")
+  const [draftEndDate, setDraftEndDate] = useState("")
+  const [appliedStartDate, setAppliedStartDate] = useState("")
+  const [appliedEndDate, setAppliedEndDate] = useState("")
 
   // RHS detail panel state
   const [detailTab, setDetailTab] = useState<DetailTab>("conversations")
@@ -103,17 +125,43 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
   }
 
   const contacts = Array.from(contactMap.values())
-  const filteredBySearch = contacts.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.interactions.some(i =>
-      i.title?.toLowerCase().includes(search.toLowerCase()) ||
-      i.content?.toLowerCase().includes(search.toLowerCase())
-    )
-  )
-  const filteredContacts =
-    segmentFilter === "all"
-      ? filteredBySearch
-      : filteredBySearch.filter((c) => (contactSegment[c.id] ?? "lead") === segmentFilter)
+  const filteredContacts = useMemo(() => {
+    const searchLower = search.toLowerCase()
+    const startDate = appliedStartDate ? new Date(`${appliedStartDate}T00:00:00`) : null
+    const endDate = appliedEndDate ? new Date(`${appliedEndDate}T23:59:59.999`) : null
+
+    const matchesDateFilter = (contact: typeof contacts[number]) => {
+      if (dateFilter !== "custom") return true
+      return contact.interactions.some((interaction) => {
+        const createdAt = new Date(interaction.createdAt)
+        if (startDate && createdAt < startDate) return false
+        if (endDate && createdAt > endDate) return false
+        return true
+      })
+    }
+
+    const next = contacts.filter((contact) => {
+      const matchesSearch =
+        contact.name.toLowerCase().includes(searchLower) ||
+        contact.interactions.some((interaction) =>
+          interaction.title?.toLowerCase().includes(searchLower) ||
+          interaction.content?.toLowerCase().includes(searchLower)
+        )
+
+      const matchesSegment =
+        segmentFilter === "all" || (contactSegment[contact.id] ?? "lead") === segmentFilter
+
+      return matchesSearch && matchesSegment && matchesDateFilter(contact)
+    })
+
+    next.sort((a, b) => {
+      const aLatest = Math.max(...a.interactions.map((interaction) => new Date(interaction.createdAt).getTime()))
+      const bLatest = Math.max(...b.interactions.map((interaction) => new Date(interaction.createdAt).getTime()))
+      return dateFilter === "oldest" ? aLatest - bLatest : bLatest - aLatest
+    })
+
+    return next
+  }, [contacts, search, segmentFilter, dateFilter, appliedStartDate, appliedEndDate, contactSegment])
 
   // Find the selected contact's data
   const selectedActivity = interactions.find(a => a.id === selectedId)
@@ -131,6 +179,13 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
   const contactSuggestions = search.trim().length > 0
     ? filteredContacts.slice(0, 5).map(c => ({ id: c.id, name: c.name }))
     : []
+
+  const applyCustomDates = () => {
+    setAppliedStartDate(draftStartDate)
+    setAppliedEndDate(draftEndDate)
+    setDateFilter("custom")
+    setCustomDateDialogOpen(false)
+  }
 
   function channelIconAndStyle(type: string): { icon: ReactNode; containerClass: string; label: string } {
     const t = type?.toLowerCase() ?? ""
@@ -243,51 +298,58 @@ If the request is to contact the customer, use the appropriate customer-contact 
   }
 
   return (
+    <>
     <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
       {/* ─── LEFT PANEL: Contact List ──────────────────────── */}
       <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
         <div className="p-3 border-b border-border/40 space-y-2">
           <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
-          {Object.keys(contactSegment).length > 0 && (
-            <div className="flex rounded-lg border border-border/50 bg-background/50 p-0.5">
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("lead")}
-                className={cn(
-                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                  segmentFilter === "lead"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Leads
-              </button>
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("existing")}
-                className={cn(
-                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                  segmentFilter === "existing"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Existing
-              </button>
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("all")}
-                className={cn(
-                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                  segmentFilter === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                All
-              </button>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Customer type</p>
+              <Select value={segmentFilter} onValueChange={(value) => setSegmentFilter(value as ContactSegment | "all")}>
+                <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="lead">New</SelectItem>
+                  <SelectItem value="existing">Existing</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
+            <div className="space-y-1">
+              <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Date</p>
+              <Select
+                value={dateFilter}
+                onValueChange={(value) => {
+                  const nextValue = value as DateFilter
+                  if (nextValue === "custom") {
+                    setDraftStartDate(appliedStartDate)
+                    setDraftEndDate(appliedEndDate)
+                    setCustomDateDialogOpen(true)
+                  } else {
+                    setDateFilter(nextValue)
+                  }
+                }}
+              >
+                <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="custom">Custom time period</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -600,5 +662,30 @@ If the request is to contact the customer, use the appropriate customer-contact 
         )}
       </div>
     </div>
+    <Dialog open={customDateDialogOpen} onOpenChange={setCustomDateDialogOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Custom time period</DialogTitle>
+          <DialogDescription>
+            Filter inbox contacts by interaction dates, then apply the range.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Start date</label>
+            <Input type="date" value={draftStartDate} onChange={(e) => setDraftStartDate(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">End date</label>
+            <Input type="date" value={draftEndDate} onChange={(e) => setDraftEndDate(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setCustomDateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={applyCustomDates}>Apply</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
