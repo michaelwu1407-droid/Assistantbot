@@ -362,6 +362,7 @@ export async function saveTraceyOnboarding(
     // 7. Resolve Twilio number through the centralized billing-gated provisioning path
     let phoneNumber: string | undefined;
     let provisioningError: string | undefined;
+    let provisioningStatus: WorkspaceProvisioningStatus = "failed";
     try {
       const existingWorkspace = await db.workspace.findUnique({
         where: { id: workspace.id },
@@ -370,6 +371,7 @@ export async function saveTraceyOnboarding(
 
       if (existingWorkspace?.twilioPhoneNumber) {
         phoneNumber = existingWorkspace.twilioPhoneNumber;
+        provisioningStatus = "already_provisioned";
         await persistProvisioningState({
           workspaceId: workspace.id,
           status: "already_provisioned",
@@ -382,6 +384,7 @@ export async function saveTraceyOnboarding(
           ownerPhone: d.phone,
           triggerSource: "onboarding-activation",
         });
+        provisioningStatus = result.provisioningStatus;
         if (result.success && result.phoneNumber) {
           phoneNumber = result.phoneNumber;
           await persistProvisioningState({
@@ -407,6 +410,7 @@ export async function saveTraceyOnboarding(
       }
     } catch (err) {
       provisioningError = err instanceof Error ? err.message : "Unknown error";
+      provisioningStatus = "failed";
       await persistProvisioningState({
         workspaceId: workspace.id,
         status: "failed",
@@ -418,7 +422,9 @@ export async function saveTraceyOnboarding(
       });
     }
 
-    if (!phoneNumber) {
+    const allowActivationWithoutNumber = provisioningStatus === "not_requested";
+
+    if (!phoneNumber && !allowActivationWithoutNumber) {
       return {
         success: false,
         error: provisioningError || "Tracey's phone number must be provisioned before activation.",
@@ -429,17 +435,19 @@ export async function saveTraceyOnboarding(
       };
     }
 
-    try {
-      await sendProvisionedWelcomeSmsIfNeeded({
-        workspaceId: workspace.id,
-        businessName: d.businessName,
-        ownerPhone: d.phone,
-      });
-    } catch (welcomeError) {
-      logger.error("Failed to send Tracey welcome SMS", {
-        workspaceId: workspace.id,
-        error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError),
-      });
+    if (phoneNumber) {
+      try {
+        await sendProvisionedWelcomeSmsIfNeeded({
+          workspaceId: workspace.id,
+          businessName: d.businessName,
+          ownerPhone: d.phone,
+        });
+      } catch (welcomeError) {
+        logger.error("Failed to send Tracey welcome SMS", {
+          workspaceId: workspace.id,
+          error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError),
+        });
+      }
     }
 
     const workspaceWithSettings = await db.workspace.findUnique({
@@ -454,9 +462,9 @@ export async function saveTraceyOnboarding(
         onboardingComplete: true,
         settings: {
           ...settings,
-          onboardingProvisioningStatus: "provisioned",
-          onboardingProvisionedNumber: phoneNumber,
-          onboardingProvisioningError: null,
+          onboardingProvisioningStatus: allowActivationWithoutNumber ? "not_requested" : "provisioned",
+          onboardingProvisionedNumber: phoneNumber ?? null,
+          onboardingProvisioningError: allowActivationWithoutNumber ? provisioningError : null,
           onboardingActivatedAt: new Date().toISOString(),
         },
       },

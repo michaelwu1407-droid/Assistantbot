@@ -433,8 +433,9 @@ export function TraceyOnboarding() {
   const [isUploading, setIsUploading] = useState(false)
 
   const canActivateTracey =
-    (provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
-    Boolean(resolvedPhoneNumber)
+    provisioningStatus === "not_requested" ||
+    ((provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
+      Boolean(resolvedPhoneNumber))
 
   const provisioningStatusMessage =
     provisioningStatus === "provisioning"
@@ -1562,7 +1563,7 @@ export function TraceyOnboarding() {
                                     Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{resolvedPhoneNumber}</strong>
                                   </span>
                                 ) : (
-                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" || provisioningStatus === "not_requested" ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-300"}>
+                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" ? "text-red-600 dark:text-red-400" : provisioningStatus === "not_requested" ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"}>
                                     {provisioningStatus === "provisioning" ? (
                                       <span className="flex items-center gap-2">
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -1581,7 +1582,7 @@ export function TraceyOnboarding() {
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>A welcome SMS will be sent to <strong>{phone || "your mobile"}</strong></span>
+                                <span>{provisioningStatus === "not_requested" ? "You can add a dedicated number later from billing or settings." : <>A welcome SMS will be sent to <strong>{phone || "your mobile"}</strong></>}</span>
                             </li>
                           </ul>
                           {provisioningError && (
@@ -1676,9 +1677,7 @@ export function TraceyOnboarding() {
                           ) : !canActivateTracey ? (
                             <>
                               <Loader2 className={`h-4 w-4 ${provisioningStatus === "provisioning" ? "animate-spin" : ""}`} />
-                              {provisioningStatus === "not_requested"
-                                ? "Enable number provisioning in billing"
-                                : provisioningStatus === "blocked_duplicate"
+                              {provisioningStatus === "blocked_duplicate"
                                   ? "Provisioning blocked"
                                   : provisioningStatus === "requested"
                                     ? "Waiting for payment confirmation"
@@ -1699,7 +1698,7 @@ export function TraceyOnboarding() {
                           <CheckCircle2 className="h-8 w-8" />
                         </div>
                         <h3 className="text-xl font-bold">You&apos;re all set!</h3>
-                        <TraceyBubble text="Welcome aboard! I'm live and ready to take calls. You'll get a text from me shortly to confirm the connection." animate={false} />
+                        <TraceyBubble text={provisionResult.phoneNumber ? "Welcome aboard! I'm live and ready to take calls. You'll get a text from me shortly to confirm the connection." : "Welcome aboard! Your onboarding is complete. You can provision a dedicated number later from billing or settings."} animate={false} />
 
                         {provisionResult.leadsEmail && (
                           <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 text-left">

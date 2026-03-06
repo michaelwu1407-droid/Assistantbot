@@ -297,3 +297,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Relaxed step 1 onboarding validation so users can continue without a website URL while still requiring owner name, phone, and email.
 - Why: The onboarding copy already presents the website as optional, so blocking the step on a blank website field was inconsistent with the intended flow.
 
+### 2026-03-07 00:49 (AEDT) - codex
+- Files: `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- What changed: Allowed the active onboarding flow to complete when provisioning status is `not_requested`, while keeping duplicate blocks, queued payment states, and real provisioning failures gated. The final step now permits activation without a number only in that one billing-toggle-missed case and updates the post-activation messaging accordingly.
+- Why: A paid workspace that missed the temporary billing toggle should still be able to finish onboarding instead of being trapped at the last step. The dedicated number can be provisioned later from billing or settings without blocking initial setup.
+
