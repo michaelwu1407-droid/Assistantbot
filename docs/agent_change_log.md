@@ -123,3 +123,8 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `.github/workflows/deploy-livekit.yml`
 - What changed: Added a GitHub Actions workflow that triggers on `main` pushes affecting `livekit-agent/**` and deploys the LiveKit agent over SSH by pulling the repo and rebuilding the Docker Compose stack on the target host.
 - Why: Automate LiveKit agent deployment so worker updates do not rely on manual SSH redeploy steps after every push.
+
+### 2026-03-06 16:08 (AEDT) - codex
+- Files: `livekit-agent/README.md`
+- What changed: Appended a one-line README change to intentionally touch `livekit-agent/**` and trigger the new automated deploy workflow on `main`.
+- Why: Validate that the GitHub Actions-based LiveKit deployment path is firing from a real repository push.
