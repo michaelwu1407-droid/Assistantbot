@@ -163,32 +163,32 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             execute: async (params) => runCreateContact(workspaceId, params),
         }),
         sendSms: tool({
-            description: "Send an SMS to a contact by name. Finds the contact and sends via their phone.",
+            description: "Send an SMS to a contact by name. When this is customer-facing outreach, Tracey for users mode applies: execute sends immediately, review & approve drafts without sending, info only blocks sending.",
             inputSchema: z.object({
                 contactName: z.string().describe("Contact name"),
                 message: z.string().describe("SMS message to send"),
             }),
             execute: async ({ contactName, message }) =>
-                runSendSms(workspaceId, { contactName, message }),
+                runSendSms(workspaceId, { contactName, message, enforceCustomerContactMode: true }),
         }),
         sendEmail: tool({
-            description: "Send an email to a contact by name.",
+            description: "Send an email to a contact by name. When this is customer-facing outreach, Tracey for users mode applies: execute sends immediately, review & approve drafts without sending, info only blocks sending.",
             inputSchema: z.object({
                 contactName: z.string().describe("Contact name"),
                 subject: z.string().describe("Email subject"),
                 body: z.string().describe("Email body"),
             }),
             execute: async ({ contactName, subject, body }) =>
-                runSendEmail(workspaceId, { contactName, subject, body }),
+                runSendEmail(workspaceId, { contactName, subject, body, enforceCustomerContactMode: true }),
         }),
         makeCall: tool({
-            description: "Initiate an outbound phone call via the AI voice agent.",
+            description: "Initiate an outbound phone call via Tracey for users. Customer-contact mode applies: execute may place the call, review & approve drafts the action, info only blocks it.",
             inputSchema: z.object({
                 contactName: z.string().describe("Contact name"),
                 purpose: z.string().optional().describe("Brief call purpose"),
             }),
             execute: async ({ contactName, purpose }) =>
-                runMakeCall(workspaceId, { contactName, purpose }),
+                runMakeCall(workspaceId, { contactName, purpose, enforceCustomerContactMode: true }),
         }),
         getConversationHistory: tool({
             description: "Get text/call/email history with a specific contact.",

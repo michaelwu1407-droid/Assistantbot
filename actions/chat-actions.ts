@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
+import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
@@ -22,6 +23,12 @@ import {
   STREET_ABBREVS,
   DAY_ABBREVS,
 } from "@/lib/chat-utils";
+import {
+  canExecuteCustomerContact,
+  getCustomerContactModeLabel,
+  normalizeAgentMode,
+  requiresCustomerContactApproval,
+} from "@/lib/agent-mode";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -82,6 +89,29 @@ function formatTimeAgo(date: Date): string {
   } else {
     return "just now";
   }
+}
+
+async function getCustomerContactGuardResult(
+  workspaceId: string,
+  action: "text" | "email" | "call",
+  summary: string,
+  enforceCustomerContactMode?: boolean
+): Promise<string | null> {
+  if (!enforceCustomerContactMode) return null;
+
+  const settings = await getWorkspaceSettingsById(workspaceId);
+  const mode = normalizeAgentMode(settings?.agentMode);
+  const modeLabel = getCustomerContactModeLabel(mode);
+
+  if (canExecuteCustomerContact(mode)) {
+    return null;
+  }
+
+  if (requiresCustomerContactApproval(mode)) {
+    return `Tracey for users is currently in ${modeLabel} mode. I prepared this ${action} action but did not send it yet: ${summary}`;
+  }
+
+  return `Tracey for users is currently in ${modeLabel} mode, so customer ${action} actions are disabled. I did not send anything.`;
 }
 
 // ─── Stage Alias Mapping ─────────────────────────────────────────────
@@ -824,9 +854,17 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
  */
 export async function runSendSms(
   workspaceId: string,
-  params: { contactName: string; message: string }
+  params: { contactName: string; message: string; enforceCustomerContactMode?: boolean }
 ): Promise<string> {
   try {
+    const modeBlock = await getCustomerContactGuardResult(
+      workspaceId,
+      "text",
+      `SMS to ${params.contactName}: "${params.message}"`,
+      params.enforceCustomerContactMode
+    );
+    if (modeBlock) return modeBlock;
+
     const contacts = await searchContacts(workspaceId, params.contactName);
     
     // If no exact match, try fuzzy matching for similar names
@@ -932,9 +970,18 @@ export async function runSendEmail(
     workspaceAlias?: string;
     workspaceName?: string;
     ownerEmail?: string;
+    enforceCustomerContactMode?: boolean;
   }
 ): Promise<string> {
   try {
+    const modeBlock = await getCustomerContactGuardResult(
+      workspaceId,
+      "email",
+      `Email to ${params.contactName} with subject "${params.subject}"`,
+      params.enforceCustomerContactMode
+    );
+    if (modeBlock) return modeBlock;
+
     const contacts = await searchContacts(workspaceId, params.contactName);
     
     // If no exact match, try fuzzy matching for similar names
@@ -1045,9 +1092,17 @@ export async function runSendEmail(
  */
 export async function runMakeCall(
   workspaceId: string,
-  params: { contactName: string; purpose?: string }
+  params: { contactName: string; purpose?: string; enforceCustomerContactMode?: boolean }
 ): Promise<string> {
   try {
+    const modeBlock = await getCustomerContactGuardResult(
+      workspaceId,
+      "call",
+      `Call ${params.contactName}${params.purpose ? ` about ${params.purpose}` : ""}`,
+      params.enforceCustomerContactMode
+    );
+    if (modeBlock) return modeBlock;
+
     const contacts = await searchContacts(workspaceId, params.contactName);
     
     // If no exact match, try fuzzy matching for similar names

@@ -60,6 +60,20 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **Lead capture timing**: Do not call `log_lead` immediately after the caller says only `yes` or confirms identity. Wait until there is enough real information to satisfy the schema and reflect genuine interest.
 - **SIP audio safety**: Keep explicit remote-track subscription logging/handling in place for SIP demo calls. If logs show no `voice-user-turn` events after greeting, inspect `[TRACK] published/subscribed` first.
 
+## Assistant Taxonomy (Canonical)
+
+- **Tracey interview form**: Earlymark outbound demo assistant triggered from the website interview form.
+- **Tracey inbound call**: Earlymark inbound sales assistant handling callers who ring Earlymark.
+- **Tracey for users**: Assistant for Earlymark customers when handling that customer's callers or texts.
+- **CRM chatbot**: Internal operator-facing assistant inside the CRM app.
+
+## Customer-Contact Modes (Canonical)
+
+- Canonical mode names are **execute**, **review & approve**, and **info only**.
+- These modes apply to **Tracey for users** across both customer calls and customer texts.
+- The **CRM chatbot** itself is not globally constrained by these 3 modes for internal CRM work.
+- When the **CRM chatbot** is asked to contact a customer, it is acting as **Tracey for users**, so the current customer-contact mode applies.
+
 ## Voice Debug Start Rule
 
 - Before any new voice-agent debugging session, read this file and inspect the latest `/tmp/agent.log` entries for `[voice-turn]`, `[voice-audit]`, `[voice-user-turn]`, and `[TRACK]` lines first.

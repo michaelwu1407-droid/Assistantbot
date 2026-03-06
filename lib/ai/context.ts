@@ -2,6 +2,12 @@ import { db } from "@/lib/db";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getAuthUser } from "@/lib/auth";
 import type { MemoryClient } from "mem0ai";
+import {
+    getCustomerContactModeLabel,
+    getCustomerContactModePolicySummary,
+    normalizeAgentMode,
+    type CanonicalCustomerContactMode,
+} from "@/lib/agent-mode";
 
 type BuildAgentContextOptions = {
     includeHistoricalPricing?: boolean;
@@ -20,6 +26,36 @@ type AgentContextPayload = {
     pricingRulesStr: string;
     bouncerStr: string;
     attachmentsStr: string;
+};
+
+export type WorkspaceVoiceGrounding = {
+    workspaceId: string;
+    businessName: string;
+    tradeType: string | null;
+    website: string | null;
+    businessPhone: string | null;
+    publicPhone: string | null;
+    publicEmail: string | null;
+    physicalAddress: string | null;
+    serviceArea: string | null;
+    serviceRadiusKm: number | null;
+    standardWorkHours: string | null;
+    emergencyService: boolean;
+    emergencySurcharge: number | null;
+    aiPreferences: string[];
+    customerContactMode: CanonicalCustomerContactMode;
+    customerContactModeLabel: string;
+    serviceRules: Array<{
+        title: string;
+        notes: string;
+        priceRange: string | null;
+        duration: string | null;
+    }>;
+    pricingItems: Array<{
+        title: string;
+        description: string;
+    }>;
+    noGoRules: string[];
 };
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 30_000;
@@ -202,11 +238,7 @@ export async function buildAgentContext(
     glossaryStr += historicalPricingStr;
 
     // Build context strings
-    const agentModeStr = settings?.agentMode === "EXECUTE"
-        ? "\nAGENT OVERRIDE MODE: EXECUTE. You have full autonomy. Calculate the price based on standard glossary pricing below. If no exact match, make an educated estimate. You may execute creation, moving, scheduling, or proposing of jobs directly based on smart geolocation."
-        : settings?.agentMode === "ORGANIZE"
-            ? "\nAGENT OVERRIDE MODE: ORGANIZE. You are operating as a liaison. Always wait for user approvals or confirmations. You should propose times to the customer, but rely on the UX 'Draft' cards for final user confirmation."
-            : "\nAGENT OVERRIDE MODE: FILTER. You are a screening receptionist ONLY. Extract information, but DO NOT schedule, propose times, or provide pricing. Tell the user you will pass their details on.";
+    const agentModeStr = getCustomerContactModePolicySummary(settings?.agentMode);
 
     const workingHoursStr = `\nWORKING HOURS: Your company working hours are strictly ${settings?.workingHoursStart || "08:00"} to ${settings?.workingHoursEnd || "17:00"}. DO NOT SCHEDULE jobs outside of this window.`;
 
@@ -313,6 +345,109 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
     });
 
     return contextValue;
+}
+
+export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<WorkspaceVoiceGrounding | null> {
+    const [workspace, businessProfile, settings, repairItems, negativeRules, serviceRules] = await Promise.all([
+        db.workspace.findUnique({
+            where: { id: workspaceId },
+            select: {
+                id: true,
+                name: true,
+                location: true,
+                twilioPhoneNumber: true,
+                exclusionCriteria: true,
+            },
+        }),
+        db.businessProfile.findFirst({
+            where: { user: { workspaceId } },
+            select: {
+                tradeType: true,
+                website: true,
+                businessName: true,
+                publicPhone: true,
+                publicEmail: true,
+                physicalAddress: true,
+                baseSuburb: true,
+                serviceRadius: true,
+                standardWorkHours: true,
+                emergencyService: true,
+                emergencySurcharge: true,
+            },
+        }).catch(() => null),
+        getWorkspaceSettingsById(workspaceId),
+        db.repairItem.findMany({
+            where: { workspaceId },
+            select: { title: true, description: true },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+        }).catch(() => [] as Array<{ title: string; description: string | null }>),
+        db.businessKnowledge.findMany({
+            where: { workspaceId, category: "NEGATIVE_SCOPE" },
+            select: { ruleContent: true },
+            orderBy: { updatedAt: "desc" },
+            take: 20,
+        }).catch(() => [] as Array<{ ruleContent: string }>),
+        db.businessKnowledge.findMany({
+            where: { workspaceId, category: "SERVICE" },
+            select: { ruleContent: true, metadata: true },
+            orderBy: { updatedAt: "desc" },
+            take: 30,
+        }).catch(() => [] as Array<{ ruleContent: string; metadata: unknown }>),
+    ]);
+
+    if (!workspace) return null;
+
+    const aiPreferences = (settings?.aiPreferences || "")
+        .split("\n")
+        .map((line) => line.replace(/^\s*-\s*/, "").trim())
+        .filter(Boolean)
+        .slice(0, 12);
+
+    const exclusionCriteria = workspace.exclusionCriteria
+        ? workspace.exclusionCriteria.split("\n").map((line) => line.trim()).filter(Boolean)
+        : [];
+    const noGoRules = [...exclusionCriteria, ...negativeRules.map((item) => item.ruleContent.trim()).filter(Boolean)]
+        .filter((value, index, all) => all.indexOf(value) === index)
+        .slice(0, 20);
+
+    const normalizedMode = normalizeAgentMode(settings?.agentMode);
+
+    return {
+        workspaceId: workspace.id,
+        businessName: businessProfile?.businessName || workspace.name || "the business",
+        tradeType: businessProfile?.tradeType || null,
+        website: businessProfile?.website || null,
+        businessPhone: workspace.twilioPhoneNumber || null,
+        publicPhone: businessProfile?.publicPhone || null,
+        publicEmail: businessProfile?.publicEmail || null,
+        physicalAddress: businessProfile?.physicalAddress || null,
+        serviceArea: workspace.location || businessProfile?.baseSuburb || null,
+        serviceRadiusKm: businessProfile?.serviceRadius ?? null,
+        standardWorkHours: businessProfile?.standardWorkHours ||
+            (settings?.workingHoursStart && settings?.workingHoursEnd
+                ? `${settings.workingHoursStart}-${settings.workingHoursEnd}`
+                : null),
+        emergencyService: Boolean(businessProfile?.emergencyService),
+        emergencySurcharge: businessProfile?.emergencySurcharge ?? null,
+        aiPreferences,
+        customerContactMode: normalizedMode,
+        customerContactModeLabel: getCustomerContactModeLabel(normalizedMode),
+        serviceRules: serviceRules.map((item) => {
+            const metadata = (item.metadata as Record<string, unknown> | null) || {};
+            return {
+                title: item.ruleContent.trim(),
+                notes: item.ruleContent.trim(),
+                priceRange: typeof metadata.priceRange === "string" ? metadata.priceRange : null,
+                duration: typeof metadata.duration === "string" ? metadata.duration : null,
+            };
+        }),
+        pricingItems: repairItems.map((item) => ({
+            title: item.title,
+            description: item.description || "No approved price notes recorded.",
+        })),
+        noGoRules,
+    };
 }
 
 // Lazy initialization of Mem0 Memory Client

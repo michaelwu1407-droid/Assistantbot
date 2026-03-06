@@ -85,6 +85,36 @@ type CallerContext = {
   calledPhone: string;
 };
 
+type WorkspaceVoiceGrounding = {
+  workspaceId: string;
+  businessName: string;
+  tradeType: string | null;
+  website: string | null;
+  businessPhone: string | null;
+  publicPhone: string | null;
+  publicEmail: string | null;
+  physicalAddress: string | null;
+  serviceArea: string | null;
+  serviceRadiusKm: number | null;
+  standardWorkHours: string | null;
+  emergencyService: boolean;
+  emergencySurcharge: number | null;
+  aiPreferences: string[];
+  customerContactMode: "execute" | "review_approve" | "info_only";
+  customerContactModeLabel: string;
+  serviceRules: Array<{
+    title: string;
+    notes: string;
+    priceRange: string | null;
+    duration: string | null;
+  }>;
+  pricingItems: Array<{
+    title: string;
+    description: string;
+  }>;
+  noGoRules: string[];
+};
+
 type TranscriptTurn = {
   role: "user" | "assistant";
   text: string;
@@ -201,8 +231,79 @@ function getRepresentedBusinessName(callType: CallType, caller: CallerContext): 
   return caller.businessName || "the business";
 }
 
-function buildNormalPrompt(caller: CallerContext): string {
-  const businessName = getRepresentedBusinessName("normal", caller);
+function compactLines(lines: Array<string | null | undefined>, maxLines: number): string[] {
+  return lines
+    .map((line) => (line || "").trim())
+    .filter(Boolean)
+    .slice(0, maxLines);
+}
+
+function getNormalModeInstructions(grounding?: WorkspaceVoiceGrounding | null): string[] {
+  const mode = grounding?.customerContactMode || "review_approve";
+
+  if (mode === "execute") {
+    return [
+      "The current Tracey for users mode is Execute.",
+      "This same mode applies across customer calls and texts for this business.",
+      "You may answer questions, qualify leads, and make normal business commitments that are clearly supported by the business rules and approved pricing.",
+    ];
+  }
+
+  if (mode === "info_only") {
+    return [
+      "The current Tracey for users mode is Info only.",
+      "This same mode applies across customer calls and texts for this business.",
+      "You may answer, screen, and capture details, but do not make firm bookings, quotes, or outbound commitments. Offer to pass it to the team.",
+    ];
+  }
+
+  return [
+    "The current Tracey for users mode is Review & approve.",
+    "This same mode applies across customer calls and texts for this business.",
+    "You may answer questions and gather details, but if a booking, quote, or firm commitment would normally be made, say the team will confirm it shortly.",
+  ];
+}
+
+function buildGroundingSnapshot(grounding?: WorkspaceVoiceGrounding | null): string {
+  if (!grounding) return "";
+
+  const facts = compactLines([
+    grounding.tradeType ? `Trade: ${grounding.tradeType}` : null,
+    grounding.serviceArea ? `Service area: ${grounding.serviceArea}${grounding.serviceRadiusKm ? ` (${grounding.serviceRadiusKm}km radius)` : ""}` : null,
+    grounding.standardWorkHours ? `Working hours: ${grounding.standardWorkHours}` : null,
+    grounding.website ? `Website: ${grounding.website}` : null,
+    grounding.publicPhone ? `Public phone: ${grounding.publicPhone}` : grounding.businessPhone ? `Business phone: ${grounding.businessPhone}` : null,
+    grounding.publicEmail ? `Public email: ${grounding.publicEmail}` : null,
+    grounding.emergencyService ? `Emergency service: available${grounding.emergencySurcharge ? ` (+$${grounding.emergencySurcharge} surcharge)` : ""}` : "Emergency service: not enabled",
+  ], 6);
+
+  const preferences = compactLines(grounding.aiPreferences, 4);
+  const serviceHighlights = compactLines(
+    grounding.serviceRules.map((service) => {
+      const extra = [service.priceRange, service.duration ? `est. ${service.duration}` : null].filter(Boolean).join(", ");
+      return extra ? `${service.title} (${extra})` : service.title;
+    }),
+    4
+  );
+  const pricingHighlights = compactLines(
+    grounding.pricingItems.map((item) => `${item.title}: ${item.description}`),
+    4
+  );
+  const noGoHighlights = compactLines(grounding.noGoRules, 4);
+
+  const sections: string[] = [];
+  if (facts.length) sections.push(`Business facts:\n- ${facts.join("\n- ")}`);
+  if (preferences.length) sections.push(`Important preferences:\n- ${preferences.join("\n- ")}`);
+  if (serviceHighlights.length) sections.push(`Known services snapshot:\n- ${serviceHighlights.join("\n- ")}`);
+  if (pricingHighlights.length) sections.push(`Approved pricing snapshot:\n- ${pricingHighlights.join("\n- ")}`);
+  if (noGoHighlights.length) sections.push(`No-go rules snapshot:\n- ${noGoHighlights.join("\n- ")}`);
+  return sections.join("\n\n");
+}
+
+function buildNormalPrompt(caller: CallerContext, grounding?: WorkspaceVoiceGrounding | null): string {
+  const businessName = grounding?.businessName || getRepresentedBusinessName("normal", caller);
+  const modeInstructions = getNormalModeInstructions(grounding).join("\n- ");
+  const groundingSnapshot = buildGroundingSnapshot(grounding);
   return `You are Tracey, an AI assistant for ${businessName}.
 
 Role:
@@ -226,11 +327,20 @@ Constraint:
 Goal:
 - Capture details and requests for ${businessName}, answer common questions, and help with bookings or next steps when appropriate.
 - If you are not confident you can help correctly, make up to 2 honest attempts to help first, then offer to pass it to your manager so they can get back to the caller ASAP. If the caller agrees, wrap the call up briefly.
+- Answer the caller's question before steering the conversation elsewhere.
+- When the caller asks about services, pricing, business rules, availability, or contact details, use the lookup tools before guessing.
+
+Mode policy for Tracey for users:
+- ${modeInstructions}
 
 Transfer rules:
 - If a caller asks to speak to the business owner or a human, confirm first.
 - On confirmation, use the transfer_call tool.
 - Do not transfer general enquiries you can handle yourself.
+
+${groundingSnapshot ? `${groundingSnapshot}\n\n` : ""}IMPORTANT:
+- Keep the prompt small in your own mind. Use lookup tools for changing business knowledge instead of inventing answers.
+- If approved pricing is missing for a task, do not make up a quote. Explain that the team will confirm it.
 
 IMPORTANT - Call Duration:
 - At around 8 minutes you will receive an instruction to wrap up the call. Follow it naturally.
@@ -496,6 +606,140 @@ async function persistVoiceCall(payload: {
   }
 }
 
+async function fetchVoiceGrounding(params: {
+  calledPhone?: string;
+  workspaceId?: string;
+}): Promise<WorkspaceVoiceGrounding | null> {
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000");
+  const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
+
+  if (!appUrl || !secret) {
+    return null;
+  }
+
+  const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-context`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-voice-agent-secret": secret,
+    },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = await response.json().catch(() => null);
+  return (payload?.grounding as WorkspaceVoiceGrounding | undefined) || null;
+}
+
+function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding) {
+  const findMatches = (query: string, values: string[]) => {
+    const normalized = normalizeTranscript(query);
+    if (!normalized) return values.slice(0, 3);
+    const matches = values.filter((value) => normalizeTranscript(value).includes(normalized));
+    return matches.length ? matches.slice(0, 4) : values.filter((value) => {
+      const haystack = normalizeTranscript(value);
+      return normalized.split(" ").some((token) => token && haystack.includes(token));
+    }).slice(0, 4);
+  };
+
+  return {
+    lookup_service_information: livekitLlm.tool({
+      description: "Look up approved services, service notes, and what the business actually offers.",
+      parameters: z.object({
+        query: z.string().describe("Service or job question from the caller"),
+      }),
+      execute: async ({ query }) => {
+        const services = grounding.serviceRules.map((service) => {
+          const extra = [service.priceRange, service.duration ? `est. ${service.duration}` : null].filter(Boolean).join(", ");
+          return extra ? `${service.title} (${extra})` : service.title;
+        });
+        const matches = findMatches(query, services);
+        if (!matches.length) {
+          return "No matching approved service information was found. Do not invent coverage; offer to pass the question to the team.";
+        }
+        return `Approved service information:\n- ${matches.join("\n- ")}`;
+      },
+    }),
+    lookup_pricing: livekitLlm.tool({
+      description: "Look up approved pricing notes or call-out information for this business.",
+      parameters: z.object({
+        query: z.string().describe("Service or pricing question from the caller"),
+      }),
+      execute: async ({ query }) => {
+        const pricing = grounding.pricingItems.map((item) => `${item.title}: ${item.description}`);
+        const matches = findMatches(query, pricing);
+        if (!matches.length) {
+          return "No approved pricing entry was found for that request. Do not quote a made-up price; say the team will confirm it.";
+        }
+        return `Approved pricing notes:\n- ${matches.join("\n- ")}`;
+      },
+    }),
+    lookup_business_details: livekitLlm.tool({
+      description: "Look up business details like hours, service area, contact details, website, address, and emergency policy.",
+      parameters: z.object({
+        topic: z.enum(["hours", "service_area", "contact", "website", "address", "emergency", "general"]).describe("Which business detail to look up"),
+      }),
+      execute: async ({ topic }) => {
+        if (topic === "hours") {
+          return grounding.standardWorkHours
+            ? `Working hours: ${grounding.standardWorkHours}`
+            : "Working hours are not recorded. Offer to have the team confirm them.";
+        }
+        if (topic === "service_area") {
+          return grounding.serviceArea
+            ? `Service area: ${grounding.serviceArea}${grounding.serviceRadiusKm ? ` (${grounding.serviceRadiusKm}km radius)` : ""}`
+            : "Service area is not recorded. Offer to have the team confirm coverage.";
+        }
+        if (topic === "contact") {
+          return [
+            grounding.publicPhone ? `Phone: ${grounding.publicPhone}` : grounding.businessPhone ? `Phone: ${grounding.businessPhone}` : null,
+            grounding.publicEmail ? `Email: ${grounding.publicEmail}` : null,
+          ].filter(Boolean).join("\n") || "Public contact details are not recorded.";
+        }
+        if (topic === "website") {
+          return grounding.website ? `Website: ${grounding.website}` : "Website is not recorded.";
+        }
+        if (topic === "address") {
+          return grounding.physicalAddress ? `Address: ${grounding.physicalAddress}` : "Physical address is not recorded.";
+        }
+        if (topic === "emergency") {
+          return grounding.emergencyService
+            ? `Emergency service is available${grounding.emergencySurcharge ? ` with a $${grounding.emergencySurcharge} surcharge` : ""}.`
+            : "Emergency service is not enabled.";
+        }
+        return [
+          `Business: ${grounding.businessName}`,
+          grounding.tradeType ? `Trade: ${grounding.tradeType}` : null,
+          grounding.serviceArea ? `Service area: ${grounding.serviceArea}` : null,
+          grounding.website ? `Website: ${grounding.website}` : null,
+        ].filter(Boolean).join("\n");
+      },
+    }),
+    lookup_no_go_rules: livekitLlm.tool({
+      description: "Check no-go rules or excluded work before declining a caller request.",
+      parameters: z.object({
+        query: z.string().describe("The work type or question that might be excluded"),
+      }),
+      execute: async ({ query }) => {
+        if (!grounding.noGoRules.length) {
+          return "No explicit no-go rules are recorded. Do not invent a rejection.";
+        }
+        const matches = findMatches(query, grounding.noGoRules);
+        if (!matches.length) {
+          return "No explicit no-go rule matched that request. Do not decline it unless another approved rule clearly applies.";
+        }
+        return `Relevant no-go rules:\n- ${matches.join("\n- ")}`;
+      },
+    }),
+  };
+}
+
 export default defineAgent({
   entry: async (ctx) => {
     const callStartedAt = new Date();
@@ -651,6 +895,14 @@ export default defineAgent({
       calledPhone,
     };
 
+    const normalVoiceGrounding =
+      callType === "normal"
+        ? await fetchVoiceGrounding({ calledPhone }).catch((error) => {
+            console.warn("[agent] Failed to fetch voice grounding:", error);
+            return null;
+          })
+        : null;
+
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
     const llmProvider = (
       process.env.GROQ_API_KEY
@@ -690,7 +942,6 @@ export default defineAgent({
     });
 
     const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
-    const systemPrompt = isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller);
     const greeting = getGreeting(callType, caller);
     const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
     const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
@@ -710,17 +961,27 @@ export default defineAgent({
       calledPhone,
       llmProvider,
       llmModel,
+      customerContactMode: normalVoiceGrounding?.customerContactMode || null,
+      groundedWorkspaceId: normalVoiceGrounding?.workspaceId || null,
     })}`);
 
+    const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
+    const tools = isEarlymarkCall
+      ? {
+          log_lead: logLeadTool,
+          transfer_call: transferCallTool,
+        }
+      : {
+          transfer_call: transferCallTool,
+          ...normalLookupTools,
+        };
+
     const agent = new voice.Agent({
-      instructions: systemPrompt,
+      instructions: isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller, normalVoiceGrounding),
       stt,
       llm,
       tts,
-      tools: {
-        log_lead: logLeadTool,
-        transfer_call: transferCallTool,
-      },
+      tools,
       turnDetection: "stt",
       minConsecutiveSpeechDelay: Number(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS || 180),
     });
