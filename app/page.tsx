@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    ArrowRight, Check, ChevronLeft, ChevronRight,
+    ArrowRight, ChevronLeft, ChevronRight,
     Phone, MessageSquare, Calendar, MapPin, Users,
     BarChart3, Zap, Bot, Clock,
 } from "lucide-react";
@@ -45,26 +45,30 @@ const HIRE_FEATURES = [
     {
         title: "Never miss a job again",
         desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
-        screenshotLabel: "Incoming call handling",
-        screenshotBg: "from-emerald-500/20 to-emerald-600/10",
+        icon: Clock,
+        bg: "bg-mint-50",
+        color: "text-primary",
     },
     {
         title: "No more admin. Chat with your CRM.",
         desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
-        screenshotLabel: "Chat-powered CRM",
-        screenshotBg: "from-blue-500/20 to-blue-600/10",
+        icon: MessageSquare,
+        bg: "bg-blue-50",
+        color: "text-blue-500",
     },
     {
         title: "AI that actually works",
         desc: "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
-        screenshotLabel: "Smart conversations",
-        screenshotBg: "from-violet-500/20 to-violet-600/10",
+        icon: Zap,
+        bg: "bg-violet-50",
+        color: "text-violet-500",
     },
     {
         title: "Total control",
         desc: "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
-        screenshotLabel: "Autonomy settings",
-        screenshotBg: "from-slate-500/20 to-slate-600/10",
+        icon: Users,
+        bg: "bg-slate-50",
+        color: "text-slate-600",
     },
 ];
 
@@ -475,7 +479,7 @@ export default function Home() {
                         {...fadeUp(0.06)}
                         className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
                     >
-                        Your AI assistant & CRM — here to give you an{" "}
+                        Your AI assistant — here to give you an{" "}
                         <span className="text-primary">early mark</span>
                     </motion.h1>
 
@@ -485,24 +489,16 @@ export default function Home() {
                             Earlymark helps businesses
                         </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
-                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Win more customers. Win more revenue
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Make life easier. Automate customer admin
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-[#111C34] border border-white/10 px-4 py-4 md:px-5 shadow-[0_14px_30px_rgba(7,17,35,0.28)] flex items-center justify-center">
-                                <p className="text-white text-sm md:text-base font-semibold leading-snug text-center">
-                                    Provide a better, more reliable customer experience
-                                </p>
-                            </div>
+                        <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8">
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
+                                Win more customers and revenue
+                            </p>
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
+                                Make life easier by automating customer interaction and admin
+                            </p>
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4]">
+                                Provide a reliable and better customer experience
+                            </p>
                         </div>
                     </motion.div>
 
@@ -609,13 +605,16 @@ export default function Home() {
                         {/* LHS — Text */}
                         <div className="flex flex-col gap-8">
                             <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. They will contact customers and run your CRM so you don&apos;t have to.
+                                Tracey lives in your CRM. It will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
 
                         {/* RHS — Interview Form */}
                         <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Bot className="w-5 h-5 text-primary" />
+                                <h3 className="font-bold text-midnight text-lg">Interview Tracey for free</h3>
+                            </div>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">
                                 Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.
                             </p>
@@ -637,45 +636,36 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    {/* Tracey in action — centred top */}
-                    <div className="max-w-2xl mx-auto w-full">
-                        <motion.p {...fadeUp()} className="text-center text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
-                            Tracey in action
-                        </motion.p>
-                        <motion.div {...fadeUp(0.06)}>
-                            <ChatDemo />
-                        </motion.div>
-                    </div>
+                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-start">
+                        {/* LHS: Tracey in action */}
+                        <div className="w-full">
+                            <motion.p {...fadeUp()} className="text-left text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
+                                Tracey in action
+                            </motion.p>
+                            <motion.div {...fadeUp(0.06)}>
+                                <ChatDemo />
+                            </motion.div>
+                        </div>
 
-                    {/* Zigzag feature cards with screenshots */}
-                    <div className="flex flex-col gap-10 mt-4">
-                        {HIRE_FEATURES.map((f, i) => {
-                            const isEven = i % 2 === 0;
-                            return (
-                                <motion.div
-                                    key={f.title}
-                                    {...fadeUp(i * 0.08)}
-                                    className={`grid md:grid-cols-2 gap-6 items-center ${!isEven ? "md:direction-rtl" : ""}`}
-                                >
-                                    {/* Card */}
-                                    <div className={`bg-white rounded-3xl border border-border p-7 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow ${!isEven ? "md:order-2" : "md:order-1"}`}>
+                        {/* RHS: Key benefit boxes */}
+                        <div className="grid grid-cols-1 gap-6">
+                            {HIRE_FEATURES.map((f, i) => {
+                                const Icon = f.icon;
+                                return (
+                                    <motion.div
+                                        key={f.title}
+                                        {...fadeUp(i * 0.08)}
+                                        className="bg-white rounded-3xl border border-border p-7 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                        <div className={`w-12 h-12 rounded-2xl ${f.bg} flex items-center justify-center`}>
+                                            <Icon className={`w-6 h-6 ${f.color}`} />
+                                        </div>
                                         <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
                                         <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
-                                    </div>
-
-                                    {/* Screenshot placeholder */}
-                                    <div className={`rounded-3xl bg-gradient-to-br ${f.screenshotBg} border border-border/50 overflow-hidden aspect-[4/3] flex items-center justify-center ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                                        <div className="text-center px-6">
-                                            <div className="w-16 h-16 rounded-2xl bg-white/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 shadow-sm">
-                                                <div className="w-8 h-8 rounded-lg bg-midnight/10" />
-                                            </div>
-                                            <p className="text-xs font-medium text-midnight/50 uppercase tracking-wider">{f.screenshotLabel}</p>
-                                            <p className="text-[10px] text-midnight/30 mt-1">Screenshot coming soon</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </section >
@@ -695,10 +685,10 @@ export default function Home() {
                 <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            One platform to run it all
+                            Everything you need,<br />nothing you don&apos;t
                         </h2>
                         <p className="text-slate-body mt-3 text-lg">
-                            All the features you need so you can focus on your craft, not the paperwork.
+                            Six powerful features working together so you can focus on the work, not the paperwork.
                         </p>
                     </motion.div>
 

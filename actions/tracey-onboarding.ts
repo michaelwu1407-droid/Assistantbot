@@ -329,20 +329,31 @@ export async function saveTraceyOnboarding(
     let phoneNumber: string | undefined;
     let provisioningError: string | undefined;
     try {
-      const { initializeTradieComms } = await import("@/lib/comms");
-      const result = await initializeTradieComms(
+      const existingWorkspace = await db.workspace.findUnique({
+        where: { id: workspace.id },
+        select: { twilioPhoneNumber: true },
+      });
+
+      if (existingWorkspace?.twilioPhoneNumber) {
+        phoneNumber = existingWorkspace.twilioPhoneNumber;
+      } else {
+        const { provisionTradieCommsWithFallback } = await import("@/lib/comms-provision");
+        const result = await provisionTradieCommsWithFallback(
         workspace.id,
         d.businessName,
         d.phone
-      );
-      if (result.success && result.phoneNumber) {
-        phoneNumber = result.phoneNumber;
-      } else if (!result.success && result.error) {
-        provisioningError = result.error;
-        logger.error("Comms provisioning failed during Tracey onboarding", {
-          workspaceId: workspace.id,
-          error: result.error,
-        });
+        );
+        if (result.success && result.phoneNumber) {
+          phoneNumber = result.phoneNumber;
+        } else if (!result.success && result.error) {
+          provisioningError = result.error;
+          logger.error("Comms provisioning failed during Tracey onboarding", {
+            workspaceId: workspace.id,
+            error: result.error,
+            stageReached: result.stageReached,
+            mode: result.mode,
+          });
+        }
       }
     } catch (err) {
       provisioningError = err instanceof Error ? err.message : "Unknown error";
