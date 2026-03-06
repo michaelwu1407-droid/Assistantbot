@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { provisionTradieCommsWithFallback } from "@/lib/comms-provision";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
-
-function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
-  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
-    return {};
-  }
-
-  return settings as Record<string, unknown>;
-}
+import { logger } from "@/lib/logging";
+import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
 
 export async function POST(request: NextRequest) {
   try {
+    const requestStartedAt = Date.now();
     const userId = await getAuthUserId();
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -42,67 +36,28 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Idempotency: return the existing provisioned number instead of buying again.
-    if (workspace.twilioPhoneNumber) {
-      const settings = getWorkspaceSettings(workspace.settings);
-      await db.workspace.update({
-        where: { id: workspace.id },
-        data: {
-          settings: {
-            ...settings,
-            onboardingProvisioningStatus: "already_provisioned",
-            onboardingProvisionedNumber: workspace.twilioPhoneNumber,
-            onboardingProvisioningError: null,
-            onboardingProvisioningUpdatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        phoneNumber: workspace.twilioPhoneNumber,
-        provisioningStatus: "already_provisioned",
-        result: {
-          success: true,
-          phoneNumber: workspace.twilioPhoneNumber,
-          stageReached: "already-provisioned",
-        },
-      });
-    }
-
-    const result = await provisionTradieCommsWithFallback(
-      workspace.id,
+    const result = await ensureWorkspaceProvisioned({
+      workspaceId: workspace.id,
       businessName,
-      ownerPhone || ""
-    );
-
-    const latestWorkspace = await db.workspace.findUnique({
-      where: { id: workspace.id },
-      select: { settings: true },
+      ownerPhone,
+      triggerSource: "onboarding-check",
     });
-    const settings = getWorkspaceSettings(latestWorkspace?.settings);
-    const provisioningStatus = result.success ? "provisioned" : "failed";
 
-    await db.workspace.update({
-      where: { id: workspace.id },
-      data: {
-        settings: {
-          ...settings,
-          onboardingProvisioningStatus: provisioningStatus,
-          onboardingProvisionedNumber: result.phoneNumber ?? null,
-          onboardingProvisioningError: result.error ?? null,
-          onboardingProvisioningUpdatedAt: new Date().toISOString(),
-        },
-      },
+    logger.info("ONBOARDING PROVISION: Last-step resolution complete", {
+      workspaceId: workspace.id,
+      provisioningStatus: result.provisioningStatus,
+      elapsedMs: result.elapsedMs,
+      totalRequestMs: Date.now() - requestStartedAt,
     });
 
     return NextResponse.json({ 
       success: result.success,
       phoneNumber: result.phoneNumber,
-      provisioningStatus,
+      provisioningStatus: result.provisioningStatus,
       error: result.error,
       stageReached: result.stageReached,
       mode: result.mode,
+      elapsedMs: result.elapsedMs,
       result: result
     });
   } catch (error: any) {

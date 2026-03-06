@@ -5,6 +5,8 @@ import { getAuthUser, getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
+import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
+import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -54,7 +56,8 @@ export async function getWorkspaceSettings() {
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
         callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
-        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 20,
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 15,
+        callForwardingCarrier: (s.callForwardingCarrier as CallForwardingCarrier) ?? "other",
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
         emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
@@ -112,6 +115,10 @@ export async function updateWorkspaceSettings(input: {
     voiceAfterHoursMessage?: string
     transcribeVoicemails?: boolean
     autoRespondToMessages?: boolean
+    callForwardingEnabled?: boolean
+    callForwardingMode?: "full" | "backup" | "off"
+    callForwardingDelaySec?: number
+    callForwardingCarrier?: CallForwardingCarrier
 }) {
     const workspaceId = await getWorkspaceId()
 
@@ -119,6 +126,7 @@ export async function updateWorkspaceSettings(input: {
         "agentScriptStyle", "agentBusinessName", "agentOpeningMessage", "agentClosingMessage",
         "textAllowedStart", "textAllowedEnd", "callAllowedStart", "callAllowedEnd",
         "softChase", "invoiceFollowUp",
+        "callForwardingEnabled", "callForwardingMode", "callForwardingDelaySec", "callForwardingCarrier",
         "emergencyBypass", "emergencyHoursStart", "emergencyHoursEnd",
         "recordCalls", "transcriptionQuality", "agentPersonality", "agentResponseLength",
         "voiceEnabled", "voiceLanguage", "voiceType", "voiceSpeed",
@@ -213,7 +221,8 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
         callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
-        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 20,
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 15,
+        callForwardingCarrier: (s.callForwardingCarrier as CallForwardingCarrier) ?? "other",
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
         emergencyHoursEnd: (s.emergencyHoursEnd as string) ?? "",
@@ -232,7 +241,7 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
     }
 }
 
-export async function getCallForwardingSettings(): Promise<{ enabled: boolean; mode: "full" | "backup" | "off"; delaySec: number }> {
+export async function getCallForwardingSettings(): Promise<{ enabled: boolean; mode: "full" | "backup" | "off"; delaySec: number; carrier: CallForwardingCarrier }> {
     const workspaceId = await getWorkspaceId()
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
@@ -241,11 +250,12 @@ export async function getCallForwardingSettings(): Promise<{ enabled: boolean; m
     const s = (workspace?.settings as Record<string, unknown>) ?? {}
     const mode = (s.callForwardingMode as "full" | "backup" | "off") ?? "backup"
     const enabled = (s.callForwardingEnabled as boolean) ?? mode !== "off"
-    const delaySec = Number(s.callForwardingDelaySec ?? 20)
-    return { enabled, mode, delaySec }
+    const delaySec = Number(s.callForwardingDelaySec ?? 15)
+    const carrier = (s.callForwardingCarrier as CallForwardingCarrier) ?? "other"
+    return { enabled, mode, delaySec, carrier }
 }
 
-export async function updateCallForwardingSettings(input: { enabled: boolean; mode: "full" | "backup" | "off"; delaySec?: number }) {
+export async function updateCallForwardingSettings(input: { enabled: boolean; mode: "full" | "backup" | "off"; delaySec?: number; carrier?: CallForwardingCarrier }) {
     const workspaceId = await getWorkspaceId()
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
@@ -253,7 +263,8 @@ export async function updateCallForwardingSettings(input: { enabled: boolean; mo
     })
     const current = (workspace?.settings as Record<string, unknown>) ?? {}
     const nextMode = input.enabled ? (input.mode === "off" ? "backup" : input.mode) : "off"
-    const nextDelay = Math.max(10, Math.min(45, Number(input.delaySec ?? 20)))
+    const nextDelay = Math.max(10, Math.min(45, Number(input.delaySec ?? 15)))
+    const nextCarrier = input.carrier ?? (current.callForwardingCarrier as CallForwardingCarrier) ?? "other"
     await db.workspace.update({
         where: { id: workspaceId },
         data: {
@@ -262,11 +273,101 @@ export async function updateCallForwardingSettings(input: { enabled: boolean; mo
                 callForwardingEnabled: input.enabled,
                 callForwardingMode: nextMode,
                 callForwardingDelaySec: nextDelay,
+                callForwardingCarrier: nextCarrier,
             },
         },
     })
     revalidatePath("/dashboard/settings")
-    return { success: true, mode: nextMode }
+    return { success: true, mode: nextMode, carrier: nextCarrier }
+}
+
+export async function sendCallForwardingSetupSms(input?: {
+    mode?: "full" | "backup"
+    delaySec?: number
+    carrier?: CallForwardingCarrier
+}) {
+    const workspaceId = await getWorkspaceId()
+
+    const workspace = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: {
+            id: true,
+            name: true,
+            settings: true,
+            twilioPhoneNumber: true,
+            twilioSubaccountId: true,
+            twilioSubaccountAuthToken: true,
+            ownerId: true,
+        },
+    })
+
+    if (!workspace?.twilioPhoneNumber) {
+        throw new Error("No provisioned Tracey number found")
+    }
+
+    const owner = workspace.ownerId
+        ? await db.user.findUnique({
+            where: { id: workspace.ownerId },
+            select: { phone: true },
+        })
+        : null
+
+    if (!owner?.phone) {
+        throw new Error("Add your personal phone number first")
+    }
+
+    const settings = (workspace.settings as Record<string, unknown>) ?? {}
+    const mode = input?.mode ?? ((settings.callForwardingMode as "full" | "backup" | "off") || "backup")
+    if (mode === "off") {
+        throw new Error("Turn call forwarding on before sending setup")
+    }
+    const delaySec = Math.max(10, Math.min(45, Number(input?.delaySec ?? settings.callForwardingDelaySec ?? 15)))
+    const carrier = input?.carrier ?? (settings.callForwardingCarrier as CallForwardingCarrier) ?? "other"
+
+    const client =
+        workspace.twilioSubaccountId &&
+        workspace.twilioSubaccountAuthToken &&
+        twilioMasterClient &&
+        workspace.twilioSubaccountId !== process.env.TWILIO_ACCOUNT_SID
+            ? getSubaccountClient(workspace.twilioSubaccountId, workspace.twilioSubaccountAuthToken)
+            : twilioMasterClient
+
+    if (!client) {
+        throw new Error("Twilio SMS client is not configured")
+    }
+
+    const messageBody = buildCallForwardingSetupSmsBody({
+        businessName: workspace.name,
+        agentPhoneNumber: workspace.twilioPhoneNumber,
+        mode,
+        delaySec,
+        carrier,
+    })
+
+    await client.messages.create({
+        to: owner.phone,
+        from: workspace.twilioPhoneNumber,
+        body: messageBody,
+    })
+
+    await db.workspace.update({
+        where: { id: workspace.id },
+        data: {
+            settings: {
+                ...settings,
+                callForwardingEnabled: true,
+                callForwardingMode: mode,
+                callForwardingDelaySec: delaySec,
+                callForwardingCarrier: carrier,
+                callForwardingSetupSmsSentAt: new Date().toISOString(),
+                callForwardingSetupSmsSentTo: owner.phone,
+                callForwardingSetupSmsFrom: workspace.twilioPhoneNumber,
+            },
+        },
+    })
+
+    revalidatePath("/dashboard/settings")
+    return { success: true }
 }
 
 export async function getBusinessContact(): Promise<{ phone?: string; email?: string; address?: string } | null> {

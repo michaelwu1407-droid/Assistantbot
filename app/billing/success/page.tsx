@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
+import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
+import { logger } from "@/lib/logging";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,7 @@ export default async function BillingSuccessPage({
             session.payment_status === "paid" &&
             session.client_reference_id
         ) {
+            const startedAt = Date.now();
             const subscription = session.subscription as import("stripe").Stripe.Subscription;
 
             // Safely extract current_period_end — field name varies by Stripe API version
@@ -59,6 +62,35 @@ export default async function BillingSuccessPage({
                         : {}),
                 },
             });
+
+            const workspace = await db.workspace.findUnique({
+                where: { id: session.client_reference_id },
+                select: { id: true, name: true, ownerId: true },
+            });
+            const owner = workspace?.ownerId
+                ? await db.user.findUnique({
+                    where: { id: workspace.ownerId },
+                    select: { phone: true },
+                })
+                : null;
+
+            if (workspace) {
+                const provisionResult = await ensureWorkspaceProvisioned({
+                    workspaceId: workspace.id,
+                    businessName: workspace.name,
+                    ownerPhone: owner?.phone,
+                    triggerSource: "billing-success",
+                });
+
+                logger.info("ONBOARDING PROVISION: Billing success triggered provisioning", {
+                    workspaceId: workspace.id,
+                    paymentStatus: session.payment_status,
+                    provisioningStatus: provisionResult.provisioningStatus,
+                    elapsedMs: provisionResult.elapsedMs,
+                    totalPageMs: Date.now() - startedAt,
+                    phoneNumber: provisionResult.phoneNumber,
+                });
+            }
 
             console.log("[billing/success] Workspace updated successfully:", session.client_reference_id);
         }

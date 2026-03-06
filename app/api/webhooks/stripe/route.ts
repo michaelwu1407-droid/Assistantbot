@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
 import Stripe from "stripe";
 import { processReferralConversionForCheckout } from "@/actions/referral-actions";
+import { logger } from "@/lib/logging";
+import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
 
 export async function POST(req: Request) {
     const body = await req.text();
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
             case "checkout.session.completed": {
                 const session = event.data.object as Stripe.Checkout.Session;
                 if (session.client_reference_id) {
+                    const checkoutStartedAt = Date.now();
                     const subscription = await stripe.subscriptions.retrieve(
                         session.subscription as string
                     );
@@ -74,6 +77,41 @@ export async function POST(req: Request) {
                         } catch (refErr) {
                             console.error("[stripe webhook] referral conversion/apply failed:", refErr);
                         }
+                    }
+
+                    const workspace = await db.workspace.findUnique({
+                        where: { id: session.client_reference_id },
+                        select: {
+                            id: true,
+                            name: true,
+                            ownerId: true,
+                        },
+                    });
+
+                    const owner = workspace?.ownerId
+                        ? await db.user.findUnique({
+                            where: { id: workspace.ownerId },
+                            select: { phone: true },
+                        })
+                        : null;
+
+                    if (workspace) {
+                        const provisionResult = await ensureWorkspaceProvisioned({
+                            workspaceId: workspace.id,
+                            businessName: workspace.name,
+                            ownerPhone: owner?.phone,
+                            triggerSource: "stripe-webhook",
+                        });
+
+                        logger.info("ONBOARDING PROVISION: Stripe payment triggered provisioning", {
+                            workspaceId: workspace.id,
+                            eventId: event.id,
+                            paymentStatus: session.payment_status,
+                            provisioningStatus: provisionResult.provisioningStatus,
+                            elapsedMs: provisionResult.elapsedMs,
+                            totalWebhookMs: Date.now() - checkoutStartedAt,
+                            phoneNumber: provisionResult.phoneNumber,
+                        });
                     }
                 }
                 break;
