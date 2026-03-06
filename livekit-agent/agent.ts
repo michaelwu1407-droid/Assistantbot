@@ -62,6 +62,30 @@ type LatencyAudit = {
   transcriptionDelayMs: number[];
 };
 
+type PendingUserTurn = {
+  transcript: string;
+  createdAt: number;
+  language: string | null;
+};
+
+type TurnAudit = {
+  speechId: string;
+  turnIndex: number;
+  source: string;
+  userInitiated: boolean;
+  transcript: string | null;
+  transcriptCreatedAt: number | null;
+  transcriptLanguage: string | null;
+  speechCreatedAt: number;
+  eouMs: number;
+  transcriptionDelayMs: number;
+  onUserTurnCompletedDelayMs: number;
+  llmMs: number;
+  llmTtftMs: number;
+  ttsMs: number;
+  ttsTtfbMs: number;
+};
+
 function avg(values: number[]): number {
   if (!values.length) return 0;
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
@@ -72,6 +96,48 @@ function p95(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const index = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
   return Math.round(sorted[index]);
+}
+
+function maxByValue(entries: Array<[string, number]>): [string, number] {
+  return entries.reduce((best, current) => (current[1] > best[1] ? current : best), entries[0] ?? ["none", 0]);
+}
+
+function summarizeTurnLatency(turn: TurnAudit) {
+  const measuredTotalMs =
+    turn.eouMs +
+    turn.transcriptionDelayMs +
+    turn.onUserTurnCompletedDelayMs +
+    turn.llmTtftMs +
+    turn.ttsTtfbMs;
+
+  const [bottleneck, bottleneckMs] = maxByValue([
+    ["end_of_utterance", turn.eouMs],
+    ["transcription", turn.transcriptionDelayMs],
+    ["turn_callback", turn.onUserTurnCompletedDelayMs],
+    ["llm_ttft", turn.llmTtftMs],
+    ["tts_ttfb", turn.ttsTtfbMs],
+  ]);
+
+  return {
+    speechId: turn.speechId,
+    turnIndex: turn.turnIndex,
+    source: turn.source,
+    userInitiated: turn.userInitiated,
+    transcript: turn.transcript,
+    transcriptLanguage: turn.transcriptLanguage,
+    timings: {
+      eouMs: turn.eouMs,
+      transcriptionDelayMs: turn.transcriptionDelayMs,
+      onUserTurnCompletedDelayMs: turn.onUserTurnCompletedDelayMs,
+      llmMs: turn.llmMs,
+      llmTtftMs: turn.llmTtftMs,
+      ttsMs: turn.ttsMs,
+      ttsTtfbMs: turn.ttsTtfbMs,
+      measuredTotalMs,
+    },
+    bottleneck,
+    bottleneckMs,
+  };
 }
 
 function isMeaningfulUserTurn(rawTranscript: string): boolean {
@@ -96,6 +162,8 @@ function isMeaningfulUserTurn(rawTranscript: string): boolean {
 
 export default defineAgent({
   entry: async (ctx) => {
+    const callId = `${ctx.room.name}:${Date.now()}`;
+
     // Defines a tool for the agent to call when transferring to a human
     const transferCallTool = {
       name: "transfer_call",
@@ -177,6 +245,40 @@ export default defineAgent({
       eouMs: [],
       transcriptionDelayMs: [],
     };
+    const pendingUserTurns: PendingUserTurn[] = [];
+    const turnAudits = new Map<string, TurnAudit>();
+    let turnCounter = 0;
+
+    const getOrCreateTurnAudit = (speechId: string) => {
+      const existing = turnAudits.get(speechId);
+      if (existing) return existing;
+
+      const turn: TurnAudit = {
+        speechId,
+        turnIndex: ++turnCounter,
+        source: "unknown",
+        userInitiated: false,
+        transcript: null,
+        transcriptCreatedAt: null,
+        transcriptLanguage: null,
+        speechCreatedAt: Date.now(),
+        eouMs: 0,
+        transcriptionDelayMs: 0,
+        onUserTurnCompletedDelayMs: 0,
+        llmMs: 0,
+        llmTtftMs: 0,
+        ttsMs: 0,
+        ttsTtfbMs: 0,
+      };
+      turnAudits.set(speechId, turn);
+      return turn;
+    };
+
+    const logTurnSummary = (speechId: string) => {
+      const turn = turnAudits.get(speechId);
+      if (!turn) return;
+      console.log(`[voice-turn] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...summarizeTurnLatency(turn) })}`);
+    };
 
     const session = new voice.AgentSession({
       turnDetection: "stt",
@@ -195,6 +297,34 @@ export default defineAgent({
       inputOptions: { participantIdentity: participant.identity },
     });
 
+    session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {
+      const speechId = ev.speechHandle.id;
+      const turn = getOrCreateTurnAudit(speechId);
+      turn.source = ev.source;
+      turn.userInitiated = ev.userInitiated;
+      turn.speechCreatedAt = ev.createdAt;
+
+      const pendingTurn = pendingUserTurns.shift();
+      if (pendingTurn) {
+        turn.transcript = pendingTurn.transcript;
+        turn.transcriptCreatedAt = pendingTurn.createdAt;
+        turn.transcriptLanguage = pendingTurn.language;
+      }
+
+      console.log(
+        `[voice-speech] ${JSON.stringify({
+          callId,
+          room: ctx.room.name,
+          participant: participant.identity,
+          speechId,
+          turnIndex: turn.turnIndex,
+          source: ev.source,
+          userInitiated: ev.userInitiated,
+          transcript: turn.transcript,
+        })}`
+      );
+    });
+
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
       const metrics = ev.metrics as any;
       if (!metrics?.type) return;
@@ -205,17 +335,34 @@ export default defineAgent({
         case "llm_metrics":
           latencyAudit.llmMs.push(Number(metrics.durationMs || 0));
           latencyAudit.llmTtftMs.push(Number(metrics.ttftMs || 0));
+          if (metrics.speechId) {
+            const turn = getOrCreateTurnAudit(metrics.speechId);
+            turn.llmMs = Number(metrics.durationMs || 0);
+            turn.llmTtftMs = Number(metrics.ttftMs || 0);
+          }
           break;
         case "tts_metrics":
           latencyAudit.ttsMs.push(Number(metrics.durationMs || 0));
           latencyAudit.ttsTtfbMs.push(Number(metrics.ttfbMs || 0));
+          if (metrics.speechId) {
+            const turn = getOrCreateTurnAudit(metrics.speechId);
+            turn.ttsMs = Number(metrics.durationMs || 0);
+            turn.ttsTtfbMs = Number(metrics.ttfbMs || 0);
+            logTurnSummary(metrics.speechId);
+          }
           break;
         case "eou_metrics":
           latencyAudit.eouMs.push(Number(metrics.endOfUtteranceDelayMs || 0));
           latencyAudit.transcriptionDelayMs.push(Number(metrics.transcriptionDelayMs || 0));
+          if (metrics.speechId) {
+            const turn = getOrCreateTurnAudit(metrics.speechId);
+            turn.eouMs = Number(metrics.endOfUtteranceDelayMs || 0);
+            turn.transcriptionDelayMs = Number(metrics.transcriptionDelayMs || 0);
+            turn.onUserTurnCompletedDelayMs = Number(metrics.onUserTurnCompletedDelayMs || 0);
+          }
           break;
       }
-      console.log(`[voice-metric] ${JSON.stringify(metrics)}`);
+      console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metrics })}`);
     });
 
     // Prevent silence/noise from becoming a real user turn that triggers assistant replies.
@@ -225,7 +372,23 @@ export default defineAgent({
       if (!isMeaningfulUserTurn(transcript)) {
         console.log(`[voice-filter] Dropping low-signal transcript: "${transcript}"`);
         session.clearUserTurn();
+        return;
       }
+      pendingUserTurns.push({
+        transcript,
+        createdAt: ev.createdAt,
+        language: ev.language,
+      });
+      console.log(
+        `[voice-user-turn] ${JSON.stringify({
+          callId,
+          room: ctx.room.name,
+          participant: participant.identity,
+          transcript,
+          createdAt: ev.createdAt,
+          language: ev.language,
+        })}`
+      );
     });
 
     // ── Initial greeting ────────────────────────────────────────────
@@ -265,8 +428,12 @@ export default defineAgent({
     ctx.room.on('disconnected', () => {
       clearTimeout(wrapUpTimer);
       clearTimeout(hardCutTimer);
+      const turnSummaries = Array.from(turnAudits.values())
+        .sort((a, b) => a.turnIndex - b.turnIndex)
+        .map(summarizeTurnLatency);
       console.log(
         `[voice-audit] ${JSON.stringify({
+          callId,
           room: ctx.room.name,
           participant: participant.identity,
           samples: {
@@ -286,6 +453,7 @@ export default defineAgent({
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
           },
+          turns: turnSummaries,
         })}`
       );
     });
