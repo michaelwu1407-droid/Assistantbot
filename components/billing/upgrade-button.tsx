@@ -88,7 +88,7 @@ export function UpgradeButton({
                     <div className="space-y-1">
                         <p className="text-sm font-semibold text-foreground">Provision mobile business number</p>
                         <p className="text-xs text-muted-foreground">
-                            Temporary beta gate. This must be on before payment so Earlymark can provision your dedicated AU mobile number after Stripe succeeds.
+                            Temporary beta option. Turn this on before payment if you want Earlymark to provision your dedicated AU mobile number after Stripe succeeds.
                         </p>
                     </div>
                     <Switch
@@ -103,15 +103,15 @@ export function UpgradeButton({
                 size="lg"
                 className="w-full text-lg shadow-xl shadow-primary/20"
                 onClick={handleUpgrade}
-                disabled={loading || !provisionPhoneNumberRequested}
+                disabled={loading}
             >
                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Subscribe to Pro`}
             </Button>
-            {!provisionPhoneNumberRequested && (
-                <p className="text-center text-xs text-amber-600">
-                    Turn on mobile number provisioning to continue to Stripe during beta.
-                </p>
-            )}
+            <p className="text-center text-xs text-muted-foreground">
+                {provisionPhoneNumberRequested
+                    ? "Your paid workspace will be eligible for AU mobile-number provisioning after Stripe succeeds."
+                    : "You can still pay and complete onboarding without a Twilio number. Leave this off if you do not want provisioning during beta."}
+            </p>
         </div>
     );
 }

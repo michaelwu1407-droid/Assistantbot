@@ -35,21 +35,19 @@ export async function createCheckoutSession(workspaceId: string, provisionPhoneN
         throw new Error("Unauthorized or Workspace not found");
     }
 
-    if (!provisionPhoneNumberRequested) {
-        throw new Error("Turn on Provision mobile business number before checkout.");
-    }
-
     const settings = getWorkspaceSettings(workspace.settings);
+    const provisioningStatus = provisionPhoneNumberRequested ? "requested" : "not_requested";
+    const provisioningRequestedAt = provisionPhoneNumberRequested ? new Date().toISOString() : null;
     await db.workspace.update({
         where: { id: workspaceId },
         data: {
             settings: {
                 ...settings,
-                provisionPhoneNumberRequested: true,
-                onboardingProvisioningStatus: "requested",
+                provisionPhoneNumberRequested,
+                onboardingProvisioningStatus: provisioningStatus,
                 onboardingProvisioningError: null,
                 onboardingProvisioningUpdatedAt: new Date().toISOString(),
-                onboardingProvisioningRequestedAt: new Date().toISOString(),
+                onboardingProvisioningRequestedAt: provisioningRequestedAt,
             },
         },
     });
