@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "VoiceCall" (
+CREATE TABLE IF NOT EXISTS "VoiceCall" (
     "id" TEXT NOT NULL,
     "callId" TEXT NOT NULL,
     "source" TEXT NOT NULL DEFAULT 'livekit',
@@ -27,19 +27,41 @@ CREATE TABLE "VoiceCall" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VoiceCall_callId_key" ON "VoiceCall"("callId");
+CREATE UNIQUE INDEX IF NOT EXISTS "VoiceCall_callId_key" ON "VoiceCall"("callId");
 
 -- CreateIndex
-CREATE INDEX "VoiceCall_workspaceId_createdAt_idx" ON "VoiceCall"("workspaceId", "createdAt");
+CREATE INDEX IF NOT EXISTS "VoiceCall_workspaceId_createdAt_idx" ON "VoiceCall"("workspaceId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "VoiceCall_contactId_createdAt_idx" ON "VoiceCall"("contactId", "createdAt");
+CREATE INDEX IF NOT EXISTS "VoiceCall_contactId_createdAt_idx" ON "VoiceCall"("contactId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "VoiceCall_callType_createdAt_idx" ON "VoiceCall"("callType", "createdAt");
+CREATE INDEX IF NOT EXISTS "VoiceCall_callType_createdAt_idx" ON "VoiceCall"("callType", "createdAt");
 
 -- AddForeignKey
-ALTER TABLE "VoiceCall" ADD CONSTRAINT "VoiceCall_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'VoiceCall_workspaceId_fkey'
+    ) THEN
+        ALTER TABLE "VoiceCall"
+        ADD CONSTRAINT "VoiceCall_workspaceId_fkey"
+        FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "VoiceCall" ADD CONSTRAINT "VoiceCall_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'VoiceCall_contactId_fkey'
+    ) THEN
+        ALTER TABLE "VoiceCall"
+        ADD CONSTRAINT "VoiceCall_contactId_fkey"
+        FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
