@@ -28,7 +28,7 @@ interface CommsSetupResult {
 /**
  * Simplified phone provisioning for trial accounts:
  *
- * 1. Buy a local Australian (+61) number with SMS + Voice on main account
+ * 1. Buy an Australian mobile (+61) number with SMS + Voice on main account
  * 2. Create an Elastic SIP Trunk pointing to LiveKit SIP
  * 3. Persist everything to the database
  * 4. Send a Welcome SMS to the Tradie's mobile
@@ -95,30 +95,18 @@ export async function initializeSimpleComms(
     stageReached = "number-search";
     console.log("[SIMPLE-COMMS] Stage: number-search");
 
-    // Search for available AU numbers with SMS + Voice.
-    // Try local first, fall back to mobile if none available.
+    // Search for available AU mobile numbers with SMS + Voice.
     let chosenNumber: string | null = null;
 
-    console.log("[SIMPLE-COMMS] Searching for local numbers...");
-    const localNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
-      .local.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
-    
-    console.log("[SIMPLE-COMMS] Found local numbers:", localNumbers.length);
+    console.log("[SIMPLE-COMMS] Searching for mobile numbers...");
+    const mobileNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
+      .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
 
-    if (localNumbers.length > 0) {
-      chosenNumber = localNumbers[0].phoneNumber;
-      console.log("[SIMPLE-COMMS] Selected local number:", chosenNumber);
-    } else {
-      console.log("[SIMPLE-COMMS] No local numbers, searching mobile...");
-      const mobileNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
-        .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
+    console.log("[SIMPLE-COMMS] Found mobile numbers:", mobileNumbers.length);
 
-      console.log("[SIMPLE-COMMS] Found mobile numbers:", mobileNumbers.length);
-
-      if (mobileNumbers.length > 0) {
-        chosenNumber = mobileNumbers[0].phoneNumber;
-        console.log("[SIMPLE-COMMS] Selected mobile number:", chosenNumber);
-      }
+    if (mobileNumbers.length > 0) {
+      chosenNumber = mobileNumbers[0].phoneNumber;
+      console.log("[SIMPLE-COMMS] Selected mobile number:", chosenNumber);
     }
 
     if (!chosenNumber) {
@@ -126,11 +114,11 @@ export async function initializeSimpleComms(
       await logActivity(
         workspaceId,
         "Phone Number Provisioning Failed",
-        "No Australian numbers available with SMS + Voice. Will retry or escalate."
+        "No Australian mobile numbers available with SMS + Voice. Will retry or escalate."
       );
       return {
         success: false,
-        error: "No Australian numbers available with SMS + Voice capability",
+        error: "No Australian mobile numbers available with SMS + Voice capability",
         stageReached: "number-search",
       };
     }

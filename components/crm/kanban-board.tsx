@@ -85,6 +85,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const [selectedDealIds, setSelectedDealIds] = useState<string[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [pendingMoveToScheduled, setPendingMoveToScheduled] = useState<{ dealId: string; dealTitle: string } | null>(null)
   const [assignModalUserId, setAssignModalUserId] = useState<string>("")
@@ -109,11 +110,25 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   }, [initialDeals, activeId])
 
   useEffect(() => {
-    const selection = selectedDealId
-      ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
-      : []
+    const selection = selectedDealIds.length > 0
+      ? selectedDealIds.map((dealId) => ({
+          id: dealId,
+          title: deals.find((deal) => deal.id === dealId)?.title,
+        }))
+      : selectedDealId
+        ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
+        : []
     publishCrmSelection(selection)
-  }, [selectedDealId, deals])
+  }, [selectedDealId, selectedDealIds, deals])
+
+  const toggleSelectedDeal = (dealId: string, checked: boolean) => {
+    setSelectedDealIds((prev) => {
+      if (checked) {
+        return prev.includes(dealId) ? prev : [...prev, dealId]
+      }
+      return prev.filter((id) => id !== dealId)
+    })
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -290,6 +305,23 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-2">
+          <div className="text-xs font-medium text-slate-500">
+            {selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected for chat bulk actions` : "Select jobs with the checkbox to use bulk chat actions"}
+          </div>
+          {selectedDealIds.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setSelectedDealIds([])}
+            >
+              Clear selection
+            </Button>
+          )}
+        </div>
       <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start pl-1 pt-5 bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
@@ -334,6 +366,8 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
                         deal={deal}
                         columnId={col.id}
                         teamMembers={teamMembers}
+                        isSelected={selectedDealIds.includes(deal.id)}
+                        onToggleSelected={toggleSelectedDeal}
                         onAssign={teamMembers.length > 0 ? async (userId) => {
                           const result = await updateDealAssignedTo(deal.id, userId)
                           if (result.success) {
@@ -381,6 +415,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
             </div>
           )
         })}
+      </div>
       </div>
 
       <DragOverlay>

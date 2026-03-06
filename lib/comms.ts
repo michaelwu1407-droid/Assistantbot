@@ -44,7 +44,7 @@ interface CommsSetupResult {
  * Provisions dedicated telephony for a Tradie workspace:
  *
  * 1. Creates a Twilio Subaccount (isolated billing & data)
- * 2. Buys a local Australian (+61) number with SMS + Voice
+ * 2. Buys an Australian mobile (+61) number with SMS + Voice
  * 3. Creates an Elastic SIP Trunk pointing to LiveKit SIP
  * 4. Persists everything to the database
  * 5. Sends a Welcome SMS to the Tradie's mobile
@@ -86,33 +86,25 @@ export async function initializeTradieComms(
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
 
-    // Search for available AU numbers with SMS + Voice.
-    // Try local first, fall back to mobile if none available.
+    // Search for available AU mobile numbers with SMS + Voice.
     let chosenNumber: string | null = null;
 
-    const localNumbers = await subClient.availablePhoneNumbers("AU")
-      .local.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
+    const mobileNumbers = await subClient.availablePhoneNumbers("AU")
+      .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
 
-    if (localNumbers.length > 0) {
-      chosenNumber = localNumbers[0].phoneNumber;
-    } else {
-      const mobileNumbers = await subClient.availablePhoneNumbers("AU")
-        .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
-
-      if (mobileNumbers.length > 0) {
-        chosenNumber = mobileNumbers[0].phoneNumber;
-      }
+    if (mobileNumbers.length > 0) {
+      chosenNumber = mobileNumbers[0].phoneNumber;
     }
 
     if (!chosenNumber) {
       await logActivity(
         workspaceId,
         "Phone Number Provisioning Failed",
-        "No Australian numbers available with SMS + Voice. Will retry or escalate."
+        "No Australian mobile numbers available with SMS + Voice. Will retry or escalate."
       );
       return {
         success: false,
-        error: "No Australian numbers available with SMS + Voice capability",
+        error: "No Australian mobile numbers available with SMS + Voice capability",
         stageReached: "number-search",
       };
     }

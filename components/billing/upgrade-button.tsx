@@ -4,16 +4,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCheckoutSession } from "@/actions/billing-actions";
 import { Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
-export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
+export function UpgradeButton({
+    workspaceId,
+    initialProvisionPhoneNumberRequested = false,
+}: {
+    workspaceId: string;
+    initialProvisionPhoneNumberRequested?: boolean;
+}) {
     const [loading, setLoading] = useState(false);
     const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+    const [provisionPhoneNumberRequested, setProvisionPhoneNumberRequested] = useState(initialProvisionPhoneNumberRequested);
 
     const handleUpgrade = async () => {
         try {
             setLoading(true);
             // Pass billing period preference to checkout
-            await createCheckoutSession(workspaceId);
+            await createCheckoutSession(workspaceId, provisionPhoneNumberRequested);
         } catch (error) {
             console.error("Failed to start checkout:", error);
             setLoading(false);
@@ -75,14 +83,35 @@ export function UpgradeButton({ workspaceId }: { workspaceId: string }) {
                     : "Cancel anytime."}
             </p>
 
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-left">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">Provision mobile business number</p>
+                        <p className="text-xs text-muted-foreground">
+                            Temporary beta gate. This must be on before payment so Earlymark can provision your dedicated AU mobile number after Stripe succeeds.
+                        </p>
+                    </div>
+                    <Switch
+                        checked={provisionPhoneNumberRequested}
+                        onCheckedChange={setProvisionPhoneNumberRequested}
+                        aria-label="Provision mobile business number"
+                    />
+                </div>
+            </div>
+
             <Button
                 size="lg"
                 className="w-full text-lg shadow-xl shadow-primary/20"
                 onClick={handleUpgrade}
-                disabled={loading}
+                disabled={loading || !provisionPhoneNumberRequested}
             >
                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Subscribe to Pro`}
             </Button>
+            {!provisionPhoneNumberRequested && (
+                <p className="text-center text-xs text-amber-600">
+                    Turn on mobile number provisioning to continue to Stripe during beta.
+                </p>
+            )}
         </div>
     );
 }

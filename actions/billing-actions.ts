@@ -7,7 +7,15 @@ import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export async function createCheckoutSession(workspaceId: string) {
+function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+        return {};
+    }
+
+    return settings as Record<string, unknown>;
+}
+
+export async function createCheckoutSession(workspaceId: string, provisionPhoneNumberRequested: boolean) {
     const userId = await getAuthUserId();
     if (!userId) {
         throw new Error("Unauthorized");
@@ -15,11 +23,36 @@ export async function createCheckoutSession(workspaceId: string) {
 
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
+        select: {
+            id: true,
+            ownerId: true,
+            stripeCustomerId: true,
+            settings: true,
+        },
     });
 
     if (!workspace || workspace.ownerId !== userId) {
         throw new Error("Unauthorized or Workspace not found");
     }
+
+    if (!provisionPhoneNumberRequested) {
+        throw new Error("Turn on Provision mobile business number before checkout.");
+    }
+
+    const settings = getWorkspaceSettings(workspace.settings);
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: {
+            settings: {
+                ...settings,
+                provisionPhoneNumberRequested: true,
+                onboardingProvisioningStatus: "requested",
+                onboardingProvisioningError: null,
+                onboardingProvisioningUpdatedAt: new Date().toISOString(),
+                onboardingProvisioningRequestedAt: new Date().toISOString(),
+            },
+        },
+    });
 
     const headersList = await headers();
     const origin = headersList.get("origin") || headersList.get("x-forwarded-host") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface TeamMemberOption {
   id: string
@@ -33,6 +34,8 @@ interface DealCardProps {
   onOpenModal?: () => void
   onDelete?: () => void | Promise<void>
   onReconcile?: (dealId: string) => void
+  isSelected?: boolean
+  onToggleSelected?: (dealId: string, checked: boolean) => void
 }
 
 function formatScheduledTime(scheduledAt: Date | null | undefined): string {
@@ -41,7 +44,7 @@ function formatScheduledTime(scheduledAt: Date | null | undefined): string {
   return format(d, "MMM d, h:mm a")
 }
 
-export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, onOpenModal, onDelete, onReconcile }: DealCardProps) {
+export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, onOpenModal, onDelete, onReconcile, isSelected = false, onToggleSelected }: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
   
   // Check if deal is overdue
@@ -144,6 +147,17 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
         role="button"
         tabIndex={0}
       >
+        {!overlay && onToggleSelected && (
+          <div className="absolute top-3 left-3 z-10" data-no-card-click>
+            <Checkbox
+              checked={isSelected}
+              aria-label={`Select ${deal.title}`}
+              onCheckedChange={(checked) => onToggleSelected(deal.id, checked === true)}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
         {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
         <div className="absolute top-3 right-3 z-10 text-right">
           {overdueStyling.badgeText ? (
@@ -195,7 +209,7 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
           )}
         </div>
 
-        <div className="space-y-2.5 relative z-10 pr-12">
+        <div className="space-y-2.5 relative z-10 pr-12 pl-7">
           {/* Customer name */}
           <div className="flex items-center gap-1.5 text-[#0F172A] font-semibold text-xs">
             <User className="w-3.5 h-3.5 text-[#64748B] shrink-0" />

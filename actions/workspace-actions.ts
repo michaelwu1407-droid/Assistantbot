@@ -20,6 +20,7 @@ export interface WorkspaceView {
   brandingColor: string | null;
   stripeCustomerId?: string | null;
   subscriptionStatus?: string | null;
+  settings?: unknown;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ function toWorkspaceView(w: {
   brandingColor: string | null;
   stripeCustomerId?: string | null;
   subscriptionStatus?: string | null;
+  settings?: unknown;
 }): WorkspaceView {
   return {
     id: w.id,
@@ -57,6 +59,7 @@ function toWorkspaceView(w: {
     brandingColor: w.brandingColor || "",
     stripeCustomerId: w.stripeCustomerId,
     subscriptionStatus: w.subscriptionStatus,
+    settings: w.settings,
   };
 }
 

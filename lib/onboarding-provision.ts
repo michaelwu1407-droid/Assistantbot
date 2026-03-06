@@ -12,6 +12,19 @@ function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
 
 type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check";
 
+export type WorkspaceProvisioningStatus =
+  | "not_requested"
+  | "requested"
+  | "provisioning"
+  | "provisioned"
+  | "failed"
+  | "blocked_duplicate"
+  | "already_provisioned";
+
+function normalizePhone(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
 export async function ensureWorkspaceProvisioned(params: {
   workspaceId: string;
   businessName: string;
@@ -20,7 +33,7 @@ export async function ensureWorkspaceProvisioned(params: {
 }): Promise<{
   success: boolean;
   phoneNumber?: string;
-  provisioningStatus: "already_provisioned" | "provisioned" | "failed";
+  provisioningStatus: WorkspaceProvisioningStatus;
   error?: string;
   stageReached?: string;
   mode?: "full" | "simple";
@@ -32,6 +45,8 @@ export async function ensureWorkspaceProvisioned(params: {
     where: { id: params.workspaceId },
     select: {
       id: true,
+      ownerId: true,
+      subscriptionStatus: true,
       twilioPhoneNumber: true,
       settings: true,
     },
@@ -52,8 +67,59 @@ export async function ensureWorkspaceProvisioned(params: {
     };
   }
 
+  const settings = getWorkspaceSettings(workspace.settings);
+  const provisionPhoneNumberRequested = settings.provisionPhoneNumberRequested === true;
+  const normalizedOwnerPhone = normalizePhone(params.ownerPhone);
+
+  if (!provisionPhoneNumberRequested) {
+    const elapsedMs = Date.now() - startedAt;
+    await db.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        settings: {
+          ...settings,
+          onboardingProvisioningStatus: "not_requested",
+          onboardingProvisioningError: "Provision mobile business number was not enabled before payment.",
+          onboardingProvisioningUpdatedAt: new Date().toISOString(),
+          onboardingProvisioningTriggerSource: params.triggerSource,
+          onboardingProvisioningLastElapsedMs: elapsedMs,
+        },
+      },
+    });
+
+    return {
+      success: false,
+      provisioningStatus: "not_requested",
+      error: "Provision mobile business number was not enabled before payment.",
+      elapsedMs,
+    };
+  }
+
+  if (workspace.subscriptionStatus !== "active") {
+    const elapsedMs = Date.now() - startedAt;
+    await db.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        settings: {
+          ...settings,
+          onboardingProvisioningStatus: "requested",
+          onboardingProvisioningError: "Provisioning is queued until Stripe payment completes.",
+          onboardingProvisioningUpdatedAt: new Date().toISOString(),
+          onboardingProvisioningTriggerSource: params.triggerSource,
+          onboardingProvisioningLastElapsedMs: elapsedMs,
+        },
+      },
+    });
+
+    return {
+      success: false,
+      provisioningStatus: "requested",
+      error: "Provisioning is queued until Stripe payment completes.",
+      elapsedMs,
+    };
+  }
+
   if (workspace.twilioPhoneNumber) {
-    const settings = getWorkspaceSettings(workspace.settings);
     const elapsedMs = Date.now() - startedAt;
 
     await db.workspace.update({
@@ -87,12 +153,70 @@ export async function ensureWorkspaceProvisioned(params: {
     };
   }
 
-  const existingSettings = getWorkspaceSettings(workspace.settings);
+  if (normalizedOwnerPhone) {
+    const usersWithPhone = await db.user.findMany({
+      where: { phone: { not: null } },
+      select: { id: true, email: true, phone: true, workspaceId: true },
+    });
+    const duplicateOwnerIds = usersWithPhone
+      .filter((user) => normalizePhone(user.phone) === normalizedOwnerPhone)
+      .map((user) => ({ id: user.id, email: user.email }));
+
+    if (duplicateOwnerIds.length > 0) {
+      const duplicateWorkspace = await db.workspace.findFirst({
+        where: {
+          id: { not: workspace.id },
+          ownerId: { in: duplicateOwnerIds.map((owner) => owner.id) },
+          twilioPhoneNumber: { not: null },
+        },
+        select: {
+          id: true,
+          name: true,
+          twilioPhoneNumber: true,
+          settings: true,
+        },
+      });
+
+      if (duplicateWorkspace) {
+        const elapsedMs = Date.now() - startedAt;
+        const duplicateOwner = duplicateOwnerIds.find((owner) => owner.id !== workspace.ownerId) ?? duplicateOwnerIds[0];
+        const currentWebsiteUrl = typeof settings.websiteUrl === "string" ? settings.websiteUrl : null;
+        const duplicateSettings = getWorkspaceSettings(duplicateWorkspace.settings);
+        await db.workspace.update({
+          where: { id: workspace.id },
+          data: {
+            settings: {
+              ...settings,
+              onboardingProvisioningStatus: "blocked_duplicate",
+              onboardingProvisioningError: `Provisioning blocked during beta. This owner phone is already linked to ${duplicateWorkspace.name || "another workspace"} (${duplicateWorkspace.twilioPhoneNumber}).`,
+              onboardingProvisioningUpdatedAt: new Date().toISOString(),
+              onboardingProvisioningTriggerSource: params.triggerSource,
+              onboardingProvisioningLastElapsedMs: elapsedMs,
+              onboardingProvisioningDuplicateWorkspaceId: duplicateWorkspace.id,
+              onboardingProvisioningDuplicatePhone: duplicateWorkspace.twilioPhoneNumber,
+              onboardingProvisioningDiagnosticEmail: duplicateOwner?.email ?? null,
+              onboardingProvisioningDiagnosticWebsiteUrl: currentWebsiteUrl,
+              onboardingProvisioningDuplicateWebsiteUrl:
+                typeof duplicateSettings.websiteUrl === "string" ? duplicateSettings.websiteUrl : null,
+            },
+          },
+        });
+
+        return {
+          success: false,
+          provisioningStatus: "blocked_duplicate",
+          error: `Provisioning blocked during beta. This owner phone is already linked to ${duplicateWorkspace.name || "another workspace"} (${duplicateWorkspace.twilioPhoneNumber}).`,
+          elapsedMs,
+        };
+      }
+    }
+  }
+
   await db.workspace.update({
     where: { id: workspace.id },
     data: {
       settings: {
-        ...existingSettings,
+        ...settings,
         onboardingProvisioningStatus: "provisioning",
         onboardingProvisioningError: null,
         onboardingProvisioningStartedAt: new Date().toISOString(),

@@ -6,6 +6,14 @@ import { CheckCircle2, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+        return {};
+    }
+
+    return settings as Record<string, unknown>;
+}
+
 export default async function BillingPaywallPage() {
     let workspace;
     let userId; // Declare userId here
@@ -69,7 +77,12 @@ export default async function BillingPaywallPage() {
                     </div>
                 </div>
 
-                <UpgradeButton workspaceId={workspace.id} />
+                <UpgradeButton
+                    workspaceId={workspace.id}
+                    initialProvisionPhoneNumberRequested={
+                        getWorkspaceSettings((workspace as { settings?: unknown }).settings).provisionPhoneNumberRequested === true
+                    }
+                />
             </div>
 
             <div className="mt-8 text-xs text-muted-foreground opacity-60">
