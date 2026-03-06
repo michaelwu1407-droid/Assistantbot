@@ -332,3 +332,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Tightened the CRM chatbot prompt so when `showJobDraftForConfirmation` renders a job draft card, the assistant must not repeat the draft details, call-out fee, or a second confirmation line underneath it.
 - Why: The card already contains the draft summary, so repeating the same details in plain text made the response noisy and redundant.
 
+### 2026-03-07 11:24 (AEDT) - codex
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: Changed Kanban multi-select into an explicit selection mode triggered by long-pressing a card. Selection checkboxes now appear only in that mode, sit in the top-right corner, and only displace the top-right date/badge stack instead of shifting the rest of the card layout.
+- Why: The always-visible checkbox was cluttering every card and disrupting the layout. Selection mode should be intentional and preserve the default card formatting.
+

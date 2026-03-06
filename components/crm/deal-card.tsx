@@ -35,7 +35,9 @@ interface DealCardProps {
   onDelete?: () => void | Promise<void>
   onReconcile?: (dealId: string) => void
   isSelected?: boolean
+  selectionMode?: boolean
   onToggleSelected?: (dealId: string, checked: boolean) => void
+  onEnterSelectionMode?: (dealId: string) => void
 }
 
 function formatScheduledTime(scheduledAt: Date | null | undefined): string {
@@ -44,8 +46,22 @@ function formatScheduledTime(scheduledAt: Date | null | undefined): string {
   return format(d, "MMM d, h:mm a")
 }
 
-export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, onOpenModal, onDelete, onReconcile, isSelected = false, onToggleSelected }: DealCardProps) {
+export function DealCard({
+  deal,
+  overlay,
+  columnId,
+  teamMembers = [],
+  onAssign,
+  onOpenModal,
+  onDelete,
+  onReconcile,
+  isSelected = false,
+  selectionMode = false,
+  onToggleSelected,
+  onEnterSelectionMode,
+}: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
+  const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Check if deal is overdue
   const overdueStyling = getOverdueStyling({
@@ -124,14 +140,36 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
     cardClasses += " cursor-grab active:cursor-grabbing"
   }
 
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
   return (
     <div ref={setNodeRef} style={style} className="relative group touch-none">
       {/* Draggable area: whole card. Bin is a sibling so it doesn't start drag. Activation distance (in Kanban) turns small moves into click. */}
       <div
         className={cn("relative overflow-hidden", cardClasses)}
         {...(!overlay ? { ...attributes, ...listeners } : {})}
+        onPointerDown={() => {
+          if (overlay || selectionMode || !onEnterSelectionMode) return
+          clearLongPressTimer()
+          longPressTimerRef.current = setTimeout(() => {
+            onEnterSelectionMode(deal.id)
+            longPressTimerRef.current = null
+          }, 450)
+        }}
+        onPointerUp={clearLongPressTimer}
+        onPointerLeave={clearLongPressTimer}
+        onPointerCancel={clearLongPressTimer}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('[data-no-card-click]')) return
+          if (selectionMode && onToggleSelected) {
+            onToggleSelected(deal.id, !isSelected)
+            return
+          }
           if (onOpenModal) onOpenModal()
           else if (deal.contactId) router.push(`/dashboard/contacts/${deal.contactId}`)
           else router.push(`/dashboard/deals/${deal.id}`)
@@ -147,8 +185,9 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
         role="button"
         tabIndex={0}
       >
-        {!overlay && onToggleSelected && (
-          <div className="absolute top-3 left-3 z-10" data-no-card-click>
+        {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
+        <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1 text-right" data-no-card-click={selectionMode ? true : undefined}>
+          {!overlay && selectionMode && onToggleSelected && (
             <Checkbox
               checked={isSelected}
               aria-label={`Select ${deal.title}`}
@@ -156,10 +195,7 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             />
-          </div>
-        )}
-        {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
-        <div className="absolute top-3 right-3 z-10 text-right">
+          )}
           {overdueStyling.badgeText ? (
             <div className="flex flex-col gap-1">
               <span
@@ -209,7 +245,7 @@ export function DealCard({ deal, overlay, columnId, teamMembers = [], onAssign, 
           )}
         </div>
 
-        <div className="space-y-2.5 relative z-10 pr-12 pl-7">
+        <div className="space-y-2.5 relative z-10 pr-12">
           {/* Customer name */}
           <div className="flex items-center gap-1.5 text-[#0F172A] font-semibold text-xs">
             <User className="w-3.5 h-3.5 text-[#64748B] shrink-0" />

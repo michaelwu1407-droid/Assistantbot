@@ -86,6 +86,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [selectedDealIds, setSelectedDealIds] = useState<string[]>([])
+  const [selectionMode, setSelectionMode] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [pendingMoveToScheduled, setPendingMoveToScheduled] = useState<{ dealId: string; dealTitle: string } | null>(null)
   const [assignModalUserId, setAssignModalUserId] = useState<string>("")
@@ -128,6 +129,11 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       }
       return prev.filter((id) => id !== dealId)
     })
+  }
+
+  const enterSelectionMode = (dealId: string) => {
+    setSelectionMode(true)
+    setSelectedDealIds((prev) => (prev.includes(dealId) ? prev : [...prev, dealId]))
   }
 
   const sensors = useSensors(
@@ -308,17 +314,20 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       <div className="space-y-3">
         <div className="flex items-center justify-between px-2">
           <div className="text-xs font-medium text-slate-500">
-            {selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected for chat bulk actions` : "Select jobs with the checkbox to use bulk chat actions"}
+            {selectionMode && selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected` : ""}
           </div>
-          {selectedDealIds.length > 0 && (
+          {selectionMode && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => setSelectedDealIds([])}
+              onClick={() => {
+                setSelectedDealIds([])
+                setSelectionMode(false)
+              }}
             >
-              Clear selection
+              Done selecting
             </Button>
           )}
         </div>
@@ -367,7 +376,9 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
                         columnId={col.id}
                         teamMembers={teamMembers}
                         isSelected={selectedDealIds.includes(deal.id)}
+                        selectionMode={selectionMode}
                         onToggleSelected={toggleSelectedDeal}
+                        onEnterSelectionMode={enterSelectionMode}
                         onAssign={teamMembers.length > 0 ? async (userId) => {
                           const result = await updateDealAssignedTo(deal.id, userId)
                           if (result.success) {
