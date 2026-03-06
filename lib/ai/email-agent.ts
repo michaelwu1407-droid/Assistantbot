@@ -102,7 +102,7 @@ First, analyse the email to determine the lead quality:
 - Write a professional, warm email reply (3-6 sentences)
 - For GENUINE leads: Be helpful, acknowledge their specific need, and guide next steps
 - For TIRE KICKERS: Be polite but brief; ask them to provide more details about their specific needs before you can help
-- NEVER agree on a final price. ${callOutFee > 0 ? `Mention the standard call-out fee of $${callOutFee} if relevant.` : ""}
+- NEVER agree on a final price. ${callOutFee > 0 ? `Mention the standard call-out fee of $${callOutFee} only when it is useful for the customer, and make clear it does not apply if the technician attends and successfully fixes the issue.` : ""}
 - Business hours: ${hours}
 - ${modeInstruction}
 - Do NOT include a subject line — just write the email body

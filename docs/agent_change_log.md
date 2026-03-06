@@ -317,3 +317,18 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Removed the temporary beta hard-stop that blocked Stripe checkout when mobile-number provisioning was turned off. Billing now always allows checkout, records the actual provisioning choice on the workspace, and writes `requested` or `not_requested` into the shared provisioning state model before redirecting to Stripe.
 - Why: During beta, users who do not opt into phone provisioning still need to be able to pay and complete onboarding. The toggle should only control later Twilio provisioning eligibility, not access to payment itself.
 
+### 2026-03-07 11:06 (AEDT) - codex
+- Files: `components/ui/address-autocomplete.tsx`, `components/map/google-map-view.tsx`, `docs/agent_change_log.md`
+- What changed: Added graceful fallback handling for Google Maps auth/key failures. Address autocomplete now drops back to a plain text input if the Maps script fails or triggers `gm_authFailure`, and the dashboard Google map now switches itself to the existing Leaflet fallback for the same failure class.
+- Why: Misconfigured Google Maps keys or billing should not block job creation or leave the dashboard map stuck on Google's branded error overlay. The app needs to continue functioning even when Maps is unavailable.
+
+### 2026-03-07 11:13 (AEDT) - codex
+- Files: `lib/ai/context.ts`, `lib/ai/sms-agent.ts`, `lib/ai/email-agent.ts`, `docs/agent_change_log.md`
+- What changed: Updated the shared pricing guidance so call-out fees are treated as customer-facing context only, not reminders for the business owner. Added the universal rule that the call-out fee does not apply when the technician attends and successfully fixes the issue, and aligned chat/SMS/email phrasing to explain that clearly when relevant.
+- Why: The assistant was using awkward internal-facing call-out-fee language and was missing the universal waiver rule for successful on-site fixes.
+
+### 2026-03-07 11:17 (AEDT) - codex
+- Files: `app/api/chat/route.ts`, `docs/agent_change_log.md`
+- What changed: Tightened the CRM chatbot prompt so when `showJobDraftForConfirmation` renders a job draft card, the assistant must not repeat the draft details, call-out fee, or a second confirmation line underneath it.
+- Why: The card already contains the draft summary, so repeating the same details in plain text made the response noisy and redundant.
+

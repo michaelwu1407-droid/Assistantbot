@@ -76,11 +76,31 @@ function AddressAutocompleteWithGoogle({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const [isFocused, setIsFocused] = useState(false)
   const [isResolved, setIsResolved] = useState(false)
+  const [hasMapsFailure, setHasMapsFailure] = useState(false)
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
   })
+
+  useEffect(() => {
+    if (loadError) {
+      setHasMapsFailure(true)
+    }
+  }, [loadError])
+
+  useEffect(() => {
+    const globalWindow = window as typeof window & { gm_authFailure?: () => void }
+    const previous = globalWindow.gm_authFailure
+    globalWindow.gm_authFailure = () => {
+      setHasMapsFailure(true)
+      previous?.()
+    }
+
+    return () => {
+      globalWindow.gm_authFailure = previous
+    }
+  }, [])
 
   const handlePlaceChanged = useCallback(() => {
     const place = autocompleteRef.current?.getPlace()
@@ -122,6 +142,24 @@ function AddressAutocompleteWithGoogle({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsResolved(false)
     onChange(e.target.value)
+  }
+
+  if (hasMapsFailure) {
+    return (
+      <div className={cn("relative", className)}>
+        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        <Input
+          ref={inputRef}
+          id={id}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleInputChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="pl-9"
+        />
+      </div>
+    )
   }
 
   return (

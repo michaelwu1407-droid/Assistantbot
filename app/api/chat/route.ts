@@ -593,6 +593,8 @@ USER_ROLE: ${userRole}. Data changes: OWNER/MANAGER confirm via showConfirmation
 
 MULTI-JOB "NEXT": Always use showJobDraftForConfirmation tool (never plain text). One job at a time. Don't call createJobNatural until user confirms.
 
+JOB DRAFT CARDS: When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do NOT repeat the draft details, call-out fee, address, phone, or a second "Confirm?" line in plain text underneath it. If needed, only add a very short instruction like "Use the card to confirm or edit."
+
 After tool use, briefly confirm the result.`,
       messages: modelMessages as any,
       tools,

@@ -274,7 +274,9 @@ export async function buildAgentContext(
     const pricingRulesStr = `\nPRICING RULES:
 1. Only quote a final price for tasks with an EXACT match in the GLOSSARY below. Never invent prices.
 2. Unlisted tasks: "A firm quote requires an on-site assessment." Focus on locking the booking.
-3. For custom work, quote the call-out fee: "Our call-out fee is $${callOutFee} covering the assessment, then we give a firm quote."
+3. Only mention the call-out fee when it is useful customer-facing pricing context. Do NOT remind the business owner about their own fee rules.
+4. Universal call-out fee rule: if the technician attends and successfully fixes the issue, the call-out fee does NOT apply.
+5. For custom work that is not in the glossary, say: "Our call-out fee is $${callOutFee} for the assessment, and if we successfully fix it on the spot that fee does not apply. Otherwise we use the assessment to give you a firm quote."
 ${glossaryStr}`;
 
     // ── Business Knowledge (already fetched in parallel batch above) ──

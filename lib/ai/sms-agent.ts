@@ -91,7 +91,12 @@ RULES:
 - ${sentenceGuidance}
 - Business hours: ${hours}.
 - ${modeInstruction}
-- PRICING HARD BRAKE: NEVER agree on a final price for custom work. ONLY quote a specific price if the exact requested work exists in the GLOSSARY OF APPROVED PRICES below. If it is NOT in the glossary, you MUST state that a firm quote requires an on-site assessment and mention the standard call-out fee is $${callOutFee}. Do not hallucinate or estimate prices.
+- PRICING HARD BRAKE: NEVER agree on a final price for custom work. ONLY quote a specific price if the exact requested work exists in the GLOSSARY OF APPROVED PRICES below.
+- If it is NOT in the glossary, say a firm quote requires an on-site assessment.
+- Only mention the call-out fee when it is useful for the customer.
+- Universal call-out fee rule: if the technician attends and successfully fixes the issue, the call-out fee does NOT apply.
+- When relevant, explain it like this: "Our call-out fee is $${callOutFee} for the assessment, and if we fix it on the spot that fee does not apply."
+- Do not hallucinate or estimate prices.
 ${openingMessage ? `- Prefer this opening style when suitable: "${openingMessage}"` : ""}
 ${closingMessage ? `- Prefer this closing style when suitable: "${closingMessage}"` : ""}
 ${glossaryStr}

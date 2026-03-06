@@ -59,6 +59,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
   const [viewJobTab, setViewJobTab] = useState<"activities" | "jobs" | "notes" | undefined>(undefined)
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
+  const [hasMapsFailure, setHasMapsFailure] = useState(false)
 
   const mapRef = useRef<google.maps.Map | null>(null)
 
@@ -141,8 +142,29 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
   }, [])
 
   useEffect(() => {
-    if (loadError && onFallbackToLeaflet) onFallbackToLeaflet()
-  }, [loadError, onFallbackToLeaflet])
+    if (loadError) {
+      setHasMapsFailure(true)
+    }
+  }, [loadError])
+
+  useEffect(() => {
+    const globalWindow = window as typeof window & { gm_authFailure?: () => void }
+    const previous = globalWindow.gm_authFailure
+    globalWindow.gm_authFailure = () => {
+      setHasMapsFailure(true)
+      previous?.()
+    }
+
+    return () => {
+      globalWindow.gm_authFailure = previous
+    }
+  }, [])
+
+  useEffect(() => {
+    if (hasMapsFailure && onFallbackToLeaflet) {
+      onFallbackToLeaflet()
+    }
+  }, [hasMapsFailure, onFallbackToLeaflet])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
@@ -175,7 +197,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
     })
   }, [markers])
 
-  if (loadError) {
+  if (loadError || hasMapsFailure) {
     if (onFallbackToLeaflet) {
       return (
         <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-500">
