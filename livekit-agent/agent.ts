@@ -282,9 +282,12 @@ Identity:
 
 Tone and style:
 - Casual, warm, confident, and Australian.
-- Keep replies short: usually 1-2 sentences, then pause.
+- Keep replies under 18 words unless the caller explicitly asks for more detail.
+- Use simple, punchy sentences.
+- Usually speak in 1 short sentence, then pause. At most 2 short sentences.
 - Ask one focused question at a time.
 - Listen first, but do not stay passive. Lead the conversation toward a next step.
+- Keep Australian wording throughout the full call. Do not drift into US phrasing or cadence.
 
 Primary goals:
 - Identify the caller's pain points around missed calls, slow lead follow-up, admin load, quoting, booking, and customer response times.
@@ -297,6 +300,8 @@ Sales behaviour:
 - Do not wait until the very end to collect details. Start collecting them once the caller shows any interest.
 - If contact details are still missing near the end, ask directly and politely for the best number and email for a follow-up.
 - Before the call ends, use the log_lead tool once you have enough real information.
+- Do not call log_lead straight after the caller only confirms their identity or says hello.
+- Do not call log_lead unless you have at least first name, business name, phone, and one real pain point or follow-up reason.
 
 Call to action:
 - Encourage either a demo/consultation with an Earlymark AI manager or signing up at earlymark.ai.
@@ -327,6 +332,7 @@ Important:
 - The system has already opened the call with: "Hi, is this ${caller.firstName || "there"}${caller.businessName ? ` from ${caller.businessName}` : ""}?"
 - Wait for the caller to answer before giving your own introduction.
 - After they respond, introduce yourself as "Hi, this is Tracey from Earlymark AI" and then continue naturally into the demo conversation.
+- After that introduction, keep the next reply very short: 1 short sentence plus 1 short question.
 - Do not combine the identity-check line and the Earlymark introduction into one opening sentence.
 - This is a personalised demo. Make it feel like they are trying the product for their own business.
 - If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
@@ -346,8 +352,11 @@ Identity:
 
 Tone and style:
 - Casual, warm, confident, and Australian.
-- Keep replies short and clear.
+- Keep replies under 18 words unless the caller asks for more detail.
+- Use simple, punchy sentences.
+- Usually speak in 1 short sentence, then pause. At most 2 short sentences.
 - Ask direct sales questions without sounding scripted.
+- Keep Australian wording throughout the full call. Do not drift into US phrasing or cadence.
 
 Primary goals:
 - Identify the caller's pain points.
@@ -359,6 +368,7 @@ Sales behaviour:
 - Ask follow-up questions that uncover pain around missed calls, response times, admin, and lead follow-up.
 - Once they show interest, start collecting their details instead of waiting until the very end.
 - Before the call ends, use the log_lead tool once you have enough real information.
+- Do not call log_lead unless you have at least first name, business name, phone, and one real pain point or follow-up reason.
 
 Truthfulness rules:
 - Never invent features, integrations, pricing, implementation timelines, or guarantees.
@@ -465,13 +475,16 @@ export default defineAgent({
       parameters: z.object({
         firstName: z.string().describe("First name of the caller"),
         businessName: z.string().describe("Business name"),
-        businessType: z.string().describe("Business type, e.g. plumber or electrician"),
+        businessType: z.string().optional().describe("Business type, e.g. plumber or electrician, if actually known"),
         phone: z.string().describe("Best phone number for follow-up"),
-        interestLevel: z.enum(["hot", "warm", "cold"]).describe("How interested the caller seemed"),
+        interestLevel: z.enum(["hot", "warm", "cold"]).optional().describe("How interested the caller seemed"),
         email: z.string().optional().describe("Best email for follow-up if provided"),
         notes: z.string().optional().describe("Real notes from the call. No guessing."),
       }),
       execute: async ({ firstName, businessName, businessType, phone, interestLevel, email, notes }) => {
+        const safeBusinessType = (businessType || "").trim();
+        const safeInterestLevel = interestLevel || "warm";
+        const safeNotes = (notes || "").trim();
         try {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
           const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -488,17 +501,17 @@ export default defineAgent({
               body: JSON.stringify({
                 first_name: firstName,
                 business_name: businessName,
-                business_type: businessType,
+                business_type: safeBusinessType,
                 phone,
                 email: email || "",
-                interest_level: interestLevel,
-                notes: notes || "",
+                interest_level: safeInterestLevel,
+                notes: safeNotes,
                 source: "voice_call",
                 created_at: new Date().toISOString(),
               }),
             });
           }
-          console.log(`[agent] Lead logged: ${firstName} - ${businessName} (${interestLevel})`);
+          console.log(`[agent] Lead logged: ${firstName} - ${businessName} (${safeInterestLevel})`);
         } catch (err) {
           console.error("[agent] Failed to log lead:", err);
         }
@@ -539,6 +552,8 @@ export default defineAgent({
       model: llmModel,
       apiKey: llmApiKey,
       baseURL: llmBaseURL,
+      temperature: Number(process.env.VOICE_LLM_TEMPERATURE || 0.2),
+      maxCompletionTokens: Number(process.env.VOICE_LLM_MAX_COMPLETION_TOKENS || 80),
     });
 
     const stt = new deepgram.STT({
@@ -555,7 +570,7 @@ export default defineAgent({
       model: process.env.VOICE_TTS_MODEL || "sonic-3",
       voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
       language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
-      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 3000),
+      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
     });
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
