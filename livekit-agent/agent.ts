@@ -8,8 +8,12 @@
  *   Voice ID -> a4a16c5e-5902-4732-b9b6-2a48efd2e11b
  *
  * Features:
- *   - 8-min wrap-up warning + 10-min hard disconnect
- *   - Human handoff tool (on-clock → Twilio dial, off-clock → urgent CRM flag)
+ *   - Normal business receptionist mode for customer workspaces
+ *   - Earlymark sales/demo mode for inbound and outbound demo calls
+ *   - 8-min wrap-up + 10-min hard disconnect for normal calls
+ *   - 3-min wrap-up + 5-min hard disconnect for Earlymark demo calls
+ *   - Goodbye detection with delayed hangup to stop post-call rambling
+ *   - Per-turn latency attribution logs
  */
 
 import { fileURLToPath } from 'node:url';
@@ -17,18 +21,22 @@ import { config as loadEnv } from 'dotenv';
 import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
-import { AutoSubscribe, WorkerOptions, cli, defineAgent, voice } from '@livekit/agents';
+import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, voice } from '@livekit/agents';
 import { z } from 'zod';
 
 loadEnv({ path: '.env.local' });
 
-// ─── Constants ──────────────────────────────────────────────────────
-
-const WRAP_UP_MS = 8 * 60 * 1000;   // 8 minutes
-const HARD_CUT_MS = 10 * 60 * 1000; // 10 minutes
+const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
+const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
+const DEMO_WRAP_UP_MS = 3 * 60 * 1000;
+const DEMO_HARD_CUT_MS = 5 * 60 * 1000;
+const GOODBYE_DISCONNECT_BUFFER_MS = 5000;
 
 const WRAP_UP_SCRIPT =
   "Hey, just to be candid this is taking longer than expected and I'm sorry if I haven't been able to help with everything you need so far. Let me pass this on to my manager so they can better help you ASAP. Did you have anything else you wanted me to share?";
+
+const DEMO_WRAP_UP_SCRIPT =
+  "Before we wrap up, move the call toward a clear next step. Briefly restate the caller's pain point, ask for the best contact details if still missing, and encourage either a consultation with an Earlymark AI manager or signing up at earlymark.ai.";
 
 const SYSTEM_PROMPT = `You are Tracey, a friendly and efficient AI receptionist for a trade business. Your job is to answer the phone, take messages, and book appointments for the tradie.
 
@@ -44,13 +52,15 @@ Constraint: Keep responses short, punchy, and helpful. Do not yap.
 
 Goal: Capture details/requests for the user and check availability.
 
-IMPORTANT — Call Duration:
+IMPORTANT - Call Duration:
 - At around 8 minutes you will receive an instruction to wrap up the call. Follow it naturally.
 - The call will disconnect at 10 minutes maximum.
 
 TRANSFER RULES:
-- If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm — you'd like me to transfer you to [the business owner]?"
+- If a caller asks to speak to the business owner or a human, confirm first: "Just to confirm - you'd like me to transfer you to [the business owner]?"
 - On confirmation, use the transfer_call tool. Do NOT transfer for general enquiries you can handle (quotes, booking, availability).`;
+
+type CallType = "demo" | "inbound_demo" | "normal";
 
 type LatencyAudit = {
   sttMs: number[];
@@ -84,6 +94,13 @@ type TurnAudit = {
   llmTtftMs: number;
   ttsMs: number;
   ttsTtfbMs: number;
+};
+
+type CallerContext = {
+  callType: CallType;
+  firstName: string;
+  businessName: string;
+  phone: string;
 };
 
 function avg(values: number[]): number {
@@ -140,13 +157,20 @@ function summarizeTurnLatency(turn: TurnAudit) {
   };
 }
 
-function isMeaningfulUserTurn(rawTranscript: string): boolean {
-  const transcript = rawTranscript.trim().toLowerCase();
-  if (!transcript) return false;
-  if (!/[a-z0-9]/i.test(transcript)) return false;
+function normalizeTranscript(rawTranscript: string): string {
+  return rawTranscript
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s']/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/'/g, "")
+    .trim();
+}
 
-  const normalized = transcript.replace(/[^a-z0-9\s']/gi, " ").replace(/\s+/g, " ").trim();
+function isMeaningfulUserTurn(rawTranscript: string): boolean {
+  const normalized = normalizeTranscript(rawTranscript);
   if (!normalized) return false;
+  if (!/[a-z0-9]/i.test(normalized)) return false;
 
   const allowedShort = new Set(["yes", "no", "yeah", "yep", "nope", "ok", "okay", "sure"]);
   if (allowedShort.has(normalized)) return true;
@@ -158,13 +182,178 @@ function isMeaningfulUserTurn(rawTranscript: string): boolean {
   return normalized.length >= 4 || tokens.length >= 2;
 }
 
-// ─── Agent Entry ────────────────────────────────────────────────────
+function isGoodbyeTurn(rawTranscript: string): boolean {
+  const normalized = normalizeTranscript(rawTranscript);
+  if (!normalized) return false;
+
+  const exactGoodbyes = new Set([
+    "bye",
+    "bye bye",
+    "goodbye",
+    "see ya",
+    "see you",
+    "catch ya",
+    "talk soon",
+    "talk later",
+    "have a good one",
+    "thats all",
+    "that is all",
+    "thats it",
+    "that is it",
+    "all good bye",
+    "all good thanks bye",
+    "thanks bye",
+    "thank you bye",
+    "thanks tracey bye",
+    "thank you tracey bye",
+    "okay bye",
+    "ok bye",
+    "alright bye",
+    "all right bye",
+    "cheers bye",
+    "no worries bye",
+  ]);
+
+  if (exactGoodbyes.has(normalized)) return true;
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  if (tokens.length > 8) return false;
+
+  return /^((okay|ok|alright|all right|no worries|thanks|thank you|cheers|perfect|great|awesome|sweet|too easy)\s+)*(bye|bye bye|goodbye|see ya|see you|catch ya|talk soon|talk later|have a good one|thats all|that is all|thats it|that is it)(\s+(mate|tracey))?$/.test(normalized);
+}
+
+function buildEarlymarkPrompt(callType: CallType, caller: CallerContext): string {
+  const callContext =
+    callType === "demo"
+      ? "This is an outbound demo call. The person on the line signed up on earlymark.ai to try Tracey."
+      : "This is an inbound Earlymark AI sales call. The caller rang Earlymark to learn what Tracey can do for their business.";
+
+  return `You are Tracey, an AI assistant from Earlymark AI.
+
+${callContext}
+
+Identity:
+- Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
+- You are a live example of the product, but you are not the manager.
+- If the caller wants human follow-up, push toward a consultation with an Earlymark AI manager.
+
+Tone and style:
+- Casual, warm, confident, and Australian.
+- Keep replies short: usually 1-2 sentences, then pause.
+- Ask one focused question at a time.
+- Listen first, but do not stay passive. Lead the conversation toward a next step.
+
+Primary goals:
+- Identify the caller's pain points around missed calls, slow lead follow-up, admin load, quoting, booking, and customer response times.
+- Proactively capture lead details before the call ends: first name, business name, business type, best phone number, and email if they are open to sharing it.
+- Move them toward one of two outcomes: a consultation with an Earlymark AI manager, or signing up on the website.
+
+Sales behaviour:
+- Ask what sort of business they run and how they currently handle incoming calls and leads.
+- If they mention a pain point, briefly connect it to Earlymark AI and then ask a follow-up question.
+- Do not wait until the very end to collect details. Start collecting them once the caller shows any interest.
+- If contact details are still missing near the end, ask directly and politely for the best number and email for a follow-up.
+- Before the call ends, use the log_lead tool once you have enough real information.
+
+Call to action:
+- Encourage either a demo/consultation with an Earlymark AI manager or signing up at earlymark.ai.
+- Natural CTA examples:
+  - "If you'd like, I can have an Earlymark AI manager follow up with you."
+  - "If you want to move quickly, you can head to earlymark.ai and sign up there."
+  - "Would you rather book a consultation with the manager, or jump in via the website?"
+
+Truthfulness rules:
+- Never invent features, integrations, pricing, implementation timelines, or guarantees.
+- Do NOT claim that Earlymark AI integrates into the caller's existing CRM. That is not currently true.
+- If asked about CRM integrations or any unsupported feature, say you do not want to overstate it and an Earlymark AI manager can walk them through what is currently supported.
+- Only mention capabilities that are actually supported and already established in this prompt.
+
+Capabilities you may discuss when relevant:
+- Tracey answers calls 24/7 so businesses miss fewer leads.
+- Tracey helps with customer communication and admin.
+- Tracey helps create a faster, friendlier customer experience.
+- Earlymark AI aims to reduce manual follow-up and help convert more enquiries.
+
+Known caller details:
+- First name: ${caller.firstName || "unknown"}
+- Business name: ${caller.businessName || "unknown"}
+- Phone: ${caller.phone || "unknown"}
+- Treat these as known only if listed here. If something is unknown, ask for it instead of guessing.
+
+Important:
+- If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
+- Do not launch into a long summary at the end of the call.
+- This call will be wrapped at around 3 minutes and disconnected at 5 minutes if still active.`;
+}
+
+function getGreeting(callType: CallType, caller: CallerContext): string {
+  if (callType === "demo" && caller.firstName) {
+    return `Hi, is this ${caller.firstName}? This is Tracey, an AI assistant from Earlymark AI.`;
+  }
+  if (callType === "demo" || callType === "inbound_demo") {
+    return "Hi, this is Tracey, an AI assistant from Earlymark AI.";
+  }
+  return "G'day, you've reached Tracey. How can I help today?";
+}
+
+function getGoodbyeLine(callType: CallType): string {
+  if (callType === "demo" || callType === "inbound_demo") {
+    return "No worries. Thanks for your time. If you'd like, head to earlymark.ai or an Earlymark AI manager can follow up. Bye for now.";
+  }
+  return "No worries. Thanks for calling. Bye for now.";
+}
 
 export default defineAgent({
   entry: async (ctx) => {
     const callId = `${ctx.room.name}:${Date.now()}`;
 
-    // Defines a tool for the agent to call when transferring to a human
+    const logLeadTool = livekitLlm.tool({
+      description: "Save a potential Earlymark lead before the call ends. Only log details the caller actually provided.",
+      parameters: z.object({
+        firstName: z.string().describe("First name of the caller"),
+        businessName: z.string().describe("Business name"),
+        businessType: z.string().describe("Business type, e.g. plumber or electrician"),
+        phone: z.string().describe("Best phone number for follow-up"),
+        interestLevel: z.enum(["hot", "warm", "cold"]).describe("How interested the caller seemed"),
+        email: z.string().optional().describe("Best email for follow-up if provided"),
+        notes: z.string().optional().describe("Real notes from the call. No guessing."),
+      }),
+      execute: async ({ firstName, businessName, businessType, phone, interestLevel, email, notes }) => {
+        try {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+          if (supabaseUrl && supabaseKey) {
+            await fetch(`${supabaseUrl}/rest/v1/leads`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: supabaseKey,
+                Authorization: `Bearer ${supabaseKey}`,
+                Prefer: "return=minimal",
+              },
+              body: JSON.stringify({
+                first_name: firstName,
+                business_name: businessName,
+                business_type: businessType,
+                phone,
+                email: email || "",
+                interest_level: interestLevel,
+                notes: notes || "",
+                source: "voice_call",
+                created_at: new Date().toISOString(),
+              }),
+            });
+          }
+          console.log(`[agent] Lead logged: ${firstName} - ${businessName} (${interestLevel})`);
+        } catch (err) {
+          console.error("[agent] Failed to log lead:", err);
+        }
+
+        return `Got it. I've noted ${firstName} from ${businessName} for follow-up.`;
+      },
+    });
+
     const transferCallTool = {
       name: "transfer_call",
       description: "Transfer the call to the human business owner or leave an urgent message if they are unavailable.",
@@ -174,19 +363,14 @@ export default defineAgent({
       execute: async ({ reason }) => {
         console.log(`[agent] Executing transfer_call tool. Reason: ${reason}`);
 
-        // In a full implementation, we would query the Earlymark API.
-        // For the agent worker, we return a simulated/fallback instruction
-        // since we are not directly connected to the Prisma DB in the worker scope.
-
         const currentHour = new Date().getHours();
-        const isOnClock = currentHour >= 8 && currentHour < 17; // Mock 8am to 5pm
+        const isOnClock = currentHour >= 8 && currentHour < 17;
 
         if (isOnClock) {
-          // If Twilio SIP REFER or <Dial> bridging is set up on the PBX side:
           return "I am transferring you to the owner now. Please hold on the line.";
-        } else {
-          return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
         }
+
+        return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
       },
     };
 
@@ -205,7 +389,7 @@ export default defineAgent({
     });
 
     const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL as any) || 'nova-3',
+      model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
       language: process.env.VOICE_STT_LANGUAGE || "en-AU",
       interimResults: true,
       endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 250),
@@ -224,12 +408,83 @@ export default defineAgent({
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
 
+    let callType: CallType = "normal";
+    let callerFirstName = "";
+    let callerBusiness = "";
+    let callerPhone = "";
+
+    try {
+      const roomMeta = ctx.room.metadata;
+      if (roomMeta) {
+        const meta = JSON.parse(roomMeta) as Record<string, string>;
+        if (meta.callType === "demo") callType = "demo";
+        if (meta.callType === "inbound_demo") callType = "inbound_demo";
+        callerFirstName = meta.firstName || "";
+        callerBusiness = meta.businessName || "";
+        callerPhone = meta.phone || "";
+      }
+    } catch {
+      // Ignore invalid room metadata.
+    }
+
+    try {
+      const attrs = (participant.attributes || {}) as Record<string, string>;
+      if (attrs.callType === "demo") callType = "demo";
+      if (attrs.callType === "inbound_demo") callType = "inbound_demo";
+      callerFirstName = callerFirstName || attrs.firstName || "";
+      callerBusiness = callerBusiness || attrs.businessName || "";
+      callerPhone =
+        callerPhone ||
+        attrs.phone ||
+        attrs.phoneNumber ||
+        attrs["sip.phoneNumber"] ||
+        attrs["sip.phone_number"] ||
+        "";
+    } catch {
+      // Ignore invalid participant attributes.
+    }
+
+    if (!callerPhone && participant.identity.startsWith("demo-caller-")) {
+      callerPhone = participant.identity.replace("demo-caller-", "");
+    }
+
+    const caller: CallerContext = {
+      callType,
+      firstName: callerFirstName,
+      businessName: callerBusiness,
+      phone: callerPhone,
+    };
+
+    const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+    const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
+    const systemPrompt = isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : SYSTEM_PROMPT;
+    const greeting = getGreeting(callType, caller);
+    const wrapUpMs = isEarlymarkCall ? DEMO_WRAP_UP_MS : NORMAL_WRAP_UP_MS;
+    const hardCutMs = isEarlymarkCall ? DEMO_HARD_CUT_MS : NORMAL_HARD_CUT_MS;
+    const wrapUpScript = isEarlymarkCall ? DEMO_WRAP_UP_SCRIPT : WRAP_UP_SCRIPT;
+    const hardCutInstructions = isEarlymarkCall
+      ? "Time is up. If you already have enough real details, use the log_lead tool now. Give a brief farewell and push one clear CTA: manager follow-up or earlymark.ai."
+      : "Thank the caller for their time, let them know their message will be passed on, and say goodbye.";
+
+    console.log(`${logPrefix} Call started ${JSON.stringify({
+      callId,
+      room: ctx.room.name,
+      participant: participant.identity,
+      callType,
+      callerFirstName,
+      callerBusiness,
+      callerPhone,
+      llmProvider,
+      llmModel,
+    })}`);
+
     const agent = new voice.Agent({
-      instructions: SYSTEM_PROMPT,
+      instructions: systemPrompt,
       stt,
       llm,
       tts,
       tools: {
+        log_lead: logLeadTool,
         transfer_call: transferCallTool,
       },
       turnDetection: "stt",
@@ -248,6 +503,10 @@ export default defineAgent({
     const pendingUserTurns: PendingUserTurn[] = [];
     const turnAudits = new Map<string, TurnAudit>();
     let turnCounter = 0;
+    let isDisconnecting = false;
+    let goodbyeTimer: ReturnType<typeof setTimeout> | null = null;
+    let wrapUpTimer: ReturnType<typeof setTimeout> | null = null;
+    let hardCutTimer: ReturnType<typeof setTimeout> | null = null;
 
     const getOrCreateTurnAudit = (speechId: string) => {
       const existing = turnAudits.get(speechId);
@@ -328,6 +587,7 @@ export default defineAgent({
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
       const metrics = ev.metrics as any;
       if (!metrics?.type) return;
+
       switch (metrics.type) {
         case "stt_metrics":
           latencyAudit.sttMs.push(Number(metrics.durationMs || 0));
@@ -362,18 +622,52 @@ export default defineAgent({
           }
           break;
       }
+
       console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metrics })}`);
     });
 
-    // Prevent silence/noise from becoming a real user turn that triggers assistant replies.
-    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (ev) => {
-      if (!ev.isFinal) return;
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, async (ev) => {
+      if (!ev.isFinal || isDisconnecting) return;
+
       const transcript = (ev.transcript || "").trim();
       if (!isMeaningfulUserTurn(transcript)) {
         console.log(`[voice-filter] Dropping low-signal transcript: "${transcript}"`);
         session.clearUserTurn();
         return;
       }
+
+      if (isGoodbyeTurn(transcript)) {
+        isDisconnecting = true;
+        session.clearUserTurn();
+        console.log(
+          `[voice-goodbye] ${JSON.stringify({
+            callId,
+            room: ctx.room.name,
+            participant: participant.identity,
+            transcript,
+            bufferMs: GOODBYE_DISCONNECT_BUFFER_MS,
+          })}`
+        );
+
+        if (wrapUpTimer) clearTimeout(wrapUpTimer);
+        if (hardCutTimer) clearTimeout(hardCutTimer);
+        if (goodbyeTimer) clearTimeout(goodbyeTimer);
+
+        try {
+          await session.say(getGoodbyeLine(callType), {
+            allowInterruptions: false,
+            addToChatCtx: true,
+          });
+        } catch (err) {
+          console.error("[agent] Goodbye reply failed:", err);
+        }
+
+        goodbyeTimer = setTimeout(() => {
+          ctx.room.disconnect().catch(() => {});
+        }, GOODBYE_DISCONNECT_BUFFER_MS);
+        return;
+      }
+
       pendingUserTurns.push({
         transcript,
         createdAt: ev.createdAt,
@@ -391,51 +685,48 @@ export default defineAgent({
       );
     });
 
-    // ── Initial greeting ────────────────────────────────────────────
-    await session.say("G'day, you've reached Tracey. How can I help today?", {
+    await session.say(greeting, {
       allowInterruptions: true,
       addToChatCtx: true,
     });
 
-    // ── Timer: 8-min wrap-up ────────────────────────────────────────
-    const wrapUpTimer = setTimeout(async () => {
+    wrapUpTimer = setTimeout(async () => {
       try {
-        console.log('[agent] 8-min mark reached — triggering wrap-up');
-        await session.generateReply({ instructions: WRAP_UP_SCRIPT });
+        console.log(`[agent] wrap-up mark reached for ${callType}`);
+        await session.generateReply({ instructions: wrapUpScript });
       } catch (err) {
-        console.error('[agent] Wrap-up reply failed:', err);
+        console.error("[agent] Wrap-up reply failed:", err);
       }
-    }, WRAP_UP_MS);
+    }, wrapUpMs);
 
-    // ── Timer: 10-min hard disconnect ───────────────────────────────
-    const hardCutTimer = setTimeout(async () => {
+    hardCutTimer = setTimeout(async () => {
       try {
-        console.log('[agent] 10-min mark reached — disconnecting');
-        await session.generateReply({
-          instructions: "Thank the caller for their time, let them know their message will be passed on, and say goodbye.",
-        });
-        // Give 10 seconds for the goodbye, then force close
-        setTimeout(() => {
-          ctx.room.disconnect().catch(() => { });
+        console.log(`[agent] hard-cut mark reached for ${callType}`);
+        await session.generateReply({ instructions: hardCutInstructions });
+        goodbyeTimer = setTimeout(() => {
+          ctx.room.disconnect().catch(() => {});
         }, 10_000);
       } catch (err) {
-        console.error('[agent] Hard-cut disconnect failed:', err);
-        ctx.room.disconnect().catch(() => { });
+        console.error("[agent] Hard-cut disconnect failed:", err);
+        ctx.room.disconnect().catch(() => {});
       }
-    }, HARD_CUT_MS);
+    }, hardCutMs);
 
-    // Clean up timers when room disconnects naturally
-    ctx.room.on('disconnected', () => {
-      clearTimeout(wrapUpTimer);
-      clearTimeout(hardCutTimer);
+    ctx.room.on("disconnected", () => {
+      if (wrapUpTimer) clearTimeout(wrapUpTimer);
+      if (hardCutTimer) clearTimeout(hardCutTimer);
+      if (goodbyeTimer) clearTimeout(goodbyeTimer);
+
       const turnSummaries = Array.from(turnAudits.values())
         .sort((a, b) => a.turnIndex - b.turnIndex)
         .map(summarizeTurnLatency);
+
       console.log(
         `[voice-audit] ${JSON.stringify({
           callId,
           room: ctx.room.name,
           participant: participant.identity,
+          callType,
           samples: {
             stt: latencyAudit.sttMs.length,
             llm: latencyAudit.llmMs.length,
