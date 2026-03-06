@@ -24,6 +24,7 @@ export default async function HubPage() {
                     userName={userId}
                     userId={userId}
                     workspaceId={workspace.id}
+                    onOpenActivity={() => {}}
                     onNewDeal={() => {}}
                 />
 

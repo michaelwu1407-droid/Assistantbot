@@ -52,6 +52,7 @@ export default async function CalendarPage() {
                     userName={userId}
                     userId={userId}
                     workspaceId={workspace.id}
+                    onOpenActivity={() => {}}
                     onNewDeal={() => {}}
                 />
 

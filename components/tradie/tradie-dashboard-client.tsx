@@ -97,6 +97,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
             userName={userName}
             userId={userId}
             workspaceId={useShellStore.getState().workspaceId || ""}
+            onOpenActivity={() => {}}
             onNewDeal={() => { }}
           />
           <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useIndustry } from "@/components/providers/industry-provider"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users } from "lucide-react"
+import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users, Activity } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
 import {
     DropdownMenu,
@@ -39,12 +39,13 @@ interface HeaderProps {
     teamMembers?: TeamMemberOption[]
     filterByUserId?: string | null
     onFilterByUserChange?: (value: string | null) => void
+    onOpenActivity: () => void
     onNewDeal: () => void
 }
 
 const FILTER_ALL = "__all__"
 
-export function Header({ userName, userId, workspaceId, teamMembers = [], filterByUserId, onFilterByUserChange = () => { }, onNewDeal }: HeaderProps) {
+export function Header({ userName, userId, workspaceId, teamMembers = [], filterByUserId, onFilterByUserChange = () => { }, onOpenActivity, onNewDeal }: HeaderProps) {
     const { industry } = useIndustry()
     const router = useRouter()
     const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
@@ -167,6 +168,16 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
                     onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
                 >
                     <Search className="h-5 w-5" />
+                </Button>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                    onClick={onOpenActivity}
+                    aria-label="Open recent activity"
+                >
+                    <Activity className="h-5 w-5" />
                 </Button>
 
                 <NotificationsBtn userId={userId} />

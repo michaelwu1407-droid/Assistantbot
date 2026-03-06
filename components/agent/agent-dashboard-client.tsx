@@ -45,6 +45,7 @@ export function AgentDashboardClient({
         userName={userName}
         userId={userId}
         workspaceId={workspaceId}
+        onOpenActivity={() => {}}
         onNewDeal={() => setIsNewDealModalOpen(true)}
       />
 
