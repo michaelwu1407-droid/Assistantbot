@@ -171,3 +171,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Adjusted the shared and Earlymark-specific style instructions so `G'day` is allowed again when it sounds natural and is pronounced correctly, while still discouraging forced or exaggerated slang.
 - Why: `G'day` itself is acceptable. The actual quality bar is natural delivery, not banning the phrase outright.
 
+### 2026-03-06 18:48 (AEDT) - codex
+- Files: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- What changed: Replaced raw backticks around "G'day" inside template-string prompts with plain quotes so the TypeScript source remains valid when deployed to the LiveKit worker.
+- Why: The prior wording introduced an esbuild parse error during GitHub Actions deploy (`Expected ";" but found "G"`), which prevented the worker from starting on the OCI server.
+
