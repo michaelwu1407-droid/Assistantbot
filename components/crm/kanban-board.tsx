@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DealView, updateDealStage, updateDealAssignedTo } from "@/actions/deal-actions"
 import { toast } from "sonner"
+import { publishCrmSelection } from "@/lib/crm-selection"
 
 // 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
@@ -106,6 +107,13 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
     }
     // Note: hasDragged is reset in handleDragStart, not here
   }, [initialDeals, activeId])
+
+  useEffect(() => {
+    const selection = selectedDealId
+      ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
+      : []
+    publishCrmSelection(selection)
+  }, [selectedDealId, deals])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

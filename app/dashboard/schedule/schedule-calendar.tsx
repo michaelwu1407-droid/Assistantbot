@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays } from "date-fns"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { publishCrmSelection } from "@/lib/crm-selection"
 
 type ViewMode = "month" | "week" | "day"
 
@@ -31,6 +32,13 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const filteredDeals = filterMemberId
     ? deals.filter(d => d.assignedToId === filterMemberId)
     : deals
+
+  useEffect(() => {
+    const selection = selectedDealId
+      ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
+      : []
+    publishCrmSelection(selection)
+  }, [selectedDealId, deals])
 
   const dealsByDay = filteredDeals
     .filter((d) => d.scheduledAt)

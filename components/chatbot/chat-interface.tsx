@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
+import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
 
 interface ChatInterfaceProps {
   workspaceId?: string;
@@ -230,6 +231,7 @@ function ChatWithHistory({
   initialMessages: { id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[];
 }) {
   const [input, setInput] = useState('');
+  const [selectedDeals, setSelectedDeals] = useState<CrmSelectionItem[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
@@ -249,10 +251,22 @@ function ChatWithHistory({
     }
   }, [transcript]);
 
+  useEffect(() => {
+    const handleSelectionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<CrmSelectionItem[]>;
+      setSelectedDeals(Array.isArray(customEvent.detail) ? customEvent.detail : []);
+    };
+
+    window.addEventListener(CRM_SELECTION_EVENT, handleSelectionChange as EventListener);
+    return () => {
+      window.removeEventListener(CRM_SELECTION_EVENT, handleSelectionChange as EventListener);
+    };
+  }, []);
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
-      body: { workspaceId },
+      body: { workspaceId, data: { workspaceId, selectedDeals } },
     }),
     messages: initialMessages.length > 0 ? initialMessages : undefined,
     onFinish: ({ message }) => {

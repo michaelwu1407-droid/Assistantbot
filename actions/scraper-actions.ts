@@ -89,7 +89,7 @@ export async function scrapeWebsite(
 1. "businessName": string|null — the business name as shown on the website
 2. "phone": string|null — the business phone number (Australian format preferred, e.g. "0412 345 678" or "(02) 1234 5678")
 3. "email": string|null — the business contact email
-4. "address": string|null — the physical business address or location
+4. "address": string|null — the physical business address if shown. If no street address is shown, return the best base location/suburb they appear to operate from.
 5. "tradeType": string|null — the type of trade (e.g. "Plumber", "Electrician", "HVAC Technician")
 
 6. "services": Array of objects { "name": string, "priceRange": string|null, "duration": string|null }

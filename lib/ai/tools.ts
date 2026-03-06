@@ -15,6 +15,8 @@ import {
     runCreateDraftInvoice,
     runIssueInvoiceAction,
     runMarkInvoicePaidAction,
+    runUpdateInvoiceFields,
+    runVoidInvoice,
     runReverseInvoiceStatus,
     runSendInvoiceReminder,
     runGetInvoiceStatusAction,
@@ -202,6 +204,25 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async (params) => runIssueInvoiceAction(workspaceId, params),
         }),
+        updateInvoiceFields: tool({
+            description: "Edit a draft or issued invoice's number, line items, totals, or issued date.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+                number: z.string().optional().describe("Updated invoice number"),
+                lineItems: z.array(z.object({
+                    desc: z.string().describe("Line item description"),
+                    price: z.number().describe("Line item price"),
+                    qty: z.number().optional().describe("Quantity; defaults to 1"),
+                })).optional().describe("Replacement invoice line items"),
+                subtotal: z.number().optional().describe("Updated subtotal"),
+                tax: z.number().optional().describe("Updated tax"),
+                total: z.number().optional().describe("Updated total"),
+                issuedAtISO: z.string().nullable().optional().describe("Updated issued date as ISO string, or null to clear it"),
+            }),
+            execute: async (params) => runUpdateInvoiceFields(workspaceId, params),
+        }),
         markInvoicePaid: tool({
             description: "Mark the most relevant invoice as paid by invoice ID, deal title, or contact name.",
             inputSchema: z.object({
@@ -210,6 +231,15 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
                 contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
             }),
             execute: async (params) => runMarkInvoicePaidAction(workspaceId, params),
+        }),
+        voidInvoice: tool({
+            description: "Void a draft or issued invoice. Paid invoices must be reversed out of PAID before voiding.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+            }),
+            execute: async (params) => runVoidInvoice(workspaceId, params),
         }),
         reverseInvoiceStatus: tool({
             description: "Reverse an invoice status to a prior valid state.",

@@ -8,6 +8,7 @@ import { getActivities, ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
+import { publishCrmSelection } from "@/lib/crm-selection"
 
 interface ActivityFeedProps {
     contactId?: string
@@ -69,6 +70,13 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
         fetchActivities()
         return () => { mounted = false }
     }, [contactId, dealId, limit, workspaceId, initialData])
+
+    useEffect(() => {
+        const selection = selectedDealId
+            ? [{ id: selectedDealId, title: activities.find((activity) => activity.dealId === selectedDealId)?.title }]
+            : []
+        publishCrmSelection(selection)
+    }, [selectedDealId, activities])
 
     const Content = (
         <div className="h-full overflow-y-auto custom-scrollbar px-3 py-3">

@@ -1236,6 +1236,133 @@ export async function runGetInvoiceStatusAction(
   ].join("\n");
 }
 
+export async function runUpdateInvoiceFields(
+  workspaceId: string,
+  params: {
+    invoiceId?: string;
+    dealTitle?: string;
+    contactName?: string;
+    number?: string;
+    lineItems?: Array<{ desc: string; price: number; qty?: number }>;
+    subtotal?: number;
+    tax?: number;
+    total?: number;
+    issuedAtISO?: string | null;
+  }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  if (invoice.status === "VOID") {
+    return `Invoice ${invoice.number} is void and can't be edited.`;
+  }
+
+  if (invoice.status === "PAID") {
+    return `Invoice ${invoice.number} is already paid. Reverse the status before editing it.`;
+  }
+
+  const nextLineItems = params.lineItems?.length
+    ? params.lineItems.map((item) => ({
+        desc: item.desc,
+        price: Number(item.price),
+        qty: item.qty ?? 1,
+      }))
+    : Array.isArray(invoice.lineItems)
+      ? (invoice.lineItems as Array<Record<string, unknown>>)
+          .filter((item) => !!item && typeof item === "object")
+          .map((item) => ({
+            desc: typeof item.desc === "string" ? item.desc : "Item",
+            price: Number(item.price ?? 0),
+            qty: Number(item.qty ?? 1),
+          }))
+      : [];
+
+  const computedSubtotal = nextLineItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.qty || 1), 0);
+  const inferredSubtotal = params.subtotal ?? computedSubtotal ?? Number(invoice.subtotal);
+  const nextTax = params.tax ?? Number((inferredSubtotal * 0.1).toFixed(2));
+  const nextTotal = params.total ?? Number((inferredSubtotal + nextTax).toFixed(2));
+  const nextNumber = params.number?.trim() || invoice.number;
+  const nextIssuedAt =
+    params.issuedAtISO === undefined
+      ? invoice.issuedAt
+      : params.issuedAtISO === null
+        ? null
+        : new Date(params.issuedAtISO);
+
+  await db.invoice.update({
+    where: { id: invoice.id },
+    data: {
+      number: nextNumber,
+      lineItems: JSON.parse(JSON.stringify(nextLineItems)),
+      subtotal: inferredSubtotal,
+      tax: nextTax,
+      total: nextTotal,
+      issuedAt: nextIssuedAt,
+    },
+  });
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice updated",
+      content: `Updated invoice ${invoice.number}${nextNumber !== invoice.number ? ` to ${nextNumber}` : ""}.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  return `Updated invoice ${nextNumber} for "${invoice.deal.title}".`;
+}
+
+export async function runVoidInvoice(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  if (invoice.status === "VOID") {
+    return `Invoice ${invoice.number} is already void.`;
+  }
+
+  if (invoice.status === "PAID") {
+    return `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding it.`;
+  }
+
+  await db.invoice.update({
+    where: { id: invoice.id },
+    data: {
+      status: "VOID",
+      paidAt: null,
+    },
+  });
+
+  if (invoice.deal.stage === "INVOICED") {
+    await db.deal.update({
+      where: { id: invoice.dealId },
+      data: { stage: "CONTACTED", stageChangedAt: new Date() },
+    });
+  }
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice voided",
+      content: `Invoice ${invoice.number} was voided.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  return `Voided invoice ${invoice.number} for "${invoice.deal.title}".`;
+}
+
 function findTaskByTitle(
   tasks: Array<{ id: string; title: string; completed: boolean }>,
   query: string

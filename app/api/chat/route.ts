@@ -13,6 +13,11 @@ import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/te
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+type SelectionDeal = {
+  id: string;
+  title?: string;
+};
+
 function extractStickyTicketIdFromAssistantMessage(message: unknown): string | null {
   const raw = JSON.stringify(message ?? {});
   const match = raw.match(/\[STATE:\s*TICKET_CREATED\][\s\S]*?\[TICKET_ID:\s*([^\]]+)\]/i);
@@ -187,6 +192,18 @@ export async function POST(req: Request) {
     const body = await req.json();
     const messages = body.messages ?? [];
     const workspaceId = (body.workspaceId ?? body.data?.workspaceId ?? "").trim();
+    const selectedDeals = Array.isArray(body.data?.selectedDeals)
+      ? body.data.selectedDeals
+          .filter((item: unknown): item is SelectionDeal => {
+            if (!item || typeof item !== "object") return false;
+            const value = item as { id?: unknown };
+            return typeof value.id === "string" && value.id.trim().length > 0;
+          })
+          .map((item: SelectionDeal) => ({
+            id: item.id.trim(),
+            title: typeof item.title === "string" ? item.title.trim() : undefined,
+          }))
+      : [];
 
     if (!workspaceId || typeof workspaceId !== "string") {
       return new Response(
@@ -537,6 +554,11 @@ export async function POST(req: Request) {
     // handles this before streamText is reached, so it was always "".
 
     let toolCallsMs = 0;
+    const selectionContextStr = selectedDeals.length
+      ? `CURRENT CRM SELECTION:\n${selectedDeals
+          .map((deal: SelectionDeal, index: number) => `${index + 1}. ${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
+          .join("\n")}\nWhen the user says "these", "selected", or "current selection", use these deal IDs for bulk tools. Do not assume this selection if the user is referring to some other set.`
+      : "";
     const tools = instrumentToolsWithLatency(
       getAgentTools(workspaceId, settings, userId),
       (toolName, durationMs) => {
@@ -559,6 +581,7 @@ ${pricingRulesStr}
 ${bouncerStr}
 ${attachmentsStr}
 ${memoryContextStr}
+${selectionContextStr}
 
 MESSAGING: On "message/text/tell/send [name]" → call sendSms immediately, no confirmation. Send the user's EXACT words — never rewrite or refuse. Track pronouns ("her"/"him") from context. Confirm: "✅ Sent to [Name]: \"[msg]\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.
 

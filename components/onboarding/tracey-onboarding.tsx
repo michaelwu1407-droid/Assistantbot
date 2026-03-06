@@ -74,6 +74,27 @@ const TRADE_TYPE_ALIASES: Record<string, string> = {
   handyman: "Handyman", "handy man": "Handyman",
 }
 
+function resolveScrapedPhysicalAddress(data: {
+  address?: string
+  suburbs?: string[]
+  rawSummary?: string
+}) {
+  if (data.address?.trim()) return data.address.trim()
+  if (Array.isArray(data.suburbs) && data.suburbs.length > 0) {
+    const firstSuburb = data.suburbs.find((suburb) => suburb.trim().length > 0)
+    if (firstSuburb) return firstSuburb.trim()
+  }
+  if (data.rawSummary) {
+    const addressLikeMatch = data.rawSummary.match(
+      /\b(?:located in|based in|based at|service based in|servicing|serves)\s+([A-Za-z0-9\s,'-]{4,80})/i
+    )
+    if (addressLikeMatch?.[1]) {
+      return addressLikeMatch[1].trim().replace(/[.,;:]$/, "")
+    }
+  }
+  return ""
+}
+
 function matchTradeType(scraped: string): string {
   const lower = scraped.toLowerCase().trim()
   if (TRADE_TYPE_ALIASES[lower]) return TRADE_TYPE_ALIASES[lower]
@@ -447,8 +468,9 @@ export function TraceyOnboarding() {
         if (result.data.tradeType && !tradeType) setTradeType(matchTradeType(result.data.tradeType))
         if (result.data.phone && !publicPhone) setPublicPhone(result.data.phone)
         if (result.data.email && !publicEmail) setPublicEmail(result.data.email)
-        if (result.data.address && !physicalAddress) {
-          setPhysicalAddress(result.data.address)
+        const scrapedPhysicalAddress = resolveScrapedPhysicalAddress(result.data)
+        if (scrapedPhysicalAddress && !physicalAddress) {
+          setPhysicalAddress(scrapedPhysicalAddress)
         }
         if (result.data.operatingHours) {
           const parsed = parseOperatingHoursStructured(result.data.operatingHours)
