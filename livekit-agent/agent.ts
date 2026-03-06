@@ -324,6 +324,10 @@ Known caller details:
 - Treat these as known only if listed here. If something is unknown, ask for it instead of guessing.
 
 Important:
+- The system has already opened the call with: "Hi, is this ${caller.firstName || "there"}${caller.businessName ? ` from ${caller.businessName}` : ""}?"
+- Wait for the caller to answer before giving your own introduction.
+- After they respond, introduce yourself as "Hi, this is Tracey from Earlymark AI" and then continue naturally into the demo conversation.
+- Do not combine the identity-check line and the Earlymark introduction into one opening sentence.
 - This is a personalised demo. Make it feel like they are trying the product for their own business.
 - If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
 - Do not launch into a long summary at the end of the call.
@@ -384,10 +388,10 @@ function buildEarlymarkPrompt(callType: CallType, caller: CallerContext): string
 
 function getGreeting(callType: CallType, caller: CallerContext): string {
   if (callType === "demo" && caller.firstName) {
-    return `Hi, is this ${caller.firstName}? This is Tracey, an AI assistant from Earlymark AI.`;
+    return `Hi, is this ${caller.firstName}${caller.businessName ? ` from ${caller.businessName}` : ""}?`;
   }
   if (callType === "demo") {
-    return "Hi, this is Tracey, an AI assistant from Earlymark AI.";
+    return "Hi there.";
   }
   if (callType === "inbound_demo") {
     return "Hi, you've reached Earlymark AI. This is Tracey, an AI assistant from Earlymark AI. How can I help?";
@@ -654,6 +658,22 @@ export default defineAgent({
       minConsecutiveSpeechDelay: Number(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS || 180),
     });
 
+    // Explicitly subscribe to SIP audio tracks as they arrive.
+    // Earlier regressions showed that relying on the default path can leave STT with no caller audio.
+    ctx.room.on("trackPublished", (pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
+      try { pub.setSubscribed(true); } catch { /* ignore */ }
+    });
+    ctx.room.on("trackSubscribed", (track: any, _pub: any, p: any) => {
+      console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
+    });
+    for (const [, remoteParticipant] of ctx.room.remoteParticipants) {
+      for (const [, pub] of remoteParticipant.trackPublications) {
+        console.log(`${logPrefix} [TRACK] existing: kind=${pub.kind} participant=${remoteParticipant.identity}`);
+        try { pub.setSubscribed(true); } catch { /* ignore */ }
+      }
+    }
+
     const latencyAudit: LatencyAudit = {
       sttMs: [],
       llmMs: [],
@@ -719,7 +739,6 @@ export default defineAgent({
     await session.start({
       agent,
       room: ctx.room,
-      inputOptions: { participantIdentity: participant.identity },
     });
 
     session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {
@@ -880,9 +899,13 @@ export default defineAgent({
     });
 
     await session.say(greeting, {
-      allowInterruptions: true,
-      addToChatCtx: true,
+      allowInterruptions: false,
+      addToChatCtx: callType !== "demo",
     });
+    if (callType === "demo") {
+      console.log(`${logPrefix} [GREETING] Line 1 spoken via session.say(): "${greeting}"`);
+      console.log(`${logPrefix} [GREETING] Waiting for user response before LLM takes over`);
+    }
 
     wrapUpTimer = setTimeout(async () => {
       try {
