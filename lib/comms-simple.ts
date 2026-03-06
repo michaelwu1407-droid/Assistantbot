@@ -215,32 +215,6 @@ export async function initializeSimpleComms(
     // ────────────────────────────────────────────────────────────────
     // 4. Send Welcome SMS to the Tradie
     // ────────────────────────────────────────────────────────────────
-    stageReached = "welcome-sms";
-
-    if (ownerPhone) {
-      try {
-        await twilioMasterClient.messages.create({
-          to: ownerPhone,
-          from: purchasedNumber.phoneNumber,
-          body: `G'day from Pj Buddy! Your AI assistant is live on this number (${purchasedNumber.phoneNumber}). Clients who call or text this number will be handled by your voice agent. Manage everything at ${appUrl}/dashboard`,
-        });
-
-        await logActivity(
-          workspaceId,
-          "Welcome SMS Sent",
-          `Sent setup confirmation to ${ownerPhone}`
-        );
-      } catch (smsErr) {
-        // Non-fatal: the comms infra is set up even if welcome SMS fails
-        console.error("[initializeSimpleComms] Welcome SMS failed:", smsErr);
-        await logActivity(
-          workspaceId,
-          "Welcome SMS Failed",
-          `Could not send to ${ownerPhone}: ${smsErr instanceof Error ? smsErr.message : "Unknown error"}`
-        );
-      }
-    }
-
     stageReached = "complete";
     await logActivity(
       workspaceId,

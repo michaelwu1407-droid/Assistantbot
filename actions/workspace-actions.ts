@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { getAuthUser, getAuthUserId } from "@/lib/auth";
@@ -60,6 +60,64 @@ function toWorkspaceView(w: {
   };
 }
 
+type EnsureWorkspaceUserParams = {
+  workspaceId: string;
+  role?: UserRole;
+  name?: string | null;
+  phone?: string | null;
+  hasOnboarded?: boolean;
+};
+
+export async function ensureWorkspaceUserForAuth(
+  params: EnsureWorkspaceUserParams
+): Promise<{ id: string; email: string; workspaceId: string }> {
+  const authUser = await getAuthUser();
+  const authUserId = await getAuthUserId();
+
+  if (!authUser?.email) {
+    throw new Error("Authenticated user email not found");
+  }
+
+  const existingByEmail = await db.user.findUnique({
+    where: { email: authUser.email },
+    select: { id: true, email: true, workspaceId: true, role: true },
+  });
+
+  if (existingByEmail) {
+    await db.user.update({
+      where: { id: existingByEmail.id },
+      data: {
+        workspaceId: params.workspaceId,
+        role: params.role ?? existingByEmail.role,
+        ...(params.name !== undefined ? { name: params.name } : {}),
+        ...(params.phone !== undefined ? { phone: params.phone } : {}),
+        ...(params.hasOnboarded !== undefined ? { hasOnboarded: params.hasOnboarded } : {}),
+      },
+    });
+
+    return {
+      id: existingByEmail.id,
+      email: existingByEmail.email,
+      workspaceId: params.workspaceId,
+    };
+  }
+
+  const created = await db.user.create({
+    data: {
+      ...(authUserId ? { id: authUserId } : {}),
+      email: authUser.email,
+      name: params.name ?? authUser.name ?? null,
+      ...(params.phone !== undefined ? { phone: params.phone } : {}),
+      workspaceId: params.workspaceId,
+      role: params.role ?? "OWNER",
+      hasOnboarded: params.hasOnboarded ?? false,
+    },
+    select: { id: true, email: true, workspaceId: true },
+  });
+
+  return created;
+}
+
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
@@ -110,26 +168,16 @@ export async function getOrCreateWorkspace(
 
     // Ensure the workspace owner has a User row so they appear in team and kanban filter
     try {
-      const authUser = await getAuthUser();
-      if (authUser?.email && ownerId) {
-        const existingUser = await db.user.findUnique({
-          where: { email: authUser.email },
-          select: { id: true },
+      if (ownerId) {
+        const ensuredUser = await ensureWorkspaceUserForAuth({
+          workspaceId: workspace.id,
+          role: "OWNER",
         });
-        if (!existingUser) {
-          await db.user.create({
-            data: {
-              email: authUser.email,
-              name: authUser.name || null,
-              workspaceId: workspace.id,
-              role: "OWNER",
-            },
-          });
-          logger.authFlow("Created owner User row for new workspace", {
-            workspaceId: workspace.id,
-            email: authUser.email,
-          });
-        }
+        logger.authFlow("Ensured owner User row for new workspace", {
+          workspaceId: workspace.id,
+          email: ensuredUser.email,
+          appUserId: ensuredUser.id,
+        });
       }
     } catch (ownerUserError) {
       logger.workspaceError("Failed to ensure owner User row (non-fatal)", {
@@ -184,23 +232,14 @@ export async function ensureOwnerHasUserRow(workspace: WorkspaceView): Promise<v
     const authUser = await getAuthUser();
     if (!authUser?.email || authUser.id !== workspace.ownerId) return;
 
-    const existing = await db.user.findUnique({
-      where: { email: authUser.email },
-      select: { id: true },
-    });
-    if (existing) return;
-
-    await db.user.create({
-      data: {
-        email: authUser.email,
-        name: authUser.name || null,
-        workspaceId: workspace.id,
-        role: "OWNER",
-      },
-    });
-    logger.authFlow("Created owner User row for existing workspace", {
+    const ensuredUser = await ensureWorkspaceUserForAuth({
       workspaceId: workspace.id,
-      email: authUser.email,
+      role: "OWNER",
+    });
+    logger.authFlow("Ensured owner User row for existing workspace", {
+      workspaceId: workspace.id,
+      email: ensuredUser.email,
+      appUserId: ensuredUser.id,
     });
   } catch (e) {
     logger.workspaceError("ensureOwnerHasUserRow failed (non-fatal)", {

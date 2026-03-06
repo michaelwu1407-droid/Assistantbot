@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logging";
+import { sendProvisionedWelcomeSmsIfNeeded } from "@/lib/welcome-sms";
+import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "./workspace-actions";
 
 // ─── Australian Phone Validation ────────────────────────────────
 
@@ -59,8 +61,7 @@ const TraceyOnboardingSchema = z.object({
   tradeType: z.string().trim().min(1, "Trade type is required"),
   publicPhone: z.string().trim().optional(),
   publicEmail: z.string().trim().optional(),
-  physicalAddress: z.string().trim().optional(),
-  baseSuburb: z.string().trim().min(1, "Location is required"),
+  physicalAddress: z.string().trim().min(1, "Physical address is required"),
   serviceRadius: z.number().min(1).max(200).default(20),
   standardWorkHours: z.string().trim().min(1),
   emergencyService: z.boolean().default(false),
@@ -86,6 +87,46 @@ const TraceyOnboardingSchema = z.object({
 
 export type TraceyOnboardingData = z.infer<typeof TraceyOnboardingSchema>;
 
+function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return {};
+  }
+
+  return settings as Record<string, unknown>;
+}
+
+function deriveBaseSuburbFromAddress(address: string): string {
+  const match = address.match(/([^,]+),?\s*(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)?\s*\d{4}/i);
+  if (match?.[1]?.trim()) return match[1].trim();
+  return address.trim();
+}
+
+async function persistProvisioningState(params: {
+  workspaceId: string;
+  status: "already_provisioned" | "provisioned" | "failed" | "ready";
+  phoneNumber?: string;
+  error?: string;
+}) {
+  const workspace = await db.workspace.findUnique({
+    where: { id: params.workspaceId },
+    select: { settings: true },
+  });
+  const settings = getWorkspaceSettings(workspace?.settings);
+
+  await db.workspace.update({
+    where: { id: params.workspaceId },
+    data: {
+      settings: {
+        ...settings,
+        onboardingProvisioningStatus: params.status,
+        onboardingProvisionedNumber: params.phoneNumber ?? settings.onboardingProvisionedNumber ?? null,
+        onboardingProvisioningError: params.error ?? null,
+        onboardingProvisioningUpdatedAt: new Date().toISOString(),
+      },
+    },
+  });
+}
+
 // ─── Server Action ──────────────────────────────────────────────
 
 export async function saveTraceyOnboarding(
@@ -110,6 +151,7 @@ export async function saveTraceyOnboarding(
   }
 
   const d = parsed.data;
+  const baseSuburb = deriveBaseSuburbFromAddress(d.physicalAddress);
 
   // Get user email from auth
   const { getAuthUser } = await import("@/lib/auth");
@@ -126,42 +168,33 @@ export async function saveTraceyOnboarding(
 
   try {
     // Get or create workspace
-    const { getOrCreateWorkspace } = await import("@/actions/workspace-actions");
     const workspace = await getOrCreateWorkspace(userId, {
       name: d.businessName,
       type: "TRADIE",
       industryType: "TRADES",
-      location: d.baseSuburb,
+      location: d.physicalAddress,
+    });
+    const appUser = await ensureWorkspaceUserForAuth({
+      workspaceId: workspace.id,
+      role: "OWNER",
+      name: d.ownerName,
+      phone: d.phone,
     });
 
     // ── PHASE A: Transactional Core Writes ──
     await db.$transaction(async (tx) => {
-      // 1. Check if user exists, update if so, otherwise create
-      const existingUser = await tx.user.findUnique({
-        where: { id: userId },
+      // 1. Update the canonical app User row for the signed-in owner.
+      await tx.user.update({
+        where: { id: appUser.id },
+        data: {
+          email: authUser.email!,
+          name: d.ownerName,
+          phone: d.phone,
+          workspaceId: workspace.id,
+          role: "OWNER",
+          hasOnboarded: false,
+        },
       });
-
-      if (existingUser) {
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            name: d.ownerName,
-            phone: d.phone,
-            hasOnboarded: true,
-          },
-        });
-      } else {
-        await tx.user.create({
-          data: {
-            id: userId,
-            email: authUser.email!,
-            name: d.ownerName,
-            phone: d.phone,
-            hasOnboarded: true,
-            workspaceId: workspace.id,
-          },
-        });
-      }
 
       // 2. Update Workspace
       await tx.workspace.update({
@@ -170,8 +203,8 @@ export async function saveTraceyOnboarding(
           name: d.businessName,
           type: "TRADIE",
           industryType: "TRADES",
-          location: d.baseSuburb,
-          onboardingComplete: true,
+          location: d.physicalAddress,
+          onboardingComplete: false,
           agentMode: d.agentMode,
           workingHoursStart: d.standardWorkHours.split("-")[0]?.trim() || "08:00",
           workingHoursEnd: d.standardWorkHours.split("-")[1]?.trim() || "17:00",
@@ -181,16 +214,16 @@ export async function saveTraceyOnboarding(
 
       // 3. Upsert BusinessProfile
       const profile = await tx.businessProfile.upsert({
-        where: { userId },
+        where: { userId: appUser.id },
         create: {
-          userId,
+          userId: appUser.id,
           tradeType: d.tradeType,
           website: d.websiteUrl || null,
           businessName: d.businessName,
           publicPhone: d.publicPhone || null,
           publicEmail: d.publicEmail || null,
-          physicalAddress: d.physicalAddress || null,
-          baseSuburb: d.baseSuburb,
+          physicalAddress: d.physicalAddress,
+          baseSuburb,
           serviceRadius: d.serviceRadius,
           standardWorkHours: d.standardWorkHours,
           emergencyService: d.emergencyService,
@@ -206,8 +239,8 @@ export async function saveTraceyOnboarding(
           businessName: d.businessName,
           publicPhone: d.publicPhone || null,
           publicEmail: d.publicEmail || null,
-          physicalAddress: d.physicalAddress || null,
-          baseSuburb: d.baseSuburb,
+          physicalAddress: d.physicalAddress,
+          baseSuburb,
           serviceRadius: d.serviceRadius,
           standardWorkHours: d.standardWorkHours,
           emergencyService: d.emergencyService,
@@ -299,9 +332,9 @@ export async function saveTraceyOnboarding(
 
       // 5. Create PricingSettings
       await tx.pricingSettings.upsert({
-        where: { userId },
+        where: { userId: appUser.id },
         create: {
-          userId,
+          userId: appUser.id,
           mode: "STANDARD",
           callOutFee: d.globalCallOutFee || null,
           waiveFee: true,
@@ -336,17 +369,32 @@ export async function saveTraceyOnboarding(
 
       if (existingWorkspace?.twilioPhoneNumber) {
         phoneNumber = existingWorkspace.twilioPhoneNumber;
+        await persistProvisioningState({
+          workspaceId: workspace.id,
+          status: "already_provisioned",
+          phoneNumber,
+        });
       } else {
         const { provisionTradieCommsWithFallback } = await import("@/lib/comms-provision");
         const result = await provisionTradieCommsWithFallback(
-        workspace.id,
-        d.businessName,
-        d.phone
+          workspace.id,
+          d.businessName,
+          d.phone
         );
         if (result.success && result.phoneNumber) {
           phoneNumber = result.phoneNumber;
+          await persistProvisioningState({
+            workspaceId: workspace.id,
+            status: "provisioned",
+            phoneNumber,
+          });
         } else if (!result.success && result.error) {
           provisioningError = result.error;
+          await persistProvisioningState({
+            workspaceId: workspace.id,
+            status: "failed",
+            error: result.error,
+          });
           logger.error("Comms provisioning failed during Tracey onboarding", {
             workspaceId: workspace.id,
             error: result.error,
@@ -357,11 +405,64 @@ export async function saveTraceyOnboarding(
       }
     } catch (err) {
       provisioningError = err instanceof Error ? err.message : "Unknown error";
+      await persistProvisioningState({
+        workspaceId: workspace.id,
+        status: "failed",
+        error: provisioningError,
+      });
       logger.error("Comms provisioning threw during Tracey onboarding", {
         workspaceId: workspace.id,
         error: provisioningError,
       });
     }
+
+    if (!phoneNumber) {
+      return {
+        success: false,
+        error: provisioningError || "Tracey's phone number must be provisioned before activation.",
+        workspaceId: workspace.id,
+        leadsEmail,
+        provisioningError,
+        readiness,
+      };
+    }
+
+    try {
+      await sendProvisionedWelcomeSmsIfNeeded({
+        workspaceId: workspace.id,
+        businessName: d.businessName,
+        ownerPhone: d.phone,
+      });
+    } catch (welcomeError) {
+      logger.error("Failed to send Tracey welcome SMS", {
+        workspaceId: workspace.id,
+        error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError),
+      });
+    }
+
+    const workspaceWithSettings = await db.workspace.findUnique({
+      where: { id: workspace.id },
+      select: { settings: true },
+    });
+    const settings = getWorkspaceSettings(workspaceWithSettings?.settings);
+
+    await db.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        onboardingComplete: true,
+        settings: {
+          ...settings,
+          onboardingProvisioningStatus: "ready",
+          onboardingProvisionedNumber: phoneNumber,
+          onboardingProvisioningError: null,
+          onboardingActivatedAt: new Date().toISOString(),
+        },
+      },
+    });
+    await db.user.update({
+      where: { id: appUser.id },
+      data: { hasOnboarded: true },
+    });
 
     revalidatePath("/dashboard");
 

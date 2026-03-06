@@ -34,6 +34,8 @@ import {
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
 import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
+import { getAuthUser } from "@/lib/auth-client"
+import { createInvite } from "@/actions/invite-actions"
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -46,6 +48,8 @@ interface ServiceRow {
   priceMax: number | undefined
   traceyNotes: string
 }
+
+type ProvisioningStatus = "idle" | "provisioning" | "already_provisioned" | "provisioned" | "failed"
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -301,7 +305,6 @@ export function TraceyOnboarding() {
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
-  const [baseSuburb, setBaseSuburb] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
   const [workDays, setWorkDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"])
   const [workStartTime, setWorkStartTime] = useState("07:00")
@@ -379,18 +382,54 @@ export function TraceyOnboarding() {
     leadsEmail?: string
     provisioningError?: string
   } | null>(null)
-  const [eagerPhoneNumber, setEagerPhoneNumber] = useState<string | null>(null)
-  const [eagerProvisioningLoading, setEagerProvisioningLoading] = useState(false)
-  const [eagerProvisionAttempted, setEagerProvisionAttempted] = useState(false)
+  const [provisioningStatus, setProvisioningStatus] = useState<ProvisioningStatus>("idle")
+  const [resolvedPhoneNumber, setResolvedPhoneNumber] = useState<string | null>(null)
+  const [provisioningError, setProvisioningError] = useState<string | null>(null)
+  const [provisioningChecked, setProvisioningChecked] = useState(false)
 
   // Step 3 (Email): Inbox connection
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
   const [preGenLeadsEmail, setPreGenLeadsEmail] = useState<string | null>(null)
 
+  // Optional team invites on the last step
+  const [inviteRole, setInviteRole] = useState<"TEAM_MEMBER" | "MANAGER">("TEAM_MEMBER")
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteError, setInviteError] = useState("")
+  const [creatingInvite, setCreatingInvite] = useState(false)
+  const [generatedInviteLink, setGeneratedInviteLink] = useState("")
+
   // Step 2: Document uploads
   const [uploadedDocs, setUploadedDocs] = useState<Array<{ name: string; path: string; fileType?: string; fileSize?: number }>>([])
   const [uploadingFile, setUploadingFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const canActivateTracey =
+    (provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
+    Boolean(resolvedPhoneNumber)
+
+  useEffect(() => {
+    let active = true
+
+    ;(async () => {
+      try {
+        const authUser = await getAuthUser()
+        if (!active || !authUser) return
+
+        if (authUser.name) {
+          setOwnerName((current) => current || authUser.name)
+        }
+        if (authUser.email) {
+          setEmail((current) => current || authUser.email || "")
+        }
+      } catch {
+        // Silent fallback: onboarding still works without client-side auth prefill.
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   // ── Background Scraping ──
 
@@ -410,13 +449,6 @@ export function TraceyOnboarding() {
         if (result.data.email && !publicEmail) setPublicEmail(result.data.email)
         if (result.data.address && !physicalAddress) {
           setPhysicalAddress(result.data.address)
-          // Auto-extract suburb from address if not already set
-          if (!baseSuburb && result.data.address) {
-            const suburbMatch = result.data.address.match(/([^,]+),?\s*(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)?\s*\d{4}/i)
-            if (suburbMatch) {
-              setBaseSuburb(suburbMatch[1].trim())
-            }
-          }
         }
         if (result.data.operatingHours) {
           const parsed = parseOperatingHoursStructured(result.data.operatingHours)
@@ -428,7 +460,6 @@ export function TraceyOnboarding() {
           setEmergencyService(true)
           if (result.data.emergencyHours) setEmergencyHandling(result.data.emergencyHours)
         }
-        if (result.data.suburbs?.length && !baseSuburb) setBaseSuburb(result.data.suburbs[0])
         // Pre-fill services
         if (result.data.services?.length) {
           setServices(
@@ -447,7 +478,7 @@ export function TraceyOnboarding() {
     } finally {
       setScraping(false)
     }
-  }, [websiteUrl, businessName, tradeType, publicPhone, publicEmail, physicalAddress, baseSuburb])
+  }, [websiteUrl, businessName, tradeType, publicPhone, publicEmail, physicalAddress])
 
   // Trigger scrape when website URL is entered and user moves to step 2
   useEffect(() => {
@@ -467,59 +498,62 @@ export function TraceyOnboarding() {
     }
   }, [step, preGenLeadsEmail, ownerName, businessName])
 
-  // Eagerly provision phone number when entering step 6 (Go Live).
-  // Timeout + abort prevents indefinite spinner if the API call hangs.
-  useEffect(() => {
-    if (step !== 5 || eagerPhoneNumber || eagerProvisioningLoading || eagerProvisionAttempted || !businessName || !phone) return
-
-    const controller = new AbortController()
-    const timeoutMs = 8000
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-    let isActive = true
-
-    setEagerProvisionAttempted(true)
-    setEagerProvisioningLoading(true)
-
-    ;(async () => {
-      try {
-        const res = await fetch("/api/workspace/setup-comms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessName, ownerPhone: phone }),
-          signal: controller.signal,
-        })
-
-        const data = await res.json().catch(() => ({}))
-        if (!isActive) return
-
-        const provisionedNumber = data?.phoneNumber ?? data?.result?.phoneNumber
-        if (provisionedNumber) {
-          setEagerPhoneNumber(provisionedNumber)
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name !== "AbortError") {
-          console.error("Eager phone provisioning failed:", error)
-        }
-      } finally {
-        clearTimeout(timeoutId)
-        if (isActive) setEagerProvisioningLoading(false)
-      }
-    })()
-
-    return () => {
-      isActive = false
-      clearTimeout(timeoutId)
-      controller.abort()
+  const resolveProvisioning = useCallback(async () => {
+    if (!businessName.trim() || !phone.trim()) {
+      setProvisioningStatus("failed")
+      setProvisioningError("Business name and owner phone are required before provisioning.")
+      setResolvedPhoneNumber(null)
+      return
     }
-  }, [step, eagerPhoneNumber, eagerProvisioningLoading, eagerProvisionAttempted, businessName, phone])
+
+    setProvisioningStatus("provisioning")
+    setProvisioningError(null)
+
+    try {
+      const res = await fetch("/api/workspace/setup-comms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName, ownerPhone: phone }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      const provisionedNumber = data?.phoneNumber ?? data?.result?.phoneNumber ?? null
+
+      if (!res.ok || !provisionedNumber) {
+        setResolvedPhoneNumber(null)
+        setProvisioningStatus("failed")
+        setProvisioningError(data?.error || "We could not provision your Earlymark number. Please try again.")
+        return
+      }
+
+      setResolvedPhoneNumber(provisionedNumber)
+      setProvisioningError(null)
+      setProvisioningStatus(
+        data?.provisioningStatus === "already_provisioned" ? "already_provisioned" : "provisioned"
+      )
+    } catch (error) {
+      setResolvedPhoneNumber(null)
+      setProvisioningStatus("failed")
+      setProvisioningError(
+        error instanceof Error ? error.message : "We could not provision your Earlymark number. Please try again."
+      )
+    }
+  }, [businessName, phone])
+
+  useEffect(() => {
+    if (step !== 5 || provisioningChecked) return
+
+    setProvisioningChecked(true)
+    void resolveProvisioning()
+  }, [step, provisioningChecked, resolveProvisioning])
 
   // ── Validation ──
 
   const canAdvance = (): boolean => {
     switch (step) {
-      case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== "" && businessName.trim() !== ""
+      case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== "" && websiteUrl.trim() !== ""
       case 1: return true // always can advance from mode selector
-      case 2: return tradeType !== "" && baseSuburb.trim() !== ""
+      case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== ""
       case 3: return true
       case 4: return true
       default: return false
@@ -613,6 +647,37 @@ export function TraceyOnboarding() {
     setUploadedDocs((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleCreateInvite = async () => {
+    if (!inviteEmail.trim()) {
+      setInviteError("Enter a team member email first.")
+      return
+    }
+
+    setCreatingInvite(true)
+    setInviteError("")
+
+    try {
+      const result = await createInvite({
+        role: inviteRole,
+        email: inviteEmail.trim(),
+      })
+
+      if (!result.success || !result.token) {
+        setInviteError(result.error || "Could not create the invite.")
+        return
+      }
+
+      const origin = typeof window !== "undefined" ? window.location.origin : ""
+      setGeneratedInviteLink(`${origin}/invite/join?token=${result.token}`)
+      toast.success(`Invite sent to ${inviteEmail.trim()}`)
+      setInviteEmail("")
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : "Could not create the invite.")
+    } finally {
+      setCreatingInvite(false)
+    }
+  }
+
   // ── Submit ──
 
   const handleSubmit = async () => {
@@ -629,7 +694,6 @@ export function TraceyOnboarding() {
         publicPhone,
         publicEmail,
         physicalAddress,
-        baseSuburb,
         serviceRadius,
         standardWorkHours: `${workDays.join(", ")}, ${workStartTime}-${workEndTime}`,
         emergencyService,
@@ -650,11 +714,15 @@ export function TraceyOnboarding() {
 
       const result = await saveTraceyOnboarding(data)
       if (result.success) {
+        const finalPhoneNumber = result.phoneNumber || resolvedPhoneNumber || undefined
         setProvisionResult({
-          phoneNumber: result.phoneNumber,
+          phoneNumber: finalPhoneNumber,
           leadsEmail: result.leadsEmail,
           provisioningError: result.provisioningError,
         })
+        if (finalPhoneNumber) {
+          setResolvedPhoneNumber(finalPhoneNumber)
+        }
         toast.success("Welcome aboard! Tracey is ready to go.")
       } else {
         toast.error(result.error || "Something went wrong")
@@ -768,41 +836,26 @@ export function TraceyOnboarding() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Business Name</Label>
+                        <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Website URL</Label>
                         <Input
-                          placeholder="e.g. Smith's Plumbing"
-                          value={businessName}
-                          onChange={(e) => setBusinessName(e.target.value)}
+                          placeholder="https://yoursite.com.au"
+                          value={websiteUrl}
+                          onChange={(e) => {
+                            setWebsiteUrl(e.target.value)
+                            scrapeTriggered.current = false // allow re-scrape on change
+                          }}
                         />
                       </div>
                     </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Website URL</Label>
-                      <Input
-                        placeholder="https://yoursite.com.au"
-                        value={websiteUrl}
-                        onChange={(e) => {
-                          setWebsiteUrl(e.target.value)
-                          scrapeTriggered.current = false // allow re-scrape on change
-                        }}
-                      />
-                      <p className="text-xs text-slate-500">
-                        Tracey will pre-fill your details using your website
-                      </p>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      Tracey will pre-fill your business details from your website so you only correct what matters.
+                    </p>
                   </div>
                 )}
 
                 {/* ──── STEP 2: Autonomy Selector ──── */}
                 {step === 1 && (
                   <div className="space-y-5">
-                    {scraping && (
-                      <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
-                        <Globe className="h-4 w-4 animate-spin" />
-                        Got it! I&apos;m scanning your site now to see how I can best represent your business.
-                      </div>
-                    )}
 
                     <TraceyBubble text="How much freedom do you want to give me? Pick a mode — you can always change it later in Settings." />
 
@@ -910,12 +963,7 @@ export function TraceyOnboarding() {
                 {/* ──── STEP 3: Scrape Review & Business Deep-Dive ──── */}
                 {step === 2 && (
                   <div className="space-y-5">
-                    {scraping ? (
-                      <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Still scanning your website...
-                      </div>
-                    ) : scrapeData ? (
+                    {scrapeData ? (
                       <TraceyBubble text="I found some details from your website! Have a look and adjust anything that's not right." />
                     ) : (
                       <TraceyBubble text="Tell me about your business so I know how to handle calls and enquiries." />
@@ -927,6 +975,14 @@ export function TraceyOnboarding() {
                         <Building2 className="h-4 w-4" /> Business Identity
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>Business Name</Label>
+                          <Input
+                            placeholder="e.g. Smith's Plumbing"
+                            value={businessName}
+                            onChange={(e) => setBusinessName(e.target.value)}
+                          />
+                        </div>
                         <div className="space-y-1.5">
                           <Label>Trade Type</Label>
                           <Select value={tradeType} onValueChange={setTradeType}>
@@ -956,14 +1012,6 @@ export function TraceyOnboarding() {
                             onChange={(e) => setPublicEmail(e.target.value)}
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <Label>Physical Address</Label>
-                          <Input
-                            placeholder="123 Trade St, Suburb"
-                            value={physicalAddress}
-                            onChange={(e) => setPhysicalAddress(e.target.value)}
-                          />
-                        </div>
                       </div>
                     </div>
 
@@ -973,12 +1021,15 @@ export function TraceyOnboarding() {
                         <MapPin className="h-4 w-4" /> Location & Service Area
                       </h3>
                       <div className="space-y-1.5">
-                        <Label>Base Suburb</Label>
+                        <Label>Physical Address</Label>
                         <Input
-                          placeholder="e.g. Parramatta, NSW"
-                          value={baseSuburb}
-                          onChange={(e) => setBaseSuburb(e.target.value)}
+                          placeholder="123 Trade St, Parramatta NSW 2150"
+                          value={physicalAddress}
+                          onChange={(e) => setPhysicalAddress(e.target.value)}
                         />
+                        <p className="text-xs text-slate-500">
+                          We use this address as Tracey&apos;s home base when calculating your service area.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -1438,7 +1489,7 @@ export function TraceyOnboarding() {
                   <div className="space-y-5">
                     {!provisionResult ? (
                       <>
-                        <TraceyBubble text="Almost there! One quick question before I go live..." />
+                        <TraceyBubble text="Almost there. I need your dedicated number ready before you can activate Tracey." />
 
                         <div className="space-y-1.5">
                           <Label>How did you hear about us?</Label>
@@ -1459,22 +1510,26 @@ export function TraceyOnboarding() {
                         </div>
 
                         <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
-                          <h3 className="font-semibold text-sm">What happens when you activate:</h3>
+                          <h3 className="font-semibold text-sm">Your activation checklist</h3>
                           <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                               <span>
-                                {eagerProvisioningLoading ? (
+                                {provisioningStatus === "provisioning" ? (
                                   <span className="flex items-center gap-2">
                                     <Loader2 className="h-3 w-3 animate-spin" />
                                     Provisioning your dedicated AU phone number...
                                   </span>
-                                ) : eagerPhoneNumber ? (
+                                ) : resolvedPhoneNumber ? (
                                   <span>
-                                    Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{eagerPhoneNumber}</strong>
+                                    Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{resolvedPhoneNumber}</strong>
+                                  </span>
+                                ) : provisioningStatus === "failed" ? (
+                                  <span className="text-red-600 dark:text-red-400">
+                                    Number provisioning failed. Retry below before activation.
                                   </span>
                                 ) : (
-                                  "Tracey's dedicated AU phone number will be provisioned instantly"
+                                  "We are checking your Earlymark number setup now."
                                 )}
                               </span>
                             </li>
@@ -1487,17 +1542,99 @@ export function TraceyOnboarding() {
                               <span>A welcome SMS will be sent to <strong>{phone || "your mobile"}</strong></span>
                             </li>
                           </ul>
+                          {provisioningError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                              {provisioningError}
+                            </div>
+                          )}
+                          {provisioningStatus === "failed" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setProvisioningChecked(true)
+                                void resolveProvisioning()
+                              }}
+                              className="gap-2"
+                            >
+                              <Loader2 className="h-4 w-4" />
+                              Retry number setup
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
+                          <div>
+                            <h3 className="font-semibold text-sm">Invite your team</h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Optional. Invite managers or team members now, or skip and do it later from the dashboard.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3">
+                            <div className="space-y-1.5">
+                              <Label>Team member email</Label>
+                              <Input
+                                placeholder="team@example.com"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Role</Label>
+                              <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as "TEAM_MEMBER" | "MANAGER")}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+                                  <SelectItem value="MANAGER">Manager</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-3 sm:flex-row">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleCreateInvite}
+                              disabled={creatingInvite || !inviteEmail.trim()}
+                              className="gap-2"
+                            >
+                              {creatingInvite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                              Send invite
+                            </Button>
+                            {generatedInviteLink && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(generatedInviteLink)
+                                  toast.success("Invite link copied")
+                                }}
+                              >
+                                Copy invite link
+                              </Button>
+                            )}
+                          </div>
+                          {inviteError && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{inviteError}</p>
+                          )}
                         </div>
 
                         <Button
                           onClick={handleSubmit}
-                          disabled={submitting}
+                          disabled={submitting || !canActivateTracey}
                           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11"
                         >
                           {submitting ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Setting up your account...
+                            </>
+                          ) : !canActivateTracey ? (
+                            <>
+                              <Loader2 className="h-4 w-4" />
+                              Waiting for your number
                             </>
                           ) : (
                             <>
@@ -1534,7 +1671,7 @@ export function TraceyOnboarding() {
                           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-lg p-4 text-left">
                             <p className="text-xs font-semibold text-amber-600 uppercase mb-1">Phone Setup Note</p>
                             <p className="text-sm text-amber-700 dark:text-amber-400">
-                              {provisionResult.provisioningError}. You can set this up later in Settings.
+                              {provisionResult.provisioningError}
                             </p>
                           </div>
                         )}
