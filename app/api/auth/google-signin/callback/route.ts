@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const code = searchParams.get("code")
   const error = searchParams.get("error")
-  const nextPath = searchParams.get("state") || "/setup"
+  const nextPath = searchParams.get("state") || "/auth/next"
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin
 
   if (error) {

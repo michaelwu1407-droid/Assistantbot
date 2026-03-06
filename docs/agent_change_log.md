@@ -302,3 +302,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Allowed the active onboarding flow to complete when provisioning status is `not_requested`, while keeping duplicate blocks, queued payment states, and real provisioning failures gated. The final step now permits activation without a number only in that one billing-toggle-missed case and updates the post-activation messaging accordingly.
 - Why: A paid workspace that missed the temporary billing toggle should still be able to finish onboarding instead of being trapped at the last step. The dedicated number can be provisioned later from billing or settings without blocking initial setup.
 
+### 2026-03-07 00:56 (AEDT) - codex
+- Files: `app/api/auth/google-signin/callback/route.ts`, `app/onboarding/page.tsx`, `docs/agent_change_log.md`
+- What changed: Fixed auth routing so Google sign-in now defaults back to `/auth/next` instead of bypassing the billing gate and dropping users straight into setup. Also changed the stale `/onboarding` page to redirect into `/auth/next` so there is no direct onboarding entrypoint that can skip the Stripe-before-onboarding flow.
+- Why: The intended flow is auth -> billing -> setup -> dashboard. These two routes were still capable of sending users to onboarding before payment, which is why signup could appear to skip Stripe.
+

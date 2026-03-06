@@ -1,5 +1,5 @@
-import { TraceyOnboarding } from "@/components/onboarding/tracey-onboarding";
+import { redirect } from "next/navigation";
 
 export default function OnboardingPage() {
-  return <TraceyOnboarding />;
+  redirect("/auth/next");
 }
