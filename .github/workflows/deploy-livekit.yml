@@ -1,0 +1,19 @@
+name: Deploy LiveKit Agent
+on:
+  push:
+    branches: [main]
+    paths: ['livekit-agent/**']
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/livekit-agent
+            git pull origin main
+            sudo docker compose up -d --build

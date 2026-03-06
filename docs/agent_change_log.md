@@ -118,3 +118,8 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `prisma/migrations/20260306_add_voice_call_logs/migration.sql`
 - What changed: Made the `VoiceCall` migration idempotent by switching table and index creation to `IF NOT EXISTS` and guarding foreign-key creation with `pg_constraint` checks.
 - Why: Recover from environments where the `VoiceCall` table already exists because schema changes were applied before `prisma migrate deploy` reached this migration.
+
+### 2026-03-06 16:05 (AEDT) - codex
+- Files: `.github/workflows/deploy-livekit.yml`
+- What changed: Added a GitHub Actions workflow that triggers on `main` pushes affecting `livekit-agent/**` and deploys the LiveKit agent over SSH by pulling the repo and rebuilding the Docker Compose stack on the target host.
+- Why: Automate LiveKit agent deployment so worker updates do not rely on manual SSH redeploy steps after every push.
