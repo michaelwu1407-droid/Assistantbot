@@ -166,3 +166,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Refined the inbound_demo prompt so Tracey clearly acts as Earlymark AI's lead-qualification assistant rather than a receptionist for the caller's business, emphasised that this flow should mirror the interview-form demo except that inbound calls require more proactive contact-detail capture, and toned down the Australian styling to avoid forced slang. Also simplified the inbound greeting and Earlymark goodbye copy to remove heavier dialect cues.
 - Why: The inbound demo requirements are different from normal customer-assistant calls. The current wording was causing Tracey to lean toward the wrong identity and sound overly Australian instead of natural.
 
+### 2026-03-06 17:58 (AEDT) - codex
+- Files: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- What changed: Adjusted the shared and Earlymark-specific style instructions so `G'day` is allowed again when it sounds natural and is pronounced correctly, while still discouraging forced or exaggerated slang.
+- Why: `G'day` itself is acceptable. The actual quality bar is natural delivery, not banning the phrase outright.
+
