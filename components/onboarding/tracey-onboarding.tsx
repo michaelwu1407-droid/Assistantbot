@@ -798,28 +798,39 @@ export function TraceyOnboarding() {
         </div>
 
         {/* Progress Bar */}
-        <div className="flex items-center justify-between mb-6 px-1">
+        <div className="flex items-start justify-between mb-6 px-1">
           {STEPS.map((s, i) => {
             const Icon = s.icon
             const isActive = i === step
             const isDone = i < step
+            const canJumpToStep = i <= step
             return (
               <div key={s.label} className="contents">
-                <div className="flex flex-col items-center gap-1 flex-1">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
-                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
-                        : isDone
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                          : "bg-slate-200 text-slate-400 dark:bg-slate-800"
-                      }`}
-                  >
-                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!canJumpToStep) return
+                    setStep(i)
+                  }}
+                  disabled={!canJumpToStep}
+                  className={`flex flex-col items-center gap-1 flex-1 text-center ${canJumpToStep ? "cursor-pointer" : "cursor-not-allowed"}`}
+                >
+                  <div className="h-9 flex items-center justify-center">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
+                          ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
+                          : isDone
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                            : "bg-slate-200 text-slate-400 dark:bg-slate-800"
+                        }`}
+                    >
+                      {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                    </div>
                   </div>
                   <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
                     {s.label}
                   </span>
-                </div>
+                </button>
                 {i < STEPS.length - 1 && (
                   <div className="flex items-center h-9">
                     <svg 

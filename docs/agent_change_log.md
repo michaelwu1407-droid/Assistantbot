@@ -307,3 +307,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Fixed auth routing so Google sign-in now defaults back to `/auth/next` instead of bypassing the billing gate and dropping users straight into setup. Also changed the stale `/onboarding` page to redirect into `/auth/next` so there is no direct onboarding entrypoint that can skip the Stripe-before-onboarding flow.
 - Why: The intended flow is auth -> billing -> setup -> dashboard. These two routes were still capable of sending users to onboarding before payment, which is why signup could appear to skip Stripe.
 
+### 2026-03-07 01:02 (AEDT) - codex
+- Files: `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- What changed: Adjusted the onboarding progress stepper so the connector arrows align to the centerline of the step circles rather than the combined circle-plus-label block, and made completed/current steps clickable so users can jump back directly from the progress bar.
+- Why: The previous stepper alignment was visually off, and users needed a faster way to return to earlier onboarding steps without repeatedly using the back button.
+
