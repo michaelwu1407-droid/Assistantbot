@@ -4,6 +4,7 @@ import {
     runMoveDeal,
     runListDeals,
     runCreateDeal,
+    runUpdateDealFields,
     runCreateJobNatural,
     runProposeReschedule,
     runUpdateInvoiceAmount,
@@ -12,11 +13,15 @@ import {
     runCreateTask,
     runSearchContacts,
     runCreateContact,
+    runUpdateContactFields,
     runSendSms,
     runSendEmail,
     runMakeCall,
     runGetConversationHistory,
     runCreateScheduledNotification,
+    runCompleteTaskByTitle,
+    runDeleteTaskByTitle,
+    runListRecentCrmChanges,
     runUndoLastAction,
     runAssignTeamMember,
     handleSupportRequest,
@@ -66,6 +71,18 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async ({ title, company, value }) =>
                 runCreateDeal(workspaceId, { title, company, value }),
+        }),
+        updateDealFields: tool({
+            description: "Update job/deal fields like title, value, address, schedule, or stage.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Current job/deal title"),
+                newTitle: z.string().optional().describe("New title"),
+                value: z.number().optional().describe("New value in dollars"),
+                address: z.string().optional().describe("New address"),
+                schedule: z.string().optional().describe("New schedule, e.g. tomorrow 2pm"),
+                newStage: z.string().optional().describe("New stage name"),
+            }),
+            execute: async (params) => runUpdateDealFields(workspaceId, params),
         }),
         createJobNatural: tool({
             description: "Create a job from natural language. Always extract phone if included. Pass schedule when date/time is mentioned.",
@@ -146,6 +163,20 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async (params) => runCreateTask(params),
         }),
+        completeTask: tool({
+            description: "Mark a task as complete by its title.",
+            inputSchema: z.object({
+                title: z.string().describe("Task title"),
+            }),
+            execute: async ({ title }) => runCompleteTaskByTitle(workspaceId, title),
+        }),
+        deleteTask: tool({
+            description: "Delete a task by its title.",
+            inputSchema: z.object({
+                title: z.string().describe("Task title"),
+            }),
+            execute: async ({ title }) => runDeleteTaskByTitle(workspaceId, title),
+        }),
         searchContacts: tool({
             description: "Look up contacts by name or keyword in the CRM.",
             inputSchema: z.object({
@@ -161,6 +192,18 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
                 phone: z.string().optional().describe("Phone number"),
             }),
             execute: async (params) => runCreateContact(workspaceId, params),
+        }),
+        updateContactFields: tool({
+            description: "Update contact fields like name, phone, email, address, or company.",
+            inputSchema: z.object({
+                contactName: z.string().describe("Existing contact name"),
+                newName: z.string().optional().describe("Updated name"),
+                email: z.string().optional().describe("Updated email"),
+                phone: z.string().optional().describe("Updated phone"),
+                address: z.string().optional().describe("Updated address"),
+                company: z.string().optional().describe("Updated company"),
+            }),
+            execute: async (params) => runUpdateContactFields(workspaceId, params),
         }),
         sendSms: tool({
             description: "Send an SMS to a contact by name. When this is customer-facing outreach, Tracey for users mode applies: execute sends immediately, review & approve drafts without sending, info only blocks sending.",
@@ -198,6 +241,13 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async ({ contactName, limit }) =>
                 runGetConversationHistory(workspaceId, { contactName, limit }),
+        }),
+        listRecentCrmChanges: tool({
+            description: "List the most recent CRM changes and assistant actions.",
+            inputSchema: z.object({
+                limit: z.number().optional().describe("Max changes to list (default 10)"),
+            }),
+            execute: async ({ limit }) => runListRecentCrmChanges(workspaceId, limit),
         }),
         createNotification: tool({
             description: "Create a scheduled notification or reminder alert.",

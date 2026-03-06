@@ -252,3 +252,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Cleaned up the remaining UI terminology and onboarding copy to match the canonical assistant model. The settings screen now shows the exact mode names `Execute`, `Review & approve`, and `Info only` while keeping the legacy stored enum values underneath. Onboarding copy now avoids scrape-first wording, uses the exact inbox mode label `Review & approve`, and softens the final-step number setup copy so it reflects a deterministic setup state instead of an endless provisioning loop.
 - Why: The backend smart-agent work established the correct policy and taxonomy, but the UI still exposed legacy mode names and scrape/provisioning language that no longer matched the actual flow.
 
+### 2026-03-06 22:02 (AEDT) - codex
+- Files: `actions/chat-actions.ts`, `docs/agent_change_log.md`, `lib/ai/tools.ts`
+- What changed: Expanded the CRM chatbot's explicit tool surface with safe CRM operations that already have backing server logic: updating deal fields, updating contact fields, completing tasks by title, deleting tasks by title, and listing recent CRM changes/activity. These were added as dedicated chatbot tools instead of relying on the model to improvise broad CRM mutations.
+- Why: The next platform gap after onboarding was deeper, explicit CRM control for the chatbot. This tranche improves real operational coverage without making the assistant unrestricted or bypassing the existing customer-contact mode enforcement.
+

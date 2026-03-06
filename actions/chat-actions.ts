@@ -7,7 +7,7 @@ import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
-import { createTask } from "./task-actions";
+import { completeTask, createTask, deleteTask, getTasks } from "./task-actions";
 import { createNotification } from "./notification-actions";
 import { generateMorningDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
@@ -455,6 +455,71 @@ export async function runCreateDeal(
   };
 }
 
+export async function runUpdateDealFields(
+  workspaceId: string,
+  params: {
+    dealTitle: string;
+    newTitle?: string;
+    value?: number;
+    address?: string;
+    schedule?: string;
+    newStage?: string;
+  }
+): Promise<{ success: boolean; message: string; dealId?: string }> {
+  const deals = await getDeals(workspaceId);
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
+    return {
+      success: false,
+      message: `Couldn't find a job matching "${params.dealTitle}".${deals.length > 0 ? ` Current jobs: ${suggestions}` : " No jobs yet."}`,
+    };
+  }
+
+  const payload: {
+    title?: string;
+    value?: number;
+    address?: string | null;
+    scheduledAt?: string | null;
+    stage?: string;
+  } = {};
+
+  if (params.newTitle?.trim()) payload.title = params.newTitle.trim();
+  if (typeof params.value === "number") payload.value = params.value;
+  if (params.address !== undefined) payload.address = params.address.trim() || null;
+  if (params.schedule !== undefined) payload.scheduledAt = params.schedule.trim() || null;
+  if (params.newStage?.trim()) {
+    const resolvedStage = resolveStage(params.newStage.trim());
+    if (!resolvedStage) {
+      return { success: false, message: `Unknown stage "${params.newStage}".` };
+    }
+    payload.stage = resolvedStage;
+  }
+
+  if (!Object.keys(payload).length) {
+    return { success: false, message: "No job changes were provided." };
+  }
+
+  const { updateDeal } = await import("./deal-actions");
+  const result = await updateDeal(deal.id, payload);
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Failed to update the job." };
+  }
+
+  const changes: string[] = [];
+  if (payload.title) changes.push(`title`);
+  if (typeof payload.value === "number") changes.push(`value`);
+  if (payload.address !== undefined) changes.push(`address`);
+  if (payload.scheduledAt !== undefined) changes.push(`schedule`);
+  if (payload.stage) changes.push(`stage`);
+
+  return {
+    success: true,
+    message: `Updated "${deal.title}" (${changes.join(", ")}).`,
+    dealId: deal.id,
+  };
+}
+
 /**
  * Record manual revenue for a period (e.g. when the user says "I made $200 in February" and the app shows $0).
  * Creates a completed deal so getFinancialReport includes it. Only team managers (OWNER/MANAGER) can confirm; team members must ask their manager.
@@ -839,6 +904,83 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
   }
 }
 
+function findTaskByTitle(
+  tasks: Array<{ id: string; title: string; completed: boolean }>,
+  query: string
+) {
+  const normalized = query.toLowerCase().trim();
+  const exact = tasks.find((task) => task.title.toLowerCase().trim() === normalized);
+  if (exact) return exact;
+  const contains = tasks.find((task) => task.title.toLowerCase().includes(normalized));
+  if (contains) return contains;
+  return null;
+}
+
+export async function runCompleteTaskByTitle(workspaceId: string, title: string) {
+  try {
+    const tasks = await getTasks({ workspaceId, completed: false, limit: 100 });
+    const task = findTaskByTitle(tasks, title);
+    if (!task) return `Couldn't find an open task matching "${title}".`;
+    await completeTask(task.id);
+    return `Completed task "${task.title}".`;
+  } catch (err) {
+    return `Error completing task: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+export async function runDeleteTaskByTitle(workspaceId: string, title: string) {
+  try {
+    const tasks = await getTasks({ workspaceId, limit: 100 });
+    const task = findTaskByTitle(tasks, title);
+    if (!task) return `Couldn't find a task matching "${title}".`;
+    await deleteTask(task.id);
+    return `Deleted task "${task.title}".`;
+  } catch (err) {
+    return `Error deleting task: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+export async function runUpdateContactFields(
+  workspaceId: string,
+  params: {
+    contactName: string;
+    newName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    company?: string;
+  }
+) {
+  try {
+    const contacts = await searchContacts(workspaceId, params.contactName);
+    if (!contacts.length) return `Couldn't find a contact matching "${params.contactName}".`;
+
+    const contact = contacts[0];
+    const updates = {
+      contactId: contact.id,
+      ...(params.newName?.trim() ? { name: params.newName.trim() } : {}),
+      ...(params.email !== undefined ? { email: params.email.trim() } : {}),
+      ...(params.phone !== undefined ? { phone: params.phone.trim() } : {}),
+      ...(params.address !== undefined ? { address: params.address.trim() } : {}),
+      ...(params.company !== undefined ? { company: params.company.trim() } : {}),
+    };
+
+    if (Object.keys(updates).length === 1) {
+      return "No contact changes were provided.";
+    }
+
+    const { updateContact } = await import("./contact-actions");
+    const result = await updateContact(updates);
+    if (!result.success) {
+      return `Failed to update ${contact.name}: ${result.error ?? "Unknown error."}`;
+    }
+
+    return `Updated ${contact.name}.`;
+  } catch (err) {
+    return `Error updating contact: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 /**
  * AI Tool Action: Send SMS to a contact.
  * Looks up the contact by name, finds or creates a Twilio subaccount client,
@@ -1216,6 +1358,41 @@ export async function runGetConversationHistory(
     return `Conversation history with ${contact.name} (${contact.phone || "no phone"}):\n${limited.map(i => i.text).join("\n")}`;
   } catch (err) {
     return `Error fetching history: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+export async function runListRecentCrmChanges(
+  workspaceId: string,
+  limit: number = 10
+): Promise<string> {
+  try {
+    const activities = await db.activity.findMany({
+      where: {
+        OR: [
+          { deal: { workspaceId } },
+          { contact: { workspaceId } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: Math.max(1, Math.min(limit, 20)),
+      include: {
+        deal: { select: { title: true } },
+        contact: { select: { name: true } },
+        user: { select: { name: true } },
+      },
+    });
+
+    if (!activities.length) {
+      return "No recent CRM changes were found.";
+    }
+
+    return "Recent CRM changes:\n" + activities.map((activity) => {
+      const subject = activity.deal?.title || activity.contact?.name || "general CRM";
+      const actor = activity.user?.name ? ` by ${activity.user.name}` : "";
+      return `- ${activity.title} on ${subject}${actor} (${formatTimeAgo(activity.createdAt)})`;
+    }).join("\n");
+  } catch (err) {
+    return `Error loading recent CRM changes: ${err instanceof Error ? err.message : String(err)}`;
   }
 }
 
