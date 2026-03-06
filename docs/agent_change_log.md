@@ -282,3 +282,18 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Restored the homepage from the last accepted `Hire Tracey today` layout by bringing back the centered chat demo plus zigzag feature-card section, kept the approved hero heading copy, kept the CRM pronoun fix (`They`), and removed the interview-form header icon again. Removed the direct Twilio provisioning path from onboarding activation so onboarding now resolves numbers only through the centralized billing-gated provisioning helper, added a dedicated `onboarding-activation` trigger source, and expanded onboarding UI state handling to surface `requested`, `not_requested`, and `blocked_duplicate` instead of flattening those outcomes into generic failure. Added a critical-surface regression rule to `AGENTS.md` covering homepage restores and centralized provisioning.
 - Why: The repo had regressed into a mixed homepage state after a later whole-file overwrite, and onboarding could still bypass the beta provisioning gate and duplicate-number protection by provisioning directly during activation. This change restores the accepted homepage baseline and closes the duplicate provisioning path so billing, onboarding, and provisioning all obey the same source of truth.
 
+### 2026-03-07 00:34 (AEDT) - codex
+- Files: `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- What changed: Added a hard next-step guard to the onboarding wizard so the step-advance click path re-checks validation before moving forward, instead of relying only on the button's disabled state.
+- Why: Step 1 should never advance without the required website URL, even if the UI button state is bypassed by a browser quirk or unexpected interaction path.
+
+### 2026-03-07 00:41 (AEDT) - codex
+- Files: `actions/tracey-onboarding.ts`, `components/onboarding/setup-chat.tsx`, `docs/agent_change_log.md`
+- What changed: Removed the unused legacy chat-style onboarding component from the repo and updated the active onboarding completion path so it writes `provisioned` instead of the shadow `ready` provisioning state after successful activation.
+- Why: The legacy setup-chat path was stale onboarding surface area that could be reintroduced accidentally later, and the extra `ready` state created unnecessary drift from the centralized provisioning state model.
+
+### 2026-03-07 00:44 (AEDT) - codex
+- Files: `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- What changed: Relaxed step 1 onboarding validation so users can continue without a website URL while still requiring owner name, phone, and email.
+- Why: The onboarding copy already presents the website as optional, so blocking the step on a blank website field was inconsistent with the intended flow.
+

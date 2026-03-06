@@ -104,7 +104,7 @@ function deriveBaseSuburbFromAddress(address: string): string {
 
 async function persistProvisioningState(params: {
   workspaceId: string;
-  status: WorkspaceProvisioningStatus | "ready";
+  status: WorkspaceProvisioningStatus;
   phoneNumber?: string;
   error?: string;
 }) {
@@ -454,7 +454,7 @@ export async function saveTraceyOnboarding(
         onboardingComplete: true,
         settings: {
           ...settings,
-          onboardingProvisioningStatus: "ready",
+          onboardingProvisioningStatus: "provisioned",
           onboardingProvisionedNumber: phoneNumber,
           onboardingProvisioningError: null,
           onboardingActivatedAt: new Date().toISOString(),

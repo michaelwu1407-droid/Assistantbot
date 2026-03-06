@@ -593,7 +593,7 @@ export function TraceyOnboarding() {
 
   const canAdvance = (): boolean => {
     switch (step) {
-      case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== "" && websiteUrl.trim() !== ""
+      case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== ""
       case 1: return true // always can advance from mode selector
       case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== ""
       case 3: return true
@@ -1746,7 +1746,10 @@ export function TraceyOnboarding() {
                       <div />
                     )}
                     <Button
-                      onClick={() => setStep(step + 1)}
+                      onClick={() => {
+                        if (!canAdvance()) return
+                        setStep(step + 1)
+                      }}
                       disabled={!canAdvance()}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
                     >
