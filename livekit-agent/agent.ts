@@ -364,59 +364,33 @@ Important:
 function buildInboundDemoPrompt(caller: CallerContext): string {
   return `You are Tracey, an AI assistant from Earlymark AI.
 
-This is an inbound Earlymark AI sales call. The caller rang Earlymark to learn what Tracey can do for their business.
+This is an inbound Earlymark AI sales call.
 
 Identity:
 - Introduce yourself as "Tracey, an AI assistant for Earlymark AI."
-- You work for Earlymark AI on this call, not for the caller's business.
-- Your manager is the human next step if the caller wants tailored help.
-- Your role here is very close to the interview-form demo flow: qualify the lead, understand their pain points, and move them toward a manager consultation or website sign-up.
-- Do not behave like a receptionist for the caller's business. You are not taking bookings or messages for them on this call.
-- You are an AI assistant, not a real person. Never say or imply otherwise.
+- You work for Earlymark AI, not for the caller's business.
+- You are an AI assistant, not a real person. Never say otherwise.
 
-Tone and style:
-- Casual, warm, confident, and clear.
-- Keep replies under 18 words unless the caller asks for more detail.
+Style:
+- Keep replies under 12 words for the first substantive answer.
+- After that, keep replies under 18 words unless asked for detail.
 - Use simple, punchy sentences.
-- Usually speak in 1 short sentence, then pause. At most 2 short sentences.
-- Ask direct sales questions without sounding scripted.
-- Use natural Australian English, but do not overdo slang or dialect.
-- Avoid heavy slang or anything that sounds exaggerated or forced.
-- "G'day" is fine occasionally if it sounds natural and is pronounced correctly. Do not force it.
+- Usually 1 short sentence, then pause.
+- Keep Australian delivery natural, never exaggerated.
 
-Primary goals:
-- Identify the caller's pain points.
-- Capture lead details early: first name, business name, business type, best phone number, and email if they will share it.
-- Move them toward a consultation with an Earlymark AI manager or signing up at earlymark.ai.
-- If the caller is already ready to sign up or asks how to sign up, switch immediately into closing mode.
+Goals:
+- Explain what Earlymark AI does.
+- Capture lead details: first name, business name, best phone, email, business type.
+- Move the caller toward earlymark.ai or a manager follow-up.
 
-Sales behaviour:
-- Ask what business they run and how they currently handle calls and enquiries.
-- Ask follow-up questions that uncover pain around missed calls, response times, admin, and lead follow-up.
-- Once they show interest, start collecting their details instead of waiting until the very end.
-- Because this is an inbound call, assume you may not already have their details. Ask for missing lead details directly and politely.
-- If you do not know their phone or email yet, prioritise getting them before the call ends.
-- Before the call ends, use the log_lead tool once you have enough real information.
-- Do not call log_lead unless you have at least first name, business name, phone, and one real pain point or follow-up reason.
-- If the caller says they are ready to sign up, do NOT keep pushing discovery questions first.
-- In that case, briefly acknowledge, tell them they can sign up at earlymark.ai, and gather the missing lead details needed for follow-up or onboarding.
-- Closing-mode priority order:
-  1. confirm they want to sign up
-  2. point them to earlymark.ai
-  3. collect missing business name, best phone, and email
-  4. log the lead
-  5. offer manager follow-up only if helpful
-- When the caller asks "how do I sign up?" or says they are ready, your answer should directly include the website instead of delaying with more pain-point questions.
-
-Truthfulness rules:
-- Never invent features, integrations, pricing, implementation timelines, or guarantees.
-- Do NOT claim that Earlymark AI integrates into the caller's existing CRM. That is not currently true.
-- If asked about integrations or unsupported features, say you do not want to overstate it and an Earlymark AI manager can confirm what is currently supported.
-
-Capabilities you may discuss when relevant:
-- Tracey answers calls 24/7.
-- Tracey helps with customer communication and admin.
-- Tracey helps create a faster, friendlier customer experience.
+Rules:
+- This is a lead-qualification and conversion call, not a receptionist call.
+- If the caller asks what Earlymark does, answer briefly first, then ask 1 short question.
+- If the caller is ready to sign up or asks how to sign up, switch to closing mode immediately.
+- In closing mode: confirm intent, point them to earlymark.ai, collect missing details, log the lead.
+- Do not delay a sign-up request with more discovery questions.
+- Do not call log_lead unless you have at least first name, business name, phone, and a real follow-up reason.
+- Never invent integrations, pricing, timelines, or unsupported features.
 
 Known caller details:
 - First name: ${caller.firstName || "unknown"}
@@ -425,12 +399,9 @@ Known caller details:
 - Called Earlymark number: ${caller.calledPhone || "unknown"}
 
 Important:
-- This is an Earlymark lead-qualification call, not a receptionist call for the caller's business.
-- Keep the conversation focused on what Earlymark AI can do for them, what problem they want solved, and how to follow up.
-- If the caller expresses clear buying intent, prioritise facilitating the inbound conversion over more qualification.
-- Near the end of the call, or whenever the caller asks how to proceed, point them to earlymark.ai.
-- If the caller says goodbye or clearly ends the conversation, keep the farewell brief.
-- Do not launch into a long summary at the end of the call.
+- Keep the conversation focused on what Earlymark AI can do and the next step.
+- Point them to earlymark.ai whenever they ask how to proceed or are ready to buy.
+- Keep farewells brief.
 - This call will be wrapped at around 3 minutes and disconnected at 5 minutes if still active.`;
 }
 
@@ -583,22 +554,6 @@ export default defineAgent({
       },
     };
 
-    const llmProvider = (process.env.VOICE_LLM_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "deepinfra")).toLowerCase();
-    const llmModel = process.env.VOICE_LLM_MODEL || (llmProvider === "groq" ? "llama-3.3-70b-versatile" : "meta-llama/Meta-Llama-3.1-8B-Instruct");
-    const llmApiKey = llmProvider === "groq" ? process.env.GROQ_API_KEY : process.env.DEEPINFRA_API_KEY;
-    const llmBaseURL = llmProvider === "groq" ? "https://api.groq.com/openai/v1" : "https://api.deepinfra.com/v1/openai";
-    if (!llmApiKey) {
-      throw new Error(`[agent] Missing API key for provider '${llmProvider}'.`);
-    }
-
-    const llm = new openai.LLM({
-      model: llmModel,
-      apiKey: llmApiKey,
-      baseURL: llmBaseURL,
-      temperature: Number(process.env.VOICE_LLM_TEMPERATURE || 0.2),
-      maxCompletionTokens: Number(process.env.VOICE_LLM_MAX_COMPLETION_TOKENS || 80),
-    });
-
     const stt = new deepgram.STT({
       model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
       language: process.env.VOICE_STT_LANGUAGE || "en-AU",
@@ -680,6 +635,39 @@ export default defineAgent({
     };
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+    const llmProvider = (
+      isEarlymarkCall
+        ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "deepinfra"))
+        : (process.env.VOICE_LLM_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "deepinfra"))
+    ).toLowerCase();
+    const llmModel =
+      (isEarlymarkCall ? process.env.EARLYMARK_VOICE_LLM_MODEL : process.env.VOICE_LLM_MODEL) ||
+      (llmProvider === "groq" ? "llama-3.3-70b-versatile" : "meta-llama/Meta-Llama-3.1-8B-Instruct");
+    const llmApiKey = llmProvider === "groq" ? process.env.GROQ_API_KEY : process.env.DEEPINFRA_API_KEY;
+    const llmBaseURL = llmProvider === "groq" ? "https://api.groq.com/openai/v1" : "https://api.deepinfra.com/v1/openai";
+    if (!llmApiKey) {
+      throw new Error(`[agent] Missing API key for provider '${llmProvider}'.`);
+    }
+    const llmTemperature = Number(
+      isEarlymarkCall
+        ? (process.env.EARLYMARK_VOICE_LLM_TEMPERATURE || 0.1)
+        : (process.env.VOICE_LLM_TEMPERATURE || 0.2)
+    );
+    const llmMaxCompletionTokens = Number(
+      callType === "inbound_demo"
+        ? (process.env.INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS || 48)
+        : isEarlymarkCall
+          ? (process.env.EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS || 64)
+          : (process.env.VOICE_LLM_MAX_COMPLETION_TOKENS || 80)
+    );
+    const llm = new openai.LLM({
+      model: llmModel,
+      apiKey: llmApiKey,
+      baseURL: llmBaseURL,
+      temperature: llmTemperature,
+      maxCompletionTokens: llmMaxCompletionTokens,
+    });
+
     const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
     const systemPrompt = isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller);
     const greeting = getGreeting(callType, caller);
@@ -790,7 +778,11 @@ export default defineAgent({
         minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 180),
         maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 700),
         minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 250),
-        minInterruptionWords: Number(process.env.VOICE_MIN_INTERRUPTION_WORDS || 2),
+        minInterruptionWords: Number(
+          callType === "inbound_demo"
+            ? (process.env.INBOUND_VOICE_MIN_INTERRUPTION_WORDS || 1)
+            : (process.env.VOICE_MIN_INTERRUPTION_WORDS || 2)
+        ),
         allowInterruptions: true,
       },
     });
