@@ -26,6 +26,9 @@ import { z } from 'zod';
 
 loadEnv({ path: '.env.local' });
 
+const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
+console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: new Date().toISOString() })}`);
+
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
 const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
 const DEMO_WRAP_UP_MS = 3 * 60 * 1000;

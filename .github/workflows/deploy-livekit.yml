@@ -16,33 +16,48 @@ jobs:
       - name: Check Out Repo
         uses: actions/checkout@v4
 
-      - name: Copy Agent Files
+      - name: Package Agent
+        run: |
+          tar \
+            --exclude='livekit-agent/node_modules' \
+            --exclude='livekit-agent/.env.local' \
+            --exclude='livekit-agent/.env.*.local' \
+            -czf livekit-agent-deploy.tgz \
+            livekit-agent
+
+      - name: Copy Agent Package
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: livekit-agent/agent.ts,livekit-agent/get-token.ts,livekit-agent/package.json,livekit-agent/package-lock.json,livekit-agent/README.md,livekit-agent/.env.example
-          target: /tmp/livekit-agent
-          strip_components: 1
+          source: livekit-agent-deploy.tgz
+          target: /tmp
+          strip_components: 0
 
       - name: Restart Agent
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_GIT_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DEPLOY_GIT_SHA
           script: |
             set -eu
             mkdir -p /tmp/livekit-agent
             cd /tmp/livekit-agent
             test -f .env.local
+            find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
             npm ci --omit=dev --no-audit --no-fund
             if [ -f /tmp/agent.pid ]; then
               kill "$(cat /tmp/agent.pid)" 2>/dev/null || true
               sleep 2
             fi
-            nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
+            : > /tmp/agent.log
+            DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
             echo $! > /tmp/agent.pid
             sleep 5
             PID="$(cat /tmp/agent.pid)"
@@ -51,4 +66,5 @@ jobs:
               exit 1
             fi
             ps -p "$PID" -o pid= -o args=
+            grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log
             tail -n 40 /tmp/agent.log || true

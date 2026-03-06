@@ -30,6 +30,7 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **Deployment staging path**: Updated agent code is first copied to `/tmp/livekit-agent/` before deployment.
 - **Current process model**: LiveKit core infrastructure runs in Docker under `/opt/livekit`, but the voice agent currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
 - **Automation model**: GitHub Actions should deploy by copying `livekit-agent/**` into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout.
+- **Deploy verification**: The worker logs an `[agent-version]` line with `DEPLOY_GIT_SHA` on startup. GitHub Actions should verify that exact SHA appears in `/tmp/agent.log` after each deploy.
 - **Core containers**: `livekit-livekit-1`, `livekit-redis-1`, `livekit-caddy-1`, and `livekit-sip`.
 - **Restart policy**: Core containers use `--restart always` so they survive OCI reboots.
 - **Primary SIP log source**: `sudo docker logs -f livekit-sip`
