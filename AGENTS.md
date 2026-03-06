@@ -60,6 +60,12 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **Lead capture timing**: Do not call `log_lead` immediately after the caller says only `yes` or confirms identity. Wait until there is enough real information to satisfy the schema and reflect genuine interest.
 - **SIP audio safety**: Keep explicit remote-track subscription logging/handling in place for SIP demo calls. If logs show no `voice-user-turn` events after greeting, inspect `[TRACK] published/subscribed` first.
 
+## Voice Debug Start Rule
+
+- Before any new voice-agent debugging session, read this file and inspect the latest `/tmp/agent.log` entries for `[voice-turn]`, `[voice-audit]`, `[voice-user-turn]`, and `[TRACK]` lines first.
+- Treat the latest measured bottleneck as the starting point. Do not guess from prompts alone when logs already show whether the delay is in STT, LLM TTFT, or TTS.
+- For inbound Earlymark calls, treat `llmTtftMs > 1200` or `ttsTtfbMs > 900` as a regression threshold worth fixing.
+
 ## Mandatory Session Check
 
 - Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.
