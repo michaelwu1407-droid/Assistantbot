@@ -258,7 +258,7 @@ function TraceyBubble({ text, animate = true }: { text: string; animate?: boolea
       <div className="shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
         <Sparkles className="h-4 w-4 text-emerald-600" />
       </div>
-      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-emerald-900 dark:text-emerald-100 max-w-md">
+      <div className="bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-emerald-900 dark:text-emerald-100 max-w-md">
         {text}
       </div>
     </motion.div>
@@ -273,7 +273,6 @@ const STEPS = [
   { label: "Business Review", icon: Building2 },
   { label: "Email Setup", icon: Mail },
   { label: "Services & Pricing", icon: MessageSquare },
-  { label: "Try Tracey", icon: Play },
   { label: "Go Live", icon: Send },
 ]
 
@@ -382,6 +381,7 @@ export function TraceyOnboarding() {
   } | null>(null)
   const [eagerPhoneNumber, setEagerPhoneNumber] = useState<string | null>(null)
   const [eagerProvisioningLoading, setEagerProvisioningLoading] = useState(false)
+  const [eagerProvisionAttempted, setEagerProvisionAttempted] = useState(false)
 
   // Step 3 (Email): Inbox connection
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
@@ -467,16 +467,17 @@ export function TraceyOnboarding() {
     }
   }, [step, preGenLeadsEmail, ownerName, businessName])
 
-  // Eagerly provision phone number when entering step 7 (Go Live).
+  // Eagerly provision phone number when entering step 6 (Go Live).
   // Timeout + abort prevents indefinite spinner if the API call hangs.
   useEffect(() => {
-    if (step !== 6 || eagerPhoneNumber || eagerProvisioningLoading || !businessName || !phone) return
+    if (step !== 5 || eagerPhoneNumber || eagerProvisioningLoading || eagerProvisionAttempted || !businessName || !phone) return
 
     const controller = new AbortController()
     const timeoutMs = 8000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
     let isActive = true
 
+    setEagerProvisionAttempted(true)
     setEagerProvisioningLoading(true)
 
     ;(async () => {
@@ -510,7 +511,7 @@ export function TraceyOnboarding() {
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [step, eagerPhoneNumber, eagerProvisioningLoading, businessName, phone])
+  }, [step, eagerPhoneNumber, eagerProvisioningLoading, eagerProvisionAttempted, businessName, phone])
 
   // ── Validation ──
 
@@ -521,7 +522,6 @@ export function TraceyOnboarding() {
       case 2: return tradeType !== "" && baseSuburb.trim() !== ""
       case 3: return true
       case 4: return true
-      case 5: return true
       default: return false
     }
   }
@@ -693,20 +693,25 @@ export function TraceyOnboarding() {
             const isActive = i === step
             const isDone = i < step
             return (
-              <div key={s.label} className="flex flex-col items-center gap-1 flex-1">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
-                      ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
-                      : isDone
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                        : "bg-slate-200 text-slate-400 dark:bg-slate-800"
-                    }`}
-                >
-                  {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              <div key={s.label} className="contents">
+                <div className="flex flex-col items-center gap-1 flex-1">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive
+                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
+                        : isDone
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                          : "bg-slate-200 text-slate-400 dark:bg-slate-800"
+                      }`}
+                  >
+                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  </div>
+                  <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
+                    {s.label}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
-                  {s.label}
-                </span>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-slate-300"}`} />
+                )}
               </div>
             )
           })}
@@ -793,7 +798,7 @@ export function TraceyOnboarding() {
 
                     <TraceyBubble text="How much freedom do you want to give me? Pick a mode — you can always change it later in Settings." />
 
-                    <div className="space-y-3">
+                    <div className="flex gap-3 flex-col sm:flex-row">
                       {(Object.keys(MODE_DESCRIPTIONS) as AgentMode[]).map((mode) => {
                         const { title, icon: ModeIcon, description } = MODE_DESCRIPTIONS[mode]
                         const isSelected = agentMode === mode
@@ -801,7 +806,7 @@ export function TraceyOnboarding() {
                           <button
                             key={mode}
                             onClick={() => setAgentMode(mode)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
+                            className={`flex-1 text-left p-4 rounded-xl border-2 transition-all ${isSelected
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                               }`}
@@ -1420,160 +1425,8 @@ export function TraceyOnboarding() {
                   </div>
                 )}
 
-                {/* ──── STEP 6: Interactive Scenario Simulator ──── */}
+                {/* ──── STEP 6: Provisioning & Closing ──── */}
                 {step === 5 && (
-                  <div className="space-y-5">
-                    <TraceyBubble text="Here's a sneak peek at how I'll handle a real customer call in your selected mode." />
-
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="text-xs text-slate-400 flex items-center gap-1 cursor-help">
-                            <Info className="h-3 w-3" /> You can change how I respond or teach me new things anytime in Settings.
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs text-xs">After onboarding, go to Settings &gt; AI Preferences to fine-tune Tracey&apos;s behaviour, voice, and rules.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    <div className="text-xs text-slate-500 text-center">
-                      Preview mode: <strong>{MODE_DESCRIPTIONS[agentMode].title}</strong>
-                    </div>
-
-                    {/* Scenario Steps */}
-                    <div className="flex gap-1 justify-center mb-2">
-                      {SCENARIO_STEPS.map((label, i) => (
-                        <button
-                          key={label}
-                          onClick={() => setSimStep(i)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${simStep === i
-                              ? "bg-emerald-600 text-white"
-                              : i < simStep
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                            }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Conversation Display */}
-                    <div className="rounded-xl border bg-white dark:bg-slate-900 p-4 space-y-4 min-h-[200px]">
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={`${agentMode}-${simStep}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="space-y-3"
-                        >
-                          {/* Customer message */}
-                          <div className="flex items-start gap-2 justify-end">
-                            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg rounded-tr-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(agentMode, {
-                                businessName,
-                                tradeType,
-                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
-                                priceRange: (() => {
-                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
-                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
-                                })(),
-                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
-                              })[SCENARIO_STEPS[simStep]].customer}
-                            </div>
-                            <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                              <User className="h-3.5 w-3.5 text-blue-600" />
-                            </div>
-                          </div>
-
-                          {/* Tracey response */}
-                          <div className="flex items-start gap-2">
-                            <div className="shrink-0 w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                            </div>
-                            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg rounded-tl-none px-3 py-2 text-sm max-w-[80%]">
-                              {getScenarioDialogue(agentMode, {
-                                businessName,
-                                tradeType,
-                                serviceName: services.find((s) => s.serviceName.trim())?.serviceName || "",
-                                priceRange: (() => {
-                                  const s = services.find((sv) => sv.priceMin || sv.priceMax)
-                                  return s ? `$${s.priceMin || "??"}-$${s.priceMax || s.priceMin ? (s.priceMin || 0) * 1.5 : "??"}` : ""
-                                })(),
-                                callOutFee: globalCallOutFee ? `$${globalCallOutFee}` : "",
-                              })[SCENARIO_STEPS[simStep]].tracey}
-                            </div>
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Scenario Navigation */}
-                    <div className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSimStep(Math.max(0, simStep - 1))}
-                        disabled={simStep === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Prev
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSimStep(Math.min(SCENARIO_STEPS.length - 1, simStep + 1))}
-                        disabled={simStep === SCENARIO_STEPS.length - 1}
-                      >
-                        Next <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-
-                    {/* Voice Selector */}
-                    <div className="space-y-2 border-t pt-4">
-                      <Label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase">
-                        <Volume2 className="h-3.5 w-3.5" /> Tracey&apos;s Voice
-                      </Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {TRACEY_VOICES.map((voice) => (
-                          <button
-                            key={voice.id}
-                            onClick={() => setSelectedVoice(voice.id)}
-                            className={`p-3 rounded-lg border text-left transition-all ${selectedVoice === voice.id
-                                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                              }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium">{voice.label}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                disabled={loadingVoiceId === voice.id}
-                                onClick={(e) => { e.stopPropagation(); playVoicePreview(voice.id) }}
-                              >
-                                {loadingVoiceId === voice.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : playingVoiceId === voice.id ? (
-                                  <Square className="h-3 w-3" />
-                                ) : (
-                                  <Play className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{voice.description}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ──── STEP 7: Provisioning & Closing ──── */}
-                {step === 6 && (
                   <div className="space-y-5">
                     {!provisionResult ? (
                       <>
@@ -1690,7 +1543,7 @@ export function TraceyOnboarding() {
                 )}
 
                 {/* ──── Navigation ──── */}
-                {step < 6 && (
+                {step < 5 && (
                   <div className="flex justify-between pt-6">
                     {step > 0 ? (
                       <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
@@ -1708,7 +1561,7 @@ export function TraceyOnboarding() {
                     </Button>
                   </div>
                 )}
-                {step === 6 && !provisionResult && (
+                {step === 5 && !provisionResult && (
                   <div className="pt-2">
                     <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5">
                       <ChevronLeft className="h-4 w-4" /> Back

@@ -74,6 +74,24 @@ function p95(values: number[]): number {
   return Math.round(sorted[index]);
 }
 
+function isMeaningfulUserTurn(rawTranscript: string): boolean {
+  const transcript = rawTranscript.trim().toLowerCase();
+  if (!transcript) return false;
+  if (!/[a-z0-9]/i.test(transcript)) return false;
+
+  const normalized = transcript.replace(/[^a-z0-9\s']/gi, " ").replace(/\s+/g, " ").trim();
+  if (!normalized) return false;
+
+  const allowedShort = new Set(["yes", "no", "yeah", "yep", "nope", "ok", "okay", "sure"]);
+  if (allowedShort.has(normalized)) return true;
+
+  const filler = new Set(["uh", "um", "ah", "er", "erm", "hmm", "mm", "mhm", "huh"]);
+  const tokens = normalized.split(" ").filter(Boolean);
+  if (tokens.length === 1 && filler.has(tokens[0])) return false;
+
+  return normalized.length >= 4 || tokens.length >= 2;
+}
+
 // ─── Agent Entry ────────────────────────────────────────────────────
 
 export default defineAgent({
@@ -167,7 +185,7 @@ export default defineAgent({
         minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 280),
         maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 1200),
         minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 400),
-        minInterruptionWords: Number(process.env.VOICE_MIN_INTERRUPTION_WORDS || 1),
+        minInterruptionWords: Number(process.env.VOICE_MIN_INTERRUPTION_WORDS || 2),
         allowInterruptions: true,
       },
     });
@@ -200,13 +218,12 @@ export default defineAgent({
       console.log(`[voice-metric] ${JSON.stringify(metrics)}`);
     });
 
-    // Prevent empty/punctuation-only "silent" turns from triggering assistant replies.
+    // Prevent silence/noise from becoming a real user turn that triggers assistant replies.
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (ev) => {
       if (!ev.isFinal) return;
       const transcript = (ev.transcript || "").trim();
-      const hasAlnum = /[a-z0-9]/i.test(transcript);
-      if (!hasAlnum) {
-        console.log(`[voice-filter] Dropping empty/noise transcript: "${transcript}"`);
+      if (!isMeaningfulUserTurn(transcript)) {
+        console.log(`[voice-filter] Dropping low-signal transcript: "${transcript}"`);
         session.clearUserTurn();
       }
     });
