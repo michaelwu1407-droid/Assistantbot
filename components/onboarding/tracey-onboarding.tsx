@@ -268,12 +268,12 @@ function TraceyBubble({ text, animate = true }: { text: string; animate?: boolea
 // ─── Main Component ─────────────────────────────────────────────
 
 const STEPS = [
-  { label: "Contact Card", icon: User },
-  { label: "Tracey Modes", icon: Zap },
-  { label: "Business Review", icon: Building2 },
-  { label: "Email Setup", icon: Mail },
-  { label: "Services & Pricing", icon: MessageSquare },
-  { label: "Go Live", icon: Send },
+  { label: "Your details", icon: User },
+  { label: "Tracey modes", icon: Zap },
+  { label: "Your business", icon: Building2 },
+  { label: "Email setup", icon: Mail },
+  { label: "Your Services", icon: MessageSquare },
+  { label: "Go live", icon: Send },
 ]
 
 export function TraceyOnboarding() {
@@ -674,7 +674,7 @@ export function TraceyOnboarding() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start p-4 pt-8">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="mx-auto h-14 w-14 rounded-xl flex items-center justify-center shadow-md overflow-hidden mb-3">
@@ -710,7 +710,15 @@ export function TraceyOnboarding() {
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <ChevronRight className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-slate-300"}`} />
+                  <div className="flex items-center h-9">
+                    <svg 
+                      className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-slate-300"}`}
+                      viewBox="0 0 24 24" 
+                      fill="currentColor"
+                    >
+                      <polygon points="0,0 24,12 0,24" />
+                    </svg>
+                  </div>
                 )}
               </div>
             )
