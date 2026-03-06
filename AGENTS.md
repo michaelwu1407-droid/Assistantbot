@@ -24,6 +24,32 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - See `lib/comms.ts` for full architecture documentation.
 - See `livekit-agent/agent.ts` for the voice agent implementation.
 
+## LiveKit Infra Context (Canonical)
+
+- **Host environment**: Oracle Cloud (OCI) Ubuntu VM at `140.238.198.39`, SSH user `ubuntu`.
+- **Deployment staging path**: Updated agent code is first copied to `/tmp/livekit-agent/` before deployment.
+- **Current process model**: LiveKit core infrastructure runs in Docker under `/opt/livekit`, but the voice agent currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
+- **Automation model**: GitHub Actions should deploy by copying `livekit-agent/**` into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout.
+- **Core containers**: `livekit-livekit-1`, `livekit-redis-1`, `livekit-caddy-1`, and `livekit-sip`.
+- **Restart policy**: Core containers use `--restart always` so they survive OCI reboots.
+- **Primary SIP log source**: `sudo docker logs -f livekit-sip`
+- **Primary agent log source**: `tail -f /tmp/agent.log`
+- **LiveKit config file**: `/etc/livekit.yaml`
+- **LiveKit API key**: `APIAooiVTvuVU3w`
+- **Local LiveKit URL**: `http://localhost:7880` for CLI commands and agent connections on the box.
+- **RTC ports**: TCP `7881`, UDP `50000-60000`
+- **TURN**: enabled on `turn.earlymark.ai` with TLS `5349` and UDP `3478`
+- **Twilio trunk ID**: `TK9bdf6eb5a95851bb351be8b521287033`
+- **SIP signaling**: Port `5060` is open and listening. Twilio origination points to `sip:live.earlymark.ai:5060`.
+- **RTP/media**: UDP `10000-20000` must remain open in both OCI security lists and Ubuntu `iptables`, persisted via `netfilter-persistent`.
+- **Inbound routing**: SIP dispatch rule `SDR_ZnXjWoZ3v4EC` automatically pushes inbound calls to rooms prefixed with `inbound_`.
+- **Server layout note**: `/opt/livekit-agent` exists on the box but is not a git repository and does not contain the active deployable worker.
+
+## Voice Agent Performance Notes
+
+- **LLM target**: Llama `3.3 70B`, tuned for sub-`800ms` conversational latency.
+- **STT endpointing target**: Deepgram endpointing tuned to `200ms` when balancing speed against unnatural interruptions.
+
 ## Mandatory Session Check
 
 - Always run `tsc` to check for TypeScript compile errors in every session before finalizing code changes.

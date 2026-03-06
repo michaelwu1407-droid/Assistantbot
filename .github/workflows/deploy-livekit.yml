@@ -1,19 +1,54 @@
 name: Deploy LiveKit Agent
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-    paths: ['livekit-agent/**']
+    paths:
+      - 'livekit-agent/**'
+      - '.github/workflows/deploy-livekit.yml'
+concurrency:
+  group: deploy-livekit-agent
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH Deploy
+      - name: Check Out Repo
+        uses: actions/checkout@v4
+
+      - name: Copy Agent Files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: livekit-agent/agent.ts,livekit-agent/get-token.ts,livekit-agent/package.json,livekit-agent/package-lock.json,livekit-agent/README.md,livekit-agent/.env.example
+          target: /tmp/livekit-agent
+          strip_components: 1
+
+      - name: Restart Agent
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/livekit-agent
-            git pull origin main
-            sudo docker compose up -d --build
+            set -eu
+            mkdir -p /tmp/livekit-agent
+            cd /tmp/livekit-agent
+            test -f .env.local
+            npm ci --omit=dev --no-audit --no-fund
+            if [ -f /tmp/agent.pid ]; then
+              kill "$(cat /tmp/agent.pid)" 2>/dev/null || true
+            fi
+            pkill -f /tmp/livekit-agent/agent.ts || true
+            nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
+            echo $! > /tmp/agent.pid
+            sleep 5
+            PID="$(cat /tmp/agent.pid)"
+            if ! ps -p "$PID" >/dev/null 2>&1; then
+              tail -n 80 /tmp/agent.log || true
+              exit 1
+            fi
+            ps -p "$PID" -o pid= -o args=
+            tail -n 40 /tmp/agent.log || true
