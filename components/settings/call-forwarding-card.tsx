@@ -15,7 +15,7 @@ import { buildCallForwardingCodes, type CallForwardingCarrier } from "@/lib/call
 
 type ForwardMode = "full" | "backup" | "off"
 
-const BACKUP_DELAYS = [15, 20, 25, 30, 35, 40]
+const BACKUP_DELAYS = [12, 15, 20, 25, 30, 35, 40]
 const CARRIERS: Array<{ value: CallForwardingCarrier; label: string }> = [
   { value: "telstra", label: "Telstra" },
   { value: "vodafone", label: "Vodafone" },
@@ -26,7 +26,7 @@ const CARRIERS: Array<{ value: CallForwardingCarrier; label: string }> = [
 export function CallForwardingCard() {
   const [active, setActive] = useState<ForwardMode>("backup")
   const [enabled, setEnabled] = useState(false)
-  const [delaySec, setDelaySec] = useState(15)
+  const [delaySec, setDelaySec] = useState(12)
   const [carrier, setCarrier] = useState<CallForwardingCarrier>("other")
   const [personalPhone, setPersonalPhone] = useState<string | null>(null)
   const [traceyPhone, setTraceyPhone] = useState<string | null>(null)
@@ -109,7 +109,7 @@ export function CallForwardingCard() {
           Personal phone and call forwarding
         </CardTitle>
         <CardDescription>
-          Backup AI is the default: your phone rings first, then Tracey answers after 20 seconds if you miss the call.
+          Backup AI is the default: your phone rings first, then Tracey answers after 12 seconds if you miss the call.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -176,7 +176,7 @@ export function CallForwardingCard() {
           <div className="space-y-2">
             <Label>Tracey pickup timing</Label>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Backup AI is set to about {delaySec} seconds, which is roughly 3 rings at 15 seconds.
+              Backup AI is set to about {delaySec} seconds, so Tracey picks up quickly if you miss the call.
             </p>
           </div>
         </div>
@@ -276,7 +276,7 @@ export function CallForwardingCard() {
           <p className="font-medium text-slate-700 dark:text-slate-300 mb-2">Quick setup</p>
           <ol className="list-decimal list-inside space-y-1">
             <li>Set your personal phone number.</li>
-            <li>Choose `Backup AI` and keep timeout at `15 seconds` if you want Tracey after about 3 rings.</li>
+            <li>Choose `Backup AI` and keep timeout at `12 seconds` if you want Tracey to pick up quickly after your phone rings first.</li>
             <li>Turn on `Enable call forwarding` above to receive the setup text.</li>
             <li>Tap the setup text or the one-tap buttons here to apply forwarding on your mobile.</li>
             <li>Use `Forward every call` only if you want Tracey to answer before your phone rings.</li>

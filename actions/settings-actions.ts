@@ -56,7 +56,7 @@ export async function getWorkspaceSettings() {
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
         callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
-        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 15,
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 12,
         callForwardingCarrier: (s.callForwardingCarrier as CallForwardingCarrier) ?? "other",
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
@@ -221,7 +221,7 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         invoiceFollowUp: (s.invoiceFollowUp as { message?: string; triggerDays?: number; channel?: string }) ?? { message: "", triggerDays: 7, channel: "email" },
         callForwardingEnabled: (s.callForwardingEnabled as boolean) ?? false,
         callForwardingMode: (s.callForwardingMode as "full" | "backup" | "off") ?? "backup",
-        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 15,
+        callForwardingDelaySec: (s.callForwardingDelaySec as number) ?? 12,
         callForwardingCarrier: (s.callForwardingCarrier as CallForwardingCarrier) ?? "other",
         emergencyBypass: (s.emergencyBypass as boolean) ?? false,
         emergencyHoursStart: (s.emergencyHoursStart as string) ?? "",
@@ -250,7 +250,7 @@ export async function getCallForwardingSettings(): Promise<{ enabled: boolean; m
     const s = (workspace?.settings as Record<string, unknown>) ?? {}
     const mode = (s.callForwardingMode as "full" | "backup" | "off") ?? "backup"
     const enabled = (s.callForwardingEnabled as boolean) ?? mode !== "off"
-    const delaySec = Number(s.callForwardingDelaySec ?? 15)
+    const delaySec = Number(s.callForwardingDelaySec ?? 12)
     const carrier = (s.callForwardingCarrier as CallForwardingCarrier) ?? "other"
     return { enabled, mode, delaySec, carrier }
 }
@@ -263,7 +263,7 @@ export async function updateCallForwardingSettings(input: { enabled: boolean; mo
     })
     const current = (workspace?.settings as Record<string, unknown>) ?? {}
     const nextMode = input.enabled ? (input.mode === "off" ? "backup" : input.mode) : "off"
-    const nextDelay = Math.max(10, Math.min(45, Number(input.delaySec ?? 15)))
+    const nextDelay = Math.max(10, Math.min(45, Number(input.delaySec ?? 12)))
     const nextCarrier = input.carrier ?? (current.callForwardingCarrier as CallForwardingCarrier) ?? "other"
     await db.workspace.update({
         where: { id: workspaceId },
@@ -321,7 +321,7 @@ export async function sendCallForwardingSetupSms(input?: {
     if (mode === "off") {
         throw new Error("Turn call forwarding on before sending setup")
     }
-    const delaySec = Math.max(10, Math.min(45, Number(input?.delaySec ?? settings.callForwardingDelaySec ?? 15)))
+    const delaySec = Math.max(10, Math.min(45, Number(input?.delaySec ?? settings.callForwardingDelaySec ?? 12)))
     const carrier = input?.carrier ?? (settings.callForwardingCarrier as CallForwardingCarrier) ?? "other"
 
     const client =

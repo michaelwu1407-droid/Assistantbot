@@ -10,7 +10,7 @@ function toDialableAuNumber(phoneNumber: string): string {
   return digits;
 }
 
-export function buildCallForwardingCodes(phoneNumber: string, delaySec = 15) {
+export function buildCallForwardingCodes(phoneNumber: string, delaySec = 12) {
   const dialable = toDialableAuNumber(phoneNumber);
   const safeDelay = Math.max(10, Math.min(45, delaySec));
 
@@ -24,7 +24,7 @@ export function buildCallForwardingCodes(phoneNumber: string, delaySec = 15) {
   };
 }
 
-export function buildCarrierSetupHint(carrier: CallForwardingCarrier, delaySec = 15): string {
+export function buildCarrierSetupHint(carrier: CallForwardingCarrier, delaySec = 12): string {
   const safeDelay = Math.max(10, Math.min(45, delaySec));
   if (carrier === "telstra") {
     return `For Telstra, use no-answer forwarding after about ${safeDelay} seconds so Tracey picks up if you miss the call.`;

@@ -237,3 +237,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Added shared onboarding-provision orchestration so Tracey's number provisioning is triggered and timed as soon as Stripe payment succeeds, then reused the same helper on the last onboarding step as a visibility check. Logged elapsed provisioning times and outcomes for webhook, billing-success, and onboarding resolution paths. Built the customer-facing call-forwarding setup flow into account settings: the existing call-forwarding toggle now stores carrier/mode/delay settings, defaults backup forwarding to 15 seconds for an "after about 3 rings" setup, sends a setup SMS from the provisioned Tracey number to the owner's personal phone when forwarding is enabled, and exposes one-tap dialer links plus resend/setup guidance in the settings card.
 - Why: Provisioning should start from the moment the customer pays, not only when they reach the last onboarding page. The app also needed a real call-forwarding activation path because the core promise is that callers get picked up by Tracey on the provisioned number once the user enables forwarding from their mobile.
 
+### 2026-03-06 22:12 (AEDT) - codex
+- Files: `actions/settings-actions.ts`, `components/settings/call-forwarding-card.tsx`, `lib/call-forwarding.ts`, `docs/agent_change_log.md`
+- What changed: Lowered the default backup call-forwarding timeout from 15 seconds to 12 seconds across stored settings defaults, generated forwarding codes, and account-settings setup copy.
+- Why: The requested default is a faster backup pickup so Tracey answers sooner when the user misses the call.
+
