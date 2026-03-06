@@ -166,6 +166,20 @@ const STAGE_ALIASES: Record<string, string> = {
   "invoice": "invoiced",
 };
 
+const PRISMA_STAGE_TO_CHAT_STAGE: Record<string, string> = {
+  NEW: "new",
+  CONTACTED: "contacted",
+  NEGOTIATION: "negotiation",
+  SCHEDULED: "scheduled",
+  PIPELINE: "pipeline",
+  INVOICED: "invoiced",
+  PENDING_COMPLETION: "won",
+  WON: "won",
+  LOST: "lost",
+  DELETED: "deleted",
+  ARCHIVED: "archived",
+};
+
 /** Resolve a user-facing stage name to the internal stage key */
 function resolveStage(raw: string): string | null {
   const key = raw.trim().toLowerCase().replace(/\s+/g, " ");
@@ -453,6 +467,72 @@ export async function runCreateDeal(
     message: `Created deal "${params.title}"${params.value != null && params.value > 0 ? ` worth $${params.value.toLocaleString()}` : ""}.`,
     dealId: result.dealId,
   };
+}
+
+async function getDealsByIds(workspaceId: string, dealIds: string[]) {
+  const uniqueIds = Array.from(new Set(dealIds.map((id) => id.trim()).filter(Boolean)));
+  if (!uniqueIds.length) return [];
+
+  return db.deal.findMany({
+    where: {
+      workspaceId,
+      id: { in: uniqueIds },
+    },
+    select: {
+      id: true,
+      title: true,
+      stage: true,
+      assignedToId: true,
+      workspaceId: true,
+      contactId: true,
+      metadata: true,
+    },
+  });
+}
+
+async function resolveTeamMember(workspaceId: string, teamMemberName: string) {
+  const members = await db.user.findMany({
+    where: { workspaceId },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  const query = teamMemberName.toLowerCase().trim();
+  let member = members.find((m) => m.name?.toLowerCase() === query);
+  if (!member) member = members.find((m) => m.name?.toLowerCase().includes(query) || query.includes(m.name?.toLowerCase() ?? ""));
+  if (!member) member = members.find((m) => m.email.toLowerCase().includes(query));
+  if (!member) {
+    let bestMember: typeof members[0] | null = null;
+    let bestScore = 0;
+    for (const m of members) {
+      const score = fuzzyScore(query, (m.name ?? m.email).toLowerCase());
+      if (score > bestScore && score >= 0.4) {
+        bestScore = score;
+        bestMember = m;
+      }
+    }
+    member = bestMember ?? undefined;
+  }
+
+  return { member, members };
+}
+
+function formatBulkOperationSummary(
+  label: string,
+  results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }>
+) {
+  const succeeded = results.filter((result) => result.status === "success");
+  const skipped = results.filter((result) => result.status === "skipped");
+  const blocked = results.filter((result) => result.status === "blocked");
+  const lines = [
+    `${label}: ${succeeded.length} succeeded, ${skipped.length} skipped, ${blocked.length} blocked.`,
+  ];
+
+  for (const result of results) {
+    const prefix = result.status === "success" ? "OK" : result.status === "skipped" ? "SKIP" : "BLOCKED";
+    lines.push(`- [${prefix}] ${result.title} (${result.id})${result.reason ? `: ${result.reason}` : ""}`);
+  }
+
+  return lines.join("\n");
 }
 
 export async function runUpdateDealFields(
@@ -902,6 +982,258 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
   } catch (err) {
     return `Error creating contact: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+async function findInvoiceInWorkspace(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string }
+) {
+  if (params.invoiceId?.trim()) {
+    return db.invoice.findFirst({
+      where: {
+        id: params.invoiceId.trim(),
+        deal: { workspaceId },
+      },
+      include: {
+        deal: {
+          include: { contact: true },
+        },
+      },
+    });
+  }
+
+  if (params.dealTitle?.trim()) {
+    const deals = await getDeals(workspaceId);
+    const target = findDealByTitle(deals, params.dealTitle.trim());
+    if (!target) return null;
+    return db.invoice.findFirst({
+      where: { dealId: target.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        deal: {
+          include: { contact: true },
+        },
+      },
+    });
+  }
+
+  if (params.contactName?.trim()) {
+    const contacts = await searchContacts(workspaceId, params.contactName.trim());
+    const contact = contacts[0];
+    if (!contact) return null;
+    return db.invoice.findFirst({
+      where: {
+        deal: {
+          workspaceId,
+          contactId: contact.id,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        deal: {
+          include: { contact: true },
+        },
+      },
+    });
+  }
+
+  return null;
+}
+
+export async function runCreateDraftInvoice(
+  workspaceId: string,
+  params: { dealTitle: string }
+) {
+  const deals = await getDeals(workspaceId);
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return `Couldn't find a job matching "${params.dealTitle}".`;
+  }
+
+  const existingDraft = await db.invoice.findFirst({
+    where: { dealId: deal.id, status: "DRAFT" },
+    orderBy: { createdAt: "desc" },
+  });
+  if (existingDraft) {
+    return `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`;
+  }
+
+  const fullDeal = await db.deal.findUnique({
+    where: { id: deal.id },
+    select: { id: true, title: true, value: true, contactId: true },
+  });
+  if (!fullDeal) return "Deal not found.";
+
+  const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+  const total = Number(fullDeal.value || 0);
+  const subtotal = Number((total / 1.1).toFixed(2));
+  const tax = Number((total - subtotal).toFixed(2));
+  await db.invoice.create({
+    data: {
+      number: invoiceNumber,
+      lineItems: JSON.parse(JSON.stringify([{ desc: fullDeal.title, price: total }])),
+      subtotal,
+      tax,
+      total,
+      status: "DRAFT",
+      dealId: fullDeal.id,
+    },
+  });
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Draft invoice created",
+      content: `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`,
+      dealId: fullDeal.id,
+      contactId: fullDeal.contactId ?? undefined,
+    },
+  });
+  revalidatePath("/dashboard");
+  return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
+}
+
+export async function runIssueInvoiceAction(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  const { issueInvoice } = await import("./tradie-actions");
+  const result = await issueInvoice(invoice.id);
+  if (!result.success) {
+    return `Failed to issue invoice ${invoice.number}.`;
+  }
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice issued",
+      content: `Invoice ${invoice.number} marked as issued.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+    },
+  });
+  return `Issued invoice ${invoice.number} for "${invoice.deal.title}".`;
+}
+
+export async function runMarkInvoicePaidAction(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  const { markInvoicePaid } = await import("./tradie-actions");
+  const result = await markInvoicePaid(invoice.id);
+  if (!result.success) {
+    return `Failed to mark invoice ${invoice.number} as paid.`;
+  }
+  return `Marked invoice ${invoice.number} as paid.`;
+}
+
+export async function runReverseInvoiceStatus(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string; targetStatus: "DRAFT" | "ISSUED" }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  if (invoice.status === params.targetStatus) {
+    return `Invoice ${invoice.number} is already ${params.targetStatus}.`;
+  }
+  if (invoice.status === "DRAFT") {
+    return `Invoice ${invoice.number} is already at the earliest reversible state.`;
+  }
+  if (invoice.status === "ISSUED" && params.targetStatus !== "DRAFT") {
+    return `Invoice ${invoice.number} can only be reversed back to DRAFT from ISSUED.`;
+  }
+
+  await db.invoice.update({
+    where: { id: invoice.id },
+    data: {
+      status: params.targetStatus,
+      paidAt: params.targetStatus === "DRAFT" ? null : invoice.paidAt,
+      issuedAt: params.targetStatus === "DRAFT" ? null : invoice.issuedAt || new Date(),
+    },
+  });
+  if (invoice.status === "PAID") {
+    await db.deal.update({
+      where: { id: invoice.dealId },
+      data: { stage: "INVOICED", stageChangedAt: new Date() },
+    });
+  }
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice status reversed",
+      content: `Invoice ${invoice.number} moved from ${invoice.status} to ${params.targetStatus}.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+    },
+  });
+  return `Reversed invoice ${invoice.number} to ${params.targetStatus}.`;
+}
+
+export async function runSendInvoiceReminder(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string; channel?: "auto" | "email" | "sms" }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  const contact = invoice.deal.contact;
+  const amount = Number(invoice.total || 0).toFixed(2);
+  const subject = `Invoice reminder: ${invoice.number}`;
+  const body = `Hi ${contact.name}, just a reminder that invoice ${invoice.number} for $${amount} is still outstanding. Please let us know if you have any questions.`;
+  const channel = params.channel || "auto";
+
+  if ((channel === "email" || channel === "auto") && contact.email) {
+    return runSendEmail(workspaceId, {
+      contactName: contact.name,
+      subject,
+      body,
+      enforceCustomerContactMode: true,
+    });
+  }
+
+  if ((channel === "sms" || channel === "auto") && contact.phone) {
+    return runSendSms(workspaceId, {
+      contactName: contact.name,
+      message: `Reminder: invoice ${invoice.number} for $${amount} is still outstanding. Let us know if you need anything.`,
+      enforceCustomerContactMode: true,
+    });
+  }
+
+  return `Invoice ${invoice.number} has no usable customer contact channel for a reminder.`;
+}
+
+export async function runGetInvoiceStatusAction(
+  workspaceId: string,
+  params: { invoiceId?: string; dealTitle?: string; contactName?: string }
+) {
+  const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (!invoice) {
+    return "Couldn't find an invoice for that deal/contact.";
+  }
+
+  const { getInvoiceSyncStatus } = await import("./accounting-actions");
+  const syncStatus = await getInvoiceSyncStatus(invoice.id);
+  return [
+    `Invoice ${invoice.number}`,
+    `Status: ${invoice.status}`,
+    `Deal: ${invoice.deal.title}`,
+    `Contact: ${invoice.deal.contact.name}`,
+    `Total: $${Number(invoice.total || 0).toFixed(2)}`,
+    `Accounting sync: ${syncStatus?.synced ? `synced via ${syncStatus.provider}` : "not synced / accounting not connected"}`,
+  ].join("\n");
 }
 
 function findTaskByTitle(
@@ -1485,34 +1817,10 @@ export async function runAssignTeamMember(
     }
 
     // Find the team member in this workspace
-    const members = await db.user.findMany({
-      where: { workspaceId },
-      select: { id: true, name: true, email: true, role: true },
-    });
+    const { member, members } = await resolveTeamMember(workspaceId, params.teamMemberName);
 
     if (!members.length) {
       return { success: false, message: "No team members found in this workspace." };
-    }
-
-    const query = params.teamMemberName.toLowerCase().trim();
-    // Exact name match first
-    let member = members.find(m => m.name?.toLowerCase() === query);
-    // Contains match
-    if (!member) member = members.find(m => m.name?.toLowerCase().includes(query) || query.includes(m.name?.toLowerCase() ?? ""));
-    // Email match
-    if (!member) member = members.find(m => m.email.toLowerCase().includes(query));
-    // Fuzzy match
-    if (!member) {
-      let bestMember: typeof members[0] | null = null;
-      let bestScore = 0;
-      for (const m of members) {
-        const score = fuzzyScore(query, (m.name ?? m.email).toLowerCase());
-        if (score > bestScore && score >= 0.4) {
-          bestScore = score;
-          bestMember = m;
-        }
-      }
-      member = bestMember ?? undefined;
     }
 
     if (!member) {
@@ -1549,6 +1857,254 @@ export async function runAssignTeamMember(
       message: `Error assigning team member: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
+}
+
+export async function runBulkMoveDeals(
+  workspaceId: string,
+  params: { dealIds: string[]; newStage: string }
+): Promise<string> {
+  const resolvedStage = resolveStage(params.newStage.trim());
+  if (!resolvedStage) {
+    return `Unknown stage "${params.newStage}".`;
+  }
+
+  const deals = await getDealsByIds(workspaceId, params.dealIds);
+  if (!deals.length) {
+    return "No matching jobs were found for the selected IDs.";
+  }
+
+  const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
+  for (const deal of deals) {
+    const currentStage = PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? "new";
+    if (currentStage === resolvedStage) {
+      results.push({ id: deal.id, title: deal.title, status: "skipped", reason: "Already in that stage." });
+      continue;
+    }
+
+    const result = await updateDealStage(deal.id, resolvedStage);
+    if (!result.success) {
+      results.push({ id: deal.id, title: deal.title, status: "blocked", reason: result.error ?? "Stage change failed." });
+      continue;
+    }
+
+    await logActivity({
+      type: "NOTE",
+      title: `Bulk moved to ${resolvedStage}`,
+      content: `Bulk stage change applied by CRM chatbot.`,
+      dealId: deal.id,
+      contactId: deal.contactId ?? undefined,
+    });
+    results.push({ id: deal.id, title: deal.title, status: "success" });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return formatBulkOperationSummary(`Bulk move to ${resolvedStage}`, results);
+}
+
+export async function runBulkAssignDeals(
+  workspaceId: string,
+  params: { dealIds: string[]; teamMemberName: string }
+): Promise<string> {
+  const deals = await getDealsByIds(workspaceId, params.dealIds);
+  if (!deals.length) {
+    return "No matching jobs were found for the selected IDs.";
+  }
+
+  const { member, members } = await resolveTeamMember(workspaceId, params.teamMemberName);
+  if (!member) {
+    const memberList = members.map((m) => m.name || m.email).join(", ");
+    return `No team member matching "${params.teamMemberName}". Available: ${memberList}`;
+  }
+
+  const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
+  for (const deal of deals) {
+    if (deal.assignedToId === member.id) {
+      results.push({ id: deal.id, title: deal.title, status: "skipped", reason: "Already assigned to that team member." });
+      continue;
+    }
+
+    const result = await updateDealAssignedTo(deal.id, member.id);
+    if (!result.success) {
+      results.push({ id: deal.id, title: deal.title, status: "blocked", reason: result.error ?? "Assignment failed." });
+      continue;
+    }
+
+    await logActivity({
+      type: "NOTE",
+      title: `Bulk assigned to ${member.name || member.email}`,
+      content: "Bulk assignment applied by CRM chatbot.",
+      dealId: deal.id,
+      contactId: deal.contactId ?? undefined,
+    });
+    results.push({ id: deal.id, title: deal.title, status: "success" });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return formatBulkOperationSummary(`Bulk assignment to ${member.name || member.email}`, results);
+}
+
+export async function runBulkSetDealDisposition(
+  workspaceId: string,
+  params: { dealIds: string[]; disposition: "lost" | "deleted" | "archived" }
+): Promise<string> {
+  const deals = await getDealsByIds(workspaceId, params.dealIds);
+  if (!deals.length) {
+    return "No matching jobs were found for the selected IDs.";
+  }
+
+  const targetStage = params.disposition;
+  const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
+  for (const deal of deals) {
+    const currentStage = PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? "new";
+    if (currentStage === targetStage) {
+      results.push({ id: deal.id, title: deal.title, status: "skipped", reason: "Already in that state." });
+      continue;
+    }
+
+    const result = await updateDealStage(deal.id, targetStage);
+    if (!result.success) {
+      results.push({ id: deal.id, title: deal.title, status: "blocked", reason: result.error ?? "Disposition change failed." });
+      continue;
+    }
+
+    await logActivity({
+      type: "NOTE",
+      title: `Bulk marked as ${targetStage}`,
+      content: "Bulk disposition change applied by CRM chatbot.",
+      dealId: deal.id,
+      contactId: deal.contactId ?? undefined,
+    });
+    results.push({ id: deal.id, title: deal.title, status: "success" });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/deals");
+  return formatBulkOperationSummary(`Bulk mark as ${targetStage}`, results);
+}
+
+export async function runBulkCreateDealReminder(
+  workspaceId: string,
+  params: { dealIds: string[]; title: string; message: string; scheduledAtISO?: string }
+): Promise<string> {
+  const deals = await getDealsByIds(workspaceId, params.dealIds);
+  if (!deals.length) {
+    return "No matching jobs were found for the selected IDs.";
+  }
+
+  const dueAt = params.scheduledAtISO ? new Date(params.scheduledAtISO) : undefined;
+  const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
+  for (const deal of deals) {
+    const taskResult = await createTask({
+      title: params.title,
+      description: `${params.message}\n\nRelated job: ${deal.title}`,
+      dueAt: dueAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000),
+      dealId: deal.id,
+      contactId: deal.contactId ?? undefined,
+    });
+
+    if (!taskResult.success) {
+      results.push({ id: deal.id, title: deal.title, status: "blocked", reason: taskResult.error ?? "Reminder creation failed." });
+      continue;
+    }
+
+    results.push({ id: deal.id, title: deal.title, status: "success" });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+  return formatBulkOperationSummary(`Bulk reminder "${params.title}"`, results);
+}
+
+export async function runRevertDealStageMove(
+  workspaceId: string,
+  params: { dealId: string }
+): Promise<string> {
+  const deal = await db.deal.findFirst({
+    where: { id: params.dealId, workspaceId },
+    select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+  });
+  if (!deal) return "Deal not found.";
+
+  const meta = (deal.metadata as Record<string, unknown>) ?? {};
+  const previousStage = typeof meta.previousStage === "string" ? meta.previousStage : "";
+  const resolvedStage = PRISMA_STAGE_TO_CHAT_STAGE[previousStage] ?? previousStage.toLowerCase();
+  if (!resolvedStage) {
+    return `No reversible stage change is recorded for "${deal.title}".`;
+  }
+
+  const result = await updateDealStage(deal.id, resolvedStage);
+  if (!result.success) {
+    return `Failed to revert "${deal.title}": ${result.error ?? "Unknown error."}`;
+  }
+
+  await logActivity({
+    type: "NOTE",
+    title: "Stage move reverted",
+    content: `Reverted stage move back to ${resolvedStage}.`,
+    dealId: deal.id,
+    contactId: deal.contactId ?? undefined,
+  });
+  return `Reverted "${deal.title}" back to ${resolvedStage}.`;
+}
+
+export async function runUnassignDeal(
+  workspaceId: string,
+  params: { dealId: string }
+): Promise<string> {
+  const deal = await db.deal.findFirst({
+    where: { id: params.dealId, workspaceId },
+    select: { id: true, title: true, assignedToId: true, contactId: true },
+  });
+  if (!deal) return "Deal not found.";
+  if (!deal.assignedToId) return `"${deal.title}" is not currently assigned.`;
+
+  const result = await updateDealAssignedTo(deal.id, null);
+  if (!result.success) {
+    return `Failed to unassign "${deal.title}": ${result.error ?? "Unknown error."}`;
+  }
+
+  await logActivity({
+    type: "NOTE",
+    title: "Assignment removed",
+    content: "Team member assignment removed by CRM chatbot.",
+    dealId: deal.id,
+    contactId: deal.contactId ?? undefined,
+  });
+  return `Unassigned "${deal.title}".`;
+}
+
+export async function runRestoreDeal(
+  workspaceId: string,
+  params: { dealId: string }
+): Promise<string> {
+  const deal = await db.deal.findFirst({
+    where: { id: params.dealId, workspaceId },
+    select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+  });
+  if (!deal) return "Deal not found.";
+
+  if (!["LOST", "DELETED", "ARCHIVED"].includes(deal.stage)) {
+    return `"${deal.title}" is not in a restorable state.`;
+  }
+
+  const meta = (deal.metadata as Record<string, unknown>) ?? {};
+  const previousStage = typeof meta.previousStage === "string" ? meta.previousStage : "NEW";
+  const resolvedStage = PRISMA_STAGE_TO_CHAT_STAGE[previousStage] ?? "new";
+  const result = await updateDealStage(deal.id, resolvedStage);
+  if (!result.success) {
+    return `Failed to restore "${deal.title}": ${result.error ?? "Unknown error."}`;
+  }
+
+  await logActivity({
+    type: "NOTE",
+    title: "Deal restored",
+    content: `Restored from ${deal.stage} to ${resolvedStage}.`,
+    dealId: deal.id,
+    contactId: deal.contactId ?? undefined,
+  });
+  return `Restored "${deal.title}" to ${resolvedStage}.`;
 }
 
 // ─── Undo Last Action ───────────────────────────────────────────────

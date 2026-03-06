@@ -2,12 +2,22 @@ import { tool } from "ai";
 import { z } from "zod";
 import {
     runMoveDeal,
+    runBulkMoveDeals,
+    runBulkAssignDeals,
+    runBulkSetDealDisposition,
+    runBulkCreateDealReminder,
     runListDeals,
     runCreateDeal,
     runUpdateDealFields,
     runCreateJobNatural,
     runProposeReschedule,
     runUpdateInvoiceAmount,
+    runCreateDraftInvoice,
+    runIssueInvoiceAction,
+    runMarkInvoicePaidAction,
+    runReverseInvoiceStatus,
+    runSendInvoiceReminder,
+    runGetInvoiceStatusAction,
     runUpdateAiPreferences,
     runLogActivity,
     runCreateTask,
@@ -23,6 +33,9 @@ import {
     runDeleteTaskByTitle,
     runListRecentCrmChanges,
     runUndoLastAction,
+    runRevertDealStageMove,
+    runUnassignDeal,
+    runRestoreDeal,
     runAssignTeamMember,
     handleSupportRequest,
     runAppendTicketNote,
@@ -61,6 +74,40 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async ({ dealTitle, newStage }) =>
                 runMoveDeal(workspaceId, dealTitle.trim(), newStage.trim()),
+        }),
+        bulkMoveDeals: tool({
+            description: "Bulk move selected jobs/deals by their explicit IDs to a new stage. Use only when the target set is explicitly selected.",
+            inputSchema: z.object({
+                dealIds: z.array(z.string()).min(1).describe("Selected deal IDs"),
+                newStage: z.string().describe("Target stage name"),
+            }),
+            execute: async ({ dealIds, newStage }) => runBulkMoveDeals(workspaceId, { dealIds, newStage }),
+        }),
+        bulkAssignDeals: tool({
+            description: "Bulk assign selected jobs/deals to a team member. Use only when the target set is explicitly selected.",
+            inputSchema: z.object({
+                dealIds: z.array(z.string()).min(1).describe("Selected deal IDs"),
+                teamMemberName: z.string().describe("Team member name or email"),
+            }),
+            execute: async ({ dealIds, teamMemberName }) => runBulkAssignDeals(workspaceId, { dealIds, teamMemberName }),
+        }),
+        bulkUpdateDealDisposition: tool({
+            description: "Bulk mark selected jobs/deals as lost, deleted, or archived. Use only when the target set is explicitly selected.",
+            inputSchema: z.object({
+                dealIds: z.array(z.string()).min(1).describe("Selected deal IDs"),
+                disposition: z.enum(["lost", "deleted", "archived"]).describe("Target disposition"),
+            }),
+            execute: async ({ dealIds, disposition }) => runBulkSetDealDisposition(workspaceId, { dealIds, disposition }),
+        }),
+        bulkCreateDealReminder: tool({
+            description: "Create one shared reminder/task across selected jobs/deals. Use only when the target set is explicitly selected.",
+            inputSchema: z.object({
+                dealIds: z.array(z.string()).min(1).describe("Selected deal IDs"),
+                title: z.string().describe("Reminder title"),
+                message: z.string().describe("Reminder details"),
+                scheduledAtISO: z.string().optional().describe("ISO due time"),
+            }),
+            execute: async (params) => runBulkCreateDealReminder(workspaceId, params),
         }),
         createDeal: tool({
             description: "Create a new deal/job.",
@@ -138,6 +185,60 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             }),
             execute: async ({ dealTitle, amount }) =>
                 runUpdateInvoiceAmount(workspaceId, { dealTitle, amount }),
+        }),
+        createDraftInvoice: tool({
+            description: "Create a draft invoice for a job/deal using its current value when no draft exists yet.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job/deal title"),
+            }),
+            execute: async ({ dealTitle }) => runCreateDraftInvoice(workspaceId, { dealTitle }),
+        }),
+        issueInvoice: tool({
+            description: "Issue/send the most relevant invoice by invoice ID, deal title, or contact name.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+            }),
+            execute: async (params) => runIssueInvoiceAction(workspaceId, params),
+        }),
+        markInvoicePaid: tool({
+            description: "Mark the most relevant invoice as paid by invoice ID, deal title, or contact name.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+            }),
+            execute: async (params) => runMarkInvoicePaidAction(workspaceId, params),
+        }),
+        reverseInvoiceStatus: tool({
+            description: "Reverse an invoice status to a prior valid state.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+                targetStatus: z.enum(["DRAFT", "ISSUED"]).describe("Status to revert the invoice to"),
+            }),
+            execute: async (params) => runReverseInvoiceStatus(workspaceId, params),
+        }),
+        sendInvoiceReminder: tool({
+            description: "Send an invoice reminder using the existing customer-contact mode enforcement.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+                channel: z.enum(["auto", "email", "sms"]).optional().describe("Preferred reminder channel"),
+            }),
+            execute: async (params) => runSendInvoiceReminder(workspaceId, params),
+        }),
+        getInvoiceStatus: tool({
+            description: "Show local invoice status plus accounting sync status.",
+            inputSchema: z.object({
+                invoiceId: z.string().optional().describe("Invoice ID if already known"),
+                dealTitle: z.string().optional().describe("Deal title to resolve latest invoice"),
+                contactName: z.string().optional().describe("Contact name to resolve latest invoice"),
+            }),
+            execute: async (params) => runGetInvoiceStatusAction(workspaceId, params),
         }),
         updateAiPreferences: tool({
             description: "Save a permanent behavioral rule. Prefix [HARD_CONSTRAINT] to strictly decline or [FLAG_ONLY] to just flag.",
@@ -264,6 +365,27 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             description: "Undo the most recent action (deal creation, stage move, etc.).",
             inputSchema: z.object({}),
             execute: async () => runUndoLastAction(workspaceId),
+        }),
+        revertDealStageMove: tool({
+            description: "Revert a recorded stage move for a specific deal by explicit deal ID.",
+            inputSchema: z.object({
+                dealId: z.string().describe("Deal ID"),
+            }),
+            execute: async ({ dealId }) => runRevertDealStageMove(workspaceId, { dealId }),
+        }),
+        unassignDeal: tool({
+            description: "Remove the current team-member assignment from a specific deal by explicit deal ID.",
+            inputSchema: z.object({
+                dealId: z.string().describe("Deal ID"),
+            }),
+            execute: async ({ dealId }) => runUnassignDeal(workspaceId, { dealId }),
+        }),
+        restoreDeal: tool({
+            description: "Restore a deal from lost, deleted, or archived back to its prior active stage.",
+            inputSchema: z.object({
+                dealId: z.string().describe("Deal ID"),
+            }),
+            execute: async ({ dealId }) => runRestoreDeal(workspaceId, { dealId }),
         }),
         assignTeamMember: tool({
             description: "Assign a team member to a job. Fuzzy-matches job title and member name.",
