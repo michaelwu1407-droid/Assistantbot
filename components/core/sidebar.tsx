@@ -89,23 +89,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                     <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" unoptimized />
                 </div>
 
-                {/* Mode Toggle */}
-                {mounted && (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                id="mode-toggle-btn"
-                                onClick={() => (viewMode === "ADVANCED" ? goToBasic() : goToAdvanced())}
-                                className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-all"
-                            >
-                                <MessageSquare className="h-3.5 w-3.5" />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="text-xs">
-                            {viewMode === "ADVANCED" ? "Switch to Chat Mode" : "Switch to Advanced Mode"}
-                        </TooltipContent>
-                    </Tooltip>
-                )}
+                {/* Mode toggle removed — "Ask Tracey" button at the bottom provides access */}
 
                 <nav className="flex flex-1 flex-col gap-1.5 w-full px-1.5">
                     {navItems.map((item) => {
@@ -140,12 +124,12 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                 <div className="mt-auto flex flex-col gap-1.5 px-1.5 w-full">
                     <div className="border-t border-neutral-200 my-2" />
 
-                    {/* Ask Tracey — always visually distinct */}
+                    {/* Ask Tracey — visually distinct, non-green */}
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
                                 onClick={() => goToBasic()}
-                                className="flex h-10 w-full items-center justify-center rounded-lg bg-primary-subtle text-primary transition-colors duration-150 hover:bg-primary-muted"
+                                className="flex h-10 w-full items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-colors duration-150 hover:bg-slate-200 hover:text-slate-800"
                             >
                                 <MessageSquare size={20} strokeWidth={1.75} />
                             </button>

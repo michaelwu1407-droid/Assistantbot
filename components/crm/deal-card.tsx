@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus, Flag, ArrowRight } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, Flag, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
@@ -250,8 +250,10 @@ export function DealCard({
               {statusLabel}
             </span>
           ) : (
-            <span className="text-[10px] text-slate-500 dark:text-slate-400" title="Date added">
-              {format(new Date(deal.createdAt), "MMM d")}
+            <span className="text-[10px] text-slate-500 dark:text-slate-400" title={deal.scheduledAt ? "Scheduled date" : "Date added"}>
+              {deal.scheduledAt
+                ? format(new Date(deal.scheduledAt), "MMM d")
+                : format(new Date(deal.createdAt), "MMM d")}
             </span>
           )}
         </div>
@@ -277,30 +279,27 @@ export function DealCard({
             <span className="truncate">{deal.title}</span>
           </div>
 
-          {/* Assignee: optional in earlier stages, required in Scheduled (show warning if unassigned) */}
+          {/* Assignee: clickable name opens assignment dropdown */}
           {(teamMembers.length > 0 || deal.assignedToName) && (
-            <div className="flex items-center justify-between gap-1" data-no-card-click>
-              <span className={cn(
-                "text-[11px] flex items-center gap-1",
-                columnId === "scheduled" && !deal.assignedToName
-                  ? "text-amber-600 dark:text-amber-400 font-medium"
-                  : "text-[#64748B] dark:text-slate-400"
-              )}>
-                <User className="w-3 h-3 shrink-0" />
-                {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
-              </span>
-              {onAssign && teamMembers.length > 0 && !overlay && (
+            <div className="flex items-center gap-1" data-no-card-click>
+              {onAssign && teamMembers.length > 0 && !overlay ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="text-[11px] text-[#00D28B] hover:underline flex items-center gap-0.5"
+                      className={cn(
+                        "text-[11px] flex items-center gap-1 hover:underline cursor-pointer",
+                        columnId === "scheduled" && !deal.assignedToName
+                          ? "text-amber-600 dark:text-amber-400 font-medium"
+                          : "text-[#64748B] dark:text-slate-400"
+                      )}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <UserPlus className="w-3 h-3" /> Assign
+                      <User className="w-3 h-3 shrink-0" />
+                      {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenuItem onClick={() => onAssign(null)}>
                       Unassign
                     </DropdownMenuItem>
@@ -311,6 +310,16 @@ export function DealCard({
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : (
+                <span className={cn(
+                  "text-[11px] flex items-center gap-1",
+                  columnId === "scheduled" && !deal.assignedToName
+                    ? "text-amber-600 dark:text-amber-400 font-medium"
+                    : "text-[#64748B] dark:text-slate-400"
+                )}>
+                  <User className="w-3 h-3 shrink-0" />
+                  {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
+                </span>
               )}
             </div>
           )}

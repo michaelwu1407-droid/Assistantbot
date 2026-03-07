@@ -482,24 +482,15 @@ export default function Home() {
                     {/* Value Pillars */}
                     <motion.div {...fadeUp(0.12)} className="w-full max-w-[1200px] mx-auto">
                         <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8">
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3 md:pr-8 md:border-r md:border-black/10">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm">
-                                    <BarChart3 className="h-6 w-6" />
-                                </div>
-                                <p>Win more customers. Win more revenue</p>
-                            </div>
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3 md:pr-8 md:border-r md:border-black/10">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 shadow-sm">
-                                    <Zap className="h-6 w-6" />
-                                </div>
-                                <p>Make life easier. Automate customer admin</p>
-                            </div>
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-700 shadow-sm">
-                                    <Users className="h-6 w-6" />
-                                </div>
-                                <p>Provide a better, more reliable customer experience</p>
-                            </div>
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
+                                Win more customers. Win more revenue
+                            </p>
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] md:pr-8 md:border-r md:border-black/10">
+                                Make life easier. Automate customer admin
+                            </p>
+                            <p className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4]">
+                                Provide a better, more reliable customer experience
+                            </p>
                         </div>
                     </motion.div>
 
@@ -688,7 +679,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Everything you need,<br />nothing you don&apos;t
+                            Powerful features,<br />zero complexity
                         </h2>
                         <p className="text-slate-body mt-3 text-lg">
                             Six powerful features working together so you can focus on the work, not the paperwork.
