@@ -1,125 +1,254 @@
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { tool } from "ai";
+import { z } from "zod";
 import { db } from "@/lib/db";
+import { buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
+import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
+import {
+    runGetAvailability,
+    runGetSchedule,
+    runGetClientContext,
+} from "@/actions/agent-tools";
+import {
+    runCreateJobNatural,
+    runSearchContacts,
+    runLogActivity,
+    runCreateContact,
+    runCreateDeal,
+    runAddAgentFlag,
+} from "@/actions/chat-actions";
 
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
 
-export async function generateSMSResponse(
-  interactionId: string,
-  userMessage: string,
-  workspaceId: string
-): Promise<string> {
-  const apiKey =
-    process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+function shouldFetchMemory(text: string): boolean {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+    if (trimmed.split(/\s+/).length <= 2) return false;
+    if (/^(ok|okay|thanks|thank you|yes|no|done|next|confirm|cancel)\b/i.test(trimmed)) return false;
+    return true;
+}
 
-  if (!apiKey) {
-    console.error("Missing GEMINI_API_KEY for SMS agent");
-    return "Thanks for your message! Someone will get back to you shortly.";
-  }
-
-  // Fetch workspace settings for agent context
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-    select: {
-      name: true,
-      agentMode: true,
-      workingHoursStart: true,
-      workingHoursEnd: true,
-      aiPreferences: true,
-      callOutFee: true,
-      settings: true,
-    },
-  });
-
-  // Fetch recent conversation history for this interaction
-  const recentMessages = await db.chatMessage.findMany({
-    where: { workspaceId, metadata: { path: ["activityId"], equals: interactionId } },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    select: { role: true, content: true },
-  });
-
-  const historyStr = recentMessages
-    .reverse()
-    .map((m) => `${m.role === "user" ? "Customer" : "You"}: ${m.content}`)
-    .join("\n");
-
-  const agentMode = workspace?.agentMode ?? "ORGANIZE";
-  const businessName = workspace?.name ?? "our business";
-  const hours = `${workspace?.workingHoursStart ?? "08:00"} to ${workspace?.workingHoursEnd ?? "17:00"}`;
-  const callOutFee = workspace?.callOutFee ? Number(workspace.callOutFee) : 0;
-  const preferences = workspace?.aiPreferences ?? "";
-  const settings = (workspace?.settings as Record<string, unknown>) ?? {};
-  const personality = (settings.agentPersonality as string) ?? "Professional";
-  const openingMessage = (settings.agentOpeningMessage as string) ?? "";
-  const closingMessage = (settings.agentClosingMessage as string) ?? "";
-  const responseLength = Number(settings.agentResponseLength ?? 50);
-  const sentenceGuidance =
-    responseLength <= 30 ? "Keep replies to 1 sentence." :
-    responseLength <= 70 ? "Keep replies to 1-2 sentences." :
-    "Keep replies to 1-3 sentences.";
-
-  // Fetch glossary
-  const repairItems = await db.repairItem.findMany({
-    where: { workspaceId },
-    select: { title: true, description: true },
-  });
-  let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
-  if (repairItems.length > 0) {
-    glossaryStr += repairItems.map(item => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
-  } else {
-    glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
-  }
-
-  let modeInstruction = "";
-  if (agentMode === "EXECUTE") {
-    modeInstruction =
-      "You have full autonomy. You may schedule jobs, confirm appointments, and take action directly on behalf of the business.";
-  } else if (agentMode === "ORGANIZE") {
-    modeInstruction =
-      "You are in liaison mode. Collect information, propose options, but always tell the customer that the business owner will confirm. Do not commit to specific times or pricing without saying it needs confirmation.";
-  } else {
-    modeInstruction =
-      "You are a receptionist only. Collect the customer's details and what they need, then let them know someone will be in touch. Do NOT schedule, quote, or make any commitments.";
-  }
-
-  const systemPrompt = `You are the AI SMS assistant for ${businessName}. You are texting a customer on behalf of the business.
-
-RULES:
-- Keep responses SHORT (1-3 sentences max). This is SMS, not email.
-- Tone: ${personality}. Be friendly, professional, and helpful.
-- ${sentenceGuidance}
-- Business hours: ${hours}.
-- ${modeInstruction}
-- PRICING HARD BRAKE: NEVER agree on a final price for custom work. ONLY quote a specific price if the exact requested work exists in the GLOSSARY OF APPROVED PRICES below.
-- If it is NOT in the glossary, say a firm quote requires an on-site assessment.
-- Only mention the call-out fee when it is useful for the customer.
-- Universal call-out fee rule: if the technician attends and successfully fixes the issue, the call-out fee does NOT apply.
-- When relevant, explain it like this: "Our call-out fee is $${callOutFee} for the assessment, and if we fix it on the spot that fee does not apply."
-- Do not hallucinate or estimate prices.
-${openingMessage ? `- Prefer this opening style when suitable: "${openingMessage}"` : ""}
-${closingMessage ? `- Prefer this closing style when suitable: "${closingMessage}"` : ""}
-${glossaryStr}
-${preferences ? `\nBUSINESS PREFERENCES:\n${preferences}` : ""}
-
-${historyStr ? `RECENT CONVERSATION:\n${historyStr}\n` : ""}
-Customer's latest message: ${userMessage}
-
-Reply as the business SMS assistant. Keep it brief and natural.`;
-
-  try {
-    const google = createGoogleGenerativeAI({ apiKey });
-    const result = await generateText({
-      model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      prompt: systemPrompt,
-      maxOutputTokens: 200,
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<T>((resolve) => {
+        timeoutHandle = setTimeout(() => resolve(fallback), timeoutMs);
     });
-    const text = result.text?.trim();
-    if (text) return text;
-  } catch (error) {
-    console.error("SMS Gemini error:", error);
-  }
+    const result = await Promise.race([promise, timeoutPromise]);
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    return result;
+}
 
-  // Fallback if Gemini fails
-  return `Thanks for your message! Someone from ${businessName} will get back to you shortly.`;
+/**
+ * Returns customer-facing tools for inbound SMS conversations.
+ * This is a safe subset — no outbound comms, no CRM management, no invoicing.
+ */
+export function getSmsCustomerTools(workspaceId: string, settings: any) {
+    return {
+        getAvailability: tool({
+            description: "Check available time slots on a specific date.",
+            inputSchema: z.object({
+                date: z.string().describe("Target date (ISO string)"),
+            }),
+            execute: async ({ date }) =>
+                runGetAvailability(workspaceId, {
+                    date,
+                    workingHoursStart: settings?.workingHoursStart || "08:00",
+                    workingHoursEnd: settings?.workingHoursEnd || "17:00",
+                }),
+        }),
+        getSchedule: tool({
+            description: "Fetch jobs for a date range to check for conflicts before booking.",
+            inputSchema: z.object({
+                startDate: z.string().describe("Range start (ISO string)"),
+                endDate: z.string().describe("Range end (ISO string)"),
+            }),
+            execute: async ({ startDate, endDate }) =>
+                runGetSchedule(workspaceId, { startDate, endDate }),
+        }),
+        createJobNatural: tool({
+            description: "Create a job from natural language. Use when the customer confirms a booking. Always extract phone if included.",
+            inputSchema: z.object({
+                clientName: z.string().describe("Client full name"),
+                workDescription: z.string().describe("What work is needed"),
+                price: z.number().describe("Price in dollars"),
+                address: z.string().optional().describe("Street address"),
+                schedule: z.string().optional().describe("When, e.g. tomorrow 2pm"),
+                phone: z.string().optional().describe("Client phone number"),
+                email: z.string().optional().describe("Client email"),
+            }),
+            execute: async (params) => runCreateJobNatural(workspaceId, params),
+        }),
+        createDeal: tool({
+            description: "Create a new deal/job entry to track this customer enquiry.",
+            inputSchema: z.object({
+                title: z.string().describe("Deal or job title"),
+                company: z.string().optional().describe("Client or company name"),
+                value: z.number().optional().describe("Deal value in dollars"),
+            }),
+            execute: async ({ title, company, value }) =>
+                runCreateDeal(workspaceId, { title, company, value }),
+        }),
+        getClientContext: tool({
+            description: "Full client profile: contact info, recent jobs, notes, messages. Use to personalize responses for returning customers.",
+            inputSchema: z.object({
+                clientName: z.string().describe("Client name (fuzzy matched)"),
+            }),
+            execute: async ({ clientName }) =>
+                runGetClientContext(workspaceId, { clientName }),
+        }),
+        searchContacts: tool({
+            description: "Look up contacts by name or keyword in the CRM.",
+            inputSchema: z.object({
+                query: z.string().describe("Name or keyword to search"),
+            }),
+            execute: async ({ query }) => runSearchContacts(workspaceId, query),
+        }),
+        createContact: tool({
+            description: "Add a new contact to the CRM when a new customer provides their details.",
+            inputSchema: z.object({
+                name: z.string().describe("Full name or company name"),
+                email: z.string().optional().describe("Email address"),
+                phone: z.string().optional().describe("Phone number"),
+            }),
+            execute: async (params) => runCreateContact(workspaceId, params),
+        }),
+        logActivity: tool({
+            description: "Record a notable event from this conversation (e.g., emergency reported, special request).",
+            inputSchema: z.object({
+                type: z.enum(["CALL", "EMAIL", "NOTE", "MEETING", "TASK"]).describe("Activity type"),
+                content: z.string().describe("What happened"),
+            }),
+            execute: async ({ type, content }) => runLogActivity({ type, content }),
+        }),
+        addAgentFlag: tool({
+            description: "Flag a concern for the business owner to review. Use for leads that seem out of scope but don't match No-Go rules.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Deal title to flag"),
+                flag: z.string().describe("Short warning note"),
+            }),
+            execute: async ({ dealTitle, flag }) =>
+                runAddAgentFlag(workspaceId, { dealTitle, flag }),
+        }),
+    };
+}
+
+export async function generateSMSResponse(
+    interactionId: string,
+    userMessage: string,
+    workspaceId: string
+): Promise<string> {
+    const requestStartedAt = nowMs();
+
+    const apiKey =
+        process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+    if (!apiKey) {
+        console.error("Missing GEMINI_API_KEY for SMS agent");
+        return "Thanks for your message! Someone will get back to you shortly.";
+    }
+
+    try {
+        const preprocessingStartedAt = nowMs();
+
+        // Fetch conversation history, agent context, and memory in parallel
+        const [recentMessages, agentContext, memoryContextStr] = await Promise.all([
+            db.chatMessage.findMany({
+                where: { workspaceId, metadata: { path: ["activityId"], equals: interactionId } },
+                orderBy: { createdAt: "desc" },
+                take: 10,
+                select: { role: true, content: true },
+            }),
+            buildAgentContext(workspaceId),
+            shouldFetchMemory(userMessage)
+                ? withTimeout(fetchMemoryContext(workspaceId, userMessage), 700, "")
+                : Promise.resolve(""),
+        ]);
+
+        const conversationHistory = recentMessages.reverse().map(m => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+        }));
+
+        const {
+            settings,
+            knowledgeBaseStr,
+            agentModeStr,
+            workingHoursStr,
+            agentScriptStr,
+            preferencesStr,
+            pricingRulesStr,
+            bouncerStr,
+            attachmentsStr,
+        } = agentContext;
+
+        // SMS-specific sentence guidance from workspace settings
+        const wsSettings = (settings as Record<string, unknown>) ?? {};
+        const responseLength = Number(wsSettings.agentResponseLength ?? 50);
+        const sentenceGuidance =
+            responseLength <= 30 ? "Keep replies to 1 sentence." :
+            responseLength <= 70 ? "Keep replies to 1-2 sentences." :
+            "Keep replies to 1-3 sentences.";
+
+        const preprocessingMs = nowMs() - preprocessingStartedAt;
+
+        const systemPrompt = `You are the AI SMS assistant for this business. You are texting a customer on behalf of the business. The customer does NOT know you are an AI — represent the business naturally.
+
+CHANNEL RULES (SMS-specific):
+- Keep responses SHORT (1-3 sentences max). This is SMS, not email.
+- Be friendly, professional, and helpful.
+- Never send walls of text. Break info across messages if needed.
+- ${sentenceGuidance}
+
+${knowledgeBaseStr}
+${agentModeStr}
+${workingHoursStr}
+${agentScriptStr}
+${preferencesStr}
+${pricingRulesStr}
+${bouncerStr}
+${attachmentsStr}
+${memoryContextStr}
+
+USE TOOLS for real data — never guess availability, pricing, or schedule. If uncertain, ask the customer for more details.`;
+
+        const google = createGoogleGenerativeAI({ apiKey });
+
+        let toolCallsMs = 0;
+        const tools = instrumentToolsWithLatency(
+            getSmsCustomerTools(workspaceId, settings),
+            (toolName, durationMs) => {
+                toolCallsMs += durationMs;
+                recordLatencyMetric(`sms.inbound.tool.${toolName}_ms`, durationMs);
+            },
+        );
+
+        const llmStartedAt = nowMs();
+        const result = await generateText({
+            model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
+            system: systemPrompt,
+            messages: conversationHistory.length > 0
+                ? [...conversationHistory, { role: "user" as const, content: userMessage }]
+                : [{ role: "user" as const, content: userMessage }],
+            tools,
+            // @ts-ignore - Some versions of AI SDK declare this outside CallSettings
+            maxSteps: 3,
+        });
+
+        const llmPhaseMs = nowMs() - llmStartedAt;
+        const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
+        const totalMs = nowMs() - requestStartedAt;
+        recordLatencyMetric("sms.inbound.preprocessing_ms", preprocessingMs);
+        recordLatencyMetric("sms.inbound.tool_calls_ms", toolCallsMs);
+        recordLatencyMetric("sms.inbound.model_ms", modelMs);
+        recordLatencyMetric("sms.inbound.total_ms", totalMs);
+
+        const text = result.text?.trim();
+        if (text) return text;
+    } catch (error) {
+        console.error("[SMS Agent] Error generating response:", error);
+    }
+
+    // Fallback if Gemini fails
+    return "Thanks for your message! Someone will get back to you shortly.";
 }

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db as prisma } from "@/lib/db"
-// @ts-ignore - Requires npm install twilio later
-import pkg from 'twilio';
-const { twiml: { MessagingResponse } } = pkg;
-
+import { waitUntil } from "@vercel/functions"
+import { classifyMessage } from "@/lib/spam-classifier"
+import { getSubaccountClient } from "@/lib/twilio"
 import { generateSMSResponse } from "@/lib/ai/sms-agent"
+
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,21 +16,31 @@ export async function POST(req: NextRequest) {
         const MessageSid = formData.get("MessageSid") as string
 
         if (!From || !Body || !To) {
-            return NextResponse.json({ error: "Missing From, To, or Body" }, { status: 400 })
+            console.error("[SMS Webhook] Missing From, To, or Body")
+            return new NextResponse("OK", { status: 200 })
         }
+
+        console.log(`[SMS Webhook] Received message from ${From} to ${To}: ${Body}`)
 
         // 1. Identify Workspace via the Twilio Number (Multi-Tenant Routing)
         const workspace = await prisma.workspace.findFirst({
-            where: { twilioPhoneNumber: To }
+            where: { twilioPhoneNumber: To },
+            select: {
+                id: true,
+                settings: true,
+                twilioPhoneNumber: true,
+                twilioSubaccountId: true,
+                twilioSubaccountAuthToken: true,
+            }
         })
 
         if (!workspace) {
-            console.error(`Received SMS to ${To} but no matching Workspace was found in the DB.`)
-            return NextResponse.json({ error: "Workspace not found for this number" }, { status: 404 })
+            console.error(`[SMS Webhook] Received SMS to ${To} but no matching Workspace was found.`)
+            return new NextResponse("OK", { status: 200 })
         }
 
         let contact = await prisma.contact.findFirst({
-            where: { phone: From }
+            where: { phone: From, workspaceId: workspace.id }
         })
 
         if (!contact) {
@@ -47,7 +58,7 @@ export async function POST(req: NextRequest) {
         let interaction = await prisma.activity.findFirst({
             where: {
                 contactId: contact.id,
-                type: "NOTE", // Mapping SMS to Note
+                type: "NOTE",
                 createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
             },
             orderBy: { createdAt: "desc" }
@@ -71,42 +82,78 @@ export async function POST(req: NextRequest) {
                 content: Body,
                 role: "user",
                 workspaceId: workspace.id,
-                metadata: { externalId: MessageSid, activityId: interaction.id }
+                metadata: { externalId: MessageSid, activityId: interaction.id, contactId: contact.id }
             }
         })
 
         const wsSettings = (workspace.settings as Record<string, unknown>) ?? {}
         const autoRespondToMessages = (wsSettings.autoRespondToMessages as boolean) ?? true
         if (!autoRespondToMessages) {
-            const twiml = new MessagingResponse()
-            return new NextResponse(twiml.toString(), {
-                headers: { "Content-Type": "text/xml" }
-            })
+            return new NextResponse("OK", { status: 200 })
         }
 
-        // 4. Generate AI Response
-        const aiResponseText = await generateSMSResponse(interaction.id, Body, workspace.id)
+        // 4. Process in background — return 200 immediately to prevent Twilio timeouts
+        const interactionId = interaction.id;
+        const workspaceId = workspace.id;
+        const contactId = contact.id;
 
-        // 5. Log Assistant Message
-        await prisma.chatMessage.create({
-            data: {
-                content: aiResponseText,
-                role: "assistant",
-                workspaceId: workspace.id,
-                metadata: { activityId: interaction.id }
+        const processPromise = (async () => {
+            try {
+                // ─── Spam Check ─────────────────────────────────────────
+                const spamResult = await classifyMessage(workspaceId, Body, From);
+
+                if (spamResult.classification === "spam") {
+                    console.log(`[SMS Webhook] Spam filtered: ${spamResult.reason}`);
+                    await prisma.activity.create({
+                        data: {
+                            type: "NOTE",
+                            title: "SMS Filtered: Spam",
+                            contactId,
+                            content: `From: ${From}\nMessage: ${Body}\nReason: ${spamResult.reason}\nConfidence: ${(spamResult.confidence * 100).toFixed(0)}%`,
+                        },
+                    });
+                    return;
+                }
+
+                // ─── AI Response Generation ─────────────────────────────
+                const aiResponseText = await generateSMSResponse(interactionId, Body, workspaceId);
+
+                // Log Assistant Message
+                await prisma.chatMessage.create({
+                    data: {
+                        content: aiResponseText,
+                        role: "assistant",
+                        workspaceId,
+                        metadata: { activityId: interactionId, contactId }
+                    }
+                })
+
+                // ─── Send Response via Twilio REST API ──────────────────
+                if (workspace.twilioSubaccountId && workspace.twilioSubaccountAuthToken) {
+                    const client = getSubaccountClient(
+                        workspace.twilioSubaccountId,
+                        workspace.twilioSubaccountAuthToken
+                    );
+                    await client.messages.create({
+                        from: To,
+                        to: From,
+                        body: aiResponseText,
+                    });
+                } else {
+                    console.error(`[SMS Webhook] No Twilio subaccount configured for workspace ${workspaceId}. Cannot send reply.`);
+                }
+            } catch (err) {
+                console.error("[SMS Webhook] Error processing message in background:", err);
             }
-        })
+        })();
 
-        // 6. Return TwiML
-        const twiml = new MessagingResponse()
-        twiml.message(aiResponseText)
+        waitUntil(processPromise);
 
-        return new NextResponse(twiml.toString(), {
-            headers: { "Content-Type": "text/xml" }
-        })
+        return new NextResponse("OK", { status: 200 })
 
     } catch (error) {
-        console.error("Twilio Webhook Error:", error)
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+        console.error("[SMS Webhook] Fatal error:", error)
+        // Always return 200 to prevent Twilio retry storms
+        return new NextResponse("OK", { status: 200 })
     }
 }
