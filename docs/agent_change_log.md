@@ -379,3 +379,13 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Added a close button to the dashboard setup banner and made its dismissal behavior signup-age aware. During the first week after signup, dismissing the banner only hides it temporarily and it can reappear later; after that, dismissal stays hidden on the current browser.
 - Why: Users need to be able to close the setup banner, but it should keep resurfacing during the first week so new signups do not lose the onboarding prompt too easily.
 
+### 2026-03-07 12:31 (AEDT) - codex
+- Files: `app/dashboard/schedule/schedule-calendar.tsx`, `docs/agent_change_log.md`
+- What changed: Reworked the schedule day view into an actual hourly grid with time columns across the top and each team member rendered as a row beneath those hour headers. Drag-and-drop in day view now targets a specific hour cell so moving a job there updates its scheduled hour instead of only changing the assignee.
+- Why: The day view previously showed one wide blank lane per team member, which made the schedule unreadable by time of day and did not match the expected calendar-style layout.
+
+### 2026-03-07 12:39 (AEDT) - codex
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: Restored normal desktop drag behavior in the Kanban board by switching mass-select mode off the all-pointer delayed drag sensor and back onto standard mouse drag plus touch-only delay. Added subtle wiggle animation during mass-select mode, and clicking anywhere outside a card now exits that mode. Also fixed the Kanban card scheduled timestamp to render in `Australia/Sydney` instead of the browser's raw local timezone.
+- Why: The long-press selection change had made desktop drag feel broken, and the scheduled-date regression had reappeared by formatting `scheduledAt` in browser-local time, which can shift jobs onto the wrong displayed day. Scheduled-job UI must always display the actual scheduled date in the app's intended timezone, not `createdAt` or browser-local drift.
+

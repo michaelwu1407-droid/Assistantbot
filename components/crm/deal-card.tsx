@@ -43,7 +43,14 @@ interface DealCardProps {
 function formatScheduledTime(scheduledAt: Date | null | undefined): string {
   if (!scheduledAt) return "—"
   const d = new Date(scheduledAt)
-  return format(d, "MMM d, h:mm a")
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(d)
 }
 
 export function DealCard({
@@ -88,6 +95,7 @@ export function DealCard({
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
+    animation: !overlay && selectionMode ? "kanban-card-wiggle 1.1s ease-in-out infinite" : undefined,
   }
 
   let cardClasses = "ott-card rounded-[20px] bg-white hover:border-[#00D28B] p-4 border border-slate-200/60 dark:border-slate-700/50"
@@ -148,7 +156,7 @@ export function DealCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group touch-none">
+    <div ref={setNodeRef} style={style} className="relative group touch-none" data-kanban-card="true">
       {/* Draggable area: whole card. Bin is a sibling so it doesn't start drag. Activation distance (in Kanban) turns small moves into click. */}
       <div
         className={cn("relative overflow-hidden", cardClasses)}

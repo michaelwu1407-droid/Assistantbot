@@ -6,7 +6,8 @@ import {
   DragOverlay,
   pointerWithin,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -93,6 +94,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
   const dragStartStageRef = useRef<string | null>(null)
+  const boardRef = useRef<HTMLDivElement | null>(null)
 
   // Filter deals by assignee when filter is set
   const filteredDeals = useMemo(() => {
@@ -122,6 +124,21 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
     publishCrmSelection(selection)
   }, [selectedDealId, selectedDealIds, deals])
 
+  useEffect(() => {
+    if (!selectionMode) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (!target) return
+      if (target.closest("[data-kanban-card='true']")) return
+      setSelectedDealIds([])
+      setSelectionMode(false)
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    return () => document.removeEventListener("pointerdown", handlePointerDown)
+  }, [selectionMode])
+
   const toggleSelectedDeal = (dealId: string, checked: boolean) => {
     setSelectedDealIds((prev) => {
       if (checked) {
@@ -137,8 +154,10 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      // Require longer hold on touch devices so users can scroll without accidentally grabbing a card
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(TouchSensor, {
       activationConstraint: { delay: 250, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
@@ -311,7 +330,14 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-3">
+      <div className="space-y-3" ref={boardRef}>
+        <style jsx global>{`
+          @keyframes kanban-card-wiggle {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+            25% { transform: translate3d(0, -1px, 0) rotate(-0.6deg); }
+            75% { transform: translate3d(0, 1px, 0) rotate(0.6deg); }
+          }
+        `}</style>
         <div className="flex items-center justify-between px-2">
           <div className="text-xs font-medium text-slate-500">
             {selectionMode && selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected` : ""}

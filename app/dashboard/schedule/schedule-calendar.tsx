@@ -23,6 +23,8 @@ interface ScheduleCalendarProps {
   teamMembers: TeamMember[]
 }
 
+const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
+
 export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) {
   const [current, setCurrent] = useState(new Date())
   const [view, setView] = useState<ViewMode>("month")
@@ -77,9 +79,14 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     // Calculate new date with time preserved if possible
     const deal = deals.find(d => d.id === dealId)
     let newDate = new Date(date)
+    const hasExplicitTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0 || date.getMilliseconds() !== 0
     if (deal?.scheduledAt) {
       const oldDate = new Date(deal.scheduledAt)
-      newDate.setHours(oldDate.getHours(), oldDate.getMinutes())
+      if (hasExplicitTime) {
+        newDate.setMinutes(oldDate.getMinutes(), oldDate.getSeconds(), oldDate.getMilliseconds())
+      } else {
+        newDate.setHours(oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds(), oldDate.getMilliseconds())
+      }
     }
 
     try {
@@ -206,87 +213,105 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
     })
 
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-50/30 overflow-hidden">
-        {/* Resource Rows */}
-        <div className="flex-1 overflow-y-auto">
-          {teamMembers.map((member) => {
-            const memberDeals = sortedDeals.filter(d => d.assignedToId === member.id)
-            return (
-              <div key={member.id} className="flex border-b border-slate-100 min-h-[80px]">
-                {/* Resource Header (Team Member) */}
-                <div className="w-[140px] border-r border-slate-200 p-3 bg-white shrink-0 sticky left-0 z-10 flex flex-col justify-center">
-                  <p className="text-sm font-bold text-slate-900 truncate">{member.name}</p>
-                  <p className="text-[10px] text-slate-500 uppercase font-medium">{member.role.replace('_', ' ')}</p>
-                </div>
+    const gridStyle = {
+      gridTemplateColumns: `180px repeat(${DAY_HOURS.length}, minmax(92px, 1fr))`,
+    }
 
-                {/* Timeline / Slot */}
-                <div
-                  className="flex-1 p-2 flex flex-wrap gap-2 items-center"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleDrop(e, current, member.id)}
-                >
-                  {memberDeals.length === 0 ? (
-                    <div className="w-full flex items-center justify-center py-4 border-2 border-dashed border-slate-200 rounded-lg bg-white/50">
-                      <p className="text-[11px] text-slate-400 font-medium">Drag jobs here to assign</p>
-                    </div>
-                  ) : (
-                    memberDeals.map(deal => (
-                      <div
-                        key={deal.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, deal.id)}
-                        onClick={() => setSelectedDealId(deal.id)}
-                        className="min-w-[150px] shadow-sm animate-in fade-in zoom-in-95 duration-200"
-                      >
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded uppercase tracking-tight">
-                              {deal.scheduledAt ? format(new Date(deal.scheduledAt), "h:mm a") : "TBD"}
-                            </span>
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          </div>
-                          <p className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-1">{deal.title}</p>
-                          <p className="text-[10px] text-slate-500 truncate mt-0.5">{deal.address || "No address"}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )
-          })}
+    const buildSlotDate = (hour: number) => {
+      const slotDate = new Date(current)
+      slotDate.setHours(hour, 0, 0, 0)
+      return slotDate
+    }
 
-          {/* Unassigned row */}
-          <div className="flex border-b border-slate-100 min-h-[80px] bg-slate-100/30">
-            <div className="w-[140px] border-r border-slate-200 p-3 shrink-0 sticky left-0 z-10 flex flex-col justify-center bg-slate-100/50">
-              <p className="text-sm font-bold text-slate-400 italic">Unassigned</p>
-            </div>
-            <div
-              className="flex-1 p-2 flex flex-wrap gap-2 items-center"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDrop(e, current, "")}
-            >
-              {sortedDeals.filter(d => !d.assignedToId).map(deal => (
+    const renderHourCell = (memberId: string | null, hour: number) => {
+      const hourDeals = sortedDeals.filter((deal) => {
+        if ((memberId ? deal.assignedToId === memberId : !deal.assignedToId) === false) return false
+        if (!deal.scheduledAt) return false
+        return new Date(deal.scheduledAt).getHours() === hour
+      })
+
+      return (
+        <div
+          key={`${memberId ?? "unassigned"}-${hour}`}
+          className="min-h-[96px] border-r border-slate-100 p-2 bg-white/70"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => handleDrop(e, buildSlotDate(hour), memberId ?? "")}
+        >
+          {hourDeals.length === 0 ? (
+            <div className="h-full min-h-[80px] rounded-xl border border-dashed border-slate-200 bg-white/40" />
+          ) : (
+            <div className="space-y-2">
+              {hourDeals.map((deal) => (
                 <div
                   key={deal.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, deal.id)}
                   onClick={() => setSelectedDealId(deal.id)}
-                  className="min-w-[150px] shadow-sm"
+                  className="shadow-sm"
                 >
-                  <div className="p-3 rounded-xl bg-white/80 border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase tracking-tight">
+                      <span className={cn(
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight",
+                        memberId ? "text-primary bg-primary/5" : "text-slate-400 bg-slate-100"
+                      )}>
                         {deal.scheduledAt ? format(new Date(deal.scheduledAt), "h:mm a") : "TBD"}
                       </span>
+                      {memberId ? <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
                     </div>
-                    <p className="text-xs font-bold text-slate-600 line-clamp-1">{deal.title}</p>
-                    <p className="text-[10px] text-slate-400 truncate mt-0.5">{deal.contactName}</p>
+                    <p className={cn(
+                      "text-xs font-bold line-clamp-1",
+                      memberId ? "text-slate-900 group-hover:text-primary transition-colors" : "text-slate-600"
+                    )}>
+                      {deal.title}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                      {memberId ? (deal.address || "No address") : (deal.contactName || "No contact")}
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex-1 min-h-0 bg-slate-50/30 overflow-hidden">
+        <div className="h-full overflow-auto">
+          <div className="grid min-w-[1560px]" style={gridStyle}>
+            <div className="sticky top-0 left-0 z-30 border-b border-r border-slate-200 bg-slate-50/95 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 backdrop-blur">
+              Team
+            </div>
+            {DAY_HOURS.map((hour) => (
+              <div
+                key={`day-hour-${hour}`}
+                className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50/95 px-2 py-3 text-center backdrop-blur"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  {hour < 12 ? "AM" : "PM"}
+                </p>
+                <p className="text-sm font-bold text-slate-700">
+                  {hour <= 12 ? hour : hour - 12}:00
+                </p>
+              </div>
+            ))}
+
+            {teamMembers.map((member) => (
+              <div key={member.id} className="contents">
+                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-white px-4">
+                  <p className="text-sm font-bold text-slate-900 truncate">{member.name}</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-medium">{member.role.replace('_', ' ')}</p>
+                </div>
+                {DAY_HOURS.map((hour) => renderHourCell(member.id, hour))}
+              </div>
+            ))}
+
+            <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
+              <p className="text-sm font-bold text-slate-400 italic">Unassigned</p>
+            </div>
+            {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
           </div>
         </div>
       </div>
