@@ -354,3 +354,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Replaced the inbox left-panel lead/existing/all segmented control with two dropdown filters: customer type and date. Added latest/oldest sorting plus a custom time-period dialog with start/end dates and an explicit Apply action.
 - Why: The inbox needed more flexible filtering and sorting than the old 3-button customer-type toggle could provide.
 
+### 2026-03-07 11:52 (AEDT) - codex
+- Files: `app/page.tsx`, `docs/agent_change_log.md`
+- What changed: Added centered icons above each of the three homepage hero value messages while keeping the approved copy and overall hero layout intact.
+- Why: The hero benefits needed a stronger visual anchor so each message reads as a distinct value pillar instead of plain text alone.
+
