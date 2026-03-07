@@ -364,3 +364,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Rewrote the top-level product and deployment docs to reflect the current Earlymark app instead of older Pj Buddy / Retell-era behavior. Updated the docs to cover the current assistant taxonomy, billing-before-onboarding flow, beta phone-provisioning rule, Twilio workspace-number model, LiveKit voice stack, and the current split between web-app deploys and voice-worker deploys.
 - Why: The repo’s primary docs had drifted badly from the live product and were misleading about the current product name, onboarding flow, voice stack, and deployment model.
 
+### 2026-03-07 12:08 (AEDT) - codex
+- Files: `actions/storage-actions.ts`, `docs/agent_change_log.md`
+- What changed: Switched the server-side Supabase Storage helper from the public anon client to the admin service-role client when generating signed upload URLs and public URLs.
+- Why: Settings document uploads were still failing with `new row violates row-level security policy` because the upload-token server action was creating signed upload URLs under anonymous Storage permissions instead of server-side admin context.
+
