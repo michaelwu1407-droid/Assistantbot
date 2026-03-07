@@ -232,21 +232,33 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 id="assistant-panel"
                 className="hidden md:block transition-all duration-300 ease-in-out pl-0"
               >
-                {/* Mode Toggle Button - Above Chatbot - integrated into header or separate */}
-                <div className="flex items-center justify-center gap-3 px-4 py-3 bg-background border-b border-border/50">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Chat</span>
-                  </div>
-                  <Switch
-                    id="mode-toggle"
-                    checked={viewMode === "ADVANCED"}
-                    onCheckedChange={(checked) => (checked ? goToAdvanced() : goToBasic())}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-primary">Advanced</span>
+                {/* Mode Toggle — Segmented control */}
+                <div className="flex items-center justify-center px-4 py-3 bg-background border-b border-neutral-200">
+                  <div className="flex items-center bg-neutral-100 rounded-lg p-1 gap-1">
+                    <button
+                      onClick={() => goToBasic()}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150',
+                        viewMode !== 'ADVANCED'
+                          ? 'bg-white text-neutral-900 shadow-xs'
+                          : 'text-neutral-500 hover:text-neutral-700'
+                      )}
+                    >
+                      <MessageSquare size={14} />
+                      Chat
+                    </button>
+                    <button
+                      onClick={() => goToAdvanced()}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150',
+                        viewMode === 'ADVANCED'
+                          ? 'bg-white text-neutral-900 shadow-xs'
+                          : 'text-neutral-500 hover:text-neutral-700'
+                      )}
+                    >
+                      <Layers size={14} />
+                      Advanced
+                    </button>
                   </div>
                 </div>
                 <div

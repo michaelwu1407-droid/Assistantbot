@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
 import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2 } from 'lucide-react';
+import { TraceyAvatar } from '@/components/ui/tracey-avatar';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
@@ -332,15 +333,20 @@ function ChatWithHistory({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
+      {/* Tracey header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200 shrink-0">
+        <TraceyAvatar size="md" />
+        <span className="text-sm font-semibold text-neutral-900">Tracey</span>
+      </div>
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar pb-32">
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col gap-5 max-w-7xl mx-auto mt-4 lg:max-w-8xl">
-            <div className="rounded-2xl rounded-bl-sm px-5 py-4 bg-white/90 dark:bg-card/90 border border-slate-200/50 dark:border-border/50 shadow-sm backdrop-blur-md">
-              <p className="text-[10px] md:text-xs leading-relaxed text-slate-800 dark:text-foreground">
+            <div className="flex items-start gap-3">
+              <TraceyAvatar size="sm" />
+              <div className="bg-neutral-100 rounded-lg rounded-tl-none px-4 py-3 text-sm text-neutral-700 max-w-xs">
                 Hi! I&apos;m Tracey, your personal assistant. Here to give you an early mark!
-              </p>
+              </div>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-muted-foreground text-center">Suggestions appear below</p>
           </div>
         )}
 
@@ -545,21 +551,19 @@ function ChatWithHistory({
         )}
 
         {isOnlyWelcomeMessage && !isLoading && messages.length <= 1 && (
-          <div className="max-w-4xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 lg:max-w-5xl">
-            <p className="text-[10px] font-medium text-slate-500 dark:text-muted-foreground mb-3">Quick actions</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="px-4 pt-3 max-w-4xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 lg:max-w-5xl">
+            <p className="text-xs font-medium text-neutral-400 mb-2 uppercase tracking-wide">
+              Quick actions
+            </p>
+            <div className="flex flex-wrap gap-2">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prompt)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-border bg-white dark:bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group shadow-sm hover:shadow"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 rounded-full text-sm text-neutral-700 hover:border-primary hover:text-primary hover:bg-primary-muted transition-colors duration-150"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                    <action.icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-[10px] md:text-xs font-medium text-slate-800 dark:text-foreground">
-                    {action.label}
-                  </span>
+                  <action.icon size={13} className="text-primary" />
+                  {action.label}
                 </button>
               ))}
             </div>

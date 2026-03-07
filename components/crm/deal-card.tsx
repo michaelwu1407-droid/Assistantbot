@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus, Flag } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, UserPlus, Flag, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
@@ -17,6 +17,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { updateDealStage } from "@/actions/deal-actions"
+import { toast } from "sonner"
 
 interface TeamMemberOption {
   id: string
@@ -98,7 +101,7 @@ export function DealCard({
     animation: !overlay && selectionMode ? "kanban-card-wiggle 1.1s ease-in-out infinite" : undefined,
   }
 
-  let cardClasses = "ott-card rounded-[20px] bg-white hover:border-[#00D28B] p-4 border border-slate-200/60 dark:border-slate-700/50"
+  let cardClasses = "ott-card rounded-lg bg-white hover:shadow-md transition-shadow duration-150 cursor-pointer p-4 border border-neutral-200"
   let statusLabel = ""
   let statusClass = ""
   
@@ -108,24 +111,24 @@ export function DealCard({
   }
 
   if (deal.health?.status === "ROTTING") {
-    cardClasses = "ott-card rounded-[20px] bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-4 dark:border-red-500/40"
+    cardClasses = "ott-card rounded-lg bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-4 dark:border-red-500/40"
     statusLabel = "Urgent"
     statusClass = "bg-red-100 text-red-700 border-red-200"
   } else if (deal.health?.status === "STALE") {
-    cardClasses = "ott-card rounded-[20px] bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4 dark:border-amber-500/40"
+    cardClasses = "ott-card rounded-lg bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4 dark:border-amber-500/40"
     statusLabel = "Follow up"
     statusClass = "bg-amber-100 text-amber-700 border-amber-200"
   }
 
   if (deal.isDraft) {
-    cardClasses = "ott-card rounded-[20px] bg-indigo-50/50 border-indigo-300 border-dashed p-4 dark:border-indigo-500/40"
+    cardClasses = "ott-card rounded-lg bg-indigo-50/50 border-indigo-300 border-dashed p-4 dark:border-indigo-500/40"
     statusLabel = "Draft"
     statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
   }
 
   // Pending approval: in Completed column but styled differently until manager approves
   if (deal.stage === "pending_approval") {
-    cardClasses = "ott-card rounded-[20px] bg-amber-50/80 border-amber-400 border-2 border-dashed p-4 dark:bg-amber-950/30 dark:border-amber-500/60"
+    cardClasses = "ott-card rounded-lg bg-amber-50/80 border-amber-400 border-2 border-dashed p-4 dark:bg-amber-950/30 dark:border-amber-500/60"
     statusLabel = "Pending approval"
     statusClass = "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700"
   }
@@ -338,9 +341,46 @@ export function DealCard({
             </div>
           )}
 
-          {/* Bottom row: value LHS, scheduled time RHS – same text size, extend right */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
-            <div className="flex items-center text-[11px] text-[#0F172A] font-bold bg-[#F8FAFC] dark:bg-slate-800/50 px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-slate-600/50">
+          {/* Inline stage-move */}
+          {!overlay && columnId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-no-card-click
+                  className="text-xs text-neutral-400 hover:text-primary flex items-center gap-1 mt-1 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ArrowRight size={12} />
+                  Move stage
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                {["new_request", "quote_sent", "scheduled", "ready_to_invoice", "completed"].filter(s => s !== columnId).map(stage => {
+                  const labels: Record<string, string> = { new_request: "New request", quote_sent: "Quote sent", scheduled: "Scheduled", ready_to_invoice: "Awaiting payment", completed: "Completed" }
+                  const variants: Record<string, "new" | "quote" | "scheduled" | "awaiting" | "complete"> = { new_request: "new", quote_sent: "quote", scheduled: "scheduled", ready_to_invoice: "awaiting", completed: "complete" }
+                  return (
+                    <DropdownMenuItem key={stage} onClick={async () => {
+                      const result = await updateDealStage(deal.id, stage)
+                      if (result.success) {
+                        toast.success(`Moved to ${labels[stage]}`)
+                        window.location.reload()
+                      } else {
+                        toast.error(result.error ?? "Failed to move")
+                      }
+                    }}>
+                      <Badge variant={variants[stage]} className="mr-2" />
+                      {labels[stage]}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Bottom row: value LHS, scheduled time RHS */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-neutral-100">
+            <div className="flex items-center text-xs font-medium bg-primary-subtle text-primary px-2 py-0.5 rounded-full">
               {deal.invoicedAmount !== undefined ? (
                 <>
                   <span className="text-emerald-600 mr-1 flex items-center"><DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" /> Inv:</span>

@@ -6,16 +6,16 @@ import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
-    Home,
-    Settings,
-    LogOut,
-    Map,
-    Calendar,
-    Users,
-    UserCircle,
-    MessageSquare,
-    PieChart,
+    LayoutDashboard,
     Inbox,
+    CalendarDays,
+    Map,
+    Users,
+    BarChart2,
+    UsersRound,
+    Settings2,
+    LogOut,
+    MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -30,18 +30,17 @@ import { useShellStore } from "@/lib/store"
 const SIDEBAR_WIDTH = 45
 
 const allNavItems = [
-    { icon: Home, label: "Home", href: "/dashboard", id: "dashboard-link", managerOnly: false },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", id: "dashboard-link", managerOnly: false },
     { icon: Inbox, label: "Inbox", href: "/dashboard/inbox", id: "inbox-link", managerOnly: true },
-    { icon: Calendar, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link", managerOnly: false },
+    { icon: CalendarDays, label: "Schedule", href: "/dashboard/schedule", id: "schedule-link", managerOnly: false },
     { icon: Map, label: "Map", href: "/dashboard/map", id: "map-link", managerOnly: false },
     { icon: Users, label: "Contacts", href: "/dashboard/contacts", id: "contacts-link", managerOnly: true },
-    { icon: PieChart, label: "Reports", href: "/dashboard/analytics", id: "reports-link", managerOnly: true },
-    { icon: UserCircle, label: "Team", href: "/dashboard/team", id: "team-link", managerOnly: false },
+    { icon: BarChart2, label: "Analytics", href: "/dashboard/analytics", id: "reports-link", managerOnly: true },
+    { icon: UsersRound, label: "Team", href: "/dashboard/team", id: "team-link", managerOnly: false },
 ]
 
 interface SidebarProps {
     className?: string
-    /** When true (e.g. inside the mobile sheet), the sidebar expands to fill its container width */
     expanded?: boolean
 }
 
@@ -51,7 +50,6 @@ export function Sidebar({ className, expanded }: SidebarProps) {
     const [mounted, setMounted] = useState(false)
     const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
 
-    // RBAC: Filter nav items based on user role
     const isManager = userRole === "OWNER" || userRole === "MANAGER"
     const navItems = allNavItems.filter((item) => !item.managerOnly || isManager)
 
@@ -85,25 +83,25 @@ export function Sidebar({ className, expanded }: SidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-border bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
-                {/* Logo / Brand */}
+            <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-neutral-200 bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
+                {/* Logo */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
                     <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" unoptimized />
                 </div>
 
-                {/* Mode Toggle (Advanced/Chat) */}
+                {/* Mode Toggle */}
                 {mounted && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
                                 id="mode-toggle-btn"
                                 onClick={() => (viewMode === "ADVANCED" ? goToBasic() : goToAdvanced())}
-                                className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-midnight transition-all"
+                                className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-all"
                             >
                                 <MessageSquare className="h-3.5 w-3.5" />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">
+                        <TooltipContent side="right" className="text-xs">
                             {viewMode === "ADVANCED" ? "Switch to Chat Mode" : "Switch to Advanced Mode"}
                         </TooltipContent>
                     </Tooltip>
@@ -120,17 +118,17 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             className={cn(
-                                                "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                                "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                                 isActive
-                                                    ? "bg-mint-50 text-primary shadow-sm"
-                                                    : "text-muted-foreground hover:bg-secondary hover:text-midnight"
+                                                    ? "bg-primary-subtle text-primary"
+                                                    : "text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
                                             )}
                                         >
-                                            <item.icon className={cn("h-4 w-4", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                                            <item.icon size={20} strokeWidth={1.75} />
                                         </motion.div>
                                     </Link>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="bg-[#0F172A] text-white border-slate-800 font-semibold px-3 py-1.5 ml-2">
+                                <TooltipContent side="right" className="text-xs">
                                     {item.label}
                                 </TooltipContent>
                             </Tooltip>
@@ -139,8 +137,23 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                 </nav>
 
                 {/* Bottom Actions */}
-                <div className="flex flex-col gap-1.5 px-1.5 w-full">
-                    <div className="h-px bg-border w-full" />
+                <div className="mt-auto flex flex-col gap-1.5 px-1.5 w-full">
+                    <div className="border-t border-neutral-200 my-2" />
+
+                    {/* Ask Tracey — always visually distinct */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => goToBasic()}
+                                className="flex h-10 w-full items-center justify-center rounded-lg bg-primary-subtle text-primary transition-colors duration-150 hover:bg-primary-muted"
+                            >
+                                <MessageSquare size={20} strokeWidth={1.75} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="text-xs">
+                            Ask Tracey
+                        </TooltipContent>
+                    </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -149,17 +162,17 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     className={cn(
-                                        "flex h-9 w-full items-center justify-center rounded-xl transition-all duration-300",
+                                        "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                         pathname.startsWith("/dashboard/settings")
-                                            ? "bg-mint-50 text-primary"
-                                            : "text-muted-foreground hover:bg-secondary hover:text-midnight"
+                                            ? "bg-primary-subtle text-primary"
+                                            : "text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
                                     )}
                                 >
-                                    <Settings className="h-4 w-4" />
+                                    <Settings2 size={20} strokeWidth={1.75} />
                                 </motion.div>
                             </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Settings</TooltipContent>
+                        <TooltipContent side="right" className="text-xs">Settings</TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
@@ -167,12 +180,12 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-9 w-full items-center justify-center rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all duration-300"
+                                className="flex h-10 w-full items-center justify-center rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-150"
                             >
-                                <LogOut className="h-4 w-4" />
+                                <LogOut size={20} strokeWidth={1.75} />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-midnight text-white border-border font-semibold px-3 py-1.5 ml-2">Sign Out</TooltipContent>
+                        <TooltipContent side="right" className="text-xs">Sign Out</TooltipContent>
                     </Tooltip>
                 </div>
             </aside>

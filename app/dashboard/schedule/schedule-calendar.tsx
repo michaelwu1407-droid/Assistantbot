@@ -238,7 +238,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
           onDrop={(e) => handleDrop(e, buildSlotDate(hour), memberId ?? "")}
         >
           {hourDeals.length === 0 ? (
-            <div className="h-full min-h-[80px] rounded-xl border border-dashed border-slate-200 bg-white/40" />
+            <div className="h-full min-h-[80px] rounded-lg border border-dashed border-slate-200 bg-white/40" />
           ) : (
             <div className="space-y-2">
               {hourDeals.map((deal) => (
@@ -249,7 +249,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                   onClick={() => setSelectedDealId(deal.id)}
                   className="shadow-sm"
                 >
-                  <div className="p-3 rounded-xl bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
+                  <div className="p-3 rounded-lg bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={cn(
                         "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight",
@@ -309,7 +309,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
             ))}
 
             <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
-              <p className="text-sm font-bold text-slate-400 italic">Unassigned</p>
+              <p className="text-sm font-semibold text-neutral-400">Unassigned</p>
             </div>
             {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
           </div>
@@ -319,22 +319,22 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   }
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-[24px] border border-slate-200/60 shadow-xl shadow-black/[0.03] overflow-hidden">
+    <div className="h-full flex flex-col bg-white rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/50 shrink-0">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-full h-8 w-8 hover:bg-white shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-sm font-bold text-slate-900 min-w-[150px] text-center">{headerLabel()}</h2>
-          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-full h-8 w-8 hover:bg-white shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Team Member Filter */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Team:</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-neutral-200 rounded-md shadow-sm">
+            <span className="text-[10px] font-semibold text-neutral-400 uppercase ml-1">Team:</span>
             <select
               value={filterMemberId || ""}
               onChange={(e) => setFilterMemberId(e.target.value || null)}
@@ -347,14 +347,14 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
             </select>
           </div>
 
-          <div className="flex bg-slate-100/80 rounded-full p-1">
+          <div className="flex bg-neutral-100 rounded-lg p-1 gap-1">
             {(["month", "week", "day"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
-                  "px-4 py-1.5 text-xs font-bold rounded-full transition-all capitalize",
-                  view === v ? "bg-white text-primary shadow-sm ring-1 ring-black/[0.05]" : "text-slate-500 hover:text-slate-800"
+                  "px-4 py-1.5 text-xs font-semibold rounded-md transition-all capitalize",
+                  view === v ? "bg-white text-neutral-900 shadow-xs" : "text-neutral-500 hover:text-neutral-700"
                 )}
               >
                 {v}

@@ -182,11 +182,11 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
 
                 <NotificationsBtn userId={userId} />
 
-                {/* PRIMARY CTA: SOLID BLACK PILL */}
+                {/* PRIMARY CTA */}
                 <Button
                     id="new-deal-btn"
                     onClick={onNewDeal}
-                    className="ott-btn-primary h-10 px-5 shadow-xl shadow-black/10 hover:shadow-black/20"
+                    className="h-10 px-5 shadow-xs"
                 >
                     <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span className="hidden sm:inline font-semibold text-sm">
