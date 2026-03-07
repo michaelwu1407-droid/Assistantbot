@@ -389,3 +389,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Restored normal desktop drag behavior in the Kanban board by switching mass-select mode off the all-pointer delayed drag sensor and back onto standard mouse drag plus touch-only delay. Added subtle wiggle animation during mass-select mode, and clicking anywhere outside a card now exits that mode. Also fixed the Kanban card scheduled timestamp to render in `Australia/Sydney` instead of the browser's raw local timezone.
 - Why: The long-press selection change had made desktop drag feel broken, and the scheduled-date regression had reappeared by formatting `scheduledAt` in browser-local time, which can shift jobs onto the wrong displayed day. Scheduled-job UI must always display the actual scheduled date in the app's intended timezone, not `createdAt` or browser-local drift.
 
+### 2026-03-07 12:53 (AEDT) - codex
+- Files: `livekit-agent/package.json`, `livekit-agent/package-lock.json`, `docs/agent_change_log.md`
+- What changed: Corrected the LiveKit noise-cancellation dependency pin from the non-existent `@livekit/noise-cancellation-node@^0.3.0` to the published `^0.1.9` release and refreshed the agent lockfile to match.
+- Why: GitHub Actions OCI deploys were failing during `npm ci` because the repo referenced a package version that does not exist on npm. The agent dependency must be pinned to a real published version for deploys to be reproducible.
+
