@@ -23,6 +23,7 @@
 15. [Settings & Configuration](#15-settings--configuration)
 16. [Billing & Subscription](#16-billing--subscription)
 17. [Quick Reference — Tracey Commands](#17-quick-reference--tracey-commands)
+18. [Appendix: Latency Telemetry (Admin)](#appendix-latency-telemetry-admin)
 
 ---
 
@@ -109,11 +110,14 @@ Actionable alerts appear here — e.g., "Reminder: Job for Dave tomorrow at 9am,
 
 ### Morning Briefing
 
-Each morning, Earlymark surfaces a preparation checklist for today's jobs:
-- Jobs missing an address
-- Customers with no phone number on file
-- Unpaid invoices due today
-- Any jobs without a confirmed booking
+Each morning, Earlymark surfaces a preparation checklist for today's jobs. Ask Tracey *"Am I ready for today?"* to trigger it on demand. Tracey checks each scheduled job for:
+
+- **Missing address** — can't navigate if no address is set
+- **No phone number** — can't call ahead if the customer has no number on file
+- **Unassigned job** — no team member allocated
+- **Unconfirmed job** — customer hasn't confirmed (still in New or Contacted)
+- **Deposit not paid** — job requires a deposit but none is recorded
+- **Materials needed** — job description mentions parts or supplies that may need ordering
 
 ---
 
@@ -171,14 +175,31 @@ Long-press (hold) a card to enter selection mode. Select multiple cards, then:
 - **Assign** — hand them to a team member
 - **Disposition** — mark Won/Lost in bulk
 
-### 4.5 Job Completion
+### 4.5 Stale Deals
+
+Jobs that haven't moved in a while are highlighted automatically:
+
+- **Yellow warning** — no activity for 7+ days
+- **Red alert** — no activity for 14+ days
+
+Click the card to send a quick follow-up or ask Tracey to reach out on your behalf.
+
+### 4.6 Job Completion
 
 When a job is done, open the deal and tap **Mark Complete**. A completion modal will appear:
 
-1. Capture customer **signature** on screen
-2. Log **materials used** (auto-cross-checked with your pricing glossary)
-3. Collect **customer feedback** (star rating + comments)
-4. **Create invoice** — pre-filled from job details
+1. **Invoice verifier** — review and adjust labour hours, hourly rate, and materials. The running total updates live.
+2. **Materials** — add parts from your pricing glossary using the material picker.
+3. **Payment status** — toggle "Paid on Site" or "Invoice Later".
+4. **Field notes** — add any context (e.g. "Found a separate leak in bathroom").
+5. **Photos** — upload before/after photos or documents.
+6. **Customer signature** — touch-friendly signature pad for on-site sign-off.
+7. **Choose how to file:**
+   - **Save for Later** — saves job details and moves it to Pending Completion. No invoice created yet.
+   - **Confirm & Generate** — creates the invoice from your verified line items, moves the job to Won, and pushes a draft invoice to Xero for review.
+8. **Review request** — optionally send the customer an SMS asking for a review.
+
+> **Note:** Xero invoices are always created as DRAFT — your manager or bookkeeper reviews before sending to the customer.
 
 ---
 
@@ -231,7 +252,7 @@ With a conversation open, switch to Ask Tracey and type things like:
 > *"Ask them what type of hot water system they have"*
 > *"Follow up on the unpaid invoice"*
 
-Tracey will compose an appropriate SMS and either send it immediately or show it to you for approval, depending on your **Contact Mode** setting (see [Section 8.3](#83-contact-modes)).
+Tracey will compose an appropriate SMS and either send it immediately or show it to you for approval, depending on your **Contact Mode** setting (see [Section 8.5](#85-contact-modes)).
 
 ### SMS & Email Templates
 
@@ -316,7 +337,22 @@ Tracey is the right-hand panel that runs across every page. She can read and wri
 - Job counts and close rates
 - Outstanding invoices
 
-### 8.2 Example Commands
+### 8.2 Voice Dictation
+
+Don't want to type? Click the **microphone icon** in the Tracey chat box, speak your command out loud, and Tracey will transcribe and execute it. Useful when you're on the tools and need to log something hands-free.
+
+### 8.3 Prompting Tips
+
+Tracey understands plain English, but more detail gets better results:
+
+| | Example |
+|--|---------|
+| Too vague | *"Make a job."* |
+| Just right | *"New job for Mark Evans, burst pipe, Cronulla, quote $450, call him this afternoon"* |
+
+The more context you give — customer name, job type, suburb, value — the less Tracey has to guess.
+
+### 8.4 Example Commands
 
 You don't need to memorise any syntax — just speak naturally:
 
@@ -331,7 +367,7 @@ You don't need to memorise any syntax — just speak naturally:
 | Revenue report | *"How much have I made this month?"* |
 | Bulk close | *"Mark all Won jobs from last month as archived"* |
 
-### 8.3 Contact Modes
+### 8.5 Contact Modes
 
 Control how proactively Tracey communicates with your customers. Set this in **Settings → Workspace → Agent Mode**.
 
@@ -341,7 +377,7 @@ Control how proactively Tracey communicates with your customers. Set this in **S
 | **Review & Approve** | Tracey drafts messages and waits for your thumbs-up before sending |
 | **Info Only** | Tracey gives you information and suggestions but never contacts customers directly |
 
-### 8.4 Tracey's Knowledge Base
+### 8.6 Tracey's Knowledge Base
 
 Tracey knows your business because you've told her. Manage this in **Settings → Business Profile**:
 
@@ -471,7 +507,9 @@ If a lead sits in **New** or **Contacted** for too long without a response, Earl
 Before Tracey books or quotes a job, she checks it against your no-go rules:
 
 - **Hard no-go** — Tracey declines the job and explains why to the customer.
-- **Soft flag** — Tracey flags it to you but can still accept the job with your approval.
+- **Soft flag** — Tracey flags it to you with an orange badge on the deal card, but can still accept with your approval.
+
+You can update rules on the fly via chat: *"Stop taking jobs in the Northern Beaches"* — Tracey will ask whether to hard-decline or just flag them going forward.
 
 This prevents Tracey from committing you to work you don't want.
 
@@ -608,6 +646,15 @@ Copy-paste these or use them as inspiration. Tracey understands plain English �
 "What are my current services?"
 ```
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+K` / `Ctrl+K` | Global search — find any customer, job, or setting |
+| `Cmd+/` / `Ctrl+/` | Quick AI command |
+| `Esc` | Close any open modal or panel |
+| `Tab` | Move between form fields |
+
 ---
 
 ## Tips for Getting the Most Out of Earlymark
@@ -625,3 +672,32 @@ Copy-paste these or use them as inspiration. Tracey understands plain English �
 ---
 
 *Earlymark is built for tradies, by people who get how busy you are. If something isn't working the way you expect, reach out — we're always improving.*
+
+---
+
+## Appendix: Latency Telemetry (Admin)
+
+This section is for workspace owners or developers diagnosing slow AI response times.
+
+**Endpoint:** `GET /api/internal/telemetry/latency`
+**Clear data:** `DELETE /api/internal/telemetry/latency`
+**Auth header:** `x-telemetry-key: <TELEMETRY_ADMIN_KEY>`
+
+### Metrics
+
+| Metric | What it measures |
+|--------|-----------------|
+| `chat.web.preprocessing_ms` | Time to build context before the model runs |
+| `chat.web.tool_calls_ms` | Time spent executing CRM tools |
+| `chat.web.model_ms` | Time for the LLM to generate a response |
+| `chat.web.total_ms` | End-to-end response time |
+| `chat.headless.*` | Same metrics for the voice/headless agent |
+| `chat.web.tool.<name>_ms` | Per-tool breakdown |
+
+### How to Read Results
+
+- **`p50Ms`** — typical latency for most users
+- **`p95Ms`** — tail latency (what your slowest 5% of users experience)
+- High `tool_calls_ms` → optimize database queries or tool logic
+- High `model_ms` → reduce prompt size or tool-step budget
+- High `preprocessing_ms` → optimize context/memory extraction
