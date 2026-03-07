@@ -359,3 +359,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Added centered icons above each of the three homepage hero value messages while keeping the approved copy and overall hero layout intact.
 - Why: The hero benefits needed a stronger visual anchor so each message reads as a distinct value pillar instead of plain text alone.
 
+### 2026-03-07 12:02 (AEDT) - codex
+- Files: `README.md`, `DEPLOYMENT_CHECKLIST.md`, `APP_MANUAL.md`, `docs/agent_change_log.md`
+- What changed: Rewrote the top-level product and deployment docs to reflect the current Earlymark app instead of older Pj Buddy / Retell-era behavior. Updated the docs to cover the current assistant taxonomy, billing-before-onboarding flow, beta phone-provisioning rule, Twilio workspace-number model, LiveKit voice stack, and the current split between web-app deploys and voice-worker deploys.
+- Why: The repo’s primary docs had drifted badly from the live product and were misleading about the current product name, onboarding flow, voice stack, and deployment model.
+

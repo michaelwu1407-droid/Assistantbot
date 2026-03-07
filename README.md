@@ -1,271 +1,181 @@
-# Earlymark - AI-Powered Tradie CRM Platform
+# Earlymark
 
-**Version**: 2.1 (February 2026)  
-**Target**: Australian Tradespeople & Service Businesses  
-**Architecture**: Next.js 16.1.6 + Supabase + Gemini AI + Twilio
+AI assistant + CRM for Australian service businesses.
 
----
+## What the app does
 
-## 🎯 **Core Vision**
+Earlymark combines 4 main surfaces:
 
-Earlymark is an **AI-first CRM** built exclusively for Tradies. We eliminate administrative overhead by providing a conversational interface where jobs can be quoted, scheduled, and invoiced entirely through natural language.
+- `Tracey interview form`
+  Earlymark demo assistant launched from the homepage interview form.
+- `Tracey inbound call`
+  Earlymark inbound sales assistant for calls to Earlymark AI.
+- `Tracey for users`
+  Customer-facing assistant for Earlymark customers across calls and texts.
+- `CRM chatbot`
+  Internal operator assistant inside the CRM for jobs, contacts, invoices, and workflow actions.
 
-**Key Philosophy**: "Chat First, Click Second" - Our AI assistant handles 90% of tasks through simple commands, while the visual dashboard provides oversight when needed.
+The current product focus is:
 
----
+- win and convert leads faster
+- automate inbound calls, texts, and customer admin
+- run the CRM through chat instead of manual clicking
 
-## 🚀 **Instant Lead Capture System** ⭐ (NEW)
+## Core product areas
 
-Our revolutionary **Instant Lead Capture** automatically detects and responds to leads from major platforms:
+### Homepage + demo flow
 
-### 🔄 **How It Works**
-1. **One-Click Connection**: Connect Gmail/Outlook via OAuth
-2. **Auto-Filter Creation**: We automatically create email filters for:
-   - ✅ Hipages
-   - ✅ Airtasker  
-   - ✅ Oneflare
-   - ✅ ServiceSeeking
-   - ✅ ServiceTasker
-   - ✅ Bark
-3. **AI Parsing**: Gemini 2.0 Flash Lite extracts customer details
-4. **Instant Response**: Creates deals + sends intro SMS in seconds
+- marketing homepage with demo/interview form
+- Earlymark sales/demo Tracey behavior
+- Vercel-hosted web app
 
-### 📈 **Speed-to-Lead Advantage**
-- **Traditional**: 2-4 hour average response time
-- **Earlymark**: **Under 60 seconds** automatic response
-- **Result**: 3x higher win rate on competitive platforms
+### Billing + onboarding
 
----
+- auth -> billing -> setup -> dashboard
+- beta billing toggle for `Provision mobile business number`
+- if toggle is off before Stripe payment:
+  - user can still pay
+  - user can still complete onboarding
+  - Twilio number is not provisioned later from that paid flow
+- if toggle is on before Stripe payment:
+  - workspace becomes eligible for Twilio mobile-number provisioning
 
-## 📞 **Phone Management System** ⭐ (NEW)
+### Twilio provisioning model
 
-Dual-number architecture for complete communication control:
+- one Twilio subaccount per workspace
+- one business number per workspace
+- team members in the same workspace share that same number
+- provisioning is mobile-only for new AU number purchases
+- provisioning is centrally gated to avoid duplicate reprovisioning
 
-### 📱 **Personal Phone Number** (User Management)
-- **Purpose**: App-to-user communication (verification, urgent messages)
-- **Management**: Changeable via Settings with SMS verification (code sent to the **new** number)
-- **Features**: 6-digit codes, 10-minute expiry, first-time setup (no verification required for first entry)
-- **Location**: `/dashboard/settings/phone-settings`
+### CRM
 
-### 🤖 **AI Agent Business Number** (Customer-Facing)
-- **Purpose**: Customer communications via AI assistant
-- **Management**: Support-only (security-focused)
-- **Features**: Twilio subaccounts, voice agent integration
-- **Changes**: Via support ticket system
+- kanban jobs/deals pipeline
+- contacts
+- inbox
+- schedule/calendar
+- dashboard map
+- invoice actions
+- AI-driven CRM actions via chat tools
 
----
+### Voice + messaging
 
-## 🛠️ **Support System** ⭐ (NEW)
+- LiveKit-based voice agent
+- Groq used directly when `GROQ_API_KEY` is available
+- Cartesia `sonic-3` pinned for TTS
+- Twilio for messaging and phone infrastructure
+- persisted voice call logs, transcripts, and latency metrics
 
-Multi-channel support with AI-powered assistance:
+## Current architecture
 
-### 🤖 **AI Assistant Support**
-- **24/7 Availability**: Instant help and ticket creation
-- **Smart Categorization**: Phone, billing, features, bugs, accounts
-- **Priority Detection**: Urgent, high, medium, low
-- **Immediate Help**: Diagnostics and next steps
+### Frontend
 
-### 📞 **Human Support Channels**
-- **Email**: support@earlymark.ai (24-hour response)
-- **Phone**: 1300 EARLYMARK (Mon-Fri 9am-5pm AEST)
-- **Tickets**: Integrated support system in settings
-- **Website**: Contact section with all channels
+- Next.js 16 App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
 
----
+### Backend
 
-## 🏗️ **Technical Architecture**
+- Prisma
+- Supabase Postgres
+- Supabase Auth
+- Supabase Storage
 
-### **Frontend Stack**
-- **Framework**: Next.js 16.1.6 (App Router)
-- **Language**: TypeScript (100% type-safe)
-- **UI System**: Tailwind CSS + shadcn/ui (Glassmorphism design)
-- **State Management**: React hooks + Server Components
+### AI + communications
 
-### **Backend & Services**
-- **Database**: Supabase (PostgreSQL + Row Level Security)
-- **ORM**: Prisma (type-safe queries)
-- **Authentication**: Supabase Auth (not Clerk)
-- **AI Engine**: Google Gemini 2.0 Flash Lite via Vercel AI SDK
+- Google Gemini for main app chat flows
+- Groq for low-latency voice-agent inference where configured
+- LiveKit for realtime voice orchestration
+- Cartesia for TTS
+- Deepgram for STT
+- Twilio for SMS/phone/subaccounts
+- Mem0 for memory where enabled
 
-### **Telephony & Communication**
-- **Voice**: Retell AI (natural conversation)
-- **SMS**: Twilio (multi-tenant subaccounts)
-- **Email**: Resend (transactional)
-- **Webhooks**: Real-time lead processing
-- **Phone Verification**: Master Twilio number for codes
+## Important current behavior
 
-### **Infrastructure**
-- **Hosting**: Vercel (Edge functions)
-- **Monitoring**: Sentry + PostHog
-- **Storage**: Supabase Storage (files/docs)
-- **Security**: End-to-end encryption for OAuth tokens
+### Customer-contact modes
 
-### **Latency Telemetry (P50/P95)**
-- Internal endpoint: `GET /api/internal/telemetry/latency`
-- Reset endpoint: `DELETE /api/internal/telemetry/latency`
-- Production access: send `x-telemetry-key` header matching `TELEMETRY_ADMIN_KEY`
-- Metrics captured (rolling window):
-  - `chat.web.preprocessing_ms`
-  - `chat.web.tool_calls_ms`
-  - `chat.web.model_ms`
-  - `chat.web.total_ms`
-  - `chat.headless.preprocessing_ms`
-  - `chat.headless.tool_calls_ms`
-  - `chat.headless.model_ms`
-  - `chat.headless.total_ms`
-  - per-tool timings: `chat.web.tool.<tool>_ms`, `chat.headless.tool.<tool>_ms`
+These exact terms are the current source of truth for `Tracey for users`:
 
----
+- `execute`
+- `review & approve`
+- `info only`
 
-## 📱 **Platform Features Overview**
+Rules:
 
-### **🏠 The Hub - Main Dashboard** (`/dashboard`)
-- **Kanban Pipeline**: Visual deal workflow (New → Quote → Scheduled → Complete)
-- **KPI Cards**: Revenue, scheduled jobs, follow-ups
-- **Activity Feed**: Real-time timeline of all interactions
-- **Global Search**: Cmd+K fuzzy search across deals/contacts
+- these modes apply to `Tracey for users` on both calls and texts
+- `CRM chatbot` internal CRM operations are not governed by these 3 modes
+- when the chatbot is asked to contact customers, it is effectively acting as `Tracey for users`, so the mode rules apply
 
-### **💬 AI Assistant** (Every Page)
-- **Natural Language**: "New job for John worth $5000"
-- **Voice Input**: Microphone for hands-free commands
-- **Context Awareness**: Knows current page and suggests actions
-- **Magic Commands**: `/draft`, `/summarize`, `/schedule`
-- **Support Handling**: Automatic ticket creation and categorization
+### Voice knowledge model
 
-### **📅 Schedule** (`/dashboard/schedule`)
-- **Calendar View**: Month/Week/Day views
-- **Job Pins**: Interactive markers on calendar
-- **Quick Reschedule**: Drag-and-drop date changes
+For `Tracey for users`, voice grounding is moving toward the same workspace truth model as the CRM chatbot:
 
-### **🗺️ Map View** (`/dashboard/map`)
-- **Route Planning**: Today's jobs plotted on map
-- **Start Travel**: One-click navigation + ETA SMS
-- **Live Tracking**: Uber-style arrival tracking
+- business identity
+- services
+- pricing
+- no-go rules
+- contact details
+- availability
 
-### **👥 Contacts** (`/dashboard/contacts`)
-- **CRM Database**: All clients and leads
-- **Lifetime Value**: Customer revenue tracking
-- **Communication History**: All interactions in one place
+Changing facts should come from retrieval/tools and DB state, not giant prompts.
 
-### **📨 Inbox** (`/dashboard/inbox`)
-- **Unified Feed**: SMS, calls, emails, notes
-- **Rich Media**: Call transcripts, email snippets
-- **Quick Actions**: Call/text/email shortcuts
+## Running locally
 
-### **⚙️ Settings Hub** (`/dashboard/settings`)
-- **Workspace Profile**: Business details & hours
-- **Agent Capabilities**: AI behavior & limits
-- **Automations**: Custom IF/THEN workflows
-- **Integrations**: Connect external tools
-- **Appearance**: UI themes & preferences
-
----
-
-## 🎨 **User Experience Design**
-
-### **Glassmorphism UI System**
-- **Premium Aesthetic**: Frosted glass effects
-- **Corner Layout**: Optimized for desktop workflow
-- **Dark/Light Modes**: Full theme support
-- **Responsive**: Mobile-first design principles
-
-### **Chat-First Interface**
-- **Right Panel**: Always-accessible AI assistant
-- **Contextual Help**: Page-specific suggestions
-- **Voice Support**: Hands-free operation
-- **Quick Commands**: Slash commands for power users
-
----
-
-## 🔄 **Industry-Specific Workflows**
-
-### **Tradies (Primary Focus)**
-- **Job Stages**: New → Quote Sent → Scheduled → In Progress → Complete
-- **Field Tools**: Map routing, material picker, photo capture
-- **Invoicing**: One-tap PDF generation
-- **Safety Checks**: Built-in risk assessments
-
-### **Real Estate (Available)**
-- **Sales Stages**: New Listing → Appraisal → Under Offer → Exchanged → Settled
-- **Matchmaking**: Buyer-listing compatibility scoring
-- **Speed-to-Lead**: Response time tracking
-
----
-
-## 🔧 **Developer Resources**
-
-### **Environment Setup**
 ```bash
-# Clone and install
-git clone [repo-url]
-cd earlymark
 npm install
-
-# Environment variables
-cp .env.example .env.local
-# Fill in Supabase, Twilio, Gemini keys
-
-# Database setup
-npx prisma db push
 npx prisma generate
-
-# Development
+npx prisma db push
 npm run dev
 ```
 
-### **Key Configuration**
-```env
-# Core Services
-SUPABASE_URL=your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-TWILIO_ACCOUNT_SID=your-sid
-TWILIO_AUTH_TOKEN=your-token
+Typecheck:
 
-# AI Services
-GEMINI_API_KEY=your-gemini-key
-RETELL_API_KEY=your-retell-key
-TELEMETRY_ADMIN_KEY=your-telemetry-admin-key
-
-# OAuth for Lead Capture
-GMAIL_CLIENT_ID=your-gmail-client
-OUTLOOK_CLIENT_ID=your-outlook-client
-ENCRYPTION_KEY=your-32-byte-key
+```bash
+npx tsc --noEmit
 ```
 
----
+## Key environment variables
 
-## 📚 **Documentation Structure**
+See [.env.example](C:/Users/micha/Assistantbot/.env.example) for the full list. The most important groups are:
 
-- **`README.md`**: This overview and architecture guide
-- **`APP_MANUAL.md`**: Detailed feature walkthrough
-- **`project_status_log.md`**: Development history and changes
-- **`DEPLOYMENT_CHECKLIST.md`**: Production deployment guide
-- **`docs/`**: Additional technical documentation
+- Supabase
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `DATABASE_URL`
+- Stripe
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_PRO_PRICE_ID`
+  - `STRIPE_WEBHOOK_SECRET`
+- Twilio
+  - `TWILIO_ACCOUNT_SID`
+  - `TWILIO_AUTH_TOKEN`
+  - `TWILIO_MASTER_NUMBER`
+- Voice / AI
+  - `GEMINI_API_KEY`
+  - `GROQ_API_KEY`
+  - `DEEPGRAM_API_KEY`
+  - `CARTESIA_API_KEY`
+  - `LIVEKIT_API_KEY`
+  - `LIVEKIT_API_SECRET`
+- App / internal
+  - `NEXT_PUBLIC_APP_URL`
+  - `VOICE_AGENT_WEBHOOK_SECRET`
+  - `TELEMETRY_ADMIN_KEY`
+  - `TRACEY_HANDBOOK_URL`
 
----
+## Deployment notes
 
-## 🆘 **Support & Community**
+- web app deploys separately from the LiveKit worker
+- GitHub Actions now auto-deploys `livekit-agent/**` changes to the OCI worker
+- the worker logs its deployed git SHA on startup for verification
+- AU Twilio number purchases require Twilio regulatory compliance approval
 
-- **Issues**: GitHub Issues for bug reports
-- **Documentation**: See `/docs` folder for detailed guides
-- **Status**: Real-time status at status.earlymark.ai
-- **Updates**: Follow @earlymark on Twitter for updates
+## Docs worth reading next
 
----
-
-## 📄 **License & Legal**
-
-- **License**: Proprietary - All rights reserved © 2026 Michael Wu
-- **Privacy**: GDPR-compliant data handling
-- **Security**: SOC2 Type II compliant infrastructure
-- **Support**: 24/7 support for Enterprise plans
-
----
-
-**Last Updated**: February 24, 2026  
-**Version**: 2.1 - Communication Clarification Edition  
-**Maintained by**: Earlymark Engineering Team
-
----
-
-*"We're building the future of trade business management - one conversation at a time."*
+- [DEPLOYMENT_CHECKLIST.md](C:/Users/micha/Assistantbot/DEPLOYMENT_CHECKLIST.md)
+- [LIVEKIT_SETUP.md](C:/Users/micha/Assistantbot/LIVEKIT_SETUP.md)
+- [APP_MANUAL.md](C:/Users/micha/Assistantbot/APP_MANUAL.md)
+- [AGENTS.md](C:/Users/micha/Assistantbot/AGENTS.md)

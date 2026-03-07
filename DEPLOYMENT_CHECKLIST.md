@@ -1,154 +1,145 @@
-# 🚀 Pj Buddy Production Deployment Checklist
+# Earlymark Deployment Checklist
 
-## ✅ **Pre-Deployment Requirements - ALL COMPLETED**
+Current production is split into 2 deploy targets:
 
-### 🔐 **Authentication Setup**
-- [ ] Get Supabase API keys from [supabase.com/dashboard](https://supabase.com/dashboard)
-- [ ] Update `.env.local` with actual Supabase keys
-- [ ] Test authentication flow locally
-- [ ] Verify user sessions work correctly
+- `web app`
+  Next.js app on Vercel
+- `voice worker`
+  LiveKit agent runtime on OCI
 
-### 🗄️ **Database Setup**
-- [ ] Verify database connection is working
-- [ ] Run Prisma migrations: `npx prisma db push`
-- [ ] Test database operations locally
-- [ ] Verify data persistence
-- [ ] Add phone field to User model (if not already migrated)
-- [ ] Add VerificationCode model (if not already migrated)
+This checklist reflects the current stack, not the older Retell/Pj Buddy setup.
 
-### 🏗️ **Build Verification**
-- [x] Build passes: `npm run build` ✅
-- [x] TypeScript compiles: 0 errors ✅
-- [x] All tests pass: `npm test` ✅
-- [ ] Test production build locally: `npm run start`
+## 1. Web app prerequisites
 
-### 📞 **Twilio & Communication Setup** ⭐ (NEW)
-- [ ] Get Twilio Account SID and Auth Token from [twilio.com/console](https://twilio.com/console)
-- [ ] Create master Twilio number for SMS verification
-- [ ] Configure Retell AI API key and Agent ID
-- [ ] Test Twilio SMS functionality locally
-- [ ] Verify subaccount creation works
-- [ ] Test voice agent integration
-
-### 🚀 **Deployment Steps**
-1. **Vercel Deployment** (Recommended)
-   ```bash
-   vercel --prod
-   ```
-
-2. **Alternative Deployment Options**
-   - **Netlify**: `netlify deploy --prod`
-   - **AWS Amplify**: Console deployment
-   - **Docker**: Build and deploy container
-
-### 🔍 **Post-Deployment Verification**
-- [ ] Application loads correctly
-- [ ] Authentication works (login/signup)
-- [ ] Database operations functional
-- [ ] API endpoints responding
-- [ ] No console errors
-- [ ] Mobile responsive design works
-- [ ] Phone number management works
-- [ ] SMS verification system functional
-- [ ] Support system accessible
-- [ ] AI agent phone provisioning works
-- [ ] Chatbot support handling works
-
-### 📊 **Monitoring Setup**
-- [ ] Configure error tracking (Sentry)
-- [ ] Set up analytics (PostHog/Google Analytics)
-- [ ] Performance monitoring (Vercel Speed Insights)
-- [ ] Uptime monitoring
-- [ ] Support ticket tracking
-
-### 🔧 **Environment Variables for Production**
-```env
-# Required (replace with actual values)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_live_anon_key
-
-# Database (already configured)
-DATABASE_URL=your_production_db_url
-DIRECT_URL=your_production_db_direct_url
-
-# Required for AI features
-GEMINI_API_KEY=your_gemini_api_key
-
-# Required for payments
-STRIPE_SECRET_KEY=sk_live_your_stripe_key
-STRIPE_PRO_PRICE_ID=price_live_your_price_id
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-
-# Required for Twilio communication ⭐ (NEW)
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_MASTER_NUMBER=+614xxxxxxx  # For SMS verification
-
-# Required for Voice AI ⭐ (NEW)
-RETELL_API_KEY=your_retell_api_key
-RETELL_AGENT_ID=your_agent_id
-
-# Optional
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-POSTHOG_API_KEY=your_posthog_key
-SENTRY_DSN=your_sentry_dsn
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-```
-
-### 🚨 **Critical Security Notes**
-- [ ] Never commit `.env.local` to version control
-- [ ] Use Vercel environment variables for production secrets
-- [ ] Enable HTTPS only
-- [ ] Review CORS settings
-- [ ] Test authentication flows thoroughly
-- [ ] Verify Twilio webhook security
-- [ ] Test SMS verification security
-
-### 📞 **Troubleshooting**
-If deployment fails:
-1. Check environment variables in Vercel dashboard
-2. Verify build logs: `vercel logs`
-3. Test locally first: `npm run build && npm start`
-4. Check domain DNS settings
-5. Verify SSL certificates
-6. Test Twilio connectivity: `curl https://api.twilio.com/2010-04-01/Accounts`
-7. Verify database migrations: `npx prisma db status`
-
----
-
-## 🎯 **Quick Start Commands**
+- verify `DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+- verify Stripe live keys
+- verify Twilio live keys
+- verify Google Maps key if maps/autocomplete are needed
+- verify `NEXT_PUBLIC_APP_URL`
+- run:
 
 ```bash
-# 1. Setup Supabase keys (replace with your actual keys)
-# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_live_anon_key
-
-# 2. Setup Twilio (NEW)
-# TWILIO_ACCOUNT_SID=ACxxxxxxxxxx
-# TWILIO_AUTH_TOKEN=your_auth_token
-# TWILIO_MASTER_NUMBER=+614xxxxxxx
-
-# 3. Setup Retell AI (NEW)
-# RETELL_API_KEY=your_retell_api_key
-# RETELL_AGENT_ID=your_agent_id
-
-# 4. Test everything works
-npm run dev
-npm test
-npm run build
-
-# 5. Deploy to production
-vercel --prod
-
-# 6. Run database migrations (if needed)
-npx prisma db push
+npx prisma generate
+npx prisma migrate deploy
+npx tsc --noEmit
+next build
 ```
 
-## 📞 **Support**
-- Supabase documentation: [supabase.com/docs](https://supabase.com/docs)
-- Vercel deployment: [vercel.com/docs](https://vercel.com/docs)
-- Database issues: Check Prisma docs
+## 2. Billing + onboarding rules
 
----
+Current beta behavior:
 
-**Status**: ✅ Ready for production deployment (all issues resolved)
+- billing comes before onboarding
+- billing page has optional toggle:
+  - `Provision mobile business number`
+- toggle `on` before Stripe payment:
+  - workspace becomes eligible for Twilio mobile-number provisioning
+- toggle `off` before Stripe payment:
+  - user can still pay
+  - user can still complete onboarding
+  - no Twilio number is provisioned later from that paid flow
+
+Verify these paths before release.
+
+## 3. Twilio provisioning prerequisites
+
+- Twilio parent account must be configured
+- AU regulatory bundle must be approved before AU number purchase
+- provisioning is currently mobile-only for new AU numbers
+- one workspace gets one subaccount + one business number
+- successful workspaces should not auto-reprovision
+
+Verify:
+
+- already-provisioned workspaces do not buy another number
+- duplicate beta workspaces are blocked correctly where applicable
+- onboarding shows existing number immediately when present
+
+## 4. Voice worker prerequisites
+
+The LiveKit worker is deployed separately from Vercel.
+
+Required envs typically include:
+
+- `LIVEKIT_URL`
+- `LIVEKIT_API_KEY`
+- `LIVEKIT_API_SECRET`
+- `DEEPGRAM_API_KEY`
+- `CARTESIA_API_KEY`
+- `GROQ_API_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_APP_URL`
+- `VOICE_AGENT_WEBHOOK_SECRET`
+- `EARLYMARK_INBOUND_PHONE_NUMBER`
+
+Current voice assumptions:
+
+- Groq is preferred directly when available
+- Cartesia `sonic-3` is pinned for TTS
+- LiveKit worker logs deployed git SHA on startup
+
+## 5. GitHub Actions worker deploy
+
+`livekit-agent/**` changes on `main` should trigger the worker deploy workflow.
+
+Before relying on it, verify repo secrets exist:
+
+- `SSH_HOST`
+- `SSH_USERNAME`
+- `SSH_PRIVATE_KEY`
+
+After a worker deploy:
+
+- check the workflow run went green
+- confirm `/tmp/agent.log` on OCI contains the deployed SHA
+- make a test call and verify runtime behavior from logs
+
+## 6. Production verification
+
+### Web
+
+- homepage copy/layout is correct
+- signup -> billing -> onboarding flow is correct
+- payment succeeds
+- onboarding can complete in both:
+  - provisioning requested
+  - provisioning not requested
+- dashboard loads
+- inbox/chat/kanban/map all load
+
+### CRM
+
+- create job
+- create contact
+- move cards
+- invoice draft/issue/paid actions
+- inbox `Ask Tracey` can:
+  - update CRM fields
+  - send customer comms when asked
+
+### Voice
+
+- `Tracey interview form` behaves correctly
+- `Tracey inbound call` behaves correctly
+- `Tracey for users` behaves correctly
+- latency logs are emitted
+- call transcripts persist for new calls
+
+## 7. Operational checks
+
+- Sentry configured
+- PostHog/analytics configured if required
+- cron secrets configured
+- storage uploads work
+- Google Maps failures degrade gracefully
+- welcome SMS path works when provisioning succeeds
+- call forwarding setup SMS flow works
+
+## 8. Known split-brain risk to avoid
+
+Do not treat Vercel deploy success as voice-worker deploy success.
+
+- Vercel updates the web app
+- LiveKit worker changes require the OCI/GitHub Actions worker path
+
+Both must be checked independently.
