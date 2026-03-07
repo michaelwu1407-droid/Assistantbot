@@ -247,7 +247,7 @@ function DealDetailContent({
               </Badge>
             </div>
             <p className="text-slate-500 text-sm mt-0.5">
-              {contact?.company || (deal.source ? `Via ${deal.source}` : contact?.name || "Direct enquiry")} • <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString()}</span>
+              {deal.source || "Direct enquiry"} • <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString()}</span>
             </p>
           </div>
         </div>
