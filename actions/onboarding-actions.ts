@@ -64,9 +64,11 @@ export async function getOnboardingProgress() {
 
     const completed = steps.filter((s) => s.isComplete).length;
     const isAllComplete = completed === steps.length;
+    const firstWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     return {
         shouldShow: !isAllComplete,
+        isWithinFirstWeek: !!workspace && workspace.createdAt >= firstWeekAgo,
         completed,
         total: steps.length,
         steps,

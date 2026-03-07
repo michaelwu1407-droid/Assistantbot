@@ -369,3 +369,13 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Switched the server-side Supabase Storage helper from the public anon client to the admin service-role client when generating signed upload URLs and public URLs.
 - Why: Settings document uploads were still failing with `new row violates row-level security policy` because the upload-token server action was creating signed upload URLs under anonymous Storage permissions instead of server-side admin context.
 
+### 2026-03-07 12:13 (AEDT) - codex
+- Files: `actions/storage-actions.ts`, `docs/agent_change_log.md`
+- What changed: Added automatic storage-bucket existence checks and admin-side bucket creation before generating signed upload URLs or public URLs.
+- Why: Document uploads were still failing with `The related resource does not exist`, which indicates the target Supabase Storage bucket was missing. The server helper now self-heals that setup gap instead of failing at runtime.
+
+### 2026-03-07 12:19 (AEDT) - codex
+- Files: `actions/onboarding-actions.ts`, `components/dashboard/setup-widget.tsx`, `docs/agent_change_log.md`
+- What changed: Added a close button to the dashboard setup banner and made its dismissal behavior signup-age aware. During the first week after signup, dismissing the banner only hides it temporarily and it can reappear later; after that, dismissal stays hidden on the current browser.
+- Why: Users need to be able to close the setup banner, but it should keep resurfacing during the first week so new signups do not lose the onboarding prompt too easily.
+

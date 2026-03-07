@@ -1,25 +1,48 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, CheckCircle2, Circle } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2, Circle, X } from "lucide-react";
 import Link from "next/link";
 import { getOnboardingProgress } from "@/actions/onboarding-actions";
+
+const SETUP_WIDGET_DISMISS_KEY = "earlymark:setup-widget-dismissed-at";
 
 export function SetupWidget() {
     const [data, setData] = useState<any>(null);
     const [expanded, setExpanded] = useState(false);
+    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
         getOnboardingProgress().then((res) => {
-            /* If "shouldShow" is false, we don't render. 
-               But if the user expands, we animate the height */
-            if (res && res.shouldShow && res.total > 0) {
-                setData(res);
+            if (!res || !res.shouldShow || res.total <= 0) return;
+
+            const dismissedAtRaw = typeof window !== "undefined"
+                ? window.localStorage.getItem(SETUP_WIDGET_DISMISS_KEY)
+                : null;
+            const dismissedAt = dismissedAtRaw ? Number(dismissedAtRaw) : null;
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            const isStillDismissed = dismissedAt
+                ? (res.isWithinFirstWeek ? Date.now() - dismissedAt < oneDayMs : true)
+                : false;
+
+            if (isStillDismissed) {
+                setDismissed(true);
+                return;
             }
+
+            setDismissed(false);
+            setData(res);
         });
     }, []);
 
-    if (!data || !data.shouldShow) return null;
+    if (!data || !data.shouldShow || dismissed) return null;
+
+    const handleDismiss = () => {
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem(SETUP_WIDGET_DISMISS_KEY, String(Date.now()));
+        }
+        setDismissed(true);
+    };
 
     return (
         <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl overflow-hidden mb-6 shadow-sm transition-all duration-300">
@@ -35,9 +58,21 @@ export function SetupWidget() {
                         Complete your setup!
                     </h3>
                 </div>
-                <button className="text-emerald-700 dark:text-emerald-400 p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded">
-                    {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        className="text-emerald-700 dark:text-emerald-400 p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            handleDismiss();
+                        }}
+                        aria-label="Close setup banner"
+                    >
+                        <X size={18} />
+                    </button>
+                    <button className="text-emerald-700 dark:text-emerald-400 p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded">
+                        {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                </div>
             </div>
 
             {expanded && (
