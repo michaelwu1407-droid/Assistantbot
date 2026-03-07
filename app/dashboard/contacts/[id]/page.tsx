@@ -9,6 +9,20 @@ import { format } from "date-fns"
 
 export const dynamic = "force-dynamic"
 
+function stageToVariant(stage: string): "new" | "quote" | "scheduled" | "awaiting" | "complete" | "default" {
+  const map: Record<string, "new" | "quote" | "scheduled" | "awaiting" | "complete"> = {
+    NEW: "new",
+    CONTACTED: "quote",
+    NEGOTIATION: "scheduled",
+    SCHEDULED: "scheduled",
+    PIPELINE: "quote",
+    INVOICED: "awaiting",
+    WON: "complete",
+    LOST: "complete",
+  }
+  return map[stage] ?? "default"
+}
+
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
   CONTACTED: "Quote sent",
@@ -67,7 +81,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-        <Button variant="outline" asChild>
+        <Button variant="secondary" asChild>
           <Link href={`/dashboard/contacts/${id}/edit`}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
@@ -79,7 +93,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
         {/* Left: Contact/Business details + Current job */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           {contactType === "BUSINESS" ? (
-            <div className="p-4 border border-slate-200 dark:border-border rounded-xl bg-white dark:bg-card shadow-sm shrink-0">
+            <div className="p-4 border border-slate-200 dark:border-border rounded-lg bg-white dark:bg-card shadow-sm shrink-0">
               <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                 <Building className="w-4 h-4" />
                 Business details
@@ -119,7 +133,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
               </div>
             </div>
           ) : (
-            <div className="p-4 border border-slate-200 dark:border-border rounded-xl bg-white dark:bg-card shadow-sm shrink-0">
+            <div className="p-4 border border-slate-200 dark:border-border rounded-lg bg-white dark:bg-card shadow-sm shrink-0">
               <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Contact details
@@ -146,7 +160,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
           )}
 
           {currentDeal && (
-            <div className="p-4 border border-slate-200 dark:border-border rounded-xl bg-white dark:bg-card shadow-sm shrink-0">
+            <div className="p-4 border border-slate-200 dark:border-border rounded-lg bg-white dark:bg-card shadow-sm shrink-0">
               <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                 <Briefcase className="w-4 h-4" />
                 Current job
@@ -177,22 +191,21 @@ export default async function ContactDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs">Stage</p>
-                  <Badge variant="outline" className="text-xs">{STAGE_LABELS[currentDeal.stage] ?? currentDeal.stage}</Badge>
+                  <Badge variant={stageToVariant(currentDeal.stage)} className="text-xs">{STAGE_LABELS[currentDeal.stage] ?? currentDeal.stage}</Badge>
                 </div>
               </div>
-              <Link
-                href={`/dashboard/deals/${currentDeal.id}`}
-                className="inline-block mt-2 text-xs text-blue-600 hover:underline"
-              >
-                Open job →
-              </Link>
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link href={`/dashboard/deals/${currentDeal.id}`}>
+                  Open job →
+                </Link>
+              </Button>
             </div>
           )}
         </div>
 
         {/* Right: Past jobs + Notes */}
         <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
-          <div className="flex-1 min-h-0 border border-slate-200 dark:border-border rounded-xl bg-white dark:bg-card flex flex-col overflow-hidden shadow-sm">
+          <div className="flex-1 min-h-0 border border-slate-200 dark:border-border rounded-lg bg-white dark:bg-card flex flex-col overflow-hidden shadow-sm">
             <div className="p-3 border-b border-slate-100 dark:border-border font-semibold text-slate-900 dark:text-foreground bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />

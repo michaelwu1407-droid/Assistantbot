@@ -278,7 +278,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b-2 border-neutral-200 bg-muted/50">
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground w-10">
                   <input
                     type="checkbox"

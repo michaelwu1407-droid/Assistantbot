@@ -120,6 +120,7 @@ model Workspace {
   repairItems      RepairItem[]
   documents        BusinessDocument[]
   voiceCalls       VoiceCall[]
+  activityLogs     ActivityLog[]
 
   // Self-Learning & NLP Behavioral State
   aiPreferences      String? @db.Text
@@ -850,4 +851,19 @@ model TelemetryMetric {
 
   @@index([metric, createdAt])
   @@map("telemetry_metrics")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String?
+  action      String   // e.g. "deal.created", "deal.stage_changed", "contact.created"
+  entityType  String?  // e.g. "deal", "contact"
+  entityId    String?
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@map("activity_logs")
 }

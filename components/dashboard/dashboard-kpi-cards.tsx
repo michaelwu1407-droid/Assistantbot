@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import { StatCard } from "@/components/ui/stat-card"
 import {
   Select,
   SelectContent,
@@ -39,7 +40,6 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
     )
     const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
-    // Upcoming jobs: scheduled stage with scheduledAt within the next 7 days (or no date set)
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     const upcomingCount = deals.filter((d) => {
       if (d.stage !== "scheduled") return false
@@ -53,68 +53,37 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       return days >= staleDays && d.stage !== "completed" && d.stage !== "lost"
     }).length
 
-    return {
-      revenue,
-      travisWonRevenue,
-      upcomingCount,
-      followUpCount,
-    }
+    return { revenue, travisWonRevenue, upcomingCount, followUpCount }
   }, [deals, currentMonth, currentYear, staleWeeks])
 
   const monthLabel = MONTHS[currentMonth]
 
-  const cardClass =
-    "ott-card rounded-[20px] p-2 flex flex-col justify-center h-full min-h-[50px] bg-white shadow-sm relative border border-slate-200/60 dark:border-slate-700/50"
-
   return (
-    <div id="kpi-cards" className="grid grid-cols-4 gap-2 h-full flex-[4] min-w-0">
-      {/* 1. Revenue */}
-      <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          {monthLabel} Revenue
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
-            ${revenue.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      {/* 2. Jobs won with Tracey */}
-      <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          Jobs won with Tracey
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
-            ${travisWonRevenue.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Upcoming jobs (next 7 days) */}
-      <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5">
-          Upcoming jobs
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-extrabold text-[#0F172A] tracking-tighter leading-none">
-            {upcomingCount}
-          </span>
-          <span className="text-[9px] text-[#94A3B8] font-medium leading-none">7 days</span>
-        </div>
-      </div>
-
-      {/* 4. Follow-up — label top, number left, 2w selector bottom-right */}
-      <div className={cardClass}>
-        <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-0.5 block">
+    <div id="kpi-cards" className="grid grid-cols-4 gap-3 h-full flex-[4] min-w-0">
+      <StatCard
+        label={`${monthLabel} Revenue`}
+        value={`$${revenue.toLocaleString()}`}
+      />
+      <StatCard
+        label="Jobs Won With Tracey"
+        value={`$${travisWonRevenue.toLocaleString()}`}
+        sub="Via Tracey automation"
+        accent
+      />
+      <StatCard
+        label="Upcoming Jobs"
+        value={upcomingCount}
+        sub="Next 7 days"
+      />
+      <div className="bg-card rounded-lg border border-neutral-200 shadow-sm p-4 flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
           Follow-up
         </span>
         <div className="flex items-end justify-between gap-1">
           <span
             className={cn(
-              "text-lg font-extrabold tracking-tighter leading-none",
-              followUpCount > 0 ? "text-amber-600" : "text-[#0F172A]"
+              "text-3xl font-bold tracking-tight",
+              followUpCount > 0 ? "text-amber-600" : "text-neutral-900"
             )}
           >
             {followUpCount}
@@ -123,7 +92,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
             value={String(staleWeeks)}
             onValueChange={(v) => setStaleWeeks(Number(v))}
           >
-            <SelectTrigger className="h-5 w-[48px] text-[10px] font-medium px-1 border-slate-200 shrink-0">
+            <SelectTrigger className="h-6 w-[48px] text-[10px] font-medium px-1 border-neutral-200 shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

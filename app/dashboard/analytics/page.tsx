@@ -52,10 +52,10 @@ export default function AnalyticsPage() {
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded-xl w-1/3"></div>
+          <div className="h-8 bg-secondary rounded-lg w-1/3"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-28 bg-secondary rounded-[24px]"></div>
+              <div key={i} className="h-28 bg-secondary rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-midnight">Analytics & Reporting</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Analytics & Reporting</h1>
             <p className="text-muted-foreground text-sm mt-1">Monitor your business performance and team productivity.</p>
           </div>
           <div className="flex items-center gap-2 print-hide">
@@ -128,10 +128,10 @@ export default function AnalyticsPage() {
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Revenue</p>
+                <p className="text-xs font-medium text-neutral-500">Revenue</p>
                 <DollarSign className="h-5 w-5 text-muted-foreground/40" />
               </div>
-              <p className="text-3xl font-bold text-midnight">${data.revenue.total.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-neutral-900">${data.revenue.total.toLocaleString()}</p>
               <div className="flex items-center gap-1 mt-2">
                 {data.revenue.growth > 0 ? (
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
@@ -150,19 +150,19 @@ export default function AnalyticsPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Customers</p>
+                <p className="text-xs font-medium text-neutral-500">Customers</p>
                 <Users className="h-5 w-5 text-muted-foreground/40" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-2xl font-bold text-midnight">{data.customers.new}</p>
+                  <p className="text-2xl font-bold text-neutral-900">{data.customers.new}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">New this month</p>
                 </div>
                 <div>
                   {hasRating ? (
                     <>
                       <div className="flex items-baseline gap-1">
-                        <p className="text-2xl font-bold text-midnight">{data.customers.satisfaction}</p>
+                        <p className="text-2xl font-bold text-neutral-900">{data.customers.satisfaction}</p>
                         <Star className="h-4 w-4 text-amber-500 mb-0.5" />
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">Avg rating</p>
@@ -182,10 +182,10 @@ export default function AnalyticsPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Jobs won with Tracey</p>
+                <p className="text-xs font-medium text-neutral-500">Jobs won with Tracey</p>
                 <LayoutList className="h-5 w-5 text-muted-foreground/40" />
               </div>
-              <p className="text-3xl font-bold text-midnight">{data.jobs.wonWithTracey}</p>
+              <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>
               <p className="text-xs text-muted-foreground mt-2">
                 Jobs at scheduled stage or beyond, excluding manual jobs created already at scheduled+
               </p>
@@ -240,15 +240,15 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold text-midnight">{data.jobs.completed}</p>
+                <p className="text-2xl font-bold text-neutral-900">{data.jobs.completed}</p>
                 <p className="text-xs text-slate-600 mt-1">Completed</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-midnight">{scheduledCount}</p>
+                <p className="text-2xl font-bold text-neutral-900">{scheduledCount}</p>
                 <p className="text-xs text-slate-600 mt-1">Scheduled</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-midnight">{pipelineCount}</p>
+                <p className="text-2xl font-bold text-neutral-900">{pipelineCount}</p>
                 <p className="text-xs text-slate-600 mt-1">New requests</p>
               </div>
             </div>
@@ -268,9 +268,9 @@ export default function AnalyticsPage() {
             <CardContent>
               <div className="space-y-3">
                 {data.team.performance.map((member, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-2xl">
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
                     <div>
-                      <p className="font-medium text-midnight">{member.name}</p>
+                      <p className="font-medium text-neutral-900">{member.name}</p>
                       <p className="text-sm text-muted-foreground">{member.jobs} jobs completed</p>
                     </div>
                     <div className="text-right">

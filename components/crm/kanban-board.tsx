@@ -25,6 +25,7 @@ import {
 import { DealCard } from "./deal-card"
 import { DealDetailModal } from "./deal-detail-modal"
 import { Plus, UserPlus } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,13 +44,13 @@ import { publishCrmSelection } from "@/lib/crm-selection"
 // 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
 
-const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
-  { id: "new_request", title: "New request", color: "bg-blue-500" },
-  { id: "quote_sent", title: "Quote sent", color: "bg-indigo-500" },
-  { id: "scheduled", title: "Scheduled", color: "bg-amber-500" },
-  { id: "ready_to_invoice", title: "Awaiting payment", color: "bg-violet-500" },
-  { id: "completed", title: "Completed", color: "bg-primary" },
-  { id: "deleted", title: "Deleted jobs", color: "bg-slate-400" },
+const COLUMNS: { id: ColumnId; title: string; color: string; borderColor: string }[] = [
+  { id: "new_request", title: "New request", color: "bg-status-new", borderColor: "border-l-status-new" },
+  { id: "quote_sent", title: "Quote sent", color: "bg-status-quote", borderColor: "border-l-status-quote" },
+  { id: "scheduled", title: "Scheduled", color: "bg-status-scheduled", borderColor: "border-l-status-scheduled" },
+  { id: "ready_to_invoice", title: "Awaiting payment", color: "bg-status-awaiting", borderColor: "border-l-status-awaiting" },
+  { id: "completed", title: "Completed", color: "bg-status-complete", borderColor: "border-l-status-complete" },
+  { id: "deleted", title: "Deleted jobs", color: "bg-neutral-400", borderColor: "border-l-neutral-400" },
 ]
 
 interface TeamMemberOption {
@@ -363,7 +364,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
 
           // Determine label based on industry
           return (
-            <div key={col.id} className="w-72 flex-shrink-0 flex flex-col h-full max-h-full">
+            <div key={col.id} className={cn("w-72 flex-shrink-0 flex flex-col h-full max-h-full border-l-4", col.borderColor)}>
               {/* Column Header — same vertical gap above (pt-5) as below (mb-5) */}
               <div className="flex items-center justify-between mb-5 px-2">
                 <div className="flex items-center gap-2">

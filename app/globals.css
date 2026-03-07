@@ -7,11 +7,12 @@
 @theme {
   --font-sans: var(--font-sans);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 8px);
-  --radius-2xl: calc(var(--radius) + 16px);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
 
   /* Ottorize custom design tokens */
   --color-secondary-blue: var(--secondary-blue);
@@ -26,9 +27,41 @@
   --color-midnight: #0F172A;
   --color-slate-body: #475569;
 
+  /* Earlymark — primary palette */
+  --color-primary-hover: #00E89A;
+  --color-primary-subtle: #E0FAF2;
+  --color-primary-muted: #F0FDF8;
+
+  /* Earlymark — neutrals */
+  --color-neutral-50: #F9FAFB;
+  --color-neutral-100: #F3F4F6;
+  --color-neutral-200: #E5E7EB;
+  --color-neutral-400: #9CA3AF;
+  --color-neutral-500: #6B7280;
+  --color-neutral-700: #374151;
+  --color-neutral-900: #0D1117;
+
+  /* Earlymark — surfaces */
+  --color-page: #F7F8FA;
+
+  /* Earlymark — status colors */
+  --color-status-new: #3B82F6;
+  --color-status-new-bg: #EFF6FF;
+  --color-status-quote: #F59E0B;
+  --color-status-quote-bg: #FFFBEB;
+  --color-status-scheduled: #00D28B;
+  --color-status-scheduled-bg: #E0FAF2;
+  --color-status-awaiting: #8B5CF6;
+  --color-status-awaiting-bg: #F5F3FF;
+  --color-status-complete: #6B7280;
+  --color-status-complete-bg: #F3F4F6;
+
+  /* Shadows */
   --shadow-ott: 0px 1px 2px rgba(0,0,0,0.05), 0px 10px 15px -3px rgba(0,0,0,0.03), 0px 4px 6px -2px rgba(0,0,0,0.02);
   --shadow-ott-hover: 0px 10px 25px -5px rgba(0,210,139,0.15), 0px 8px 10px -6px rgba(0,0,0,0.05);
   --shadow-ott-elevated: 0px 2px 4px rgba(0,0,0,0.06), 0px 12px 20px -4px rgba(0,0,0,0.06), 0px 20px 40px -8px rgba(0,0,0,0.04);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-focus: 0 0 0 3px rgba(0,210,139,0.25);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -72,66 +105,54 @@
   /* Typography - Plus Jakarta Sans */
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 
-  /* Radius - Ottorize Spec: 32px outer, 24px inner */
+  /* Radius - base for shadcn calc */
   --radius: 1.5rem;
-  /* Base radius for shadcn components, we use specific classes for strict Ottorize shapes */
 
-  /* LIGHT THEME - Ottorize "Mint & Milk" */
-  --background: #F8FAFC;
-  /* Off-white page bg */
-  --foreground: #475569;
-  /* Cool Slate body text */
+  /* LIGHT THEME - Earlymark "Mint & Milk" */
+  --background: #F7F8FA;
+  --foreground: #0D1117;
 
   --card: #FFFFFF;
-  /* Pure white cards */
-  --card-foreground: #0F172A;
-  /* Deep Midnight headers */
+  --card-foreground: #0D1117;
 
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover-foreground: #0D1117;
 
   --primary: #00D28B;
-  /* Vibrant Mint Green */
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F1F5F9;
-  /* Light grey-blue */
-  --secondary-foreground: #0F172A;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #0D1117;
 
-  --muted: #F1F5F9;
-  --muted-foreground: #94A3B8;
-  /* Light Slate */
+  --muted: #F3F4F6;
+  --muted-foreground: #9CA3AF;
 
-  --accent: #ECFDF5;
-  /* Pale Mint hover */
+  --accent: #E0FAF2;
   --accent-foreground: #00D28B;
 
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
 
-  --border: #E2E8F0;
-  /* Subtle grey-blue */
+  --border: #E5E7EB;
   --input: #FFFFFF;
-  /* White inputs */
   --ring: #00D28B;
-  /* Mint focus ring */
 
   /* Secondary Blue */
   --secondary-blue: #3B82F6;
 
   /* Sidebar - Light White */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #0F172A;
+  --sidebar-foreground: #0D1117;
   --sidebar-primary: #00D28B;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F5F9;
-  --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: #E2E8F0;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #0D1117;
+  --sidebar-border: #E5E7EB;
   --sidebar-ring: #00D28B;
 }
 
 .dark {
-  /* DARK THEME - neutral charcoal to avoid harsh blue/white contrast */
+  /* DARK THEME */
   --background: #0F141B;
   --foreground: #D8E1EC;
 
@@ -217,7 +238,15 @@
 
   body {
     @apply bg-background text-foreground tracking-tight;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  /* Focus ring — apply to all interactive elements */
+  *:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
   }
 
   /* Ottorize Typography Spec */
@@ -227,7 +256,13 @@
   h4,
   h5,
   h6 {
-    @apply font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight;
+    @apply font-bold tracking-tight;
+    color: var(--color-neutral-900);
+  }
+
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
+  .premium h1, .premium h2, .premium h3, .premium h4, .premium h5, .premium h6 {
+    color: #F8FAFC;
   }
 
   h1 {
@@ -250,21 +285,23 @@
 }
 
 @layer utilities {
+  /* Sentence-case label utility */
+  .label-uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-neutral-500);
+  }
 
   /* THE OTTORIZE CARD: Solid white, layered soft shadows, rounded corners */
   .ott-card {
-    @apply bg-card border border-border/60 rounded-[24px] transition-all duration-300;
-    box-shadow:
-      0px 1px 2px rgba(0, 0, 0, 0.05),
-      0px 10px 15px -3px rgba(0, 0, 0, 0.03),
-      0px 4px 6px -2px rgba(0, 0, 0, 0.02);
+    @apply bg-card border border-border/60 rounded-lg transition-all duration-300;
+    box-shadow: var(--shadow-xs);
   }
 
   .ott-card:hover {
-    @apply -translate-y-[4px] border-primary/50;
-    box-shadow:
-      0px 10px 25px -5px rgba(0, 210, 139, 0.15),
-      0px 8px 10px -6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
   }
 
   /* ATMOSPHERIC GLOW: Subtle mint radial background */
@@ -275,33 +312,30 @@
         transparent 80%);
   }
 
-  /* PRIMARY BUTTON: Solid Black Pill */
+  /* PRIMARY BUTTON: Green pill */
   .ott-btn-primary {
-    @apply h-12 px-8 bg-[#020617] text-white rounded-full font-semibold transition-transform active:scale-95 hover:shadow-lg dark:bg-white dark:text-black;
+    @apply h-12 px-8 bg-primary text-white rounded-md font-semibold transition-transform active:scale-95 hover:bg-primary-hover shadow-xs;
   }
 
   /* SECONDARY BUTTON: White with border */
   .ott-btn-secondary {
-    @apply h-12 px-8 bg-white text-[#0F172A] border border-[#E2E8F0] rounded-full font-semibold hover:bg-[#F8FAFC] transition-colors dark:bg-transparent dark:text-white dark:border-white/20;
+    @apply h-12 px-8 bg-white text-neutral-700 border border-neutral-200 rounded-md font-semibold hover:bg-neutral-50 transition-colors dark:bg-transparent dark:text-white dark:border-white/20;
   }
 
   /* BADGE: Mint Green Pill */
   .ott-badge-mint {
-    @apply bg-[#ECFDF5] text-[#00D28B] px-3 py-1 rounded-full text-xs font-bold border border-[#00D28B]/20 dark:bg-[#00D28B]/10;
+    @apply bg-primary-subtle text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20;
   }
 
   /* BADGE: Slate Blue Pill */
   .ott-badge-blue {
-    @apply bg-[#EFF6FF] text-[#3B82F6] px-3 py-1 rounded-full text-xs font-bold border border-[#3B82F6]/20 dark:bg-[#3B82F6]/10;
+    @apply bg-status-new-bg text-status-new px-3 py-1 rounded-full text-xs font-bold border border-status-new/20;
   }
 
   /* ELEVATED CARD: Stronger shadow for featured content */
   .ott-card-elevated {
-    @apply bg-card border border-border/60 rounded-[24px] transition-all duration-300;
-    box-shadow:
-      0px 2px 4px rgba(0, 0, 0, 0.06),
-      0px 12px 20px -4px rgba(0, 0, 0, 0.06),
-      0px 20px 40px -8px rgba(0, 0, 0, 0.04);
+    @apply bg-card border border-border/60 rounded-lg transition-all duration-300;
+    box-shadow: var(--shadow-ott-elevated);
   }
 
   /* SECTION CONTAINER */

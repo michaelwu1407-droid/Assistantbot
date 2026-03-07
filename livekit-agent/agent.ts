@@ -22,6 +22,7 @@ import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, voice } from '@livekit/agents';
+import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
 
 loadEnv({ path: '.env.local' });
@@ -819,7 +820,7 @@ export default defineAgent({
       model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
       language: process.env.VOICE_STT_LANGUAGE || "en-AU",
       interimResults: true,
-      endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 250),
+      endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 300),
       noDelay: true,
       punctuate: true,
       smartFormat: true,
@@ -1057,13 +1058,13 @@ export default defineAgent({
       turnDetection: "stt",
       voiceOptions: {
         preemptiveGeneration: true,
-        minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 180),
-        maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 700),
-        minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 250),
+        minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 250),
+        maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 800),
+        minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 400),
         minInterruptionWords: Number(
           callType === "inbound_demo"
-            ? (process.env.INBOUND_VOICE_MIN_INTERRUPTION_WORDS || 1)
-            : (process.env.VOICE_MIN_INTERRUPTION_WORDS || 2)
+            ? (process.env.INBOUND_VOICE_MIN_INTERRUPTION_WORDS || 2)
+            : (process.env.VOICE_MIN_INTERRUPTION_WORDS || 3)
         ),
         allowInterruptions: true,
       },
@@ -1071,6 +1072,9 @@ export default defineAgent({
     await session.start({
       agent,
       room: ctx.room,
+      inputOptions: {
+        noiseCancellation: NoiseCancellation(),
+      },
     });
 
     session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {

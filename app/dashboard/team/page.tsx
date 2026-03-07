@@ -180,8 +180,8 @@ export default function TeamPage() {
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-midnight">Team Management</h1>
-                    <p className="text-slate-body">Manage access and permissions for your workspace.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Team Management</h1>
+                    <p className="text-neutral-500">Manage access and permissions for your workspace.</p>
                 </div>
 
                 <Dialog open={inviteOpen} onOpenChange={(open) => {
@@ -208,7 +208,7 @@ export default function TeamPage() {
                                 Send an invitation email or generate a shareable link. They&apos;ll sign up and join your workspace with the role you choose below.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-2 ott-card rounded-xl bg-white/80 backdrop-blur border border-slate-200/60 shadow-lg">
+                        <div className="space-y-4 py-2 ott-card rounded-lg bg-white/80 backdrop-blur border border-slate-200/60 shadow-lg">
                             <div className="space-y-2">
                                 <Label className="text-slate-800">They&apos;ll join as</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
@@ -330,14 +330,14 @@ export default function TeamPage() {
                 <CardContent>
                     <div className="space-y-3">
                         {displayMembers.map((member) => (
-                            <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-border/50">
+                            <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-lg border border-border/50">
                                 <div className="flex items-center gap-4">
                                     <Avatar>
                                         <AvatarFallback>{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-medium text-midnight">{member.name || "Unnamed"}</p>
-                                        <p className="text-sm text-slate-body">{member.email}</p>
+                                        <p className="font-medium text-neutral-900">{member.name || "Unnamed"}</p>
+                                        <p className="text-sm text-neutral-500">{member.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -375,13 +375,13 @@ export default function TeamPage() {
                     <CardContent>
                         <div className="space-y-3">
                             {invites.map((invite) => (
-                                <div key={invite.id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-2xl border border-amber-200/50">
+                                <div key={invite.id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-lg border border-amber-200/50">
                                     <div className="flex items-center gap-4">
                                         <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
                                             <Link2 className="h-5 w-5 text-amber-600" />
                                         </div>
                                         <div>
-                                            <p className="font-medium text-midnight">
+                                            <p className="font-medium text-neutral-900">
                                                 {invite.email || "Open invite link"}
                                             </p>
                                             <p className="text-xs text-muted-foreground">

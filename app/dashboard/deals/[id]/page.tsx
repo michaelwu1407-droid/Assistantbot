@@ -11,6 +11,20 @@ import { format } from "date-fns"
 
 export const dynamic = "force-dynamic"
 
+function stageToVariant(stage: string): "new" | "quote" | "scheduled" | "awaiting" | "complete" | "default" {
+  const map: Record<string, "new" | "quote" | "scheduled" | "awaiting" | "complete"> = {
+    NEW: "new",
+    CONTACTED: "quote",
+    NEGOTIATION: "scheduled",
+    SCHEDULED: "scheduled",
+    PIPELINE: "quote",
+    INVOICED: "awaiting",
+    WON: "complete",
+    LOST: "complete",
+  }
+  return map[stage] ?? "default"
+}
+
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
   CONTACTED: "Quote sent",
@@ -62,7 +76,7 @@ export default async function DealDetailPage({ params }: PageProps) {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-slate-900">{deal.title}</h1>
-              <Badge variant="outline" className="text-xs tracking-wider font-semibold">
+              <Badge variant={stageToVariant(deal.stage)} className="text-xs font-semibold">
                 {stageLabel}
               </Badge>
             </div>
@@ -71,7 +85,7 @@ export default async function DealDetailPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="secondary" size="sm" asChild>
           <Link href={`/dashboard/deals/${id}/edit`}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
@@ -84,7 +98,7 @@ export default async function DealDetailPage({ params }: PageProps) {
         {/* Left: Contact + Current job */}
         <div className="lg:col-span-1 flex flex-col gap-4 overflow-y-auto">
           {/* Contact details */}
-          <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
+          <div className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm shrink-0">
             <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Contact details
@@ -129,7 +143,7 @@ export default async function DealDetailPage({ params }: PageProps) {
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
+          <div className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm shrink-0">
             <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <Briefcase className="w-4 h-4" />
               Current job
@@ -160,7 +174,7 @@ export default async function DealDetailPage({ params }: PageProps) {
         {/* Right: History + Notes */}
         <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex-1 min-h-0 border border-slate-200 rounded-xl bg-white flex flex-col overflow-hidden shadow-sm">
+          <div className="flex-1 min-h-0 border border-slate-200 rounded-lg bg-white flex flex-col overflow-hidden shadow-sm">
             <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
