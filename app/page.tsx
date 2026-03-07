@@ -481,24 +481,30 @@ export default function Home() {
 
                     {/* Value Pillars */}
                     <motion.div {...fadeUp(0.12)} className="w-full max-w-[1200px] mx-auto">
-                        <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8">
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3 md:pr-8 md:border-r md:border-black/10">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm">
-                                    <BarChart3 className="h-6 w-6" />
+                        <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 md:gap-10">
+                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 ring-1 ring-emerald-200/60">
+                                    <BarChart3 className="h-8 w-8 text-emerald-600" strokeWidth={1.5} />
                                 </div>
-                                <p>Win more customers. Win more revenue</p>
+                                <p className="text-slate-800 font-medium leading-[1.4]">
+                                    Win more customers. Win more revenue
+                                </p>
                             </div>
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3 md:pr-8 md:border-r md:border-black/10">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 shadow-sm">
-                                    <Zap className="h-6 w-6" />
+                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 ring-1 ring-blue-200/60">
+                                    <Zap className="h-8 w-8 text-blue-600" strokeWidth={1.5} />
                                 </div>
-                                <p>Make life easier. Automate customer admin</p>
+                                <p className="text-slate-800 font-medium leading-[1.4]">
+                                    Make life easier. Automate customer admin
+                                </p>
                             </div>
-                            <div className="max-w-[250px] text-center text-slate-800 font-medium leading-[1.4] flex flex-col items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-700 shadow-sm">
-                                    <Users className="h-6 w-6" />
+                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-50 to-violet-100 ring-1 ring-violet-200/60">
+                                    <Users className="h-8 w-8 text-violet-600" strokeWidth={1.5} />
                                 </div>
-                                <p>Provide a better, more reliable customer experience</p>
+                                <p className="text-slate-800 font-medium leading-[1.4]">
+                                    Provide a better, more reliable customer experience
+                                </p>
                             </div>
                         </div>
                     </motion.div>
@@ -688,7 +694,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Everything you need,<br />nothing you don&apos;t
+                            Powerful features,<br />zero complexity
                         </h2>
                         <p className="text-slate-body mt-3 text-lg">
                             Six powerful features working together so you can focus on the work, not the paperwork.

@@ -333,11 +333,7 @@ function ChatWithHistory({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Tracey header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200 shrink-0">
-        <TraceyAvatar size="md" />
-        <span className="text-sm font-semibold text-neutral-900">Tracey</span>
-      </div>
+      {/* Messages area — no separate Tracey header row; title is in the parent shell */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar pb-32">
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col gap-5 max-w-7xl mx-auto mt-4 lg:max-w-8xl">

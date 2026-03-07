@@ -187,7 +187,7 @@ export default function AnalyticsPage() {
               </div>
               <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Jobs at scheduled stage or beyond, excluding manual jobs created already at scheduled+
+                Jobs sourced and won through Tracey
               </p>
             </CardContent>
           </Card>

@@ -67,22 +67,19 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       <StatCard
         label="Jobs Won With Tracey"
         value={`$${travisWonRevenue.toLocaleString()}`}
-        sub="Via Tracey automation"
-        accent
       />
       <StatCard
-        label="Upcoming Jobs"
+        label="Upcoming jobs this week"
         value={upcomingCount}
-        sub="Next 7 days"
       />
-      <div className="bg-card rounded-lg border border-neutral-200 shadow-sm p-4 flex flex-col gap-1">
+      <div className="bg-card rounded-lg border border-neutral-200 shadow-sm px-4 py-3 flex flex-col gap-0.5">
         <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
           Follow-up
         </span>
         <div className="flex items-end justify-between gap-1">
           <span
             className={cn(
-              "text-3xl font-bold tracking-tight",
+              "text-2xl font-bold tracking-tight",
               followUpCount > 0 ? "text-amber-600" : "text-neutral-900"
             )}
           >

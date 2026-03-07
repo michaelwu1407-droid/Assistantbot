@@ -155,9 +155,10 @@ export async function POST(req: Request) {
             workspaceId: workspace.id,
             title: `Lead: ${leadInfo.workDescription || "New Request"}`,
             stage: "NEW",
+            source: "email",
             address: leadInfo.address || null,
             metadata: {
-                source: "Email Parser",
+                source: "email",
                 originalBody: textRaw,
                 tier: isKnownProvider ? "provider-match" : hasLeadKeywords ? "keyword-match" : "llm-classified",
             }

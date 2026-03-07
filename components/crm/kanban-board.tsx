@@ -358,7 +358,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
             </Button>
           )}
         </div>
-      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto pb-4 items-start pl-1 pt-5 bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto p-5 items-start bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {COLUMNS.map((col) => {
           const colDeals = columns[col.id] || []
 

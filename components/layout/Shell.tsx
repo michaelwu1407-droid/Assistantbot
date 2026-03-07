@@ -8,7 +8,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
-import { Switch } from "@/components/ui/switch"
+// Switch import removed — using segmented control buttons instead
 import { Layers, MessageSquare, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -153,19 +153,23 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden bg-primary">
                   <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-8 w-8 object-contain" />
                 </div>
-                <span className="font-semibold text-slate-900 dark:text-foreground">Chat</span>
+                <span className="font-semibold text-slate-900 dark:text-foreground">Ask Tracey</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-border/50">
-                <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span className="text-xs font-medium text-primary">Chat</span>
-                <Switch
-                  id="mode-toggle"
-                  checked={false}
-                  onCheckedChange={() => goToAdvanced()}
-                  className="data-[state=checked]:bg-primary scale-90"
-                />
-                <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium text-muted-foreground">Advanced</span>
+              <div className="flex items-center bg-neutral-100 dark:bg-slate-800/80 rounded-lg p-1 gap-1">
+                <button
+                  onClick={() => {}}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-white text-neutral-900 shadow-xs transition-all duration-150"
+                >
+                  <MessageSquare size={14} />
+                  Chat
+                </button>
+                <button
+                  onClick={() => goToAdvanced()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-neutral-500 hover:text-neutral-700 transition-all duration-150"
+                >
+                  <Layers size={14} />
+                  Advanced
+                </button>
               </div>
             </header>
             <div id="assistant-pane" className="flex-1 min-h-0 flex flex-col">
