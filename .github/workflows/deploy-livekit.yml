@@ -40,11 +40,40 @@ jobs:
         env:
           DEPLOY_GIT_SHA: ${{ github.sha }}
           LIVEKIT_AGENT_ENV_B64: ${{ secrets.LIVEKIT_AGENT_ENV_B64 }}
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET }}
+          EARLYMARK_INBOUND_PHONE_NUMBER: ${{ secrets.EARLYMARK_INBOUND_PHONE_NUMBER }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CARTESIA_API_KEY: ${{ secrets.CARTESIA_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EARLYMARK_VOICE_LLM_PROVIDER: ${{ secrets.EARLYMARK_VOICE_LLM_PROVIDER }}
+          EARLYMARK_VOICE_LLM_MODEL: ${{ secrets.EARLYMARK_VOICE_LLM_MODEL }}
+          EARLYMARK_VOICE_LLM_TEMPERATURE: ${{ secrets.EARLYMARK_VOICE_LLM_TEMPERATURE }}
+          EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS: ${{ secrets.EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS }}
+          INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS: ${{ secrets.INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS }}
+          INBOUND_VOICE_MIN_INTERRUPTION_WORDS: ${{ secrets.INBOUND_VOICE_MIN_INTERRUPTION_WORDS }}
+          VOICE_STT_MODEL: ${{ secrets.VOICE_STT_MODEL }}
+          VOICE_STT_LANGUAGE: ${{ secrets.VOICE_STT_LANGUAGE }}
+          VOICE_STT_ENDPOINTING_MS: ${{ secrets.VOICE_STT_ENDPOINTING_MS }}
+          VOICE_TTS_VOICE_ID: ${{ secrets.VOICE_TTS_VOICE_ID }}
+          VOICE_TTS_LANGUAGE: ${{ secrets.VOICE_TTS_LANGUAGE }}
+          VOICE_TTS_CHUNK_TIMEOUT_MS: ${{ secrets.VOICE_TTS_CHUNK_TIMEOUT_MS }}
+          VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS: ${{ secrets.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS }}
+          VOICE_MIN_ENDPOINTING_DELAY_MS: ${{ secrets.VOICE_MIN_ENDPOINTING_DELAY_MS }}
+          VOICE_MAX_ENDPOINTING_DELAY_MS: ${{ secrets.VOICE_MAX_ENDPOINTING_DELAY_MS }}
+          VOICE_MIN_INTERRUPTION_DURATION_MS: ${{ secrets.VOICE_MIN_INTERRUPTION_DURATION_MS }}
+          VOICE_MIN_INTERRUPTION_WORDS: ${{ secrets.VOICE_MIN_INTERRUPTION_WORDS }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64
+          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,EARLYMARK_INBOUND_PHONE_NUMBER,DEEPGRAM_API_KEY,DEEPINFRA_API_KEY,GROQ_API_KEY,CARTESIA_API_KEY,NEXT_PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,EARLYMARK_VOICE_LLM_PROVIDER,EARLYMARK_VOICE_LLM_MODEL,EARLYMARK_VOICE_LLM_TEMPERATURE,EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_MIN_INTERRUPTION_WORDS,VOICE_STT_MODEL,VOICE_STT_LANGUAGE,VOICE_STT_ENDPOINTING_MS,VOICE_TTS_VOICE_ID,VOICE_TTS_LANGUAGE,VOICE_TTS_CHUNK_TIMEOUT_MS,VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS,VOICE_MIN_ENDPOINTING_DELAY_MS,VOICE_MAX_ENDPOINTING_DELAY_MS,VOICE_MIN_INTERRUPTION_DURATION_MS,VOICE_MIN_INTERRUPTION_WORDS
           script: |
             set -eu
             agent_ps() {
@@ -90,6 +119,14 @@ jobs:
             PERSISTENT_ENV_DIR="$HOME/.config/earlymark"
             PERSISTENT_ENV_PATH="$PERSISTENT_ENV_DIR/livekit-agent.env"
             LEGACY_ENV_PATH="/opt/livekit-agent/.env.local"
+            write_env() {
+              key="$1"
+              value="${2:-}"
+              if [ -n "$value" ]; then
+                escaped_value="$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+                printf '%s="%s"\n' "$key" "$escaped_value" >> "$PERSISTENT_ENV_PATH"
+              fi
+            }
             mkdir -p "$TMP_AGENT_DIR" "$PERSISTENT_ENV_DIR"
             chmod 700 "$PERSISTENT_ENV_DIR" || true
             if [ -n "${LIVEKIT_AGENT_ENV_B64:-}" ]; then
@@ -114,6 +151,39 @@ jobs:
               cp "$LEGACY_ENV_PATH" "$PERSISTENT_ENV_PATH"
               chmod 600 "$PERSISTENT_ENV_PATH"
               echo "Restored voice-agent env from legacy path $LEGACY_ENV_PATH."
+            elif [ -n "${LIVEKIT_URL:-}" ] && [ -n "${LIVEKIT_API_KEY:-}" ] && [ -n "${LIVEKIT_API_SECRET:-}" ] && [ -n "${DEEPGRAM_API_KEY:-}" ] && [ -n "${CARTESIA_API_KEY:-}" ] && { [ -n "${GROQ_API_KEY:-}" ] || [ -n "${DEEPINFRA_API_KEY:-}" ]; }; then
+              : > "$PERSISTENT_ENV_PATH"
+              write_env "LIVEKIT_URL" "${LIVEKIT_URL:-}"
+              write_env "LIVEKIT_API_KEY" "${LIVEKIT_API_KEY:-}"
+              write_env "LIVEKIT_API_SECRET" "${LIVEKIT_API_SECRET:-}"
+              write_env "NEXT_PUBLIC_APP_URL" "${NEXT_PUBLIC_APP_URL:-}"
+              write_env "VOICE_AGENT_WEBHOOK_SECRET" "${VOICE_AGENT_WEBHOOK_SECRET:-}"
+              write_env "EARLYMARK_INBOUND_PHONE_NUMBER" "${EARLYMARK_INBOUND_PHONE_NUMBER:-}"
+              write_env "DEEPGRAM_API_KEY" "${DEEPGRAM_API_KEY:-}"
+              write_env "DEEPINFRA_API_KEY" "${DEEPINFRA_API_KEY:-}"
+              write_env "GROQ_API_KEY" "${GROQ_API_KEY:-}"
+              write_env "CARTESIA_API_KEY" "${CARTESIA_API_KEY:-}"
+              write_env "NEXT_PUBLIC_SUPABASE_URL" "${NEXT_PUBLIC_SUPABASE_URL:-}"
+              write_env "SUPABASE_SERVICE_ROLE_KEY" "${SUPABASE_SERVICE_ROLE_KEY:-}"
+              write_env "EARLYMARK_VOICE_LLM_PROVIDER" "${EARLYMARK_VOICE_LLM_PROVIDER:-}"
+              write_env "EARLYMARK_VOICE_LLM_MODEL" "${EARLYMARK_VOICE_LLM_MODEL:-}"
+              write_env "EARLYMARK_VOICE_LLM_TEMPERATURE" "${EARLYMARK_VOICE_LLM_TEMPERATURE:-}"
+              write_env "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS" "${EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS:-}"
+              write_env "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS" "${INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS:-}"
+              write_env "INBOUND_VOICE_MIN_INTERRUPTION_WORDS" "${INBOUND_VOICE_MIN_INTERRUPTION_WORDS:-}"
+              write_env "VOICE_STT_MODEL" "${VOICE_STT_MODEL:-}"
+              write_env "VOICE_STT_LANGUAGE" "${VOICE_STT_LANGUAGE:-}"
+              write_env "VOICE_STT_ENDPOINTING_MS" "${VOICE_STT_ENDPOINTING_MS:-}"
+              write_env "VOICE_TTS_VOICE_ID" "${VOICE_TTS_VOICE_ID:-}"
+              write_env "VOICE_TTS_LANGUAGE" "${VOICE_TTS_LANGUAGE:-}"
+              write_env "VOICE_TTS_CHUNK_TIMEOUT_MS" "${VOICE_TTS_CHUNK_TIMEOUT_MS:-}"
+              write_env "VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS" "${VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS:-}"
+              write_env "VOICE_MIN_ENDPOINTING_DELAY_MS" "${VOICE_MIN_ENDPOINTING_DELAY_MS:-}"
+              write_env "VOICE_MAX_ENDPOINTING_DELAY_MS" "${VOICE_MAX_ENDPOINTING_DELAY_MS:-}"
+              write_env "VOICE_MIN_INTERRUPTION_DURATION_MS" "${VOICE_MIN_INTERRUPTION_DURATION_MS:-}"
+              write_env "VOICE_MIN_INTERRUPTION_WORDS" "${VOICE_MIN_INTERRUPTION_WORDS:-}"
+              chmod 600 "$PERSISTENT_ENV_PATH"
+              echo "Built voice-agent env from individual GitHub secrets."
             fi
             if [ ! -f "$PERSISTENT_ENV_PATH" ]; then
               echo "Missing persistent voice-agent env file."
@@ -121,6 +191,7 @@ jobs:
               echo "  $PERSISTENT_ENV_PATH"
               echo "  $LEGACY_ENV_PATH"
               echo "Or configure the GitHub secret LIVEKIT_AGENT_ENV_B64 with base64-encoded livekit-agent/.env.local contents."
+              echo "Or set the individual voice-worker secrets (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, DEEPGRAM_API_KEY, CARTESIA_API_KEY, and GROQ_API_KEY or DEEPINFRA_API_KEY)."
               if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
                 echo "Previous agent is still running with PID $PREV_PID"
                 ps -p "$PREV_PID" -o pid= -o args=

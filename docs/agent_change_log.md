@@ -408,3 +408,8 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `.github/workflows/deploy-livekit.yml`, `docs/agent_change_log.md`
 - What changed: Updated the LiveKit deploy workflow to restore `livekit-agent/.env.local` from a persistent remote path (`$HOME/.config/earlymark/livekit-agent.env`), a legacy `/opt/livekit-agent/.env.local` file, or an optional `LIVEKIT_AGENT_ENV_B64` GitHub secret before restarting the worker.
 - Why: Voice-worker deploys were failing whenever `/tmp/livekit-agent/.env.local` disappeared, because the workflow treated a temporary staging path as the only source of truth for required runtime secrets.
+
+### 2026-03-09 01:12 (AEDT) - codex
+- Files: `.github/workflows/deploy-livekit.yml`, `docs/agent_change_log.md`
+- What changed: Added a second LiveKit deploy fallback that builds `livekit-agent/.env.local` from individual GitHub secrets when the base64 env bundle and remote persistent env files are both unavailable.
+- Why: The deploy still failed when `LIVEKIT_AGENT_ENV_B64` was unset and the server had no saved env file. The workflow now supports standard per-secret configuration instead of requiring a single bundled secret.
