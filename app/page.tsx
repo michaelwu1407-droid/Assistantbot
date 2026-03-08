@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    ArrowRight, ChevronLeft, ChevronRight,
+    ArrowRight, ChevronLeft, ChevronRight, ChevronDown,
     Phone, MessageSquare, Calendar, MapPin, Users,
-    BarChart3, Zap, Bot,
+    BarChart3, Zap, Bot, ToggleRight, ToggleLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -434,6 +434,64 @@ function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old"
     );
 }
 
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+    { q: "What is Tracey?", a: "Tracey is your AI-powered business assistant. She answers calls, manages your CRM, follows up with customers, handles scheduling, and chases payments — all so you can focus on the work." },
+    { q: "How does the AI phone answering work?", a: "When a customer calls your business number, the call forwards to Tracey. She answers professionally, gathers job details, logs everything in your CRM, and can even provide quotes and book appointments based on your preferences." },
+    { q: "Can I try it for free?", a: "Yes! You can interview Tracey for free right from this page. She'll call you and show you exactly what she can do. No credit card required to get started." },
+    { q: "What trades/industries does Earlymark support?", a: "Earlymark works for any service-based business — plumbers, electricians, builders, landscapers, cleaners, HVAC technicians, real estate agents, and more. If you deal with customers and jobs, Tracey can help." },
+    { q: "How does Tracey learn about my business?", a: "During onboarding, Tracey conducts a conversational interview about your business — services, pricing, availability, and preferences. No forms or spreadsheets. Just chat naturally and Tracey builds your profile." },
+    { q: "Can I control what Tracey says to customers?", a: "Absolutely. You set approval rules for quotes, customize response templates, configure which actions require your sign-off, and maintain full oversight of every customer interaction." },
+    { q: "Do I need technical skills to use Earlymark?", a: "Not at all. Everything is conversational. Tell Tracey what you need in plain English and she handles the rest. No training, no complex software to learn." },
+    { q: "How much does it cost?", a: "We offer flexible plans starting with a free trial. Visit our pricing page for full details, or ask Tracey directly — she can explain all the options." },
+];
+
+function FaqSection() {
+    const [openIndices, setOpenIndices] = useState<number[]>([]);
+
+    const toggle = (idx: number) => {
+        setOpenIndices((prev) =>
+            prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+        );
+    };
+
+    return (
+        <section className="py-20 px-4 bg-white">
+            <div className="max-w-3xl mx-auto">
+                <h2 className="text-3xl font-bold text-center text-midnight mb-10">
+                    Frequently Asked Questions
+                </h2>
+                <div className="space-y-3">
+                    {FAQ_ITEMS.map((item, idx) => {
+                        const isOpen = openIndices.includes(idx);
+                        return (
+                            <div key={idx} className="border border-border rounded-xl overflow-hidden">
+                                <button
+                                    onClick={() => toggle(idx)}
+                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
+                                >
+                                    <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
+                                    <ChevronDown
+                                        className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                                    />
+                                </button>
+                                <div
+                                    className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}
+                                >
+                                    <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">
+                                        {item.a}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -479,37 +537,8 @@ export default function Home() {
                         <span className="text-primary">early mark</span>
                     </motion.h1>
 
-                    {/* Value Pillars */}
-                    <motion.div {...fadeUp(0.12)} className="w-full max-w-[1200px] mx-auto">
-                        <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 md:gap-10">
-                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 ring-1 ring-emerald-200/60">
-                                    <BarChart3 className="h-8 w-8 text-emerald-600" strokeWidth={1.5} />
-                                </div>
-                                <p className="text-slate-800 font-medium leading-[1.4]">
-                                    Win more customers. Win more revenue
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 ring-1 ring-blue-200/60">
-                                    <Zap className="h-8 w-8 text-blue-600" strokeWidth={1.5} />
-                                </div>
-                                <p className="text-slate-800 font-medium leading-[1.4]">
-                                    Make life easier. Automate customer admin
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-center gap-4 max-w-[260px] text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-50 to-violet-100 ring-1 ring-violet-200/60">
-                                    <Users className="h-8 w-8 text-violet-600" strokeWidth={1.5} />
-                                </div>
-                                <p className="text-slate-800 font-medium leading-[1.4]">
-                                    Provide a better, more reliable customer experience
-                                </p>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div {...fadeUp(0.18)} className="flex flex-col sm:flex-row gap-3">
+                    {/* CTA buttons — moved above screenshot */}
+                    <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth">
                             <Button size="lg" variant="mint">
                                 Get started
@@ -520,6 +549,63 @@ export default function Home() {
                                 Interview your assistant
                             </Button>
                         </Link>
+                    </motion.div>
+
+                    {/* Dashboard screenshot mockup */}
+                    <motion.div {...fadeUp(0.14)} className="w-full max-w-3xl mx-auto">
+                        <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20">
+                            {/* Browser chrome */}
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 border-b border-slate-300">
+                                <div className="flex gap-1.5">
+                                    <span className="w-3 h-3 rounded-full bg-red-400 block" />
+                                    <span className="w-3 h-3 rounded-full bg-yellow-400 block" />
+                                    <span className="w-3 h-3 rounded-full bg-green-400 block" />
+                                </div>
+                                <div className="flex-1 flex justify-center">
+                                    <div className="bg-white rounded-md px-4 py-1 text-[11px] text-slate-400 font-medium">
+                                        earlymark.com/dashboard
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Fake kanban */}
+                            <div className="bg-white p-4 flex gap-3 overflow-hidden">
+                                {[{ title: "New request", color: "bg-blue-400", cards: ["Kitchen reno — $4,200", "Bathroom leak — $850"] }, { title: "Scheduled", color: "bg-emerald-400", cards: ["Deck build — $6,100", "Hot water install — $1,900"] }, { title: "Completed", color: "bg-violet-400", cards: ["Fence repair — $2,400"] }].map((col) => (
+                                    <div key={col.title} className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
+                                            <span className="text-xs font-semibold text-slate-700 truncate">{col.title}</span>
+                                            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{col.cards.length}</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {col.cards.map((card) => (
+                                                <div key={card} className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600 truncate">{card}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Value Props — gradient glass cards (no icons) */}
+                    <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                                <div className="h-0.5 w-12 bg-emerald-400 mb-4 rounded-full" />
+                                <h3 className="text-lg font-semibold text-slate-900">Win more customers. Win more revenue</h3>
+                                <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
+                            </div>
+                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-blue-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                                <div className="h-0.5 w-12 bg-blue-400 mb-4 rounded-full" />
+                                <h3 className="text-lg font-semibold text-slate-900">Make life easier. Automate customer admin</h3>
+                                <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
+                            </div>
+                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-violet-50/80 to-violet-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                                <div className="h-0.5 w-12 bg-violet-400 mb-4 rounded-full" />
+                                <h3 className="text-lg font-semibold text-slate-900">Better, more reliable customer experience</h3>
+                                <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             </section >
@@ -652,6 +738,77 @@ export default function Home() {
                     <div className="flex flex-col gap-10 mt-4">
                         {HIRE_FEATURES.map((f, i) => {
                             const isEven = i % 2 === 0;
+                            // Inline JSX mockups per feature
+                            const mockups: Record<number, React.ReactNode> = {
+                                0: (
+                                    /* Never miss a job — incoming call UI */
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0"><Phone className="w-4 h-4 text-blue-600" /></div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-slate-700">Incoming call</p>
+                                                <p className="text-[11px] text-slate-500">+61 412 345 678</p>
+                                            </div>
+                                            <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center"><Phone className="w-3.5 h-3.5 text-white" /></div>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                            <Bot className="w-4 h-4 text-emerald-600" />
+                                            <span className="text-xs text-emerald-700 font-medium">Tracey answered ✓</span>
+                                        </div>
+                                        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3">
+                                            <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider mb-1">New lead</p>
+                                            <p className="text-xs font-medium text-slate-700">Kitchen renovation — $4,200</p>
+                                        </div>
+                                    </div>
+                                ),
+                                1: (
+                                    /* Chat with CRM — chat interface mockup */
+                                    <div className="space-y-3">
+                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">Schedule the Smith job for Friday</div></div>
+                                        <div className="flex gap-2 items-end">
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
+                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">Done! Scheduled for Friday 9am. I&apos;ve also sent a confirmation SMS to Sarah Smith. ✅</div>
+                                        </div>
+                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">What&apos;s my revenue this week?</div></div>
+                                        <div className="flex gap-2 items-end">
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
+                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">$8,450 across 4 completed jobs. You&apos;re up 12% vs last week 📈</div>
+                                        </div>
+                                    </div>
+                                ),
+                                2: (
+                                    /* AI that actually works — SMS conversation */
+                                    <div className="space-y-3">
+                                        <div className="flex gap-2 items-end">
+                                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
+                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700">Hi, I got a quote from you for $2,400. Can you do the work next week?</div>
+                                        </div>
+                                        <div className="flex gap-2 items-end flex-row-reverse">
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Hi! Yes, we have availability Tuesday or Wednesday. Which works better for you?</div>
+                                        </div>
+                                        <div className="flex gap-2 items-end">
+                                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
+                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700">Tuesday works. See you then!</div>
+                                        </div>
+                                        <div className="flex gap-2 items-end flex-row-reverse">
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve sent you a calendar invite. 📅</div>
+                                        </div>
+                                    </div>
+                                ),
+                                3: (
+                                    /* Total control — mini settings panel */
+                                    <div className="space-y-3">
+                                        {[{ label: "Auto-respond to calls", on: true }, { label: "Require approval for quotes", on: true }, { label: "Send follow-up reminders", on: true }, { label: "Auto-close stale jobs", on: false }].map((s) => (
+                                            <div key={s.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+                                                <span className="text-xs font-medium text-slate-700">{s.label}</span>
+                                                {s.on ? <ToggleRight className="w-6 h-6 text-emerald-500" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ),
+                            };
                             return (
                                 <motion.div
                                     key={f.title}
@@ -663,13 +820,9 @@ export default function Home() {
                                         <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
                                     </div>
 
-                                    <div className={`rounded-3xl bg-gradient-to-br ${f.screenshotBg} border border-border/50 overflow-hidden aspect-[4/3] flex items-center justify-center ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                                        <div className="text-center px-6">
-                                            <div className="w-16 h-16 rounded-2xl bg-white/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 shadow-sm">
-                                                <div className="w-8 h-8 rounded-lg bg-midnight/10" />
-                                            </div>
-                                            <p className="text-xs font-medium text-midnight/50 uppercase tracking-wider">{f.screenshotLabel}</p>
-                                            <p className="text-[10px] text-midnight/30 mt-1">Screenshot coming soon</p>
+                                    <div className={`rounded-3xl bg-gradient-to-br ${f.screenshotBg} border border-border/50 overflow-hidden p-6 ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                                        <div className="rounded-lg border bg-white shadow-sm p-4">
+                                            {mockups[i]}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -706,7 +859,7 @@ export default function Home() {
                     </motion.div>
 
                     <motion.h3 {...fadeUp(0.08)} className="text-center text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
-                            Give yourself an <span className="text-primary">early mark</span> today
+                        Give yourself an <span className="text-primary">early mark</span> today
                     </motion.h3>
 
                     <motion.div {...fadeUp(0.1)} className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -724,6 +877,9 @@ export default function Home() {
                     </motion.div>
                 </div>
             </section >
+
+            {/* ── E.5: FAQ Section ── */}
+            <FaqSection />
 
             {/* ── F. Footer ── */}
             < footer className="bg-midnight text-white/55 py-16 px-6" >

@@ -116,9 +116,9 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
   useEffect(() => {
     const selection = selectedDealIds.length > 0
       ? selectedDealIds.map((dealId) => ({
-          id: dealId,
-          title: deals.find((deal) => deal.id === dealId)?.title,
-        }))
+        id: dealId,
+        title: deals.find((deal) => deal.id === dealId)?.title,
+      }))
       : selectedDealId
         ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
         : []
@@ -358,102 +358,102 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
             </Button>
           )}
         </div>
-      <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto p-5 items-start bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {COLUMNS.map((col) => {
-          const colDeals = columns[col.id] || []
+        <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto px-5 py-1 items-start bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {COLUMNS.map((col) => {
+            const colDeals = columns[col.id] || []
 
-          // Determine label based on industry
-          return (
-            <div key={col.id} className={cn("w-72 flex-shrink-0 flex flex-col h-full max-h-full border-l-4", col.borderColor)}>
-              {/* Column Header — same vertical gap above (pt-5) as below (mb-5) */}
-              <div className="flex items-center justify-between mb-5 px-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                  <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{col.title}</h3>
-                  <span className="text-xs text-[#475569] font-bold bg-[#F1F5F9] px-2 py-0.5 rounded-full">
-                    {colDeals.length}
-                  </span>
-                </div>
-                {col.id !== "deleted" && (
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]"
-                      onClick={() => document.getElementById("new-deal-btn")?.click()}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </Button>
+            // Determine label based on industry
+            return (
+              <div key={col.id} className={cn("w-72 flex-shrink-0 flex flex-col h-full max-h-full border-l-4 ml-2", col.borderColor)}>
+                {/* Column Header — same vertical gap above (pt-5) as below (mb-5) */}
+                <div className="flex items-center justify-between mb-2 px-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${col.color}`} />
+                    <h3 className="font-bold text-[#0F172A] text-sm tracking-wide">{col.title}</h3>
+                    <span className="text-xs text-[#475569] font-bold bg-[#F1F5F9] px-2 py-0.5 rounded-full">
+                      {colDeals.length}
+                    </span>
                   </div>
-                )}
-              </div>
-
-              {/* Column Body / Drop Zone */}
-              <SortableContext
-                id={col.id}
-                items={colDeals.map(d => d.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <DroppableColumn id={col.id}>
-                  {colDeals.length > 0 ? (
-                    colDeals.map((deal) => (
-                      <DealCard
-                        key={deal.id}
-                        deal={deal}
-                        columnId={col.id}
-                        teamMembers={teamMembers}
-                        isSelected={selectedDealIds.includes(deal.id)}
-                        selectionMode={selectionMode}
-                        onToggleSelected={toggleSelectedDeal}
-                        onEnterSelectionMode={enterSelectionMode}
-                        onAssign={teamMembers.length > 0 ? async (userId) => {
-                          const result = await updateDealAssignedTo(deal.id, userId)
-                          if (result.success) {
-                            const name = userId ? (teamMembers.find((m) => m.id === userId)?.name || "Someone") : null
-                            setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, assignedToId: userId ?? undefined, assignedToName: name ?? undefined } : d)))
-                            toast.success(userId ? `Assigned to ${name}` : "Unassigned")
-                          } else {
-                            toast.error(result.error ?? "Failed to assign")
-                          }
-                        } : undefined}
-                        onOpenModal={() => {
-                          setSelectedDealId(deal.id)
-                          setModalOpen(true)
-                        }}
-                        onDelete={async () => {
-                          if (!confirm("Move to Deleted jobs? It will be removed after 30 days.")) return
-                          try {
-                            const result = await updateDealStage(deal.id, "deleted")
-                            if (result.success) {
-                              setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: "deleted" } : d)))
-                              toast.success("Moved to Deleted jobs")
-                            } else {
-                              toast.error(result.error ?? "Failed to move")
-                            }
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Failed to move")
-                          }
-                        }}
-                      />
-                    ))
-                  ) : (
-                    // Empty state
-                    <div className="h-40 flex flex-col items-center justify-center text-[#94A3B8] p-4">
-                      <div className="p-3 bg-[#F1F5F9] rounded-full mb-3">
-                        <Plus className="h-5 w-5 text-[#94A3B8]" />
-                      </div>
-                      <span className="text-sm font-medium mb-1">No deals</span>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-[#E2E8F0] rounded-full px-4" onClick={() => document.getElementById('new-deal-btn')?.click()}>
-                        Add New
+                  {col.id !== "deleted" && (
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-[#94A3B8] hover:text-[#0F172A]"
+                        onClick={() => document.getElementById("new-deal-btn")?.click()}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
-                </DroppableColumn>
-              </SortableContext>
-            </div>
-          )
-        })}
-      </div>
+                </div>
+
+                {/* Column Body / Drop Zone */}
+                <SortableContext
+                  id={col.id}
+                  items={colDeals.map(d => d.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <DroppableColumn id={col.id}>
+                    {colDeals.length > 0 ? (
+                      colDeals.map((deal) => (
+                        <DealCard
+                          key={deal.id}
+                          deal={deal}
+                          columnId={col.id}
+                          teamMembers={teamMembers}
+                          isSelected={selectedDealIds.includes(deal.id)}
+                          selectionMode={selectionMode}
+                          onToggleSelected={toggleSelectedDeal}
+                          onEnterSelectionMode={enterSelectionMode}
+                          onAssign={teamMembers.length > 0 ? async (userId) => {
+                            const result = await updateDealAssignedTo(deal.id, userId)
+                            if (result.success) {
+                              const name = userId ? (teamMembers.find((m) => m.id === userId)?.name || "Someone") : null
+                              setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, assignedToId: userId ?? undefined, assignedToName: name ?? undefined } : d)))
+                              toast.success(userId ? `Assigned to ${name}` : "Unassigned")
+                            } else {
+                              toast.error(result.error ?? "Failed to assign")
+                            }
+                          } : undefined}
+                          onOpenModal={() => {
+                            setSelectedDealId(deal.id)
+                            setModalOpen(true)
+                          }}
+                          onDelete={async () => {
+                            if (!confirm("Move to Deleted jobs? It will be removed after 30 days.")) return
+                            try {
+                              const result = await updateDealStage(deal.id, "deleted")
+                              if (result.success) {
+                                setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: "deleted" } : d)))
+                                toast.success("Moved to Deleted jobs")
+                              } else {
+                                toast.error(result.error ?? "Failed to move")
+                              }
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Failed to move")
+                            }
+                          }}
+                        />
+                      ))
+                    ) : (
+                      // Empty state
+                      <div className="h-40 flex flex-col items-center justify-center text-[#94A3B8] p-4">
+                        <div className="p-3 bg-[#F1F5F9] rounded-full mb-3">
+                          <Plus className="h-5 w-5 text-[#94A3B8]" />
+                        </div>
+                        <span className="text-sm font-medium mb-1">No deals</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-[#E2E8F0] rounded-full px-4" onClick={() => document.getElementById('new-deal-btn')?.click()}>
+                          Add New
+                        </Button>
+                      </div>
+                    )}
+                  </DroppableColumn>
+                </SortableContext>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <DragOverlay>

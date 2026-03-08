@@ -5,7 +5,7 @@ import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, ArrowLeft, Bot, Send, SlidersHorizontal, ArrowDownAZ } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, MessageCircle, ArrowLeft, Bot, Send, SlidersHorizontal, ArrowDownAZ, Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
@@ -202,6 +202,18 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
           containerClass: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
           label: "Email",
         }
+      case "sms":
+        return {
+          icon: <MessageCircle className="h-4 w-4" />,
+          containerClass: "bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:text-teal-400",
+          label: "SMS",
+        }
+      case "system":
+        return {
+          icon: <Settings className="h-4 w-4" />,
+          containerClass: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+          label: "System",
+        }
       case "note":
       default:
         return {
@@ -299,393 +311,395 @@ If the request is to contact the customer, use the appropriate customer-contact 
 
   return (
     <>
-    <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
-      {/* ─── LEFT PANEL: Contact List ──────────────────────── */}
-      <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
-        <div className="p-3 border-b border-border/40 space-y-2">
-          <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Customer type</p>
-              <Select value={segmentFilter} onValueChange={(value) => setSegmentFilter(value as ContactSegment | "all")}>
-                <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
-                  <div className="flex items-center gap-2">
-                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="lead">New</SelectItem>
-                  <SelectItem value="existing">Existing</SelectItem>
-                </SelectContent>
-              </Select>
+      <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
+        {/* ─── LEFT PANEL: Contact List ──────────────────────── */}
+        <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
+          <div className="p-3 border-b border-border/40 space-y-2">
+            <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Customer type</p>
+                <Select value={segmentFilter} onValueChange={(value) => setSegmentFilter(value as ContactSegment | "all")}>
+                  <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="lead">New</SelectItem>
+                    <SelectItem value="existing">Existing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Date</p>
+                <Select
+                  value={dateFilter}
+                  onValueChange={(value) => {
+                    const nextValue = value as DateFilter
+                    if (nextValue === "custom") {
+                      setDraftStartDate(appliedStartDate)
+                      setDraftEndDate(appliedEndDate)
+                      setCustomDateDialogOpen(true)
+                    } else {
+                      setDateFilter(nextValue)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latest">Latest</SelectItem>
+                    <SelectItem value="oldest">Oldest</SelectItem>
+                    <SelectItem value="custom">Custom time period</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Date</p>
-              <Select
-                value={dateFilter}
-                onValueChange={(value) => {
-                  const nextValue = value as DateFilter
-                  if (nextValue === "custom") {
-                    setDraftStartDate(appliedStartDate)
-                    setDraftEndDate(appliedEndDate)
-                    setCustomDateDialogOpen(true)
-                  } else {
-                    setDateFilter(nextValue)
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
-                  <div className="flex items-center gap-2">
-                    <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="latest">Latest</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="custom">Custom time period</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search contacts..."
+                className="pl-9 bg-background/50 border-border/50"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+              />
+              {/* Contact suggestions dropdown */}
+              {searchFocused && contactSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border/60 rounded-lg shadow-lg overflow-hidden z-50">
+                  <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30">Contacts</p>
+                  {contactSuggestions.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        const contact = contactMap.get(c.id)
+                        if (contact?.interactions[0]) setSelectedId(contact.interactions[0].id)
+                        setSearch("")
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-primary/10 transition-colors text-left"
+                    >
+                      <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-semibold">
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="truncate text-foreground">{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              className="pl-9 bg-background/50 border-border/50"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-            />
-            {/* Contact suggestions dropdown */}
-            {searchFocused && contactSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border/60 rounded-lg shadow-lg overflow-hidden z-50">
-                <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30">Contacts</p>
-                {contactSuggestions.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      const contact = contactMap.get(c.id)
-                      if (contact?.interactions[0]) setSelectedId(contact.interactions[0].id)
-                      setSearch("")
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-primary/10 transition-colors text-left"
-                  >
-                    <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-semibold">
-                      {c.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="truncate text-foreground">{c.name}</span>
-                  </button>
-                ))}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {filteredContacts.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No contacts found.
               </div>
+            ) : (
+              filteredContacts.map((contact) => {
+                const latest = contact.interactions[0]
+                const isSelected = selectedContactKey === contact.id
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => setSelectedId(latest.id)}
+                    className={cn(
+                      "w-full text-left p-3 border-b border-border/10 transition-all flex gap-3",
+                      isSelected
+                        ? "bg-primary/10 border-l-4 border-l-primary"
+                        : "border-l-4 border-l-transparent hover:bg-white/5"
+                    )}
+                  >
+                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
+                      {contact.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className={cn(
+                          "font-medium truncate text-sm",
+                          isSelected ? "text-primary" : "text-foreground"
+                        )}>
+                          {contact.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {latest.time}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {contact.interactions.length} interaction{contact.interactions.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {filteredContacts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">
-              No contacts found.
-            </div>
-          ) : (
-            filteredContacts.map((contact) => {
-              const latest = contact.interactions[0]
-              const isSelected = selectedContactKey === contact.id
-              return (
-                <button
-                  key={contact.id}
-                  onClick={() => setSelectedId(latest.id)}
-                  className={cn(
-                    "w-full text-left p-3 border-b border-border/10 transition-all flex gap-3",
-                    isSelected
-                      ? "bg-primary/10 border-l-4 border-l-primary"
-                      : "border-l-4 border-l-transparent hover:bg-white/5"
-                  )}
-                >
-                  <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
-                    {contact.name.charAt(0).toUpperCase()}
+
+        {/* ─── RIGHT PANEL: Customer Detail ──────────────────── */}
+        <div className={cn("flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0", !selectedActivity || !selectedId ? "hidden md:flex" : "flex")}>
+          {selectedContact ? (
+            <>
+              {/* Header: Name + Action buttons */}
+              <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => setSelectedId(null)} className="md:hidden h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
+                    {selectedContact.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline gap-2">
-                      <span className={cn(
-                        "font-medium truncate text-sm",
-                        isSelected ? "text-primary" : "text-foreground"
-                      )}>
-                        {contact.name}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {latest.time}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {contact.interactions.length} interaction{contact.interactions.length !== 1 ? "s" : ""}
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-foreground text-sm truncate">
+                      {selectedContact.name}
+                    </h2>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {selectedContact.phone || "No phone"} · {selectedContact.email || "No email"}
                     </p>
                   </div>
-                </button>
-              )
-            })
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Call button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2"
+                    title={selectedContact.phone ? `Call ${selectedContact.phone}` : "No phone number"}
+                    disabled={!selectedContact.phone}
+                    asChild={!!selectedContact.phone}
+                  >
+                    {selectedContact.phone ? (
+                      <a href={`tel:${selectedContact.phone}`}>
+                        <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                        <span className="text-xs">Call</span>
+                      </a>
+                    ) : (
+                      <>
+                        <Phone className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                        <span className="text-xs">Call</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Email button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2"
+                    title={selectedContact.email ? `Email ${selectedContact.email}` : "No email address"}
+                    disabled={!selectedContact.email}
+                    asChild={!!selectedContact.email}
+                  >
+                    {selectedContact.email ? (
+                      <a href={`mailto:${selectedContact.email}`}>
+                        <Mail className="h-3.5 w-3.5 mr-1 text-orange-500" />
+                        <span className="text-xs">Email</span>
+                      </a>
+                    ) : (
+                      <>
+                        <Mail className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                        <span className="text-xs">Email</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Text button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2"
+                    title={selectedContact.phone ? `Text ${selectedContact.phone}` : "No phone number"}
+                    disabled={!selectedContact.phone}
+                    asChild={!!selectedContact.phone}
+                  >
+                    {selectedContact.phone ? (
+                      <a href={`sms:${selectedContact.phone}`}>
+                        <MessageSquare className="h-3.5 w-3.5 mr-1 text-green-500" />
+                        <span className="text-xs">Text</span>
+                      </a>
+                    ) : (
+                      <>
+                        <MessageSquare className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                        <span className="text-xs">Text</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Open button */}
+                  {(selectedActivity?.dealId || selectedContact.id) && (
+                    <Button variant="outline" size="sm" asChild className="h-8 px-2">
+                      <Link href={selectedActivity?.dealId ? `/dashboard/deals/${selectedActivity.dealId}` : `/dashboard/contacts/${selectedContact.id}`}>
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        <span className="text-xs">Open</span>
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Conversations / System Activity toggle - inside RHS */}
+              <div className="px-4 pt-3 pb-2 border-b-2 border-border/40 mb-1">
+                <div className="flex bg-muted/30 rounded-lg p-0.5 max-w-xs">
+                  <button
+                    onClick={() => setDetailTab("conversations")}
+                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    Conversations
+                  </button>
+                  <button
+                    onClick={() => setDetailTab("activity")}
+                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    System Activity
+                  </button>
+                </div>
+              </div>
+
+              {/* Interactions list */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {detailInteractions.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    {detailTab === "conversations" ? "No conversations yet." : "No system activity."}
+                  </div>
+                ) : (
+                  detailInteractions.map((item) => {
+                    const outbound = isOutbound(item)
+                    const effectiveType = isSystemEvent(item) ? "system"
+                      : (item.title?.toLowerCase().includes("sms") ? "sms" : item.type)
+                    const { icon, containerClass, label } = channelIconAndStyle(effectiveType)
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex gap-3 items-start",
+                          outbound && "flex-row-reverse justify-end"
+                        )}
+                      >
+                        <div
+                          className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", containerClass)}
+                          title={label}
+                        >
+                          {icon}
+                        </div>
+                        <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs font-medium text-foreground">{item.title}</span>
+                            <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                          </div>
+                          {item.content && (
+                            <p
+                              className={cn(
+                                "text-sm mt-0.5 whitespace-pre-wrap",
+                                outbound ? "text-foreground bg-primary/10 rounded-lg rounded-br-sm px-2.5 py-1.5" : "text-muted-foreground"
+                              )}
+                            >
+                              {item.content}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* ─── Bottom: Ask Tracey / Direct Message ─────── */}
+              <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
+                {/* Mode toggle */}
+                <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
+                  <button
+                    onClick={() => setMessageMode("travis")}
+                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                      messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Bot className="h-3.5 w-3.5" /> Ask Tracey
+                  </button>
+                  <button
+                    onClick={() => setMessageMode("direct")}
+                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                      messageMode === "direct" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> Direct Message
+                  </button>
+                </div>
+
+                {/* Message input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={messageMode === "travis"
+                      ? `Tell Tracey what to do with ${selectedContact.name}...`
+                      : `Text ${selectedContact.name} directly...`
+                    }
+                    className="flex-1 bg-background/50 border-border/50"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSendMessage()
+                      }
+                    }}
+                    disabled={(messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-9 px-3"
+                    disabled={!messageText.trim() || sending || (messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
+                    onClick={handleSendMessage}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                {messageMode === "direct" && !selectedContact.phone && (
+                  <p className="text-[10px] text-red-400 mt-1">No phone number on file — add one to send direct messages.</p>
+                )}
+                {messageMode === "travis" && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Tracey will handle communication with this customer on your behalf.</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+              <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
+                <Search className="w-6 h-6 opacity-50" />
+              </div>
+              <p className="text-sm font-medium">Select a contact to view their details</p>
+            </div>
           )}
         </div>
       </div>
-
-      {/* ─── RIGHT PANEL: Customer Detail ──────────────────── */}
-      <div className={cn("flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0", !selectedActivity || !selectedId ? "hidden md:flex" : "flex")}>
-        {selectedContact ? (
-          <>
-            {/* Header: Name + Action buttons */}
-            <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-white/5">
-              <div className="flex items-center gap-3 min-w-0">
-                <button onClick={() => setSelectedId(null)} className="md:hidden h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
-                  {selectedContact.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="font-semibold text-foreground text-sm truncate">
-                    {selectedContact.name}
-                  </h2>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {selectedContact.phone || "No phone"} · {selectedContact.email || "No email"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Call button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  title={selectedContact.phone ? `Call ${selectedContact.phone}` : "No phone number"}
-                  disabled={!selectedContact.phone}
-                  asChild={!!selectedContact.phone}
-                >
-                  {selectedContact.phone ? (
-                    <a href={`tel:${selectedContact.phone}`}>
-                      <Phone className="h-3.5 w-3.5 mr-1 text-blue-500" />
-                      <span className="text-xs">Call</span>
-                    </a>
-                  ) : (
-                    <>
-                      <Phone className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Call</span>
-                    </>
-                  )}
-                </Button>
-
-                {/* Email button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  title={selectedContact.email ? `Email ${selectedContact.email}` : "No email address"}
-                  disabled={!selectedContact.email}
-                  asChild={!!selectedContact.email}
-                >
-                  {selectedContact.email ? (
-                    <a href={`mailto:${selectedContact.email}`}>
-                      <Mail className="h-3.5 w-3.5 mr-1 text-orange-500" />
-                      <span className="text-xs">Email</span>
-                    </a>
-                  ) : (
-                    <>
-                      <Mail className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Email</span>
-                    </>
-                  )}
-                </Button>
-
-                {/* Text button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  title={selectedContact.phone ? `Text ${selectedContact.phone}` : "No phone number"}
-                  disabled={!selectedContact.phone}
-                  asChild={!!selectedContact.phone}
-                >
-                  {selectedContact.phone ? (
-                    <a href={`sms:${selectedContact.phone}`}>
-                      <MessageSquare className="h-3.5 w-3.5 mr-1 text-green-500" />
-                      <span className="text-xs">Text</span>
-                    </a>
-                  ) : (
-                    <>
-                      <MessageSquare className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Text</span>
-                    </>
-                  )}
-                </Button>
-
-                {/* Open button */}
-                {(selectedActivity?.dealId || selectedContact.id) && (
-                  <Button variant="outline" size="sm" asChild className="h-8 px-2">
-                    <Link href={selectedActivity?.dealId ? `/dashboard/deals/${selectedActivity.dealId}` : `/dashboard/contacts/${selectedContact.id}`}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                      <span className="text-xs">Open</span>
-                    </Link>
-                  </Button>
-                )}
-              </div>
+      <Dialog open={customDateDialogOpen} onOpenChange={setCustomDateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Custom time period</DialogTitle>
+            <DialogDescription>
+              Filter inbox contacts by interaction dates, then apply the range.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Start date</label>
+              <Input type="date" value={draftStartDate} onChange={(e) => setDraftStartDate(e.target.value)} />
             </div>
-
-            {/* Conversations / System Activity toggle - inside RHS */}
-            <div className="px-4 pt-3 pb-2 border-b border-border/20">
-              <div className="flex bg-muted/30 rounded-lg p-0.5 max-w-xs">
-                <button
-                  onClick={() => setDetailTab("conversations")}
-                  className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                >
-                  Conversations
-                </button>
-                <button
-                  onClick={() => setDetailTab("activity")}
-                  className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                >
-                  System Activity
-                </button>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">End date</label>
+              <Input type="date" value={draftEndDate} onChange={(e) => setDraftEndDate(e.target.value)} />
             </div>
-
-            {/* Interactions list */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {detailInteractions.length === 0 ? (
-                <div className="text-center text-muted-foreground text-sm py-8">
-                  {detailTab === "conversations" ? "No conversations yet." : "No system activity."}
-                </div>
-              ) : (
-                detailInteractions.map((item) => {
-                  const outbound = isOutbound(item)
-                  const { icon, containerClass, label } = channelIconAndStyle(item.type)
-                  return (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "flex gap-3 items-start",
-                        outbound && "flex-row-reverse justify-end"
-                      )}
-                    >
-                      <div
-                        className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", containerClass)}
-                        title={label}
-                      >
-                        {icon}
-                      </div>
-                      <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-xs font-medium text-foreground">{item.title}</span>
-                          <span className="text-[10px] text-muted-foreground">{item.time}</span>
-                        </div>
-                        {item.content && (
-                          <p
-                            className={cn(
-                              "text-sm mt-0.5 whitespace-pre-wrap",
-                              outbound ? "text-foreground bg-primary/10 rounded-lg rounded-br-sm px-2.5 py-1.5" : "text-muted-foreground"
-                            )}
-                          >
-                            {item.content}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            {/* ─── Bottom: Ask Tracey / Direct Message ─────── */}
-            <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
-              {/* Mode toggle */}
-              <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
-                <button
-                  onClick={() => setMessageMode("travis")}
-                  className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                    messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Bot className="h-3.5 w-3.5" /> Ask Tracey
-                </button>
-                <button
-                  onClick={() => setMessageMode("direct")}
-                  className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                    messageMode === "direct" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <MessageSquare className="h-3.5 w-3.5" /> Direct Message
-                </button>
-              </div>
-
-              {/* Message input */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder={messageMode === "travis"
-                    ? `Tell Tracey what to do with ${selectedContact.name}...`
-                    : `Text ${selectedContact.name} directly...`
-                  }
-                  className="flex-1 bg-background/50 border-border/50"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                  disabled={(messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
-                />
-                <Button
-                  size="sm"
-                  className="h-9 px-3"
-                  disabled={!messageText.trim() || sending || (messageMode === "direct" && !selectedContact.phone) || (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID)}
-                  onClick={handleSendMessage}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              {messageMode === "direct" && !selectedContact.phone && (
-                <p className="text-[10px] text-red-400 mt-1">No phone number on file — add one to send direct messages.</p>
-              )}
-              {messageMode === "travis" && (
-                <p className="text-[10px] text-muted-foreground mt-1">Tracey will handle communication with this customer on your behalf.</p>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-            <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-              <Search className="w-6 h-6 opacity-50" />
-            </div>
-            <p className="text-sm font-medium">Select a contact to view their details</p>
           </div>
-        )}
-      </div>
-    </div>
-    <Dialog open={customDateDialogOpen} onOpenChange={setCustomDateDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Custom time period</DialogTitle>
-          <DialogDescription>
-            Filter inbox contacts by interaction dates, then apply the range.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Start date</label>
-            <Input type="date" value={draftStartDate} onChange={(e) => setDraftStartDate(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">End date</label>
-            <Input type="date" value={draftEndDate} onChange={(e) => setDraftEndDate(e.target.value)} />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setCustomDateDialogOpen(false)}>Cancel</Button>
-          <Button onClick={applyCustomDates}>Apply</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomDateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={applyCustomDates}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

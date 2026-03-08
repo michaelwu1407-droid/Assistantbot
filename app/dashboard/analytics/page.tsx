@@ -204,26 +204,43 @@ export default function AnalyticsPage() {
               <CardDescription>Monthly revenue over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {data.revenue.monthly.map((month, index) => {
-                  const maxRev = Math.max(...data.revenue.monthly.map(m => m.revenue))
-                  const pct = maxRev > 0 ? (month.revenue / maxRev) * 100 : 0
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <span className="text-sm text-slate-600 w-10 shrink-0">{month.month}</span>
-                      <div className="flex-1 bg-secondary rounded-full h-5 relative overflow-hidden">
-                        <div
-                          className="absolute left-0 top-0 h-full bg-primary rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-slate-900 w-20 text-right shrink-0">
-                        ${month.revenue.toLocaleString()}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+              {(() => {
+                const months = data.revenue.monthly;
+                const allZero = months.every(m => m.revenue === 0);
+                if (allZero) return <p className="text-center text-sm text-muted-foreground py-8">No revenue data yet</p>;
+                const W = 600, H = 200, PAD_TOP = 20, PAD_BOTTOM = 30, PAD_LEFT = 50, PAD_RIGHT = 20;
+                const maxRev = Math.max(...months.map(m => m.revenue));
+                const chartW = W - PAD_LEFT - PAD_RIGHT;
+                const chartH = H - PAD_TOP - PAD_BOTTOM;
+                const points = months.map((m, i) => {
+                  const x = PAD_LEFT + (months.length > 1 ? (i / (months.length - 1)) * chartW : chartW / 2);
+                  const y = PAD_TOP + chartH - (maxRev > 0 ? (m.revenue / maxRev) * chartH : 0);
+                  return { x, y, month: m.month, revenue: m.revenue };
+                });
+                const gridCount = 4;
+                const gridLines = Array.from({ length: gridCount }, (_, i) => {
+                  const val = (maxRev / (gridCount - 1)) * i;
+                  const y = PAD_TOP + chartH - (maxRev > 0 ? (val / maxRev) * chartH : 0);
+                  return { y, val };
+                });
+                return (
+                  <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-48">
+                    {gridLines.map((g, i) => (
+                      <g key={i}>
+                        <line x1={PAD_LEFT} y1={g.y} x2={W - PAD_RIGHT} y2={g.y} stroke="#e2e8f0" strokeWidth={1} />
+                        <text x={PAD_LEFT - 6} y={g.y + 4} textAnchor="end" className="fill-slate-400" fontSize={10}>${Math.round(g.val).toLocaleString()}</text>
+                      </g>
+                    ))}
+                    <polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#00D28B" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                    {points.map((p, i) => (
+                      <circle key={i} cx={p.x} cy={p.y} r={4} fill="#00D28B" stroke="white" strokeWidth={2} />
+                    ))}
+                    {points.map((p, i) => (
+                      <text key={`lbl-${i}`} x={p.x} y={H - 6} textAnchor="middle" className="fill-slate-500" fontSize={10}>{p.month}</text>
+                    ))}
+                  </svg>
+                );
+              })()}
             </CardContent>
           </Card>
         )}

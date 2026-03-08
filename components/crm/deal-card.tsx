@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, Flag, ArrowRight } from "lucide-react"
+import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, Flag, ArrowRight, FileEdit, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DealView } from "@/actions/deal-actions"
 import { format } from "date-fns"
@@ -72,7 +72,7 @@ export function DealCard({
 }: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  
+
   // Check if deal is overdue
   const overdueStyling = getOverdueStyling({
     stage: deal.stage as any,
@@ -104,7 +104,7 @@ export function DealCard({
   let cardClasses = "ott-card rounded-lg bg-white hover:shadow-md transition-shadow duration-150 cursor-pointer p-4 border border-neutral-200"
   let statusLabel = ""
   let statusClass = ""
-  
+
   // Add overdue styling
   if (overdueStyling.borderClass) {
     cardClasses += ` ${overdueStyling.borderClass}`
@@ -121,7 +121,7 @@ export function DealCard({
   }
 
   if (deal.isDraft) {
-    cardClasses = "ott-card rounded-lg bg-indigo-50/50 border-indigo-300 border-dashed p-4 dark:border-indigo-500/40"
+    cardClasses = "ott-card rounded-lg bg-indigo-50/60 border-2 border-dashed border-indigo-400 p-4 dark:bg-indigo-950/20 dark:border-indigo-500/60"
     statusLabel = "Draft"
     statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
   }
@@ -196,6 +196,26 @@ export function DealCard({
         role="button"
         tabIndex={0}
       >
+        {/* Draft banner */}
+        {deal.isDraft && (
+          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-indigo-100/80 border border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-700">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+            </span>
+            <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300"><FileEdit className="w-3 h-3 mr-0.5 inline" />Draft — Needs approval</span>
+          </div>
+        )}
+        {/* Pending approval banner */}
+        {deal.stage === "pending_approval" && (
+          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-100/80 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-700">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300"><Clock className="w-3 h-3 mr-0.5 inline" />Pending — Awaiting manager approval</span>
+          </div>
+        )}
         {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
         <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1 text-right" data-no-card-click={selectionMode ? true : undefined}>
           {!overlay && selectionMode && onToggleSelected && (
@@ -250,10 +270,10 @@ export function DealCard({
               {statusLabel}
             </span>
           ) : (
-            <span className="text-[10px] text-slate-500 dark:text-slate-400" title={deal.scheduledAt ? "Scheduled date" : "Date added"}>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400" title={deal.scheduledAt ? "Scheduled date" : "Not scheduled"}>
               {deal.scheduledAt
                 ? format(new Date(deal.scheduledAt), "MMM d")
-                : format(new Date(deal.createdAt), "MMM d")}
+                : <span className="text-slate-400 italic text-[10px]">Not scheduled</span>}
             </span>
           )}
         </div>
@@ -300,9 +320,18 @@ export function DealCard({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => onAssign(null)}>
-                      Unassign
-                    </DropdownMenuItem>
+                    {(() => {
+                      const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(columnId || "")
+                      return requiresAssignment ? (
+                        <DropdownMenuItem disabled className="text-slate-400 cursor-not-allowed">
+                          Cannot unassign (move to earlier stage first)
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => onAssign(null)}>
+                          Unassign
+                        </DropdownMenuItem>
+                      )
+                    })()}
                     {teamMembers.map((m) => (
                       <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
                         {m.name || m.email}
@@ -326,13 +355,11 @@ export function DealCard({
 
 
           {/* Lead Source badge */}
-          {deal.source && (
-            <div className="flex items-center gap-1">
-              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600">
-                {deal.source}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600">
+              {deal.source || "—"}
+            </span>
+          </div>
 
           {/* Agent Triage Flags — warnings from AI Bouncer/Advisor engine */}
           {deal.agentFlags && deal.agentFlags.length > 0 && (
@@ -350,42 +377,7 @@ export function DealCard({
             </div>
           )}
 
-          {/* Inline stage-move */}
-          {!overlay && columnId && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  data-no-card-click
-                  className="text-xs text-neutral-400 hover:text-primary flex items-center gap-1 mt-1 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ArrowRight size={12} />
-                  Move stage
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                {["new_request", "quote_sent", "scheduled", "ready_to_invoice", "completed"].filter(s => s !== columnId).map(stage => {
-                  const labels: Record<string, string> = { new_request: "New request", quote_sent: "Quote sent", scheduled: "Scheduled", ready_to_invoice: "Awaiting payment", completed: "Completed" }
-                  const variants: Record<string, "new" | "quote" | "scheduled" | "awaiting" | "complete"> = { new_request: "new", quote_sent: "quote", scheduled: "scheduled", ready_to_invoice: "awaiting", completed: "complete" }
-                  return (
-                    <DropdownMenuItem key={stage} onClick={async () => {
-                      const result = await updateDealStage(deal.id, stage)
-                      if (result.success) {
-                        toast.success(`Moved to ${labels[stage]}`)
-                        window.location.reload()
-                      } else {
-                        toast.error(result.error ?? "Failed to move")
-                      }
-                    }}>
-                      <Badge variant={variants[stage]} className="mr-2" />
-                      {labels[stage]}
-                    </DropdownMenuItem>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+
 
           {/* Bottom row: value LHS, scheduled time RHS */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-neutral-100">
@@ -408,7 +400,7 @@ export function DealCard({
                 {formatScheduledTime(deal.scheduledAt)}
               </div>
             ) : (
-              <div />
+              <span className="text-[10px] text-slate-400 italic">Not scheduled</span>
             )}
           </div>
         </div>
@@ -429,7 +421,7 @@ export function DealCard({
           <Trash2 className="w-4 h-4" />
         </button>
       )}
-      
+
       {/* Stale Job Reconciliation Modal */}
       {showReconciliationModal && (
         <StaleJobReconciliationModal

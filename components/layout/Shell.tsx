@@ -157,7 +157,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </div>
               <div className="flex items-center bg-neutral-100 dark:bg-slate-800/80 rounded-lg p-1 gap-1">
                 <button
-                  onClick={() => {}}
+                  onClick={() => { }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-white text-neutral-900 shadow-xs transition-all duration-150"
                 >
                   <MessageSquare size={14} />
@@ -226,8 +226,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               {/* Right Chatbot - Collapsed by default; when expanded, takes up more screen space */}
               <ResizablePanel
                 ref={chatbotPanelRef}
-                defaultSize={35}
-                minSize={35}
+                defaultSize={28}
+                minSize={28}
                 maxSize={65}
                 collapsible={true}
                 collapsedSize={0}
@@ -267,7 +267,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
                 <div
                   id="assistant-pane"
-                  className="h-[calc(100%-57px)] w-full min-w-[400px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
+                  className="h-[calc(100%-57px)] w-full min-w-[320px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
                   onClick={() => {
                     if (!chatbotExpanded) {
                       chatbotPanelRef.current?.expand()

@@ -875,9 +875,17 @@ export async function updateDealAssignedTo(
 ): Promise<{ success: boolean; error?: string }> {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
-    select: { workspaceId: true },
+    select: { workspaceId: true, stage: true },
   });
   if (!deal) return { success: false, error: "Deal not found" };
+
+  // Prevent unassignment for deals in Scheduled or later stages
+  if (!assignedToId) {
+    const STAGES_REQUIRING_ASSIGNMENT = ["SCHEDULED", "READY_TO_INVOICE", "WON", "PENDING_COMPLETION"]
+    if (STAGES_REQUIRING_ASSIGNMENT.includes(deal.stage)) {
+      return { success: false, error: "Cannot unassign a deal in the Scheduled stage or later. Move it to an earlier stage first." }
+    }
+  }
 
   if (assignedToId) {
     const member = await db.user.findFirst({

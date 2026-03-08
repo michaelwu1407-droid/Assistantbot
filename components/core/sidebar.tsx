@@ -89,7 +89,21 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                     <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" unoptimized />
                 </div>
 
-                {/* Mode toggle removed — "Ask Tracey" button at the bottom provides access */}
+                <div className="px-1.5 w-full mb-4">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => goToBasic()}
+                                className="flex h-10 w-full items-center justify-center rounded-lg bg-blue-100 text-blue-600 transition-colors duration-150 hover:bg-blue-200 hover:text-blue-700"
+                            >
+                                <MessageSquare size={20} strokeWidth={1.75} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="text-xs">
+                            Ask Tracey
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
 
                 <nav className="flex flex-1 flex-col gap-1.5 w-full px-1.5">
                     {navItems.map((item) => {
@@ -123,21 +137,6 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                 {/* Bottom Actions */}
                 <div className="mt-auto flex flex-col gap-1.5 px-1.5 w-full">
                     <div className="border-t border-neutral-200 my-2" />
-
-                    {/* Ask Tracey — visually distinct, non-green */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() => goToBasic()}
-                                className="flex h-10 w-full items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-colors duration-150 hover:bg-slate-200 hover:text-slate-800"
-                            >
-                                <MessageSquare size={20} strokeWidth={1.75} />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="text-xs">
-                            Ask Tracey
-                        </TooltipContent>
-                    </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
