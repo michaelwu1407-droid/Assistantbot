@@ -18,10 +18,10 @@ export function checkIfDealIsOverdue(deal: {
   actualOutcome: string | null;
 }): boolean {
   if (!deal.scheduledAt) return false;
-  
+
   const now = new Date();
   const scheduledDate = new Date(deal.scheduledAt);
-  
+
   return (
     deal.stage === 'SCHEDULED' &&
     scheduledDate < now &&
@@ -39,12 +39,12 @@ export function getOverdueDays(deal: {
   actualOutcome: string | null;
 }): number {
   if (!checkIfDealIsOverdue(deal)) return 0;
-  
+
   const now = new Date();
   const scheduledDate = new Date(deal.scheduledAt!);
   const diffTime = Math.abs(now.getTime() - scheduledDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   return diffDays;
 }
 
@@ -58,7 +58,7 @@ export function getOverdueStyling(deal: {
 }) {
   const isOverdue = checkIfDealIsOverdue(deal);
   const overdueDays = getOverdueDays(deal);
-  
+
   if (!isOverdue) {
     return {
       borderClass: '',
@@ -67,16 +67,21 @@ export function getOverdueStyling(deal: {
       severity: 'none' as const
     };
   }
-  
-  // Different styling based on how overdue
+
   if (overdueDays >= 7) {
     return {
-      borderClass: 'border-red-500',
+      borderClass: 'border-red-500 dark:border-red-800',
       badgeText: `Action Required: ${overdueDays} days overdue`,
-      badgeClass: 'bg-red-500 text-white',
+      badgeClass: 'bg-red-500 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
       severity: 'critical' as const
     };
   } else if (overdueDays >= 3) {
+    return {
+      borderClass: 'border-orange-500 dark:border-orange-800',
+      badgeText: `Past Date: ${overdueDays} days ago`,
+      badgeClass: 'bg-orange-500 text-white dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800 border',
+      severity: 'warning' as const
+    };
     return {
       borderClass: 'border-orange-500',
       badgeText: `Past Date: ${overdueDays} days ago`,
@@ -85,9 +90,9 @@ export function getOverdueStyling(deal: {
     };
   } else {
     return {
-      borderClass: 'border-amber-500',
+      borderClass: 'border-amber-500 dark:border-amber-800',
       badgeText: 'Past Date',
-      badgeClass: 'bg-amber-500 text-white',
+      badgeClass: 'bg-amber-500 text-white dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 border',
       severity: 'mild' as const
     };
   }
@@ -102,5 +107,16 @@ export const ACTUAL_OUTCOME_OPTIONS = [
   { value: 'NO_SHOW', label: 'No Show' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ] as const;
+
+export const STAGE_OPTIONS = [
+  { value: "new_request", label: "New request" },
+  { value: "quote_sent", label: "Quote sent" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "pipeline", label: "Pipeline" },
+  { value: "ready_to_invoice", label: "Ready to invoice" },
+  { value: "completed", label: "Completed" },
+  { value: "lost", label: "Lost" },
+  { value: "deleted", label: "Deleted jobs" },
+];
 
 export type ActualOutcome = typeof ACTUAL_OUTCOME_OPTIONS[number]['value'];

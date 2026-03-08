@@ -291,3 +291,51 @@ export async function removeMember(memberId: string): Promise<{ success: boolean
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+/**
+ * Update a team member's role (OWNER/MANAGER only).
+ * Owners can change any member's role (except other owners).
+ * Managers can only change TEAM_MEMBER roles.
+ */
+export async function updateMemberRole(
+  memberId: string,
+  newRole: "MANAGER" | "TEAM_MEMBER"
+): Promise<{ success: boolean; error?: string }> {
+  const authUser = await getAuthUser();
+  if (!authUser?.email) return { success: false, error: "Unauthorized" };
+
+  const actor = await db.user.findFirst({
+    where: { email: authUser.email },
+    select: { id: true, workspaceId: true, role: true },
+  });
+  if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER")) {
+    return { success: false, error: "Only owners and managers can change roles" };
+  }
+
+  if (actor.id === memberId) {
+    return { success: false, error: "You cannot change your own role" };
+  }
+
+  const target = await db.user.findUnique({
+    where: { id: memberId },
+    select: { id: true, workspaceId: true, role: true },
+  });
+  if (!target) return { success: false, error: "User not found" };
+  if (target.workspaceId !== actor.workspaceId) {
+    return { success: false, error: "User is not in this workspace" };
+  }
+  if (target.role === "OWNER") {
+    return { success: false, error: "Cannot change the owner's role" };
+  }
+  if (actor.role === "MANAGER" && target.role !== "TEAM_MEMBER") {
+    return { success: false, error: "Managers can only change team member roles" };
+  }
+
+  await db.user.update({
+    where: { id: memberId },
+    data: { role: newRole as UserRole },
+  });
+
+  revalidatePath("/dashboard/team");
+  return { success: true };
+}

@@ -22,8 +22,19 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2, CheckCircle, Mail } from "lucide-react"
-import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, removeMember } from "@/actions/invite-actions"
+import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, removeMember, updateMemberRole } from "@/actions/invite-actions"
 import { toast } from "sonner"
 
 interface TeamMember {
@@ -69,7 +80,7 @@ export default function TeamPage() {
     const handleCreateInvite = async () => {
         setCreating(true)
         setInviteError("")
-        
+
         // Validate email is provided for "Send Invitation"
         if (!inviteEmail.trim()) {
             setInviteError("Email is required to send an invitation")
@@ -81,14 +92,14 @@ export default function TeamPage() {
             role: inviteRole,
             email: inviteEmail,
         })
-        
+
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
             setSentEmail(inviteEmail)
             setInviteSuccess(true)
             toast.success(`Invite sent to ${inviteEmail}!`)
-            
+
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
         } else {
@@ -101,18 +112,18 @@ export default function TeamPage() {
     const handleGenerateLink = async () => {
         setCreating(true)
         setInviteError("")
-        
+
         const result = await createInvite({
             role: inviteRole,
             email: inviteEmail || undefined,
         })
-        
+
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
             setInviteSuccess(true)
             toast.success("Invite link created!")
-            
+
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
         } else {
@@ -124,7 +135,7 @@ export default function TeamPage() {
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(generatedLink)
-        toast.success("Link copied to clipboard!")
+        toast.success("Copied")
     }
 
     const handleRevoke = async (inviteId: string) => {
@@ -137,14 +148,23 @@ export default function TeamPage() {
         }
     }
 
-    const handleRemoveMember = async (memberId: string, memberName: string) => {
-        if (!confirm(`Remove ${memberName || memberId} from the team? They will lose access to this workspace.`)) return
+    const handleRemoveMember = async (memberId: string) => {
         const result = await removeMember(memberId)
         if (result.success) {
             setMembers((prev) => prev.filter((m) => m.id !== memberId))
             toast.success("Member removed")
         } else {
             toast.error(result.error || "Failed to remove member")
+        }
+    }
+
+    const handleRoleUpdate = async (memberId: string, newRole: "MANAGER" | "TEAM_MEMBER") => {
+        const result = await updateMemberRole(memberId, newRole)
+        if (result.success) {
+            setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m))
+            toast.success("Role updated")
+        } else {
+            toast.error(result.error || "Failed to update role")
         }
     }
 
@@ -244,12 +264,12 @@ export default function TeamPage() {
                                     <p className="text-sm text-red-600">{inviteError}</p>
                                 </div>
                             )}
-                            
+
                             {!inviteSuccess ? (
                                 <div className="space-y-3">
-                                    <Button 
-                                        onClick={handleCreateInvite} 
-                                        className="w-full" 
+                                    <Button
+                                        onClick={handleCreateInvite}
+                                        className="w-full"
                                         disabled={creating || !inviteEmail.trim()}
                                     >
                                         {creating ? (
@@ -258,10 +278,10 @@ export default function TeamPage() {
                                             <><Mail className="h-4 w-4 mr-2" /> Send Invitation</>
                                         )}
                                     </Button>
-                                    <Button 
-                                        onClick={handleGenerateLink} 
-                                        variant="outline" 
-                                        className="w-full" 
+                                    <Button
+                                        onClick={handleGenerateLink}
+                                        variant="outline"
+                                        className="w-full"
                                         disabled={creating}
                                     >
                                         {creating ? (
@@ -288,14 +308,14 @@ export default function TeamPage() {
                                             Anyone who opens this link will join as <strong>{inviteRole === "MANAGER" ? "Manager" : "Team Member"}</strong>. Copy and send it (e.g. by message or email).
                                         </p>
                                         <div className="flex gap-2">
-                                            <Input 
-                                                value={generatedLink} 
-                                                readOnly 
-                                                className="font-mono text-xs" 
+                                            <Input
+                                                value={generatedLink}
+                                                readOnly
+                                                className="font-mono text-xs"
                                             />
-                                            <Button 
-                                                variant="outline" 
-                                                size="icon" 
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
                                                 onClick={handleCopyLink}
                                                 title="Copy link"
                                             >
@@ -341,20 +361,56 @@ export default function TeamPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
-                                        {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
-                                        {getRoleLabel(member.role)}
-                                    </Badge>
-                                    {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleRemoveMember(member.id, member.name || member.email)}
-                                            title="Remove from team"
+                                    {(member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
+                                        <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
+                                            {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
+                                            {getRoleLabel(member.role)}
+                                        </Badge>
+                                    ) : (
+                                        <Select
+                                            value={member.role}
+                                            onValueChange={(val) => handleRoleUpdate(member.id, val as "MANAGER" | "TEAM_MEMBER")}
                                         >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                            <SelectTrigger className="h-7 w-[130px] text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+                                                <SelectItem value="MANAGER">Manager</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+
+                                    {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                    title="Remove from team"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Remove {member.name || member.email}?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        They will lose access to this workspace. This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <div className="flex justify-end gap-2 mt-4">
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => handleRemoveMember(member.id)}
+                                                        className="bg-red-600 hover:bg-red-700"
+                                                    >
+                                                        Remove
+                                                    </AlertDialogAction>
+                                                </div>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     )}
                                 </div>
                             </div>
@@ -385,7 +441,7 @@ export default function TeamPage() {
                                                 {invite.email || "Open invite link"}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                                                Expires {new Date(invite.expiresAt).toLocaleDateString("en-AU")}
                                             </p>
                                         </div>
                                     </div>

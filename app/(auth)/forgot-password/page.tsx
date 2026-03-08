@@ -31,8 +31,11 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-      <Card className="w-full max-w-md mx-4">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4 relative">
+      <div className="absolute inset-0 ott-glow -z-10" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] -z-10 rounded-full bg-primary/8 blur-3xl" />
+
+      <Card className="w-full max-w-md mx-4 ott-card bg-card relative z-10">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <CardDescription>

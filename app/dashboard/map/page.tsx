@@ -68,7 +68,14 @@ export default async function DashboardMapPage() {
                 <div className="text-center">
                     <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Map</h2>
                     <p className="text-slate-600">{(error as Error).message}</p>
-                    <p className="text-sm text-slate-500 mt-4">Please try refreshing the page</p>
+                    <div className="mt-6">
+                        <a
+                            href="/dashboard/map"
+                            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        >
+                            Retry Loading Map
+                        </a>
+                    </div>
                 </div>
             </div>
         )

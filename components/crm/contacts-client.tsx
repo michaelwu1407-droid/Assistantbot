@@ -11,6 +11,8 @@ import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { deleteContacts } from "@/actions/contact-actions"
+import { useRouter } from "next/navigation"
 
 interface ContactsClientProps {
   contacts: ContactView[]
@@ -61,6 +63,7 @@ function formatLastInteracted(date: Date | null): string {
 }
 
 export function ContactsClient({ contacts }: ContactsClientProps) {
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((s) => s.id)), [])
   const [selectedStageIds, setSelectedStageIds] = useState<Set<string>>(new Set(allStageIds))
@@ -129,21 +132,50 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
     else setSelected(new Set(filtered.map((c) => c.id)))
   }
 
-  const handleBulkSMS = async () => {
-    if (!bulkMessage.trim() || selected.size === 0) return
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selected.size} contacts? This cannot be undone.`)) return
+
     setSending(true)
     try {
-      const result = await sendBulkSMS(Array.from(selected), bulkMessage)
-      toast.success(`Sent ${result.sent} SMS. ${result.failed} failed.`)
-      if (result.errors.length > 0) toast.error(result.errors.slice(0, 3).join(", "))
-      setShowBulkModal(false)
-      setBulkMessage("")
+      await deleteContacts(Array.from(selected))
+      toast.success(`Deleted ${selected.size} contacts`)
       setSelected(new Set())
+      router.refresh()
     } catch {
-      toast.error("Failed to send bulk SMS")
+      toast.error("Failed to delete contacts")
     } finally {
       setSending(false)
     }
+  }
+
+  const handleExport = () => {
+    const selectedContacts = filtered.filter(c => selected.has(c.id))
+    const headers = ["Name", "Email", "Phone", "Company", "Address", "Deals", "Balance", "Tags"]
+    const csvContent = [
+      headers.join(","),
+      ...selectedContacts.map(c => {
+        const tags = Array.isArray(c.metadata?.tags) ? c.metadata.tags.join(";") : ""
+        return [
+          `"${c.name.replace(/"/g, '""')}"`,
+          `"${(c.email || "").replace(/"/g, '""')}"`,
+          `"${(c.phone || "").replace(/"/g, '""')}"`,
+          `"${(c.company || "").replace(/"/g, '""')}"`,
+          `"${(c.address || "").replace(/"/g, '""')}"`,
+          c.dealCount,
+          `"${c.balanceLabel.replace(/"/g, '""')}"`,
+          `"${tags.replace(/"/g, '""')}"`
+        ].join(",")
+      })
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", `contacts_export_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -152,13 +184,15 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Contacts</h1>
         {selected.size > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selected.size} selected</span>
-            <Button size="sm" className="gap-1.5" onClick={() => setShowBulkModal(true)}>
-              <Send className="w-3.5 h-3.5" />
-              Send SMS
+            <span className="text-sm text-muted-foreground mr-1">{selected.size} selected</span>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
+              Export CSV
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-              <X className="w-3.5 h-3.5" />
+            <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={handleDelete} disabled={sending}>
+              Delete
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setSelected(new Set())}>
+              <X className="w-4 h-4" />
             </Button>
           </div>
         )}
@@ -338,6 +372,15 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
                           {contact.company}
                         </span>
                       )}
+                      {contact.metadata?.tags && Array.isArray(contact.metadata.tags) && contact.metadata.tags.length > 0 && (
+                        <div className="flex gap-1 mt-1.5 flex-wrap">
+                          {contact.metadata.tags.map(tag => (
+                            <span key={String(tag)} className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[9px] uppercase tracking-wider font-semibold text-primary">
+                              {String(tag)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">
                       {formatLastInteracted(contact.lastActivityDate)}
@@ -404,36 +447,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
         </div>
       </div>
 
-      {showBulkModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="rounded-xl border bg-card shadow-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Send bulk SMS</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowBulkModal(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Sending to <strong>{selected.size}</strong> contact{selected.size !== 1 ? "s" : ""}. Use {"{{contactName}}"} for personalization.
-            </p>
-            <textarea
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Hi {{contactName}}, just checking in..."
-              value={bulkMessage}
-              onChange={(e) => setBulkMessage(e.target.value)}
-            />
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowBulkModal(false)}>
-                Cancel
-              </Button>
-              <Button disabled={!bulkMessage.trim() || sending} onClick={handleBulkSMS}>
-                <Send className="w-3.5 h-3.5 mr-1.5" />
-                {sending ? "Sending…" : `Send to ${selected.size}`}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

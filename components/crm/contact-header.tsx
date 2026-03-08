@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { ContactView } from "@/actions/contact-actions"
 import { sendSMS } from "@/actions/messaging-actions"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 interface ContactHeaderProps {
   contact: ContactView
@@ -121,6 +122,11 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
                 onChange={(e) => setSmsMessage(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
               />
+              <div className="flex justify-end mt-1 px-1">
+                <span className={cn("text-[10px]", smsMessage.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                  {smsMessage.length}/160
+                </span>
+              </div>
               <Button
                 size="sm"
                 className="w-full mt-1.5 h-7 text-xs"

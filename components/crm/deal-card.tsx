@@ -28,6 +28,7 @@ interface TeamMemberOption {
   role: string
 }
 
+
 interface DealCardProps {
   deal: DealView
   overlay?: boolean
@@ -101,7 +102,8 @@ export function DealCard({
     animation: !overlay && selectionMode ? "kanban-card-wiggle 1.1s ease-in-out infinite" : undefined,
   }
 
-  let cardClasses = "ott-card rounded-lg bg-white hover:shadow-md transition-shadow duration-150 cursor-pointer p-4 border border-neutral-200"
+  // Add an explicitly handled class toggle for simple interaction scaling
+  let cardClasses = "group relative w-full bg-white rounded-xl border border-neutral-200 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer select-none"
   let statusLabel = ""
   let statusClass = ""
 
@@ -142,6 +144,8 @@ export function DealCard({
   }
 
   const showHealthBadge = statusLabel !== "" || overdueStyling.badgeText !== ""
+
+  const isUnread = (deal as any).hasUnreadMessages || (deal.metadata && (deal.metadata as any).unread === true);
 
   if (overlay) {
     cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-[#00D28B]/20"
@@ -294,9 +298,10 @@ export function DealCard({
           )}
 
           {/* Job (title) */}
-          <div className="flex items-center gap-1.5 text-[#0F172A] font-medium text-xs">
+          <div className="flex items-center gap-1.5 text-[#0F172A] font-medium text-xs relative">
             <Briefcase className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
-            <span className="truncate">{deal.title}</span>
+            <span className="truncate pr-3">{deal.title}</span>
+            {isUnread && <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" title="Unread messages" />}
           </div>
 
           {/* Assignee: clickable name opens assignment dropdown */}
@@ -429,8 +434,8 @@ export function DealCard({
           onClose={() => setShowReconciliationModal(false)}
           onSuccess={() => {
             setShowReconciliationModal(false)
-            // Trigger a refresh of the deals data
-            window.location.reload()
+            // Trigger a refresh of the deals data internally
+            router.refresh()
           }}
         />
       )}

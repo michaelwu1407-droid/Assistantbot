@@ -43,7 +43,7 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
     return (
         <div className="h-full flex flex-col overflow-hidden relative bg-background">
             {/* ATMOSPHERIC GLOW - MINT RADIAL */}
-            <div className="absolute top-0 left-0 right-0 h-[500px] ott-glow pointer-events-none z-0" />
+            <div className="absolute top-0 left-0 right-0 h-[500px] ott-glow pointer-events-none z-0 opacity-40 dark:opacity-20" />
 
             <div className="relative z-10 flex flex-col h-full p-2 md:p-3 md:pt-2 gap-1.5">
                 <Header
@@ -65,7 +65,7 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                 <div className="flex flex-col flex-1 min-h-0 gap-0">
 
                     {/* Top row: pill-shaped cards, distinct background */}
-                    <div className="shrink-0 flex flex-col sm:flex-row w-full gap-2 sm:gap-3 min-h-[52px] sm:min-h-[60px] px-1 pt-0.5 pb-1.5 sm:pb-2 bg-slate-100/70 dark:bg-slate-800/40 overflow-x-auto">
+                    <div className="shrink-0 flex flex-col sm:flex-row w-full gap-2 sm:gap-3 min-h-[52px] sm:min-h-[60px] px-1 pt-0.5 sm:pb-2 bg-slate-100/70 dark:bg-slate-800/40 overflow-x-auto mb-8 border-b border-border/40 pb-8">
                         <DashboardKpiCards deals={deals} />
                     </div>
 

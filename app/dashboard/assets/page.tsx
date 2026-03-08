@@ -12,14 +12,14 @@ import { Key, Plus, Search, User, MapPin, Calendar, AlertTriangle, CheckCircle }
 import { toast } from "sonner"
 
 interface KeyAsset {
-  id: string
-  code: string
-  description: string
-  status: "AVAILABLE" | "CHECKED_OUT" | "LOST"
-  holder?: string
-  holderName?: string
-  checkedOutAt?: string
-  location?: string
+    id: string
+    code: string
+    description: string
+    status: "AVAILABLE" | "CHECKED_OUT" | "LOST"
+    holder?: string
+    holderName?: string
+    checkedOutAt?: string
+    location?: string
 }
 
 export default function AssetHandoverPage() {
@@ -32,7 +32,7 @@ export default function AssetHandoverPage() {
             location: "Office"
         },
         {
-            id: "2", 
+            id: "2",
             code: "K-102",
             description: "Garage remote - 123 Main St",
             status: "CHECKED_OUT",
@@ -43,7 +43,7 @@ export default function AssetHandoverPage() {
         },
         {
             id: "3",
-            code: "K-103", 
+            code: "K-103",
             description: "Mailbox key - 456 Oak Ave",
             status: "LOST",
             location: "Unknown"
@@ -57,7 +57,7 @@ export default function AssetHandoverPage() {
 
     const filteredKeys = keys.filter(key => {
         const matchesSearch = key.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           key.description.toLowerCase().includes(searchQuery.toLowerCase())
+            key.description.toLowerCase().includes(searchQuery.toLowerCase())
         const matchesStatus = statusFilter === "all" || key.status === statusFilter
         return matchesSearch && matchesStatus
     })
@@ -86,8 +86,8 @@ export default function AssetHandoverPage() {
     }
 
     const handleCheckin = (keyId: string) => {
-        setKeys(prev => prev.map(key => 
-            key.id === keyId 
+        setKeys(prev => prev.map(key =>
+            key.id === keyId
                 ? { ...key, status: "AVAILABLE", holder: undefined, holderName: undefined, checkedOutAt: undefined, location: "Office" }
                 : key
         ))
@@ -269,7 +269,7 @@ export default function AssetHandoverPage() {
                                             {key.checkedOutAt ? (
                                                 <div className="flex items-center gap-1">
                                                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    {new Date(key.checkedOutAt).toLocaleDateString()}
+                                                    {new Date(key.checkedOutAt).toLocaleDateString("en-AU")}
                                                 </div>
                                             ) : "-"}
                                         </div>
@@ -297,8 +297,8 @@ export default function AssetHandoverPage() {
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => {
-                                                            setKeys(prev => prev.map(k => 
-                                                                k.id === key.id 
+                                                            setKeys(prev => prev.map(k =>
+                                                                k.id === key.id
                                                                     ? { ...k, status: "AVAILABLE", location: "Office" }
                                                                     : k
                                                             ))
@@ -361,11 +361,11 @@ export default function AssetHandoverPage() {
                         </Button>
                         <Button onClick={() => {
                             if (selectedKey) {
-                                setKeys(prev => prev.map(key => 
-                                    key.id === selectedKey.id 
-                                        ? { 
-                                            ...key, 
-                                            status: "CHECKED_OUT", 
+                                setKeys(prev => prev.map(key =>
+                                    key.id === selectedKey.id
+                                        ? {
+                                            ...key,
+                                            status: "CHECKED_OUT",
                                             holderName: "John Smith",
                                             holder: "contact-1",
                                             checkedOutAt: new Date().toISOString(),

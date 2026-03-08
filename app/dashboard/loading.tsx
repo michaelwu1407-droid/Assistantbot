@@ -1,67 +1,47 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardLoading() {
-    return (
-        <div className="h-full flex flex-col space-y-6 p-8">
-            {/* Header Skeleton */}
-            <div className="flex items-center justify-between shrink-0 pb-2">
-                <div className="space-y-2">
-                    <Skeleton className="h-10 w-64" /> {/* Greeting */}
-                    <Skeleton className="h-5 w-48" /> {/* Subtitle */}
-                </div>
-                <div className="flex gap-2">
-                    <Skeleton className="h-10 w-10 rounded-full" /> {/* Notifications */}
-                    <Skeleton className="h-10 w-32" /> {/* New Deal Button */}
-                </div>
+    <div className="h-full flex flex-col overflow-hidden relative p-2 md:p-3 md:pt-2 gap-1.5">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between shrink-0 h-14 pb-2">
+            <div className="space-y-2">
+                <Skeleton className="h-6 w-48" /> {/* Greeting */}
+                <Skeleton className="h-4 w-32" /> {/* Subtitle */}
             </div>
+            <div className="flex gap-2">
+                <Skeleton className="h-9 w-9 rounded-full" /> {/* Activity */}
+                <Skeleton className="h-9 w-[120px] rounded-full" /> {/* New lead */}
+            </div>
+        </div>
 
-            {/* Top Row: Health Widget & Activity */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[400px] shrink-0">
-                {/* Health Widget Skeleton */}
-                <div className="xl:col-span-2 h-full grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-8 w-16" />
-                            </div>
-                            <Skeleton className="h-3 w-32" />
-                        </div>
-                    ))}
-                </div>
+        {/* Setup Widget Skeleton */}
+        <Skeleton className="h-16 w-full rounded-xl mb-6 shadow-sm border border-emerald-200" />
 
-                {/* Activity Feed Skeleton */}
-                <div className="h-full rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <Skeleton className="h-6 w-32 mb-6" />
-                    <div className="space-y-6">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex gap-4">
-                                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-3 w-1/2" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+        <div className="flex flex-col flex-1 min-h-0 gap-0">
+            {/* Top row: KPI Cards Skeleton */}
+            <div className="shrink-0 flex gap-3 h-[60px] mb-8 pb-8 border-b border-border/40">
+                {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="flex-1 rounded-xl h-full shadow-sm bg-muted/60" />
+                ))}
             </div>
 
             {/* Kanban Board Skeleton */}
-            <div className="flex-1 w-full overflow-hidden min-h-0 flex gap-6">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="w-80 flex-shrink-0 flex flex-col h-full">
-                        <div className="flex items-center justify-between px-2 pb-4">
-                            <Skeleton className="h-5 w-24" />
-                            <Skeleton className="h-5 w-8" />
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1 rounded-t-xl bg-slate-200/40">
+                <div className="h-full w-full bg-white/95 rounded-xl border border-slate-200/70 shadow-sm p-4 flex gap-6 overflow-x-hidden">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="w-72 flex-shrink-0 flex flex-col h-full border-l-4 border-slate-200 ml-2 pl-2">
+                            <div className="flex items-center justify-between mb-4 mt-2">
+                                <Skeleton className="h-5 w-24" />
+                                <Skeleton className="h-5 w-8 rounded-full" />
+                            </div>
+                            <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-3">
+                                <Skeleton className="h-32 w-full rounded-xl bg-white shadow-sm" />
+                                <Skeleton className="h-24 w-full rounded-xl bg-white shadow-sm" />
+                            </div>
                         </div>
-                        <div className="flex-1 bg-slate-50/50 rounded-xl border border-slate-200/60 p-2 space-y-3">
-                            <Skeleton className="h-32 w-full rounded-xl" />
-                            <Skeleton className="h-24 w-full rounded-xl" />
-                        </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
-    )
+    </div>
 }

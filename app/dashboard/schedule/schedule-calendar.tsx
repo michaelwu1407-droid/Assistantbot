@@ -42,6 +42,20 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     publishCrmSelection(selection)
   }, [selectedDealId, deals])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowRight") {
+        nav(1)
+      } else if (e.key === "ArrowLeft") {
+        nav(-1)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, current])
+
   const dealsByDay = filteredDeals
     .filter((d) => d.scheduledAt)
     .reduce<Record<string, DealView[]>>((acc, deal) => {
@@ -112,9 +126,9 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       draggable
       onDragStart={(e) => handleDragStart(e, deal.id)}
       onClick={() => setSelectedDealId(deal.id)}
-      className="w-full text-left px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-medium truncate border border-primary/20 cursor-grab active:cursor-grabbing"
+      className="w-full text-left px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium truncate border border-primary/20 cursor-grab active:cursor-grabbing"
     >
-      {deal.scheduledAt && <span className="text-[9px] text-primary/60 mr-1">{format(new Date(deal.scheduledAt), "h:mm a")}</span>}
+      {deal.scheduledAt && <span className="text-xs text-primary/60 mr-1">{format(new Date(deal.scheduledAt), "h:mm a")}</span>}
       {deal.title}
     </div>
   )
@@ -153,12 +167,12 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 onClick={() => { setCurrent(day); setView("day") }}
               >
                 <span className={cn(
-                  "font-medium w-6 h-6 flex items-center justify-center rounded-full text-[11px]",
+                  "font-medium w-6 h-6 flex items-center justify-center rounded-full text-sm",
                   isToday ? "bg-primary text-white shadow-sm" : "text-slate-600"
                 )}>
                   {format(day, "d")}
                 </span>
-                {dayDeals.length > 0 && <span className="text-[9px] text-slate-400 font-bold">{dayDeals.length}</span>}
+                {dayDeals.length > 0 && <span className="text-xs text-slate-400 font-bold">{dayDeals.length}</span>}
               </div>
               <div className="space-y-1">{dayDeals.map(renderDealChip)}</div>
             </div>
@@ -289,7 +303,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 key={`day-hour-${hour}`}
                 className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50/95 px-2 py-3 text-center backdrop-blur"
               >
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
                   {hour < 12 ? "AM" : "PM"}
                 </p>
                 <p className="text-sm font-bold text-slate-700">
@@ -302,7 +316,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
               <div key={member.id} className="contents">
                 <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-white px-4">
                   <p className="text-sm font-bold text-slate-900 truncate">{member.name}</p>
-                  <p className="text-[10px] text-slate-500 uppercase font-medium">{member.role.replace('_', ' ')}</p>
+                  <p className="text-xs text-slate-500 uppercase font-medium">{member.role.replace('_', ' ')}</p>
                 </div>
                 {DAY_HOURS.map((hour) => renderHourCell(member.id, hour))}
               </div>
@@ -318,12 +332,63 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     )
   }
 
+  // ─── Mobile List View ─────────────────────
+  const renderMobileList = () => {
+    // Sort all deals that have a scheduledAt date
+    const sortedDeals = filteredDeals
+      .filter(d => d.scheduledAt)
+      .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
+
+    if (sortedDeals.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+          <p className="text-sm font-medium">No jobs scheduled.</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col gap-2 p-3">
+        {sortedDeals.map(deal => (
+          <div
+            key={deal.id}
+            onClick={() => setSelectedDealId(deal.id)}
+            className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm active:bg-slate-50 relative cursor-pointer"
+          >
+            <div className="flex justify-between items-start mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                  {format(new Date(deal.scheduledAt!), "MMM d")}
+                </span>
+                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {format(new Date(deal.scheduledAt!), "h:mm a")}
+                </span>
+              </div>
+              {deal.assignedToId && (
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  {teamMembers.find(m => m.id === deal.assignedToId)?.name || 'Assigned'}
+                </span>
+              )}
+            </div>
+            <p className="font-semibold text-slate-800 text-sm mt-1">{deal.title}</p>
+            <p className="text-xs text-slate-500 truncate mt-0.5">
+              {deal.address || deal.contactName || "No location details"}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col bg-white rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/50 shrink-0">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
             <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-white shadow-sm font-medium">
+            Today
           </Button>
           <h2 className="text-sm font-bold text-slate-900 min-w-[150px] text-center">{headerLabel()}</h2>
           <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
@@ -364,10 +429,13 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="flex-1 overflow-hidden min-h-0 hidden md:flex flex-col">
         {view === "month" && renderMonth()}
         {view === "week" && renderWeek()}
         {view === "day" && renderDay()}
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 md:hidden bg-slate-50/50">
+        {renderMobileList()}
       </div>
 
       <DealDetailModal

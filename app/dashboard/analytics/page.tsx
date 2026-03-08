@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
                 <p className="text-xs font-medium text-neutral-500">Revenue</p>
                 <DollarSign className="h-5 w-5 text-muted-foreground/40" />
               </div>
-              <p className="text-3xl font-bold text-neutral-900">${data.revenue.total.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-neutral-900">${data.revenue.total.toLocaleString("en-AU")}</p>
               <div className="flex items-center gap-1 mt-2">
                 {data.revenue.growth > 0 ? (
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
@@ -228,7 +228,7 @@ export default function AnalyticsPage() {
                     {gridLines.map((g, i) => (
                       <g key={i}>
                         <line x1={PAD_LEFT} y1={g.y} x2={W - PAD_RIGHT} y2={g.y} stroke="#e2e8f0" strokeWidth={1} />
-                        <text x={PAD_LEFT - 6} y={g.y + 4} textAnchor="end" className="fill-slate-400" fontSize={10}>${Math.round(g.val).toLocaleString()}</text>
+                        <text x={PAD_LEFT - 6} y={g.y + 4} textAnchor="end" className="fill-slate-400" fontSize={10}>${Math.round(g.val).toLocaleString("en-AU")}</text>
                       </g>
                     ))}
                     <polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#00D28B" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
                       <p className="text-sm text-muted-foreground">{member.jobs} jobs completed</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-primary">${member.revenue.toLocaleString()}</p>
+                      <p className="font-medium text-primary">${member.revenue.toLocaleString("en-AU")}</p>
                       <p className="text-xs text-muted-foreground">revenue</p>
                     </div>
                   </div>

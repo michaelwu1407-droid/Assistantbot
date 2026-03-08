@@ -30,7 +30,11 @@ export default async function BillingSettingsPage() {
                 <div className="flex flex-col">
                     <span className="text-sm font-semibold text-slate-500">Current Plan</span>
                     <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                        Earlymark Pro
+                        {workspace.stripePriceId === process.env.STRIPE_PRO_PRICE_ID
+                            ? "Earlymark Pro"
+                            : workspace.stripePriceId
+                                ? "Premium Plan"
+                                : "Free / Trial"}
                     </span>
                 </div>
 

@@ -99,7 +99,7 @@ export function DealEditForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-4 border border-slate-200 rounded-xl bg-white shadow-sm">
       <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+        <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
         <Input
           id="title"
           value={title}
@@ -158,7 +158,7 @@ export function DealEditForm({
       </div>
       {teamMembers.length > 0 && (
         <div className="space-y-2">
-          <Label htmlFor="assignedTo">Assigned to {stage === "scheduled" ? "(required)" : ""}</Label>
+          <Label htmlFor="assignedTo">Assigned to {stage === "scheduled" ? <span className="text-red-500">*</span> : ""}</Label>
           <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
             <SelectTrigger id="assignedTo" className="max-w-md">
               <SelectValue placeholder={stage === "scheduled" ? "Select team member" : "Optional"} />

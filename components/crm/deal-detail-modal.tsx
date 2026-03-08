@@ -134,11 +134,13 @@ function DealDetailContent({
   const [isEditingInvoice, setIsEditingInvoice] = useState(false)
   const [invoiceVal, setInvoiceVal] = useState(deal.invoicedAmount?.toString() || "")
   const [savingInvoice, setSavingInvoice] = useState(false)
+  const [showRejectInput, setShowRejectInput] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
 
-  const handleSaveInvoice = async () => {
+  const handleSaveInvoice = async (forcedVal?: string) => {
     setSavingInvoice(true)
     try {
-      const val = parseFloat(invoiceVal)
+      const val = parseFloat(forcedVal ?? invoiceVal)
       await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
       toast.success("Invoice amount updated")
       setIsEditingInvoice(false)
@@ -179,11 +181,9 @@ function DealDetailContent({
     }
   }
 
-  const handleRejectCompletion = async () => {
-    const reason = window.prompt("Rejection reason (optional). The job will be sent back to its previous stage and flagged as rejected.")
-    if (reason === null) return
+  const submitReject = async () => {
     try {
-      const result = await rejectCompletion(deal.id, reason ?? undefined)
+      const result = await rejectCompletion(deal.id, rejectReason ?? undefined)
       if (result.success) {
         toast.success("Completion rejected. You can edit the job and move it back to Completed when ready.")
         onOpenChange(false)
@@ -220,10 +220,17 @@ function DealDetailContent({
             <Button size="sm" onClick={handleApproveCompletion} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Check className="w-4 h-4 mr-1" /> Approve
             </Button>
-            <Button size="sm" variant="outline" onClick={handleRejectCompletion} className="border-amber-400 text-amber-800 hover:bg-amber-100">
+            <Button size="sm" variant="outline" onClick={() => setShowRejectInput(true)} className="border-amber-400 text-amber-800 hover:bg-amber-100">
               <X className="w-4 h-4 mr-1" /> Reject & send back
             </Button>
           </div>
+          {showRejectInput && (
+            <div className="flex gap-2 w-full mt-2 items-center">
+              <Input placeholder="Rejection reason..." value={rejectReason} onChange={e => setRejectReason(e.target.value)} className="h-8 max-w-[300px]" />
+              <Button size="sm" onClick={submitReject}>Confirm</Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowRejectInput(false)}>Cancel</Button>
+            </div>
+          )}
         </div>
       )}
       {isRejected && !isPendingApproval && (
@@ -282,7 +289,10 @@ function DealDetailContent({
                 {contact.phone && (
                   <div>
                     <p className="text-slate-500 text-xs">Phone</p>
-                    <p className="font-medium text-slate-900">{contact.phone}</p>
+                    <a href={`tel:${contact.phone}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                      {contact.phone}
+                    </a>
                   </div>
                 )}
                 {contact.company && (
@@ -328,13 +338,12 @@ function DealDetailContent({
                         className="pl-8 h-9 bg-emerald-50/50 border-emerald-200"
                         value={invoiceVal}
                         onChange={(e) => setInvoiceVal(e.target.value)}
+                        onBlur={(e) => handleSaveInvoice(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveInvoice() }}
                         disabled={savingInvoice}
+                        autoFocus
                       />
                     </div>
-                    <Button size="sm" onClick={handleSaveInvoice} disabled={savingInvoice} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                      Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setIsEditingInvoice(false)} disabled={savingInvoice}>Cancel</Button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 border border-emerald-100">

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
+import { usePathname } from 'next/navigation';
 import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
 
 interface ChatInterfaceProps {
@@ -214,7 +215,7 @@ function JobDraftCard({
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={submitting}
+          disabled={submitting || !firstName.trim() || !workDescription.trim()}
           className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Create job
@@ -242,6 +243,29 @@ function ChatWithHistory({
   const nextSendBlockedRef = useRef(false);
   const hasInitializedScrollRef = useRef(false);
   const previousMessageCountRef = useRef(0);
+  const pathname = usePathname();
+
+  const getContextualQuickActions = () => {
+    if (pathname?.includes('/deals')) {
+      return [
+        { icon: Calendar, label: "Schedule meeting", prompt: "Schedule a meeting for this deal" },
+        { icon: FileText, label: "Create quote", prompt: "Create a quote for this deal" },
+        { icon: Sparkles, label: "Move deal", prompt: "Can you move this deal to the next stage?" },
+      ];
+    }
+    if (pathname?.includes('/contacts')) {
+      return [
+        { icon: Phone, label: "Call prep", prompt: "Help me prepare for a follow-up call with this contact" },
+        { icon: Sparkles, label: "Draft email", prompt: "Draft an email to this contact" },
+      ];
+    }
+    if (pathname?.includes('/assets')) {
+      return [
+        { icon: Sparkles, label: "Analyse assets", prompt: "Can you analyse my inventory allocation?" },
+      ];
+    }
+    return QUICK_ACTIONS;
+  };
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();
 
@@ -552,7 +576,7 @@ function ChatWithHistory({
               Quick actions
             </p>
             <div className="flex flex-wrap gap-2">
-              {QUICK_ACTIONS.map((action, index) => (
+              {getContextualQuickActions().map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prompt)}

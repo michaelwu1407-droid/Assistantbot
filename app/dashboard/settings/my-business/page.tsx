@@ -66,7 +66,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Business details</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Contact information</h4>
         <BusinessContactForm initialData={businessContact ?? undefined} />
       </section>
       <Separator />

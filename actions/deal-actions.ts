@@ -769,11 +769,32 @@ export async function updateDeal(
   } catch {
     // not authenticated
   }
+  const changes: string[] = [];
+  if (data.title !== undefined && data.title !== deal.title) changes.push(`Title: ${deal.title} -> ${data.title}`);
+  if (data.value !== undefined && data.value !== Number(deal.value)) changes.push(`Value: $${Number(deal.value) || 0} -> $${data.value || 0}`);
+  if (data.stage !== undefined) {
+    const prismaStage = STAGE_REVERSE[data.stage];
+    if (prismaStage !== deal.stage) {
+      changes.push(`Stage: ${STAGE_ACTIVITY_LABELS[deal.stage.toLowerCase()] || deal.stage} -> ${STAGE_ACTIVITY_LABELS[data.stage] || data.stage}`);
+    }
+  }
+  const currentInvoiced = deal.invoicedAmount ? Number(deal.invoicedAmount) : null;
+  if (data.invoicedAmount !== undefined && data.invoicedAmount !== currentInvoiced) {
+    changes.push(`Invoice: $${currentInvoiced || 0} -> $${data.invoicedAmount || 0}`);
+  }
+  if (data.scheduledAt !== undefined) {
+    const origDate = deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "None";
+    const newDate = data.scheduledAt ? new Date(data.scheduledAt as Date | string).toLocaleString() : "None";
+    if (origDate !== newDate) changes.push(`Scheduled: ${origDate} -> ${newDate}`);
+  }
+
+  const content = changes.length > 0 ? changes.join("\n") : "Title, value or stage was changed.";
+
   await db.activity.create({
     data: {
       type: "NOTE",
       title: "Deal updated",
-      content: "Title, value or stage was changed.",
+      content,
       description: `— ${userName}`,
       dealId,
       contactId: deal.contactId ?? undefined,

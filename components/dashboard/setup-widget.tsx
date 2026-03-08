@@ -9,10 +9,13 @@ const SETUP_WIDGET_DISMISS_KEY = "earlymark:setup-widget-dismissed-at";
 
 export function SetupWidget() {
     const [data, setData] = useState<any>(null);
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+            setExpanded(false);
+        }
         getOnboardingProgress().then((res) => {
             if (!res || !res.shouldShow || res.total <= 0) return;
 
@@ -80,8 +83,8 @@ export function SetupWidget() {
                     {data.steps.map((step: any) => (
                         <Link key={step.id} href={step.href}>
                             <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors group ${step.isComplete
-                                    ? "border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/5 text-emerald-800 dark:text-emerald-300"
-                                    : "border-slate-100 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
+                                ? "border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/5 text-emerald-800 dark:text-emerald-300"
+                                : "border-slate-100 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
                                 }`}>
                                 {step.isComplete ? (
                                     <CheckCircle2 className="text-emerald-500 w-5 h-5 shrink-0" />

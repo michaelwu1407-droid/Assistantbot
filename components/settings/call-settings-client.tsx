@@ -153,7 +153,7 @@ function getRuleTimingOptions(rule: AutomatedMessageRuleView) {
 }
 
 export function CallSettingsClient() {
-  const [status, setStatus] = useState<{ phoneNumber?: string | null; name?: string | null } | null>(null)
+  const [status, setStatus] = useState<{ phoneNumber?: string | null; name?: string | null; hasSubaccount?: boolean } | null>(null)
   const [settings, setSettings] = useState<SettingsState | null>(null)
   const [rules, setRules] = useState<AutomatedMessageRuleView[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,7 +169,7 @@ export function CallSettingsClient() {
         const [phoneResult, settingsResult, rulesResult] = results
 
         if (phoneResult.status === "fulfilled") {
-          setStatus({ phoneNumber: phoneResult.value.phoneNumber, name: phoneResult.value.name })
+          setStatus({ phoneNumber: phoneResult.value.phoneNumber, name: phoneResult.value.name, hasSubaccount: phoneResult.value.hasSubaccount })
         }
 
         if (settingsResult.status === "fulfilled" && settingsResult.value) {
@@ -459,6 +459,7 @@ export function CallSettingsClient() {
                   onCheckedChange={(checked) =>
                     setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, enabled: checked } : r)))
                   }
+                  disabled={!status?.phoneNumber || !status?.hasSubaccount}
                 />
               </div>
               <div className="space-y-2">

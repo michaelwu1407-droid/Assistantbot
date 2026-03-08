@@ -1,9 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useShellStore } from "@/lib/store"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
@@ -72,12 +75,17 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
     const pathname = usePathname()
     const userRole = useShellStore((s) => s.userRole)
     const isManager = userRole === "OWNER" || userRole === "MANAGER"
+    const [query, setQuery] = useState("")
 
     // RBAC: filter out manager-only settings for team members
     const visibleSections = sidebarNavSections
         .map((section) => ({
             ...section,
-            items: section.items.filter((item) => isManager || !MANAGER_ONLY_HREFS.has(item.href)),
+            items: section.items.filter((item) => {
+                if (!isManager && MANAGER_ONLY_HREFS.has(item.href)) return false
+                if (query.trim() && !item.title.toLowerCase().includes(query.toLowerCase())) return false
+                return true
+            }),
         }))
         .filter((section) => section.items.length > 0)
 
@@ -89,6 +97,17 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
             )}
             {...props}
         >
+            <div className="hidden lg:block mb-2 px-1">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                        placeholder="Filter settings..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        className="h-9 pl-8 text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                    />
+                </div>
+            </div>
             {visibleSections.map((section, si) => (
                 <div key={si} className="lg:space-y-1">
                     {section.label && (

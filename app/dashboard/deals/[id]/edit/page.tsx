@@ -4,17 +4,7 @@ import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 import { getTeamMembers } from "@/actions/invite-actions"
 import { DealEditForm } from "./deal-edit-form"
-
-const STAGE_OPTIONS = [
-  { value: "new_request", label: "New request" },
-  { value: "quote_sent", label: "Quote sent" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "pipeline", label: "Pipeline" },
-  { value: "ready_to_invoice", label: "Ready to invoice" },
-  { value: "completed", label: "Completed" },
-  { value: "lost", label: "Lost" },
-  { value: "deleted", label: "Deleted jobs" },
-]
+import { STAGE_OPTIONS } from "@/lib/deal-utils"
 
 interface PageProps {
   params: Promise<{ id: string }>

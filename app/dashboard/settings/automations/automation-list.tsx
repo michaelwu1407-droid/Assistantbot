@@ -198,7 +198,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                                     </h4>
                                     {automation.lastFiredAt && (
                                         <Badge variant="outline" className="text-[10px] h-5">
-                                            Fired {new Date(automation.lastFiredAt).toLocaleDateString()}
+                                            Fired {new Date(automation.lastFiredAt).toLocaleDateString("en-AU")}
                                         </Badge>
                                     )}
                                 </div>

@@ -19,6 +19,7 @@ export interface WorkspaceView {
   tutorialComplete: boolean;
   brandingColor: string | null;
   stripeCustomerId?: string | null;
+  stripePriceId?: string | null;
   subscriptionStatus?: string | null;
   settings?: unknown;
 }
@@ -44,6 +45,7 @@ function toWorkspaceView(w: {
   tutorialComplete: boolean;
   brandingColor: string | null;
   stripeCustomerId?: string | null;
+  stripePriceId?: string | null;
   subscriptionStatus?: string | null;
   settings?: unknown;
 }): WorkspaceView {
@@ -58,6 +60,7 @@ function toWorkspaceView(w: {
     tutorialComplete: w.tutorialComplete,
     brandingColor: w.brandingColor || "",
     stripeCustomerId: w.stripeCustomerId,
+    stripePriceId: w.stripePriceId,
     subscriptionStatus: w.subscriptionStatus,
     settings: w.settings,
   };

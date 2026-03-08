@@ -15,7 +15,7 @@ export default function AuthTestPage() {
       try {
         const supabase = createClient();
         const { data: { user }, error } = await supabase.auth.getUser();
-        
+
         if (error) {
           setStatus(`❌ Auth Error: ${error.message}`);
         } else if (user) {
@@ -40,7 +40,7 @@ export default function AuthTestPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold text-center mb-4">Authentication Status</h1>
-        
+
         <div className="mb-6 p-4 bg-gray-100 rounded">
           <p className="text-sm font-mono">{status}</p>
         </div>
@@ -50,7 +50,7 @@ export default function AuthTestPage() {
             <h3 className="font-semibold text-green-800 mb-2">User Details:</h3>
             <p className="text-sm text-green-700">ID: {user.id}</p>
             <p className="text-sm text-green-700">Email: {user.email}</p>
-            <p className="text-sm text-green-700">Created: {new Date(user.created_at).toLocaleString()}</p>
+            <p className="text-sm text-green-700">Created: {new Date(user.created_at).toLocaleString("en-AU")}</p>
           </div>
         )}
 

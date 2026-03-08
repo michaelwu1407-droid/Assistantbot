@@ -25,9 +25,9 @@ function DealCard({ deal }: { deal: any }) {
       </div>
       <div className="flex justify-between text-slate-500 text-xs">
         <span>{deal.contactName}</span>
-        <span>${deal.value?.toLocaleString()}</span>
+        <span>${deal.value?.toLocaleString("en-AU")}</span>
       </div>
-      <div className="mt-2 text-xs text-slate-400">Updated: {new Date(deal.updatedAt).toLocaleDateString()}</div>
+      <div className="mt-2 text-xs text-slate-400">Updated: {new Date(deal.updatedAt).toLocaleDateString("en-AU")}</div>
     </div>
   )
 }

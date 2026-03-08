@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { ContactNotes } from "@/components/crm/contact-notes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase } from "lucide-react"
+import { ChevronLeft, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 
@@ -43,7 +43,10 @@ export default async function ContactDetailPage({ params }: PageProps) {
 
   const contact = await db.contact.findUnique({
     where: { id },
-    include: { deals: { orderBy: { createdAt: "desc" } } },
+    include: {
+      deals: { orderBy: { createdAt: "desc" } },
+      customerFeedback: { orderBy: { createdAt: "desc" } },
+    },
   })
 
   if (!contact) notFound()
@@ -187,7 +190,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                 })()}
                 <div>
                   <p className="text-slate-500 text-xs">Value</p>
-                  <p className="font-medium text-emerald-600">${Number(currentDeal.value).toLocaleString()}</p>
+                  <p className="font-medium text-emerald-600">${Number(currentDeal.value).toLocaleString("en-AU")}</p>
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs">Stage</p>
@@ -199,6 +202,40 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   Open job →
                 </Link>
               </Button>
+            </div>
+          )}
+
+          {contact.customerFeedback && contact.customerFeedback.length > 0 && (
+            <div className="p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50 dark:bg-red-950/20 shadow-sm shrink-0">
+              <h3 className="font-semibold text-red-900 dark:text-red-200 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                Chatbot feedback
+              </h3>
+              <div className="space-y-3">
+                {contact.customerFeedback.map((fb) => (
+                  <details key={fb.id} className="group border border-red-200 dark:border-red-900/50 rounded-md overflow-hidden">
+                    <summary className="flex cursor-pointer items-center justify-between p-3 bg-red-100/30 dark:bg-red-900/10 text-sm font-medium text-red-800 dark:text-red-300 hover:bg-red-100/50 dark:hover:bg-red-900/20 list-none">
+                      <span className="flex items-center gap-2">
+                        {format(new Date(fb.createdAt), "MMM d")} - Score: {fb.score}/10
+                        {fb.resolved && <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-600 h-5 px-1 py-0">Resolved</Badge>}
+                      </span>
+                      <ChevronLeft className="w-4 h-4 rotate-[-90deg] group-open:rotate-90 transition-transform" />
+                    </summary>
+                    <div className="p-3 text-xs text-red-700 dark:text-red-400 border-t border-red-200 dark:border-red-900/50 bg-white/50 dark:bg-black/20">
+                      <div className="bg-red-50/50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30 whitespace-pre-wrap font-mono">
+                        <p className="font-semibold text-red-900 dark:text-red-300 mb-1 font-sans">Transcript snippet / Comment:</p>
+                        {fb.comment || "No transcript available."}
+                        {fb.resolution && (
+                          <div className="mt-3 pt-2 border-t border-red-200 dark:border-red-900/50">
+                            <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1 font-sans">Resolution notes:</p>
+                            <p className="font-sans text-slate-700 dark:text-slate-300">{fb.resolution}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -251,7 +288,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                         className="block p-2 rounded-lg border border-slate-100 dark:border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm"
                       >
                         <span className="font-medium text-slate-900 dark:text-foreground">{d.title}</span>
-                        <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>
+                        <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString("en-AU")}</span>
                         <span className="text-slate-400 text-xs block mt-0.5">{STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
                       </Link>
                     ))

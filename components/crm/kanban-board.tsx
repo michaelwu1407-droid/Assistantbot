@@ -270,11 +270,13 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
     }
 
     try {
+      // Optimistic update
+      setDeals((prev) =>
+        prev.map((d) => (d.id === draggedId ? { ...d, stage: targetColumn } : d))
+      )
+
       const result = await updateDealStage(draggedId, targetColumn)
       if (result.success) {
-        setDeals((prev) =>
-          prev.map((d) => (d.id === draggedId ? { ...d, stage: targetColumn } : d))
-        )
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved to ${colTitle}`)
       } else {
@@ -438,15 +440,15 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
                       ))
                     ) : (
                       // Empty state
-                      <div className="h-40 flex flex-col items-center justify-center text-[#94A3B8] p-4">
-                        <div className="p-3 bg-[#F1F5F9] rounded-full mb-3">
-                          <Plus className="h-5 w-5 text-[#94A3B8]" />
+                      deals.length === 0 && col.id === "new_request" ? (
+                        <div className="h-40 flex flex-col items-center justify-center text-[#94A3B8] p-4">
+                          <span className="text-sm font-medium">Create your first deal</span>
                         </div>
-                        <span className="text-sm font-medium mb-1">No deals</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs hover:bg-[#E2E8F0] rounded-full px-4" onClick={() => document.getElementById('new-deal-btn')?.click()}>
-                          Add New
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="h-24 border-2 border-dashed border-slate-200 dark:border-slate-700/60 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
+                          Drop deal here
+                        </div>
+                      )
                     )}
                   </DroppableColumn>
                 </SortableContext>

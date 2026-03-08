@@ -121,6 +121,11 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   }
 
   const saveService = async (service: KnowledgeRule, draft: ServiceDraft) => {
+    if (!draft.name.trim()) {
+      toast.error("Service name is required")
+      return
+    }
+
     const metadata: Record<string, unknown> = {}
     if (draft.minFee.trim()) metadata.minFee = Number(draft.minFee)
     if (draft.maxFee.trim()) metadata.maxFee = Number(draft.maxFee)

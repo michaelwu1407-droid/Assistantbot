@@ -37,7 +37,7 @@ const DEMO_HARD_CUT_MS = 5 * 60 * 1000;
 const GOODBYE_DISCONNECT_BUFFER_MS = 5000;
 
 const WRAP_UP_SCRIPT =
-  "This is running long. Offer to pass it to the manager if helpful, keep it brief, and do not summarise the call.";
+  "I need to look a bit deeper into this for you. I will follow up via email shortly.";
 
 const DEMO_WRAP_UP_SCRIPT =
   "Before wrapping up, move the call to one clear next step, ask for any missing contact details, mention earlymark.ai, and do not summarise the call.";
@@ -809,7 +809,8 @@ export default defineAgent({
         const isOnClock = currentHour >= 8 && currentHour < 17;
 
         if (isOnClock) {
-          return "I am transferring you to the owner now. Please hold on the line.";
+          logger.info("Transferring call", { callId });
+          return "Transferring you to human staff. Please hold on the line.";
         }
 
         return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
@@ -899,9 +900,9 @@ export default defineAgent({
     const normalVoiceGrounding =
       callType === "normal"
         ? await fetchVoiceGrounding({ calledPhone }).catch((error) => {
-            console.warn("[agent] Failed to fetch voice grounding:", error);
-            return null;
-          })
+          console.warn("[agent] Failed to fetch voice grounding:", error);
+          return null;
+        })
         : null;
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
@@ -909,10 +910,10 @@ export default defineAgent({
       process.env.GROQ_API_KEY
         ? "groq"
         : (
-            isEarlymarkCall
-              ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || "deepinfra")
-              : (process.env.VOICE_LLM_PROVIDER || "deepinfra")
-          )
+          isEarlymarkCall
+            ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || "deepinfra")
+            : (process.env.VOICE_LLM_PROVIDER || "deepinfra")
+        )
     ).toLowerCase();
     const llmModel =
       (isEarlymarkCall ? process.env.EARLYMARK_VOICE_LLM_MODEL : process.env.VOICE_LLM_MODEL) ||
@@ -969,13 +970,13 @@ export default defineAgent({
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
     const tools = isEarlymarkCall
       ? {
-          log_lead: logLeadTool,
-          transfer_call: transferCallTool,
-        }
+        log_lead: logLeadTool,
+        transfer_call: transferCallTool,
+      }
       : {
-          transfer_call: transferCallTool,
-          ...normalLookupTools,
-        };
+        transfer_call: transferCallTool,
+        ...normalLookupTools,
+      };
 
     const agent = new voice.Agent({
       instructions: isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller, normalVoiceGrounding),
@@ -1212,7 +1213,7 @@ export default defineAgent({
         }
 
         goodbyeTimer = setTimeout(() => {
-          ctx.room.disconnect().catch(() => {});
+          ctx.room.disconnect().catch(() => { });
         }, GOODBYE_DISCONNECT_BUFFER_MS);
         return;
       }
@@ -1257,11 +1258,11 @@ export default defineAgent({
         console.log(`[agent] hard-cut mark reached for ${callType}`);
         await session.generateReply({ instructions: hardCutInstructions });
         goodbyeTimer = setTimeout(() => {
-          ctx.room.disconnect().catch(() => {});
+          ctx.room.disconnect().catch(() => { });
         }, 10_000);
       } catch (err) {
         console.error("[agent] Hard-cut disconnect failed:", err);
-        ctx.room.disconnect().catch(() => {});
+        ctx.room.disconnect().catch(() => { });
       }
     }, hardCutMs);
 

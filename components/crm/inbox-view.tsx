@@ -661,6 +661,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 {messageMode === "direct" && !selectedContact.phone && (
                   <p className="text-[10px] text-red-400 mt-1">No phone number on file — add one to send direct messages.</p>
                 )}
+                {messageMode === "direct" && !!selectedContact.phone && (
+                  <p className={cn("text-[10px] mt-1 text-right", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                    {messageText.length}/160 characters
+                  </p>
+                )}
                 {messageMode === "travis" && (
                   <p className="text-[10px] text-muted-foreground mt-1">Tracey will handle communication with this customer on your behalf.</p>
                 )}

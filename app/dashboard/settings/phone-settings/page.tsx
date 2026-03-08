@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +46,7 @@ export default function PhoneSettingsPage() {
   });
 
   // Load current status
-  useState(() => {
+  useEffect(() => {
     async function loadStatus() {
       try {
         const status = await getPhoneNumberStatus();
@@ -58,7 +58,7 @@ export default function PhoneSettingsPage() {
       }
     }
     loadStatus();
-  });
+  }, []);
 
   const handleSendVerification = async (data: any) => {
     setSendingCode(true);
@@ -67,11 +67,11 @@ export default function PhoneSettingsPage() {
 
     try {
       const result = await sendPhoneVerificationCode({ newPhoneNumber: data.newPhoneNumber });
-      
+
       if (result.skipVerification) {
         // First-time setup - proceed directly to phone number setup
         setSuccess("First-time setup detected. Setting up your phone number...");
-        
+
         // Call the setup API directly
         const setupResponse = await fetch("/api/workspace/setup-comms", {
           method: "POST",
@@ -81,9 +81,9 @@ export default function PhoneSettingsPage() {
             ownerPhone: data.newPhoneNumber,
           }),
         });
-        
+
         const setupResult = await setupResponse.json();
-        
+
         if (setupResult.success) {
           setSuccess(`Phone number setup complete! Your new number is ${setupResult.result.phoneNumber}`);
           // Reload status
@@ -118,7 +118,7 @@ export default function PhoneSettingsPage() {
       setVerificationSent(false);
       phoneForm.reset();
       verificationForm.reset();
-      
+
       // Reload status
       const status = await getPhoneNumberStatus();
       setPhoneStatus(status);

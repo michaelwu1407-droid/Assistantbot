@@ -16,7 +16,7 @@ export interface ContactView {
   company: string | null;
   avatarUrl: string | null;
   address: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> & { tags?: string[] };
   dealCount: number;
   lastActivityDate: Date | null;
   /** Primary job/deal status for table (e.g. "Scheduled", "Completed"). */
@@ -419,5 +419,13 @@ export async function searchContacts(
  */
 export async function deleteContact(contactId: string) {
   await db.contact.delete({ where: { id: contactId } });
+  return { success: true };
+}
+
+/**
+ * Delete multiple contacts.
+ */
+export async function deleteContacts(contactIds: string[]) {
+  await db.contact.deleteMany({ where: { id: { in: contactIds } } });
   return { success: true };
 }
