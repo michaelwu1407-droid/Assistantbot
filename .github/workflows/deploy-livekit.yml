@@ -101,6 +101,9 @@ jobs:
               if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
                 echo "Previous agent is still running with PID $PREV_PID"
                 ps -p "$PREV_PID" -o pid= -o args=
+                echo "$PREV_PID" > /tmp/agent.pid
+                echo "Keeping previous worker active; skipping restart."
+                exit 0
               fi
               exit 1
             fi
@@ -112,6 +115,9 @@ jobs:
               if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
                 echo "Previous agent is still running with PID $PREV_PID"
                 ps -p "$PREV_PID" -o pid= -o args=
+                echo "$PREV_PID" > /tmp/agent.pid
+                echo "Keeping previous worker active; skipping restart."
+                exit 0
               fi
               exit 1
             fi
