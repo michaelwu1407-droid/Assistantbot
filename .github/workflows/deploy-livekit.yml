@@ -79,6 +79,16 @@ jobs:
             find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
             tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
             npm ci --omit=dev --no-audit --no-fund
+            if ! node --input-type=module -e "import { config } from 'dotenv'; config({ path: '.env.local' }); const missing = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'DEEPGRAM_API_KEY', 'CARTESIA_API_KEY'].filter((key) => !process.env[key]); if (!(process.env.GROQ_API_KEY || process.env.DEEPINFRA_API_KEY)) missing.push('GROQ_API_KEY or DEEPINFRA_API_KEY'); if (missing.length) { console.error('Missing required voice-agent env vars: ' + missing.join(', ')); process.exit(1); }"; then
+              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                echo "Preflight failed, but previous agent is still running with PID $PREV_PID"
+                ps -p "$PREV_PID" -o pid= -o args=
+                echo "$PREV_PID" > /tmp/agent.pid
+                echo "Keeping previous worker active; skipping restart."
+                exit 0
+              fi
+              exit 1
+            fi
             PREV_MATCHING_PIDS="$(agent_pids)"
             PREV_PID=""
             if [ -f /tmp/agent.pid ]; then
