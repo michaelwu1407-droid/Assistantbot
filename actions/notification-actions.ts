@@ -165,7 +165,7 @@ export async function saveNotificationPreferences(prefs: NotificationPreferences
   await db.workspace.update({
     where: { id: user.workspaceId },
     data: {
-      settings: { ...currentSettings, notificationPreferences: prefs } as Prisma.InputJsonValue,
+      settings: { ...currentSettings, notificationPreferences: prefs } as unknown as Prisma.InputJsonValue,
     },
   })
 
