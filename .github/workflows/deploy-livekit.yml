@@ -46,11 +46,32 @@ jobs:
           envs: DEPLOY_GIT_SHA
           script: |
             set -eu
+            agent_ps() {
+              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep || true
+            }
+            agent_pids() {
+              agent_ps | awk '{print $1}' | tr '\n' ' '
+            }
+            pid_in_list() {
+              needle="$1"
+              haystack="${2:-}"
+              case " $haystack " in
+                *" $needle "*) return 0 ;;
+                *) return 1 ;;
+              esac
+            }
             candidate_running() {
-              if [ -n "${CANDIDATE_PID:-}" ] && ps -p "$CANDIDATE_PID" >/dev/null 2>&1; then
+              current_pids="$(agent_pids)"
+              if [ -n "${CANDIDATE_PID:-}" ] && pid_in_list "$CANDIDATE_PID" "$current_pids"; then
                 return 0
               fi
-              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep | grep -F '/tmp/livekit-agent' >/dev/null 2>&1
+              for pid in $current_pids; do
+                if ! pid_in_list "$pid" "${PREV_MATCHING_PIDS:-}"; then
+                  CANDIDATE_PID="$pid"
+                  return 0
+                fi
+              done
+              return 1
             }
             mkdir -p /tmp/livekit-agent
             cd /tmp/livekit-agent
@@ -58,6 +79,7 @@ jobs:
             find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
             tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
             npm ci --omit=dev --no-audit --no-fund
+            PREV_MATCHING_PIDS="$(agent_pids)"
             PREV_PID=""
             if [ -f /tmp/agent.pid ]; then
               PREV_PID="$(cat /tmp/agent.pid || true)"
@@ -82,7 +104,7 @@ jobs:
               fi
               exit 1
             fi
-            ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep | grep -F '/tmp/livekit-agent' || true
+            agent_ps
             sleep 5
             if ! candidate_running; then
               echo "Candidate agent exited during startup grace period."
@@ -97,5 +119,7 @@ jobs:
               kill "$PREV_PID" 2>/dev/null || true
               sleep 2
             fi
-            echo "$CANDIDATE_PID" > /tmp/agent.pid
+            if [ -n "${CANDIDATE_PID:-}" ]; then
+              echo "$CANDIDATE_PID" > /tmp/agent.pid
+            fi
             tail -n 40 /tmp/agent.log || true
