@@ -46,11 +46,11 @@ jobs:
           envs: DEPLOY_GIT_SHA
           script: |
             set -eu
-            agent_running() {
-              if [ -n "${PID:-}" ] && ps -p "$PID" >/dev/null 2>&1; then
+            candidate_running() {
+              if [ -n "${CANDIDATE_PID:-}" ] && ps -p "$CANDIDATE_PID" >/dev/null 2>&1; then
                 return 0
               fi
-              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep >/dev/null 2>&1
+              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep | grep -F '/tmp/livekit-agent' >/dev/null 2>&1
             }
             mkdir -p /tmp/livekit-agent
             cd /tmp/livekit-agent
@@ -58,30 +58,44 @@ jobs:
             find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
             tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
             npm ci --omit=dev --no-audit --no-fund
+            PREV_PID=""
             if [ -f /tmp/agent.pid ]; then
-              kill "$(cat /tmp/agent.pid)" 2>/dev/null || true
-              sleep 2
+              PREV_PID="$(cat /tmp/agent.pid || true)"
             fi
             : > /tmp/agent.log
             DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
-            echo $! > /tmp/agent.pid
-            PID="$(cat /tmp/agent.pid)"
+            CANDIDATE_PID="$!"
             STARTED=0
             for _ in 1 2 3 4 5 6; do
-              if agent_running; then
+              if candidate_running; then
                 STARTED=1
                 break
               fi
               sleep 2
             done
             if [ "$STARTED" -ne 1 ]; then
+              echo "Candidate agent never stayed up long enough to be considered started."
               tail -n 80 /tmp/agent.log || true
+              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                echo "Previous agent is still running with PID $PREV_PID"
+                ps -p "$PREV_PID" -o pid= -o args=
+              fi
               exit 1
             fi
-            ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep || true
+            ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep | grep -F '/tmp/livekit-agent' || true
             sleep 5
-            if ! agent_running; then
+            if ! candidate_running; then
+              echo "Candidate agent exited during startup grace period."
               tail -n 80 /tmp/agent.log || true
+              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                echo "Previous agent is still running with PID $PREV_PID"
+                ps -p "$PREV_PID" -o pid= -o args=
+              fi
               exit 1
             fi
+            if [ -n "$PREV_PID" ] && [ "$PREV_PID" != "$CANDIDATE_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+              kill "$PREV_PID" 2>/dev/null || true
+              sleep 2
+            fi
+            echo "$CANDIDATE_PID" > /tmp/agent.pid
             tail -n 40 /tmp/agent.log || true
