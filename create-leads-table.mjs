@@ -3,8 +3,15 @@
  * node create-leads-table.mjs
  */
 
-const SUPABASE_URL = 'https://uvqcplkfscuewrxnzmfe.supabase.co';
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cWNwbGtmc2N1ZXdyeG56bWZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTg0ODA4MCwiZXhwIjoyMDg3NDI0MDgwfQ._PXF_WC8PzGrVCBrZ5DWLgwoOnOxjDgFcIQLQpppv5s';
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  throw new Error(
+    "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY before running create-leads-table.mjs.",
+  );
+}
 
 const sql = `
 CREATE TABLE IF NOT EXISTS leads (

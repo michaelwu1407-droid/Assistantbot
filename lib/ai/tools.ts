@@ -61,7 +61,12 @@ import { buildJobDraftFromParams } from "@/lib/chat-utils";
  * @param settings - The workspace settings, used for availability mapping.
  * @param userId - Optional user ID for operations requiring it (e.g., support requests).
  */
-export function getAgentTools(workspaceId: string, settings: Record<string, string | undefined> | null | undefined, userId?: string) {
+type AgentToolSettings = {
+    workingHoursStart?: string | null;
+    workingHoursEnd?: string | null;
+} & Record<string, unknown>;
+
+export function getAgentTools(workspaceId: string, settings: AgentToolSettings | null | undefined, userId?: string) {
     return {
         listDeals: tool({
             description: "List all jobs in the pipeline (id, title, stage, value).",

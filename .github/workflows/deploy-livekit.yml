@@ -73,10 +73,42 @@ jobs:
               done
               return 1
             }
+            PREV_MATCHING_PIDS="$(agent_pids)"
+            PREV_PID=""
+            if [ -f /tmp/agent.pid ]; then
+              PREV_PID="$(cat /tmp/agent.pid || true)"
+            fi
+            if [ -z "$PREV_PID" ] || ! pid_in_list "$PREV_PID" "$PREV_MATCHING_PIDS"; then
+              for pid in $PREV_MATCHING_PIDS; do
+                PREV_PID="$pid"
+                break
+              done
+            fi
             mkdir -p /tmp/livekit-agent
             cd /tmp/livekit-agent
-            test -f .env.local
+            if [ ! -f .env.local ]; then
+              echo "Missing /tmp/livekit-agent/.env.local on remote host."
+              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                echo "Previous agent is still running with PID $PREV_PID"
+                ps -p "$PREV_PID" -o pid= -o args=
+                echo "$PREV_PID" > /tmp/agent.pid
+                echo "Keeping previous worker active; skipping restart."
+                exit 0
+              fi
+              exit 1
+            fi
             find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            if [ ! -f /tmp/livekit-agent-deploy.tgz ]; then
+              echo "Missing /tmp/livekit-agent-deploy.tgz on remote host."
+              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                echo "Previous agent is still running with PID $PREV_PID"
+                ps -p "$PREV_PID" -o pid= -o args=
+                echo "$PREV_PID" > /tmp/agent.pid
+                echo "Keeping previous worker active; skipping restart."
+                exit 0
+              fi
+              exit 1
+            fi
             tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
             npm ci --omit=dev --no-audit --no-fund
             if ! node --input-type=module -e "import { config } from 'dotenv'; config({ path: '.env.local' }); const missing = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'DEEPGRAM_API_KEY', 'CARTESIA_API_KEY'].filter((key) => !process.env[key]); if (!(process.env.GROQ_API_KEY || process.env.DEEPINFRA_API_KEY)) missing.push('GROQ_API_KEY or DEEPINFRA_API_KEY'); if (missing.length) { console.error('Missing required voice-agent env vars: ' + missing.join(', ')); process.exit(1); }"; then
@@ -88,17 +120,6 @@ jobs:
                 exit 0
               fi
               exit 1
-            fi
-            PREV_MATCHING_PIDS="$(agent_pids)"
-            PREV_PID=""
-            if [ -f /tmp/agent.pid ]; then
-              PREV_PID="$(cat /tmp/agent.pid || true)"
-            fi
-            if [ -z "$PREV_PID" ] || ! pid_in_list "$PREV_PID" "$PREV_MATCHING_PIDS"; then
-              for pid in $PREV_MATCHING_PIDS; do
-                PREV_PID="$pid"
-                break
-              done
             fi
             : > /tmp/agent.log
             DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
