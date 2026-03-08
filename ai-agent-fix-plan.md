@@ -7,7 +7,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 
 ### Landing Page
 
-#### L1: Update Footer Copyright
+#### L1: Update Footer Copyright [DONE]
 *   **Issue:** Footer copyright says "2025" — update to 2026.
 *   **Fix & Steps:**
     1. Open the landing page footer component (e.g., `components/landing/footer.tsx`).
@@ -15,7 +15,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** View landing page footer.
 *   **Agent:** Dumb Agent
 
-#### L3: Replace Placeholder Screenshots
+#### L3: Replace Placeholder Screenshots [DONE]
 *   **Issue:** "Hire Tracey" screenshot areas say "Screenshot coming soon".
 *   **Fix & Steps:**
     1. Locate "Hire Tracey" section placeholder divs.
@@ -23,7 +23,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Verify realistic UI is shown in "Hire Tracey" section.
 *   **Agent:** Smart Agent
 
-#### L4: Add Customer Testimonials Carousel
+#### L4: Add Customer Testimonials Carousel [DONE]
 *   **Issue:** No testimonials/social proof anywhere on landing page.
 *   **Fix & Steps:**
     1. Create a modern carousel component.
@@ -32,7 +32,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Verify functional carousel on home page.
 *   **Agent:** Smart Agent
 
-#### L8: Fix Feature Carousel Mobile View
+#### L8: Fix Feature Carousel Mobile View [DONE]
 *   **Issue:** Feature carousel side cards are hidden on mobile — only 1 card visible.
 *   **Fix & Steps:**
     1. Remove `hidden md:flex` hiding adjacent cards.
@@ -40,7 +40,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Inspect on mobile view and swipe cards sideways.
 *   **Agent:** Smart Agent
 
-#### P4: Add Mobile Navigation Menu
+#### P4: Add Mobile Navigation Menu [DONE]
 *   **Issue:** No mobile nav menu — navbar links hidden on mobile.
 *   **Fix & Steps:**
     1. In navbar component, add a hamburger icon visible on mobile (`md:hidden`).
@@ -48,7 +48,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** On mobile view, click hamburger icon to see nav links.
 *   **Agent:** Smart Agent
 
-#### P11: Fix Forgot Password Page Background
+#### P11: Fix Forgot Password Page Background [DONE]
 *   **Issue:** Forgot password page has different background style.
 *   **Fix & Steps:**
     1. Copy background layout wrapper classes from Login page.
@@ -59,7 +59,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 
 ### Dashboard
 
-#### D1: Simplified Empty State for Deals
+#### D1: Simplified Empty State for Deals [DONE]
 *   **Issue:** Overkill empty state when user has zero deals.
 *   **Fix & Steps:**
     1. In Kanban column, if total workspace deals equals zero:
@@ -67,7 +67,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Emulate 0 deals, verify only standard text shows in first column.
 *   **Agent:** Smart Agent
 
-#### D2: Add KPI Skeleton Loaders
+#### D2: Add KPI Skeleton Loaders [DONE]
 *   **Issue:** KPI cards have no skeleton loading state.
 *   **Fix & Steps:**
     1. Add a Suspense boundary or `isLoading` check around KPI components.
@@ -75,7 +75,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Throttle network to Slow 3G and ensure gray pulses appear.
 *   **Agent:** Dumb Agent
 
-#### D3: Make Setup Widget Collapsible on Mobile
+#### D3: Make Setup Widget Collapsible on Mobile [DONE]
 *   **Issue:** Setup widget takes full width on mobile.
 *   **Fix & Steps:**
     1. Wrap `SetupWidget` content in a collapsible UI (Accordion or state-toggle).
@@ -83,14 +83,14 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 *   **How to check:** Verify dashboard setup widget is minimized initially on mobile screens.
 *   **Agent:** Smart Agent
 
-#### D4: Add Visual Separation to Kanban Board
+#### D4: Add Visual Separation to Kanban Board [DONE]
 *   **Issue:** No visual separation between KPI section and kanban board.
 *   **Fix & Steps:**
     1. Add `mb-8` and `border-b border-border/40 pb-8` below the KPI wrapper block.
 *   **How to check:** Check for a visual divider between top metrics and kanban columns.
 *   **Agent:** Smart Agent
 
-#### D5: Pronounced Atmospheric Glow
+#### D5: Pronounced Atmospheric Glow [DONE]
 *   **Issue:** "Atmospheric glow" background effect barely visible.
 *   **Fix & Steps:**
     1. Find dashboard background radial gradient or absolute blurred div.
@@ -101,20 +101,20 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 
 ### Kanban / Deal Detail Modal
 
-#### K1: Optimistic Update for Stage Moves
+#### K1: Optimistic Update for Stage Moves [DONE]
 *   **Issue:** `window.location.reload()` breaking UX on stage move.
 *   **Fix & Steps:**
     1. Delete `window.location.reload()` from `onDragEnd` handler.
     2. Mutate local state immediately. Handle backend sync silently.
 *   **Agent:** Smart Agent
 
-#### K3: Dark Mode Handling for Overdue Deals
+#### K3: Dark Mode Handling for Overdue Deals [DONE]
 *   **Issue:** Overdue deal styling lacks dark mode.
 *   **Fix & Steps:**
     1. Append `dark:bg-red-900/20 dark:text-red-400` where hardcoded red exists entirely.
 *   **Agent:** Dumb Agent
 
-#### K5: Dashed-Border Placeholder for Empty Columns
+#### K5: Dashed-Border Placeholder for Empty Columns [DONE]
 *   **Issue:** Empty columns incorrectly show standard text.
 *   **Fix & Steps:**
     1. If column deals == 0, render dashed border placeholder reading "Drop deal here".
@@ -126,19 +126,19 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
     1. Diff incoming form changes against old values to inject granular statements like "Stage: New -> Quote Sent" into the activity log JSON.
 *   **Agent:** Smart Agent
 
-#### DM2: Replace window.prompt()
+#### DM2: Replace window.prompt() [DONE]
 *   **Issue:** Reject reason native prompt used.
 *   **Fix & Steps:**
     1. Replace `window.prompt` with Custom `Dialog` (shadcn) collecting text internally.
 *   **Agent:** Smart Agent
 
-#### DM3: Auto-Save for Invoice Amount
+#### DM3: Auto-Save for Invoice Amount [DONE]
 *   **Issue:** Requires manual save.
 *   **Fix & Steps:**
     1. Trigger API save via `onBlur` for the invoice input securely. Replace save button with auto-check.
 *   **Agent:** Smart Agent
 
-#### DM4: Fix Modal Full Reloads
+#### DM4: Fix Modal Full Reloads [DONE]
 *   **Issue:** Stage dropdown inside modal forces `window.location.reload()`.
 *   **Fix & Steps:**
     1. Halt browser refresh logic, simply fetch data and dispatch an update internally. Keep modal entirely open.
@@ -165,7 +165,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
     1. Add Input and Select components enforcing standard client-side array filter & sort across `contacts`.
 *   **Agent:** Smart Agent
 
-#### I5: Disable Bulk SMS Send
+#### I5: Disable Bulk SMS Send [DONE]
 *   **Issue:** Feature shouldn't be active.
 *   **Fix & Steps:**
     1. Hide or remove UI explicitly sending grouped bulk messages.
@@ -191,25 +191,25 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
     - Integrate Marker Clusterer plugins explicitly handling 5+ locations efficiently. (Smart)
     - Implement interactive retry `<Button>` avoiding blank 'refresh' text directives. (Dumb)
 
-#### T1 & T2 & T4: Team Component Additions
+#### T1 & T2 & T4: Team Component Additions [DONE]
 *   **Fix & Steps:**
     - Delete uses `AlertDialog` instead of `confirm()`. (Smart)
     - Mount Dropdowns allowing immediate Role mutation patches. (Smart)
     - Attach standard `toast.success("Copied")` on invite linkages. (Dumb)
 
-#### ST1 & BUG1 & BUG2: Fix Hook Fetch Hangs
+#### ST1 & BUG1 & BUG2: Fix Hook Fetch Hangs [DONE]
 *   **Issue:** Infinity fetch hangs in phone/agent pages due to `useState`.
 *   **Fix & Steps:**
     1. Convert function wrapping inside `useState` structurally into a valid `useEffect` load block. 
 *   **Agent:** Smart Agent
 
-#### ST2 & ST6 & BUG4 & ST7: Settings Polishing
+#### ST2 & ST6 & BUG4 & ST7: Settings Polishing [DONE]
 *   **Fix & Steps:**
     - Purge dead ai-voice redirect. (Dumb)
     - Delete duplicated `<h2>Business Details</h2>`. (Dumb)
     - Inject an `Input` natively filtering the settings sidebar list. (Smart)
 
-#### ST5 & BUG3: Dynamic Billing Page
+#### ST5 & BUG3: Dynamic Billing Page [DONE]
 *   **Issue:** Plan says static Earlymark Pro.
 *   **Fix & Steps:**
     1. Swap string dynamically mapping to `workspace.planTier`.
@@ -218,7 +218,7 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
 
 ### Chatbots / AI Analytics & Global Patterns
 
-#### C1 & C2 & C4 & C5 & N1: AI Integrations
+#### C1 & C2 & C4 & C5 & N1: AI Integrations [DONE]
 *   **Fix & Steps:**
     - Reject form structurally if Jobs fields missing. (Smart)
     - Pass routing contextual strings populating Quick Action prompts. (Smart)

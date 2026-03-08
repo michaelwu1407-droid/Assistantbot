@@ -399,3 +399,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Comprehensive audit and fix of AI agent fix plan items. Replaced lazy DashboardSkeleton (raw divs) with proper Skeleton components. Fixed duplicate "Business details" heading to "Contact information". Added settings sidebar search/filter input. Created missing `updateMemberRole` server action with RBAC guards. Added ts-nocheck to pre-existing test type mismatch.
 - Why: Prior AI agent left lazy patterns and missing implementations. This commit audits every fix plan item, fixes quality issues, fills gaps, and unblocks the commit pipeline.
 
+### 2026-03-08 23:15 (AEDT) - antigravity
+- Files: `ai-agent-fix-plan.md`, `docs/agent_change_log.md`
+- What changed: Updated project fix plan with [DONE] status markers for all verified/implemented items.
+- Why: Handing off remaining items (DM1, I2, G-series, DM5) to the next agent or developer.
+
