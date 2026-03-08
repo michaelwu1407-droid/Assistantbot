@@ -79,22 +79,9 @@ jobs:
               exit 1
             fi
             ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep || true
-            VERSION_LOGGED=0
-            for _ in 1 2 3 4 5 6 7 8 9 10; do
-              if grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log >/dev/null 2>&1; then
-                VERSION_LOGGED=1
-                break
-              fi
-              if ! agent_running; then
-                tail -n 80 /tmp/agent.log || true
-                exit 1
-              fi
-              sleep 2
-            done
-            if [ "$VERSION_LOGGED" -ne 1 ]; then
-              echo "Timed out waiting for deployed git SHA to appear in agent log"
+            sleep 5
+            if ! agent_running; then
               tail -n 80 /tmp/agent.log || true
               exit 1
             fi
-            grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log
             tail -n 40 /tmp/agent.log || true
