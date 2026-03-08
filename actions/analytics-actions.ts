@@ -17,13 +17,26 @@ const STAGE_LABELS: Record<string, string> = {
 }
 
 function getDealRevenueValue(deal: {
-  invoicedAmount?: number | null
-  value?: number | null
+  invoicedAmount?: number | { toNumber(): number } | null
+  value?: number | { toNumber(): number } | null
 }) {
-  if (typeof deal.invoicedAmount === "number" && !Number.isNaN(deal.invoicedAmount)) {
-    return deal.invoicedAmount
+  const normalizeValue = (value: number | { toNumber(): number } | null | undefined) => {
+    if (typeof value === "number") {
+      return Number.isNaN(value) ? 0 : value
+    }
+    if (value && typeof value === "object" && typeof value.toNumber === "function") {
+      const parsed = value.toNumber()
+      return Number.isNaN(parsed) ? 0 : parsed
+    }
+    return 0
   }
-  return Number(deal.value ?? 0)
+
+  const invoicedAmount = normalizeValue(deal.invoicedAmount)
+  if (invoicedAmount > 0) {
+    return invoicedAmount
+  }
+
+  return normalizeValue(deal.value)
 }
 
 export interface ReportsData {
