@@ -84,6 +84,12 @@ jobs:
             if [ -f /tmp/agent.pid ]; then
               PREV_PID="$(cat /tmp/agent.pid || true)"
             fi
+            if [ -z "$PREV_PID" ] || ! pid_in_list "$PREV_PID" "$PREV_MATCHING_PIDS"; then
+              for pid in $PREV_MATCHING_PIDS; do
+                PREV_PID="$pid"
+                break
+              done
+            fi
             : > /tmp/agent.log
             DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
             CANDIDATE_PID="$!"
