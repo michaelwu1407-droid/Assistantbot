@@ -404,3 +404,7 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Updated project fix plan with [DONE] status markers for all verified/implemented items.
 - Why: Handing off remaining items (DM1, I2, G-series, DM5) to the next agent or developer.
 
+### 2026-03-09 01:04 (AEDT) - codex
+- Files: `.github/workflows/deploy-livekit.yml`, `docs/agent_change_log.md`
+- What changed: Updated the LiveKit deploy workflow to restore `livekit-agent/.env.local` from a persistent remote path (`$HOME/.config/earlymark/livekit-agent.env`), a legacy `/opt/livekit-agent/.env.local` file, or an optional `LIVEKIT_AGENT_ENV_B64` GitHub secret before restarting the worker.
+- Why: Voice-worker deploys were failing whenever `/tmp/livekit-agent/.env.local` disappeared, because the workflow treated a temporary staging path as the only source of truth for required runtime secrets.

@@ -39,11 +39,12 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_GIT_SHA: ${{ github.sha }}
+          LIVEKIT_AGENT_ENV_B64: ${{ secrets.LIVEKIT_AGENT_ENV_B64 }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DEPLOY_GIT_SHA
+          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64
           script: |
             set -eu
             agent_ps() {
@@ -84,10 +85,42 @@ jobs:
                 break
               done
             fi
-            mkdir -p /tmp/livekit-agent
-            cd /tmp/livekit-agent
-            if [ ! -f .env.local ]; then
-              echo "Missing /tmp/livekit-agent/.env.local on remote host."
+            TMP_AGENT_DIR="/tmp/livekit-agent"
+            TMP_ENV_PATH="$TMP_AGENT_DIR/.env.local"
+            PERSISTENT_ENV_DIR="$HOME/.config/earlymark"
+            PERSISTENT_ENV_PATH="$PERSISTENT_ENV_DIR/livekit-agent.env"
+            LEGACY_ENV_PATH="/opt/livekit-agent/.env.local"
+            mkdir -p "$TMP_AGENT_DIR" "$PERSISTENT_ENV_DIR"
+            chmod 700 "$PERSISTENT_ENV_DIR" || true
+            if [ -n "${LIVEKIT_AGENT_ENV_B64:-}" ]; then
+              if ! printf '%s' "$LIVEKIT_AGENT_ENV_B64" | base64 -d > "$PERSISTENT_ENV_PATH"; then
+                echo "LIVEKIT_AGENT_ENV_B64 is not valid base64."
+                if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
+                  echo "Previous agent is still running with PID $PREV_PID"
+                  ps -p "$PREV_PID" -o pid= -o args=
+                  echo "$PREV_PID" > /tmp/agent.pid
+                  echo "Keeping previous worker active; skipping restart."
+                  exit 0
+                fi
+                exit 1
+              fi
+              chmod 600 "$PERSISTENT_ENV_PATH"
+              echo "Restored voice-agent env from GitHub secret LIVEKIT_AGENT_ENV_B64."
+            elif [ -f "$TMP_ENV_PATH" ]; then
+              cp "$TMP_ENV_PATH" "$PERSISTENT_ENV_PATH"
+              chmod 600 "$PERSISTENT_ENV_PATH"
+              echo "Persisted existing voice-agent env from $TMP_ENV_PATH."
+            elif [ -f "$LEGACY_ENV_PATH" ]; then
+              cp "$LEGACY_ENV_PATH" "$PERSISTENT_ENV_PATH"
+              chmod 600 "$PERSISTENT_ENV_PATH"
+              echo "Restored voice-agent env from legacy path $LEGACY_ENV_PATH."
+            fi
+            if [ ! -f "$PERSISTENT_ENV_PATH" ]; then
+              echo "Missing persistent voice-agent env file."
+              echo "Expected one of:"
+              echo "  $PERSISTENT_ENV_PATH"
+              echo "  $LEGACY_ENV_PATH"
+              echo "Or configure the GitHub secret LIVEKIT_AGENT_ENV_B64 with base64-encoded livekit-agent/.env.local contents."
               if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
                 echo "Previous agent is still running with PID $PREV_PID"
                 ps -p "$PREV_PID" -o pid= -o args=
@@ -97,7 +130,10 @@ jobs:
               fi
               exit 1
             fi
-            find /tmp/livekit-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            find "$TMP_AGENT_DIR" -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            cp "$PERSISTENT_ENV_PATH" "$TMP_ENV_PATH"
+            chmod 600 "$TMP_ENV_PATH"
+            cd "$TMP_AGENT_DIR"
             if [ ! -f /tmp/livekit-agent-deploy.tgz ]; then
               echo "Missing /tmp/livekit-agent-deploy.tgz on remote host."
               if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
