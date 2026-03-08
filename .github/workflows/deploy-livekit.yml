@@ -46,6 +46,12 @@ jobs:
           envs: DEPLOY_GIT_SHA
           script: |
             set -eu
+            agent_running() {
+              if [ -n "${PID:-}" ] && ps -p "$PID" >/dev/null 2>&1; then
+                return 0
+              fi
+              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep >/dev/null 2>&1
+            }
             mkdir -p /tmp/livekit-agent
             cd /tmp/livekit-agent
             test -f .env.local
@@ -62,7 +68,7 @@ jobs:
             PID="$(cat /tmp/agent.pid)"
             STARTED=0
             for _ in 1 2 3 4 5 6; do
-              if ps -p "$PID" >/dev/null 2>&1; then
+              if agent_running; then
                 STARTED=1
                 break
               fi
@@ -72,14 +78,14 @@ jobs:
               tail -n 80 /tmp/agent.log || true
               exit 1
             fi
-            ps -p "$PID" -o pid= -o args=
+            ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep || true
             VERSION_LOGGED=0
             for _ in 1 2 3 4 5 6 7 8 9 10; do
               if grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log >/dev/null 2>&1; then
                 VERSION_LOGGED=1
                 break
               fi
-              if ! ps -p "$PID" >/dev/null 2>&1; then
+              if ! agent_running; then
                 tail -n 80 /tmp/agent.log || true
                 exit 1
               fi
