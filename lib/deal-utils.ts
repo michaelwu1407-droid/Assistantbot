@@ -119,4 +119,30 @@ export const STAGE_OPTIONS = [
   { value: "deleted", label: "Deleted jobs" },
 ];
 
+export const PRISMA_STAGE_TO_UI_STAGE: Record<string, string> = {
+  NEW: "new_request",
+  CONTACTED: "quote_sent",
+  NEGOTIATION: "scheduled",
+  SCHEDULED: "scheduled",
+  PIPELINE: "pipeline",
+  INVOICED: "ready_to_invoice",
+  PENDING_COMPLETION: "pending_approval",
+  WON: "completed",
+  LOST: "lost",
+  DELETED: "deleted",
+};
+
+export const PRISMA_STAGE_LABELS: Record<string, string> = {
+  NEW: "New request",
+  CONTACTED: "Quote sent",
+  NEGOTIATION: "Negotiation",
+  SCHEDULED: "Scheduled",
+  PIPELINE: "Pipeline",
+  INVOICED: "Ready to invoice",
+  PENDING_COMPLETION: "Pending approval",
+  WON: "Completed",
+  LOST: "Lost",
+  DELETED: "Deleted jobs",
+};
+
 export type ActualOutcome = typeof ACTUAL_OUTCOME_OPTIONS[number]['value'];

@@ -163,10 +163,10 @@ export async function renderTemplate(
 export async function seedPresetTemplates(workspaceId: string) {
   const presets = [
     {
-      name: "Follow-up after meeting",
+      name: "Follow-up after job visit",
       category: "follow-up",
-      subject: "Great meeting, {{contactName}}!",
-      body: "Hi {{contactName}},\n\nThanks for taking the time to meet today. As discussed, I'll be sending through the {{dealTitle}} proposal by end of week.\n\nLet me know if you have any questions in the meantime.\n\nCheers",
+      subject: "Thanks for your time, {{contactName}}",
+      body: "Hi {{contactName}},\n\nThanks for your time today. As discussed, I'll be sending through the {{dealTitle}} proposal by end of week.\n\nLet me know if you have any questions in the meantime.\n\nCheers",
       variables: ["contactName", "dealTitle"],
     },
     {
@@ -177,10 +177,10 @@ export async function seedPresetTemplates(workspaceId: string) {
       variables: ["contactName", "dealTitle", "amount"],
     },
     {
-      name: "Meeting booked",
-      category: "meeting",
-      subject: "Meeting confirmed: {{dealTitle}}",
-      body: "Hi {{contactName}},\n\nJust confirming our meeting for {{dealTitle}}.\n\nLooking forward to it.\n\nCheers",
+      name: "Job booked",
+      category: "job",
+      subject: "Job confirmed: {{dealTitle}}",
+      body: "Hi {{contactName}},\n\nJust confirming your job for {{dealTitle}}.\n\nLooking forward to it.\n\nCheers",
       variables: ["contactName", "dealTitle"],
     },
     {

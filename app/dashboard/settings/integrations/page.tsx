@@ -5,22 +5,29 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Calendar, Check, Loader2, RefreshCcw, ExternalLink, Copy, Zap, X, FileText, CreditCard } from "lucide-react"
+import { Mail, Calendar, Check, Loader2, Zap, X, FileText, CreditCard } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { getOrAllocateInboundEmail } from "@/actions/settings-actions"
-import { connectXero } from "@/actions/integration-actions"
+import { connectXero, disconnectEmailIntegration, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
 import { useShellStore } from "@/lib/store"
+
+interface EmailIntegrationView {
+    id: string
+    provider: string
+    emailAddress: string
+    isActive: boolean
+    lastSyncAt?: string | Date | null
+}
 
 export default function IntegrationsPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const userRole = useShellStore((s) => s.userRole)
-    const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle")
+    const [calendarStatus] = useState<"coming_soon">("coming_soon")
     const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
-    const [email, setEmail] = useState<string>("")
-    const [emailIntegrations, setEmailIntegrations] = useState<any[]>([])
+    const [emailIntegrations, setEmailIntegrations] = useState<EmailIntegrationView[]>([])
+    const [loadingIntegrations, setLoadingIntegrations] = useState(true)
 
     // RBAC: Team members cannot access integrations
     useEffect(() => {
@@ -30,35 +37,37 @@ export default function IntegrationsPage() {
     }, [userRole, router])
 
     useEffect(() => {
-        const fetchEmail = async () => {
-            try {
-                const addr = await getOrAllocateInboundEmail()
-                if (addr) setEmail(addr)
-            } catch (e) {
-                // ignore
-            }
-        }
-        fetchEmail()
+        refreshIntegrationStatus()
     }, [])
 
     // Handle OAuth redirects
     useEffect(() => {
         const success = searchParams.get("success")
         const error = searchParams.get("error")
-        if (success === "gmail_connected" || success === "outlook_connected") {
-            toast.success(`${success === "gmail_connected" ? "Gmail" : "Outlook"} connected successfully!`)
-            // Refresh email integrations
-            fetchEmailIntegrations()
+        if (success === "gmail_connected" || success === "outlook_connected" || success === "xero_connected") {
+            toast.success(
+                success === "xero_connected"
+                    ? "Xero connected successfully!"
+                    : `${success === "gmail_connected" ? "Gmail" : "Outlook"} connected successfully!`
+            )
+            refreshIntegrationStatus()
         }
         if (error) {
             toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)
         }
     }, [searchParams])
 
-    const fetchEmailIntegrations = async () => {
-        // This would fetch from your API
-        // For now, using mock data
-        setEmailIntegrations([])
+    const refreshIntegrationStatus = async () => {
+        setLoadingIntegrations(true)
+        try {
+            const status = await getIntegrationStatus()
+            setEmailIntegrations(status.emailIntegrations)
+            setXeroStatus(status.xeroConnected ? "connected" : "idle")
+        } catch {
+            toast.error("Failed to load integration status")
+        } finally {
+            setLoadingIntegrations(false)
+        }
     }
 
     const handleConnectEmail = async (provider: "gmail" | "outlook") => {
@@ -77,7 +86,7 @@ export default function IntegrationsPage() {
 
     const handleDisconnectEmail = async (integrationId: string) => {
         try {
-            // This would call your API to disconnect
+            await disconnectEmailIntegration(integrationId)
             toast.success("Email integration disconnected")
             setEmailIntegrations(prev => prev.filter(i => i.id !== integrationId))
         } catch {
@@ -100,22 +109,6 @@ export default function IntegrationsPage() {
             setXeroStatus("idle")
         }
     }
-
-    const handleConnect = () => {
-        setStatus("connecting")
-
-        // Mock connection delay
-        setTimeout(() => {
-            setStatus("connected")
-            toast.success("Google Calendar connected successfully")
-        }, 2000)
-    }
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(email)
-        toast.success("Copied to clipboard")
-    }
-
     return (
         <div className="space-y-6">
             <div>
@@ -142,7 +135,7 @@ export default function IntegrationsPage() {
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>How it works:</strong> Connect your email account once and we'll automatically create filters to watch for lead notifications from all major platforms. No manual setup required - we handle everything!
+                                <strong>How it works:</strong> Connect your email account once and we&apos;ll automatically create filters to watch for lead notifications from all major platforms. No manual setup required - we handle everything!
                             </p>
                         </div>
 
@@ -172,7 +165,12 @@ export default function IntegrationsPage() {
                             </Button>
                         </div>
 
-                        {emailIntegrations.length > 0 && (
+                        {loadingIntegrations ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading connected accounts...
+                            </div>
+                        ) : emailIntegrations.length > 0 && (
                             <div className="space-y-2 pt-2">
                                 <label className="text-sm font-medium">Connected Accounts</label>
                                 <div className="space-y-2">
@@ -209,7 +207,7 @@ export default function IntegrationsPage() {
                             Google Calendar
                         </CardTitle>
                         <CardDescription>
-                            Two-way sync so jobs appear in your Google Calendar. [To be built]
+                            Calendar sync is not wired yet, so this section is intentionally read-only instead of pretending to connect.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -223,39 +221,18 @@ export default function IntegrationsPage() {
                             <div className="space-y-1">
                                 <h4 className="font-medium">Calendar Sync</h4>
                                 <p className="text-sm text-slate-500">
-                                    {status === "connected"
-                                        ? "Sync is active. External events will appear in Scheduler."
-                                        : "Two-way sync with your primary Google Calendar."}
+                                    Calendar sync is not active yet. The scheduler still works locally inside Earlymark.
                                 </p>
                             </div>
                         </div>
                     </CardContent>
                     <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
-                        {status === "connected" ? (
-                            <div className="flex items-center text-sm text-emerald-600 font-medium">
-                                <Check className="h-4 w-4 mr-2" />
-                                Connected as user@example.com
-                            </div>
-                        ) : (
-                            <div className="text-xs text-slate-500">
-                                Permissions: Read/Write Events
-                            </div>
-                        )}
-
-                        {status === "idle" && (
-                            <Button onClick={handleConnect}>Connect Calendar</Button>
-                        )}
-                        {status === "connecting" && (
-                            <Button disabled>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Connecting...
-                            </Button>
-                        )}
-                        {status === "connected" && (
-                            <Button variant="outline" onClick={() => setStatus("idle")}>
-                                Disconnect
-                            </Button>
-                        )}
+                        <div className="text-xs text-slate-500">
+                            Permissions planned: Read/Write Events
+                        </div>
+                        <Button variant="outline" disabled={calendarStatus === "coming_soon"}>
+                            Coming soon
+                        </Button>
                     </CardFooter>
                 </Card>
 
@@ -306,8 +283,8 @@ export default function IntegrationsPage() {
                             </Button>
                         )}
                         {xeroStatus === "connected" && (
-                            <Button variant="outline" onClick={() => setXeroStatus("idle")}>
-                                Disconnect
+                            <Button variant="outline" disabled>
+                                Connected
                             </Button>
                         )}
                     </CardFooter>

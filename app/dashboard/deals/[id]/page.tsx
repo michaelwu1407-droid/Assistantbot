@@ -1,13 +1,14 @@
 import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, ImageIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { format } from "date-fns"
+import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -23,17 +24,6 @@ function stageToVariant(stage: string): "new" | "quote" | "scheduled" | "awaitin
     LOST: "complete",
   }
   return map[stage] ?? "default"
-}
-
-const STAGE_LABELS: Record<string, string> = {
-  NEW: "New request",
-  CONTACTED: "Quote sent",
-  NEGOTIATION: "Scheduled",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Ready to be invoiced",
-  WON: "Completed",
-  LOST: "Lost",
 }
 
 interface PageProps {
@@ -60,16 +50,28 @@ export default async function DealDetailPage({ params }: PageProps) {
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
-  const stageLabel = STAGE_LABELS[deal.stage] ?? deal.stage
+  const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 overflow-hidden">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
+        <Link href="/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
+          <Home className="h-4 w-4" />
+          Dashboard
+        </Link>
+        <ChevronRight className="h-4 w-4 text-slate-400" />
+        <span className="text-slate-600">Jobs</span>
+        <ChevronRight className="h-4 w-4 text-slate-400" />
+        <span className="font-medium text-slate-900">{deal.title}</span>
+      </nav>
+
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
             className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-900 transition-colors"
+            aria-label="Back to dashboard"
           >
             <ChevronLeft className="w-5 h-5" />
           </Link>
@@ -205,7 +207,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
                         <span className="text-slate-500 ml-2">${Number(d.value || 0).toLocaleString("en-AU")}</span>
-                        <span className="text-slate-400 text-xs block mt-0.5">{STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
+                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
                       </Link>
                     ))
                   )}

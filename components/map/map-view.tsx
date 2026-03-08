@@ -4,9 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { Compass, CalendarClock, Layers, Navigation, MapPin, Clock, ChevronRight, Route, CheckCircle2, MessageSquare } from "lucide-react"
+import { AlertCircle, CalendarClock, CheckCircle2, ChevronRight, Clock, Compass, Layers, MapPin, MessageSquare, Navigation, Route } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { updateJobStatus } from "@/actions/tradie-actions"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 
@@ -60,7 +59,6 @@ function getJobPosition(job: Job): [number, number] {
   if (job.lat != null && job.lng != null) {
     return [job.lat, job.lng]
   }
-  // Fallback so jobs still appear/list when geo hasn't been resolved yet.
   const offset = (job.id.charCodeAt(0) % 10 - 5) * 0.004
   return [DEFAULT_CENTER[0] + offset, DEFAULT_CENTER[1] + offset]
 }
@@ -88,17 +86,14 @@ function isSameDay(a: Date, b: Date) {
 }
 
 export default function MapView({ jobs, todayIds }: MapViewProps) {
-  const [isMounted, setIsMounted] = useState(false)
   const [showToday, setShowToday] = useState(true)
   const [showUpcoming, setShowUpcoming] = useState(true)
   const [legendOpen, setLegendOpen] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [startedJobId, setStartedJobId] = useState<string | null>(null)
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null)
-  const [jobListExpanded, setJobListExpanded] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isRouteMode, setIsRouteMode] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
   const [viewJobDealId, setViewJobDealId] = useState<string | null>(null)
@@ -108,11 +103,11 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     const today: Job[] = []
     const upcoming: Job[] = []
     const now = new Date()
-    jobs.forEach((j) => {
-      const d = j.scheduledAt ? new Date(j.scheduledAt) : null
-      const isToday = todayIds ? todayIds.has(j.id) : d ? isSameDay(d, now) : false
-      if (isToday) today.push(j)
-      else upcoming.push(j)
+    jobs.forEach((job) => {
+      const date = job.scheduledAt ? new Date(job.scheduledAt) : null
+      const isToday = todayIds ? todayIds.has(job.id) : date ? isSameDay(date, now) : false
+      if (isToday) today.push(job)
+      else upcoming.push(job)
     })
     today.sort((a, b) => {
       const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0
@@ -122,18 +117,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     return { jobsToday: today, jobsUpcoming: upcoming }
   }, [jobs, todayIds])
 
-  // Identifies the immediate next sequence target
-  const activeTargetJob = useMemo(() => {
-    return jobsToday.find(j => j.status !== "COMPLETED") || null
-  }, [jobsToday])
-
-  // Automatically focus on the active target when Route Mode activates
-  useEffect(() => {
-    if (isRouteMode && activeTargetJob) {
-      setFlyTarget(getJobPosition(activeTargetJob))
-      setSelectedJobId(activeTargetJob.id)
-    }
-  }, [isRouteMode, activeTargetJob])
+  const activeTargetJob = useMemo(() => jobsToday.find((job) => job.status !== "COMPLETED") || null, [jobsToday])
 
   const selectJob = useCallback((job: Job) => {
     setSelectedJobId(job.id)
@@ -144,7 +128,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     setStartedJobId(job.id)
     setSelectedJobId(job.id)
     setFlyTarget(getJobPosition(job))
-    // Open Google Maps navigation to this job
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")
   }, [])
 
@@ -159,67 +142,60 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     setStartedJobId(null)
   }, [])
 
-  useEffect(() => { setIsMounted(true) }, [])
-
-  if (!isMounted) {
-    return (
-      <div className="h-full w-full bg-slate-100 flex items-center justify-center text-slate-500">
-        Loading map…
-      </div>
-    )
-  }
-
   const visiblePositions: [number, number][] = [
     ...(showToday ? jobsToday.map(getJobPosition) : []),
     ...(showUpcoming && !isRouteMode ? jobsUpcoming.map(getJobPosition) : []),
   ]
 
-  // Filter map markers: In Route mode, ONLY show the active target (or nothing if done)
-  const visibleTodayJobs = isRouteMode
-    ? (activeTargetJob ? [activeTargetJob] : [])
-    : jobsToday;
+  const visibleTodayJobs = isRouteMode ? (activeTargetJob ? [activeTargetJob] : []) : jobsToday
+  const effectiveSelectedJobId = isRouteMode && activeTargetJob ? activeTargetJob.id : selectedJobId
+  const effectiveFlyTarget = isRouteMode && activeTargetJob ? getJobPosition(activeTargetJob) : flyTarget
 
   return (
-    <div className="h-full w-full relative flex min-h-0">
-      {/* Job List Sidebar — collapsible */}
-      <div className={cn("shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10 transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
+    <div className="relative flex h-full w-full min-h-0">
+      <div className={cn("z-10 flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
         {sidebarCollapsed ? (
-          <div className="flex flex-col items-center py-3 gap-2">
+          <div className="flex flex-col items-center gap-2 py-3">
             <button
               type="button"
               onClick={() => setSidebarCollapsed(false)}
-              className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 text-slate-600"
-              title="Expand Today's Jobs"
+              className="flex flex-col items-center gap-1 rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+              title="Expand today's jobs"
+              aria-label="Expand today's jobs sidebar"
             >
               <MapPin className="h-4 w-4 text-teal-600" />
               <span className="text-[10px] font-medium">Jobs</span>
-              <ChevronRight className="h-4 w-4 text-slate-400 rotate-180" />
+              <ChevronRight className="h-4 w-4 rotate-180 text-slate-400" />
             </button>
           </div>
         ) : (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-3">
+          <div className="flex h-full flex-col">
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
                     <MapPin className="h-4 w-4 text-teal-600" />
                     Today&apos;s Jobs
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
                 </div>
-                <button type="button" onClick={() => setSidebarCollapsed(true)} className="p-2 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors" title="Minimise panel">
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-200"
+                  title="Minimise panel"
+                  aria-label="Collapse today's jobs sidebar"
+                >
                   <ChevronRight className="h-5 w-5 rotate-180 stroke-[2.5]" />
                 </button>
               </div>
 
               <button
+                type="button"
                 onClick={() => setIsRouteMode(!isRouteMode)}
                 className={cn(
-                  "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-colors",
-                  isRouteMode
-                    ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                  "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+                  isRouteMode ? "bg-slate-900 text-white hover:bg-slate-800" : "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                 )}
               >
                 <Route className="h-4 w-4" />
@@ -227,97 +203,107 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
               </button>
             </div>
 
-            {/* Job Cards */}
-            {jobListExpanded && (
-              <div className="flex-1 overflow-y-auto">
-                {!isRouteMode ? (
-                  // Standard List View
-                  jobsToday.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-500">No jobs scheduled for today.</div>
-                  ) : jobsToday.map((job) => {
+            <div className="flex-1 overflow-y-auto">
+              {jobsUpcoming.length > 0 && !isRouteMode && (
+                <div className="border-b border-slate-100 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
+                  {jobsUpcoming.length} upcoming job{jobsUpcoming.length === 1 ? "" : "s"} are on the map too.
+                </div>
+              )}
+
+              {!isRouteMode ? (
+                jobsToday.length === 0 ? (
+                  <div className="p-4">
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                        <div>
+                          <p className="font-medium text-slate-900">No jobs scheduled for today.</p>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">Upcoming booked jobs still appear on the map so you can plan ahead.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  jobsToday.map((job) => {
                     const time = job.scheduledAt
                       ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
                       : "No time set"
-                    const isSelected = job.id === selectedJobId
+                    const isSelected = job.id === effectiveSelectedJobId
                     const isStarted = job.id === startedJobId
                     return (
-                      <div key={job.id} className={cn(
-                        "border-b border-slate-100 transition-all",
-                        isSelected && "bg-blue-50",
-                        isStarted && "bg-emerald-50"
-                      )}>
+                      <div key={job.id} className={cn("border-b border-slate-100 transition-all", isSelected && "bg-blue-50", isStarted && "bg-emerald-50")}>
                         <button
+                          type="button"
                           onClick={() => selectJob(job)}
                           className={cn(
-                            "w-full text-left p-3 border-l-4 transition-all",
-                            isStarted
-                              ? "border-l-emerald-500"
-                              : isSelected
-                                ? "border-l-blue-500"
-                                : "border-l-transparent hover:bg-slate-50"
+                            "w-full border-l-4 p-3 text-left transition-all",
+                            isStarted ? "border-l-emerald-500" : isSelected ? "border-l-blue-500" : "border-l-transparent hover:bg-slate-50"
                           )}
+                          aria-label={`Select job ${job.title} for ${job.clientName}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={cn(
-                              "w-2.5 h-2.5 rounded-full shrink-0 mt-1.5",
-                              isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500"
-                            )} />
-                            <div className="flex-1 min-w-0">
+                            <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500")} />
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-slate-900 truncate">{job.clientName}</p>
+                                <p className="truncate text-sm font-semibold text-slate-900">{job.clientName}</p>
                                 {isStarted && (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                                  <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
                                     In Progress
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-600 truncate">{job.title}</p>
-                              <div className="flex items-center gap-3 mt-1">
-                                <span className="text-xs text-slate-400 flex items-center gap-1 truncate">
-                                  <MapPin className="h-3 w-3 shrink-0" />{job.address}
+                              <p className="truncate text-xs text-slate-600">{job.title}</p>
+                              <div className="mt-1 flex items-center gap-3">
+                                <span className="flex items-center gap-1 truncate text-xs text-slate-400">
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  {job.address}
                                 </span>
                               </div>
-                              <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3 w-3 shrink-0" />{time}
+                              <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                {time}
                               </span>
                             </div>
                           </div>
                         </button>
 
-                        {/* View Job (deal card modal) / Open in Google Maps — only shown when selected */}
                         {isSelected && (
-                          <div className="px-3 pb-3 flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 px-3 pb-3">
                             <button
+                              type="button"
                               onClick={() => {
                                 setViewJobTab(undefined)
                                 setViewJobDealId(job.id)
                               }}
-                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                               View Job
                             </button>
                             <button
+                              type="button"
                               onClick={() => {
                                 setViewJobTab("activities")
                                 setViewJobDealId(job.id)
                               }}
-                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               Message
                             </button>
                             <button
+                              type="button"
                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200"
                             >
                               <Navigation className="h-3.5 w-3.5" />
                               Open in Google Maps
                             </button>
                             {isStarted && (
                               <button
+                                type="button"
                                 onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
                               >
                                 <Navigation className="h-3.5 w-3.5" />
                                 Navigate Again
@@ -328,108 +314,104 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                       </div>
                     )
                   })
-                ) : (
-                  // Route Sequential View
-                  <div className="p-3 flex flex-col h-full">
-                    {activeTargetJob ? (
-                      <div className="bg-white border-2 border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-                        <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Active Target</span>
+                )
+              ) : (
+                <div className="flex h-full flex-col p-3">
+                  {activeTargetJob ? (
+                    <div className="flex flex-col overflow-hidden rounded-xl border-2 border-slate-200 bg-white shadow-sm">
+                      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Active Target</span>
+                      </div>
+                      <div className="flex flex-col gap-3 p-4">
+                        <div>
+                          <h4 className="text-lg font-bold leading-tight text-slate-900">{activeTargetJob.clientName}</h4>
+                          <p className="mt-0.5 text-sm text-slate-600">{activeTargetJob.title}</p>
                         </div>
-                        <div className="p-4 flex flex-col gap-3">
-                          <div>
-                            <h4 className="text-lg font-bold text-slate-900 leading-tight">{activeTargetJob.clientName}</h4>
-                            <p className="text-sm text-slate-600 mt-0.5">{activeTargetJob.title}</p>
+                        <div className="space-y-2 rounded-lg bg-slate-50 p-3">
+                          <div className="flex items-start gap-2 text-sm text-slate-700">
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                            <span>{activeTargetJob.address}</span>
                           </div>
-                          <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                            <div className="flex items-start gap-2 text-sm text-slate-700">
-                              <MapPin className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
-                              <span>{activeTargetJob.address}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-700">
-                              <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-                              <span>{activeTargetJob.scheduledAt ? new Date(activeTargetJob.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }) : "No time set"}</span>
-                            </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                            <span>{activeTargetJob.scheduledAt ? new Date(activeTargetJob.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }) : "No time set"}</span>
                           </div>
+                        </div>
 
-                          {/* Route Actions */}
-                          <div className="flex flex-col gap-2 mt-2">
+                        <div className="mt-2 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startJob(activeTargetJob)}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                          >
+                            <Navigation className="h-4 w-4" />
+                            Navigate to Job
+                          </button>
+
+                          {activeTargetJob.id === startedJobId && (
                             <button
-                              onClick={() => startJob(activeTargetJob)}
-                              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                              type="button"
+                              onClick={() => finishJob(activeTargetJob)}
+                              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
                             >
-                              <Navigation className="h-4 w-4" />
-                              Navigate to Job
+                              <CheckCircle2 className="h-4 w-4" />
+                              Complete & Next
                             </button>
-
-                            {activeTargetJob.id === startedJobId && (
-                              <button
-                                onClick={() => finishJob(activeTargetJob)}
-                                disabled={isCompleting}
-                                className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white text-sm font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                                {isCompleting ? "Finishing..." : "Complete & Next"}
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-slate-200">
-                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                          <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                        </div>
-                        <h4 className="text-base font-bold text-slate-900">All Done!</h4>
-                        <p className="text-sm text-slate-500 mt-1">You've completed all scheduled jobs for today.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                       </div>
-                    )}
+                      <h4 className="text-base font-bold text-slate-900">All Done!</h4>
+                      <p className="mt-1 text-sm text-slate-500">You&apos;ve completed all scheduled jobs for today.</p>
+                    </div>
+                  )}
 
-                    {/* Future Queue summary */}
-                    {activeTargetJob && (
-                      <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-xs uppercase tracking-wider font-bold text-slate-400 mb-2 px-1">Up Next</p>
-                        <div className="space-y-2">
-                          {jobsToday.filter(j => j.status !== "COMPLETED" && j.id !== activeTargetJob.id).map((job, idx) => (
-                            <div key={job.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 opacity-60">
-                              <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold shrink-0">
-                                {idx + 2}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-slate-700 truncate">{job.clientName}</p>
-                                <p className="text-[10px] text-slate-500 truncate">{job.address}</p>
-                              </div>
+                  {activeTargetJob && (
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                      <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">Up Next</p>
+                      <div className="space-y-2">
+                        {jobsToday.filter((job) => job.status !== "COMPLETED" && job.id !== activeTargetJob.id).map((job, idx) => (
+                          <div key={job.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 opacity-60">
+                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-500">
+                              {idx + 2}
                             </div>
-                          ))}
-                        </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-bold text-slate-700">{job.clientName}</p>
+                              <p className="truncate text-[10px] text-slate-500">{job.address}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Map */}
-      <div className="flex-1 min-w-0 relative min-h-[300px]">
+      <div className="relative min-h-[300px] min-w-0 flex-1">
         <MapContainer
           center={DEFAULT_CENTER}
           zoom={12}
-          scrollWheelZoom={true}
-          className="h-full w-full z-0 rounded-xl"
+          scrollWheelZoom
+          className="h-full w-full rounded-xl"
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer attribution={TILE_ATTR} url={TILE_URL} />
-          {!selectedJobId && <FitBounds positions={visiblePositions} />}
-          <FlyToJob position={flyTarget} />
+          {!effectiveSelectedJobId && <FitBounds positions={visiblePositions} />}
+          <FlyToJob position={effectiveFlyTarget} />
 
-          {/* Today's markers (Filtered if Route Mode is active) */}
           {showToday && visibleTodayJobs.map((job) => {
             const [lat, lng] = getJobPosition(job)
-            const isSelected = isRouteMode || job.id === selectedJobId
+            const isSelected = isRouteMode || job.id === effectiveSelectedJobId
             const isStarted = job.id === startedJobId
             return (
               <Marker
@@ -439,41 +421,50 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                 eventHandlers={{ click: () => selectJob(job) }}
               >
                 <Popup>
-                  <div className="text-slate-900 min-w-[180px]">
+                  <div className="min-w-[180px] text-slate-900">
                     <strong className="block text-sm font-bold">{job.clientName}</strong>
                     <span className="text-xs text-slate-600">{job.title}</span>
                     <br />
                     <span className="text-xs text-slate-500">{job.address}</span>
                     {job.scheduledAt && (
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="mt-1 text-[11px] text-slate-400">
                         {new Date(job.scheduledAt).toLocaleDateString(undefined, {
-                          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
                         })}
                       </p>
                     )}
-                    <div className="flex gap-2 w-full mt-2">
+                    <div className="mt-2 flex w-full gap-2">
                       <button
+                        type="button"
                         onClick={() => startJob(job)}
-                        className="flex-1 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
                       >
-                        <Navigation className="h-3 w-3" /> {job.id === startedJobId ? "Navigate" : "Start Job"}
+                        <Navigation className="h-3 w-3" />
+                        {job.id === startedJobId ? "Navigate" : "Start Job"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           setViewJobTab("activities")
                           setViewJobDealId(job.id)
                         }}
-                        className="flex-1 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-md bg-indigo-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                       >
-                        <MessageSquare className="h-3 w-3" /> Message
+                        <MessageSquare className="h-3 w-3" />
+                        Message
                       </button>
                       {isRouteMode && job.id === startedJobId && (
                         <button
+                          type="button"
                           onClick={() => finishJob(job)}
-                          disabled={isCompleting}
-                          className="flex-1 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-md hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1"
+                          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-500 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
                         >
-                          <CheckCircle2 className="h-3 w-3" /> Finish
+                          <CheckCircle2 className="h-3 w-3" />
+                          Finish
                         </button>
                       )}
                     </div>
@@ -483,21 +474,24 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
             )
           })}
 
-          {/* Upcoming markers (Hidden in Route Mode) */}
           {showUpcoming && !isRouteMode && jobsUpcoming.map((job) => {
             const [lat, lng] = getJobPosition(job)
             return (
               <Marker key={job.id} position={[lat, lng]} icon={defaultIconUpcoming}>
                 <Popup>
-                  <div className="text-slate-900 min-w-[160px]">
+                  <div className="min-w-[160px] text-slate-900">
                     <strong className="block text-sm font-bold">{job.clientName}</strong>
                     <span className="text-xs text-slate-600">{job.title}</span>
                     <br />
                     <span className="text-xs text-slate-500">{job.address}</span>
                     {job.scheduledAt && (
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="mt-1 text-[11px] text-slate-400">
                         {new Date(job.scheduledAt).toLocaleDateString(undefined, {
-                          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
                         })}
                       </p>
                     )}
@@ -508,32 +502,34 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
           })}
         </MapContainer>
 
-        {/* Legend (Hidden in Route Mode) */}
         {!isRouteMode && (
           <div className="absolute bottom-4 left-4 z-[1000]">
             <button
               type="button"
-              onClick={() => setLegendOpen((o) => !o)}
+              onClick={() => setLegendOpen((open) => !open)}
               className={cn(
-                "rounded-xl border border-slate-200 bg-white/95 shadow-lg transition-all flex items-center gap-2",
+                "flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 shadow-lg transition-all",
                 legendOpen ? "p-3" : "px-3 py-2"
               )}
+              aria-label={legendOpen ? "Hide map layers" : "Show map layers"}
             >
-              <Layers className="h-4 w-4 text-slate-500 shrink-0" />
+              <Layers className="h-4 w-4 shrink-0 text-slate-500" />
               <span className="text-xs font-semibold text-slate-600">Layers</span>
             </button>
             {legendOpen && (
-              <div className="absolute left-0 bottom-full mb-1 rounded-xl border border-slate-200 bg-white/95 shadow-lg p-3 space-y-2 min-w-[180px]">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={showToday} onChange={(e) => setShowToday(e.target.checked)} className="rounded border-slate-300" />
+              <div className="absolute bottom-full left-0 mb-1 min-w-[180px] space-y-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input type="checkbox" checked={showToday} onChange={(event) => setShowToday(event.target.checked)} className="rounded border-slate-300" />
                   <span className="flex items-center gap-1.5 text-sm text-slate-700">
-                    <Compass className="h-4 w-4 text-teal-600" />Today&apos;s jobs
+                    <Compass className="h-4 w-4 text-teal-600" />
+                    Today&apos;s jobs
                   </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={showUpcoming} onChange={(e) => setShowUpcoming(e.target.checked)} className="rounded border-slate-300" />
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input type="checkbox" checked={showUpcoming} onChange={(event) => setShowUpcoming(event.target.checked)} className="rounded border-slate-300" />
                   <span className="flex items-center gap-1.5 text-sm text-slate-700">
-                    <CalendarClock className="h-4 w-4 text-slate-500" />Upcoming jobs
+                    <CalendarClock className="h-4 w-4 text-slate-500" />
+                    Upcoming jobs
                   </span>
                 </label>
               </div>
@@ -542,7 +538,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
         )}
       </div>
 
-      {/* Completion Modal Integration */}
       {jobToComplete && (
         <JobCompletionModal
           open={isCompletionModalOpen}

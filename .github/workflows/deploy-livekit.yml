@@ -59,12 +59,36 @@ jobs:
             : > /tmp/agent.log
             DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
             echo $! > /tmp/agent.pid
-            sleep 5
             PID="$(cat /tmp/agent.pid)"
-            if ! ps -p "$PID" >/dev/null 2>&1; then
+            STARTED=0
+            for _ in 1 2 3 4 5 6; do
+              if ps -p "$PID" >/dev/null 2>&1; then
+                STARTED=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$STARTED" -ne 1 ]; then
               tail -n 80 /tmp/agent.log || true
               exit 1
             fi
             ps -p "$PID" -o pid= -o args=
+            VERSION_LOGGED=0
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+              if grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log >/dev/null 2>&1; then
+                VERSION_LOGGED=1
+                break
+              fi
+              if ! ps -p "$PID" >/dev/null 2>&1; then
+                tail -n 80 /tmp/agent.log || true
+                exit 1
+              fi
+              sleep 2
+            done
+            if [ "$VERSION_LOGGED" -ne 1 ]; then
+              echo "Timed out waiting for deployed git SHA to appear in agent log"
+              tail -n 80 /tmp/agent.log || true
+              exit 1
+            fi
             grep -F "\"gitSha\":\"$DEPLOY_GIT_SHA\"" /tmp/agent.log
             tail -n 40 /tmp/agent.log || true

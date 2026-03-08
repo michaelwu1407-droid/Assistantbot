@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { AutomationView, toggleAutomation, createAutomation } from "@/actions/automation-actions"
+import { ActionConfig, AutomationView, TriggerConfig, toggleAutomation, createAutomation } from "@/actions/automation-actions"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Zap, ArrowRight, Bell, CheckSquare, Mail } from "lucide-react"
 import { toast } from "sonner"
@@ -56,11 +56,12 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
         setIsLoading(true)
         try {
             // Map simple form to complex JSON structure
-            const trigger: any = { event: triggerEvent }
+            const trigger: TriggerConfig = { event: triggerEvent as TriggerConfig["event"] }
             if (triggerEvent === "deal_stale") trigger.threshold_days = 7
             if (triggerEvent === "task_overdue") trigger.threshold_days = 2
+            if (triggerEvent === "deal_stage_change") trigger.stage = "CONTACTED"
 
-            const action: any = { type: actionType, message: message || "Automated Action" }
+            const action: ActionConfig = { type: actionType as ActionConfig["type"], message: message || "Automated Action" }
 
             const res = await createAutomation({
                 name,
@@ -72,8 +73,21 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
             if (res.success) {
                 toast.success("Automation created")
                 setIsCreateOpen(false)
-                // In a real app we'd re-fetch, but for now we'll reload or just wait for next visit
-                window.location.reload()
+                setAutomations(prev => [
+                    {
+                        id: res.automationId!,
+                        name,
+                        enabled: true,
+                        trigger,
+                        action,
+                        lastFiredAt: null,
+                    },
+                    ...prev,
+                ])
+                setName("")
+                setTriggerEvent("new_lead")
+                setActionType("notify")
+                setMessage("")
             } else {
                 toast.error(res.error || "Failed to create")
             }
@@ -141,6 +155,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                                         <SelectContent>
                                             <SelectItem value="new_lead">New Lead Created</SelectItem>
                                             <SelectItem value="deal_stale">Deal is Stale (7 days)</SelectItem>
+                                            <SelectItem value="deal_stage_change">Deal Reaches Stage</SelectItem>
                                             <SelectItem value="task_overdue">Task Overdue</SelectItem>
                                         </SelectContent>
                                     </Select>

@@ -27,6 +27,9 @@ export function Navbar() {
                 <Link href="/features" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Product
                 </Link>
+                <Link href="/solutions" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
+                    Solutions
+                </Link>
                 <Link href="/tutorial" className="text-[15px] font-medium text-slate-body hover:text-midnight transition-colors">
                     Tutorial
                 </Link>
@@ -60,6 +63,7 @@ export function Navbar() {
                 <div className="absolute top-16 left-0 right-0 mx-4 p-5 rounded-2xl bg-white shadow-xl border border-slate-200 md:hidden flex flex-col gap-4 z-50 animate-in fade-in slide-in-from-top-2">
                     <Link href="/" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Home</Link>
                     <Link href="/features" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Product</Link>
+                    <Link href="/solutions" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Solutions</Link>
                     <Link href="/tutorial" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Tutorial</Link>
                     <Link href="#pricing" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Pricing</Link>
                     <hr className="border-slate-100" />

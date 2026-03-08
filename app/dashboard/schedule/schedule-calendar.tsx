@@ -30,17 +30,22 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const [view, setView] = useState<ViewMode>("month")
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null)
+  const [localDeals, setLocalDeals] = useState(deals)
+
+  useEffect(() => {
+    setLocalDeals(deals)
+  }, [deals])
 
   const filteredDeals = filterMemberId
-    ? deals.filter(d => d.assignedToId === filterMemberId)
-    : deals
+    ? localDeals.filter(d => d.assignedToId === filterMemberId)
+    : localDeals
 
   useEffect(() => {
     const selection = selectedDealId
-      ? [{ id: selectedDealId, title: deals.find((deal) => deal.id === selectedDealId)?.title }]
+      ? [{ id: selectedDealId, title: localDeals.find((deal) => deal.id === selectedDealId)?.title }]
       : []
     publishCrmSelection(selection)
-  }, [selectedDealId, deals])
+  }, [selectedDealId, localDeals])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,8 +96,8 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     if (!dealId) return
 
     // Calculate new date with time preserved if possible
-    const deal = deals.find(d => d.id === dealId)
-    let newDate = new Date(date)
+    const deal = localDeals.find(d => d.id === dealId)
+    const newDate = new Date(date)
     const hasExplicitTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0 || date.getMilliseconds() !== 0
     if (deal?.scheduledAt) {
       const oldDate = new Date(deal.scheduledAt)
@@ -112,9 +117,16 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
         await updateDealAssignedTo(dealId, memberId || null)
       }
 
+      setLocalDeals((prev) =>
+        prev.map((item) =>
+          item.id === dealId
+            ? { ...item, scheduledAt: newDate, assignedToId: memberId !== undefined ? (memberId || null) : item.assignedToId }
+            : item
+        )
+      )
+
       const { toast } = await import("sonner")
       toast.success("Job updated")
-      window.location.reload() // Quickest way to sync all state
     } catch (err) {
       console.error(err)
     }
@@ -146,7 +158,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div key={d} className="p-1.5 border-b border-r border-slate-100 font-medium text-slate-500 bg-slate-50/50">{d}</div>
         ))}
-        {days.map((day, i) => {
+        {days.map((day) => {
           const key = format(day, "yyyy-MM-dd")
           const dayDeals = dealsByDay[key] ?? []
           const isToday = isSameDay(day, new Date())
@@ -334,15 +346,31 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
 
   // ─── Mobile List View ─────────────────────
   const renderMobileList = () => {
-    // Sort all deals that have a scheduledAt date
+    const dayStart = new Date(current)
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(current)
+    dayEnd.setHours(23, 59, 59, 999)
+    const start =
+      view === "month" ? startOfMonth(current)
+        : view === "week" ? startOfWeek(current, { weekStartsOn: 0 })
+          : dayStart
+    const end =
+      view === "month" ? endOfMonth(current)
+        : view === "week" ? endOfWeek(current, { weekStartsOn: 0 })
+          : dayEnd
+
     const sortedDeals = filteredDeals
       .filter(d => d.scheduledAt)
+      .filter(d => {
+        const when = new Date(d.scheduledAt!)
+        return when >= start && when <= end
+      })
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
 
     if (sortedDeals.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-          <p className="text-sm font-medium">No jobs scheduled.</p>
+          <p className="text-base font-semibold">No jobs scheduled for this {view}.</p>
         </div>
       )
     }

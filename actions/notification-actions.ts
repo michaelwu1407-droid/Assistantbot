@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -16,6 +17,22 @@ export interface NotificationView {
   createdAt: Date;
 }
 
+interface NotificationRecordExtras {
+  actionType?: string | null;
+  actionPayload?: Record<string, unknown> | null;
+}
+
+type NotificationSeverity = "INFO" | "SUCCESS" | "WARNING" | "ERROR";
+
+function normalizeNotificationType(type?: string): NotificationSeverity {
+  const normalized = (type ?? "INFO").toUpperCase();
+  if (normalized === "AI" || normalized === "SYSTEM") return "INFO";
+  if (normalized === "SUCCESS" || normalized === "WARNING" || normalized === "ERROR") {
+    return normalized;
+  }
+  return "INFO";
+}
+
 /**
  * Get unread notifications for a user.
  */
@@ -26,17 +43,20 @@ export async function getNotifications(userId: string): Promise<NotificationView
     take: 20,
   });
 
-  return notifications.map((n) => ({
-    id: n.id,
-    title: n.title,
-    message: n.message,
-    type: n.type,
-    read: n.read,
-    link: n.link,
-    actionType: (n as any).actionType ?? null,
-    actionPayload: (n as any).actionPayload as Record<string, unknown> | null ?? null,
-    createdAt: n.createdAt,
-  }));
+  return notifications.map((n) => {
+    const extra = n as typeof n & NotificationRecordExtras;
+    return {
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      read: n.read,
+      link: n.link,
+      actionType: extra.actionType ?? null,
+      actionPayload: extra.actionPayload ?? null,
+      createdAt: n.createdAt,
+    };
+  });
 }
 
 /**
@@ -82,10 +102,10 @@ export async function createNotification(data: {
       userId: data.userId,
       title: data.title,
       message: data.message,
-      type: (data.type || "INFO") as any,
+      type: normalizeNotificationType(data.type),
       link: data.link,
       ...(data.actionType ? { actionType: data.actionType } : {}),
-      ...(data.actionPayload ? { actionPayload: data.actionPayload as any } : {}),
+      ...(data.actionPayload ? { actionPayload: data.actionPayload as Prisma.InputJsonValue } : {}),
     },
   });
   return { success: true };
@@ -145,7 +165,7 @@ export async function saveNotificationPreferences(prefs: NotificationPreferences
   await db.workspace.update({
     where: { id: user.workspaceId },
     data: {
-      settings: { ...currentSettings, notificationPreferences: prefs } as any,
+      settings: { ...currentSettings, notificationPreferences: prefs } as Prisma.InputJsonValue,
     },
   })
 

@@ -7,6 +7,47 @@ import { sendSMS } from "./messaging-actions";
 import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
+import { createTask } from "./task-actions";
+
+async function ensurePostJobFollowUp(dealId: string) {
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    include: { workspace: { include: { users: true } } }
+  });
+  if (!deal) return;
+
+  const dueAt = new Date();
+  dueAt.setDate(dueAt.getDate() + 1);
+
+  const existingTask = await db.task.findFirst({
+    where: { dealId, title: "Post-job follow-up", completed: false },
+    select: { id: true },
+  });
+
+  if (!existingTask) {
+    await createTask({
+      title: "Post-job follow-up",
+      description: "Confirm the final outcome, amount invoiced, and any notes from the completed job.",
+      dueAt,
+      dealId,
+      contactId: deal.contactId,
+    });
+  }
+
+  await Promise.all(
+    deal.workspace.users.map((user) =>
+      createNotification({
+        userId: user.id,
+        title: "Post-job follow-up needed",
+        message: `Log the final outcome and invoiced amount for "${deal.title}".`,
+        type: "INFO",
+        link: `/dashboard/deals/${dealId}`,
+        actionType: "LOG_COMPLETION_OUTCOME",
+        actionPayload: { dealId },
+      })
+    )
+  );
+}
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -344,6 +385,11 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
       });
     } catch (learningErr) {
       console.warn("Pricing learning hook failed on updateJobStatus:", learningErr);
+    }
+    try {
+      await ensurePostJobFollowUp(jobId);
+    } catch (followUpErr) {
+      console.warn("Post-job follow-up hook failed on updateJobStatus:", followUpErr);
     }
   }
 
@@ -763,6 +809,11 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
       });
     } catch (learningErr) {
       console.warn("Pricing learning hook failed on completeJob:", learningErr);
+    }
+    try {
+      await ensurePostJobFollowUp(dealId);
+    } catch (followUpErr) {
+      console.warn("Post-job follow-up hook failed on completeJob:", followUpErr);
     }
 
     revalidatePath(`/dashboard/tradie/jobs/${dealId}`);

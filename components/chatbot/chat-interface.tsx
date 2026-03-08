@@ -21,7 +21,7 @@ interface ChatInterfaceProps {
 }
 
 const QUICK_ACTIONS = [
-  { icon: Calendar, label: "Schedule a meeting", prompt: "Help me schedule a meeting with a client" },
+  { icon: Calendar, label: "Schedule a job", prompt: "Help me schedule a job with a client" },
   { icon: FileText, label: "Create a quote", prompt: "Help me create a quote for a new job" },
   { icon: Phone, label: "Follow up call", prompt: "Help me prepare for a follow-up call" },
   { icon: Sparkles, label: "Move a deal", prompt: "Show my deals" },
@@ -248,7 +248,7 @@ function ChatWithHistory({
   const getContextualQuickActions = () => {
     if (pathname?.includes('/deals')) {
       return [
-        { icon: Calendar, label: "Schedule meeting", prompt: "Schedule a meeting for this deal" },
+        { icon: Calendar, label: "Schedule job", prompt: "Schedule a job for this deal" },
         { icon: FileText, label: "Create quote", prompt: "Create a quote for this deal" },
         { icon: Sparkles, label: "Move deal", prompt: "Can you move this deal to the next stage?" },
       ];

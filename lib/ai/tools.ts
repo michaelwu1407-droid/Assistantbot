@@ -61,7 +61,7 @@ import { buildJobDraftFromParams } from "@/lib/chat-utils";
  * @param settings - The workspace settings, used for availability mapping.
  * @param userId - Optional user ID for operations requiring it (e.g., support requests).
  */
-export function getAgentTools(workspaceId: string, settings: any, userId?: string) {
+export function getAgentTools(workspaceId: string, settings: Record<string, string | undefined> | null | undefined, userId?: string) {
     return {
         listDeals: tool({
             description: "List all jobs in the pipeline (id, title, stage, value).",
@@ -278,7 +278,7 @@ export function getAgentTools(workspaceId: string, settings: any, userId?: strin
             execute: async ({ rule }) => runUpdateAiPreferences(workspaceId, rule),
         }),
         logActivity: tool({
-            description: "Record a call, meeting, note, or email.",
+            description: "Record a call, job update, note, or email.",
             inputSchema: z.object({
                 type: z.enum(["CALL", "EMAIL", "NOTE", "MEETING", "TASK"]).describe("Activity type"),
                 content: z.string().describe("What happened"),

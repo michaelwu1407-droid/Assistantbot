@@ -113,7 +113,7 @@ export async function getActivities(options?: {
 }
 
 /**
- * Log a new activity (call, email, note, meeting, task).
+ * Log a new activity (call, email, note, job update, task).
  * Polymorphic — can attach to a deal, contact, or both.
  */
 export async function logActivity(
@@ -140,7 +140,7 @@ export async function logActivity(
 
 /**
  * Auto-log: simulates the "invisible data entry" pattern.
- * Called when the system detects an email/meeting/call automatically.
+ * Called when the system detects an email/job visit/call automatically.
  */
 export async function autoLogActivity(payload: {
   type: "EMAIL" | "MEETING" | "CALL";

@@ -14,6 +14,7 @@ import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-lear
 import { triageIncomingLead, saveTriageRecommendation } from "@/lib/ai/triage";
 import { checkForDeviation } from "./learning-actions";
 import { findNearbyBookings } from "./geo-actions";
+import { createTask } from "./task-actions";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -57,6 +58,48 @@ const STAGE_ACTIVITY_LABELS: Record<string, string> = {
   lost: "Lost",
   deleted: "Deleted jobs",
 };
+
+async function queueCompletionFollowUp(
+  workspaceId: string,
+  dealId: string,
+  contactId?: string | null,
+  dealTitle?: string
+) {
+  const dueAt = new Date();
+  dueAt.setDate(dueAt.getDate() + 1);
+
+  const existingTask = await db.task.findFirst({
+    where: { dealId, completed: false, title: "Post-job follow-up" },
+    select: { id: true },
+  });
+
+  if (!existingTask) {
+    await createTask({
+      title: "Post-job follow-up",
+      description: "Confirm the final outcome, amount invoiced, and any notes from the completed job.",
+      dueAt,
+      dealId,
+      contactId: contactId ?? undefined,
+    });
+  }
+
+  const users = await db.user.findMany({
+    where: { workspaceId },
+    select: { id: true },
+  });
+
+  await Promise.all(users.map((user) =>
+    createNotification({
+      userId: user.id,
+      title: "Post-job follow-up needed",
+      message: `Log the final outcome and invoiced amount for ${dealTitle ?? "this completed job"}.`,
+      type: "INFO",
+      link: `/dashboard/deals/${dealId}`,
+      actionType: "LOG_COMPLETION_OUTCOME",
+      actionPayload: { dealId },
+    })
+  ));
+}
 
 type PrismaStage = "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "PENDING_COMPLETION" | "WON" | "LOST" | "DELETED";
 
@@ -218,7 +261,7 @@ export async function getDeals(
         // AI Agent Triage Flags
         agentFlags: Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : undefined,
         // Lead Source
-        source: (deal as any).source ?? null,
+        source: deal.source ?? null,
       };
     });
   } catch (error) {
@@ -475,6 +518,11 @@ export async function updateDealStage(dealId: string, stage: string) {
       } catch (learningErr) {
         console.warn("Pricing learning hook failed after stage update:", learningErr);
       }
+      try {
+        await queueCompletionFollowUp(deal.workspaceId, parsed.data.dealId, deal.contactId);
+      } catch (followUpErr) {
+        console.warn("Post-job follow-up hook failed after stage update:", followUpErr);
+      }
     }
 
     // Check for AI triage deviation (AI said decline, user overrode)
@@ -535,7 +583,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       },
     });
 
-    let userName = auth.name;
+    const userName = auth.name;
     await db.activity.create({
       data: {
         type: "NOTE",
@@ -565,6 +613,11 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       });
     } catch (learningErr) {
       console.warn("Pricing learning hook failed on approveCompletion:", learningErr);
+    }
+    try {
+      await queueCompletionFollowUp(deal.workspaceId, dealId, deal.contactId);
+    } catch (followUpErr) {
+      console.warn("Post-job follow-up hook failed on approveCompletion:", followUpErr);
     }
 
     // Automate review request
@@ -668,7 +721,12 @@ export async function updateDealMetadata(
   if (!deal) return { success: false, error: "Deal not found" };
 
   const existing = (deal.metadata as Record<string, unknown>) ?? {};
-  const hasNotes = "notes" in metadata && metadata.notes !== existing.notes;
+  const metadataChanges = Object.entries(metadata)
+    .filter(([key, value]) => JSON.stringify(existing[key]) !== JSON.stringify(value))
+    .map(([key, value]) => {
+      const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+      return `${label}: ${String(existing[key] ?? "Empty")} -> ${String(value ?? "Empty")}`;
+    });
 
   await db.deal.update({
     where: { id: dealId },
@@ -691,12 +749,12 @@ export async function updateDealMetadata(
   } catch {
     // not authenticated
   }
-  const changeTitle = hasNotes ? "Notes updated" : "Details updated";
+  const changeTitle = metadataChanges.length === 1 ? `${metadataChanges[0].split(":")[0]} updated` : "Details updated";
   await db.activity.create({
     data: {
       type: "NOTE",
       title: changeTitle,
-      content: hasNotes ? "Deal notes were updated." : "Deal details were updated.",
+      content: metadataChanges.length > 0 ? metadataChanges.join("\n") : "Deal details were updated.",
       description: `— ${userName}`,
       dealId,
       contactId: deal.contactId ?? undefined,
@@ -789,11 +847,12 @@ export async function updateDeal(
   }
 
   const content = changes.length > 0 ? changes.join("\n") : "Title, value or stage was changed.";
+  const activityTitle = changes.length === 1 ? `${changes[0].split(":")[0]} updated` : "Deal updated";
 
   await db.activity.create({
     data: {
       type: "NOTE",
-      title: "Deal updated",
+      title: activityTitle,
       content,
       description: `— ${userName}`,
       dealId,
@@ -810,6 +869,14 @@ export async function updateDeal(
       });
     } catch (learningErr) {
       console.warn("Pricing learning hook failed on updateDeal:", learningErr);
+    }
+  }
+
+  if (stageMovedToWon) {
+    try {
+      await queueCompletionFollowUp(deal.workspaceId, dealId, deal.contactId, data.title ?? deal.title);
+    } catch (followUpErr) {
+      console.warn("Post-job follow-up hook failed on updateDeal:", followUpErr);
     }
   }
 

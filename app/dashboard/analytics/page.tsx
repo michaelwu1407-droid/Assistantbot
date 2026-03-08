@@ -99,6 +99,9 @@ export default function AnalyticsPage() {
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">Analytics & Reporting</h1>
             <p className="text-muted-foreground text-sm mt-1">Monitor your business performance and team productivity.</p>
+            <p className="text-xs text-muted-foreground/80 mt-2">
+              Revenue uses completed jobs and prefers final invoiced amounts when available. Ratings come from customer feedback records.
+            </p>
           </div>
           <div className="flex items-center gap-2 print-hide">
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -128,7 +131,7 @@ export default function AnalyticsPage() {
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-medium text-neutral-500">Revenue</p>
+                <p className="text-xs font-medium text-neutral-500">Completed revenue</p>
                 <DollarSign className="h-5 w-5 text-muted-foreground/40" />
               </div>
               <p className="text-3xl font-bold text-neutral-900">${data.revenue.total.toLocaleString("en-AU")}</p>
@@ -187,7 +190,7 @@ export default function AnalyticsPage() {
               </div>
               <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Jobs sourced and won through Tracey
+                Jobs sourced and progressed by Tracey
               </p>
             </CardContent>
           </Card>

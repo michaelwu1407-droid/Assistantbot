@@ -77,6 +77,7 @@ export default function NotificationsSettingsPage() {
         <div>
           <h3 className="text-lg font-medium">Notifications</h3>
           <p className="text-sm text-muted-foreground">Configure real email and in-app notification behavior. Call/text automation is managed in Automated calling & texting.</p>
+          <p className="text-xs text-muted-foreground mt-1">AI-generated reminders, automation alerts, and workflow prompts all land in the same in-app notification feed.</p>
         </div>
         {saving && (
           <span className="text-xs text-muted-foreground flex items-center gap-1">

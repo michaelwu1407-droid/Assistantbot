@@ -101,6 +101,24 @@ const FEATURE_CARDS = [
     },
 ];
 
+const SOLUTION_LINKS = [
+    {
+        title: "Electricians",
+        body: "Handle urgent fault-finding calls fast, keep installs scheduled, and capture final invoice values after the job.",
+        href: "/solutions/electricians",
+    },
+    {
+        title: "Plumbers",
+        body: "Triage burst pipes and hot-water jobs, automate confirmations, and keep your quote-to-payment flow tight.",
+        href: "/solutions/plumbers",
+    },
+    {
+        title: "Landscapers",
+        body: "Coordinate maintenance runs and project work with better route planning, crew scheduling, and follow-ups.",
+        href: "/solutions/landscapers",
+    },
+];
+
 const CHAT_DEMO = [
     {
         user: "Move the Henderson job to complete",
@@ -943,6 +961,35 @@ export default function Home() {
             </section >
 
             {/* ── E.5: FAQ Section ── */}
+            <section className="py-24 px-6 bg-white">
+                <div className="container mx-auto max-w-6xl flex flex-col gap-10">
+                    <motion.div {...fadeUp()} className="max-w-2xl">
+                        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Solutions</p>
+                        <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
+                            Built for the way trade businesses actually run.
+                        </h2>
+                        <p className="mt-3 text-lg text-slate-body">
+                            Start with a trade-specific version of Earlymark and give customers a workflow that fits the jobs you quote every day.
+                        </p>
+                    </motion.div>
+
+                    <div className="grid gap-6 md:grid-cols-3">
+                        {SOLUTION_LINKS.map((solution, index) => (
+                            <motion.div key={solution.href} {...fadeUp(index * 0.06)} className="rounded-3xl border border-border bg-slate-50 p-7 shadow-sm">
+                                <h3 className="text-2xl font-bold text-midnight">{solution.title}</h3>
+                                <p className="mt-3 text-sm leading-relaxed text-slate-body">{solution.body}</p>
+                                <Link href={solution.href} className="mt-6 inline-flex">
+                                    <Button variant="outline">
+                                        View solution
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             <FaqSection />
 
             {/* ── F. Footer ── */}
@@ -966,6 +1013,7 @@ export default function Home() {
                             {[
                                 { label: "Home", href: "/" },
                                 { label: "Product", href: "/features" },
+                                { label: "Solutions", href: "/solutions" },
                                 { label: "Tutorial", href: "/tutorial" },
                                 { label: "Pricing", href: "#pricing" },
                                 { label: "Contact", href: "/contact" },

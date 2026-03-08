@@ -6,13 +6,24 @@ import { startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns"
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
   CONTACTED: "Quote sent",
-  NEGOTIATION: "Scheduled",
+  NEGOTIATION: "Negotiation",
   SCHEDULED: "Scheduled",
   PIPELINE: "Pipeline",
   INVOICED: "Ready to invoice",
+  PENDING_COMPLETION: "Pending approval",
   WON: "Completed",
   LOST: "Lost",
   DELETED: "Deleted",
+}
+
+function getDealRevenueValue(deal: {
+  invoicedAmount?: number | null
+  value?: number | null
+}) {
+  if (typeof deal.invoicedAmount === "number" && !Number.isNaN(deal.invoicedAmount)) {
+    return deal.invoicedAmount
+  }
+  return Number(deal.value ?? 0)
 }
 
 export interface ReportsData {
@@ -46,15 +57,24 @@ export interface ReportsData {
 
 export async function getReportsData(workspaceId: string, monthsBack = 6): Promise<ReportsData> {
   const now = new Date()
+  const rangeStart = startOfMonth(subMonths(now, Math.max(monthsBack - 1, 0)))
   const deals = await db.deal.findMany({
-    where: { workspaceId },
+    where: {
+      workspaceId,
+      OR: [
+        { createdAt: { gte: rangeStart } },
+        { stageChangedAt: { gte: rangeStart } },
+      ],
+    },
     select: {
       id: true,
       stage: true,
       value: true,
+      invoicedAmount: true,
       stageChangedAt: true,
       createdAt: true,
       metadata: true,
+      assignedTo: { select: { id: true, name: true } },
     },
   })
 
@@ -67,15 +87,15 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
   })
 
   const wonDeals = deals.filter((d) => d.stage === "WON")
-  const totalRevenue = wonDeals.reduce((sum, d) => sum + Number(d.value ?? 0), 0)
+  const totalRevenue = wonDeals.reduce((sum, d) => sum + getDealRevenueValue(d), 0)
   const prevMonthStart = startOfMonth(subMonths(now, 1))
   const prevMonthEnd = endOfMonth(subMonths(now, 1))
   const prevRevenue = wonDeals
     .filter((d) => d.stageChangedAt && d.stageChangedAt >= prevMonthStart && d.stageChangedAt <= prevMonthEnd)
-    .reduce((sum, d) => sum + Number(d.value ?? 0), 0)
+    .reduce((sum, d) => sum + getDealRevenueValue(d), 0)
   const thisMonthRevenue = wonDeals
     .filter((d) => d.stageChangedAt && d.stageChangedAt >= startOfMonth(now))
-    .reduce((sum, d) => sum + Number(d.value ?? 0), 0)
+    .reduce((sum, d) => sum + getDealRevenueValue(d), 0)
   const growth = prevRevenue > 0 ? ((thisMonthRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
   const monthly: Array<{ month: string; revenue: number }> = []
@@ -85,7 +105,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
     const end = endOfMonth(d)
     const rev = wonDeals
       .filter((deal) => deal.stageChangedAt && deal.stageChangedAt >= start && deal.stageChangedAt <= end)
-      .reduce((s, deal) => s + Number(deal.value ?? 0), 0)
+      .reduce((s, deal) => s + getDealRevenueValue(deal), 0)
     monthly.push({ month: start.toLocaleDateString("en-AU", { month: "short" }), revenue: rev })
   }
 
@@ -131,6 +151,31 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
     return true
   }).length
 
+  const feedback = await db.customerFeedback.aggregate({
+    where: {
+      contact: { workspaceId },
+      createdAt: { gte: rangeStart },
+    },
+    _avg: { score: true },
+  })
+
+  const workspaceUsers = await db.user.count({ where: { workspaceId } })
+  const jobsPerMember = new Map<string, { name: string; jobs: number; revenue: number }>()
+  for (const deal of wonDeals) {
+    const memberId = deal.assignedTo?.id
+    if (!memberId) continue
+    const existing = jobsPerMember.get(memberId) ?? {
+      name: deal.assignedTo?.name ?? "Unknown",
+      jobs: 0,
+      revenue: 0,
+    }
+    existing.jobs += 1
+    existing.revenue += getDealRevenueValue(deal)
+    jobsPerMember.set(memberId, existing)
+  }
+  const teamPerformance = Array.from(jobsPerMember.values()).sort((a, b) => b.revenue - a.revenue)
+  const productivity = workspaceUsers > 0 ? Math.round(completed / workspaceUsers) : 0
+
   return {
     revenue: {
       total: totalRevenue,
@@ -145,7 +190,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
     customers: {
       total: contacts,
       new: newContactsThisMonth,
-      satisfaction: 0,
+      satisfaction: feedback._avg.score ? Number(feedback._avg.score.toFixed(1)) : 0,
     },
     jobs: {
       completed,
@@ -154,9 +199,9 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       wonWithTracey: jobsWonWithTracey,
     },
     team: {
-      members: 0,
-      productivity: 0,
-      performance: [],
+      members: workspaceUsers,
+      productivity,
+      performance: teamPerformance,
     },
   }
 }

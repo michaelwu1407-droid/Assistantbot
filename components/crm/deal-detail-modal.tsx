@@ -15,19 +15,7 @@ import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const STAGE_LABELS: Record<string, string> = {
-  NEW: "New request",
-  CONTACTED: "Quote sent",
-  NEGOTIATION: "Scheduled",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Ready to be invoiced",
-  PENDING_COMPLETION: "Pending approval",
-  WON: "Completed",
-  LOST: "Lost",
-  DELETED: "Deleted jobs",
-}
+import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 
 interface DealDetailModalProps {
   dealId: string | null
@@ -121,7 +109,7 @@ function DealDetailContent({
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
-  const stageLabel = STAGE_LABELS[deal.stage] ?? deal.stage
+  const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const isPendingApproval = deal.stage === "PENDING_COMPLETION"
   const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
@@ -424,7 +412,7 @@ function DealDetailContent({
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
                         {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
-                        <span className="text-slate-400 text-xs block mt-0.5">{STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
+                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
                       </button>
                     ))
                   )}
@@ -456,7 +444,7 @@ function DealDetailContent({
                           }
                         }}
                       />
-                      <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/10">
+                      <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/10" aria-label="Send quick update">
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>
