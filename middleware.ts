@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { trackReferralClick } from "@/actions/referral-actions"
 import { updateSession } from "@/lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
@@ -22,32 +21,7 @@ export async function middleware(request: NextRequest) {
   const refCode = searchParams.get('ref')
 
   if (refCode) {
-    // Track the referral click
-    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-    const userAgent = request.headers.get('user-agent') || 'unknown'
-    const referrer = request.headers.get('referer') || 'direct'
-
-    // Extract UTM parameters
-    const utmSource = searchParams.get('utm_source') || undefined
-    const utmMedium = searchParams.get('utm_medium') || undefined
-    const utmCampaign = searchParams.get('utm_campaign') || undefined
-
-    try {
-      await trackReferralClick({
-        referralCode: refCode,
-        ipAddress,
-        userAgent,
-        referrer,
-        utmSource,
-        utmMedium,
-        utmCampaign
-      })
-    } catch (error) {
-      console.error("Error tracking referral click:", error)
-      // Don't block the request if tracking fails
-    }
-
-    // Store referral info in session cookie for later use
+    // Middleware runs in the edge runtime, so keep referral handling limited to cookie persistence.
     response.cookies.set('referral_code', refCode, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
