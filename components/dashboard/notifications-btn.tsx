@@ -119,9 +119,18 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                         <div
                                             key={n.id}
                                             className={cn(
-                                                "p-3 flex gap-3 hover:bg-slate-50 transition-colors",
+                                                "p-3 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer",
                                                 !n.read && "bg-blue-50/30"
                                             )}
+                                            onClick={() => {
+                                                if (n.link) {
+                                                    router.push(n.link);
+                                                }
+                                                if (!n.read) {
+                                                    void handleMarkRead(n.id);
+                                                }
+                                                setIsOpen(false);
+                                            }}
                                         >
                                             <div className={cn("mt-1 shrink-0", n.read && "opacity-50")}>
                                                 {n.type === 'AI' || n.type === 'SYSTEM' ? (
@@ -142,7 +151,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                 <p className={cn("text-sm font-medium text-slate-900", n.read && "text-slate-600")}>
                                                     {n.title}
                                                 </p>
-                                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                                <p className="text-xs text-slate-500 mt-0.5">
                                                     {n.message}
                                                 </p>
                                                 {n.actionType && ACTION_LABELS[n.actionType] && !n.read && (
@@ -163,7 +172,10 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                             </div>
                                             {!n.read && !n.actionType && (
                                                 <button
-                                                    onClick={() => handleMarkRead(n.id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        void handleMarkRead(n.id);
+                                                    }}
                                                     className="self-start text-slate-300 hover:text-blue-600 transition-colors"
                                                     title="Mark as read"
                                                 >

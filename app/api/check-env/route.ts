@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getExpectedVoiceGatewayUrl,
+  getKnownEarlymarkInboundNumbers,
+} from "@/lib/earlymark-inbound-config";
+import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const customerFacingAgents = await getCustomerAgentReadiness();
   const env = {
     // Core required for phone provisioning
     twilio: {
       accountSid: !!process.env.TWILIO_ACCOUNT_SID,
       authToken: !!process.env.TWILIO_AUTH_TOKEN,
       phoneNumber: !!process.env.TWILIO_PHONE_NUMBER,
-      whatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
+      earlymarkInboundPhoneNumber: !!process.env.EARLYMARK_INBOUND_PHONE_NUMBER,
+      earlymarkInboundPhoneNumbers: !!process.env.EARLYMARK_INBOUND_PHONE_NUMBERS,
+      whatsappNumber: !!(process.env.TWILIO_WHATSAPP_NUMBER || process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER),
     },
     livekit: {
       url: !!process.env.LIVEKIT_URL,
@@ -20,9 +28,13 @@ export async function GET(request: NextRequest) {
     // Other important env vars
     app: {
       url: process.env.NEXT_PUBLIC_APP_URL,
+      expectedVoiceGatewayUrl: getExpectedVoiceGatewayUrl() || null,
       supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      geminiApiKey: !!process.env.GEMINI_API_KEY,
+      geminiApiKey: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY),
+    },
+    voiceRouting: {
+      knownEarlymarkInboundNumbers: getKnownEarlymarkInboundNumbers(),
     },
     // Show masked values for debugging (partial)
     masked: {
@@ -45,6 +57,7 @@ export async function GET(request: NextRequest) {
     environment: process.env.NODE_ENV,
     provisioningReady: missing.length === 0,
     missing,
-    env
+    env,
+    customerFacingAgents,
   });
 }

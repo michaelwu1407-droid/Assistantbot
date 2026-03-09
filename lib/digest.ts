@@ -168,3 +168,15 @@ export async function generateMorningDigest(
     topActions,
   };
 }
+
+export type DailyDigest = MorningDigest;
+
+export async function generateEveningDigest(
+  workspaceId: string
+): Promise<DailyDigest> {
+  const digest = await generateMorningDigest(workspaceId);
+  return {
+    ...digest,
+    greeting: "Evening",
+  };
+}

@@ -9,7 +9,7 @@ import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { completeTask, createTask, deleteTask, getTasks } from "./task-actions";
 import { createNotification } from "./notification-actions";
-import { generateMorningDigest } from "@/lib/digest";
+import { generateMorningDigest, generateEveningDigest, type DailyDigest } from "@/lib/digest";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
@@ -796,6 +796,19 @@ export async function saveAssistantMessage(workspaceId: string, content: string)
   }
 }
 
+export async function getDailyDigest(
+  workspaceId: string,
+  kind: "morning" | "evening"
+): Promise<{ kind: "morning" | "evening"; agentMode: string | null; digest: DailyDigest } | null> {
+  if (!workspaceId) return null;
+  const settings = await getWorkspaceSettingsById(workspaceId);
+  const agentMode = settings?.agentMode ?? null;
+  const digest = kind === "morning"
+    ? await generateMorningDigest(workspaceId)
+    : await generateEveningDigest(workspaceId);
+  return { kind, agentMode, digest };
+}
+
 
 /**
  * Get chat history for a workspace.
@@ -1499,7 +1512,7 @@ export async function runSendSms(
 
     const workspace = await db.workspace.findUnique({
       where: { id: workspaceId },
-      select: { twilioPhoneNumber: true, twilioSubaccountId: true, name: true },
+      select: { twilioPhoneNumber: true, twilioSubaccountId: true, twilioSubaccountAuthToken: true, name: true },
     });
 
     if (!workspace?.twilioPhoneNumber || !workspace.twilioSubaccountId) {
@@ -1522,12 +1535,11 @@ export async function runSendSms(
     }
 
     // Send via Twilio
-    const { getSubaccountClient } = await import("@/lib/twilio");
-    // Fetch subaccount auth token from env or re-derive from master
-    const twilioClient = getSubaccountClient(
-      workspace.twilioSubaccountId,
-      process.env.TWILIO_SUBACCOUNT_AUTH_TOKEN || process.env.TWILIO_AUTH_TOKEN || ""
-    );
+    const { getWorkspaceTwilioClient } = await import("@/lib/twilio");
+    const twilioClient = getWorkspaceTwilioClient(workspace);
+    if (!twilioClient) {
+      return `Twilio is configured on this workspace, but no usable messaging client is available right now.`;
+    }
     await twilioClient.messages.create({
       to: contact.phone,
       from: workspace.twilioPhoneNumber,

@@ -195,7 +195,7 @@ export async function processBookingReminders(): Promise<{
 
     const workspace = await db.workspace.findUnique({
       where: { id: rule.workspaceId },
-      select: { name: true, twilioPhoneNumber: true, twilioSubaccountId: true },
+      select: { name: true, twilioPhoneNumber: true, twilioSubaccountId: true, twilioSubaccountAuthToken: true },
     });
 
     for (const job of upcomingJobs) {
@@ -225,13 +225,11 @@ export async function processBookingReminders(): Promise<{
         workspace?.twilioSubaccountId
       ) {
         try {
-          const { getSubaccountClient } = await import("@/lib/twilio");
-          const client = getSubaccountClient(
-            workspace.twilioSubaccountId,
-            process.env.TWILIO_SUBACCOUNT_AUTH_TOKEN ||
-              process.env.TWILIO_AUTH_TOKEN ||
-              ""
-          );
+          const { getWorkspaceTwilioClient } = await import("@/lib/twilio");
+          const client = getWorkspaceTwilioClient(workspace);
+          if (!client) {
+            throw new Error("No usable Twilio messaging client is available for this workspace");
+          }
           await client.messages.create({
             to: job.contact.phone,
             from: workspace.twilioPhoneNumber,

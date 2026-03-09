@@ -218,39 +218,63 @@ export async function ensureDailyNotifications(workspaceId: string) {
   const notificationsEnabled = (prefs.inAppTaskReminders ?? true) === true;
   if (!notificationsEnabled) return;
 
-  const { agendaNotifyTime, wrapupNotifyTime } = workspace;
-  if (!agendaNotifyTime && !wrapupNotifyTime) return;
-
   const now = new Date();
   const getMinutes = (timeStr: string) => {
     const [h, m] = timeStr.split(":").map(Number);
     return h * 60 + m;
   };
-
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const { agendaNotifyTime, wrapupNotifyTime } = workspace;
+  if (!agendaNotifyTime && !wrapupNotifyTime) return;
+
+  const agendaMinutes = agendaNotifyTime ? getMinutes(agendaNotifyTime) : null;
+  const wrapupMinutes = wrapupNotifyTime ? getMinutes(wrapupNotifyTime) : null;
+
+  // Time windows so "morning" and "evening" alerts don't both appear late at night
+  const AGENDA_WINDOW_MIN = 3 * 60;  // 3 hours after agenda time
+  const WRAPUP_WINDOW_MIN = 4 * 60;  // 4 hours after wrap-up time
 
   // Helper date bounding for "today"
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  if (agendaNotifyTime && currentMinutes >= getMinutes(agendaNotifyTime)) {
+  if (
+    agendaMinutes !== null &&
+    currentMinutes >= agendaMinutes &&
+    currentMinutes <= agendaMinutes + AGENDA_WINDOW_MIN
+  ) {
     const existing = await db.notification.findFirst({
       where: { userId: dbUser.id, title: { contains: "Morning Briefing" }, createdAt: { gte: startOfDay } }
     });
     if (!existing) {
+      const morningMessage =
+        "Good morning! Check your daily briefing for job preparations — verify addresses, materials, and confirmations before heading out.";
       await createNotification({
         userId: dbUser.id,
         title: "☀️ Morning Briefing",
-        message: "Good morning! Check your daily briefing for job preparations — verify addresses, materials, and confirmations before heading out.",
+        message: morningMessage,
         type: "INFO",
         link: "/dashboard",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });
+      // Also drop a message into the assistant chat so it shows up in the chatbox.
+      await db.chatMessage.create({
+        data: {
+          role: "assistant",
+          content: `☀️ Morning Briefing: ${morningMessage}`,
+          workspaceId,
+        },
+      });
     }
   }
 
-  if (wrapupNotifyTime && currentMinutes >= getMinutes(wrapupNotifyTime)) {
+  if (
+    wrapupMinutes !== null &&
+    currentMinutes >= wrapupMinutes &&
+    currentMinutes <= wrapupMinutes + WRAPUP_WINDOW_MIN
+  ) {
     const existing = await db.notification.findFirst({
       where: { userId: dbUser.id, title: { contains: "Evening Wrap-Up" }, createdAt: { gte: startOfDay } }
     });
@@ -278,6 +302,14 @@ export async function ensureDailyNotifications(workspaceId: string) {
         message,
         type: "SUCCESS",
         link
+      });
+      // Mirror the wrap-up into the assistant chat.
+      await db.chatMessage.create({
+        data: {
+          role: "assistant",
+          content: `🌙 Evening Wrap-Up: ${message}`,
+          workspaceId,
+        },
       });
     }
   }

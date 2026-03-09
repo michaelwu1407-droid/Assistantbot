@@ -12,7 +12,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import {
+    getExpectedVoiceGatewayUrl,
+    getKnownEarlymarkInboundNumbers,
+    isKnownEarlymarkInboundNumber,
+} from "@/lib/earlymark-inbound-config";
+import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +79,11 @@ function forwardToLiveKitTwiml(sipTrunkDomain: string): string {
 </Response>`;
 }
 
+function resolveSipDomain(twilioAccountSid?: string | null, subaccountId?: string | null) {
+    const account = subaccountId || twilioAccountSid || "";
+    return account ? `${account}.pstn.twilio.com` : "";
+}
+
 // ─── POST Handler ───────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -84,17 +94,21 @@ export async function POST(req: NextRequest) {
         const stirVerstat = formData.get("StirVerstat")?.toString() || "";
         const dtmfPassed = req.nextUrl.searchParams.get("dtmf_passed");
         const digits = formData.get("Digits")?.toString() || "";
+        const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
+        const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
 
         // ── Step 0: DTMF challenge callback ─────────────────────────────
         // If this is a callback from a DTMF challenge and caller pressed 1
         if (dtmfPassed === "1" && digits === "1") {
-            const workspace = await db.workspace.findFirst({
-                where: { twilioPhoneNumber: calledNumber },
-                select: { twilioSipTrunkSid: true, twilioSubaccountId: true },
+            const workspace = await findWorkspaceByTwilioNumber(calledNumber, {
+                twilioSipTrunkSid: true,
+                twilioSubaccountId: true,
             });
-            const sipDomain = workspace?.twilioSubaccountId
-                ? `${workspace.twilioSubaccountId}.pstn.twilio.com`
-                : `${process.env.TWILIO_ACCOUNT_SID}.pstn.twilio.com`;
+            const sipDomain = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID, workspace?.twilioSubaccountId);
+            if (!sipDomain) {
+                console.error("[voice-gateway] Missing Twilio account SID during DTMF callback forwarding.");
+                return twimlResponse(rejectTwiml());
+            }
             return twimlResponse(forwardToLiveKitTwiml(sipDomain));
         }
 
@@ -109,21 +123,33 @@ export async function POST(req: NextRequest) {
         // ── Step 2: Rate Limiter ────────────────────────────────────────
         if (callerNumber && checkRateLimit(callerNumber)) {
             console.log(`[voice-gateway] Rate limited ${callerNumber} — DTMF challenge`);
-            const gatewayUrl = `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/webhooks/twilio-voice-gateway`;
+            const gatewayUrl = getExpectedVoiceGatewayUrl();
+            if (!gatewayUrl) {
+                console.error("[voice-gateway] Cannot issue DTMF challenge because NEXT_PUBLIC_APP_URL is missing. Forwarding call instead.");
+                const fallbackSip = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID);
+                return fallbackSip
+                    ? twimlResponse(forwardToLiveKitTwiml(fallbackSip))
+                    : twimlResponse(rejectTwiml());
+            }
             return twimlResponse(dtmfChallengeTwiml(gatewayUrl, calledNumber));
         }
 
         // ── Step 3: Workspace lookup & voice enabled check ──────────────
         const workspace = calledNumber
-            ? await db.workspace.findFirst({
-                where: { twilioPhoneNumber: calledNumber },
-                select: {
-                    twilioSipTrunkSid: true,
-                    twilioSubaccountId: true,
-                    voiceEnabled: true,
-                },
+            ? await findWorkspaceByTwilioNumber(calledNumber, {
+                twilioSipTrunkSid: true,
+                twilioSubaccountId: true,
+                voiceEnabled: true,
             })
             : null;
+
+        if (!workspace && !isEarlymarkInboundCall) {
+            console.error("[voice-gateway] Incoming call did not match a workspace number or configured Earlymark inbound number.", {
+                callerNumber,
+                calledNumber,
+                knownInboundNumbers,
+            });
+        }
 
         if (workspace && workspace.voiceEnabled === false) {
             console.log(`[voice-gateway] Voice disabled for workspace (billing limit) — rejecting`);
@@ -137,15 +163,30 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Step 4: Forward to LiveKit SIP ──────────────────────────────
-        const sipDomain = workspace?.twilioSubaccountId
-            ? `${workspace.twilioSubaccountId}.pstn.twilio.com`
-            : `${process.env.TWILIO_ACCOUNT_SID}.pstn.twilio.com`;
+        const sipDomain = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID, workspace?.twilioSubaccountId);
+        if (!sipDomain) {
+            console.error("[voice-gateway] Missing Twilio account SID; cannot forward inbound call safely.", {
+                callerNumber,
+                calledNumber,
+            });
+            return twimlResponse(rejectTwiml());
+        }
+
+        console.log("[voice-gateway] Forwarding inbound call", {
+            callerNumber,
+            calledNumber,
+            routeTarget: workspace ? "workspace" : isEarlymarkInboundCall ? "earlymark_inbound" : "fallback_master",
+            workspaceMatched: Boolean(workspace),
+            knownInboundConfigured: knownInboundNumbers.length > 0,
+        });
 
         return twimlResponse(forwardToLiveKitTwiml(sipDomain));
     } catch (error) {
         console.error("[voice-gateway] Error:", error);
         // Fail open: forward to SIP trunk anyway rather than dropping a real call
-        const fallbackSip = `${process.env.TWILIO_ACCOUNT_SID}.pstn.twilio.com`;
-        return twimlResponse(forwardToLiveKitTwiml(fallbackSip));
+        const fallbackSip = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID);
+        return fallbackSip
+            ? twimlResponse(forwardToLiveKitTwiml(fallbackSip))
+            : twimlResponse(rejectTwiml());
     }
 }

@@ -69,9 +69,9 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                         <DashboardKpiCards deals={deals} />
                     </div>
 
-                    {/* Kanban: distinct zone with background to differentiate from dashboard */}
-                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1 bg-slate-200/40 dark:bg-slate-800/60 rounded-t-xl">
-                        <div className="h-full w-full overflow-hidden min-h-0 rounded-xl bg-white/95 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+                {/* Kanban: full-width white board */}
+                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1">
+                        <div className="h-full w-full overflow-hidden min-h-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <KanbanBoard
                                 deals={deals}
                                 industryType={workspace.industryType}

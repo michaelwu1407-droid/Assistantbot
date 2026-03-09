@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -33,29 +34,6 @@ function getExpectedSecret() {
   return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
 }
 
-function normalisePhone(phone?: string | null) {
-  if (!phone) return "";
-  const cleaned = phone.replace(/[^\d+]/g, "");
-  if (!cleaned) return "";
-  if (cleaned.startsWith("+")) return cleaned;
-  if (cleaned.startsWith("0")) return `+61${cleaned.slice(1)}`;
-  if (cleaned.startsWith("61")) return `+${cleaned}`;
-  return cleaned;
-}
-
-function phoneVariants(phone?: string | null) {
-  const normalized = normalisePhone(phone);
-  if (!normalized) return [];
-  const digits = normalized.replace(/[^\d]/g, "");
-  const variants = new Set<string>([
-    normalized,
-    digits,
-    digits.startsWith("61") ? `0${digits.slice(2)}` : digits,
-    digits.startsWith("61") ? digits.slice(2) : digits,
-  ]);
-  return Array.from(variants).filter(Boolean);
-}
-
 function buildSummary(callType: string, callerName?: string, callerPhone?: string, transcriptText?: string) {
   const callerLabel = callerName || callerPhone || "Caller";
   const firstMeaningfulLine = (transcriptText || "")
@@ -71,44 +49,13 @@ function buildSummary(callType: string, callerName?: string, callerPhone?: strin
 }
 
 async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
-  const variants = phoneVariants(calledPhone);
-  if (!variants.length) return null;
-
-  const workspaces = await db.workspace.findMany({
-    where: { twilioPhoneNumber: { not: null } },
-    select: { id: true, twilioPhoneNumber: true },
-  });
-
-  for (const workspace of workspaces) {
-    const workspaceVariants = phoneVariants(workspace.twilioPhoneNumber);
-    if (workspaceVariants.some((value) => variants.includes(value))) {
-      return workspace.id;
-    }
-  }
-
-  return null;
+  const workspace = await findWorkspaceByTwilioNumber(calledPhone, { id: true });
+  return workspace?.id ?? null;
 }
 
 async function findContactId(workspaceId: string, callerPhone?: string) {
-  const variants = phoneVariants(callerPhone);
-  if (!variants.length) return null;
-
-  const contacts = await db.contact.findMany({
-    where: {
-      workspaceId,
-      phone: { not: null },
-    },
-    select: { id: true, phone: true },
-  });
-
-  for (const contact of contacts) {
-    const contactVariants = phoneVariants(contact.phone);
-    if (contactVariants.some((value) => variants.includes(value))) {
-      return contact.id;
-    }
-  }
-
-  return null;
+  const contact = await findContactByPhone(workspaceId, callerPhone, { id: true });
+  return contact?.id ?? null;
 }
 
 export async function POST(req: NextRequest) {

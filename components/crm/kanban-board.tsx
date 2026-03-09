@@ -74,7 +74,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 bg-[#F8FAFC] dark:bg-slate-800/40 rounded-xl border border-[#E2E8F0] dark:border-slate-700/60 p-3 overflow-y-auto min-h-[200px] flex flex-col gap-3 transition-colors ${isOver ? "bg-slate-200/60 dark:bg-slate-700/40 border-slate-300 dark:border-slate-600 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:shadow-inner"}`}
+      className={`flex-1 bg-white dark:bg-slate-900 rounded-xl border border-[#E2E8F0] dark:border-slate-700/60 p-3 overflow-y-auto flex flex-col gap-3 transition-colors ${isOver ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:shadow-inner"}`}
     >
       {children}
     </div>
@@ -333,7 +333,7 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-3" ref={boardRef}>
+      <div className="flex h-full flex-col space-y-3 py-3" ref={boardRef}>
         <style jsx global>{`
           @keyframes kanban-card-wiggle {
             0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
@@ -341,11 +341,11 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
             75% { transform: translate3d(0, 1px, 0) rotate(0.6deg); }
           }
         `}</style>
-        <div className="flex items-center justify-between px-2">
-          <div className="text-xs font-medium text-slate-500">
-            {selectionMode && selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected` : ""}
-          </div>
-          {selectionMode && (
+        {selectionMode && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-xs font-medium text-slate-500">
+              {selectedDealIds.length > 0 ? `${selectedDealIds.length} job${selectedDealIds.length === 1 ? "" : "s"} selected` : ""}
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -358,15 +358,19 @@ export function KanbanBoard({ deals: initialDeals, industryType, filterByUserId,
             >
               Done selecting
             </Button>
-          )}
-        </div>
-        <div id="kanban-board" className="flex h-full gap-6 overflow-x-auto px-5 py-1 items-start bg-slate-100/70 dark:bg-slate-800/50 rounded-xl" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          </div>
+        )}
+        <div
+          id="kanban-board"
+          className="flex flex-1 gap-6 overflow-x-auto px-5 py-0 items-stretch bg-white dark:bg-slate-900 rounded-xl"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {COLUMNS.map((col) => {
             const colDeals = columns[col.id] || []
 
             // Determine label based on industry
             return (
-              <div key={col.id} className={cn("w-72 flex-shrink-0 flex flex-col h-full max-h-full border-l-4 ml-2", col.borderColor)}>
+              <div key={col.id} className={cn("w-72 flex-shrink-0 flex flex-col border-l-4 ml-2 pl-2", col.borderColor)}>
                 {/* Column Header — same vertical gap above (pt-5) as below (mb-5) */}
                 <div className="flex items-center justify-between mb-2 px-2">
                   <div className="flex items-center gap-2">

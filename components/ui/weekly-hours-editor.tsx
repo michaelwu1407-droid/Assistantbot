@@ -93,7 +93,10 @@ export function WeeklyHoursEditor({
             )
           })}
         </div>
-        <Switch checked={uniform} onCheckedChange={onUniformChange} aria-label="Toggle same working hours all week" />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500">Same hours all week</span>
+          <Switch checked={uniform} onCheckedChange={onUniformChange} aria-label="Toggle same working hours all week" />
+        </div>
       </div>
 
       {uniform ? (

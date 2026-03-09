@@ -1,10 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { processAgentCommand } from "@/lib/services/ai-agent";
 import twilio from "twilio";
 import { classifyMessage } from "@/lib/spam-classifier";
 import { db } from "@/lib/db";
+import { findUserByPhone } from "@/lib/workspace-routing";
 
 export const maxDuration = 60; // Allow 60s for Vercel Pro/Hobby wait times
 
@@ -14,18 +14,6 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioWhatsAppNumber = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER;
 
 const twilioClient = accountSid && authToken ? twilio(accountSid, authToken) : null;
-
-// Initialize Supabase Admin Bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    }
-);
 
 export async function POST(req: Request) {
     try {
@@ -46,17 +34,11 @@ export async function POST(req: Request) {
 
         // Authenticate user by phone bypassing RLS
         // In our schema, `phone` is the personal phone field on `User`.
-        const { data: users, error } = await supabaseAdmin
-            .from("User")
-            .select("id, name, workspace:Workspace(agentMode, aiPreferences)")
-            .eq("phone", cleanNumber);
-
-        if (error) {
-            console.error("[WhatsApp Webhook] Error querying user:", error);
-            return new NextResponse("OK", { status: 200 });
-        }
-
-        const user = users && users.length > 0 ? users[0] : null;
+        const user = await findUserByPhone(cleanNumber, {
+            id: true,
+            name: true,
+            workspaceId: true,
+        });
 
         if (!user) {
             // Unauthorized fallback

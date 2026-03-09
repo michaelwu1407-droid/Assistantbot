@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { classifyMessage } from "@/lib/spam-classifier"
+import { findWorkspaceByInboundEmail } from "@/lib/workspace-routing"
 
 // ─── Lead Provider Patterns (Tier 1) ────────────────────────────────
 const LEAD_PROVIDERS: Record<string, RegExp> = {
@@ -58,11 +59,12 @@ export async function POST(req: Request) {
 
         // Extract clean email address
         const emailMatch = rawTo.match(/<([^>]+)>/)
-        const toEmail = emailMatch ? emailMatch[1] : rawTo.trim()
+        const toEmail = (emailMatch ? emailMatch[1] : rawTo.trim()).toLowerCase()
 
         // Match Workspace
-        const workspace = await db.workspace.findFirst({
-            where: { inboundEmail: toEmail }
+        const workspace = await findWorkspaceByInboundEmail(toEmail, {
+            id: true,
+            ownerId: true,
         })
 
         if (!workspace) {

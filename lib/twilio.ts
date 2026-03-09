@@ -17,6 +17,11 @@ console.log("[TWILIO] Credential check:", {
 export const twilioMasterClient =
     accountSid && authToken ? twilio(accountSid, authToken) : null;
 
+type WorkspaceTwilioConfig = {
+    twilioSubaccountId?: string | null;
+    twilioSubaccountAuthToken?: string | null;
+};
+
 /**
  * Creates a unique Twilio Subaccount for a Tradie (Workspace).
  * This ensures their usage is billed separately and their data is isolated.
@@ -50,4 +55,17 @@ export async function createTwilioSubaccount(friendlyName: string) {
  */
 export function getSubaccountClient(subaccountId: string, subaccountAuthToken: string) {
     return twilio(subaccountId, subaccountAuthToken);
+}
+
+export function getWorkspaceTwilioClient(workspace: WorkspaceTwilioConfig) {
+    if (
+        workspace.twilioSubaccountId &&
+        workspace.twilioSubaccountAuthToken &&
+        twilioMasterClient &&
+        workspace.twilioSubaccountId !== accountSid
+    ) {
+        return getSubaccountClient(workspace.twilioSubaccountId, workspace.twilioSubaccountAuthToken);
+    }
+
+    return twilioMasterClient;
 }

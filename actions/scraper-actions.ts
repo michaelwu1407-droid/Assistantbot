@@ -242,19 +242,23 @@ Return ONLY valid JSON. No markdown, no code fences.`,
       }))
       .filter((s: any) => s.name); // Drop services without a name
 
-    const weeklyHours =
+    const textWeeklyHours =
       sanitizeString(parsed.operatingHours)
         ? parseTextHoursToWeekly(parsed.operatingHours)
         : null;
-    const googleHoursFallback =
-      weeklyHours ||
-      !(sanitizeString(parsed.businessName) || sanitizeString(parsed.address))
-        ? null
-        : await lookupBusinessHoursFromGooglePlaces({
+
+    const googleHours =
+      sanitizeString(parsed.businessName) || sanitizeString(parsed.address)
+        ? await lookupBusinessHoursFromGooglePlaces({
             websiteUrl,
             businessName: sanitizeString(parsed.businessName),
             address: sanitizeString(parsed.address),
-          });
+          })
+        : null;
+
+    const combinedWeeklyHours: WeeklyHours | undefined =
+      (googleHours?.weeklyHours ?? undefined) ||
+      (textWeeklyHours ?? undefined);
 
     return {
       success: true,
@@ -262,8 +266,8 @@ Return ONLY valid JSON. No markdown, no code fences.`,
         services: sanitizedServices,
         operatingHours:
           sanitizeString(parsed.operatingHours) ||
-          googleHoursFallback?.operatingHours,
-        weeklyHours: weeklyHours || googleHoursFallback?.weeklyHours,
+          googleHours?.operatingHours,
+        weeklyHours: combinedWeeklyHours,
         suburbs: sanitizeArray(parsed.suburbs),
         negativeScope: sanitizeArray(parsed.negativeScope),
         rawSummary: sanitizeString(parsed.rawSummary),

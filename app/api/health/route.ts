@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
+import { getCustomerAgentReadiness } from '@/lib/customer-agent-readiness';
+import { checkDatabaseHealth } from '@/lib/health-check';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const [database, customerFacingAgents] = await Promise.all([
+      checkDatabaseHealth(),
+      getCustomerAgentReadiness(),
+    ]);
+
     const healthCheck = {
-      status: 'ok',
+      status:
+        database.status === 'unhealthy' || customerFacingAgents.overallStatus === 'unhealthy'
+          ? 'degraded'
+          : 'ok',
       timestamp: new Date().toISOString(),
       environment: {
         NODE_ENV: process.env.NODE_ENV,
@@ -15,9 +25,11 @@ export async function GET() {
         NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY ? 'SET' : 'MISSING',
       },
       services: {
+        database: database.status,
         sentry: 'configured',
         posthog: process.env.NEXT_PUBLIC_POSTHOG_KEY ? 'configured' : 'disabled',
-      }
+      },
+      customerFacingAgents,
     };
 
     return NextResponse.json(healthCheck);

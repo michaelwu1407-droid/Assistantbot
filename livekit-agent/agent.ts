@@ -308,11 +308,19 @@ function phoneMatches(left?: string | null, right?: string | null): boolean {
 }
 
 function getKnownEarlymarkNumbers(): string[] {
-  return [
+  const values = [
+    ...(process.env.EARLYMARK_INBOUND_PHONE_NUMBERS || "")
+      .split(/[,\n]/)
+      .map((value) => value.trim())
+      .filter(Boolean),
     process.env.EARLYMARK_INBOUND_PHONE_NUMBER,
     process.env.EARLYMARK_PHONE_NUMBER,
     process.env.TWILIO_PHONE_NUMBER,
-  ].filter(Boolean) as string[];
+  ]
+    .filter(Boolean)
+    .map((value) => normalizePhone(value))
+    .filter(Boolean) as string[];
+  return Array.from(new Set(values));
 }
 
 function resolveCallType(initialCallType: CallType, calledPhone: string, roomName: string): CallType {

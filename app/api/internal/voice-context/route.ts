@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
 import { getWorkspaceVoiceGrounding } from "@/lib/ai/context";
+import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -14,46 +14,9 @@ function getExpectedSecret() {
   return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
 }
 
-function normalisePhone(phone?: string | null) {
-  if (!phone) return "";
-  const cleaned = phone.replace(/[^\d+]/g, "");
-  if (!cleaned) return "";
-  if (cleaned.startsWith("+")) return cleaned;
-  if (cleaned.startsWith("0")) return `+61${cleaned.slice(1)}`;
-  if (cleaned.startsWith("61")) return `+${cleaned}`;
-  return cleaned;
-}
-
-function phoneVariants(phone?: string | null) {
-  const normalized = normalisePhone(phone);
-  if (!normalized) return [];
-  const digits = normalized.replace(/[^\d]/g, "");
-  const variants = new Set<string>([
-    normalized,
-    digits,
-    digits.startsWith("61") ? `0${digits.slice(2)}` : digits,
-    digits.startsWith("61") ? digits.slice(2) : digits,
-  ]);
-  return Array.from(variants).filter(Boolean);
-}
-
 async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
-  const variants = phoneVariants(calledPhone);
-  if (!variants.length) return null;
-
-  const workspaces = await db.workspace.findMany({
-    where: { twilioPhoneNumber: { not: null } },
-    select: { id: true, twilioPhoneNumber: true },
-  });
-
-  for (const workspace of workspaces) {
-    const workspaceVariants = phoneVariants(workspace.twilioPhoneNumber);
-    if (workspaceVariants.some((value) => variants.includes(value))) {
-      return workspace.id;
-    }
-  }
-
-  return null;
+  const workspace = await findWorkspaceByTwilioNumber(calledPhone, { id: true });
+  return workspace?.id ?? null;
 }
 
 export async function POST(req: NextRequest) {

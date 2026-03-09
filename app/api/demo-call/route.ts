@@ -26,10 +26,16 @@ import { SipClient, RoomServiceClient } from "livekit-server-sdk";
 const LIVEKIT_URL = process.env.LIVEKIT_URL || "";
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "";
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || "";
+const LIVEKIT_SIP_TRUNK_ID = process.env.LIVEKIT_SIP_TRUNK_ID || "";
 
 export async function POST(req: NextRequest) {
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    console.error("[demo-call] Missing LIVEKIT env vars");
+  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_SIP_TRUNK_ID) {
+    console.error("[demo-call] Missing LiveKit demo-call env vars", {
+      hasLivekitUrl: !!LIVEKIT_URL,
+      hasLivekitApiKey: !!LIVEKIT_API_KEY,
+      hasLivekitApiSecret: !!LIVEKIT_API_SECRET,
+      hasLivekitSipTrunkId: !!LIVEKIT_SIP_TRUNK_ID,
+    });
     return NextResponse.json(
       { error: "Voice infrastructure not configured" },
       { status: 503 }
@@ -92,7 +98,7 @@ export async function POST(req: NextRequest) {
     // Create outbound SIP participant — this dials the prospect's phone
     // and connects them into the LiveKit room where the agent will join
     const participant = await sipClient.createSipParticipant(
-      process.env.LIVEKIT_SIP_TRUNK_ID || "", // SIP trunk ID for outbound
+      LIVEKIT_SIP_TRUNK_ID,
       normalizedPhone,
       roomName,
       {

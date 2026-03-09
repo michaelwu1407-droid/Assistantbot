@@ -1,3 +1,26 @@
+## 2026-03-09 (AEST) – Cursor AI Agent
+
+- **Files changed**: 
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `components/ui/weekly-hours-editor.tsx`
+  - `components/dashboard/dashboard-client.tsx`
+  - `components/crm/kanban-board.tsx`
+  - `components/dashboard/notifications-btn.tsx`
+  - `actions/notification-actions.ts`
+  - `lib/digest.ts`
+  - `lib/workspace-routing.ts`
+  - `actions/chat-actions.ts`
+  - `components/chatbot/chat-interface.tsx`
+  - `__tests__/chat-interface.test.tsx`
+- **Summary**: 
+  - Tightened Tracey onboarding copy and wired the physical address field to Google-powered address autocomplete.
+  - Refined dashboard kanban layout (white board, column height, padding, and scroll behaviour) to better match the main canvas.
+  - Improved in-app notifications: full message text, clickable rows that navigate via `link`, and saner time windows for morning/evening alerts.
+  - Introduced shared daily digest helpers for morning/evening briefs and surfaced them as aesthetic modals launched from Tracey chat preview cards.
+  - Added mode-aware “Next steps” guidance in the digest modal, and simplified workspace/phone routing helpers to avoid Prisma generic conflicts.
+- **Why**: 
+  - To make onboarding smoother, kanban usage clearer, and daily summaries (morning brief and evening wrap-up) more actionable and discoverable inside the existing Tracey assistant experience, while keeping TypeScript builds green.
+
 # Agent Change Log
 
 Operational audit log for all AI agent code/config edits.  

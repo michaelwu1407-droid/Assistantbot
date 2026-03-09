@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { db as prisma } from "@/lib/db"
 import { waitUntil } from "@vercel/functions"
 import { classifyMessage } from "@/lib/spam-classifier"
-import { getSubaccountClient } from "@/lib/twilio"
+import { getWorkspaceTwilioClient } from "@/lib/twilio"
 import { generateSMSResponse } from "@/lib/ai/sms-agent"
+import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing"
 
 export const maxDuration = 60;
 
@@ -23,15 +24,12 @@ export async function POST(req: NextRequest) {
         console.log(`[SMS Webhook] Received message from ${From} to ${To}: ${Body}`)
 
         // 1. Identify Workspace via the Twilio Number (Multi-Tenant Routing)
-        const workspace = await prisma.workspace.findFirst({
-            where: { twilioPhoneNumber: To },
-            select: {
-                id: true,
-                settings: true,
-                twilioPhoneNumber: true,
-                twilioSubaccountId: true,
-                twilioSubaccountAuthToken: true,
-            }
+        const workspace = await findWorkspaceByTwilioNumber(To, {
+            id: true,
+            settings: true,
+            twilioPhoneNumber: true,
+            twilioSubaccountId: true,
+            twilioSubaccountAuthToken: true,
         })
 
         if (!workspace) {
@@ -39,8 +37,10 @@ export async function POST(req: NextRequest) {
             return new NextResponse("OK", { status: 200 })
         }
 
-        let contact = await prisma.contact.findFirst({
-            where: { phone: From, workspaceId: workspace.id }
+        let contact = await findContactByPhone(workspace.id, From, {
+            id: true,
+            name: true,
+            phone: true,
         })
 
         if (!contact) {
@@ -129,18 +129,20 @@ export async function POST(req: NextRequest) {
                 })
 
                 // ─── Send Response via Twilio REST API ──────────────────
-                if (workspace.twilioSubaccountId && workspace.twilioSubaccountAuthToken) {
-                    const client = getSubaccountClient(
-                        workspace.twilioSubaccountId,
-                        workspace.twilioSubaccountAuthToken
-                    );
+                const client = getWorkspaceTwilioClient(workspace);
+                if (client && workspace.twilioPhoneNumber) {
                     await client.messages.create({
                         from: To,
                         to: From,
                         body: aiResponseText,
                     });
                 } else {
-                    console.error(`[SMS Webhook] No Twilio subaccount configured for workspace ${workspaceId}. Cannot send reply.`);
+                    console.error(`[SMS Webhook] No usable Twilio messaging client configured for workspace ${workspaceId}. Cannot send reply.`, {
+                        workspaceId,
+                        hasPhoneNumber: !!workspace.twilioPhoneNumber,
+                        hasSubaccountId: !!workspace.twilioSubaccountId,
+                        hasSubaccountAuthToken: !!workspace.twilioSubaccountAuthToken,
+                    });
                 }
             } catch (err) {
                 console.error("[SMS Webhook] Error processing message in background:", err);

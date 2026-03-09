@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio";
+import { getWorkspaceTwilioClient, twilioMasterClient } from "@/lib/twilio";
 
 // Simple phone formatting function
 function formatPhoneE164(phone: string): string {
@@ -23,8 +23,16 @@ function formatPhoneE164(phone: string): string {
   return cleaned;
 }
 
-async function sendSms(phone: string, message: string, fromNumber: string, subaccountId: string, subaccountAuthToken: string) {
-  const twilioClient = getSubaccountClient(subaccountId, subaccountAuthToken);
+async function sendSms(
+  phone: string,
+  message: string,
+  fromNumber: string,
+  workspace: { twilioSubaccountId?: string | null; twilioSubaccountAuthToken?: string | null }
+) {
+  const twilioClient = getWorkspaceTwilioClient(workspace);
+  if (!twilioClient) {
+    throw new Error("No usable Twilio messaging client is available for this workspace");
+  }
   await twilioClient.messages.create({
     body: message,
     from: fromNumber,
@@ -79,11 +87,6 @@ export async function sendJobReminder(dealId: string) {
       return { success: false, error: "No subaccount configured" };
     }
 
-    if (!workspace.twilioSubaccountAuthToken) {
-      console.log(`⚠️ [JOB REMINDER] No Twilio auth token configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No auth token configured" };
-    }
-
     console.log(`⚙️ [JOB REMINDER] Workspace settings - Hours: ${workspace.jobReminderHours}, Enabled: ${workspace.enableJobReminders}`);
 
     // Check if reminder should be sent (within the configured hours)
@@ -122,8 +125,7 @@ export async function sendJobReminder(dealId: string) {
       formattedPhone, 
       message, 
       workspace.twilioPhoneNumber,
-      workspace.twilioSubaccountId,
-      workspace.twilioSubaccountAuthToken
+      workspace
     );
 
     console.log(`✅ [JOB REMINDER] SMS sent successfully to ${customerName}`);
@@ -194,11 +196,6 @@ export async function sendTripSms(dealId: string) {
       return { success: false, error: "No subaccount configured" };
     }
 
-    if (!workspace.twilioSubaccountAuthToken) {
-      console.log(`⚠️ [TRIP SMS] No Twilio auth token configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No auth token configured" };
-    }
-
     console.log(`⚙️ [TRIP SMS] Trip SMS enabled for workspace: ${workspace.id}`);
 
     // Send trip SMS
@@ -215,8 +212,7 @@ export async function sendTripSms(dealId: string) {
       formattedPhone,
       message,
       workspace.twilioPhoneNumber,
-      workspace.twilioSubaccountId,
-      workspace.twilioSubaccountAuthToken!
+      workspace
     );
 
     console.log(`✅ [TRIP SMS] SMS sent successfully to ${customerName}`);

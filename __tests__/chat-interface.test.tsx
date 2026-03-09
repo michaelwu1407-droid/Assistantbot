@@ -9,9 +9,17 @@ vi.mock('@/components/providers/conditional-clerk-provider', () => ({
   ConditionalClerkProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock('@/actions/chat-actions', () => ({
+  getChatHistory: vi.fn().mockResolvedValue([]),
+  saveAssistantMessage: vi.fn(),
+  confirmJobDraft: vi.fn(),
+  runUndoLastAction: vi.fn().mockResolvedValue("Undone"),
+  getDailyDigest: vi.fn().mockResolvedValue(null),
+}));
+
 describe('ChatInterface', () => {
   it('renders chat interface with initial message', () => {
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     expect(screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!")).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Type your message...')).toBeInTheDocument();
@@ -19,7 +27,7 @@ describe('ChatInterface', () => {
   });
 
   it('displays user and assistant messages correctly', () => {
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     // Check for the initial assistant message
     const assistantMessage = screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!");
@@ -31,7 +39,7 @@ describe('ChatInterface', () => {
   });
 
   it('has a functional input field and send button', () => {
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
     const sendButton = screen.getByRole('button');
@@ -42,7 +50,7 @@ describe('ChatInterface', () => {
   });
 
   it('disables send button when input is empty', () => {
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     const sendButton = screen.getByRole('button');
     expect(sendButton).toBeDisabled();
@@ -50,7 +58,7 @@ describe('ChatInterface', () => {
 
   it('enables send button when input has text', async () => {
     const user = userEvent.setup();
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
     const sendButton = screen.getByRole('button');
@@ -62,7 +70,7 @@ describe('ChatInterface', () => {
 
   it('submits form and shows user message', async () => {
     const user = userEvent.setup();
-    render(<ChatInterface />);
+    render(<ChatInterface workspaceId="test-workspace" />);
 
     const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
     const sendButton = screen.getByRole('button');

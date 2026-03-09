@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction } from '@/actions/chat-actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction, getDailyDigest } from '@/actions/chat-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { usePathname } from 'next/navigation';
@@ -234,6 +235,8 @@ function ChatWithHistory({
 }) {
   const [input, setInput] = useState('');
   const [selectedDeals, setSelectedDeals] = useState<CrmSelectionItem[]>([]);
+  const [digestModal, setDigestModal] = useState<{ kind: "morning" | "evening"; agentMode: string | null; digest: import("@/lib/digest").DailyDigest } | null>(null);
+  const [digestLoading, setDigestLoading] = useState<"morning" | "evening" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
@@ -321,6 +324,19 @@ function ChatWithHistory({
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
+
+  const openDigestModal = async (kind: "morning" | "evening") => {
+    if (!workspaceId) return;
+    setDigestLoading(kind);
+    try {
+      const result = await getDailyDigest(workspaceId, kind);
+      if (result) {
+        setDigestModal(result);
+      }
+    } finally {
+      setDigestLoading(null);
+    }
+  };
 
   useEffect(() => {
     const currentCount = messages.length;
@@ -537,6 +553,39 @@ function ChatWithHistory({
                         if (fromParts.length) content = fromParts.join('\n');
                       }
                       if (content.trim()) {
+                        const trimmed = content.trim();
+                        if (!isUser && trimmed.startsWith("☀️ Morning Briefing")) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => openDigestModal("morning")}
+                              className="w-full text-left text-[10px] md:text-xs leading-relaxed font-medium rounded-2xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/40 dark:border-emerald-700 px-3 py-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
+                            >
+                              {trimmed}
+                              {digestLoading === "morning" && (
+                                <span className="ml-2 text-[10px] text-emerald-700 dark:text-emerald-300">
+                                  Loading…
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                        if (!isUser && trimmed.startsWith("🌙 Evening Wrap-Up")) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => openDigestModal("evening")}
+                              className="w-full text-left text-[10px] md:text-xs leading-relaxed font-medium rounded-2xl border border-slate-300 bg-slate-50/80 dark:bg-slate-900/70 dark:border-slate-700 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              {trimmed}
+                              {digestLoading === "evening" && (
+                                <span className="ml-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                  Loading…
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
                         return (
                           <p className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
                             {content}
@@ -652,6 +701,114 @@ function ChatWithHistory({
           </div>
         </form>
       </div>
+      {digestModal && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setDigestModal(null); }}>
+          <DialogContent className="sm:max-w-2xl lg:max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {digestModal.kind === "morning" ? "Morning Briefing" : "Evening Wrap-Up"} — {digestModal.digest.date}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-xs md:text-sm">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 px-4 py-3">
+                <p className="font-semibold text-slate-900 dark:text-slate-50">
+                  Summary
+                </p>
+                <p className="mt-1 text-slate-600 dark:text-slate-300">
+                  Pipeline value: ${digestModal.digest.totalPipelineValue.toLocaleString("en-AU")} · Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Urgent & rotting jobs</p>
+                  {digestModal.digest.items.filter(i => i.type === "rotting_deal").length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No urgent rotting jobs right now.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {digestModal.digest.items.filter(i => i.type === "rotting_deal").map((item, idx) => (
+                        <li key={idx} className="rounded-lg border border-red-200 dark:border-red-700 bg-red-50/70 dark:bg-red-900/40 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-red-800 dark:text-red-100">{item.title}</p>
+                          <p className="text-[11px] text-red-700/90 dark:text-red-200/90 mt-0.5">{item.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Follow ups & today&apos;s tasks</p>
+                  {digestModal.digest.items.filter(i => i.type === "stale_deal" || i.type === "follow_up").length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No follow ups flagged right now.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {digestModal.digest.items.filter(i => i.type === "stale_deal" || i.type === "follow_up").map((item, idx) => (
+                        <li key={idx} className="rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-900/40 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-100">{item.title}</p>
+                          <p className="text-[11px] text-amber-800/90 dark:text-amber-100/90 mt-0.5">{item.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Overdue tasks & admin</p>
+                {digestModal.digest.items.filter(i => i.type === "overdue_task").length === 0 ? (
+                  <p className="text-[11px] text-slate-500">No overdue tasks right now.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {digestModal.digest.items.filter(i => i.type === "overdue_task").map((item, idx) => (
+                      <li key={idx} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 px-3 py-2">
+                        <p className="text-[11px] font-semibold text-slate-900 dark:text-slate-50">{item.title}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">{item.description}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/70 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-100 mb-1">
+                  Next steps {digestModal.agentMode ? `(${digestModal.agentMode})` : ""}
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                  {digestModal.kind === "morning" ? (
+                    digestModal.agentMode === "EXECUTION" ? (
+                      <>
+                        <li>I&apos;ll chase any urgent or rotting jobs for you and prepare follow-up messages.</li>
+                        <li>I&apos;ll line up drafts for quotes and invoices based on today&apos;s schedule.</li>
+                      </>
+                    ) : digestModal.agentMode === "DRAFT" ? (
+                      <>
+                        <li>I&apos;ve prepared draft follow-ups for stale jobs – ask me to &quot;show today&apos;s drafts&quot; to review them.</li>
+                        <li>Review and approve any draft quotes or messages before you head out.</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>Call or text the top 1–2 jobs in the list to keep the pipeline moving.</li>
+                        <li>Glance over today&apos;s runs and confirm any jobs you&apos;re unsure about.</li>
+                      </>
+                    )
+                  ) : digestModal.agentMode === "EXECUTION" ? (
+                    <>
+                      <li>I&apos;ll follow up tonight or first thing tomorrow on any jobs marked Follow up or Urgent.</li>
+                      <li>I&apos;ll chase unpaid invoices and prepare any reminders needed.</li>
+                    </>
+                  ) : digestModal.agentMode === "DRAFT" ? (
+                    <>
+                      <li>Review and approve the follow-up drafts I&apos;ve queued from today&apos;s jobs.</li>
+                      <li>Approve any invoice drafts so I can send reminders tomorrow.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Before you log off, send invoices for completed jobs and add brief notes to today&apos;s calls.</li>
+                      <li>Pick 1–2 follow-ups from the list to tackle first thing tomorrow.</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

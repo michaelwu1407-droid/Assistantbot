@@ -37,6 +37,7 @@ import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/trace
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
 import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import {
   createDefaultWeeklyHours,
   normalizeWeeklyHours,
@@ -911,11 +912,11 @@ export function TraceyOnboarding() {
                             scrapeTriggered.current = false // allow re-scrape on change
                           }}
                         />
+                        <p className="text-xs text-slate-500">
+                          Add your website to pre-fill the next step.
+                        </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500">
-                      Add your website if you have one. We&apos;ll use it to help pre-fill details in the next step.
-                    </p>
                   </div>
                 )}
 
@@ -1088,10 +1089,10 @@ export function TraceyOnboarding() {
                       </h3>
                       <div className="space-y-1.5">
                         <Label>Physical Address</Label>
-                        <Input
+                        <AddressAutocomplete
                           placeholder="123 Trade St, Parramatta NSW 2150"
                           value={physicalAddress}
-                          onChange={(e) => setPhysicalAddress(e.target.value)}
+                          onChange={setPhysicalAddress}
                         />
                         <p className="text-xs text-slate-500">
                           We use this address as Tracey&apos;s home base when calculating your service area.
