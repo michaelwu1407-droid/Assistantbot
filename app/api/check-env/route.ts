@@ -1,14 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
 } from "@/lib/earlymark-inbound-config";
 import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
+import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
+import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const customerFacingAgents = await getCustomerAgentReadiness();
+export async function GET() {
+  const [customerFacingAgents, voiceWorker, twilioVoiceRouting] = await Promise.all([
+    getCustomerAgentReadiness(),
+    getVoiceAgentRuntimeDrift(),
+    auditTwilioVoiceRouting({ apply: false }),
+  ]);
   const env = {
     // Core required for phone provisioning
     twilio: {
@@ -59,5 +65,7 @@ export async function GET(request: NextRequest) {
     missing,
     env,
     customerFacingAgents,
+    voiceWorker,
+    twilioVoiceRouting,
   });
 }

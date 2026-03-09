@@ -49,12 +49,12 @@ function buildSummary(callType: string, callerName?: string, callerPhone?: strin
 }
 
 async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
-  const workspace = await findWorkspaceByTwilioNumber(calledPhone, { id: true });
+  const workspace = await findWorkspaceByTwilioNumber(calledPhone);
   return workspace?.id ?? null;
 }
 
 async function findContactId(workspaceId: string, callerPhone?: string) {
-  const contact = await findContactByPhone(workspaceId, callerPhone, { id: true });
+  const contact = await findContactByPhone(workspaceId, callerPhone);
   return contact?.id ?? null;
 }
 

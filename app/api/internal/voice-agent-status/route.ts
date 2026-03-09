@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { getWorkspaceVoiceGrounding } from "@/lib/ai/context";
-import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 const payloadSchema = z.object({
-  calledPhone: z.string().optional(),
-  workspaceId: z.string().optional(),
+  deployGitSha: z.string().optional(),
+  runtimeFingerprint: z.string().min(1),
+  pid: z.number().int().positive().optional(),
+  startedAt: z.string().optional(),
+  heartbeatAt: z.string().optional(),
+  summary: z.record(z.string(), z.unknown()).optional(),
 });
 
 function getExpectedSecret() {
   return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
-}
-
-async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
-  const workspace = await findWorkspaceByTwilioNumber(calledPhone);
-  return workspace?.id ?? null;
 }
 
 export async function POST(req: NextRequest) {
@@ -34,19 +33,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid payload" }, { status: 400 });
     }
 
-    const workspaceId = parsed.data.workspaceId || await findWorkspaceIdByCalledNumber(parsed.data.calledPhone);
-    if (!workspaceId) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
-    }
+    await db.webhookEvent.create({
+      data: {
+        provider: "livekit_worker_status",
+        eventType: "heartbeat",
+        status: "success",
+        payload: parsed.data as unknown as Prisma.InputJsonValue,
+      },
+    });
 
-    const grounding = await getWorkspaceVoiceGrounding(workspaceId);
-    if (!grounding) {
-      return NextResponse.json({ error: "Voice grounding not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, grounding });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[voice-context-webhook] Error:", error);
+    console.error("[voice-agent-status] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

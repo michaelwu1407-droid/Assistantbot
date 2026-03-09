@@ -100,10 +100,7 @@ export async function POST(req: NextRequest) {
         // ── Step 0: DTMF challenge callback ─────────────────────────────
         // If this is a callback from a DTMF challenge and caller pressed 1
         if (dtmfPassed === "1" && digits === "1") {
-            const workspace = await findWorkspaceByTwilioNumber(calledNumber, {
-                twilioSipTrunkSid: true,
-                twilioSubaccountId: true,
-            });
+            const workspace = await findWorkspaceByTwilioNumber(calledNumber);
             const sipDomain = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID, workspace?.twilioSubaccountId);
             if (!sipDomain) {
                 console.error("[voice-gateway] Missing Twilio account SID during DTMF callback forwarding.");
@@ -136,11 +133,7 @@ export async function POST(req: NextRequest) {
 
         // ── Step 3: Workspace lookup & voice enabled check ──────────────
         const workspace = calledNumber
-            ? await findWorkspaceByTwilioNumber(calledNumber, {
-                twilioSipTrunkSid: true,
-                twilioSubaccountId: true,
-                voiceEnabled: true,
-            })
+            ? await findWorkspaceByTwilioNumber(calledNumber)
             : null;
 
         if (!workspace && !isEarlymarkInboundCall) {

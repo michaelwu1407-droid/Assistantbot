@@ -1,5 +1,6 @@
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers, phoneMatches } from "@/lib/earlymark-inbound-config";
 import { twilioMasterClient } from "@/lib/twilio";
+import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -134,6 +135,13 @@ export async function getCustomerAgentReadiness(): Promise<CustomerAgentReadines
   };
 
   checks.inboundVoice = await auditInboundVoiceConfig();
+  const voiceWorker = await getVoiceAgentRuntimeDrift();
+  checks.voiceWorker = {
+    status: voiceWorker.status,
+    missing: [],
+    warnings: voiceWorker.warnings,
+    summary: voiceWorker.summary,
+  };
 
   const overallStatus = Object.values(checks).reduce<ReadinessStatus>(
     (current, check) => maxStatus(current, check.status),

@@ -24,24 +24,14 @@ export async function POST(req: NextRequest) {
         console.log(`[SMS Webhook] Received message from ${From} to ${To}: ${Body}`)
 
         // 1. Identify Workspace via the Twilio Number (Multi-Tenant Routing)
-        const workspace = await findWorkspaceByTwilioNumber(To, {
-            id: true,
-            settings: true,
-            twilioPhoneNumber: true,
-            twilioSubaccountId: true,
-            twilioSubaccountAuthToken: true,
-        })
+        const workspace = await findWorkspaceByTwilioNumber(To)
 
         if (!workspace) {
             console.error(`[SMS Webhook] Received SMS to ${To} but no matching Workspace was found.`)
             return new NextResponse("OK", { status: 200 })
         }
 
-        let contact = await findContactByPhone(workspace.id, From, {
-            id: true,
-            name: true,
-            phone: true,
-        })
+        let contact = await findContactByPhone(workspace.id, From)
 
         if (!contact) {
             contact = await prisma.contact.create({

@@ -20,8 +20,6 @@ export async function POST(req: Request) {
         const formData = await req.formData();
         const from = formData.get("From")?.toString() || "";
         const body = formData.get("Body")?.toString() || "";
-        const profileName = formData.get("ProfileName")?.toString() || "";
-
         console.log(`[WhatsApp Webhook] Received message from ${from}: ${body}`);
 
         // Twilio WhatsApp numbers are prefixed with "whatsapp:"
@@ -34,11 +32,7 @@ export async function POST(req: Request) {
 
         // Authenticate user by phone bypassing RLS
         // In our schema, `phone` is the personal phone field on `User`.
-        const user = await findUserByPhone(cleanNumber, {
-            id: true,
-            name: true,
-            workspaceId: true,
-        });
+        const user = await findUserByPhone(cleanNumber);
 
         if (!user) {
             // Unauthorized fallback

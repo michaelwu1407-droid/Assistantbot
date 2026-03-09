@@ -1,11 +1,10 @@
 import { getCustomerAgentReadiness } from './customer-agent-readiness';
 import {
-  getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
-  phoneMatches,
 } from './earlymark-inbound-config';
 import { createAdminClient } from './supabase/server-robust';
-import { twilioMasterClient } from './twilio';
+import { auditTwilioVoiceRouting } from './twilio-drift';
+import { getVoiceAgentRuntimeDrift } from './voice-agent-runtime';
 
 export async function checkDatabaseHealth(): Promise<{
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -92,54 +91,11 @@ async function auditInboundVoiceRouting(): Promise<{
   status: 'healthy' | 'degraded' | 'unhealthy';
   warnings: string[];
 }> {
-  const warnings: string[] = [];
-  const expectedGatewayUrl = getExpectedVoiceGatewayUrl();
-  const knownNumbers = getKnownEarlymarkInboundNumbers();
-
-  if (!expectedGatewayUrl) {
-    warnings.push('NEXT_PUBLIC_APP_URL is missing, so the expected Twilio voice gateway URL cannot be verified');
-    return { status: 'degraded', warnings };
-  }
-
-  if (knownNumbers.length === 0) {
-    warnings.push('No Earlymark inbound number is configured in env, so inbound sales routing cannot be verified');
-    return { status: 'degraded', warnings };
-  }
-
-  if (!twilioMasterClient) {
-    warnings.push('Twilio master client is unavailable, so inbound phone webhook config cannot be audited');
-    return { status: 'degraded', warnings };
-  }
-
-  try {
-    const incomingNumbers = await twilioMasterClient.incomingPhoneNumbers.list({ limit: 200 });
-    const matchedNumbers = incomingNumbers.filter((record) =>
-      knownNumbers.some((number) => phoneMatches(number, record.phoneNumber)),
-    );
-
-    if (matchedNumbers.length === 0) {
-      warnings.push(`Configured Earlymark inbound number(s) were not found on the Twilio account: ${knownNumbers.join(', ')}`);
-      return { status: 'unhealthy', warnings };
-    }
-
-    for (const record of matchedNumbers) {
-      const voiceUrl = record.voiceUrl || '';
-      const voiceApplicationSid = record.voiceApplicationSid || '';
-      if (voiceApplicationSid) {
-        warnings.push(`Inbound number ${record.phoneNumber} uses Twilio Voice Application ${voiceApplicationSid}; expected direct webhook ${expectedGatewayUrl}`);
-      } else if (voiceUrl !== expectedGatewayUrl) {
-        warnings.push(`Inbound number ${record.phoneNumber} points to ${voiceUrl || '[empty]'} instead of ${expectedGatewayUrl}`);
-      }
-    }
-
-    return {
-      status: warnings.length === 0 ? 'healthy' : 'degraded',
-      warnings,
-    };
-  } catch (error) {
-    warnings.push(error instanceof Error ? error.message : 'Unknown Twilio inbound routing audit failure');
-    return { status: 'degraded', warnings };
-  }
+  const drift = await auditTwilioVoiceRouting({ apply: false });
+  return {
+    status: drift.status,
+    warnings: drift.warnings.length > 0 ? drift.warnings : [drift.summary].filter(Boolean),
+  };
 }
 
 export async function performStartupHealthCheck(): Promise<void> {
@@ -170,6 +126,17 @@ export async function performStartupHealthCheck(): Promise<void> {
     }
   } catch (error) {
     console.warn('[startup] Inbound voice routing audit exception:', error);
+  }
+
+  try {
+    const runtime = await getVoiceAgentRuntimeDrift();
+    if (runtime.status !== 'healthy') {
+      console.warn('[startup] LiveKit worker runtime drift:', runtime);
+    } else {
+      console.log('[startup] LiveKit worker runtime fingerprint matches expected env');
+    }
+  } catch (error) {
+    console.warn('[startup] LiveKit worker runtime audit exception:', error);
   }
 
   try {

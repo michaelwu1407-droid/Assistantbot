@@ -33,7 +33,6 @@ const LEAD_KEYWORDS = [
 
 export async function POST(req: Request) {
     try {
-        let body: Record<string, string> = {}
         let rawTo = ""
         let rawFrom = ""
         let textRaw = ""
@@ -62,10 +61,7 @@ export async function POST(req: Request) {
         const toEmail = (emailMatch ? emailMatch[1] : rawTo.trim()).toLowerCase()
 
         // Match Workspace
-        const workspace = await findWorkspaceByInboundEmail(toEmail, {
-            id: true,
-            ownerId: true,
-        })
+        const workspace = await findWorkspaceByInboundEmail(toEmail)
 
         if (!workspace) {
             return NextResponse.json({ error: "Workspace via inboundEmail not found" }, { status: 404 })
@@ -124,7 +120,7 @@ export async function POST(req: Request) {
         const leadInfo = parsedResult.object
 
         // Build or find contact
-        let contactId
+        let contactId: string | undefined
         if (leadInfo.clientName) {
             const existing = await db.contact.findFirst({
                 where: {
@@ -152,11 +148,24 @@ export async function POST(req: Request) {
             }
         }
 
+        if (!contactId) {
+            const fallbackContact = await db.contact.create({
+                data: {
+                    workspaceId: workspace.id,
+                    name: leadInfo.clientName || rawFrom || "Email Lead",
+                    phone: leadInfo.phone || null,
+                    email: leadInfo.email || null,
+                    address: leadInfo.address || null,
+                },
+            })
+            contactId = fallbackContact.id
+        }
+
         // Create the Deal in the "NEW" stage
-        const dealData: any = {
+        const dealData = {
             workspaceId: workspace.id,
             title: `Lead: ${leadInfo.workDescription || "New Request"}`,
-            stage: "NEW",
+            stage: "NEW" as const,
             source: "email",
             address: leadInfo.address || null,
             metadata: {
@@ -165,11 +174,12 @@ export async function POST(req: Request) {
                 tier: isKnownProvider ? "provider-match" : hasLeadKeywords ? "keyword-match" : "llm-classified",
             }
         }
-        if (contactId) {
-            dealData.contactId = contactId
-        }
-
-        await db.deal.create({ data: dealData })
+        await db.deal.create({
+            data: {
+                ...dealData,
+                contactId,
+            },
+        })
 
         // Also create a "New Lead" notification
         await db.notification.create({
@@ -184,7 +194,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, parsed: leadInfo })
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Email Webhook Error:", err)
         return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }

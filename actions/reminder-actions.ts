@@ -474,7 +474,7 @@ export async function getReminderStats(workspaceId?: string) {
   }
 }
 
-export async function sendSupportAlert(message: string, metadata?: Record<string, any>) {
+export async function sendSupportAlert(message: string, metadata?: Record<string, unknown>) {
   try {
     // Send support alert to Michael Wu
     const twilioClient = twilioMasterClient;

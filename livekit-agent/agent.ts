@@ -16,6 +16,7 @@
  *   - Per-turn latency attribution logs
  */
 
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ReadableStream } from 'node:stream/web';
 import { config as loadEnv } from 'dotenv';
@@ -43,7 +44,61 @@ const {
 } = voiceLatency;
 
 const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
-console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: new Date().toISOString() })}`);
+const AGENT_STARTED_AT = new Date().toISOString();
+const VOICE_AGENT_HEARTBEAT_MS = 5 * 60 * 1000;
+const VOICE_AGENT_RUNTIME_ENV_KEYS = [
+  "LIVEKIT_URL",
+  "LIVEKIT_API_KEY",
+  "LIVEKIT_API_SECRET",
+  "NEXT_PUBLIC_APP_URL",
+  "APP_URL",
+  "VOICE_AGENT_WEBHOOK_SECRET",
+  "EARLYMARK_INBOUND_PHONE_NUMBERS",
+  "EARLYMARK_INBOUND_PHONE_NUMBER",
+  "EARLYMARK_PHONE_NUMBER",
+  "TWILIO_PHONE_NUMBER",
+  "DEEPGRAM_API_KEY",
+  "DEEPINFRA_API_KEY",
+  "GROQ_API_KEY",
+  "CARTESIA_API_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "EARLYMARK_VOICE_LLM_PROVIDER",
+  "EARLYMARK_VOICE_LLM_MODEL",
+  "EARLYMARK_VOICE_LLM_TEMPERATURE",
+  "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
+  "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
+  "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
+  "VOICE_LLM_PROVIDER",
+  "VOICE_LLM_MODEL",
+  "VOICE_LLM_TEMPERATURE",
+  "VOICE_LLM_MAX_COMPLETION_TOKENS",
+  "VOICE_STT_MODEL",
+  "VOICE_STT_LANGUAGE",
+  "VOICE_STT_ENDPOINTING_MS",
+  "VOICE_TTS_VOICE_ID",
+  "VOICE_TTS_LANGUAGE",
+  "VOICE_TTS_CHUNK_TIMEOUT_MS",
+  "VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
+  "VOICE_MIN_ENDPOINTING_DELAY_MS",
+  "VOICE_MAX_ENDPOINTING_DELAY_MS",
+  "VOICE_MIN_INTERRUPTION_DURATION_MS",
+  "VOICE_MIN_INTERRUPTION_WORDS",
+  "VOICE_LATENCY_ENABLED",
+  "VOICE_LATENCY_TARGET_CALL_TYPES",
+  "VOICE_OPENER_BANK_ENABLED",
+  "VOICE_OPENER_CONFIDENCE_THRESHOLD",
+  "VOICE_GUARD_ENABLED",
+  "VOICE_GUARD_PROVIDER",
+  "VOICE_GUARD_MODEL",
+  "VOICE_GUARD_BASE_URL",
+  "VOICE_GUARD_TIMEOUT_MS",
+  "VOICE_GUARD_MAX_COMPLETION_TOKENS",
+  "VOICE_GUARD_TEMPERATURE",
+  "VOICE_GUARD_MIN_CHARS",
+  "VOICE_EMPATHY_TURN_GAP",
+] as const;
+console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
 const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
@@ -687,11 +742,8 @@ async function persistVoiceCall(payload: {
   startedAt: string;
   endedAt: string;
 }) {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000");
-  const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
 
   if (!appUrl || !secret) {
     console.warn("[agent] Skipping call persistence because APP URL or webhook secret is missing.");
@@ -714,15 +766,78 @@ async function persistVoiceCall(payload: {
   }
 }
 
+function getAppBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000")
+  );
+}
+
+function getVoiceAgentWebhookSecret() {
+  return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
+}
+
+function getVoiceAgentRuntimeFingerprint() {
+  const source = VOICE_AGENT_RUNTIME_ENV_KEYS
+    .map((key) => [key, (process.env[key] || "").trim()] as const)
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  return createHash("sha256").update(JSON.stringify(source)).digest("hex");
+}
+
+function buildVoiceAgentRuntimeSummary() {
+  return {
+    llmProvider: process.env.EARLYMARK_VOICE_LLM_PROVIDER || process.env.VOICE_LLM_PROVIDER || "deepinfra",
+    llmModel: process.env.EARLYMARK_VOICE_LLM_MODEL || process.env.VOICE_LLM_MODEL || "meta-llama/Llama-3.3-70B-Instruct",
+    sttModel: process.env.VOICE_STT_MODEL || "nova-3",
+    ttsVoiceId: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+    latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
+    openerBankEnabled: process.env.VOICE_OPENER_BANK_ENABLED ?? "true",
+    guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
+    targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || "normal",
+    knownInboundNumbers: getKnownEarlymarkNumbers(),
+  };
+}
+
+async function postVoiceAgentStatus() {
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+
+  if (!appUrl || !secret) {
+    console.warn("[agent] Skipping worker-status heartbeat because APP URL or webhook secret is missing.");
+    return;
+  }
+
+  const route = `${appUrl.replace(/\/$/, "")}/api/internal/voice-agent-status`;
+  const response = await fetch(route, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-voice-agent-secret": secret,
+    },
+    body: JSON.stringify({
+      deployGitSha: DEPLOY_GIT_SHA,
+      runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
+      pid: process.pid,
+      startedAt: AGENT_STARTED_AT,
+      heartbeatAt: new Date().toISOString(),
+      summary: buildVoiceAgentRuntimeSummary(),
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Worker status heartbeat failed: ${response.status} ${body}`);
+  }
+}
+
 async function fetchVoiceGrounding(params: {
   calledPhone?: string;
   workspaceId?: string;
 }): Promise<WorkspaceVoiceGrounding | null> {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000");
-  const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
 
   if (!appUrl || !secret) {
     return null;
@@ -1710,6 +1825,16 @@ export default defineAgent({
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  void postVoiceAgentStatus().catch((error) => {
+    console.error("[agent] Failed to post worker-status heartbeat:", error);
+  });
+  const heartbeatTimer = setInterval(() => {
+    void postVoiceAgentStatus().catch((error) => {
+      console.error("[agent] Failed to post worker-status heartbeat:", error);
+    });
+  }, VOICE_AGENT_HEARTBEAT_MS);
+  heartbeatTimer.unref?.();
+
   cli.runApp(
     new WorkerOptions({
       agent: fileURLToPath(import.meta.url),

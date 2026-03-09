@@ -46,6 +46,7 @@ jobs:
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET }}
           EARLYMARK_INBOUND_PHONE_NUMBER: ${{ secrets.EARLYMARK_INBOUND_PHONE_NUMBER }}
+          EARLYMARK_INBOUND_PHONE_NUMBERS: ${{ secrets.EARLYMARK_INBOUND_PHONE_NUMBERS }}
           DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
           DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -73,7 +74,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,EARLYMARK_INBOUND_PHONE_NUMBER,DEEPGRAM_API_KEY,DEEPINFRA_API_KEY,GROQ_API_KEY,CARTESIA_API_KEY,NEXT_PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,EARLYMARK_VOICE_LLM_PROVIDER,EARLYMARK_VOICE_LLM_MODEL,EARLYMARK_VOICE_LLM_TEMPERATURE,EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_MIN_INTERRUPTION_WORDS,VOICE_STT_MODEL,VOICE_STT_LANGUAGE,VOICE_STT_ENDPOINTING_MS,VOICE_TTS_VOICE_ID,VOICE_TTS_LANGUAGE,VOICE_TTS_CHUNK_TIMEOUT_MS,VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS,VOICE_MIN_ENDPOINTING_DELAY_MS,VOICE_MAX_ENDPOINTING_DELAY_MS,VOICE_MIN_INTERRUPTION_DURATION_MS,VOICE_MIN_INTERRUPTION_WORDS
+          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,EARLYMARK_INBOUND_PHONE_NUMBER,EARLYMARK_INBOUND_PHONE_NUMBERS,DEEPGRAM_API_KEY,DEEPINFRA_API_KEY,GROQ_API_KEY,CARTESIA_API_KEY,NEXT_PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,EARLYMARK_VOICE_LLM_PROVIDER,EARLYMARK_VOICE_LLM_MODEL,EARLYMARK_VOICE_LLM_TEMPERATURE,EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_MIN_INTERRUPTION_WORDS,VOICE_STT_MODEL,VOICE_STT_LANGUAGE,VOICE_STT_ENDPOINTING_MS,VOICE_TTS_VOICE_ID,VOICE_TTS_LANGUAGE,VOICE_TTS_CHUNK_TIMEOUT_MS,VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS,VOICE_MIN_ENDPOINTING_DELAY_MS,VOICE_MAX_ENDPOINTING_DELAY_MS,VOICE_MIN_INTERRUPTION_DURATION_MS,VOICE_MIN_INTERRUPTION_WORDS
           script: |
             set -eu
             agent_ps() {
@@ -271,5 +272,20 @@ jobs:
             fi
             if [ -n "${CANDIDATE_PID:-}" ]; then
               echo "$CANDIDATE_PID" > /tmp/agent.pid
+            fi
+            if [ -n "${NEXT_PUBLIC_APP_URL:-}" ] && [ -n "${VOICE_AGENT_WEBHOOK_SECRET:-}" ]; then
+              VERIFIED=0
+              for _ in 1 2 3 4 5 6 7 8 9 10; do
+                if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const heartbeat = payload?.voiceWorker?.latestHeartbeat || null; const matchesSha = heartbeat?.deployGitSha === sha; const workerHealthy = payload?.voiceWorker?.status !== 'unhealthy'; if (matchesSha && workerHealthy) process.exit(0); process.exit(2);"; then
+                  VERIFIED=1
+                  break
+                fi
+                sleep 3
+              done
+              if [ "$VERIFIED" -ne 1 ]; then
+                echo "Worker heartbeat did not converge to deployed SHA $DEPLOY_GIT_SHA."
+                node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+                exit 1
+              fi
             fi
             tail -n 40 /tmp/agent.log || true
