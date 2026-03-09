@@ -1,32 +1,33 @@
-import * as Sentry from "@sentry/nextjs";
-import { performStartupHealthCheck } from "./lib/health-check";
-
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    await import("./sentry.server.config");
-    
-    // Perform startup health check in production - non-blocking
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        await performStartupHealthCheck();
-      } catch (error) {
-        console.warn('⚠️ Startup health check issue:', error);
-        // Log to Sentry if available, but don't crash the app
-        if (process.env.SENTRY_DSN) {
-          try {
-            Sentry.captureException(error);
-          } catch (sentryError) {
-            console.warn('Failed to log health check error to Sentry:', sentryError);
-          }
-        }
-        // Don't throw - let the app continue starting
-      }
-    }
+  if (process.env.NEXT_RUNTIME !== "nodejs") {
+    return
   }
 
-  if (process.env.NEXT_RUNTIME === "edge") {
-    await import("./sentry.edge.config");
+  await import("./sentry.server.config")
+
+  if (process.env.NODE_ENV !== "production") {
+    return
+  }
+
+  try {
+    const { performStartupHealthCheck } = await import("./lib/health-check")
+    await performStartupHealthCheck()
+  } catch (error) {
+    console.warn("[startup] Health check issue:", error)
+
+    if (!process.env.SENTRY_DSN) {
+      return
+    }
+
+    try {
+      const Sentry = await import("@sentry/nextjs")
+      Sentry.captureException(error)
+    } catch (sentryError) {
+      console.warn("Failed to log health check error to Sentry:", sentryError)
+    }
   }
 }
 
-export const onRequestError = Sentry.captureRequestError;
+export function onRequestError() {
+  // Intentionally disabled for edge safety.
+}
