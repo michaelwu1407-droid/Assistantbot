@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/customer-agent-reconcile",
-      "schedule": "*/15 * * * *"
-    }
-  ]
-}
