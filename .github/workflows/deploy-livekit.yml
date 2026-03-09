@@ -151,7 +151,7 @@ jobs:
               cp "$LEGACY_ENV_PATH" "$PERSISTENT_ENV_PATH"
               chmod 600 "$PERSISTENT_ENV_PATH"
               echo "Restored voice-agent env from legacy path $LEGACY_ENV_PATH."
-            elif [ -n "${LIVEKIT_URL:-}" ] && [ -n "${LIVEKIT_API_KEY:-}" ] && [ -n "${LIVEKIT_API_SECRET:-}" ] && [ -n "${DEEPGRAM_API_KEY:-}" ] && [ -n "${CARTESIA_API_KEY:-}" ] && { [ -n "${GROQ_API_KEY:-}" ] || [ -n "${DEEPINFRA_API_KEY:-}" ]; }; then
+            elif [ -n "${LIVEKIT_URL:-}" ]; then
               : > "$PERSISTENT_ENV_PATH"
               write_env "LIVEKIT_URL" "${LIVEKIT_URL:-}"
               write_env "LIVEKIT_API_KEY" "${LIVEKIT_API_KEY:-}"

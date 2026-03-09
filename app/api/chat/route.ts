@@ -196,15 +196,15 @@ export async function POST(req: Request) {
     const workspaceId = (body.workspaceId ?? body.data?.workspaceId ?? "").trim();
     const selectedDeals = Array.isArray(body.data?.selectedDeals)
       ? body.data.selectedDeals
-          .filter((item: unknown): item is SelectionDeal => {
-            if (!item || typeof item !== "object") return false;
-            const value = item as { id?: unknown };
-            return typeof value.id === "string" && value.id.trim().length > 0;
-          })
-          .map((item: SelectionDeal) => ({
-            id: item.id.trim(),
-            title: typeof item.title === "string" ? item.title.trim() : undefined,
-          }))
+        .filter((item: unknown): item is SelectionDeal => {
+          if (!item || typeof item !== "object") return false;
+          const value = item as { id?: unknown };
+          return typeof value.id === "string" && value.id.trim().length > 0;
+        })
+        .map((item: SelectionDeal) => ({
+          id: item.id.trim(),
+          title: typeof item.title === "string" ? item.title.trim() : undefined,
+        }))
       : [];
 
     if (!workspaceId || typeof workspaceId !== "string") {
@@ -565,8 +565,8 @@ export async function POST(req: Request) {
     const toolOutputsForValidation: unknown[] = [];
     const selectionContextStr = selectedDeals.length
       ? `CURRENT CRM SELECTION:\n${selectedDeals
-          .map((deal: SelectionDeal, index: number) => `${index + 1}. ${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
-          .join("\n")}\nWhen the user says "these", "selected", or "current selection", use these deal IDs for bulk tools. Do not assume this selection if the user is referring to some other set.`
+        .map((deal: SelectionDeal, index: number) => `${index + 1}. ${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
+        .join("\n")}\nWhen the user says "these", "selected", or "current selection", use these deal IDs for bulk tools. Do not assume this selection if the user is referring to some other set.`
       : "";
     const tools = instrumentToolsWithLatency(
       getAgentTools(workspaceId, settings, userId),
@@ -617,10 +617,9 @@ After tool use, briefly confirm the result.`,
       tools,
       stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
       onStepFinish: ({ toolResults }) => {
-        // Collect tool outputs for post-generation pricing validation
         if (toolResults) {
           for (const tr of toolResults) {
-            if (tr.result !== undefined) toolOutputsForValidation.push(tr.result);
+            if ("result" in tr && typeof tr.result !== "undefined") toolOutputsForValidation.push(tr.result);
           }
         }
       },
