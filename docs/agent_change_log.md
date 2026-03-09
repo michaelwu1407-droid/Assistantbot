@@ -19,6 +19,11 @@ Rule: every agent change commit must include an entry in this file.
 
 ## Entries
 
+### 2026-03-09 19:07 (AEDT) - codex
+- Files: `app/api/chat/route.ts`, `livekit-agent/agent.ts`, `livekit-agent/voice-latency.ts`, `livekit-agent/.env.example`, `docs/agent_change_log.md`
+- What changed: Fixed web-chat tool result collection to read the current AI SDK `output` field, and added a production-only voice latency path for normal Tracey calls with interim-turn classification, a small parallel guard-model check, a cached opener bank including tightly constrained empathetic openers, and runtime metrics for classifier/guard/opener usage. Updated the agent env example with the new voice-latency and guard-model flags.
+- Why: Keep the main app building against the current tool-result API while reducing perceived response-start latency on low-risk production voice turns without enabling unsafe speculative replies for pricing, invoicing, policy, emergency, or firm booking confirmations.
+
 ### 2026-03-05 17:25 (AEDT) - cascade
 - Files: `app/page.tsx`, `actions/demo-call-action.ts`, `app/api/demo-call/route.ts`, `.env.local`
 - What changed: Merged all homepage and onboarding fixes from Cascade project: value pill tick alignment with Check icon, removed Bot icon, wired up real outbound demo calls via LiveKit SIP, added demo call API route, updated environment variables with LiveKit SIP trunk config.

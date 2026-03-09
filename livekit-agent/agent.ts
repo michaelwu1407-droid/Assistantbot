@@ -17,15 +17,30 @@
  */
 
 import { fileURLToPath } from 'node:url';
+import { ReadableStream } from 'node:stream/web';
 import { config as loadEnv } from 'dotenv';
 import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, voice } from '@livekit/agents';
+import { AudioFrame } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
+import voiceLatency from './voice-latency';
+import type { GuardDecision, OpenerBankEntry, OpenerId, VoiceTurnPrediction } from './voice-latency';
 
 loadEnv({ path: '.env.local' });
+
+const {
+  OPENER_BANK,
+  buildVoiceFollowupInstructions,
+  getPhaseTwoBacklog,
+  predictVoiceTurn,
+  resolveOpenerEntry,
+  resolveVoiceLatencyConfig,
+  runVoiceGuardDecision,
+  shouldPrimeVoiceGuard,
+} = voiceLatency;
 
 const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: new Date().toISOString() })}`);
@@ -126,6 +141,90 @@ type LeadCapture = {
   toolUsed: boolean;
   payloads: Array<Record<string, unknown>>;
 };
+
+type VoiceLatencyAudit = {
+  classifierMs: number[];
+  guardMs: number[];
+  openerLeadMs: number[];
+  openerGapMs: number[];
+  openerHits: number;
+  openerCacheMisses: number;
+  guardTimeouts: number;
+  guardEligibleTurns: number;
+  openerUsage: Partial<Record<OpenerId, number>>;
+};
+
+type ActiveVoiceTurnState = {
+  prediction: VoiceTurnPrediction | null;
+  guardPromise: Promise<GuardDecision | null> | null;
+  guardTranscript: string | null;
+  guardStartedAt: number | null;
+};
+
+type PendingLatencyTurn = {
+  transcript: string;
+  finalCreatedAt: number;
+  openerEntry: OpenerBankEntry;
+  guardDecision: GuardDecision | null;
+  prediction: VoiceTurnPrediction;
+  openerSpeechCreatedAt: number | null;
+};
+
+function cloneAudioFrame(frame: AudioFrame): AudioFrame {
+  return new AudioFrame(new Int16Array(frame.data), frame.sampleRate, frame.channels, frame.samplesPerChannel);
+}
+
+function audioFrameToReadableStream(frame: AudioFrame): ReadableStream<AudioFrame> {
+  return new ReadableStream<AudioFrame>({
+    start(controller) {
+      controller.enqueue(frame);
+      controller.close();
+    },
+  });
+}
+
+function buildOpenerAudioCache(tts: cartesia.TTS, logPrefix: string): Map<OpenerId, Promise<AudioFrame>> {
+  const cache = new Map<OpenerId, Promise<AudioFrame>>();
+
+  for (const opener of OPENER_BANK) {
+    cache.set(
+      opener.id,
+      tts
+        .synthesize(opener.text)
+        .collect()
+        .catch((error) => {
+          console.warn(`${logPrefix} [VOICE_LATENCY] Failed to pre-synthesize opener "${opener.id}"`, error);
+          throw error;
+        })
+    );
+  }
+
+  void Promise.allSettled(cache.values()).then((results) => {
+    const warmed = results.filter((result) => result.status === 'fulfilled').length;
+    console.log(`${logPrefix} [VOICE_LATENCY] Warmed ${warmed}/${OPENER_BANK.length} cached opener clips`);
+  });
+
+  return cache;
+}
+
+async function getCachedOpenerAudioFrame(
+  cache: Map<OpenerId, Promise<AudioFrame>>,
+  openerId: OpenerId,
+  maxWaitMs: number
+): Promise<AudioFrame | null> {
+  const promise = cache.get(openerId);
+  if (!promise) return null;
+
+  try {
+    const frame = await Promise.race([
+      promise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), maxWaitMs)),
+    ]);
+    return frame ? cloneAudioFrame(frame) : null;
+  } catch {
+    return null;
+  }
+}
 
 function avg(values: number[]): number {
   if (!values.length) return 0;
@@ -796,8 +895,7 @@ export default defineAgent({
       },
     });
 
-    const transferCallTool = {
-      name: "transfer_call",
+    const transferCallTool = livekitLlm.tool({
       description: "Transfer the call to the human business owner or leave an urgent message if they are unavailable.",
       parameters: z.object({
         reason: z.string().describe("Why the caller wants to speak to the owner"),
@@ -809,13 +907,13 @@ export default defineAgent({
         const isOnClock = currentHour >= 8 && currentHour < 17;
 
         if (isOnClock) {
-          logger.info("Transferring call", { callId });
+          console.log(`[agent] Transferring call ${JSON.stringify({ callId, reason })}`);
           return "Transferring you to human staff. Please hold on the line.";
         }
 
         return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
       },
-    };
+    });
 
     const stt = new deepgram.STT({
       model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
@@ -951,6 +1049,16 @@ export default defineAgent({
     const hardCutInstructions = isEarlymarkCall
       ? "Time is up. If you already have enough real details, use the log_lead tool now. Give a brief farewell and push one clear CTA: manager follow-up or earlymark.ai."
       : "Thank the caller for their time, let them know their message will be passed on, and say goodbye.";
+    const voiceLatencyConfig = resolveVoiceLatencyConfig({
+      callType,
+      llmProvider,
+      llmModel,
+      llmApiKey,
+      llmBaseURL,
+    });
+    const openerAudioCache: Map<OpenerId, Promise<AudioFrame>> = voiceLatencyConfig.openerBankEnabled
+      ? buildOpenerAudioCache(tts, logPrefix)
+      : new Map<OpenerId, Promise<AudioFrame>>();
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -965,7 +1073,22 @@ export default defineAgent({
       llmModel,
       customerContactMode: normalVoiceGrounding?.customerContactMode || null,
       groundedWorkspaceId: normalVoiceGrounding?.workspaceId || null,
+      voiceLatency: {
+        enabled: voiceLatencyConfig.enabled,
+        openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
+        guardEnabled: voiceLatencyConfig.guardEnabled,
+        targetCallTypes: voiceLatencyConfig.targetCallTypes,
+        openerConfidenceThreshold: voiceLatencyConfig.openerConfidenceThreshold,
+        guardTimeoutMs: voiceLatencyConfig.guardTimeoutMs,
+      },
     })}`);
+    if (voiceLatencyConfig.enabled) {
+      console.log(
+        `${logPrefix} [VOICE_LATENCY] ${JSON.stringify({
+          phaseTwoBacklog: getPhaseTwoBacklog(),
+        })}`
+      );
+    }
 
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
     const tools = isEarlymarkCall
@@ -1018,7 +1141,27 @@ export default defineAgent({
     const transcriptTurns: TranscriptTurn[] = [];
     const transcriptItemIds = new Set<string>();
     const leadCapture: LeadCapture = { toolUsed: false, payloads: [] };
+    const voiceLatencyAudit: VoiceLatencyAudit = {
+      classifierMs: [],
+      guardMs: [],
+      openerLeadMs: [],
+      openerGapMs: [],
+      openerHits: 0,
+      openerCacheMisses: 0,
+      guardTimeouts: 0,
+      guardEligibleTurns: 0,
+      openerUsage: {},
+    };
+    let activeVoiceTurn: ActiveVoiceTurnState = {
+      prediction: null,
+      guardPromise: null,
+      guardTranscript: null,
+      guardStartedAt: null,
+    };
+    let pendingLatencyTurn: PendingLatencyTurn | null = null;
     let turnCounter = 0;
+    let userTurnCounter = 0;
+    let lastEmpatheticTurnIndex = -100;
     let isDisconnecting = false;
     let goodbyeTimer: ReturnType<typeof setTimeout> | null = null;
     let wrapUpTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1053,6 +1196,55 @@ export default defineAgent({
       const turn = turnAudits.get(speechId);
       if (!turn) return;
       console.log(`[voice-turn] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...summarizeTurnLatency(turn) })}`);
+    };
+
+    const resetActiveVoiceTurn = () => {
+      activeVoiceTurn = {
+        prediction: null,
+        guardPromise: null,
+        guardTranscript: null,
+        guardStartedAt: null,
+      };
+    };
+
+    const shouldReuseGuardDecision = (candidateTranscript: string) => {
+      const existingTranscript = (activeVoiceTurn.guardTranscript || "").trim().toLowerCase();
+      const nextTranscript = candidateTranscript.trim().toLowerCase();
+      if (!existingTranscript || !nextTranscript) return false;
+      return nextTranscript.startsWith(existingTranscript) || existingTranscript.startsWith(nextTranscript);
+    };
+
+    const primeVoiceGuard = (transcript: string, prediction: VoiceTurnPrediction) => {
+      if (!shouldPrimeVoiceGuard(prediction, transcript, voiceLatencyConfig)) return;
+      if (activeVoiceTurn.guardPromise && shouldReuseGuardDecision(transcript)) {
+        return;
+      }
+
+      voiceLatencyAudit.guardEligibleTurns += 1;
+      activeVoiceTurn.prediction = prediction;
+      activeVoiceTurn.guardTranscript = transcript;
+      activeVoiceTurn.guardStartedAt = Date.now();
+      activeVoiceTurn.guardPromise = runVoiceGuardDecision({
+        transcript,
+        prediction,
+        config: voiceLatencyConfig,
+      });
+    };
+
+    const resolveGuardDecision = async (transcript: string, prediction: VoiceTurnPrediction) => {
+      if (!shouldPrimeVoiceGuard(prediction, transcript, voiceLatencyConfig)) return null;
+      if (!activeVoiceTurn.guardPromise || !shouldReuseGuardDecision(transcript)) {
+        primeVoiceGuard(transcript, prediction);
+      }
+      if (!activeVoiceTurn.guardPromise) return null;
+
+      const startedAt = activeVoiceTurn.guardStartedAt || Date.now();
+      const decision = await activeVoiceTurn.guardPromise;
+      voiceLatencyAudit.guardMs.push(Date.now() - startedAt);
+      if (decision?.timedOut) {
+        voiceLatencyAudit.guardTimeouts += 1;
+      }
+      return decision;
     };
 
     const session = new voice.AgentSession({
@@ -1090,6 +1282,20 @@ export default defineAgent({
         turn.transcript = pendingTurn.transcript;
         turn.transcriptCreatedAt = pendingTurn.createdAt;
         turn.transcriptLanguage = pendingTurn.language;
+      }
+
+      if (pendingLatencyTurn && ev.source === "say" && pendingLatencyTurn.openerSpeechCreatedAt === null) {
+        pendingLatencyTurn.openerSpeechCreatedAt = ev.createdAt;
+      }
+
+      if (
+        pendingLatencyTurn &&
+        ev.source === "generate_reply" &&
+        turn.transcript === pendingLatencyTurn.transcript &&
+        pendingLatencyTurn.openerSpeechCreatedAt !== null
+      ) {
+        voiceLatencyAudit.openerGapMs.push(Math.max(0, ev.createdAt - pendingLatencyTurn.openerSpeechCreatedAt));
+        pendingLatencyTurn = null;
       }
 
       console.log(
@@ -1177,18 +1383,42 @@ export default defineAgent({
     });
 
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, async (ev) => {
-      if (!ev.isFinal || isDisconnecting) return;
+      if (isDisconnecting) return;
 
       const transcript = (ev.transcript || "").trim();
-      if (!isMeaningfulUserTurn(transcript)) {
-        console.log(`[voice-filter] Dropping low-signal transcript: "${transcript}"`);
-        session.clearUserTurn();
+      if (!transcript) return;
+
+      if (!ev.isFinal) {
+        if (!voiceLatencyConfig.enabled || !isMeaningfulUserTurn(transcript)) return;
+
+        const classifierStartedAt = Date.now();
+        const interimPrediction = predictVoiceTurn(transcript, "interim");
+        voiceLatencyAudit.classifierMs.push(Date.now() - classifierStartedAt);
+        activeVoiceTurn.prediction = interimPrediction;
+        primeVoiceGuard(transcript, interimPrediction);
         return;
       }
 
+      if (!isMeaningfulUserTurn(transcript)) {
+        console.log(`[voice-filter] Dropping low-signal transcript: "${transcript}"`);
+        pendingLatencyTurn = null;
+        session.clearUserTurn();
+        resetActiveVoiceTurn();
+        return;
+      }
+
+      userTurnCounter += 1;
+
+      const classifierStartedAt = Date.now();
+      const finalPrediction = predictVoiceTurn(transcript, "final");
+      voiceLatencyAudit.classifierMs.push(Date.now() - classifierStartedAt);
+      activeVoiceTurn.prediction = finalPrediction;
+
       if (isGoodbyeTurn(transcript)) {
         isDisconnecting = true;
+        pendingLatencyTurn = null;
         session.clearUserTurn();
+        resetActiveVoiceTurn();
         console.log(
           `[voice-goodbye] ${JSON.stringify({
             callId,
@@ -1218,6 +1448,94 @@ export default defineAgent({
         return;
       }
 
+      let guardDecision: GuardDecision | null = null;
+      let openerEntry: OpenerBankEntry | null = null;
+
+      if (
+        voiceLatencyConfig.enabled &&
+        voiceLatencyConfig.openerBankEnabled &&
+        finalPrediction.allowOpener &&
+        finalPrediction.confidence >= voiceLatencyConfig.openerConfidenceThreshold
+      ) {
+        guardDecision = await resolveGuardDecision(transcript, finalPrediction);
+        openerEntry = resolveOpenerEntry({
+          prediction: finalPrediction,
+          guardDecision,
+          userTurnIndex: userTurnCounter,
+          lastEmpatheticTurnIndex,
+          empathyTurnGap: voiceLatencyConfig.empathyTurnGap,
+        });
+
+        if (openerEntry) {
+          const openerFrame = await getCachedOpenerAudioFrame(openerAudioCache, openerEntry.id, 50);
+          if (openerFrame) {
+            session.clearUserTurn();
+
+            pendingLatencyTurn = {
+              transcript,
+              finalCreatedAt: ev.createdAt,
+              openerEntry,
+              guardDecision,
+              prediction: finalPrediction,
+              openerSpeechCreatedAt: null,
+            };
+
+            session.say(openerEntry.text, {
+              audio: audioFrameToReadableStream(openerFrame),
+              allowInterruptions: true,
+              addToChatCtx: false,
+            });
+
+            pendingUserTurns.push({
+              transcript,
+              createdAt: ev.createdAt,
+              language: ev.language,
+            });
+
+            session.generateReply({
+              userInput: transcript,
+              instructions: buildVoiceFollowupInstructions({
+                prediction: finalPrediction,
+                openerEntry,
+                guardDecision,
+              }),
+            });
+
+            voiceLatencyAudit.openerHits += 1;
+            voiceLatencyAudit.openerLeadMs.push(Math.max(0, Date.now() - ev.createdAt));
+            voiceLatencyAudit.openerUsage[openerEntry.id] = (voiceLatencyAudit.openerUsage[openerEntry.id] || 0) + 1;
+            if (openerEntry.empathetic) {
+              lastEmpatheticTurnIndex = userTurnCounter;
+            }
+
+            console.log(
+              `[voice-latency] ${JSON.stringify({
+                callId,
+                room: ctx.room.name,
+                participant: participant.identity,
+                transcript,
+                prediction: {
+                  intent: finalPrediction.intent,
+                  confidence: finalPrediction.confidence,
+                  riskLevel: finalPrediction.riskLevel,
+                  route: finalPrediction.route,
+                  reasons: finalPrediction.reasons,
+                },
+                guardDecision,
+                openerId: openerEntry.id,
+                openerText: openerEntry.text,
+              })}`
+            );
+
+            resetActiveVoiceTurn();
+            return;
+          }
+
+          voiceLatencyAudit.openerCacheMisses += 1;
+        }
+      }
+
+      pendingLatencyTurn = null;
       pendingUserTurns.push({
         transcript,
         createdAt: ev.createdAt,
@@ -1231,8 +1549,19 @@ export default defineAgent({
           transcript,
           createdAt: ev.createdAt,
           language: ev.language,
+          voiceLatency: {
+            prediction: {
+              intent: finalPrediction.intent,
+              confidence: finalPrediction.confidence,
+              riskLevel: finalPrediction.riskLevel,
+              route: finalPrediction.route,
+            },
+            guardDecision,
+            openerId: openerEntry?.id || null,
+          },
         })}`
       );
+      resetActiveVoiceTurn();
     });
 
     await session.say(greeting, {
@@ -1286,6 +1615,8 @@ export default defineAgent({
             llm: latencyAudit.llmMs.length,
             tts: latencyAudit.ttsMs.length,
             eou: latencyAudit.eouMs.length,
+            voiceClassifier: voiceLatencyAudit.classifierMs.length,
+            voiceGuard: voiceLatencyAudit.guardMs.length,
           },
           latency: {
             sttAvgMs: avg(latencyAudit.sttMs),
@@ -1297,6 +1628,14 @@ export default defineAgent({
             ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
+            voiceClassifierAvgMs: avg(voiceLatencyAudit.classifierMs),
+            voiceGuardAvgMs: avg(voiceLatencyAudit.guardMs),
+            openerLeadAvgMs: avg(voiceLatencyAudit.openerLeadMs),
+            openerGapAvgMs: avg(voiceLatencyAudit.openerGapMs),
+            openerHits: voiceLatencyAudit.openerHits,
+            openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
+            guardTimeouts: voiceLatencyAudit.guardTimeouts,
+            openerUsage: voiceLatencyAudit.openerUsage,
           },
           turns: turnSummaries,
         })}`
@@ -1317,6 +1656,15 @@ export default defineAgent({
         ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
+        voiceClassifierAvgMs: avg(voiceLatencyAudit.classifierMs),
+        voiceGuardAvgMs: avg(voiceLatencyAudit.guardMs),
+        openerLeadAvgMs: avg(voiceLatencyAudit.openerLeadMs),
+        openerGapAvgMs: avg(voiceLatencyAudit.openerGapMs),
+        openerHits: voiceLatencyAudit.openerHits,
+        openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
+        guardTimeouts: voiceLatencyAudit.guardTimeouts,
+        guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
+        openerUsage: voiceLatencyAudit.openerUsage,
         turns: turnSummaries,
       };
 
@@ -1337,6 +1685,12 @@ export default defineAgent({
           llmProvider,
           llmModel,
           isEarlymarkCall,
+          voiceLatency: {
+            enabled: voiceLatencyConfig.enabled,
+            openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
+            guardEnabled: voiceLatencyConfig.guardEnabled,
+            targetCallTypes: voiceLatencyConfig.targetCallTypes,
+          },
         },
         startedAt: callStartedAt.toISOString(),
         endedAt: new Date().toISOString(),

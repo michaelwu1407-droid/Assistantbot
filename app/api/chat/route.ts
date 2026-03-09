@@ -619,7 +619,13 @@ After tool use, briefly confirm the result.`,
       onStepFinish: ({ toolResults }) => {
         if (toolResults) {
           for (const tr of toolResults) {
-            if ("result" in tr && typeof tr.result !== "undefined") toolOutputsForValidation.push(tr.result);
+            if ("output" in tr && typeof tr.output !== "undefined") {
+              toolOutputsForValidation.push(tr.output);
+              continue;
+            }
+            if ("result" in tr && typeof tr.result !== "undefined") {
+              toolOutputsForValidation.push(tr.result);
+            }
           }
         }
       },
