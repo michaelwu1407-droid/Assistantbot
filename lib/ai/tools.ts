@@ -52,6 +52,8 @@ import {
     runGetTodaySummary,
     runGetAvailability,
 } from "@/actions/agent-tools";
+import { runPricingLookup } from "@/actions/pricing-actions";
+import { calculate } from "@/lib/ai/pricing-calculator";
 import { buildJobDraftFromParams } from "@/lib/chat-utils";
 
 /**
@@ -535,6 +537,30 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                     workingHoursStart: settings?.workingHoursStart || "08:00",
                     workingHoursEnd: settings?.workingHoursEnd || "17:00",
                 }),
+        }),
+
+        // ─── Pricing Tools (Source of Truth) ─────────────────────
+        pricingLookup: tool({
+            description: "Look up approved pricing for a service or task. MUST be called before quoting ANY price. Returns explicitly sourced pricing from glossary, service rules, and historical jobs. Never quote a price without calling this first.",
+            inputSchema: z.object({
+                query: z.string().describe("Service or task to look up pricing for (e.g. 'sink repair', 'light install', 'blocked drain')"),
+            }),
+            execute: async ({ query }) => runPricingLookup(workspaceId, { query }),
+        }),
+        pricingCalculator: tool({
+            description: "Deterministic calculator for ALL pricing math. You MUST use this for any arithmetic involving dollar amounts — additions, totals, tax, discounts, margins, or multi-item quotes. NEVER perform pricing calculations yourself.",
+            inputSchema: z.object({
+                operation: z.enum(["add", "subtract", "multiply", "divide", "percentage", "quote_total", "discount", "tax", "margin"])
+                    .describe("The calculation to perform"),
+                a: z.number().describe("Primary value (e.g. base price, subtotal, cost)"),
+                b: z.number().optional().describe("Secondary value (e.g. quantity, tax rate %, discount %). For tax: defaults to 10% GST if omitted."),
+                lineItems: z.array(z.object({
+                    description: z.string().describe("Line item name"),
+                    unitPrice: z.number().describe("Price per unit"),
+                    quantity: z.number().describe("Quantity"),
+                })).optional().describe("For quote_total: list of line items. 'a' becomes call-out fee (0 if none), 'b' becomes tax rate."),
+            }),
+            execute: async (params) => calculate(params),
         }),
     };
 }

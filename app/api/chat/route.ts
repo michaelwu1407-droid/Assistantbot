@@ -8,6 +8,8 @@ import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } 
 import { appendTicketNote } from "@/actions/activity-actions";
 import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
 import { getAgentTools } from "@/lib/ai/tools";
+import { preClassify } from "@/lib/ai/pre-classifier";
+import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 
 export const dynamic = "force-dynamic";
@@ -553,7 +555,14 @@ export async function POST(req: Request) {
     // multiJobInstruction removed — the multi-job early-return (lines above)
     // handles this before streamText is reached, so it was always "".
 
+    // ── Pre-classify intent for context injection ──
+    const classification = preClassify(content);
+    const intentHintsStr = classification.contextHints.length > 0
+      ? `\n\n[[INTENT HINTS for this turn]]\n${classification.contextHints.join("\n")}\n[[END INTENT HINTS]]`
+      : "";
+
     let toolCallsMs = 0;
+    const toolOutputsForValidation: unknown[] = [];
     const selectionContextStr = selectedDeals.length
       ? `CURRENT CRM SELECTION:\n${selectedDeals
           .map((deal: SelectionDeal, index: number) => `${index + 1}. ${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
@@ -582,6 +591,14 @@ ${bouncerStr}
 ${attachmentsStr}
 ${memoryContextStr}
 ${selectionContextStr}
+${intentHintsStr}
+
+PRICING INTEGRITY (MANDATORY):
+- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
+- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
+- Before quoting any service price, MUST call pricingLookup first to get the approved/historical price.
+- If pricingLookup returns no match, say "A firm quote requires an on-site assessment." Do NOT estimate or guess.
+- When reporting a price, cite where it came from: "Our approved rate for X is $Y" (glossary) or "Similar jobs have been $X–$Y" (historical).
 
 MESSAGING: On "message/text/tell/send [name]" → call sendSms immediately, no confirmation. Send the user's EXACT words — never rewrite or refuse. Track pronouns ("her"/"him") from context. Confirm: "✅ Sent to [Name]: \"[msg]\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.
 
@@ -599,6 +616,14 @@ After tool use, briefly confirm the result.`,
       messages: modelMessages as any,
       tools,
       stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
+      onStepFinish: ({ toolResults }) => {
+        // Collect tool outputs for post-generation pricing validation
+        if (toolResults) {
+          for (const tr of toolResults) {
+            if (tr.result !== undefined) toolOutputsForValidation.push(tr.result);
+          }
+        }
+      },
       onFinish: async ({ text }) => {
         const llmPhaseMs = nowMs() - llmStartedAt;
         const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
@@ -607,6 +632,16 @@ After tool use, briefly confirm the result.`,
         recordLatencyMetric("chat.web.tool_calls_ms", toolCallsMs);
         recordLatencyMetric("chat.web.model_ms", modelMs);
         recordLatencyMetric("chat.web.total_ms", totalMs);
+
+        // === Pricing Response Validation ===
+        const validation = validatePricingInResponse(text, toolOutputsForValidation);
+        if (!validation.valid) {
+          console.warn(
+            `[PricingValidator] Unsourced amounts detected in response: ${validation.unsourcedAmounts.join(", ")}. ` +
+            `Sourced: ${validation.sourcedAmounts.join(", ")}. Mentioned: ${validation.mentionedAmounts.join(", ")}.`
+          );
+          recordLatencyMetric("chat.web.pricing_validation_fail", 1);
+        }
 
         // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
         console.log(`[Mem0] Starting memory storage...`);
