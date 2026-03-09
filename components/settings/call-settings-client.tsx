@@ -13,6 +13,13 @@ import { getPhoneNumberStatus } from "@/actions/phone-settings"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 import { getAutomatedMessageRules, updateAutomatedMessageRule, type AutomatedMessageRuleView } from "@/actions/automated-message-actions"
 import { toast } from "sonner"
+import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
+import {
+  createDefaultWeeklyHours,
+  normalizeWeeklyHours,
+  weeklyHoursAreUniform,
+  type WeeklyHours,
+} from "@/lib/working-hours"
 
 type SettingsState = {
   agentMode: string
@@ -52,6 +59,7 @@ type SettingsState = {
   voiceAfterHoursMessage?: string
   transcribeVoicemails?: boolean
   autoRespondToMessages?: boolean
+  weeklyHours?: WeeklyHours
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -83,6 +91,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   voiceAfterHoursMessage: "",
   transcribeVoicemails: true,
   autoRespondToMessages: true,
+  weeklyHours: createDefaultWeeklyHours(),
 }
 
 function ensureSmsSignature(message: string, businessName: string) {
@@ -160,6 +169,7 @@ export function CallSettingsClient() {
   const [saving, setSaving] = useState(false)
   const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
   const [templateLoadWarning, setTemplateLoadWarning] = useState<string | null>(null)
+  const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
 
   const businessName = useMemo(() => status?.name || settings?.agentBusinessName || "your business", [status?.name, settings?.agentBusinessName])
 
@@ -212,9 +222,12 @@ export function CallSettingsClient() {
             voiceAfterHoursMessage: ws.voiceAfterHoursMessage,
             transcribeVoicemails: ws.transcribeVoicemails,
             autoRespondToMessages: ws.autoRespondToMessages,
+            weeklyHours: ws.weeklyHours ? normalizeWeeklyHours(ws.weeklyHours) : createDefaultWeeklyHours(),
           })
+          setUniformWorkingHours(weeklyHoursAreUniform(ws.weeklyHours ? normalizeWeeklyHours(ws.weeklyHours) : createDefaultWeeklyHours()))
         } else {
           setSettings(DEFAULT_SETTINGS)
+          setUniformWorkingHours(true)
           toast.error("Loaded defaults because workspace call/text settings were unavailable")
         }
 
@@ -270,6 +283,7 @@ export function CallSettingsClient() {
         voiceAfterHoursMessage: next.voiceAfterHoursMessage,
         transcribeVoicemails: next.transcribeVoicemails,
         autoRespondToMessages: next.autoRespondToMessages,
+        weeklyHours: next.weeklyHours,
       })
       setSettings(next)
       toast.success("Settings saved")
@@ -350,16 +364,24 @@ export function CallSettingsClient() {
           <CardDescription>When Tracey is allowed to schedule, text, and call.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Scheduling window start</Label>
-              <Input type="time" value={settings.workingHoursStart} onChange={(e) => setSettings((s) => (s ? { ...s, workingHoursStart: e.target.value } : s))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Scheduling window end</Label>
-              <Input type="time" value={settings.workingHoursEnd} onChange={(e) => setSettings((s) => (s ? { ...s, workingHoursEnd: e.target.value } : s))} />
-            </div>
-          </div>
+          <WeeklyHoursEditor
+            value={settings.weeklyHours || createDefaultWeeklyHours(settings.workingHoursStart, settings.workingHoursEnd)}
+            onChange={(nextHours) => {
+              const firstOpenDay = Object.values(nextHours).find((day) => day.open)
+              setSettings((s) =>
+                s
+                  ? {
+                      ...s,
+                      weeklyHours: nextHours,
+                      workingHoursStart: firstOpenDay?.start || s.workingHoursStart,
+                      workingHoursEnd: firstOpenDay?.end || s.workingHoursEnd,
+                    }
+                  : s
+              )
+            }}
+            uniform={uniformWorkingHours}
+            onUniformChange={setUniformWorkingHours}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Texting window start</Label>

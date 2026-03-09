@@ -8,6 +8,7 @@ import {
     normalizeAgentMode,
     type CanonicalCustomerContactMode,
 } from "@/lib/agent-mode";
+import { summarizeWeeklyHours } from "@/lib/working-hours";
 
 type BuildAgentContextOptions = {
     includeHistoricalPricing?: boolean;
@@ -240,7 +241,10 @@ export async function buildAgentContext(
     // Build context strings
     const agentModeStr = getCustomerContactModePolicySummary(settings?.agentMode);
 
-    const workingHoursStr = `\nWORKING HOURS: Your company working hours are strictly ${settings?.workingHoursStart || "08:00"} to ${settings?.workingHoursEnd || "17:00"}. DO NOT SCHEDULE jobs outside of this window.`;
+    const workingHoursSummary = settings?.weeklyHours
+        ? summarizeWeeklyHours(settings.weeklyHours)
+        : `${settings?.workingHoursStart || "08:00"}-${settings?.workingHoursEnd || "17:00"}`;
+    const workingHoursStr = `\nWORKING HOURS: Your company working hours are strictly ${workingHoursSummary}. DO NOT SCHEDULE jobs outside of this window, and treat closed days as unavailable.`;
 
     const businessName = (settings as { agentBusinessName?: string })?.agentBusinessName?.trim() || workspaceInfo?.name || "this business";
     const openingMsg = (settings as { agentOpeningMessage?: string })?.agentOpeningMessage?.trim();

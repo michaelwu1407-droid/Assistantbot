@@ -55,7 +55,7 @@ export async function initializeSimpleComms(
   });
 
   if (!twilioMasterClient) {
-    const error = "Twilio credentials not configured";
+    const error = "Twilio credentials not configured in environment (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN). This happens before any bundle or account-type checks.";
     console.error("[SIMPLE-COMMS] ERROR:", error);
     return { success: false, error, stageReached: "pre-check" };
   }

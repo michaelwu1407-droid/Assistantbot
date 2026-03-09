@@ -36,6 +36,14 @@ import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
 import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
+import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
+import {
+  createDefaultWeeklyHours,
+  normalizeWeeklyHours,
+  summarizeWeeklyHours,
+  weeklyHoursAreUniform,
+  type WeeklyHours,
+} from "@/lib/working-hours"
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -335,9 +343,8 @@ export function TraceyOnboarding() {
   const [publicEmail, setPublicEmail] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
-  const [workDays, setWorkDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"])
-  const [workStartTime, setWorkStartTime] = useState("07:00")
-  const [workEndTime, setWorkEndTime] = useState("15:30")
+  const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(createDefaultWeeklyHours())
+  const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
   const [emergencyService, setEmergencyService] = useState(false)
   const [emergencySurcharge, setEmergencySurcharge] = useState(350)
   const [emergencyStartTime, setEmergencyStartTime] = useState("17:00")
@@ -494,11 +501,10 @@ export function TraceyOnboarding() {
         if (scrapedPhysicalAddress && !physicalAddress) {
           setPhysicalAddress(scrapedPhysicalAddress)
         }
-        if (result.data.operatingHours) {
-          const parsed = parseOperatingHoursStructured(result.data.operatingHours)
-          setWorkDays(parsed.days)
-          setWorkStartTime(parsed.start)
-          setWorkEndTime(parsed.end)
+        if (result.data.weeklyHours) {
+          const nextWeeklyHours = normalizeWeeklyHours(result.data.weeklyHours)
+          setWeeklyHours(nextWeeklyHours)
+          setUniformWorkingHours(weeklyHoursAreUniform(nextWeeklyHours))
         }
         if (result.data.emergencyAvailable) {
           setEmergencyService(true)
@@ -724,6 +730,11 @@ export function TraceyOnboarding() {
   // ── Submit ──
 
   const handleSubmit = async () => {
+    const resolvedWeeklyHours = normalizeWeeklyHours(weeklyHours, createDefaultWeeklyHours())
+    const firstOpenDay = Object.values(resolvedWeeklyHours).find((day) => day.open)
+    const resolvedWorkStartTime = firstOpenDay?.start || "08:00"
+    const resolvedWorkEndTime = firstOpenDay?.end || "17:00"
+
     setSubmitting(true)
     try {
       const data: TraceyOnboardingData = {
@@ -738,7 +749,8 @@ export function TraceyOnboarding() {
         publicEmail,
         physicalAddress,
         serviceRadius,
-        standardWorkHours: `${workDays.join(", ")}, ${workStartTime}-${workEndTime}`,
+        standardWorkHours: summarizeWeeklyHours(resolvedWeeklyHours),
+        weeklyHours: resolvedWeeklyHours,
         emergencyService,
         emergencySurcharge: emergencyService ? emergencySurcharge : undefined,
         emergencyHandling,
@@ -1106,56 +1118,12 @@ export function TraceyOnboarding() {
                         <Clock className="h-4 w-4" /> Working Hours
                       </h3>
 
-                      {/* Days of week toggles */}
-                      <div className="space-y-3">
-                        <Label className="text-xs text-slate-500">Select working days</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
-                            const isSelected = workDays.includes(day);
-                            return (
-                              <button
-                                key={day}
-                                type="button"
-                                onClick={() => {
-                                  setWorkDays((prev) =>
-                                    prev.includes(day)
-                                      ? prev.filter((d) => d !== day)
-                                      : [...prev, day].sort((a, b) =>
-                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(a) -
-                                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(b)
-                                        )
-                                  );
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isSelected
-                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                    : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"
-                                  }`}
-                              >
-                                {day}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-500">Start Time</Label>
-                          <Input
-                            type="time"
-                            value={workStartTime}
-                            onChange={(e) => setWorkStartTime(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-500">End Time</Label>
-                          <Input
-                            type="time"
-                            value={workEndTime}
-                            onChange={(e) => setWorkEndTime(e.target.value)}
-                          />
-                        </div>
-                      </div>
+                      <WeeklyHoursEditor
+                        value={weeklyHours}
+                        onChange={setWeeklyHours}
+                        uniform={uniformWorkingHours}
+                        onUniformChange={setUniformWorkingHours}
+                      />
 
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>

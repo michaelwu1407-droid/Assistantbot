@@ -2,12 +2,19 @@
 
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import {
+  parseGoogleWeekdayDescriptions,
+  parseTextHoursToWeekly,
+  summarizeWeeklyHours,
+  type WeeklyHours,
+} from "@/lib/working-hours";
 
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
 
 export interface ScrapeResult {
   services: { name: string; priceRange?: string; duration?: string }[];
   operatingHours?: string;
+  weeklyHours?: WeeklyHours;
   suburbs?: string[];
   negativeScope: string[];   // "We do not service X"
   rawSummary?: string;
@@ -34,6 +41,96 @@ const sanitizeArray = (arr?: string[]) => {
   const cleaned = arr.map(s => s?.trim()).filter(Boolean);
   return Array.from(new Set(cleaned));
 };
+
+function getPreferredGoogleMapsKey() {
+  return (
+    process.env.GOOGLE_MAPS_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    ""
+  ).trim();
+}
+
+function getHost(value?: string) {
+  if (!value) return "";
+  try {
+    return new URL(value).host.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+async function lookupBusinessHoursFromGooglePlaces(params: {
+  websiteUrl: string;
+  businessName?: string;
+  address?: string;
+}) {
+  const apiKey = getPreferredGoogleMapsKey();
+  if (!apiKey) return null;
+
+  const query = [params.businessName, params.address, params.websiteUrl]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  if (!query) return null;
+
+  try {
+    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask":
+          "places.displayName,places.formattedAddress,places.websiteUri,places.regularOpeningHours",
+      },
+      body: JSON.stringify({
+        textQuery: query,
+        languageCode: "en",
+        regionCode: "AU",
+        maxResultCount: 5,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      places?: Array<{
+        displayName?: { text?: string };
+        formattedAddress?: string;
+        websiteUri?: string;
+        regularOpeningHours?: { weekdayDescriptions?: string[] };
+      }>;
+    };
+
+    const websiteHost = getHost(params.websiteUrl);
+    const businessName = params.businessName?.trim().toLowerCase() ?? "";
+    const ranked = (payload.places ?? []).sort((a, b) => {
+      const aScore =
+        (websiteHost && getHost(a.websiteUri) === websiteHost ? 5 : 0) +
+        (businessName && a.displayName?.text?.toLowerCase().includes(businessName) ? 2 : 0);
+      const bScore =
+        (websiteHost && getHost(b.websiteUri) === websiteHost ? 5 : 0) +
+        (businessName && b.displayName?.text?.toLowerCase().includes(businessName) ? 2 : 0);
+      return bScore - aScore;
+    });
+
+    for (const place of ranked) {
+      const weeklyHours = parseGoogleWeekdayDescriptions(
+        place.regularOpeningHours?.weekdayDescriptions ?? []
+      );
+      if (!weeklyHours) continue;
+      return {
+        operatingHours:
+          place.regularOpeningHours?.weekdayDescriptions?.join("; ") ??
+          summarizeWeeklyHours(weeklyHours),
+        weeklyHours,
+      };
+    }
+  } catch (error) {
+    console.warn("[Scraper] Google Places hours fallback failed:", error);
+  }
+
+  return null;
+}
 
 /**
  * Scrape a business website and extract structured intelligence via LLM.
@@ -145,11 +242,28 @@ Return ONLY valid JSON. No markdown, no code fences.`,
       }))
       .filter((s: any) => s.name); // Drop services without a name
 
+    const weeklyHours =
+      sanitizeString(parsed.operatingHours)
+        ? parseTextHoursToWeekly(parsed.operatingHours)
+        : null;
+    const googleHoursFallback =
+      weeklyHours ||
+      !(sanitizeString(parsed.businessName) || sanitizeString(parsed.address))
+        ? null
+        : await lookupBusinessHoursFromGooglePlaces({
+            websiteUrl,
+            businessName: sanitizeString(parsed.businessName),
+            address: sanitizeString(parsed.address),
+          });
+
     return {
       success: true,
       data: {
         services: sanitizedServices,
-        operatingHours: sanitizeString(parsed.operatingHours),
+        operatingHours:
+          sanitizeString(parsed.operatingHours) ||
+          googleHoursFallback?.operatingHours,
+        weeklyHours: weeklyHours || googleHoursFallback?.weeklyHours,
         suburbs: sanitizeArray(parsed.suburbs),
         negativeScope: sanitizeArray(parsed.negativeScope),
         rawSummary: sanitizeString(parsed.rawSummary),

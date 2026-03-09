@@ -19,6 +19,11 @@ Rule: every agent change commit must include an entry in this file.
 
 ## Entries
 
+### 2026-03-09 20:53 (AEDT) - codex
+- Files: `actions/agent-tools.ts`, `actions/scraper-actions.ts`, `actions/settings-actions.ts`, `actions/tracey-onboarding.ts`, `actions/workspace-actions.ts`, `components/onboarding/tracey-onboarding.tsx`, `components/settings/call-settings-client.tsx`, `components/ui/weekly-hours-editor.tsx`, `lib/ai/context.ts`, `lib/ai/tools.ts`, `lib/comms-simple.ts`, `lib/working-hours.ts`, `docs/agent_change_log.md`
+- What changed: Reworked onboarding and settings hours into a compact weekly-hours editor with a right-aligned uniform-hours toggle, removed the extra onboarding helper/copy-button clutter, added website-plus-Google-Places hours prefilling with structured per-day storage in `workspace.settings`, threaded those weekly hours into availability and AI scheduling context, normalized stale workspace hour defaults, and clarified the Twilio provisioning error so missing credentials are distinguished from later AU compliance failures.
+- Why: The old onboarding flow flattened business hours into one range, defaulted toward stale tradie hours, and created UI overload when per-day hours were needed. The updated flow makes scraped business hours more accurate, supports different hours per day cleanly, and makes Twilio onboarding failures easier to diagnose.
+
 ### 2026-03-09 19:07 (AEDT) - codex
 - Files: `app/api/chat/route.ts`, `livekit-agent/agent.ts`, `livekit-agent/voice-latency.ts`, `livekit-agent/.env.example`, `docs/agent_change_log.md`
 - What changed: Fixed web-chat tool result collection to read the current AI SDK `output` field, and added a production-only voice latency path for normal Tracey calls with interim-turn classification, a small parallel guard-model check, a cached opener bank including tightly constrained empathetic openers, and runtime metrics for classifier/guard/opener usage. Updated the agent env example with the new voice-latency and guard-model flags.

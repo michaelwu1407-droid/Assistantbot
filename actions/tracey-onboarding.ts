@@ -8,6 +8,8 @@ import { logger } from "@/lib/logging";
 import { sendProvisionedWelcomeSmsIfNeeded } from "@/lib/welcome-sms";
 import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "./workspace-actions";
 import { ensureWorkspaceProvisioned, type WorkspaceProvisioningStatus } from "@/lib/onboarding-provision";
+import { summarizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours";
+import { Prisma } from "@prisma/client";
 
 // ─── Australian Phone Validation ────────────────────────────────
 
@@ -41,6 +43,22 @@ const ServiceItemSchema = z.object({
 
 type ServiceItemInput = z.infer<typeof ServiceItemSchema>;
 
+const DailyHoursSchema = z.object({
+  open: z.boolean(),
+  start: z.string().trim().min(1),
+  end: z.string().trim().min(1),
+});
+
+const WeeklyHoursSchema = z.object({
+  Mon: DailyHoursSchema,
+  Tue: DailyHoursSchema,
+  Wed: DailyHoursSchema,
+  Thu: DailyHoursSchema,
+  Fri: DailyHoursSchema,
+  Sat: DailyHoursSchema,
+  Sun: DailyHoursSchema,
+});
+
 const TraceyOnboardingSchema = z.object({
   // Step 1: Draft Contact Card
   ownerName: z.string().trim().min(1, "Name is required"),
@@ -65,6 +83,7 @@ const TraceyOnboardingSchema = z.object({
   physicalAddress: z.string().trim().min(1, "Physical address is required"),
   serviceRadius: z.number().min(1).max(200).default(20),
   standardWorkHours: z.string().trim().min(1),
+  weeklyHours: WeeklyHoursSchema.optional(),
   emergencyService: z.boolean().default(false),
   emergencySurcharge: z.number().min(0).optional(),
   emergencyHandling: z.string().trim().optional(),
@@ -94,6 +113,19 @@ function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
   }
 
   return settings as Record<string, unknown>;
+}
+
+function getFirstOpenHours(weeklyHours?: WeeklyHours) {
+  if (!weeklyHours) return { start: "08:00", end: "17:00" }
+  for (const day of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const) {
+    if (weeklyHours[day]?.open) {
+      return {
+        start: weeklyHours[day].start || "08:00",
+        end: weeklyHours[day].end || "17:00",
+      };
+    }
+  }
+  return { start: "08:00", end: "17:00" }
 }
 
 function deriveBaseSuburbFromAddress(address: string): string {
@@ -153,6 +185,8 @@ export async function saveTraceyOnboarding(
 
   const d = parsed.data;
   const baseSuburb = deriveBaseSuburbFromAddress(d.physicalAddress);
+  const normalizedWeeklyHours = d.weeklyHours;
+  const firstOpenHours = getFirstOpenHours(normalizedWeeklyHours);
 
   // Get user email from auth
   const { getAuthUser } = await import("@/lib/auth");
@@ -198,6 +232,20 @@ export async function saveTraceyOnboarding(
       });
 
       // 2. Update Workspace
+      const currentWorkspace = await tx.workspace.findUnique({
+        where: { id: workspace.id },
+        select: { settings: true },
+      });
+      const currentSettings = getWorkspaceSettings(currentWorkspace?.settings);
+      const nextSettings = (
+        normalizedWeeklyHours
+          ? {
+              ...currentSettings,
+              weeklyHours: normalizedWeeklyHours,
+            }
+          : currentSettings
+      ) as unknown as Prisma.InputJsonValue;
+
       await tx.workspace.update({
         where: { id: workspace.id },
         data: {
@@ -207,9 +255,10 @@ export async function saveTraceyOnboarding(
           location: d.physicalAddress,
           onboardingComplete: false,
           agentMode: d.agentMode,
-          workingHoursStart: d.standardWorkHours.split("-")[0]?.trim() || "08:00",
-          workingHoursEnd: d.standardWorkHours.split("-")[1]?.trim() || "17:00",
+          workingHoursStart: firstOpenHours.start,
+          workingHoursEnd: firstOpenHours.end,
           callOutFee: d.globalCallOutFee ?? 0,
+          settings: nextSettings,
         },
       });
 
@@ -226,7 +275,7 @@ export async function saveTraceyOnboarding(
           physicalAddress: d.physicalAddress,
           baseSuburb,
           serviceRadius: d.serviceRadius,
-          standardWorkHours: d.standardWorkHours,
+          standardWorkHours: normalizedWeeklyHours ? summarizeWeeklyHours(normalizedWeeklyHours) : d.standardWorkHours,
           emergencyService: d.emergencyService,
           emergencySurcharge: d.emergencySurcharge || null,
           emergencyHandling: d.emergencyHandling || null,
@@ -243,7 +292,7 @@ export async function saveTraceyOnboarding(
           physicalAddress: d.physicalAddress,
           baseSuburb,
           serviceRadius: d.serviceRadius,
-          standardWorkHours: d.standardWorkHours,
+          standardWorkHours: normalizedWeeklyHours ? summarizeWeeklyHours(normalizedWeeklyHours) : d.standardWorkHours,
           emergencyService: d.emergencyService,
           emergencySurcharge: d.emergencySurcharge || null,
           emergencyHandling: d.emergencyHandling || null,

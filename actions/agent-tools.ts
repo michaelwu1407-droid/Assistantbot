@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 
 /**
  * Tool: get_schedule
@@ -381,7 +382,7 @@ export async function runGetTodaySummary(
  */
 export async function runGetAvailability(
   workspaceId: string,
-  params: { date: string; workingHoursStart?: string; workingHoursEnd?: string }
+  params: { date: string; workingHoursStart?: string; workingHoursEnd?: string; weeklyHours?: WeeklyHours }
 ): Promise<{
   date: string;
   scheduledJobs: { title: string; startTime: string; clientName: string }[];
@@ -403,8 +404,21 @@ export async function runGetAvailability(
     orderBy: { scheduledAt: "asc" },
   });
 
-  const whStart = params.workingHoursStart || "08:00";
-  const whEnd = params.workingHoursEnd || "17:00";
+  const dayHours = findHoursForDate(params.weeklyHours, targetDate);
+  if (dayHours && !dayHours.open) {
+    return {
+      date: params.date,
+      scheduledJobs: jobs.map((j) => ({
+        title: j.title,
+        startTime: j.scheduledAt?.toISOString() || "",
+        clientName: j.contact?.name || "Unknown",
+      })),
+      availableSlots: [],
+    };
+  }
+
+  const whStart = dayHours?.start || params.workingHoursStart || "08:00";
+  const whEnd = dayHours?.end || params.workingHoursEnd || "17:00";
   const [startH, startM] = whStart.split(":").map(Number);
   const [endH, endM] = whEnd.split(":").map(Number);
 

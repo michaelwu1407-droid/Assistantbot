@@ -55,6 +55,7 @@ import {
 import { runPricingLookup } from "@/actions/pricing-actions";
 import { calculate } from "@/lib/ai/pricing-calculator";
 import { buildJobDraftFromParams } from "@/lib/chat-utils";
+import type { WeeklyHours } from "@/lib/working-hours";
 
 /**
  * Returns the record of tool definitions for the AI agent to use, bound to a specific workspace and settings.
@@ -66,6 +67,7 @@ import { buildJobDraftFromParams } from "@/lib/chat-utils";
 type AgentToolSettings = {
     workingHoursStart?: string | null;
     workingHoursEnd?: string | null;
+    weeklyHours?: WeeklyHours;
 } & Record<string, unknown>;
 
 export function getAgentTools(workspaceId: string, settings: AgentToolSettings | null | undefined, userId?: string) {
@@ -536,6 +538,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                     date,
                     workingHoursStart: settings?.workingHoursStart || "08:00",
                     workingHoursEnd: settings?.workingHoursEnd || "17:00",
+                    weeklyHours: settings?.weeklyHours,
                 }),
         }),
 

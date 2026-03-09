@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
+import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -73,6 +74,7 @@ export async function getWorkspaceSettings() {
         voiceAfterHoursMessage: (s.voiceAfterHoursMessage as string) ?? "",
         transcribeVoicemails: (s.transcribeVoicemails as boolean) ?? true,
         autoRespondToMessages: (s.autoRespondToMessages as boolean) ?? true,
+        weeklyHours: s.weeklyHours ? normalizeWeeklyHours(s.weeklyHours) : undefined,
     }
 }
 
@@ -115,6 +117,7 @@ export async function updateWorkspaceSettings(input: {
     voiceAfterHoursMessage?: string
     transcribeVoicemails?: boolean
     autoRespondToMessages?: boolean
+    weeklyHours?: WeeklyHours
     callForwardingEnabled?: boolean
     callForwardingMode?: "full" | "backup" | "off"
     callForwardingDelaySec?: number
@@ -130,7 +133,7 @@ export async function updateWorkspaceSettings(input: {
         "emergencyBypass", "emergencyHoursStart", "emergencyHoursEnd",
         "recordCalls", "transcriptionQuality", "agentPersonality", "agentResponseLength",
         "voiceEnabled", "voiceLanguage", "voiceType", "voiceSpeed",
-        "voiceGreeting", "voiceAfterHoursMessage", "transcribeVoicemails", "autoRespondToMessages",
+        "voiceGreeting", "voiceAfterHoursMessage", "transcribeVoicemails", "autoRespondToMessages", "weeklyHours",
     ] as const
     let settingsUpdate: any = undefined
     const s = input as Record<string, unknown>
@@ -238,6 +241,7 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         voiceAfterHoursMessage: (s.voiceAfterHoursMessage as string) ?? "",
         transcribeVoicemails: (s.transcribeVoicemails as boolean) ?? true,
         autoRespondToMessages: (s.autoRespondToMessages as boolean) ?? true,
+        weeklyHours: s.weeklyHours ? normalizeWeeklyHours(s.weeklyHours) : undefined,
     }
 }
 
