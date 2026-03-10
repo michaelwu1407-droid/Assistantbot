@@ -8,6 +8,8 @@ import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 import { createTask } from "./task-actions";
+import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
+import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 
 async function ensurePostJobFollowUp(dealId: string) {
   const deal = await db.deal.findUnique({
@@ -172,8 +174,9 @@ export async function getTodaySchedule(workspaceId: string) {
  * Used when deep-linking to a job that isn't in today's schedule.
  */
 export async function getTradieJobById(jobId: string) {
-  const job = await db.deal.findUnique({
-    where: { id: jobId },
+  const { deal } = await requireDealInCurrentWorkspace(jobId);
+  const job = await db.deal.findFirst({
+    where: { id: deal.id, workspaceId: deal.workspaceId },
     include: { contact: true }
   });
 
@@ -255,8 +258,9 @@ export async function getNextJob(workspaceId: string) {
  * Fetch full details for a specific job (Deal).
  */
 export async function getJobDetails(jobId: string) {
-  const deal = await db.deal.findUnique({
-    where: { id: jobId },
+  const { deal: scopedDeal } = await requireDealInCurrentWorkspace(jobId);
+  const deal = await db.deal.findFirst({
+    where: { id: scopedDeal.id, workspaceId: scopedDeal.workspaceId },
     include: {
       contact: true,
       activities: {
@@ -338,6 +342,7 @@ export async function sendOnMyWaySMS(jobId: string) {
 export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAVELING' | 'ON_SITE' | 'COMPLETED' | 'CANCELLED') {
   // 1. Update DB
   try {
+    await requireDealInCurrentWorkspace(jobId);
     await db.deal.update({
       where: { id: jobId },
       data: {
@@ -405,7 +410,8 @@ export async function completeSafetyCheck(
   jobId: string,
   checks?: { siteSafe: boolean; powerOff: boolean; ppeWorn: boolean }
 ) {
-  const deal = await db.deal.findUnique({
+  await requireDealInCurrentWorkspace(jobId);
+  const deal = await db.deal.findFirst({
     where: { id: jobId },
     select: { metadata: true }
   });
@@ -442,6 +448,7 @@ export async function completeSafetyCheck(
  */
 export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
   try {
+    await requireDealInCurrentWorkspace(jobId);
     const deal = await db.deal.update({
       where: { id: jobId },
       data: {
@@ -451,6 +458,8 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
         lastActivityAt: new Date()
       }
     });
+
+    await syncGoogleCalendarEventForDeal(jobId).catch(() => {});
 
     revalidatePath('/dashboard/tradie/schedule');
     return { success: true, scheduledAt: deal.scheduledAt };
@@ -463,6 +472,7 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
 
 export async function saveJobPhoto(dealId: string, url: string, caption?: string) {
   try {
+    await requireDealInCurrentWorkspace(dealId);
     await db.jobPhoto.create({
       data: {
         dealId,
@@ -495,7 +505,8 @@ export async function saveJobPhoto(dealId: string, url: string, caption?: string
 export async function createQuoteVariation(jobId: string, items: Array<{ desc: string; price: number }>) {
   const total = items.reduce((sum, item) => sum + item.price, 0);
 
-  const deal = await db.deal.findUnique({ where: { id: jobId } });
+  await requireDealInCurrentWorkspace(jobId);
+  const deal = await db.deal.findFirst({ where: { id: jobId } });
   if (!deal) return { success: false, error: "Job not found" };
 
   const existingMeta = (deal.metadata as Record<string, unknown>) || {};
@@ -545,7 +556,8 @@ export async function generateQuote(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const deal = await db.deal.findUnique({
+  await requireDealInCurrentWorkspace(parsed.data.dealId);
+  const deal = await db.deal.findFirst({
     where: { id: parsed.data.dealId },
   });
 
@@ -607,6 +619,7 @@ export async function generateQuote(
  * Get invoices for a deal.
  */
 export async function getDealInvoices(dealId: string) {
+  await requireDealInCurrentWorkspace(dealId);
   return db.invoice.findMany({
     where: { dealId },
     orderBy: { createdAt: "desc" },
@@ -765,7 +778,8 @@ ${invoice.deal.contact.address ? `<p style="margin:0;color:#64748b">${invoice.de
 export async function completeJob(dealId: string, signatureDataUrl: string) {
   try {
     // Get existing metadata
-    const deal = await db.deal.findUnique({
+    await requireDealInCurrentWorkspace(dealId);
+    const deal = await db.deal.findFirst({
       where: { id: dealId },
       select: { metadata: true }
     });
@@ -829,7 +843,8 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
  * Send a Google Review request SMS to the client after job completion.
  */
 export async function sendReviewRequestSMS(dealId: string) {
-  const deal = await db.deal.findUnique({
+  await requireDealInCurrentWorkspace(dealId);
+  const deal = await db.deal.findFirst({
     where: { id: dealId },
     include: { contact: true, workspace: true }
   });
@@ -864,7 +879,8 @@ export async function sendReviewRequestSMS(dealId: string) {
  */
 export async function finalizeJobCompletion(jobId: string, payload: { isPaid: boolean; notes: string }) {
   try {
-    const deal = await db.deal.findUnique({
+    await requireDealInCurrentWorkspace(jobId);
+    const deal = await db.deal.findFirst({
       where: { id: jobId },
       select: { metadata: true, contactId: true, value: true }
     });

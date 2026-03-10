@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Mail, Calendar, Check, Loader2, Zap, X, FileText, CreditCard } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { connectXero, disconnectEmailIntegration, getIntegrationStatus } from "@/actions/integration-actions"
+import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
 import { useShellStore } from "@/lib/store"
 
@@ -20,11 +20,26 @@ interface EmailIntegrationView {
     lastSyncAt?: string | Date | null
 }
 
+interface CalendarIntegrationView {
+    connected: boolean
+    provider: string
+    emailAddress?: string | null
+    lastSyncAt?: string | Date | null
+    calendarId?: string | null
+}
+
 export default function IntegrationsPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const userRole = useShellStore((s) => s.userRole)
-    const [calendarStatus] = useState<"coming_soon">("coming_soon")
+    const [calendarIntegration, setCalendarIntegration] = useState<CalendarIntegrationView>({
+        connected: false,
+        provider: "google",
+        emailAddress: null,
+        lastSyncAt: null,
+        calendarId: null,
+    })
+    const [calendarLoading, setCalendarLoading] = useState(false)
     const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [emailIntegrations, setEmailIntegrations] = useState<EmailIntegrationView[]>([])
     const [loadingIntegrations, setLoadingIntegrations] = useState(true)
@@ -44,10 +59,12 @@ export default function IntegrationsPage() {
     useEffect(() => {
         const success = searchParams.get("success")
         const error = searchParams.get("error")
-        if (success === "gmail_connected" || success === "outlook_connected" || success === "xero_connected") {
+        if (success === "gmail_connected" || success === "outlook_connected" || success === "xero_connected" || success === "google_calendar_connected") {
             toast.success(
                 success === "xero_connected"
                     ? "Xero connected successfully!"
+                    : success === "google_calendar_connected"
+                        ? "Google Calendar connected successfully!"
                     : `${success === "gmail_connected" ? "Gmail" : "Outlook"} connected successfully!`
             )
             refreshIntegrationStatus()
@@ -63,10 +80,46 @@ export default function IntegrationsPage() {
             const status = await getIntegrationStatus()
             setEmailIntegrations(status.emailIntegrations)
             setXeroStatus(status.xeroConnected ? "connected" : "idle")
+            setCalendarIntegration(status.calendarIntegration)
         } catch {
             toast.error("Failed to load integration status")
         } finally {
             setLoadingIntegrations(false)
+        }
+    }
+
+    const handleConnectGoogleCalendar = async () => {
+        setCalendarLoading(true)
+        try {
+            const result = await connectGoogleCalendar()
+            if (result.url) {
+                window.location.href = result.url
+                return
+            }
+            toast.error("Failed to start Google Calendar connection")
+        } catch {
+            toast.error("Failed to start Google Calendar connection")
+        } finally {
+            setCalendarLoading(false)
+        }
+    }
+
+    const handleDisconnectGoogleCalendar = async () => {
+        setCalendarLoading(true)
+        try {
+            await disconnectWorkspaceCalendarIntegration()
+            setCalendarIntegration({
+                connected: false,
+                provider: "google",
+                emailAddress: null,
+                lastSyncAt: null,
+                calendarId: null,
+            })
+            toast.success("Google Calendar disconnected")
+        } catch {
+            toast.error("Failed to disconnect Google Calendar")
+        } finally {
+            setCalendarLoading(false)
         }
     }
 
@@ -207,13 +260,10 @@ export default function IntegrationsPage() {
                             Google Calendar
                         </CardTitle>
                         <CardDescription>
-                            Calendar sync is not wired yet, so this section is intentionally read-only instead of pretending to connect.
+                            Connect Google Calendar so Tracey can read availability and keep scheduled jobs in sync with your real calendar.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-200 mb-4">
-                            Calendar sync is coming soon. You will be able to connect Google Calendar and see last sync time here.
-                        </div>
                         <div className="flex items-center gap-4">
                             <div className="bg-slate-100 p-4 rounded-full">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="h-8 w-8" />
@@ -221,18 +271,33 @@ export default function IntegrationsPage() {
                             <div className="space-y-1">
                                 <h4 className="font-medium">Calendar Sync</h4>
                                 <p className="text-sm text-slate-500">
-                                    Calendar sync is not active yet. The scheduler still works locally inside Earlymark.
+                                    {calendarIntegration.connected
+                                        ? `Connected${calendarIntegration.emailAddress ? ` as ${calendarIntegration.emailAddress}` : ""}. Tracey will use Google Calendar availability and sync scheduled jobs.`
+                                        : "Not connected. The scheduler will only see jobs stored inside Earlymark until you connect Google Calendar."}
                                 </p>
+                                {calendarIntegration.connected && calendarIntegration.lastSyncAt && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Last sync: {new Date(calendarIntegration.lastSyncAt).toLocaleString()}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </CardContent>
                     <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
                         <div className="text-xs text-slate-500">
-                            Permissions planned: Read/Write Events
+                            Permissions: Read/Write Events
                         </div>
-                        <Button variant="outline" disabled={calendarStatus === "coming_soon"}>
-                            Coming soon
-                        </Button>
+                        {calendarIntegration.connected ? (
+                            <Button variant="outline" onClick={handleDisconnectGoogleCalendar} disabled={calendarLoading}>
+                                {calendarLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                Disconnect
+                            </Button>
+                        ) : (
+                            <Button onClick={handleConnectGoogleCalendar} disabled={calendarLoading}>
+                                {calendarLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                Connect Google Calendar
+                            </Button>
+                        )}
                     </CardFooter>
                 </Card>
 
@@ -311,8 +376,8 @@ export default function IntegrationsPage() {
                                     <p className="text-xs text-muted-foreground">Accept credit cards and Apple/Google Pay</p>
                                 </div>
                             </div>
-                            <Button variant="outline" size="sm" onClick={() => toast.info("Stripe integration coming soon.")}>
-                                Connect
+                            <Button variant="outline" size="sm" disabled>
+                                Coming soon
                             </Button>
                         </div>
                         <div className="flex items-center justify-between p-4 bg-slate-50 border rounded-lg">
@@ -325,8 +390,8 @@ export default function IntegrationsPage() {
                                     <p className="text-xs text-muted-foreground">Receive payments directly to your MYOB account</p>
                                 </div>
                             </div>
-                            <Button variant="outline" size="sm" onClick={() => toast.info("MYOB integration coming soon.")}>
-                                Connect
+                            <Button variant="outline" size="sm" disabled>
+                                Coming soon
                             </Button>
                         </div>
                     </CardContent>

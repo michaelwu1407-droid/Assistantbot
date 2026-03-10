@@ -66,7 +66,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
       }
 
       await updateWorkspaceSettings({
-        agentMode: currentSettings.agentMode || "EXECUTE",
+        agentMode: currentSettings.agentMode || "EXECUTION",
         workingHoursStart: currentSettings.workingHoursStart || "09:00",
         workingHoursEnd: currentSettings.workingHoursEnd || "17:00",
         agendaNotifyTime: currentSettings.agendaNotifyTime || "09:00",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
 import * as Sentry from "@sentry/nextjs";
@@ -33,7 +34,6 @@ function verifyResendWebhook(
   // Compute the expected signature using HMAC-SHA256
   // Svix signature format: v1,<base64-hmac>
   try {
-    const crypto = require("crypto") as typeof import("crypto");
     // Svix secrets are prefixed with "whsec_" and base64-encoded
     const secretBytes = Buffer.from(
       webhookSecret.startsWith("whsec_")
@@ -246,7 +246,18 @@ export async function POST(req: NextRequest) {
     // 4. Tenant identification — by lead alias, full inbound email, or subdomain
     let workspace = leadAlias
       ? await db.workspace.findFirst({
-          where: { inboundEmailAlias: leadAlias },
+          where: {
+            OR: [
+              { inboundEmailAlias: leadAlias },
+              { inboundEmail: toAddress.email },
+              {
+                settings: {
+                  path: ["legacyInboundLeadAliases"],
+                  array_contains: [leadAlias],
+                },
+              },
+            ],
+          },
           select: {
             id: true,
             name: true,
@@ -271,6 +282,12 @@ export async function POST(req: NextRequest) {
         where: {
           OR: [
             { inboundEmail: toAddress.email },
+            {
+              settings: {
+                path: ["legacyInboundLeadAliases"],
+                array_contains: [leadAlias || subdomain],
+              },
+            },
             {
               name: {
                 equals: subdomain.replace(/-/g, " "),

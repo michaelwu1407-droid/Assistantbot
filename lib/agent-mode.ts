@@ -1,4 +1,5 @@
 export type CanonicalCustomerContactMode = "execute" | "review_approve" | "info_only";
+export type CanonicalAppAgentMode = "EXECUTION" | "DRAFT" | "INFO_ONLY";
 
 export function normalizeAgentMode(raw?: string | null): CanonicalCustomerContactMode {
   switch ((raw || "").trim().toUpperCase()) {
@@ -25,6 +26,34 @@ export function getCustomerContactModeLabel(mode: CanonicalCustomerContactMode):
     case "review_approve":
       return "Review & approve";
     case "info_only":
+      return "Info only";
+  }
+}
+
+export function normalizeAppAgentMode(raw?: string | null): CanonicalAppAgentMode {
+  switch ((raw || "").trim().toUpperCase()) {
+    case "EXECUTE":
+    case "EXECUTION":
+      return "EXECUTION";
+    case "FILTER":
+    case "INFO_ONLY":
+      return "INFO_ONLY";
+    case "ORGANIZE":
+    case "DRAFT":
+    case "REVIEW_APPROVE":
+    case "REVIEW & APPROVE":
+    default:
+      return "DRAFT";
+  }
+}
+
+export function getAppAgentModeLabel(mode: CanonicalAppAgentMode): string {
+  switch (mode) {
+    case "EXECUTION":
+      return "Execution";
+    case "DRAFT":
+      return "Review & approve";
+    case "INFO_ONLY":
       return "Info only";
   }
 }

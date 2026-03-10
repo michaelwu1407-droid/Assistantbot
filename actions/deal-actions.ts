@@ -15,6 +15,8 @@ import { triageIncomingLead, saveTriageRecommendation } from "@/lib/ai/triage";
 import { checkForDeviation } from "./learning-actions";
 import { findNearbyBookings } from "./geo-actions";
 import { createTask } from "./task-actions";
+import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
+import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -280,6 +282,11 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
+  const actor = await requireCurrentWorkspaceAccess();
+  if (parsed.data.workspaceId !== actor.workspaceId) {
+    return { success: false, error: "Unauthorized workspace" };
+  }
+
   const { title, value, stage, contactId, workspaceId, address, latitude, longitude, metadata, scheduledAt, assignedToId } = parsed.data;
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
@@ -354,6 +361,10 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     stage: prismaStage,
   });
 
+  if (scheduledAt) {
+    await syncGoogleCalendarEventForDeal(deal.id).catch(() => {});
+  }
+
   return { success: true, dealId: deal.id };
 }
 
@@ -373,10 +384,7 @@ export async function updateDealStage(dealId: string, stage: string) {
       return { success: false, error: `Invalid stage: ${stage}` };
     }
 
-    const currentDeal = await db.deal.findUnique({
-      where: { id: parsed.data.dealId },
-      select: { stage: true, metadata: true, workspaceId: true, contactId: true, assignedToId: true },
-    });
+    const { deal: currentDeal } = await requireDealInCurrentWorkspace(parsed.data.dealId);
     if (!currentDeal) return { success: false, error: "Deal not found" };
     const currentMeta = (currentDeal.metadata as Record<string, unknown>) ?? {};
 
@@ -717,7 +725,7 @@ export async function updateDealMetadata(
   dealId: string,
   metadata: Record<string, unknown>
 ) {
-  const deal = await db.deal.findUnique({ where: { id: dealId } });
+  const { deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
   const existing = (deal.metadata as Record<string, unknown>) ?? {};
@@ -780,7 +788,8 @@ export async function updateDeal(
     scheduledAt?: Date | string | null;
   }
 ) {
-  const deal = await db.deal.findUnique({
+  await requireDealInCurrentWorkspace(dealId);
+  const deal = await db.deal.findFirst({
     where: { id: dealId },
     include: { workspace: { select: { autoUpdateGlossary: true } } }
   });
@@ -811,6 +820,14 @@ export async function updateDeal(
     where: { id: dealId },
     data: update,
   });
+
+  if (data.scheduledAt !== undefined) {
+    if (update.scheduledAt) {
+      await syncGoogleCalendarEventForDeal(dealId).catch(() => {});
+    } else {
+      await removeGoogleCalendarEventForDeal(dealId).catch(() => {});
+    }
+  }
 
   let userName = "Someone";
   let userId: string | undefined;
@@ -961,10 +978,7 @@ export async function updateDealAssignedTo(
   dealId: string,
   assignedToId: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const deal = await db.deal.findUnique({
-    where: { id: dealId },
-    select: { workspaceId: true, stage: true },
-  });
+  const { deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
   // Prevent unassignment for deals in Scheduled or later stages
@@ -994,6 +1008,7 @@ export async function updateDealAssignedTo(
  * Delete a deal and its related data (cascade).
  */
 export async function deleteDeal(dealId: string) {
+  await requireDealInCurrentWorkspace(dealId);
   await db.deal.delete({ where: { id: dealId } });
   return { success: true };
 }

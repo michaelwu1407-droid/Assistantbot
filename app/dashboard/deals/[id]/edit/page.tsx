@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Home } from "lucide-react"
@@ -12,10 +13,11 @@ interface PageProps {
 
 export default async function DealEditPage({ params }: PageProps) {
   const { id } = await params
+  const actor = await requireCurrentWorkspaceAccess()
 
   const [deal, teamMembers] = await Promise.all([
-    db.deal.findUnique({
-      where: { id },
+    db.deal.findFirst({
+      where: { id, workspaceId: actor.workspaceId },
       include: { contact: true, assignedTo: { select: { id: true, name: true } } },
     }),
     getTeamMembers(),

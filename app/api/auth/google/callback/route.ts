@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { upsertGoogleCalendarIntegration } from "@/lib/workspace-calendar"
 
 export async function GET(req: NextRequest) {
     const code = req.nextUrl.searchParams.get("code")
@@ -35,21 +35,17 @@ export async function GET(req: NextRequest) {
 
         const tokens = await tokenRes.json()
 
-        // Store tokens in workspace settings
-        await db.workspace.update({
-            where: { id: state },
-            data: {
-                settings: {
-                    googleAccessToken: tokens.access_token,
-                    googleRefreshToken: tokens.refresh_token,
-                    googleTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-                },
-            },
+        await upsertGoogleCalendarIntegration({
+            workspaceId: state,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token || null,
+            expiresInSeconds: typeof tokens.expires_in === "number" ? tokens.expires_in : null,
+            calendarId: "primary",
         })
 
-        return NextResponse.redirect(new URL("/dashboard/settings?success=google_connected", req.url))
+        return NextResponse.redirect(new URL("/dashboard/settings/integrations?success=google_calendar_connected", req.url))
     } catch (error) {
         console.error("OAuth callback error:", error)
-        return NextResponse.redirect(new URL("/dashboard/settings?error=callback_failed", req.url))
+        return NextResponse.redirect(new URL("/dashboard/settings/integrations?error=callback_failed", req.url))
     }
 }

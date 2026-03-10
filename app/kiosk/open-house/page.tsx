@@ -97,7 +97,7 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
             </div>
 
             <div className="absolute bottom-6 left-6 text-white/40 text-xs z-10">
-                Powered by Pj Buddy
+                Powered by Earlymark
             </div>
         </div>
     )

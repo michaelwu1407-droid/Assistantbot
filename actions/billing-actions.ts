@@ -3,6 +3,7 @@
 import { stripe } from "@/lib/stripe";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { BillingInterval, getStripePriceIdForInterval } from "@/lib/billing-plan";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -15,7 +16,11 @@ function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
     return settings as Record<string, unknown>;
 }
 
-export async function createCheckoutSession(workspaceId: string, provisionPhoneNumberRequested: boolean) {
+export async function createCheckoutSession(
+    workspaceId: string,
+    billingInterval: BillingInterval,
+    provisionPhoneNumberRequested: boolean
+) {
     const userId = await getAuthUserId();
     if (!userId) {
         throw new Error("Unauthorized");
@@ -56,24 +61,21 @@ export async function createCheckoutSession(workspaceId: string, provisionPhoneN
     const origin = headersList.get("origin") || headersList.get("x-forwarded-host") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const baseUrl = origin.includes("127.0.0.1") ? "http://localhost:3000" : origin;
 
-    let customerId = workspace.stripeCustomerId;
+    const customerId = workspace.stripeCustomerId;
 
-    // Intro: $60/month for first 3 months, then $150/month (use STRIPE_PRO_INTRO_PRICE_ID for $60, STRIPE_PRO_PRICE_ID for $150)
-    const introPriceId = process.env.STRIPE_PRO_INTRO_PRICE_ID;
-    const priceId = introPriceId || process.env.STRIPE_PRO_PRICE_ID;
-    if (!priceId) {
-        throw new Error("STRIPE_PRO_PRICE_ID or STRIPE_PRO_INTRO_PRICE_ID is required");
-    }
+    const priceId = getStripePriceIdForInterval(billingInterval);
 
     const session = await stripe.checkout.sessions.create({
         metadata: {
             workspace_id: workspaceId,
             referred_user_id: userId,
             referral_code: (await cookies()).get("referral_code")?.value || "",
+            billing_interval: billingInterval,
         },
         payment_method_types: ["card"],
         billing_address_collection: "auto",
         customer: customerId || undefined,
+        allow_promotion_codes: true,
         line_items: [
             {
                 price: priceId,

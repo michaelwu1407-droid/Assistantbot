@@ -20,22 +20,18 @@ export function UpgradeButton({
     const handleUpgrade = async () => {
         try {
             setLoading(true);
-            // Pass billing period preference to checkout
-            await createCheckoutSession(workspaceId, provisionPhoneNumberRequested);
+            await createCheckoutSession(workspaceId, billingPeriod, provisionPhoneNumberRequested);
         } catch (error) {
             console.error("Failed to start checkout:", error);
             setLoading(false);
         }
     };
 
-    const yearlySavings = 20;
-    // TODO: Update prices at the end of promotional period - currently $2/day intro, $5/day regular
-    // Yearly = $5/day * 30 days * 12 months * (1 - 20%)
-    const yearlyTotal = 5 * 30 * 12 * (1 - yearlySavings / 100);
+    const monthlyPrice = "$149";
+    const yearlyPrice = "$1,490";
 
     return (
         <div className="space-y-4">
-            {/* Billing period toggle */}
             <div className="flex items-center justify-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button
                     type="button"
@@ -57,30 +53,27 @@ export function UpgradeButton({
                 >
                     Yearly
                     <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        {yearlySavings}% OFF
+                        Best value
                     </span>
                 </button>
             </div>
 
-            {/* Price display: Monthly = intro promo; Yearly = annual rate only */}
             <div className="flex flex-col items-center justify-center gap-2 py-4">
                 {billingPeriod === "monthly" ? (
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <span className="text-3xl font-extrabold text-primary">$2</span>
-                        <span className="text-2xl font-bold text-muted-foreground line-through">$5</span>
-                        <span className="text-muted-foreground">/ day for a limited time only</span>
+                    <div className="text-3xl font-extrabold text-primary">
+                        {monthlyPrice} <span className="text-lg font-semibold text-muted-foreground">/ month</span>
                     </div>
                 ) : (
                     <div className="text-3xl font-extrabold text-midnight">
-                        ${yearlyTotal.toLocaleString()} <span className="text-lg font-semibold text-muted-foreground">/ year</span>
+                        {yearlyPrice} <span className="text-lg font-semibold text-muted-foreground">/ year</span>
                     </div>
                 )}
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
                 {billingPeriod === "monthly"
-                    ? "$60 / month subscription. Cancel anytime."
-                    : "Cancel anytime."}
+                    ? "Billed monthly. Cancel anytime."
+                    : "Billed yearly. Stripe promo codes are supported at checkout."}
             </p>
 
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-left">
@@ -105,7 +98,7 @@ export function UpgradeButton({
                 onClick={handleUpgrade}
                 disabled={loading}
             >
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Subscribe to Pro`}
+                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Continue to Stripe checkout`}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
                 {provisionPhoneNumberRequested

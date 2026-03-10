@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
 import { isManagerOrAbove } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function BillingSettingsPage() {
 
     const userId = (await getAuthUserId()) as string;
     const workspace = await getOrCreateWorkspace(userId);
+    const billingInterval = getBillingIntervalForPriceId(workspace.stripePriceId);
 
     return (
         <div className="space-y-6">
@@ -30,11 +32,10 @@ export default async function BillingSettingsPage() {
                 <div className="flex flex-col">
                     <span className="text-sm font-semibold text-slate-500">Current Plan</span>
                     <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                        {workspace.stripePriceId === process.env.STRIPE_PRO_PRICE_ID
-                            ? "Earlymark Pro"
-                            : workspace.stripePriceId
-                                ? "Premium Plan"
-                                : "Free / Trial"}
+                        {getPlanLabelForPriceId(workspace.stripePriceId)}
+                    </span>
+                    <span className="text-sm text-slate-500 mt-1">
+                        {billingInterval ? `Billing cadence: ${billingInterval}` : "No paid subscription on this workspace"}
                     </span>
                 </div>
 

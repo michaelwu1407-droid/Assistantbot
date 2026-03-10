@@ -61,7 +61,7 @@ The current product focus is:
 ### Voice + messaging
 
 - LiveKit-based voice agent
-- Groq used directly when `GROQ_API_KEY` is available
+- Groq primary with explicit fallback routing for voice
 - Cartesia `sonic-3` pinned for TTS
 - Twilio for messaging and phone infrastructure
 - persisted voice call logs, transcripts, and latency metrics
@@ -85,7 +85,7 @@ The current product focus is:
 ### AI + communications
 
 - Google Gemini for main app chat flows
-- Groq for low-latency voice-agent inference where configured
+- Groq primary plus DeepInfra fallback for voice-agent inference
 - LiveKit for realtime voice orchestration
 - Cartesia for TTS
 - Deepgram for STT
@@ -147,12 +147,13 @@ See [.env.example](C:/Users/micha/Assistantbot/.env.example) for the full list. 
   - `DATABASE_URL`
 - Stripe
   - `STRIPE_SECRET_KEY`
-  - `STRIPE_PRO_PRICE_ID`
+  - `STRIPE_PRO_MONTHLY_PRICE_ID`
+  - `STRIPE_PRO_YEARLY_PRICE_ID`
   - `STRIPE_WEBHOOK_SECRET`
 - Twilio
   - `TWILIO_ACCOUNT_SID`
   - `TWILIO_AUTH_TOKEN`
-  - `TWILIO_MASTER_NUMBER`
+  - `TWILIO_PHONE_NUMBER`
 - Voice / AI
   - `GEMINI_API_KEY`
   - `GROQ_API_KEY`

@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
+import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
 
 /**
  * Tool: get_schedule
@@ -403,6 +404,7 @@ export async function runGetAvailability(
     include: { contact: { select: { name: true } } },
     orderBy: { scheduledAt: "asc" },
   });
+  const calendarEvents = await listWorkspaceCalendarEventsForRange(workspaceId, dayStart, dayEnd);
 
   const dayHours = findHoursForDate(params.weeklyHours, targetDate);
   if (dayHours && !dayHours.open) {
@@ -420,11 +422,14 @@ export async function runGetAvailability(
   const whStart = dayHours?.start || params.workingHoursStart || "08:00";
   const whEnd = dayHours?.end || params.workingHoursEnd || "17:00";
   const [startH, startM] = whStart.split(":").map(Number);
-  const [endH, endM] = whEnd.split(":").map(Number);
+  const [endH] = whEnd.split(":").map(Number);
 
   // Generate 1-hour slots
   const bookedHours = new Set(
-    jobs.map((j) => j.scheduledAt ? new Date(j.scheduledAt).getHours() : -1).filter((h) => h >= 0)
+    [
+      ...jobs.map((j) => j.scheduledAt ? new Date(j.scheduledAt).getHours() : -1),
+      ...calendarEvents.map((event) => new Date(event.start).getHours()),
+    ].filter((h) => h >= 0)
   );
 
   const availableSlots: string[] = [];
@@ -441,7 +446,13 @@ export async function runGetAvailability(
       title: j.title,
       startTime: j.scheduledAt?.toISOString() || "",
       clientName: j.contact?.name || "Unknown",
-    })),
+    })).concat(
+      calendarEvents.map((event) => ({
+        title: event.title,
+        startTime: event.start,
+        clientName: "Google Calendar",
+      }))
+    ),
     availableSlots,
   };
 }

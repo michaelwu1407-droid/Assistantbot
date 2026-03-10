@@ -35,7 +35,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Log support request to database
+    const supportEmail = process.env.SUPPORT_EMAIL_TO || "support@earlymark.ai";
+    const resendKey = process.env.RESEND_API_KEY;
+    const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
+    const fromAddress = process.env.SUPPORT_EMAIL_FROM || `support@${fromDomain}`;
+
     await db.activity.create({
       data: {
         type: "NOTE",
@@ -44,24 +48,44 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send email to support team
-    // await sendSupportEmail({
-    //   to: "support@pjbuddy.com",
-    //   subject: `Support Request: ${subject} (${priority})`,
-    //   message,
-    //   user: {
-    //     email: user.email,
-    //     name: user.name,
-    //     workspace: user.workspace?.name,
-    //     phoneNumber: user.workspace?.twilioPhoneNumber,
-    //   }
-    // });
+    if (!resendKey) {
+      return NextResponse.json({
+        success: false,
+        error: "Support email is not configured",
+      }, { status: 500 });
+    }
+
+    const { Resend } = await import("resend");
+    const resend = new Resend(resendKey);
+    const emailResult = await resend.emails.send({
+      from: `Earlymark Support <${fromAddress}>`,
+      to: [supportEmail],
+      replyTo: user.email,
+      subject: `[Support:${(priority || "medium").toUpperCase()}] ${subject}`,
+      text: [
+        `Priority: ${priority || "medium"}`,
+        `User: ${user.name || "Unknown user"}`,
+        `Email: ${user.email}`,
+        `Workspace: ${user.workspace?.name || "Unknown workspace"}`,
+        `Workspace type: ${user.workspace?.type || "unknown"}`,
+        `Tracey number: ${user.workspace?.twilioPhoneNumber || "Not configured"}`,
+        "",
+        message,
+      ].join("\n"),
+    });
+
+    if (emailResult.error) {
+      return NextResponse.json({
+        success: false,
+        error: "Failed to send support request",
+      }, { status: 500 });
+    }
 
     return NextResponse.json({ 
       success: true,
       message: "Support request sent successfully"
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Support request failed:", error);
     return NextResponse.json({ 
       success: false, 

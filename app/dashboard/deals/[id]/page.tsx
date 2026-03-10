@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home } from "lucide-react"
@@ -32,9 +33,10 @@ interface PageProps {
 
 export default async function DealDetailPage({ params }: PageProps) {
   const { id } = await params
+  const actor = await requireCurrentWorkspaceAccess()
 
-  const deal = await db.deal.findUnique({
-    where: { id },
+  const deal = await db.deal.findFirst({
+    where: { id, workspaceId: actor.workspaceId },
     include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } } },
   })
 

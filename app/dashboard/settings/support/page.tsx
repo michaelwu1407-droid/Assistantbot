@@ -40,7 +40,7 @@ export default function SupportPage() {
       } else {
         setError(result.error || "Failed to send support request");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to send support request. Please try again.");
     } finally {
       setLoading(false);
@@ -52,7 +52,7 @@ export default function SupportPage() {
       <div>
         <h2 className="text-2xl font-bold">Support</h2>
         <p className="text-muted-foreground">
-          Get help with your Pj Buddy account and AI agent setup
+          Get help with your Earlymark workspace and Tracey setup
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-2">
-              support@pjbuddy.com
+              support@earlymark.ai
             </p>
             <p className="text-sm">
               Response within 24 hours
@@ -84,7 +84,7 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-2">
-              1300 PJ BUDDY
+              1300 EARLYMARK
             </p>
             <p className="text-sm">
               Mon-Fri 9am-5pm AEST

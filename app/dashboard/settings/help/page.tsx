@@ -16,7 +16,7 @@ const handbookSections = [
   {
     title: "AI assistant modes",
     content:
-      "Execute = full autonomy, Organize = propose then confirm, Filter = reception-only. Change this in Settings -> AI Assistant.",
+      "Execution = Tracey may act directly, Review & approve = Tracey drafts and you confirm, Info only = Tracey answers and captures details without making commitments. Change this in Settings -> AI Assistant.",
   },
   {
     title: "Calls, texts, and lead capture",
@@ -73,7 +73,7 @@ export default function HelpSettingsPage() {
             <HelpCircle className="h-5 w-5" />
             Support and feedback
           </CardTitle>
-          <CardDescription>Create and track support requests.</CardDescription>
+          <CardDescription>Create a support request or contact the team directly.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline" asChild>
@@ -110,7 +110,7 @@ export default function HelpSettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            A public status dashboard can be linked here when available.
+            Internal voice and platform monitoring is active. Contact support if you need a manual status update.
           </p>
         </CardContent>
       </Card>

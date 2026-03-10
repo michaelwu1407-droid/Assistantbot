@@ -99,7 +99,7 @@ model Workspace {
   subscriptionStatus     String?   @default("inactive")
 
   // Agent & Automation Settings
-  agentMode         AgentMode @default(ORGANIZE)
+  agentMode         AgentMode @default(DRAFT)
   workingHoursStart String?   @default("08:00")
   workingHoursEnd   String?   @default("17:00")
   agendaNotifyTime  String?   @default("07:30")
@@ -122,6 +122,7 @@ model Workspace {
   documents        BusinessDocument[]
   voiceCalls       VoiceCall[]
   activityLogs     ActivityLog[]
+  calendarIntegrations WorkspaceCalendarIntegration[]
 
   // Self-Learning & NLP Behavioral State
   aiPreferences      String? @db.Text
@@ -199,6 +200,28 @@ model EmailIntegration {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, provider])
+}
+
+model WorkspaceCalendarIntegration {
+  id           String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  provider      String
+  calendarId    String   @default("primary")
+  emailAddress  String?
+  accessToken   String
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  metadata      Json?
+
+  isActive      Boolean  @default(true)
+  lastSyncAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId, isActive])
 }
 
 model Deal {

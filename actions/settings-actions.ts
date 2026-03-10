@@ -8,6 +8,7 @@ import { AgentMode } from "@prisma/client"
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
+import { normalizeAppAgentMode } from "@/lib/agent-mode"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -45,6 +46,7 @@ export async function getWorkspaceSettings() {
     const s = (workspace?.settings as Record<string, unknown>) ?? {}
     return {
         ...base,
+        agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",
         agentOpeningMessage: (s.agentOpeningMessage as string) ?? "",
@@ -150,7 +152,7 @@ export async function updateWorkspaceSettings(input: {
     await db.workspace.update({
         where: { id: workspaceId },
         data: {
-            agentMode: input.agentMode as AgentMode,
+            agentMode: normalizeAppAgentMode(input.agentMode) as AgentMode,
             workingHoursStart: input.workingHoursStart,
             workingHoursEnd: input.workingHoursEnd,
             agendaNotifyTime: input.agendaNotifyTime,
@@ -212,6 +214,7 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
     const s = (workspace.settings as Record<string, unknown>) ?? {}
     return {
         ...base,
+        agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",
         agentOpeningMessage: (s.agentOpeningMessage as string) ?? "",
@@ -406,9 +409,7 @@ export async function getOrAllocateInboundEmail() {
     if (!workspace) throw new Error("Workspace not found")
 
     if (!workspace.inboundEmail) {
-        // Generate a pseudo-random email alias for this tenant
-        const randStr = Math.random().toString(36).substring(2, 8)
-        const generatedEmail = `leads-${workspaceId.substring(0, 6)}-${randStr}@inbox.pjbuddy.com`
+        const generatedEmail = await getOrAllocateLeadCaptureEmail()
         workspace = await db.workspace.update({
             where: { id: workspaceId },
             data: { inboundEmail: generatedEmail },
@@ -439,13 +440,13 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     const workspaceId = await getWorkspaceId()
     const authUser = await getAuthUser()
     if (!authUser) throw new Error("Not authenticated")
-    const domainBase = process.env.RESEND_FROM_DOMAIN ?? "earlymark.ai"
-
     let workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
         select: {
             inboundEmailAlias: true,
+            inboundEmail: true,
             name: true,
+            settings: true,
             users: {
                 select: { id: true, email: true, name: true },
                 orderBy: { id: "asc" },
@@ -457,21 +458,50 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     const businessSlug = toSlug(workspace.name || "business")
     const currentUser = workspace.users.find((u) => u.email === authUser.email)
     const firstNameBase = toFirstName(currentUser?.name || authUser.name || authUser.email?.split("@")[0])
-    const sameFirstUsers = workspace.users.filter((u) => toFirstName(u.name || (u.email ? u.email.split("@")[0] : "")) === firstNameBase)
-    const sameFirstIndex = Math.max(0, sameFirstUsers.findIndex((u) => u.email === authUser.email))
-    const localPart = sameFirstIndex === 0 ? firstNameBase : `${firstNameBase}${sameFirstIndex}`
-    const uniqueAlias = `${localPart}-${businessSlug}`
+    const legacyAlias = `${firstNameBase}-${businessSlug}`
+    let uniqueAlias = businessSlug
+    let aliasSuffix = 2
 
-    if (!workspace.inboundEmailAlias || workspace.inboundEmailAlias !== uniqueAlias) {
+    while (true) {
+        const aliasOwner = await db.workspace.findFirst({
+            where: {
+                inboundEmailAlias: uniqueAlias,
+                id: { not: workspaceId },
+            },
+            select: { id: true },
+        })
+
+        if (!aliasOwner) {
+            break
+        }
+
+        uniqueAlias = `${businessSlug}-${aliasSuffix}`
+        aliasSuffix += 1
+    }
+
+    if (!workspace.inboundEmailAlias || workspace.inboundEmailAlias !== uniqueAlias || workspace.inboundEmail !== `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`) {
+        const settings = (workspace.settings as Record<string, unknown>) ?? {}
+        const existingLegacyAliases = Array.isArray(settings.legacyInboundLeadAliases)
+            ? settings.legacyInboundLeadAliases.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+            : []
         workspace = await db.workspace.update({
             where: { id: workspaceId },
-            data: { inboundEmailAlias: uniqueAlias },
+            data: {
+                inboundEmailAlias: uniqueAlias,
+                inboundEmail: `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`,
+                settings: {
+                    ...settings,
+                    legacyInboundLeadAliases: Array.from(new Set([...existingLegacyAliases, legacyAlias].filter(Boolean))),
+                },
+            },
             select: {
                 inboundEmailAlias: true,
+                inboundEmail: true,
                 name: true,
+                settings: true,
                 users: { select: { id: true, email: true, name: true }, orderBy: { id: "asc" } },
             },
         })
     }
-    return `${localPart}@${businessSlug}.${domainBase}`
+    return `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`
 }

@@ -44,7 +44,7 @@ export function ReminderSettings() {
       await updateWorkspaceSettings({
         ...settings,
         // Include other required fields
-        agentMode: "ORGANIZE",
+        agentMode: "DRAFT",
         workingHoursStart: "08:00",
         workingHoursEnd: "17:00",
         agendaNotifyTime: "07:30",

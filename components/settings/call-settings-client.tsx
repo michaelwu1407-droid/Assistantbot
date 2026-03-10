@@ -63,7 +63,7 @@ type SettingsState = {
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
-  agentMode: "EXECUTE",
+  agentMode: "EXECUTION",
   workingHoursStart: "08:00",
   workingHoursEnd: "17:00",
   agendaNotifyTime: "07:30",
@@ -185,7 +185,7 @@ export function CallSettingsClient() {
         if (settingsResult.status === "fulfilled" && settingsResult.value) {
           const ws = settingsResult.value
           setSettings({
-            agentMode: ws.agentMode || "EXECUTE",
+            agentMode: ws.agentMode || "EXECUTION",
             workingHoursStart: ws.workingHoursStart || "08:00",
             workingHoursEnd: ws.workingHoursEnd || "17:00",
             agendaNotifyTime: ws.agendaNotifyTime || "07:30",

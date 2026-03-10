@@ -3,6 +3,7 @@
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { buildXeroAuthUrl } from "@/lib/xero";
+import { buildGoogleCalendarAuthUrl, disconnectGoogleCalendarIntegration, getWorkspaceCalendarStatus } from "@/lib/workspace-calendar";
 
 /**
  * Initiates the Xero OAuth 2.0 flow by returning the authorization URL.
@@ -35,12 +36,14 @@ export async function getIntegrationStatus() {
     return {
       emailIntegrations: [],
       xeroConnected: false,
+      calendarIntegration: { connected: false, provider: "google", emailAddress: null, lastSyncAt: null, calendarId: null },
     };
   }
 
   const user = await db.user.findUnique({
     where: { id: userId },
     select: {
+      workspaceId: true,
       emailIntegrations: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -58,11 +61,48 @@ export async function getIntegrationStatus() {
   });
 
   const settings = (user?.workspace.settings as Record<string, unknown> | undefined) ?? {};
+  const calendarIntegration = user?.workspaceId
+    ? await getWorkspaceCalendarStatus(user.workspaceId)
+    : { connected: false, provider: "google", emailAddress: null, lastSyncAt: null, calendarId: null };
 
   return {
     emailIntegrations: user?.emailIntegrations ?? [],
     xeroConnected: Boolean(settings.xero_access_token && settings.xero_tenant_id),
+    calendarIntegration,
   };
+}
+
+export async function connectGoogleCalendar(): Promise<{ url: string | null }> {
+  const userId = await getAuthUserId();
+  if (!userId) return { url: null };
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { workspaceId: true },
+  });
+
+  if (!user?.workspaceId) {
+    return { url: null };
+  }
+
+  return { url: buildGoogleCalendarAuthUrl(user.workspaceId) };
+}
+
+export async function disconnectWorkspaceCalendarIntegration() {
+  const userId = await getAuthUserId();
+  if (!userId) throw new Error("Unauthorized");
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { workspaceId: true },
+  });
+
+  if (!user?.workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  await disconnectGoogleCalendarIntegration(user.workspaceId);
+  return { success: true };
 }
 
 export async function disconnectEmailIntegration(integrationId: string) {

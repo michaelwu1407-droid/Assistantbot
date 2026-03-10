@@ -95,8 +95,8 @@ export function EmailLeadCaptureSettings() {
           <CardTitle>Auto-Lead Response</CardTitle>
         </div>
         <CardDescription>
-          Forward "Lead Won" emails from HiPages, Airtasker, or ServiceSeeking to your unique address.
-          Format is [firstname]@[businessname].earlymark.ai, with 1, 2, etc. appended if first names repeat.
+          Forward &quot;Lead Won&quot; emails from HiPages, Airtasker, or ServiceSeeking to your unique address.
+          Format is [business-name]@inbound.earlymark.ai. Older forwarding addresses still work, but this is the canonical format shown in the app.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

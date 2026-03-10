@@ -8,14 +8,14 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { Bot, Brain, Plus, X, MessageSquare, ExternalLink, CheckCircle2 } from "lucide-react"
+import { Bot, Brain, Plus, X, MessageSquare, ExternalLink } from "lucide-react"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 
 export default function AgentSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState({
-    agentMode: "ORGANIZE",
+    agentMode: "DRAFT",
     workingHoursStart: "08:00",
     workingHoursEnd: "17:00",
     agendaNotifyTime: "07:30",
@@ -34,7 +34,7 @@ export default function AgentSettingsPage() {
       .then((data) => {
         if (!data) return
         setSettings({
-          agentMode: data.agentMode || "ORGANIZE",
+          agentMode: data.agentMode || "DRAFT",
           workingHoursStart: data.workingHoursStart || "08:00",
           workingHoursEnd: data.workingHoursEnd || "17:00",
           agendaNotifyTime: data.agendaNotifyTime || "07:30",
@@ -102,15 +102,15 @@ export default function AgentSettingsPage() {
             className="flex flex-col space-y-3"
           >
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
-              <RadioGroupItem value="EXECUTE" id="agent-mode-execute" />
-              <span>Execute</span>
+              <RadioGroupItem value="EXECUTION" id="agent-mode-execute" />
+              <span>Execution</span>
             </Label>
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
-              <RadioGroupItem value="ORGANIZE" id="agent-mode-organize" />
+              <RadioGroupItem value="DRAFT" id="agent-mode-organize" />
               <span>Review &amp; approve</span>
             </Label>
             <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
-              <RadioGroupItem value="FILTER" id="agent-mode-filter" />
+              <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" />
               <span>Info only</span>
             </Label>
           </RadioGroup>
@@ -183,10 +183,8 @@ export default function AgentSettingsPage() {
                 {whatsappNumber}
               </p>
             </div>
-            {/* Status could be dynamic based on whether the user has a phone set, but assuming active if reached here for now */}
-            <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4" />
-              Active
+            <div className="flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
+              Beta
             </div>
           </div>
           <div className="flex justify-end pt-2">

@@ -41,7 +41,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
       }
       
       await updateWorkspaceSettings({
-        agentMode: currentSettings.agentMode || "EXECUTE",
+        agentMode: currentSettings.agentMode || "EXECUTION",
         workingHoursStart: start,
         workingHoursEnd: end,
         agendaNotifyTime: agendaTime,

@@ -1625,7 +1625,7 @@ export async function runSendEmail(
 
     // Rest of the email sending logic...
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
-    const senderName = workspace?.name ?? "Pj Buddy";
+    const senderName = workspace?.name ?? "Earlymark";
 
     let delivered = false;
     const resendKey = process.env.RESEND_API_KEY;
@@ -2374,14 +2374,14 @@ export async function handleSupportRequest(
   if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 PJ BUDDY (Mon-Fri 9am-5pm) or email support@pjbuddy.com`,
+      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 EARLYMARK (Mon-Fri 9am-5pm) or email support@earlymark.ai`,
     };
   }
 
   if (lowerMessage.includes("billing") || lowerMessage.includes("payment") || lowerMessage.includes("subscription")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for billing support. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email billing@pjbuddy.com\n• Call 1300 PJ BUDDY and select billing option`,
+      displayMessage: `Ticket #${supportTicket.id} created for billing support. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email support@earlymark.ai\n• Call 1300 EARLYMARK and ask for billing`,
     };
   }
 
@@ -2395,7 +2395,7 @@ export async function handleSupportRequest(
   // General support
   return {
     ...base,
-    displayMessage: `Ticket #${supportTicket.id} created with subject "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 PJ BUDDY (Mon-Fri 9am-5pm AEST).\n\nIf you'd like, add more details now and I'll attach them to this ticket.`,
+    displayMessage: `Ticket #${supportTicket.id} created with subject "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 EARLYMARK (Mon-Fri 9am-5pm AEST).\n\nIf you'd like, add more details now and I'll attach them to this ticket.`,
   };
 }
 

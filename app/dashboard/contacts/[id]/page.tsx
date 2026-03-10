@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import { ContactNotes } from "@/components/crm/contact-notes"
 import { Badge } from "@/components/ui/badge"
@@ -30,9 +31,10 @@ interface PageProps {
 
 export default async function ContactDetailPage({ params }: PageProps) {
   const { id } = await params
+  const actor = await requireCurrentWorkspaceAccess()
 
-  const contact = await db.contact.findUnique({
-    where: { id },
+  const contact = await db.contact.findFirst({
+    where: { id, workspaceId: actor.workspaceId },
     include: {
       deals: { orderBy: { createdAt: "desc" } },
       customerFeedback: { orderBy: { createdAt: "desc" } },

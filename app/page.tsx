@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
+import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel";
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
@@ -101,24 +102,6 @@ const FEATURE_CARDS = [
     },
 ];
 
-const SOLUTION_LINKS = [
-    {
-        title: "Electricians",
-        body: "Handle urgent fault-finding calls fast, keep installs scheduled, and capture final invoice values after the job.",
-        href: "/solutions/electricians",
-    },
-    {
-        title: "Plumbers",
-        body: "Triage burst pipes and hot-water jobs, automate confirmations, and keep your quote-to-payment flow tight.",
-        href: "/solutions/plumbers",
-    },
-    {
-        title: "Landscapers",
-        body: "Coordinate maintenance runs and project work with better route planning, crew scheduling, and follow-ups.",
-        href: "/solutions/landscapers",
-    },
-];
-
 const CHAT_DEMO = [
     {
         user: "Move the Henderson job to complete",
@@ -162,7 +145,7 @@ function ChatDemo() {
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="bg-white/10 rounded-md px-4 py-1 text-[11px] text-white/40 font-medium tracking-wide">
-                        earlymark.com/dashboard — Tracey Chat
+                        earlymark.ai/dashboard — Tracey Chat
                     </div>
                 </div>
             </div>
@@ -512,7 +495,7 @@ const FAQ_ITEMS = [
     { q: "How does Tracey learn about my business?", a: "During onboarding, Tracey conducts a conversational interview about your business — services, pricing, availability, and preferences. No forms or spreadsheets. Just chat naturally and Tracey builds your profile." },
     { q: "Can I control what Tracey says to customers?", a: "Absolutely. You set approval rules for quotes, customize response templates, configure which actions require your sign-off, and maintain full oversight of every customer interaction." },
     { q: "Do I need technical skills to use Earlymark?", a: "Not at all. Everything is conversational. Tell Tracey what you need in plain English and she handles the rest. No training, no complex software to learn." },
-    { q: "How much does it cost?", a: "We offer flexible plans starting with a free trial. Visit our pricing page for full details, or ask Tracey directly — she can explain all the options." },
+    { q: "How much does it cost?", a: "Earlymark Pro is billed monthly or yearly through Stripe. There is no free trial, and promo codes can be applied directly in Stripe Checkout when available." },
 ];
 
 function FaqSection() {
@@ -619,9 +602,10 @@ export default function Home() {
                         </Link>
                     </motion.div>
 
-                    {/* Dashboard screenshot mockup */}
-                    <motion.div {...fadeUp(0.14)} className="w-full max-w-3xl mx-auto">
-                        <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20">
+                    {/* Dashboard hero reel */}
+                    <motion.div {...fadeUp(0.14)} className="w-full max-w-5xl mx-auto">
+                        <HeroDashboardReel />
+                        {false ? <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20">
                             {/* Browser chrome */}
                             <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 border-b border-slate-300">
                                 <div className="flex gap-1.5">
@@ -631,7 +615,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex-1 flex justify-center">
                                     <div className="bg-white rounded-md px-4 py-1 text-[11px] text-slate-400 font-medium">
-                                        earlymark.com/dashboard
+                                        earlymark.ai/dashboard
                                     </div>
                                 </div>
                             </div>
@@ -652,7 +636,7 @@ export default function Home() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </div> : null}
                     </motion.div>
 
                     {/* Value Props — gradient glass cards (no icons) */}
@@ -875,7 +859,7 @@ export default function Home() {
                                         </div>
                                         <div className="flex gap-2 items-end flex-row-reverse">
                                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve sent you a calendar invite. 📅</div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve confirmed it in the schedule. 📅</div>
                                         </div>
                                     </div>
                                 ),
@@ -961,35 +945,6 @@ export default function Home() {
             </section >
 
             {/* ── E.5: FAQ Section ── */}
-            <section className="py-24 px-6 bg-white">
-                <div className="container mx-auto max-w-6xl flex flex-col gap-10">
-                    <motion.div {...fadeUp()} className="max-w-2xl">
-                        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Solutions</p>
-                        <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Built for the way trade businesses actually run.
-                        </h2>
-                        <p className="mt-3 text-lg text-slate-body">
-                            Start with a trade-specific version of Earlymark and give customers a workflow that fits the jobs you quote every day.
-                        </p>
-                    </motion.div>
-
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {SOLUTION_LINKS.map((solution, index) => (
-                            <motion.div key={solution.href} {...fadeUp(index * 0.06)} className="rounded-3xl border border-border bg-slate-50 p-7 shadow-sm">
-                                <h3 className="text-2xl font-bold text-midnight">{solution.title}</h3>
-                                <p className="mt-3 text-sm leading-relaxed text-slate-body">{solution.body}</p>
-                                <Link href={solution.href} className="mt-6 inline-flex">
-                                    <Button variant="outline">
-                                        View solution
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </Link>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
             <FaqSection />
 
             {/* ── F. Footer ── */}
@@ -1015,7 +970,7 @@ export default function Home() {
                                 { label: "Product", href: "/features" },
                                 { label: "Solutions", href: "/solutions" },
                                 { label: "Tutorial", href: "/tutorial" },
-                                { label: "Pricing", href: "#pricing" },
+                                { label: "Pricing", href: "/contact" },
                                 { label: "Contact", href: "/contact" },
                             ].map((l) => (
                                 <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">

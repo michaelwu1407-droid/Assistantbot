@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { enrichFromEmail, type EnrichedCompany } from "@/lib/enrichment";
 import { fuzzySearch, type SearchableItem } from "@/lib/search";
 import { evaluateAutomations } from "./automation-actions";
+import { requireContactInCurrentWorkspace, requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -146,8 +147,9 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
  * Fetch a single contact by ID.
  */
 export async function getContact(contactId: string): Promise<ContactView | null> {
-  const contact = await db.contact.findUnique({
-    where: { id: contactId },
+  const { contact: scopedContact } = await requireContactInCurrentWorkspace(contactId);
+  const contact = await db.contact.findFirst({
+    where: { id: scopedContact.id, workspaceId: scopedContact.workspaceId },
     include: {
       deals: {
         orderBy: { lastActivityAt: "desc" },
@@ -214,6 +216,11 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
   const parsed = CreateContactSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false as const, error: parsed.error.issues[0].message };
+  }
+
+  const actor = await requireCurrentWorkspaceAccess();
+  if (parsed.data.workspaceId !== actor.workspaceId) {
+    return { success: false as const, error: "Unauthorized workspace" };
   }
 
   // 1. Smart Deduplication Check: only reuse by email/phone when the name matches.
@@ -299,7 +306,7 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
   }
 
   const { contactId, ...data } = parsed.data;
-  const contact = await db.contact.findUnique({ where: { id: contactId }, select: { email: true, phone: true } });
+  const { contact } = await requireContactInCurrentWorkspace(contactId);
   if (!contact) return { success: false, error: "Contact not found" };
 
   const newEmail = data.email !== undefined ? (data.email && data.email.trim() ? data.email.trim() : null) : contact.email;
@@ -312,7 +319,11 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
 
   await db.contact.update({
     where: { id: contactId },
-    data,
+    data: {
+      ...data,
+      email: data.email !== undefined ? (data.email && data.email.trim() ? data.email.trim() : null) : undefined,
+      phone: data.phone !== undefined ? (data.phone && data.phone.trim() ? data.phone.trim() : null) : undefined,
+    },
   });
 
   return { success: true };
@@ -325,7 +336,7 @@ export async function updateContactMetadata(
   contactId: string,
   metadata: Record<string, unknown>
 ) {
-  const contact = await db.contact.findUnique({ where: { id: contactId } });
+  const { contact } = await requireContactInCurrentWorkspace(contactId);
   if (!contact) return { success: false as const, error: "Contact not found" };
   const existing = (contact.metadata as Record<string, unknown>) ?? {};
   await db.contact.update({
@@ -340,7 +351,7 @@ export async function updateContactMetadata(
  * Auto-fetches company logo, industry, size, and LinkedIn URL.
  */
 export async function enrichContact(contactId: string) {
-  const contact = await db.contact.findUnique({ where: { id: contactId } });
+  const { contact } = await requireContactInCurrentWorkspace(contactId);
   if (!contact) return { success: false, error: "Contact not found" };
   if (!contact.email) return { success: false, error: "No email address" };
 
@@ -418,6 +429,7 @@ export async function searchContacts(
  * Delete a contact.
  */
 export async function deleteContact(contactId: string) {
+  await requireContactInCurrentWorkspace(contactId);
   await db.contact.delete({ where: { id: contactId } });
   return { success: true };
 }
@@ -426,6 +438,12 @@ export async function deleteContact(contactId: string) {
  * Delete multiple contacts.
  */
 export async function deleteContacts(contactIds: string[]) {
-  await db.contact.deleteMany({ where: { id: { in: contactIds } } });
+  const actor = await requireCurrentWorkspaceAccess();
+  await db.contact.deleteMany({
+    where: {
+      id: { in: contactIds },
+      workspaceId: actor.workspaceId,
+    },
+  });
   return { success: true };
 }

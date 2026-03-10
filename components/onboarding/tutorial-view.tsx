@@ -341,7 +341,7 @@ function MockChatPane({ messages }: {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
             {/* Chat Header */}
             <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-[10px] font-bold text-slate-900">Pj Buddy Assistant</p>
+                <p className="text-[10px] font-bold text-slate-900">Tracey Assistant</p>
                 <p className="text-[8px] text-emerald-600">Online</p>
             </div>
 

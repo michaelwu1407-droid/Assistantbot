@@ -78,7 +78,7 @@ export async function sendPhoneVerificationCode(data: {
 
   // Send verification SMS using a service (you'll need to configure this)
   try {
-    await sendVerificationSms(validated.newPhoneNumber, code, "Pj Buddy");
+    await sendVerificationSms(validated.newPhoneNumber, code, "Earlymark");
     return { success: true };
   } catch (error) {
     console.error("Failed to send verification SMS:", error);

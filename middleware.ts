@@ -12,10 +12,34 @@ function getSafeOrigin(value?: string) {
   }
 }
 
+const INTERNAL_ONLY_PREFIXES = [
+  "/api/test-",
+  "/api/check-env",
+  "/api/test-env",
+  "/api/test-auth",
+  "/api/health",
+  "/debug-auth",
+  "/debug-env",
+  "/auth-test",
+  "/minimal-auth-test",
+  "/test-auth",
+  "/test-supabase",
+  "/sentry-example-page",
+  "/admin/diagnostics",
+]
+
 export async function middleware(request: NextRequest) {
   try {
     const url = request.nextUrl
     const { searchParams, pathname } = url
+
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.ENABLE_INTERNAL_DEBUG_ROUTES !== "true" &&
+      INTERNAL_ONLY_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    ) {
+      return NextResponse.rewrite(new URL("/404", request.url), { status: 404 })
+    }
 
     // Refresh Supabase session ONLY on page navigations, NOT APIs, to avoid cold starts on every /api request.
     let response = NextResponse.next({ request })

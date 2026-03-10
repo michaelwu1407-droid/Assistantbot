@@ -8,6 +8,7 @@ import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } 
 import { appendTicketNote } from "@/actions/activity-actions";
 import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
+import { normalizeAppAgentMode } from "@/lib/agent-mode";
 import { getAgentTools } from "@/lib/ai/tools";
 import { preClassify } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
@@ -304,8 +305,8 @@ export async function POST(req: Request) {
             getWorkspaceSettingsById(workspaceId),
             getDeals(workspaceId),
           ]);
-          if (settings?.agentMode === "FILTER") {
-            return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
+          if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
+            return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 });
           }
           await addDraftWarnings(draft, workspaceId, deals);
         } catch {
@@ -388,8 +389,8 @@ export async function POST(req: Request) {
       const draft = buildJobDraftFromParams(first) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
       draft.warnings = [];
       try {
-        if (settings?.agentMode === "FILTER") {
-          return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 });
+        if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
+          return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 });
         }
         const deals = await getDeals(workspaceId);
         await addDraftWarnings(draft, workspaceId, deals);
@@ -435,8 +436,8 @@ export async function POST(req: Request) {
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
       draft.warnings = [];
       try {
-        if (settings?.agentMode === "FILTER") {
-          return new Response(JSON.stringify({ error: "Agent is currently in FILTER mode and cannot schedule jobs." }), { status: 403 })
+        if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
+          return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 })
         }
         const deals = await getDeals(workspaceId);
         await addDraftWarnings(draft, workspaceId, deals);

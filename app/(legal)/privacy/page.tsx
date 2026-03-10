@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
       </p>
       <ul>
         <li>
-          <strong>Twilio / Retell AI:</strong> For voice and SMS communications.
+          <strong>Twilio / LiveKit:</strong> For voice and SMS communications.
         </li>
         <li>
           <strong>Google Maps:</strong> For location verification and proximity

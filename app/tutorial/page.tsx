@@ -14,9 +14,9 @@ const SECTIONS = [
     id: "agent-modes",
     icon: Bot,
     title: "Agent Modes",
-    description: "Control how autonomous Tracey is. Set this in Settings → Agent Capabilities.",
+    description: "Control how autonomous Tracey is. Set this in Settings → AI Assistant.",
     content: [
-      { name: "Execute", body: "Full autonomy. Tracey schedules, prices, and creates jobs independently. Best when you trust the AI to act on your behalf." },
+      { name: "Execution", body: "Full autonomy. Tracey schedules, prices, and creates jobs independently when your business rules clearly support it." },
       { name: "Review & approve", body: "Tracey proposes, you approve. Draft cards appear for confirmation before anything is created or sent. Recommended for most users." },
       { name: "Info only", body: "Screening only. Tracey collects info and suggests next steps but does not schedule, price, or send messages without your say-so." },
     ],
@@ -63,7 +63,7 @@ const SECTIONS = [
     icon: Mail,
     title: "Email Lead Capture & Auto-Response",
     description: "Forward \"Lead Won\" emails to Tracey and optionally call the lead instantly.",
-    body: "In Settings → Integrations, use the Auto-Lead Response card. You get a unique forwarding address (e.g. you@inbound.earlymark.ai). Set up a Gmail filter to forward \"Lead Won\" emails from HiPages, Airtasker, or ServiceSeeking to that address. We create the contact and deal, parse the lead's phone and name, and—if you turn it on—trigger an immediate Retell AI call to lock down the job.",
+    body: "In Settings → Integrations, use the Auto-Lead Response card. You get a unique forwarding address in the format business-name@inbound.earlymark.ai. Set up a Gmail filter to forward \"Lead Won\" emails from HiPages, Airtasker, or ServiceSeeking to that address. Earlymark creates the contact and deal, parses the lead's phone and name, and can trigger an immediate Tracey follow-up call when you turn that on.",
   },
   {
     id: "scheduling",
@@ -91,14 +91,14 @@ const SECTIONS = [
     icon: Send,
     title: "Soft Chase (Lead Follow-up)",
     description: "A default follow-up message for new leads not yet converted.",
-    body: "In Settings → Agent Capabilities you can configure the follow-up message and when it is sent (e.g. 3 days or 1 day after the lead). Tracey sends this as either an email or text so you never leave a lead cold.",
+    body: "In Settings → AI Assistant you can configure the follow-up message and when it is sent (e.g. 3 days or 1 day after the lead). Tracey sends this as either an email or text so you never leave a lead cold.",
   },
   {
     id: "invoice-follow-up",
     icon: FileText,
     title: "Unpaid Invoice Follow-up",
     description: "Automatic follow-up for unpaid invoices.",
-    body: "In Settings → Agent Capabilities you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Tracey sends this by email or text to help you get paid faster.",
+    body: "In Settings → AI Assistant you can set a default message and trigger (e.g. 7 days after invoice) for following up on unpaid invoices. Tracey sends this by email or text to help you get paid faster.",
   },
 ]
 

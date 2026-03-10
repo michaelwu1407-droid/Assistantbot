@@ -400,7 +400,7 @@ export async function completeOnboarding(data: {
   callOutFee?: number;
   pricingMode?: "BOOK_ONLY" | "CALL_OUT" | "STANDARD";
   // Agent & workspace behaviour (from extended onboarding)
-  agentMode?: "EXECUTE" | "ORGANIZE" | "FILTER";
+  agentMode?: "EXECUTION" | "DRAFT" | "INFO_ONLY";
   workingHoursStart?: string;
   workingHoursEnd?: string;
   emergencyHoursStart?: string;
