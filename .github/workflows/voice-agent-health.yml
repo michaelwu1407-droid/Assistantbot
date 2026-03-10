@@ -26,7 +26,7 @@ jobs:
           fi
           response_file="$(mktemp)"
           status_code="$(
-            curl --show-error --silent \
+            curl --location --show-error --silent \
               --output "${response_file}" \
               --write-out "%{http_code}" \
               -H "Authorization: Bearer ${CRON_SECRET}" \
