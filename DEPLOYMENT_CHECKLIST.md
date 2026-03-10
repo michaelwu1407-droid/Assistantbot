@@ -129,7 +129,7 @@ After a worker deploy:
 
 - Sentry configured
 - PostHog/analytics configured if required
-- cron secrets configured
+- cron secrets configured in both Vercel and GitHub Actions
 - storage uploads work
 - Google Maps failures degrade gracefully
 - welcome SMS path works when provisioning succeeds

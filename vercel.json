@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/voice-agent-health",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
+{}

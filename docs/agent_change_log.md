@@ -53,6 +53,11 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Removed the Vercel cron definition that was invalid on the Hobby tier and replaced it with a GitHub Actions scheduled workflow that calls the existing protected `customer-agent-reconcile` endpoint every 15 minutes using `CRON_SECRET`.
 - Why: The Vercel deploy was being blocked by the paid-tier cron schedule. Moving the same reconciliation job to GitHub Actions keeps the automatic Twilio/worker drift check running on the free Vercel plan without breaking deployments.
 
+### 2026-03-10 15:42 (AEDT) - codex
+- Files: `.github/workflows/voice-agent-health.yml`, `docs/agent_change_log.md`, `vercel.json`
+- What changed: Removed the remaining Vercel cron entry for `voice-agent-health` and replaced it with a GitHub Actions scheduled workflow that calls the protected `/api/cron/voice-agent-health` endpoint every 5 minutes using `CRON_SECRET`.
+- Why: Vercel Hobby/free tier does not support the cron configuration used here. Moving the health monitor to GitHub Actions keeps the voice watchdog running without blocking deployments.
+
 ### 2026-03-09 22:25 (AEDT) - codex
 - Files: `app/api/check-env/route.ts`, `app/api/cron/customer-agent-reconcile/route.ts`, `app/api/health/route.ts`, `app/api/internal/customer-agent-drift/route.ts`, `app/api/internal/voice-agent-status/route.ts`, `lib/customer-agent-readiness.ts`, `lib/health-check.ts`, `lib/ops-auth.ts`, `lib/twilio-drift.ts`, `lib/voice-agent-runtime.ts`, `livekit-agent/agent.ts`, `livekit-agent/.env.example`, `.github/workflows/deploy-livekit.yml`, `vercel.json`, `docs/agent_change_log.md`
 - What changed: Added durable LiveKit worker heartbeats with runtime env fingerprints, surfaced worker drift and Twilio voice-routing drift in health/readiness/check-env, added a protected internal drift-audit/reconcile endpoint, added a Vercel cron self-heal for Twilio inbound voice routing, expanded the worker env example for multi-number inbound config, and made the LiveKit deploy verify that the restarted worker reports the newly deployed SHA back to the app.
