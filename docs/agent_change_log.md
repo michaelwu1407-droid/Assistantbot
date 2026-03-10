@@ -1,3 +1,9 @@
+## 2026-03-10 (AEST) – Cursor AI Agent
+
+- **Files changed**: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- **Summary**: Voice agent now responds in the caller’s language: user speaks → agent replies in that language. STT uses Deepgram `language: "multi"` and `detectLanguage: true`. Added `MultilingualTTS` wrapper that sets reply language from each user turn’s `ev.language` and uses a Cartesia TTS per language (lazy). Greeting stays in default (en-AU); all subsequent replies use the detected language. LLM instructions updated (normal + Earlymark prompts) to “reply in the same language the caller is speaking.”
+- **Why**: To support “user calls → agent says hi → user speaks language → agent responds in said language” without pre-call contact lookup and without adding latency (no extra round-trips; language is taken from the existing STT event).
+
 ## 2026-03-09 (AEST) – Cursor AI Agent
 
 - **Files changed**: 

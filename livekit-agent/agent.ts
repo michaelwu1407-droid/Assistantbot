@@ -23,7 +23,7 @@ import { config as loadEnv } from 'dotenv';
 import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
-import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, voice } from '@livekit/agents';
+import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts as agentsTts, voice } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
@@ -281,6 +281,71 @@ async function getCachedOpenerAudioFrame(
   }
 }
 
+/** Map Deepgram detected language to Cartesia language code. English -> en-AU (default TTS). */
+function normalizeReplyLanguage(detected: string | null | undefined): string {
+  if (!detected || typeof detected !== 'string') return 'en-AU';
+  const code = detected.split('-')[0].toLowerCase();
+  if (code === 'en') return 'en-AU';
+  const allowed = new Set(['es', 'fr', 'de', 'zh', 'ja', 'ko', 'pt', 'it', 'nl', 'hi', 'ru', 'ar', 'pl', 'tr', 'vi', 'th', 'id', 'ms', 'fil']);
+  return allowed.has(code) ? code : 'en-AU';
+}
+
+/**
+ * TTS wrapper that uses a different Cartesia TTS per language so the agent can reply in the
+ * language the user just spoke. Set reply language on each user turn; the next synthesize
+ * uses that language.
+ */
+class MultilingualTTS extends agentsTts.TTS {
+  readonly label = 'multilingual-cartesia';
+  #defaultTts: cartesia.TTS;
+  #ttsByLang = new Map<string, cartesia.TTS>();
+  #currentReplyLanguage: string;
+  #opts: { model: string; voice: string; chunkTimeout: number };
+
+  constructor(defaultTts: cartesia.TTS, opts: { model: string; voice: string; chunkTimeout: number }) {
+    super(defaultTts.sampleRate, defaultTts.numChannels, defaultTts.capabilities);
+    this.#defaultTts = defaultTts;
+    this.#opts = opts;
+    this.#currentReplyLanguage = 'en-AU';
+  }
+
+  setReplyLanguage(detected: string | null | undefined): void {
+    this.#currentReplyLanguage = normalizeReplyLanguage(detected);
+  }
+
+  #getTts(): cartesia.TTS {
+    const lang = this.#currentReplyLanguage;
+    if (lang === 'en-AU' || lang === 'en') return this.#defaultTts;
+    if (!this.#ttsByLang.has(lang)) {
+      this.#ttsByLang.set(
+        lang,
+        new cartesia.TTS({
+          model: this.#opts.model,
+          voice: this.#opts.voice,
+          language: lang,
+          chunkTimeout: this.#opts.chunkTimeout,
+        })
+      );
+    }
+    return this.#ttsByLang.get(lang)!;
+  }
+
+  synthesize(text: string, connOptions?: unknown, abortSignal?: AbortSignal): agentsTts.ChunkedStream {
+    return this.#getTts().synthesize(text, connOptions as any, abortSignal) as agentsTts.ChunkedStream;
+  }
+
+  stream(options?: { connOptions?: unknown }): agentsTts.SynthesizeStream {
+    return this.#getTts().stream(options) as agentsTts.SynthesizeStream;
+  }
+
+  async close(): Promise<void> {
+    await this.#defaultTts.close();
+    for (const t of this.#ttsByLang.values()) {
+      if (t !== this.#defaultTts) await t.close();
+    }
+  }
+}
+
 function avg(values: number[]): number {
   if (!values.length) return 0;
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
@@ -487,6 +552,9 @@ Constraint:
 - Do not yap.
 - Do not summarise the call or recap call details at the end.
 
+Language:
+- Reply in the same language the caller is speaking. If they speak Spanish, reply in Spanish; if Mandarin, Mandarin; if another language, match it. If the language is unclear, use Australian English.
+
 Goal:
 - Capture details and requests for ${businessName}, answer common questions, and help with bookings or next steps when appropriate.
 - If you are not confident you can help correctly, make up to 2 honest attempts to help first, then offer to pass it to your manager so they can get back to the caller ASAP. If the caller agrees, wrap the call up briefly.
@@ -579,6 +647,7 @@ Identity:
 
 Tone and style:
 - Casual, warm, confident, and Australian.
+- Reply in the same language the caller is speaking (e.g. Spanish, Mandarin, etc.). If unclear, use Australian English.
 - Keep replies under 14 words unless the caller explicitly asks for more detail.
 - Use simple, punchy sentences.
 - Usually speak in 1 short sentence, then pause.
@@ -660,6 +729,7 @@ Style:
 - Use simple, punchy sentences.
 - Usually 1 short sentence, then pause.
 - Keep Australian delivery natural, never exaggerated.
+- Reply in the same language the caller is speaking. If unclear, use Australian English.
 - Do not summarise the call or recap call details at the end.
 
 Goals:
@@ -1040,7 +1110,8 @@ export default defineAgent({
 
     const stt = new deepgram.STT({
       model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
-      language: process.env.VOICE_STT_LANGUAGE || "en-AU",
+      language: "multi",
+      detectLanguage: true,
       interimResults: true,
       endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 300),
       noDelay: true,
@@ -1048,12 +1119,18 @@ export default defineAgent({
       smartFormat: true,
     });
 
-    const tts = new cartesia.TTS({
+    const defaultTts = new cartesia.TTS({
       model: "sonic-3",
       voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
       language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
       chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
     });
+    const ttsOpts = {
+      model: "sonic-3",
+      voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+    };
+    const tts = new MultilingualTTS(defaultTts, ttsOpts);
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
@@ -1180,7 +1257,7 @@ export default defineAgent({
       llmBaseURL,
     });
     const openerAudioCache: Map<OpenerId, Promise<AudioFrame>> = voiceLatencyConfig.openerBankEnabled
-      ? buildOpenerAudioCache(tts, logPrefix)
+      ? buildOpenerAudioCache(defaultTts, logPrefix)
       : new Map<OpenerId, Promise<AudioFrame>>();
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
@@ -1573,6 +1650,8 @@ export default defineAgent({
 
       let guardDecision: GuardDecision | null = null;
       let openerEntry: OpenerBankEntry | null = null;
+
+      (tts as MultilingualTTS).setReplyLanguage(ev.language);
 
       if (
         voiceLatencyConfig.enabled &&
