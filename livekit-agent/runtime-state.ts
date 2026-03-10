@@ -30,7 +30,7 @@ export function getMaxConcurrentCalls(workerRole = getConfiguredWorkerRole()) {
     return Math.max(1, Math.trunc(roleSpecific));
   }
 
-  return workerRole === "tracey-customer-agent" ? 6 : 1;
+  return workerRole === "tracey-customer-agent" ? 8 : 1;
 }
 
 export function setWorkerBootReady(ready: boolean) {
