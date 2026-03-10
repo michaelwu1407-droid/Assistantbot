@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowRight, ChevronLeft, ChevronRight, ChevronDown,
     Phone, MessageSquare, Calendar, MapPin, Users,
-    BarChart3, Zap, Bot, ToggleRight, ToggleLeft,
+    BarChart3, Bot, ToggleRight, ToggleLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -17,7 +18,7 @@ import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel";
 
 const fadeUp = (delay = 0) => ({
     initial: { opacity: 0, y: 28 },
-    whileInView: { opacity: 1, y: 0 } as any,
+    whileInView: { opacity: 1, y: 0 },
     viewport: { once: true, margin: "-60px" },
     transition: { duration: 0.6, delay, ease: EASE_STANDARD },
 });
@@ -46,25 +47,41 @@ const HIRE_FEATURES = [
     {
         title: "Never miss a job again",
         desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
-        screenshotLabel: "Incoming call handling",
+        photoAlt: "Trade business owner taking a call while standing at a job site",
+        photoSrc: "https://images.unsplash.com/photo-1581092919535-7146ff1a590d?auto=format&fit=crop&w=1400&q=80",
+        eyebrow: "Lead capture",
+        mediaTitle: "On site while Tracey handles the inbound rush",
+        mediaNote: "Answer every lead without stepping off the tools.",
         screenshotBg: "from-emerald-500/20 to-emerald-600/10",
     },
     {
         title: "No more admin. Chat with your CRM.",
         desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
-        screenshotLabel: "Chat-powered CRM",
+        photoAlt: "Business owner using a laptop in a workshop office",
+        photoSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80",
+        eyebrow: "Operations",
+        mediaTitle: "Run the back office from one clean command layer",
+        mediaNote: "Quotes, schedules, follow-ups, and pipeline updates without the CRM clutter.",
         screenshotBg: "from-blue-500/20 to-blue-600/10",
     },
     {
         title: "AI that actually works",
         desc: "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
-        screenshotLabel: "Smart conversations",
+        photoAlt: "Customer texting on a phone with a service professional in the background",
+        photoSrc: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1400&q=80",
+        eyebrow: "Customer experience",
+        mediaTitle: "Fast, natural responses that still feel personal",
+        mediaNote: "Reply across voice, SMS, and email without sounding robotic or losing control.",
         screenshotBg: "from-violet-500/20 to-violet-600/10",
     },
     {
         title: "Total control",
         desc: "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
-        screenshotLabel: "Autonomy settings",
+        photoAlt: "Operations manager reviewing settings and approvals on a laptop",
+        photoSrc: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80",
+        eyebrow: "Oversight",
+        mediaTitle: "Approval rules, visibility, and guardrails built in",
+        mediaNote: "Stay in control of what Tracey can confirm, quote, or escalate.",
         screenshotBg: "from-slate-500/20 to-slate-600/10",
     },
 ];
@@ -124,7 +141,6 @@ function ChatDemo() {
     const [phase, setPhase] = useState<"idle" | "user" | "typing" | "agent">("idle");
 
     useEffect(() => {
-        setPhase("idle");
         const t1 = setTimeout(() => setPhase("user"), 400);
         const t2 = setTimeout(() => setPhase("typing"), 1300);
         const t3 = setTimeout(() => setPhase("agent"), 2700);
@@ -231,6 +247,54 @@ function ChatDemo() {
 }
 
 // ─── Feature Carousel ─────────────────────────────────────────────────────────
+
+function HireFeatureGrid() {
+    return (
+        <div className="mt-4 flex flex-col gap-10">
+            {HIRE_FEATURES.map((feature, i) => {
+                const isEven = i % 2 === 0;
+
+                return (
+                    <motion.div
+                        key={feature.title}
+                        {...fadeUp(i * 0.08)}
+                        className="grid items-center gap-6 md:grid-cols-2"
+                    >
+                        <div className={`rounded-[32px] border border-border bg-white p-7 shadow-sm transition-shadow hover:shadow-md ${!isEven ? "md:order-2" : "md:order-1"}`}>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
+                                {feature.eyebrow}
+                            </div>
+                            <h3 className="mt-3 text-xl font-bold leading-snug text-midnight">{feature.title}</h3>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-body">{feature.desc}</p>
+                        </div>
+
+                        <div className={`relative min-h-[340px] overflow-hidden rounded-[32px] border border-slate-200/70 bg-slate-900 shadow-[0_26px_70px_rgba(15,23,42,0.18)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                            <Image
+                                src={feature.photoSrc}
+                                alt={feature.photoAlt}
+                                fill
+                                sizes="(min-width: 768px) 50vw, 100vw"
+                                className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.32)_45%,rgba(15,23,42,0.84)_100%)]" />
+                            <div className="absolute inset-x-5 bottom-5 rounded-[28px] border border-white/20 bg-white/12 p-5 text-white backdrop-blur-md">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/65">
+                                    {feature.eyebrow}
+                                </div>
+                                <div className="mt-2 text-xl font-semibold leading-tight">
+                                    {feature.mediaTitle}
+                                </div>
+                                <p className="mt-2 max-w-md text-sm leading-6 text-white/80">
+                                    {feature.mediaNote}
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
 
 function FeatureCarousel() {
     const [idx, setIdx] = useState(0);
@@ -792,16 +856,18 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <div className="max-w-2xl mx-auto w-full">
+                    {false && (<div className="max-w-2xl mx-auto w-full">
                         <motion.p {...fadeUp()} className="text-center text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
                             Tracey in action
                         </motion.p>
                         <motion.div {...fadeUp(0.06)}>
                             <ChatDemo />
                         </motion.div>
-                    </div>
+                    </div>)}
 
-                    <div className="flex flex-col gap-10 mt-4">
+                    <HireFeatureGrid />
+
+                    {false && (<div className="flex flex-col gap-10 mt-4">
                         {HIRE_FEATURES.map((f, i) => {
                             const isEven = i % 2 === 0;
                             // Inline JSX mockups per feature
@@ -894,7 +960,7 @@ export default function Home() {
                                 </motion.div>
                             );
                         })}
-                    </div>
+                    </div>)}
                 </div>
             </section >
 
@@ -954,7 +1020,7 @@ export default function Home() {
                         {/* Col 1: Brand */}
                         <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
                             <div className="flex items-center gap-2.5">
-                                <img src="/latest-logo.png" alt="Earlymark" className="h-8 w-8 object-contain" />
+                                <Image src="/latest-logo.png" alt="Earlymark" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
                                 <span className="text-white font-bold text-lg tracking-tight">Earlymark</span>
                             </div>
                             <p className="text-sm leading-relaxed max-w-xs">
