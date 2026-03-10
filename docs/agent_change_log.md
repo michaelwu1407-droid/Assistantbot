@@ -482,3 +482,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Increased the default customer-worker capacity again from `6` to `8` concurrent calls per host and reduced the default sales/demo cap from `4` to `2`, with the documented env defaults updated to match.
 - Why: The production priority is now more heavily biased toward real customer receptionist traffic, with demo and inbound sales taking a smaller reserved slice of worker capacity.
 
+### 2026-03-10 17:51 (AEDT) - codex
+- Files: `livekit-agent/runtime-state.ts`, `livekit-agent/.env.example`, `.env.example`, `docs/agent_change_log.md`
+- What changed: Rebalanced the default voice-capacity recommendation back to `customer=6` concurrent calls per host and `sales=1` concurrent call per host, and updated the documented env defaults to match that safer split.
+- Why: This keeps both servers available for customer failover while biasing capacity toward `normal` calls without pushing customer concurrency to the more aggressive `8-per-host` setting that carries higher latency and quality risk.
+
