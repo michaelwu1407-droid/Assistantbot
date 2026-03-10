@@ -74,9 +74,11 @@ Required envs typically include:
 
 Current voice assumptions:
 
-- Groq is preferred directly when available
+- Groq is primary with explicit fallback handling
 - Cartesia `sonic-3` is pinned for TTS
 - LiveKit worker logs deployed git SHA on startup
+- Twilio numbers must point to `/api/webhooks/twilio-voice-gateway`, not directly to SIP
+- inbound failures must fall back to voicemail, never dead SIP
 
 ## 5. GitHub Actions worker deploy
 
@@ -87,6 +89,9 @@ Before relying on it, verify repo secrets exist:
 - `SSH_HOST`
 - `SSH_USERNAME`
 - `SSH_PRIVATE_KEY`
+- `CRON_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `VOICE_MONITOR_DEADMAN_URL` if using an external dead-man service
 
 After a worker deploy:
 
@@ -122,6 +127,10 @@ After a worker deploy:
 - `Tracey interview form` behaves correctly
 - `Tracey inbound call` behaves correctly
 - `Tracey for users` behaves correctly
+- Twilio Earlymark inbound number points to the app gateway and is not attached directly to a SIP trunk
+- `/api/cron/voice-agent-health` returns healthy via GitHub Actions
+- `/api/cron/voice-monitor-watchdog` returns healthy via GitHub Actions
+- `/api/cron/voice-synthetic-probe` returns healthy via GitHub Actions
 - latency logs are emitted
 - call transcripts persist for new calls
 
@@ -130,6 +139,7 @@ After a worker deploy:
 - Sentry configured
 - PostHog/analytics configured if required
 - cron secrets configured in both Vercel and GitHub Actions
+- synthetic probe caller/target envs configured
 - storage uploads work
 - Google Maps failures degrade gracefully
 - welcome SMS path works when provisioning succeeds

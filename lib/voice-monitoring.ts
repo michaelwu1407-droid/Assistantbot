@@ -1,4 +1,6 @@
+import type { OpsMonitorHealth } from "@/lib/ops-monitor-runs";
 import type { TwilioVoiceRoutingDrift } from "@/lib/twilio-drift";
+import type { VoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants";
 import type { VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import type { VoiceIncidentObservation } from "@/lib/voice-incidents";
 import type { VoiceFleetHealth, VoiceSurface, VoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
@@ -61,16 +63,60 @@ export function buildSaturationIncidentObservations(saturation: VoiceSurfaceSatu
 }
 
 export function buildRoutingIncidentObservations(routing: TwilioVoiceRoutingDrift): VoiceIncidentObservation[] {
-  if (routing.status === "healthy") return [];
+  const observations: VoiceIncidentObservation[] = [];
 
-  return [
-    {
+  if (routing.status !== "healthy") {
+    observations.push({
       incidentKey: "voice:routing:drift",
       surface: "routing",
       severity: routing.status === "unhealthy" ? "critical" : "warning",
       summary: routing.summary,
       details: {
         routing,
+      },
+    });
+  }
+
+  if (routing.orphanedNumbers.length > 0) {
+    observations.push({
+      incidentKey: "voice:routing:orphaned-number",
+      surface: "routing",
+      severity: "critical",
+      summary: `${routing.orphanedNumbers.length} managed customer number(s) are missing workspace mappings.`,
+      details: {
+        orphanedNumbers: routing.orphanedNumbers,
+      },
+    });
+  }
+
+  return observations;
+}
+
+export function buildBusinessInvariantIncidentObservations(
+  invariants: VoiceBusinessInvariantHealth,
+): VoiceIncidentObservation[] {
+  if (invariants.status === "healthy") return [];
+
+  return invariants.issues.map((issue) => ({
+    incidentKey: issue.incidentKey,
+    surface: "data",
+    severity: issue.severity,
+    summary: issue.summary,
+    details: issue.details,
+  }));
+}
+
+export function buildMonitorIncidentObservations(monitorHealth: OpsMonitorHealth): VoiceIncidentObservation[] {
+  if (monitorHealth.status === "healthy") return [];
+
+  return [
+    {
+      incidentKey: "voice:monitor:stale",
+      surface: "monitor",
+      severity: monitorHealth.status === "unhealthy" ? "critical" : "warning",
+      summary: monitorHealth.summary,
+      details: {
+        monitorHealth,
       },
     },
   ];

@@ -906,6 +906,21 @@ model VerificationCode {
   @@map("verification_codes")
 }
 
+model OpsMonitorRun {
+  id            String   @id @default(cuid())
+  monitorKey    String   @unique
+  status        String
+  summary       String
+  details       Json?
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  checkedAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, checkedAt])
+}
+
 model TelemetryMetric {
   id        String   @id @default(cuid())
   metric    String

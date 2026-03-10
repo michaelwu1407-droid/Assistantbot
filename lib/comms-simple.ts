@@ -12,6 +12,8 @@
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
+import { getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
+import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -129,7 +131,12 @@ export async function initializeSimpleComms(
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
-      friendlyName: `${businessName} - Pj Buddy`,
+      friendlyName: buildManagedVoiceNumberFriendlyName({
+        scope: "workspace",
+        surface: "normal",
+        workspaceId,
+        label: businessName,
+      }),
     });
 
     console.log("[SIMPLE-COMMS] Number purchased successfully:", purchasedNumber.phoneNumber);
@@ -163,21 +170,29 @@ export async function initializeSimpleComms(
         });
     }
 
-    // Associate the purchased number with the SIP trunk
-    await twilioMasterClient.trunking.v1
-      .trunks(trunk.sid)
-      .phoneNumbers.create({
-        phoneNumberSid: purchasedNumber.sid,
-      });
-
     // Build the termination URI (using main account SID for simple setup)
     const accountSid = process.env.TWILIO_ACCOUNT_SID!;
     const terminationUri = `${accountSid}.pstn.twilio.com`;
+    const expectedVoiceGatewayUrl = getExpectedVoiceGatewayUrl();
+
+    if (expectedVoiceGatewayUrl) {
+      await twilioMasterClient.incomingPhoneNumbers(purchasedNumber.sid).update({
+        voiceUrl: expectedVoiceGatewayUrl,
+        voiceMethod: "POST",
+        voiceApplicationSid: "",
+        friendlyName: buildManagedVoiceNumberFriendlyName({
+          scope: "workspace",
+          surface: "normal",
+          workspaceId,
+          label: businessName,
+        }),
+      });
+    }
 
     await logActivity(
       workspaceId,
       "SIP Trunk Configured",
-      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}`
+      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}${expectedVoiceGatewayUrl ? `, Voice gateway: ${expectedVoiceGatewayUrl}` : ""}`
     );
 
     // ────────────────────────────────────────────────────────────────
@@ -199,7 +214,7 @@ export async function initializeSimpleComms(
     await logActivity(
       workspaceId,
       "LiveKit Voice Agent Connected",
-      `Number ${purchasedNumber.phoneNumber} routed via LiveKit SIP trunk`
+      `Number ${purchasedNumber.phoneNumber} now routes through the voice gateway before LiveKit.`
     );
 
     // ────────────────────────────────────────────────────────────────

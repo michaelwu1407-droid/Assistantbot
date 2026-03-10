@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
+import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
+import { getVoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants";
 import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import {
+  buildBusinessInvariantIncidentObservations,
   buildCallHealthIncidentObservations,
   buildFleetIncidentObservations,
   buildLatencyIncidentObservations,
@@ -28,6 +31,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const checkedAt = new Date();
+
   try {
     const [fleet, customerSaturation, twilioRouting, recentCalls, latency] = await Promise.all([
       getVoiceFleetHealth(),
@@ -36,11 +41,13 @@ export async function GET(req: NextRequest) {
       getTwilioVoiceCallHealth({ lookbackMinutes: 20, limitPerAccount: 50 }),
       getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     ]);
+    const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
 
     const observations = [
       ...buildFleetIncidentObservations(fleet),
       ...buildSaturationIncidentObservations(customerSaturation),
       ...buildRoutingIncidentObservations(twilioRouting),
+      ...buildBusinessInvariantIncidentObservations(invariants),
       ...buildCallHealthIncidentObservations(recentCalls),
       ...buildLatencyIncidentObservations(latency),
     ];
@@ -49,17 +56,38 @@ export async function GET(req: NextRequest) {
       fleet.status,
       customerSaturation.status,
       twilioRouting.status,
+      invariants.status,
       recentCalls.status,
       latency.status,
     ]);
+    await recordMonitorRun({
+      monitorKey: "voice-agent-health",
+      status,
+      summary:
+        status === "healthy"
+          ? "Voice agent health monitor completed successfully"
+          : `Voice agent health monitor completed with ${status} status`,
+      details: {
+        checkedAt: checkedAt.toISOString(),
+        fleetStatus: fleet.status,
+        customerSaturationStatus: customerSaturation.status,
+        twilioRoutingStatus: twilioRouting.status,
+        invariantStatus: invariants.status,
+        recentCallsStatus: recentCalls.status,
+        latencyStatus: latency.status,
+      },
+      checkedAt,
+      succeeded: true,
+    });
 
     return NextResponse.json(
       {
         status,
-        checkedAt: new Date().toISOString(),
+        checkedAt: checkedAt.toISOString(),
         fleet,
         customerSaturation,
         twilioRouting,
+        invariants,
         recentCalls,
         latency,
         incidents,
@@ -68,17 +96,28 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown voice monitor failure";
+    await recordMonitorRun({
+      monitorKey: "voice-agent-health",
+      status: "unhealthy",
+      summary: `Voice agent health monitor crashed: ${message}`,
+      details: {
+        checkedAt: checkedAt.toISOString(),
+        error: message,
+      },
+      checkedAt,
+      succeeded: false,
+    }).catch(() => null);
     const notifications = await dispatchVoiceIncidentNotifications({
       subject: "VOICE ALERT: monitor error",
       message: `Voice fleet health monitor crashed: ${message}`,
-      metadata: { checkedAt: new Date().toISOString() },
+      metadata: { checkedAt: checkedAt.toISOString() },
     }).catch(() => null);
 
     return NextResponse.json(
       {
         error: "Voice agent health check failed",
         details: message,
-        checkedAt: new Date().toISOString(),
+        checkedAt: checkedAt.toISOString(),
         notifications,
       },
       { status: 500 },

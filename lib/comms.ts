@@ -28,6 +28,8 @@
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient, createTwilioSubaccount, getSubaccountClient } from "@/lib/twilio";
+import { getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
+import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -73,7 +75,7 @@ export async function initializeTradieComms(
     // 1. Create Twilio Subaccount
     // ────────────────────────────────────────────────────────────────
     stageReached = "subaccount";
-    const subaccount = await createTwilioSubaccount(businessName);
+    const subaccount = await createTwilioSubaccount(businessName, { workspaceId });
     if (!subaccount) {
       return { success: false, error: "Failed to create Twilio subaccount", stageReached };
     }
@@ -115,7 +117,12 @@ export async function initializeTradieComms(
 
     const purchasedNumber = await subClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
-      friendlyName: `${businessName} - Pj Buddy`,
+      friendlyName: buildManagedVoiceNumberFriendlyName({
+        scope: "workspace",
+        surface: "normal",
+        workspaceId,
+        label: businessName,
+      }),
     });
 
     await logActivity(
@@ -146,20 +153,28 @@ export async function initializeTradieComms(
         });
     }
 
-    // Associate the purchased number with the SIP trunk
-    await subClient.trunking.v1
-      .trunks(trunk.sid)
-      .phoneNumbers.create({
-        phoneNumberSid: purchasedNumber.sid,
-      });
-
     // Build the termination URI (subaccount SID-based)
     const terminationUri = `${subaccountId}.pstn.twilio.com`;
+    const expectedVoiceGatewayUrl = getExpectedVoiceGatewayUrl();
+
+    if (expectedVoiceGatewayUrl) {
+      await subClient.incomingPhoneNumbers(purchasedNumber.sid).update({
+        voiceUrl: expectedVoiceGatewayUrl,
+        voiceMethod: "POST",
+        voiceApplicationSid: "",
+        friendlyName: buildManagedVoiceNumberFriendlyName({
+          scope: "workspace",
+          surface: "normal",
+          workspaceId,
+          label: businessName,
+        }),
+      });
+    }
 
     await logActivity(
       workspaceId,
       "SIP Trunk Configured",
-      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}`
+      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}${expectedVoiceGatewayUrl ? `, Voice gateway: ${expectedVoiceGatewayUrl}` : ""}`
     );
 
     // ────────────────────────────────────────────────────────────────
@@ -182,7 +197,7 @@ export async function initializeTradieComms(
     await logActivity(
       workspaceId,
       "LiveKit Voice Agent Connected",
-      `Number ${purchasedNumber.phoneNumber} routed via LiveKit SIP trunk`
+      `Number ${purchasedNumber.phoneNumber} now routes through the voice gateway before LiveKit.`
     );
 
     // ────────────────────────────────────────────────────────────────

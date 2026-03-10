@@ -4,8 +4,10 @@ import {
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
 } from "@/lib/earlymark-inbound-config";
+import { normalizePhone, phoneMatches } from "@/lib/phone-utils";
 import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "@/lib/voice-fleet";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
+import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
 import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +71,23 @@ function forwardToLiveKitTwiml(sipTrunkDomain: string) {
 </Response>`;
 }
 
+function syntheticProbeTwiml(result: "pass" | "fallback" | "orphaned" | "disabled") {
+  const message =
+    result === "pass"
+      ? "VOICE MONITOR PROBE PASS"
+      : result === "orphaned"
+        ? "VOICE MONITOR PROBE ORPHANED"
+        : result === "disabled"
+          ? "VOICE MONITOR PROBE DISABLED"
+          : "VOICE MONITOR PROBE FALLBACK";
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Nicole">${message}</Say>
+  <Hangup />
+</Response>`;
+}
+
 function voicemailFallbackTwiml(params: {
   calledNumber: string;
   callerNumber: string;
@@ -101,24 +120,41 @@ function resolveSurface(params: {
   return params.workspaceMatched ? "normal" : "inbound_demo";
 }
 
+function getSyntheticProbeCallerNumber() {
+  return normalizePhone(
+    process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER ||
+      process.env.VOICE_ALERT_SMS_TO ||
+      "+61434955958",
+  );
+}
+
+function isSyntheticProbeCaller(callerNumber: string) {
+  const probeCaller = getSyntheticProbeCallerNumber();
+  return Boolean(probeCaller) && phoneMatches(probeCaller, callerNumber);
+}
+
 async function openGatewayIncident(params: {
-  surface: VoiceSurface;
+  incidentKey: string;
+  surface: VoiceSurface | "routing" | "data";
+  summary: string;
   callerNumber: string;
   calledNumber: string;
   workspaceId?: string | null;
+  details?: Record<string, unknown>;
 }) {
   await reconcileVoiceIncidents(
     [
       {
-        incidentKey: `voice:surface:${params.surface}:workers`,
+        incidentKey: params.incidentKey,
         surface: params.surface,
         severity: "critical",
-        summary: `Incoming ${params.surface} call was sent to voicemail because no healthy workers were routable.`,
+        summary: params.summary,
         details: {
           source: "twilio-voice-gateway",
           callerNumber: params.callerNumber,
           calledNumber: params.calledNumber,
           workspaceId: params.workspaceId || null,
+          ...(params.details || {}),
         },
       },
     ],
@@ -136,6 +172,7 @@ export async function POST(req: NextRequest) {
     const digits = formData.get("Digits")?.toString() || "";
     const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
     const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
+    const syntheticProbe = isSyntheticProbeCaller(callerNumber);
 
     if (dtmfPassed === "1" && digits === "1") {
       const workspace = await findWorkspaceByTwilioNumber(calledNumber);
@@ -146,7 +183,9 @@ export async function POST(req: NextRequest) {
       const fleet = await getVoiceFleetHealth();
       if (!isVoiceSurfaceRoutable(fleet, surface)) {
         await openGatewayIncident({
+          incidentKey: `voice:surface:${surface}:workers`,
           surface,
+          summary: `Incoming ${surface} call was sent to voicemail because no healthy workers were routable.`,
           callerNumber,
           calledNumber,
           workspaceId: workspace?.id || null,
@@ -168,7 +207,7 @@ export async function POST(req: NextRequest) {
       return twimlResponse(rejectTwiml());
     }
 
-    if (callerNumber && checkRateLimit(callerNumber)) {
+    if (!syntheticProbe && callerNumber && checkRateLimit(callerNumber)) {
       console.log(`[voice-gateway] Rate limited ${callerNumber}; requiring DTMF challenge.`);
       const gatewayUrl = getExpectedVoiceGatewayUrl();
       if (!gatewayUrl) {
@@ -180,22 +219,54 @@ export async function POST(req: NextRequest) {
 
     const workspace = calledNumber ? await findWorkspaceByTwilioNumber(calledNumber) : null;
     if (!workspace && !isEarlymarkInboundCall) {
+      const managedNumber = await findManagedTwilioNumberByPhone(calledNumber);
       console.error("[voice-gateway] Incoming call did not match a workspace or configured Earlymark inbound number.", {
         callerNumber,
         calledNumber,
         knownInboundNumbers,
+        managedNumber,
       });
-    }
 
-    if (workspace?.voiceEnabled === false) {
-      console.log("[voice-gateway] Voice disabled for workspace; returning temporary unavailable.");
-      return twimlResponse(temporarilyUnavailableTwiml());
+      await openGatewayIncident({
+        incidentKey: managedNumber?.managed ? "voice:routing:orphaned-number" : "voice:data:missing-critical-mapping",
+        surface: managedNumber?.managed ? "routing" : "data",
+        summary: managedNumber?.managed
+          ? `Incoming call hit managed number ${calledNumber}, but no workspace mapping exists.`
+          : `Incoming call hit the voice gateway on unknown number ${calledNumber || "[empty]"}.`,
+        callerNumber,
+        calledNumber,
+        workspaceId: managedNumber?.workspace?.id || null,
+        details: {
+          managedNumber,
+        },
+      });
+
+      if (syntheticProbe) {
+        return twimlResponse(syntheticProbeTwiml(managedNumber?.managed ? "orphaned" : "fallback"));
+      }
+
+      return twimlResponse(
+        voicemailFallbackTwiml({
+          calledNumber,
+          callerNumber,
+          surface: managedNumber?.surface || "normal",
+        }),
+      );
     }
 
     const surface = resolveSurface({
       isEarlymarkInboundCall,
       workspaceMatched: Boolean(workspace),
     });
+
+    if (workspace?.voiceEnabled === false) {
+      console.log("[voice-gateway] Voice disabled for workspace; routing to voicemail fallback.");
+      if (syntheticProbe) {
+        return twimlResponse(syntheticProbeTwiml("disabled"));
+      }
+      return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
+    }
+
     const fleet = await getVoiceFleetHealth();
     if (!isVoiceSurfaceRoutable(fleet, surface)) {
       console.error("[voice-gateway] No routable workers are available for inbound surface.", {
@@ -205,11 +276,16 @@ export async function POST(req: NextRequest) {
         fleetSummary: fleet.summary,
       });
       await openGatewayIncident({
+        incidentKey: `voice:surface:${surface}:workers`,
         surface,
+        summary: `Incoming ${surface} call was sent to voicemail because no healthy workers were routable.`,
         callerNumber,
         calledNumber,
         workspaceId: workspace?.id || null,
       });
+      if (syntheticProbe) {
+        return twimlResponse(syntheticProbeTwiml("fallback"));
+      }
       return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
@@ -220,7 +296,14 @@ export async function POST(req: NextRequest) {
         calledNumber,
         surface,
       });
+      if (syntheticProbe) {
+        return twimlResponse(syntheticProbeTwiml("fallback"));
+      }
       return twimlResponse(rejectTwiml());
+    }
+
+    if (syntheticProbe) {
+      return twimlResponse(syntheticProbeTwiml("pass"));
     }
 
     console.log("[voice-gateway] Forwarding inbound call", {

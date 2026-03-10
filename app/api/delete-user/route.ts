@@ -1,8 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { isProductionDestructiveOperationBlocked } from "@/lib/production-safety";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
+    if (isProductionDestructiveOperationBlocked()) {
+      console.error("[production-safety] Blocked /api/delete-user in production");
+      return NextResponse.json({ error: "Delete-user API is blocked in production" }, { status: 403 });
+    }
+
     const { userId } = await request.json();
     
     if (!userId) {

@@ -15,6 +15,10 @@ function hoursFromNow(hours: number): Date {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to run prisma seed in production.");
+  }
+
   console.log("Seeding Earlymark database...");
 
   // Clean existing data

@@ -5,7 +5,7 @@ import type { VoiceSurface } from "@/lib/voice-fleet";
 
 export type VoiceIncidentObservation = {
   incidentKey: string;
-  surface: VoiceSurface | "routing" | "fleet";
+  surface: VoiceSurface | "routing" | "fleet" | "monitor" | "data";
   severity: "warning" | "critical";
   summary: string;
   details?: Record<string, unknown>;
@@ -60,14 +60,16 @@ async function sendRecoveryAlert(observation: {
 
 export async function reconcileVoiceIncidents(
   observations: VoiceIncidentObservation[],
-  options?: { resolveMissing?: boolean },
+  options?: { resolveMissing?: boolean; resolveKeys?: string[] },
 ) {
   const observedByKey = new Map(observations.map((observation) => [observation.incidentKey, observation]));
+  const resolveKeys = options?.resolveKeys;
   const existingIncidents = await db.voiceIncident.findMany({
     where: {
       OR: [
         { status: "open" },
         { incidentKey: { in: observations.map((observation) => observation.incidentKey) } },
+        ...(resolveKeys && resolveKeys.length > 0 ? [{ incidentKey: { in: resolveKeys } }] : []),
       ],
     },
   });
@@ -128,6 +130,7 @@ export async function reconcileVoiceIncidents(
   if (resolveMissing) {
     for (const existing of existingIncidents) {
       if (!existing.incidentKey.startsWith("voice:")) continue;
+      if (resolveKeys && resolveKeys.length > 0 && !resolveKeys.includes(existing.incidentKey)) continue;
       if (observedByKey.has(existing.incidentKey)) continue;
       if (existing.status !== "open") continue;
 
@@ -147,4 +150,25 @@ export async function reconcileVoiceIncidents(
   }
 
   return { opened, resolved };
+}
+
+export async function resolveVoiceIncidentByKey(incidentKey: string) {
+  const incident = await db.voiceIncident.findUnique({ where: { incidentKey } });
+  if (!incident || incident.status !== "open") {
+    return { resolved: false };
+  }
+
+  const now = new Date();
+  await db.voiceIncident.update({
+    where: { incidentKey },
+    data: {
+      status: "resolved",
+      resolvedAt: now,
+      lastObservedAt: now,
+      lastRecoveryAlertedAt: now,
+    },
+  });
+  await sendRecoveryAlert(incident);
+
+  return { resolved: true };
 }

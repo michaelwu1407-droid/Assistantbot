@@ -1,4 +1,5 @@
 import twilio from "twilio";
+import { buildManagedSubaccountFriendlyName } from "@/lib/voice-number-metadata";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -28,7 +29,10 @@ type WorkspaceTwilioConfig = {
  * 
  * @param friendlyName - Usually the Tradie's Business Name (e.g., "Bob's Plumbing")
  */
-export async function createTwilioSubaccount(friendlyName: string) {
+export async function createTwilioSubaccount(
+    friendlyName: string,
+    options?: { workspaceId?: string | null },
+) {
     if (!twilioMasterClient) {
         console.warn("TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN is missing. Subaccount creation skipped.");
         return null;
@@ -36,7 +40,9 @@ export async function createTwilioSubaccount(friendlyName: string) {
 
     try {
         const subaccount = await twilioMasterClient.api.v2010.accounts.create({
-            friendlyName: `Workspace: ${friendlyName}`,
+            friendlyName: options?.workspaceId
+                ? buildManagedSubaccountFriendlyName(options.workspaceId, friendlyName)
+                : `Workspace: ${friendlyName}`,
         });
 
         return {
