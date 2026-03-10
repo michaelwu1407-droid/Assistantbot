@@ -18,6 +18,7 @@ type AgentContextPayload = {
     settings: Awaited<ReturnType<typeof getWorkspaceSettingsById>>;
     userRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" | string;
     isManager: boolean;
+    businessName: string;
     knowledgeBaseStr: string;
     agentModeStr: string;
     workingHoursStr: string;
@@ -255,14 +256,14 @@ export async function buildAgentContext(
     const defaultClosing = `Kind regards, Tracey (AI assistant for ${businessName})`;
     const parts: string[] = [];
     if (openingMsg) {
-        parts.push(`\nAGENT INTRO (outbound customer msgs only, NOT dashboard): Start with: "${openingMsg}"`);
+        parts.push(`\nAGENT INTRO (first outbound customer reply in a new thread only, NOT dashboard chat): If this is the first reply in a customer conversation, you may open with: "${openingMsg}"`);
     } else {
-        parts.push(`\nAGENT INTRO (outbound customer msgs only, NOT dashboard): Start with: "${defaultOpening}"`);
+        parts.push(`\nAGENT INTRO (first outbound customer reply in a new thread only, NOT dashboard chat): If this is the first reply in a customer conversation, you may open with: "${defaultOpening}"`);
     }
     if (closingMsg) {
-        parts.push(`\nAGENT SIGN-OFF (outbound customer msgs only, NOT dashboard): End with: "${closingMsg}"`);
+        parts.push(`\nAGENT SIGN-OFF (longer emails or final follow-up only, NOT every SMS and NOT dashboard chat): Use when it sounds natural to close the thread with: "${closingMsg}"`);
     } else {
-        parts.push(`\nAGENT SIGN-OFF (outbound customer msgs only, NOT dashboard): End with: "${defaultClosing}"`);
+        parts.push(`\nAGENT SIGN-OFF (longer emails or final follow-up only, NOT every SMS and NOT dashboard chat): Use when it sounds natural to close the thread with: "${defaultClosing}"`);
     }
     const agentScriptStr = parts.join("");
 
@@ -328,6 +329,7 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
         settings,
         userRole,
         isManager,
+        businessName,
         knowledgeBaseStr: knowledgeBaseStr + knowledgeServicesStr,
         agentModeStr,
         workingHoursStr,

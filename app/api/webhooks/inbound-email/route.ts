@@ -475,6 +475,13 @@ export async function POST(req: NextRequest) {
 
     // Resolve the most relevant active deal/job for this contact
     const activeDeal = contact.deals[0] ?? null;
+    const priorEmailActivityCount = await db.activity.count({
+      where: {
+        contactId: contact.id,
+        type: "EMAIL",
+      },
+    });
+    const isFirstReplyForContact = priorEmailActivityCount === 0;
 
     // 6. Activity feed logging — save the email as an EMAIL activity
     const activity = await db.activity.create({
@@ -497,6 +504,7 @@ export async function POST(req: NextRequest) {
       body: textBody,
       contactId: contact.id,
       dealId: activeDeal?.id,
+      isFirstReplyForContact,
     });
 
     let replySent = false;

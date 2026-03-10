@@ -7,6 +7,7 @@ import { buildJobDraftFromParams } from "@/lib/chat-utils";
 import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
 import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
+import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { getAgentTools } from "@/lib/ai/tools";
 import { preClassify } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
@@ -575,44 +576,37 @@ export async function POST(req: Request) {
         recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
       },
     );
+    const systemPrompt = buildCrmChatSystemPrompt({
+      userRole,
+      customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
+      workspaceContextBlocks: [
+        knowledgeBaseStr,
+        workingHoursStr,
+        agentScriptStr,
+        preferencesStr,
+        pricingRulesStr,
+        bouncerStr,
+        attachmentsStr,
+        memoryContextStr,
+        selectionContextStr,
+        intentHintsStr,
+      ],
+      pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
+- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
+- Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
+- If pricingLookup returns no match, say "A firm quote requires an on-site assessment." Do NOT estimate or guess.
+- When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
+      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+      roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
+      multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+      jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
+    });
     const llmStartedAt = nowMs();
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
       maxOutputTokens: 1024,
-      system: `You are Tracey, a concise CRM assistant for tradies. Be SHORT and punchy — no essays. Say "jobs" not "meetings".
-${knowledgeBaseStr}
-${agentModeStr}
-${workingHoursStr}
-${agentScriptStr}
-${allowedTimesStr}
-${preferencesStr}
-${pricingRulesStr}
-${bouncerStr}
-${attachmentsStr}
-${memoryContextStr}
-${selectionContextStr}
-${intentHintsStr}
-
-PRICING INTEGRITY (MANDATORY):
-- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
-- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
-- Before quoting any service price, MUST call pricingLookup first to get the approved/historical price.
-- If pricingLookup returns no match, say "A firm quote requires an on-site assessment." Do NOT estimate or guess.
-- When reporting a price, cite where it came from: "Our approved rate for X is $Y" (glossary) or "Similar jobs have been $X–$Y" (historical).
-
-MESSAGING: On "message/text/tell/send [name]" → call sendSms immediately, no confirmation. Send the user's EXACT words — never rewrite or refuse. Track pronouns ("her"/"him") from context. Confirm: "✅ Sent to [Name]: \"[msg]\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.
-
-USE TOOLS for real data — never guess. Call the appropriate tool before answering data questions.
-
-WHEN UNCERTAIN: Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If tool fails, explain and suggest retry. If no data, say what you checked. For getTodaySummary, LEAD with preparation alerts before the schedule.
-
-USER_ROLE: ${userRole}. Data changes: OWNER/MANAGER confirm via showConfirmationCard → recordManualRevenue after user says "confirm"/"ok"/"yes". TEAM_MEMBER cannot change data — tell them to ask their manager.
-
-MULTI-JOB "NEXT": Always use showJobDraftForConfirmation tool (never plain text). One job at a time. Don't call createJobNatural until user confirms.
-
-JOB DRAFT CARDS: When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do NOT repeat the draft details, call-out fee, address, phone, or a second "Confirm?" line in plain text underneath it. If needed, only add a very short instruction like "Use the card to confirm or edit."
-
-After tool use, briefly confirm the result.`,
+      system: systemPrompt,
       messages: modelMessages as any,
       tools,
       stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
@@ -699,3 +693,4 @@ After tool use, briefly confirm the result.`,
     );
   }
 }
+

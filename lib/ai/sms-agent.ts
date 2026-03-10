@@ -4,6 +4,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
+import { buildCustomerSmsSystemPrompt } from "@/lib/ai/prompt-contract";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import {
     runGetAvailability,
@@ -169,13 +170,15 @@ export async function generateSMSResponse(
             role: m.role as "user" | "assistant",
             content: m.content,
         }));
+        const hasPriorAssistantReply = recentMessages.some((message) => message.role === "assistant");
 
         const {
             settings,
+            businessName,
             knowledgeBaseStr,
-            agentModeStr,
             workingHoursStr,
             agentScriptStr,
+            allowedTimesStr,
             preferencesStr,
             pricingRulesStr,
             bouncerStr,
@@ -192,25 +195,23 @@ export async function generateSMSResponse(
 
         const preprocessingMs = nowMs() - preprocessingStartedAt;
 
-        const systemPrompt = `You are the AI SMS assistant for this business. You are texting a customer on behalf of the business. The customer does NOT know you are an AI — represent the business naturally.
-
-CHANNEL RULES (SMS-specific):
-- Keep responses SHORT (1-3 sentences max). This is SMS, not email.
-- Be friendly, professional, and helpful.
-- Never send walls of text. Break info across messages if needed.
-- ${sentenceGuidance}
-
-${knowledgeBaseStr}
-${agentModeStr}
-${workingHoursStr}
-${agentScriptStr}
-${preferencesStr}
-${pricingRulesStr}
-${bouncerStr}
-${attachmentsStr}
-${memoryContextStr}
-
-USE TOOLS for real data — never guess availability, pricing, or schedule. If uncertain, ask the customer for more details.`;
+        const systemPrompt = buildCustomerSmsSystemPrompt({
+            businessName,
+            firstReplyShouldIntroduceAi: !hasPriorAssistantReply,
+            sentenceGuidance,
+            modeRaw: (settings as { agentMode?: string | null })?.agentMode,
+            businessContextBlocks: [
+                knowledgeBaseStr,
+                workingHoursStr,
+                agentScriptStr,
+                allowedTimesStr,
+                preferencesStr,
+                pricingRulesStr,
+                bouncerStr,
+                attachmentsStr,
+                memoryContextStr,
+            ],
+        });
 
         const google = createGoogleGenerativeAI({ apiKey });
 
@@ -252,3 +253,4 @@ USE TOOLS for real data — never guess availability, pricing, or schedule. If u
     // Fallback if Gemini fails
     return "Thanks for your message! Someone will get back to you shortly.";
 }
+
