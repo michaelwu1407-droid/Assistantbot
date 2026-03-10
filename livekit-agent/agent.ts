@@ -29,6 +29,15 @@ import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
 import voiceLatency from './voice-latency';
 import type { GuardDecision, OpenerBankEntry, OpenerId, VoiceTurnPrediction } from './voice-latency';
+import {
+  buildCapacitySummary,
+  getActiveCallCount,
+  getMaxConcurrentCalls,
+  isWorkerAcceptingCalls,
+  markCallEnded,
+  markCallStarted,
+  setWorkerBootReady,
+} from './runtime-state';
 
 loadEnv({ path: '.env.local' });
 
@@ -69,7 +78,14 @@ const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "EARLYMARK_VOICE_FALLBACK_LLM_MODEL",
   "EARLYMARK_VOICE_LLM_TEMPERATURE",
   "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
+  "EARLYMARK_VOICE_STT_ENDPOINTING_MS",
+  "EARLYMARK_VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
+  "EARLYMARK_VOICE_MIN_ENDPOINTING_DELAY_MS",
+  "EARLYMARK_VOICE_MAX_ENDPOINTING_DELAY_MS",
+  "EARLYMARK_VOICE_MIN_INTERRUPTION_DURATION_MS",
+  "EARLYMARK_VOICE_MIN_INTERRUPTION_WORDS",
   "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
+  "INBOUND_VOICE_STT_ENDPOINTING_MS",
   "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
   "VOICE_LLM_PROVIDER",
   "VOICE_LLM_MODEL",
@@ -100,6 +116,9 @@ const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "VOICE_GUARD_TEMPERATURE",
   "VOICE_GUARD_MIN_CHARS",
   "VOICE_EMPATHY_TURN_GAP",
+  "VOICE_MAX_ACTIVE_CALLS",
+  "VOICE_MAX_ACTIVE_CALLS_SALES",
+  "VOICE_MAX_ACTIVE_CALLS_CUSTOMER",
   "VOICE_HOST_ID",
   "VOICE_WORKER_ROLE",
   "VOICE_WORKER_SURFACES",
@@ -243,15 +262,36 @@ type LlmProviderConfig = {
   isFallback: boolean;
 };
 
+type VoiceTurnTuning = {
+  sttEndpointingMs: number;
+  minConsecutiveSpeechDelayMs: number;
+  minEndpointingDelayMs: number;
+  maxEndpointingDelayMs: number;
+  minInterruptionDurationMs: number;
+  minInterruptionWords: number;
+};
+
+type LlmRunSummary = {
+  primaryProvider: LlmProviderName;
+  primaryModel: string;
+  fallbackProvider: LlmProviderName | null;
+  fallbackModel: string | null;
+  actualProviders: LlmProviderName[];
+  actualModels: string[];
+  fallbackUsed: boolean;
+  fallbackCount: number;
+  selectionCount: number;
+  lastFailure: string | null;
+};
+
 type GroundingCacheEntry = {
   value: WorkspaceVoiceGrounding;
   fetchedAt: number;
 };
 
-let activeCallCount = 0;
-let workerReady = false;
 let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
+let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 
 function cloneAudioFrame(frame: AudioFrame): AudioFrame {
   return new AudioFrame(new Int16Array(frame.data), frame.sampleRate, frame.channels, frame.samplesPerChannel);
@@ -288,6 +328,13 @@ function buildOpenerAudioCache(tts: cartesia.TTS, logPrefix: string): Map<Opener
   });
 
   return cache;
+}
+
+function getSharedOpenerAudioCache(tts: cartesia.TTS, logPrefix: string) {
+  if (!sharedOpenerAudioCache) {
+    sharedOpenerAudioCache = buildOpenerAudioCache(tts, logPrefix);
+  }
+  return sharedOpenerAudioCache;
 }
 
 async function getCachedOpenerAudioFrame(
@@ -397,12 +444,7 @@ function maxByValue(entries: Array<[string, number]>): [string, number] {
 }
 
 function summarizeTurnLatency(turn: TurnAudit) {
-  const measuredTotalMs =
-    turn.eouMs +
-    turn.transcriptionDelayMs +
-    turn.onUserTurnCompletedDelayMs +
-    turn.llmTtftMs +
-    turn.ttsTtfbMs;
+  const measuredTotalMs = getMeasuredTurnStartMs(turn);
 
   const [bottleneck, bottleneckMs] = maxByValue([
     ["end_of_utterance", turn.eouMs],
@@ -588,11 +630,136 @@ function buildProviderConfig(callType: CallType, provider: LlmProviderName, isFa
   };
 }
 
-class FallbackLLM extends livekitLlm.LLM {
+function getMeasuredTurnStartMs(turn: Pick<TurnAudit, "eouMs" | "transcriptionDelayMs" | "onUserTurnCompletedDelayMs" | "llmTtftMs" | "ttsTtfbMs">) {
+  return (
+    turn.eouMs +
+    turn.transcriptionDelayMs +
+    turn.onUserTurnCompletedDelayMs +
+    turn.llmTtftMs +
+    turn.ttsTtfbMs
+  );
+}
+
+function readPositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number(value || "");
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function resolveVoiceTurnTuning(callType: CallType): VoiceTurnTuning {
+  const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+  const sttEndpointingMs = callType === "inbound_demo"
+    ? readPositiveNumber(
+      process.env.INBOUND_VOICE_STT_ENDPOINTING_MS,
+      readPositiveNumber(process.env.EARLYMARK_VOICE_STT_ENDPOINTING_MS, 220),
+    )
+    : isEarlymarkCall
+      ? readPositiveNumber(process.env.EARLYMARK_VOICE_STT_ENDPOINTING_MS, 220)
+      : readPositiveNumber(process.env.VOICE_STT_ENDPOINTING_MS, 300);
+
+  return {
+    sttEndpointingMs,
+    minConsecutiveSpeechDelayMs: isEarlymarkCall
+      ? readPositiveNumber(process.env.EARLYMARK_VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS, 140)
+      : readPositiveNumber(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS, 180),
+    minEndpointingDelayMs: isEarlymarkCall
+      ? readPositiveNumber(process.env.EARLYMARK_VOICE_MIN_ENDPOINTING_DELAY_MS, 180)
+      : readPositiveNumber(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS, 250),
+    maxEndpointingDelayMs: isEarlymarkCall
+      ? readPositiveNumber(process.env.EARLYMARK_VOICE_MAX_ENDPOINTING_DELAY_MS, 550)
+      : readPositiveNumber(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS, 800),
+    minInterruptionDurationMs: isEarlymarkCall
+      ? readPositiveNumber(process.env.EARLYMARK_VOICE_MIN_INTERRUPTION_DURATION_MS, 260)
+      : readPositiveNumber(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS, 400),
+    minInterruptionWords: callType === "inbound_demo"
+      ? readPositiveNumber(
+        process.env.INBOUND_VOICE_MIN_INTERRUPTION_WORDS,
+        readPositiveNumber(process.env.EARLYMARK_VOICE_MIN_INTERRUPTION_WORDS, 1),
+      )
+      : isEarlymarkCall
+        ? readPositiveNumber(process.env.EARLYMARK_VOICE_MIN_INTERRUPTION_WORDS, 2)
+        : readPositiveNumber(process.env.VOICE_MIN_INTERRUPTION_WORDS, 3),
+  };
+}
+
+class ProviderFallbackLLMStream extends livekitLlm.LLMStream {
+  readonly #owner: ProviderFallbackLLM;
+  readonly #primaryStream: livekitLlm.LLMStream;
+  readonly #fallback: openai.LLM | null;
+  readonly #primaryConfig: LlmProviderConfig;
+  readonly #fallbackConfig: LlmProviderConfig | null;
+  readonly #chatArgs: Parameters<openai.LLM["chat"]>[0];
+  #hasBegunResponse = false;
+
+  constructor(args: {
+    owner: ProviderFallbackLLM;
+    primaryStream: livekitLlm.LLMStream;
+    fallback: openai.LLM | null;
+    primaryConfig: LlmProviderConfig;
+    fallbackConfig: LlmProviderConfig | null;
+    chatArgs: Parameters<openai.LLM["chat"]>[0];
+  }) {
+    super(args.owner, {
+      chatCtx: args.primaryStream.chatCtx,
+      toolCtx: args.primaryStream.toolCtx,
+      connOptions: args.primaryStream.connOptions,
+    });
+    this.#owner = args.owner;
+    this.#primaryStream = args.primaryStream;
+    this.#fallback = args.fallback;
+    this.#primaryConfig = args.primaryConfig;
+    this.#fallbackConfig = args.fallbackConfig;
+    this.#chatArgs = args.chatArgs;
+  }
+
+  async #pipeStream(stream: livekitLlm.LLMStream) {
+    for await (const chunk of stream) {
+      if (this.abortController.signal.aborted) {
+        stream.close();
+        break;
+      }
+      if (chunk.delta) {
+        this.#hasBegunResponse = true;
+      }
+      this.queue.put(chunk);
+    }
+  }
+
+  protected async run(): Promise<void> {
+    try {
+      await this.#pipeStream(this.#primaryStream);
+    } catch (error) {
+      this.#owner.noteFailure(error);
+      if (!this.#fallback || !this.#fallbackConfig || this.#hasBegunResponse) {
+        throw error;
+      }
+
+      console.warn("[agent] Primary LLM stream failed before first token; retrying on fallback.", {
+        primaryProvider: this.#primaryConfig.provider,
+        fallbackProvider: this.#fallbackConfig.provider,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      const fallbackStream = this.#fallback.chat(this.#chatArgs);
+      this.#owner.recordProviderSelection(this.#fallbackConfig);
+      this.#owner.recordFallback();
+      await this.#pipeStream(fallbackStream);
+    } finally {
+      this.#primaryStream.close();
+    }
+  }
+}
+
+class ProviderFallbackLLM extends livekitLlm.LLM {
   readonly #primary: openai.LLM;
   readonly #fallback: openai.LLM | null;
   readonly #primaryConfig: LlmProviderConfig;
   readonly #fallbackConfig: LlmProviderConfig | null;
+  readonly #actualProviders = new Set<LlmProviderName>();
+  readonly #actualModels = new Set<string>();
+  #fallbackUsed = false;
+  #fallbackCount = 0;
+  #selectionCount = 0;
+  #lastFailure: string | null = null;
 
   constructor(args: {
     primary: openai.LLM;
@@ -617,17 +784,69 @@ class FallbackLLM extends livekitLlm.LLM {
     return this.#primaryConfig.model;
   }
 
+  recordProviderSelection(config: LlmProviderConfig) {
+    this.#selectionCount += 1;
+    this.#actualProviders.add(config.provider);
+    this.#actualModels.add(config.model);
+  }
+
+  recordFallback() {
+    this.#fallbackUsed = true;
+    this.#fallbackCount += 1;
+  }
+
+  noteFailure(error: unknown) {
+    this.#lastFailure = error instanceof Error ? error.message : String(error);
+  }
+
+  getRunSummary(): LlmRunSummary {
+    return {
+      primaryProvider: this.#primaryConfig.provider,
+      primaryModel: this.#primaryConfig.model,
+      fallbackProvider: this.#fallbackConfig?.provider || null,
+      fallbackModel: this.#fallbackConfig?.model || null,
+      actualProviders: Array.from(this.#actualProviders),
+      actualModels: Array.from(this.#actualModels),
+      fallbackUsed: this.#fallbackUsed,
+      fallbackCount: this.#fallbackCount,
+      selectionCount: this.#selectionCount,
+      lastFailure: this.#lastFailure,
+    };
+  }
+
   chat(args: Parameters<openai.LLM["chat"]>[0]) {
     try {
-      return this.#primary.chat(args);
+      const primaryStream = this.#primary.chat(args);
+      this.recordProviderSelection(this.#primaryConfig);
+      return new ProviderFallbackLLMStream({
+        owner: this,
+        primaryStream,
+        fallback: this.#fallback,
+        primaryConfig: this.#primaryConfig,
+        fallbackConfig: this.#fallbackConfig,
+        chatArgs: args,
+      });
     } catch (error) {
-      if (!this.#fallback) throw error;
+      this.noteFailure(error);
+      if (!this.#fallback || !this.#fallbackConfig) throw error;
       console.warn("[agent] Primary LLM chat setup failed; falling back.", {
         primaryProvider: this.#primaryConfig.provider,
-        fallbackProvider: this.#fallbackConfig?.provider,
+        fallbackProvider: this.#fallbackConfig.provider,
         error: error instanceof Error ? error.message : String(error),
       });
-      return this.#fallback.chat(args);
+
+      const fallbackStream = this.#fallback.chat(args);
+      this.recordProviderSelection(this.#fallbackConfig);
+      this.recordFallback();
+
+      return new ProviderFallbackLLMStream({
+        owner: this,
+        primaryStream: fallbackStream,
+        fallback: null,
+        primaryConfig: this.#fallbackConfig,
+        fallbackConfig: null,
+        chatArgs: args,
+      });
     }
   }
 
@@ -674,7 +893,7 @@ function createVoiceLlm(callType: CallType) {
     : null;
 
   return {
-    llm: new FallbackLLM({
+    llm: new ProviderFallbackLLM({
       primary: primaryLlm,
       fallback: fallbackLlm,
       primaryConfig: effectivePrimary,
@@ -754,6 +973,7 @@ function getCachedVoiceGrounding(calledPhone?: string | null) {
 
   if (Date.now() - cached.fetchedAt > VOICE_GROUNDING_CACHE_TTL_MS) {
     void refreshVoiceGroundingIndex(true).catch(() => {});
+    return cached.value;
   }
 
   return cached.value;
@@ -1181,6 +1401,7 @@ function buildVoiceAgentRuntimeSummary() {
     hostId: getConfiguredHostId(),
     workerRole: getConfiguredWorkerRole(),
     surfaceSet: getConfiguredWorkerSurfaces(),
+    capacity: buildCapacitySummary(),
     llmProvider: {
       earlymarkPrimary: inferConfiguredPrimaryProvider("demo"),
       earlymarkFallback: inferConfiguredPrimaryProvider("demo") === "groq" ? "deepinfra" : "groq",
@@ -1234,8 +1455,8 @@ async function postVoiceAgentStatus() {
       surfaceSet: getConfiguredWorkerSurfaces(),
       deployGitSha: DEPLOY_GIT_SHA,
       runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
-      ready: workerReady,
-      activeCalls: activeCallCount,
+      ready: isWorkerAcceptingCalls(),
+      activeCalls: getActiveCallCount(),
       pid: process.pid,
       startedAt: AGENT_STARTED_AT,
       heartbeatAt: new Date().toISOString(),
@@ -1427,17 +1648,6 @@ export default defineAgent({
       },
     });
 
-    const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL || "nova-3") as ConstructorParameters<typeof deepgram.STT>[0]["model"],
-      language: "multi",
-      detectLanguage: true,
-      interimResults: true,
-      endpointing: Number(process.env.VOICE_STT_ENDPOINTING_MS || 300),
-      noDelay: true,
-      punctuate: true,
-      smartFormat: true,
-    });
-
     const defaultTts = new cartesia.TTS({
       model: "sonic-3",
       voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
@@ -1505,12 +1715,23 @@ export default defineAgent({
     }
 
     callType = resolveCallType(callType, calledPhone, ctx.room.name);
-    activeCallCount += 1;
+    const voiceTurnTuning = resolveVoiceTurnTuning(callType);
+    const stt = new deepgram.STT({
+      model: (process.env.VOICE_STT_MODEL || "nova-3") as ConstructorParameters<typeof deepgram.STT>[0]["model"],
+      language: "multi",
+      detectLanguage: true,
+      interimResults: true,
+      endpointing: voiceTurnTuning.sttEndpointingMs,
+      noDelay: true,
+      punctuate: true,
+      smartFormat: true,
+    });
+    markCallStarted();
     let activeCallReleased = false;
     const releaseActiveCall = () => {
       if (activeCallReleased) return;
       activeCallReleased = true;
-      activeCallCount = Math.max(0, activeCallCount - 1);
+      markCallEnded();
     };
     ctx.addShutdownCallback(async () => {
       releaseActiveCall();
@@ -1534,6 +1755,7 @@ export default defineAgent({
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
     const { llm, primaryConfig: primaryLlmConfig, fallbackConfig: fallbackLlmConfig } = createVoiceLlm(callType);
+    llm.prewarm();
 
     const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
     const greeting = getGreeting(callType, caller);
@@ -1551,7 +1773,7 @@ export default defineAgent({
       llmBaseURL: primaryLlmConfig.baseURL,
     });
     const openerAudioCache: Map<OpenerId, Promise<AudioFrame>> = voiceLatencyConfig.openerBankEnabled
-      ? buildOpenerAudioCache(defaultTts, logPrefix)
+      ? getSharedOpenerAudioCache(defaultTts, logPrefix)
       : new Map<OpenerId, Promise<AudioFrame>>();
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
@@ -1570,6 +1792,7 @@ export default defineAgent({
       customerContactMode: normalVoiceGrounding?.customerContactMode || null,
       groundedWorkspaceId: normalVoiceGrounding?.workspaceId || null,
       groundingCacheHit: Boolean(normalVoiceGrounding),
+      maxConcurrentCalls: getMaxConcurrentCalls(),
       voiceLatency: {
         enabled: voiceLatencyConfig.enabled,
         openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
@@ -1578,6 +1801,7 @@ export default defineAgent({
         openerConfidenceThreshold: voiceLatencyConfig.openerConfidenceThreshold,
         guardTimeoutMs: voiceLatencyConfig.guardTimeoutMs,
       },
+      tuning: voiceTurnTuning,
     })}`);
     if (voiceLatencyConfig.enabled) {
       console.log(
@@ -1605,7 +1829,7 @@ export default defineAgent({
       tts,
       tools,
       turnDetection: "stt",
-      minConsecutiveSpeechDelay: Number(process.env.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS || 180),
+      minConsecutiveSpeechDelay: voiceTurnTuning.minConsecutiveSpeechDelayMs,
     });
 
     // Explicitly subscribe to SIP audio tracks as they arrive.
@@ -1755,14 +1979,10 @@ export default defineAgent({
       turnDetection: "stt",
       voiceOptions: {
         preemptiveGeneration: true,
-        minEndpointingDelay: Number(process.env.VOICE_MIN_ENDPOINTING_DELAY_MS || 250),
-        maxEndpointingDelay: Number(process.env.VOICE_MAX_ENDPOINTING_DELAY_MS || 800),
-        minInterruptionDuration: Number(process.env.VOICE_MIN_INTERRUPTION_DURATION_MS || 400),
-        minInterruptionWords: Number(
-          callType === "inbound_demo"
-            ? (process.env.INBOUND_VOICE_MIN_INTERRUPTION_WORDS || 2)
-            : (process.env.VOICE_MIN_INTERRUPTION_WORDS || 3)
-        ),
+        minEndpointingDelay: voiceTurnTuning.minEndpointingDelayMs,
+        maxEndpointingDelay: voiceTurnTuning.maxEndpointingDelayMs,
+        minInterruptionDuration: voiceTurnTuning.minInterruptionDurationMs,
+        minInterruptionWords: voiceTurnTuning.minInterruptionWords,
         allowInterruptions: true,
       },
     });
@@ -2118,6 +2338,34 @@ export default defineAgent({
       const turnSummaries = Array.from(turnAudits.values())
         .sort((a, b) => a.turnIndex - b.turnIndex)
         .map(summarizeTurnLatency);
+      const measuredTurnStarts = turnSummaries
+        .map((turn) => turn.timings.measuredTotalMs)
+        .filter((value) => Number.isFinite(value) && value > 0);
+      const firstUserResponseTurn = turnSummaries.find((turn) => turn.userInitiated && Boolean(turn.transcript));
+      const llmRunSummary = llm.getRunSummary();
+      const latency = {
+        sttAvgMs: avg(latencyAudit.sttMs),
+        llmAvgMs: avg(latencyAudit.llmMs),
+        llmP95Ms: p95(latencyAudit.llmMs),
+        llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+        ttsAvgMs: avg(latencyAudit.ttsMs),
+        ttsP95Ms: p95(latencyAudit.ttsMs),
+        ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+        eouAvgMs: avg(latencyAudit.eouMs),
+        transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
+        totalTurnStartAvgMs: avg(measuredTurnStarts),
+        firstTurnStartMs: firstUserResponseTurn?.timings.measuredTotalMs || 0,
+        voiceClassifierAvgMs: avg(voiceLatencyAudit.classifierMs),
+        voiceGuardAvgMs: avg(voiceLatencyAudit.guardMs),
+        openerLeadAvgMs: avg(voiceLatencyAudit.openerLeadMs),
+        openerGapAvgMs: avg(voiceLatencyAudit.openerGapMs),
+        openerHits: voiceLatencyAudit.openerHits,
+        openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
+        guardTimeouts: voiceLatencyAudit.guardTimeouts,
+        guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
+        openerUsage: voiceLatencyAudit.openerUsage,
+        turns: turnSummaries,
+      };
 
       console.log(
         `[voice-audit] ${JSON.stringify({
@@ -2143,6 +2391,8 @@ export default defineAgent({
             ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
+            totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
+            firstTurnStartMs: latency.firstTurnStartMs,
             voiceClassifierAvgMs: avg(voiceLatencyAudit.classifierMs),
             voiceGuardAvgMs: avg(voiceLatencyAudit.guardMs),
             openerLeadAvgMs: avg(voiceLatencyAudit.openerLeadMs),
@@ -2152,6 +2402,7 @@ export default defineAgent({
             guardTimeouts: voiceLatencyAudit.guardTimeouts,
             openerUsage: voiceLatencyAudit.openerUsage,
           },
+          llmRouting: llmRunSummary,
           turns: turnSummaries,
         })}`
       );
@@ -2160,28 +2411,6 @@ export default defineAgent({
         .sort((a, b) => a.createdAt - b.createdAt)
         .map((turn) => `${turn.role === "assistant" ? "Tracey" : "Caller"}: ${turn.text}`)
         .join("\n");
-
-      const latency = {
-        sttAvgMs: avg(latencyAudit.sttMs),
-        llmAvgMs: avg(latencyAudit.llmMs),
-        llmP95Ms: p95(latencyAudit.llmMs),
-        llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
-        ttsAvgMs: avg(latencyAudit.ttsMs),
-        ttsP95Ms: p95(latencyAudit.ttsMs),
-        ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
-        eouAvgMs: avg(latencyAudit.eouMs),
-        transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
-        voiceClassifierAvgMs: avg(voiceLatencyAudit.classifierMs),
-        voiceGuardAvgMs: avg(voiceLatencyAudit.guardMs),
-        openerLeadAvgMs: avg(voiceLatencyAudit.openerLeadMs),
-        openerGapAvgMs: avg(voiceLatencyAudit.openerGapMs),
-        openerHits: voiceLatencyAudit.openerHits,
-        openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
-        guardTimeouts: voiceLatencyAudit.guardTimeouts,
-        guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
-        openerUsage: voiceLatencyAudit.openerUsage,
-        turns: turnSummaries,
-      };
 
       void persistVoiceCall({
         callId,
@@ -2201,7 +2430,16 @@ export default defineAgent({
           llmModel: primaryLlmConfig.model,
           llmFallbackProvider: fallbackLlmConfig?.provider || null,
           llmFallbackModel: fallbackLlmConfig?.model || null,
+          llmActualProviders: llmRunSummary.actualProviders,
+          llmActualModels: llmRunSummary.actualModels,
+          llmFallbackUsed: llmRunSummary.fallbackUsed,
+          llmFallbackCount: llmRunSummary.fallbackCount,
+          llmSelectionCount: llmRunSummary.selectionCount,
+          llmLastFailure: llmRunSummary.lastFailure,
           isEarlymarkCall,
+          maxConcurrentCalls: getMaxConcurrentCalls(),
+          voiceTurnTuning,
+          groundingCacheHit: Boolean(normalVoiceGrounding),
           voiceLatency: {
             enabled: voiceLatencyConfig.enabled,
             openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
@@ -2221,7 +2459,18 @@ export default defineAgent({
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  workerReady = true;
+  setWorkerBootReady(true);
+  try {
+    const warmTts = new cartesia.TTS({
+      model: "sonic-3",
+      voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+      language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
+      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+    });
+    getSharedOpenerAudioCache(warmTts, "[agent]");
+  } catch (error) {
+    console.warn("[agent] Failed to warm opener audio cache:", error);
+  }
   void refreshVoiceGroundingIndex(true).catch((error) => {
     console.warn("[agent] Initial voice grounding cache warm failed:", error);
   });

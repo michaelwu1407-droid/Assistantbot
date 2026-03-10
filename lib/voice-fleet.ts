@@ -105,9 +105,18 @@ function buildWorkerSnapshot(record: {
 }) {
   const ageMs = Date.now() - record.heartbeatAt.getTime();
   const warnings: string[] = [];
+  const summary = readSummary(record.summary);
+  const capacity = summary && typeof summary.capacity === "object" && summary.capacity
+    ? (summary.capacity as Record<string, unknown>)
+    : null;
+  const capacityState = typeof capacity?.capacityState === "string" ? capacity.capacityState : null;
 
   if (!record.ready) {
-    warnings.push("Worker reported itself as not ready.");
+    warnings.push(
+      capacityState === "at_capacity"
+        ? "Worker is at configured call capacity."
+        : "Worker reported itself as not ready.",
+    );
   }
   if (ageMs > UNHEALTHY_HEARTBEAT_AGE_MS) {
     warnings.push(`Heartbeat is stale (${Math.round(ageMs / 1000)}s old).`);
@@ -130,7 +139,7 @@ function buildWorkerSnapshot(record: {
     runtimeFingerprint: record.runtimeFingerprint,
     ready: record.ready,
     activeCalls: record.activeCalls,
-    summary: readSummary(record.summary),
+    summary,
     heartbeatAt: record.heartbeatAt.toISOString(),
     ageMs,
     status,

@@ -61,6 +61,8 @@ export type WorkspaceVoiceGrounding = {
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 30_000;
 const agentContextCache = new Map<string, { expiresAt: number; value: AgentContextPayload }>();
+const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60_000;
+const voiceGroundingCache = new Map<string, { expiresAt: number; value: WorkspaceVoiceGrounding | null }>();
 
 /**
  * Builds the comprehensive prompt context for the AI agent given a workspace and user.
@@ -354,6 +356,11 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
 }
 
 export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<WorkspaceVoiceGrounding | null> {
+    const cached = voiceGroundingCache.get(workspaceId);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+    }
+
     const [workspace, businessProfile, settings, repairItems, negativeRules, serviceRules] = await Promise.all([
         db.workspace.findUnique({
             where: { id: workspaceId },
@@ -402,7 +409,13 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
         }).catch(() => [] as Array<{ ruleContent: string; metadata: unknown }>),
     ]);
 
-    if (!workspace) return null;
+    if (!workspace) {
+        voiceGroundingCache.set(workspaceId, {
+            expiresAt: Date.now() + VOICE_GROUNDING_CACHE_TTL_MS,
+            value: null,
+        });
+        return null;
+    }
 
     const aiPreferences = (settings?.aiPreferences || "")
         .split("\n")
@@ -419,7 +432,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
 
     const normalizedMode = normalizeAgentMode(settings?.agentMode);
 
-    return {
+    const grounding = {
         workspaceId: workspace.id,
         businessName: businessProfile?.businessName || workspace.name || "the business",
         tradeType: businessProfile?.tradeType || null,
@@ -454,6 +467,20 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
         })),
         noGoRules,
     };
+
+    if (voiceGroundingCache.size >= 500) {
+        const now = Date.now();
+        for (const [key, value] of voiceGroundingCache.entries()) {
+            if (value.expiresAt <= now) voiceGroundingCache.delete(key);
+        }
+    }
+
+    voiceGroundingCache.set(workspaceId, {
+        expiresAt: Date.now() + VOICE_GROUNDING_CACHE_TTL_MS,
+        value: grounding,
+    });
+
+    return grounding;
 }
 
 // Lazy initialization of Mem0 Memory Client

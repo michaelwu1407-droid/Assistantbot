@@ -1,5 +1,6 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
+import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";
 
 type VoiceSurface = "demo" | "inbound_demo" | "normal";
 
@@ -79,6 +80,18 @@ function buildRequestFunc(surfaces: VoiceSurface[]) {
   return async (job: JobRequest) => {
     const inferredSurface = inferSurface(job);
     if (surfaces.includes(inferredSurface)) {
+      if (!isWorkerAcceptingCalls()) {
+        console.warn("[voice-worker] Rejecting job because worker is not accepting new calls.", {
+          roomName: job.room?.name || "",
+          inferredSurface,
+          workerRole: process.env.VOICE_WORKER_ROLE || "",
+          activeCalls: getActiveCallCount(),
+          maxConcurrentCalls: getMaxConcurrentCalls(),
+        });
+        await job.reject();
+        return;
+      }
+
       await job.accept();
       return;
     }

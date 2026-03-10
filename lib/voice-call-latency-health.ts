@@ -27,6 +27,7 @@ export type VoiceLatencyHealthScope = {
     llmTtftAvgMs: number;
     ttsTtfbAvgMs: number;
     totalTurnStartMs: number;
+    firstTurnStartMs: number;
   }>;
 };
 
@@ -84,11 +85,15 @@ function extractLatency(call: {
   const llmTtftAvgMs = latency ? readNumber(latency.llmTtftAvgMs) : 0;
   const ttsTtfbAvgMs = latency ? readNumber(latency.ttsTtfbAvgMs) : 0;
   const totalTurnStartMs = latency
-    ? readNumber(latency.eouAvgMs) +
-      readNumber(latency.transcriptionDelayAvgMs) +
-      llmTtftAvgMs +
-      ttsTtfbAvgMs
+    ? readNumber(latency.totalTurnStartAvgMs) ||
+      (
+        readNumber(latency.eouAvgMs) +
+        readNumber(latency.transcriptionDelayAvgMs) +
+        llmTtftAvgMs +
+        ttsTtfbAvgMs
+      )
     : 0;
+  const firstTurnStartMs = latency ? readNumber(latency.firstTurnStartMs) : 0;
 
   return {
     callId: call.callId,
@@ -97,6 +102,7 @@ function extractLatency(call: {
     llmTtftAvgMs,
     ttsTtfbAvgMs,
     totalTurnStartMs,
+    firstTurnStartMs,
   };
 }
 
