@@ -26,6 +26,7 @@
  */
 
 import { db } from "@/lib/db";
+import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient, createTwilioSubaccount, getSubaccountClient } from "@/lib/twilio";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -57,6 +58,7 @@ export async function initializeTradieComms(
   businessName: string,
   ownerPhone: string
 ): Promise<CommsSetupResult> {
+  void ownerPhone;
   const livekitSipUri = process.env.LIVEKIT_SIP_URI;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://assistantbot-zeta.vercel.app";
 
@@ -171,6 +173,7 @@ export async function initializeTradieComms(
         twilioSubaccountId: subaccountId,
         twilioSubaccountAuthToken: subaccountAuthToken,
         twilioPhoneNumber: purchasedNumber.phoneNumber,
+        twilioPhoneNumberNormalized: normalizePhone(purchasedNumber.phoneNumber),
         twilioPhoneNumberSid: purchasedNumber.sid,
         twilioSipTrunkSid: trunk.sid,
       },

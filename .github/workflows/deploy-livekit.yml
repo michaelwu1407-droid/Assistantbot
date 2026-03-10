@@ -1,291 +1,140 @@
 name: Deploy LiveKit Agent
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'livekit-agent/**'
-      - '.github/workflows/deploy-livekit.yml'
+      - "livekit-agent/**"
+      - "ops/systemd/**"
+      - ".github/workflows/deploy-livekit.yml"
+
 concurrency:
   group: deploy-livekit-agent
   cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [primary, secondary]
+    env:
+      DEPLOY_HOST: ${{ matrix.target == 'primary' && (secrets.SSH_HOST_PRIMARY || secrets.SSH_HOST) || secrets.SSH_HOST_SECONDARY }}
+      DEPLOY_USER: ${{ matrix.target == 'primary' && (secrets.SSH_USERNAME_PRIMARY || secrets.SSH_USERNAME) || secrets.SSH_USERNAME_SECONDARY }}
+      DEPLOY_KEY: ${{ matrix.target == 'primary' && (secrets.SSH_PRIVATE_KEY_PRIMARY || secrets.SSH_PRIVATE_KEY) || secrets.SSH_PRIVATE_KEY_SECONDARY }}
+      VOICE_HOST_ID: ${{ matrix.target == 'primary' && 'voice-host-a' || 'voice-host-b' }}
     steps:
       - name: Check Out Repo
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         uses: actions/checkout@v4
 
       - name: Package Agent
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           tar \
             --exclude='livekit-agent/node_modules' \
             --exclude='livekit-agent/.env.local' \
             --exclude='livekit-agent/.env.*.local' \
             -czf livekit-agent-deploy.tgz \
-            livekit-agent
+            livekit-agent \
+            ops/systemd
 
       - name: Copy Agent Package
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_KEY }}
           source: livekit-agent-deploy.tgz
           target: /tmp
           strip_components: 0
 
-      - name: Restart Agent
+      - name: Install and Restart Services
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_GIT_SHA: ${{ github.sha }}
           LIVEKIT_AGENT_ENV_B64: ${{ secrets.LIVEKIT_AGENT_ENV_B64 }}
-          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
-          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
-          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET }}
-          EARLYMARK_INBOUND_PHONE_NUMBER: ${{ secrets.EARLYMARK_INBOUND_PHONE_NUMBER }}
-          EARLYMARK_INBOUND_PHONE_NUMBERS: ${{ secrets.EARLYMARK_INBOUND_PHONE_NUMBERS }}
-          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
-          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          CARTESIA_API_KEY: ${{ secrets.CARTESIA_API_KEY }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          EARLYMARK_VOICE_LLM_PROVIDER: ${{ secrets.EARLYMARK_VOICE_LLM_PROVIDER }}
-          EARLYMARK_VOICE_LLM_MODEL: ${{ secrets.EARLYMARK_VOICE_LLM_MODEL }}
-          EARLYMARK_VOICE_LLM_TEMPERATURE: ${{ secrets.EARLYMARK_VOICE_LLM_TEMPERATURE }}
-          EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS: ${{ secrets.EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS }}
-          INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS: ${{ secrets.INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS }}
-          INBOUND_VOICE_MIN_INTERRUPTION_WORDS: ${{ secrets.INBOUND_VOICE_MIN_INTERRUPTION_WORDS }}
-          VOICE_STT_MODEL: ${{ secrets.VOICE_STT_MODEL }}
-          VOICE_STT_LANGUAGE: ${{ secrets.VOICE_STT_LANGUAGE }}
-          VOICE_STT_ENDPOINTING_MS: ${{ secrets.VOICE_STT_ENDPOINTING_MS }}
-          VOICE_TTS_VOICE_ID: ${{ secrets.VOICE_TTS_VOICE_ID }}
-          VOICE_TTS_LANGUAGE: ${{ secrets.VOICE_TTS_LANGUAGE }}
-          VOICE_TTS_CHUNK_TIMEOUT_MS: ${{ secrets.VOICE_TTS_CHUNK_TIMEOUT_MS }}
-          VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS: ${{ secrets.VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS }}
-          VOICE_MIN_ENDPOINTING_DELAY_MS: ${{ secrets.VOICE_MIN_ENDPOINTING_DELAY_MS }}
-          VOICE_MAX_ENDPOINTING_DELAY_MS: ${{ secrets.VOICE_MAX_ENDPOINTING_DELAY_MS }}
-          VOICE_MIN_INTERRUPTION_DURATION_MS: ${{ secrets.VOICE_MIN_INTERRUPTION_DURATION_MS }}
-          VOICE_MIN_INTERRUPTION_WORDS: ${{ secrets.VOICE_MIN_INTERRUPTION_WORDS }}
+          VOICE_HOST_ID: ${{ env.VOICE_HOST_ID }}
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,EARLYMARK_INBOUND_PHONE_NUMBER,EARLYMARK_INBOUND_PHONE_NUMBERS,DEEPGRAM_API_KEY,DEEPINFRA_API_KEY,GROQ_API_KEY,CARTESIA_API_KEY,NEXT_PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,EARLYMARK_VOICE_LLM_PROVIDER,EARLYMARK_VOICE_LLM_MODEL,EARLYMARK_VOICE_LLM_TEMPERATURE,EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS,INBOUND_VOICE_MIN_INTERRUPTION_WORDS,VOICE_STT_MODEL,VOICE_STT_LANGUAGE,VOICE_STT_ENDPOINTING_MS,VOICE_TTS_VOICE_ID,VOICE_TTS_LANGUAGE,VOICE_TTS_CHUNK_TIMEOUT_MS,VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS,VOICE_MIN_ENDPOINTING_DELAY_MS,VOICE_MAX_ENDPOINTING_DELAY_MS,VOICE_MIN_INTERRUPTION_DURATION_MS,VOICE_MIN_INTERRUPTION_WORDS
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_KEY }}
+          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,VOICE_HOST_ID
           script: |
-            set -eu
-            agent_ps() {
-              ps -eo pid= -o args= | grep -E '[ /]tsx agent\.ts start|node .*agent\.ts start' | grep -v grep || true
-            }
-            agent_pids() {
-              agent_ps | awk '{print $1}' | tr '\n' ' '
-            }
-            pid_in_list() {
-              needle="$1"
-              haystack="${2:-}"
-              case " $haystack " in
-                *" $needle "*) return 0 ;;
-                *) return 1 ;;
-              esac
-            }
-            candidate_running() {
-              current_pids="$(agent_pids)"
-              if [ -n "${CANDIDATE_PID:-}" ] && pid_in_list "$CANDIDATE_PID" "$current_pids"; then
-                return 0
-              fi
-              for pid in $current_pids; do
-                if ! pid_in_list "$pid" "${PREV_MATCHING_PIDS:-}"; then
-                  CANDIDATE_PID="$pid"
-                  return 0
-                fi
-              done
-              return 1
-            }
-            PREV_MATCHING_PIDS="$(agent_pids)"
-            PREV_PID=""
-            if [ -f /tmp/agent.pid ]; then
-              PREV_PID="$(cat /tmp/agent.pid || true)"
-            fi
-            if [ -z "$PREV_PID" ] || ! pid_in_list "$PREV_PID" "$PREV_MATCHING_PIDS"; then
-              for pid in $PREV_MATCHING_PIDS; do
-                PREV_PID="$pid"
-                break
-              done
-            fi
-            TMP_AGENT_DIR="/tmp/livekit-agent"
-            TMP_ENV_PATH="$TMP_AGENT_DIR/.env.local"
-            PERSISTENT_ENV_DIR="$HOME/.config/earlymark"
-            PERSISTENT_ENV_PATH="$PERSISTENT_ENV_DIR/livekit-agent.env"
-            LEGACY_ENV_PATH="/opt/livekit-agent/.env.local"
-            write_env() {
-              key="$1"
-              value="${2:-}"
-              if [ -n "$value" ]; then
-                escaped_value="$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')"
-                printf '%s="%s"\n' "$key" "$escaped_value" >> "$PERSISTENT_ENV_PATH"
-              fi
-            }
-            mkdir -p "$TMP_AGENT_DIR" "$PERSISTENT_ENV_DIR"
-            chmod 700 "$PERSISTENT_ENV_DIR" || true
+            set -euo pipefail
+
+            sudo mkdir -p /opt/tracey-agent/current /etc/tracey-voice
+            sudo chown -R "$USER":"$USER" /opt/tracey-agent/current
+            rm -rf /opt/tracey-agent/current/livekit-agent /opt/tracey-agent/current/ops
+            tar -xzf /tmp/livekit-agent-deploy.tgz -C /opt/tracey-agent/current
+
             if [ -n "${LIVEKIT_AGENT_ENV_B64:-}" ]; then
-              if ! printf '%s' "$LIVEKIT_AGENT_ENV_B64" | base64 -d > "$PERSISTENT_ENV_PATH"; then
-                echo "LIVEKIT_AGENT_ENV_B64 is not valid base64."
-                if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                  echo "Previous agent is still running with PID $PREV_PID"
-                  ps -p "$PREV_PID" -o pid= -o args=
-                  echo "$PREV_PID" > /tmp/agent.pid
-                  echo "Keeping previous worker active; skipping restart."
-                  exit 0
-                fi
-                exit 1
-              fi
-              chmod 600 "$PERSISTENT_ENV_PATH"
-              echo "Restored voice-agent env from GitHub secret LIVEKIT_AGENT_ENV_B64."
-            elif [ -f "$TMP_ENV_PATH" ]; then
-              cp "$TMP_ENV_PATH" "$PERSISTENT_ENV_PATH"
-              chmod 600 "$PERSISTENT_ENV_PATH"
-              echo "Persisted existing voice-agent env from $TMP_ENV_PATH."
-            elif [ -f "$LEGACY_ENV_PATH" ]; then
-              cp "$LEGACY_ENV_PATH" "$PERSISTENT_ENV_PATH"
-              chmod 600 "$PERSISTENT_ENV_PATH"
-              echo "Restored voice-agent env from legacy path $LEGACY_ENV_PATH."
-            elif [ ! -f "$PERSISTENT_ENV_PATH" ]; then
-              : > "$PERSISTENT_ENV_PATH"
-              write_env "LIVEKIT_URL" "${LIVEKIT_URL:-}"
-              write_env "LIVEKIT_API_KEY" "${LIVEKIT_API_KEY:-}"
-              write_env "LIVEKIT_API_SECRET" "${LIVEKIT_API_SECRET:-}"
-              write_env "NEXT_PUBLIC_APP_URL" "${NEXT_PUBLIC_APP_URL:-}"
-              write_env "VOICE_AGENT_WEBHOOK_SECRET" "${VOICE_AGENT_WEBHOOK_SECRET:-}"
-              write_env "EARLYMARK_INBOUND_PHONE_NUMBER" "${EARLYMARK_INBOUND_PHONE_NUMBER:-}"
-              write_env "DEEPGRAM_API_KEY" "${DEEPGRAM_API_KEY:-}"
-              write_env "DEEPINFRA_API_KEY" "${DEEPINFRA_API_KEY:-}"
-              write_env "GROQ_API_KEY" "${GROQ_API_KEY:-}"
-              write_env "CARTESIA_API_KEY" "${CARTESIA_API_KEY:-}"
-              write_env "NEXT_PUBLIC_SUPABASE_URL" "${NEXT_PUBLIC_SUPABASE_URL:-}"
-              write_env "SUPABASE_SERVICE_ROLE_KEY" "${SUPABASE_SERVICE_ROLE_KEY:-}"
-              write_env "EARLYMARK_VOICE_LLM_PROVIDER" "${EARLYMARK_VOICE_LLM_PROVIDER:-}"
-              write_env "EARLYMARK_VOICE_LLM_MODEL" "${EARLYMARK_VOICE_LLM_MODEL:-}"
-              write_env "EARLYMARK_VOICE_LLM_TEMPERATURE" "${EARLYMARK_VOICE_LLM_TEMPERATURE:-}"
-              write_env "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS" "${EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS:-}"
-              write_env "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS" "${INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS:-}"
-              write_env "INBOUND_VOICE_MIN_INTERRUPTION_WORDS" "${INBOUND_VOICE_MIN_INTERRUPTION_WORDS:-}"
-              write_env "VOICE_STT_MODEL" "${VOICE_STT_MODEL:-}"
-              write_env "VOICE_STT_LANGUAGE" "${VOICE_STT_LANGUAGE:-}"
-              write_env "VOICE_STT_ENDPOINTING_MS" "${VOICE_STT_ENDPOINTING_MS:-}"
-              write_env "VOICE_TTS_VOICE_ID" "${VOICE_TTS_VOICE_ID:-}"
-              write_env "VOICE_TTS_LANGUAGE" "${VOICE_TTS_LANGUAGE:-}"
-              write_env "VOICE_TTS_CHUNK_TIMEOUT_MS" "${VOICE_TTS_CHUNK_TIMEOUT_MS:-}"
-              write_env "VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS" "${VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS:-}"
-              write_env "VOICE_MIN_ENDPOINTING_DELAY_MS" "${VOICE_MIN_ENDPOINTING_DELAY_MS:-}"
-              write_env "VOICE_MAX_ENDPOINTING_DELAY_MS" "${VOICE_MAX_ENDPOINTING_DELAY_MS:-}"
-              write_env "VOICE_MIN_INTERRUPTION_DURATION_MS" "${VOICE_MIN_INTERRUPTION_DURATION_MS:-}"
-              write_env "VOICE_MIN_INTERRUPTION_WORDS" "${VOICE_MIN_INTERRUPTION_WORDS:-}"
-              chmod 600 "$PERSISTENT_ENV_PATH"
-              echo "Built voice-agent env from individual GitHub secrets."
+              printf '%s' "$LIVEKIT_AGENT_ENV_B64" | base64 -d > /tmp/tracey-common.env
+              sudo mv /tmp/tracey-common.env /etc/tracey-voice/common.env
             fi
-            if [ ! -f "$PERSISTENT_ENV_PATH" ]; then
-              echo "Missing persistent voice-agent env file."
-              echo "Expected one of:"
-              echo "  $PERSISTENT_ENV_PATH"
-              echo "  $LEGACY_ENV_PATH"
-              echo "Or configure the GitHub secret LIVEKIT_AGENT_ENV_B64 with base64-encoded livekit-agent/.env.local contents."
-              echo "Or set the individual voice-worker secrets (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, DEEPGRAM_API_KEY, CARTESIA_API_KEY, and GROQ_API_KEY or DEEPINFRA_API_KEY)."
-              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                echo "Previous agent is still running with PID $PREV_PID"
-                ps -p "$PREV_PID" -o pid= -o args=
-                echo "$PREV_PID" > /tmp/agent.pid
-                echo "Keeping previous worker active; skipping restart."
-                exit 0
-              fi
+
+            if [ ! -f /etc/tracey-voice/common.env ]; then
+              echo "Missing /etc/tracey-voice/common.env and LIVEKIT_AGENT_ENV_B64 was not provided."
               exit 1
             fi
-            find "$TMP_AGENT_DIR" -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
-            cp "$PERSISTENT_ENV_PATH" "$TMP_ENV_PATH"
-            chmod 600 "$TMP_ENV_PATH"
-            cd "$TMP_AGENT_DIR"
-            if [ ! -f /tmp/livekit-agent-deploy.tgz ]; then
-              echo "Missing /tmp/livekit-agent-deploy.tgz on remote host."
-              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                echo "Previous agent is still running with PID $PREV_PID"
-                ps -p "$PREV_PID" -o pid= -o args=
-                echo "$PREV_PID" > /tmp/agent.pid
-                echo "Keeping previous worker active; skipping restart."
-                exit 0
-              fi
-              exit 1
-            fi
-            tar -xzf /tmp/livekit-agent-deploy.tgz -C /tmp/livekit-agent --strip-components=1
+
+            cat > /tmp/tracey-deploy.env <<EOF
+            DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
+            VOICE_HOST_ID="$VOICE_HOST_ID"
+            EOF
+            sudo mv /tmp/tracey-deploy.env /etc/tracey-voice/deploy.env
+            sudo chmod 600 /etc/tracey-voice/common.env /etc/tracey-voice/deploy.env
+
+            cd /opt/tracey-agent/current/livekit-agent
             npm ci --omit=dev --no-audit --no-fund
-            if ! node --input-type=module -e "import { config } from 'dotenv'; config({ path: '.env.local' }); const missing = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'DEEPGRAM_API_KEY', 'CARTESIA_API_KEY'].filter((key) => !process.env[key]); if (!(process.env.GROQ_API_KEY || process.env.DEEPINFRA_API_KEY)) missing.push('GROQ_API_KEY or DEEPINFRA_API_KEY'); if (missing.length) { console.error('Missing required voice-agent env vars: ' + missing.join(', ')); process.exit(1); }"; then
-              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                echo "Preflight failed, but previous agent is still running with PID $PREV_PID"
-                ps -p "$PREV_PID" -o pid= -o args=
-                echo "$PREV_PID" > /tmp/agent.pid
-                echo "Keeping previous worker active; skipping restart."
-                exit 0
-              fi
-              exit 1
-            fi
-            : > /tmp/agent.log
-            DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA" nohup ./node_modules/.bin/tsx agent.ts start > /tmp/agent.log 2>&1 < /dev/null &
-            CANDIDATE_PID="$!"
-            STARTED=0
-            for _ in 1 2 3 4 5 6; do
-              if candidate_running; then
-                STARTED=1
+
+            sudo cp /opt/tracey-agent/current/ops/systemd/tracey-sales-agent.service /etc/systemd/system/tracey-sales-agent.service
+            sudo cp /opt/tracey-agent/current/ops/systemd/tracey-customer-agent.service /etc/systemd/system/tracey-customer-agent.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable tracey-sales-agent tracey-customer-agent
+            sudo systemctl restart tracey-sales-agent tracey-customer-agent
+            sudo systemctl is-active --quiet tracey-sales-agent
+            sudo systemctl is-active --quiet tracey-customer-agent
+
+      - name: Verify Worker Heartbeats
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_GIT_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET }}
+          VOICE_HOST_ID: ${{ env.VOICE_HOST_ID }}
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_KEY }}
+          envs: DEPLOY_GIT_SHA,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,VOICE_HOST_ID
+          script: |
+            set -euo pipefail
+            VERIFIED=0
+
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+              if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
+                VERIFIED=1
                 break
               fi
-              sleep 2
+              sleep 6
             done
-            if [ "$STARTED" -ne 1 ]; then
-              echo "Candidate agent never stayed up long enough to be considered started."
-              tail -n 80 /tmp/agent.log || true
-              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                echo "Previous agent is still running with PID $PREV_PID"
-                ps -p "$PREV_PID" -o pid= -o args=
-                echo "$PREV_PID" > /tmp/agent.pid
-                echo "Keeping previous worker active; skipping restart."
-                exit 0
-              fi
+
+            if [ "$VERIFIED" -ne 1 ]; then
+              echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
+              node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+              sudo systemctl status tracey-sales-agent --no-pager || true
+              sudo systemctl status tracey-customer-agent --no-pager || true
               exit 1
             fi
-            agent_ps
-            sleep 5
-            if ! candidate_running; then
-              echo "Candidate agent exited during startup grace period."
-              tail -n 80 /tmp/agent.log || true
-              if [ -n "$PREV_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-                echo "Previous agent is still running with PID $PREV_PID"
-                ps -p "$PREV_PID" -o pid= -o args=
-                echo "$PREV_PID" > /tmp/agent.pid
-                echo "Keeping previous worker active; skipping restart."
-                exit 0
-              fi
-              exit 1
-            fi
-            if [ -n "$PREV_PID" ] && [ "$PREV_PID" != "$CANDIDATE_PID" ] && ps -p "$PREV_PID" >/dev/null 2>&1; then
-              kill "$PREV_PID" 2>/dev/null || true
-              sleep 2
-            fi
-            if [ -n "${CANDIDATE_PID:-}" ]; then
-              echo "$CANDIDATE_PID" > /tmp/agent.pid
-            fi
-            if [ -n "${NEXT_PUBLIC_APP_URL:-}" ] && [ -n "${VOICE_AGENT_WEBHOOK_SECRET:-}" ]; then
-              VERIFIED=0
-              for _ in 1 2 3 4 5 6 7 8 9 10; do
-                if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const heartbeat = payload?.voiceWorker?.latestHeartbeat || null; const matchesSha = heartbeat?.deployGitSha === sha; const workerHealthy = payload?.voiceWorker?.status !== 'unhealthy'; if (matchesSha && workerHealthy) process.exit(0); process.exit(2);"; then
-                  VERIFIED=1
-                  break
-                fi
-                sleep 3
-              done
-              if [ "$VERIFIED" -ne 1 ]; then
-                echo "Worker heartbeat did not converge to deployed SHA $DEPLOY_GIT_SHA."
-                node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
-                exit 1
-              fi
-            fi
-            tail -n 40 /tmp/agent.log || true
+
+      - name: Skip Unconfigured Target
+        if: env.DEPLOY_HOST == '' || env.DEPLOY_USER == '' || env.DEPLOY_KEY == ''
+        run: echo "Skipping ${{ matrix.target }} because its SSH secrets are not configured."

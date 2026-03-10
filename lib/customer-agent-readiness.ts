@@ -1,6 +1,8 @@
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers, phoneMatches } from "@/lib/earlymark-inbound-config";
 import { twilioMasterClient } from "@/lib/twilio";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
+import { getVoiceFleetHealth } from "@/lib/voice-fleet";
+import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -135,12 +137,28 @@ export async function getCustomerAgentReadiness(): Promise<CustomerAgentReadines
   };
 
   checks.inboundVoice = await auditInboundVoiceConfig();
-  const voiceWorker = await getVoiceAgentRuntimeDrift();
+  const [voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
+    getVoiceAgentRuntimeDrift(),
+    getVoiceFleetHealth(),
+    getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
+  ]);
   checks.voiceWorker = {
     status: voiceWorker.status,
     missing: [],
     warnings: voiceWorker.warnings,
     summary: voiceWorker.summary,
+  };
+  checks.voiceFleet = {
+    status: voiceFleet.status,
+    missing: [],
+    warnings: voiceFleet.warnings,
+    summary: voiceFleet.summary,
+  };
+  checks.voiceLatency = {
+    status: voiceLatency.status,
+    missing: [],
+    warnings: voiceLatency.warnings,
+    summary: voiceLatency.summary,
   };
 
   const overallStatus = Object.values(checks).reduce<ReadinessStatus>(

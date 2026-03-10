@@ -5,7 +5,9 @@
   "description": "LiveKit voice agent for Earlymark CRM (Deepgram STT, Groq LLM, Cartesia TTS)",
   "scripts": {
     "dev": "npx tsx agent.ts dev",
-    "start": "npx tsx agent.ts start"
+    "start": "npx tsx agent.ts start",
+    "start:sales": "npx tsx sales-agent.ts start",
+    "start:customer": "npx tsx customer-agent.ts start"
   },
   "dependencies": {
     "@livekit/agents": "^1.0.48",

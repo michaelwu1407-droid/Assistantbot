@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
+import { getVoiceFleetHealth } from "@/lib/voice-fleet";
+import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
+import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 
 export const dynamic = "force-dynamic";
@@ -16,19 +19,19 @@ export async function GET(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [twilio, voiceWorker] = await Promise.all([
+  const [twilio, voiceWorker, fleet, latency] = await Promise.all([
     auditTwilioVoiceRouting({ apply: false }),
     getVoiceAgentRuntimeDrift(),
+    getVoiceFleetHealth(),
+    getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
 
   return NextResponse.json({
-    status: [twilio.status, voiceWorker.status].includes("unhealthy")
-      ? "unhealthy"
-      : [twilio.status, voiceWorker.status].includes("degraded")
-        ? "degraded"
-        : "healthy",
+    status: combineVoiceStatuses([twilio.status, voiceWorker.status, fleet.status, latency.status]),
     twilio,
     voiceWorker,
+    fleet,
+    latency,
     checkedAt: new Date().toISOString(),
   });
 }
@@ -38,22 +41,22 @@ export async function POST(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [twilio, voiceWorker] = await Promise.all([
+  const [twilio, voiceWorker, fleet, latency] = await Promise.all([
     auditTwilioVoiceRouting({ apply: true }),
     getVoiceAgentRuntimeDrift(),
+    getVoiceFleetHealth(),
+    getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
 
-  const status = [twilio.status, voiceWorker.status].includes("unhealthy")
-    ? "unhealthy"
-    : [twilio.status, voiceWorker.status].includes("degraded")
-      ? "degraded"
-      : "healthy";
+  const status = combineVoiceStatuses([twilio.status, voiceWorker.status, fleet.status, latency.status]);
 
   return NextResponse.json(
     {
       status,
       twilio,
       voiceWorker,
+      fleet,
+      latency,
       checkedAt: new Date().toISOString(),
     },
     { status: status === "unhealthy" ? 500 : 200 },

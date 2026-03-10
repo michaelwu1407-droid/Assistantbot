@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getVoiceFleetHealth, getLatestVoiceWorkerSnapshots, type RuntimeStatus } from "@/lib/voice-fleet";
 
-export type RuntimeStatus = "healthy" | "degraded" | "unhealthy";
+type LatestVoiceHeartbeatRecord = Awaited<ReturnType<typeof db.voiceWorkerHeartbeat.findFirst>>;
+type LatestLegacyHeartbeatRecord = Awaited<ReturnType<typeof db.webhookEvent.findFirst>>;
 
 export type VoiceAgentRuntimeDrift = {
   status: RuntimeStatus;
@@ -10,6 +12,9 @@ export type VoiceAgentRuntimeDrift = {
   expectedFingerprint: string;
   latestHeartbeat: {
     createdAt: string;
+    hostId: string | null;
+    workerRole: string | null;
+    surfaceSet: string[];
     deployGitSha: string | null;
     runtimeFingerprint: string | null;
     pid: number | null;
@@ -36,12 +41,14 @@ const VOICE_AGENT_ENV_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "EARLYMARK_VOICE_LLM_PROVIDER",
   "EARLYMARK_VOICE_LLM_MODEL",
+  "EARLYMARK_VOICE_FALLBACK_LLM_MODEL",
   "EARLYMARK_VOICE_LLM_TEMPERATURE",
   "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
   "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
   "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
   "VOICE_LLM_PROVIDER",
   "VOICE_LLM_MODEL",
+  "VOICE_FALLBACK_LLM_MODEL",
   "VOICE_LLM_TEMPERATURE",
   "VOICE_LLM_MAX_COMPLETION_TOKENS",
   "VOICE_STT_MODEL",
@@ -68,6 +75,9 @@ const VOICE_AGENT_ENV_KEYS = [
   "VOICE_GUARD_TEMPERATURE",
   "VOICE_GUARD_MIN_CHARS",
   "VOICE_EMPATHY_TURN_GAP",
+  "VOICE_HOST_ID",
+  "VOICE_WORKER_ROLE",
+  "VOICE_WORKER_SURFACES",
 ];
 
 function normalizeEnvValue(value?: string) {
@@ -113,7 +123,21 @@ function readSummary(value: unknown) {
     : null;
 }
 
+function isLegacyHeartbeatRecord(
+  value: NonNullable<LatestVoiceHeartbeatRecord | LatestLegacyHeartbeatRecord>,
+): value is NonNullable<LatestLegacyHeartbeatRecord> {
+  return "payload" in value;
+}
+
 export async function getLatestVoiceAgentHeartbeatEvent() {
+  const latestHeartbeat = await db.voiceWorkerHeartbeat.findFirst({
+    orderBy: [{ heartbeatAt: "desc" }, { createdAt: "desc" }],
+  });
+
+  if (latestHeartbeat) {
+    return latestHeartbeat;
+  }
+
   return db.webhookEvent.findFirst({
     where: { provider: "livekit_worker_status" },
     orderBy: { createdAt: "desc" },
@@ -122,25 +146,39 @@ export async function getLatestVoiceAgentHeartbeatEvent() {
 
 export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrift> {
   const expectedFingerprint = getExpectedVoiceAgentRuntimeFingerprint();
-  const latest = await getLatestVoiceAgentHeartbeatEvent();
+  const [latest, workerSnapshots, fleet] = await Promise.all([
+    getLatestVoiceAgentHeartbeatEvent(),
+    getLatestVoiceWorkerSnapshots(),
+    getVoiceFleetHealth(),
+  ]);
   const warnings: string[] = [];
 
-  if (!latest || !isJsonObject(latest.payload)) {
+  if (!latest) {
     return {
       status: "unhealthy",
-      summary: "No LiveKit worker heartbeat has been recorded",
-      warnings: ["The voice worker has not reported its active runtime fingerprint to the app."],
+      summary: "No voice worker heartbeat has been recorded",
+      warnings: ["The voice worker fleet has not reported an active runtime fingerprint to the app."],
       expectedFingerprint,
       latestHeartbeat: null,
     };
   }
 
-  const payload = latest.payload;
-  const runtimeFingerprint = readString(payload.runtimeFingerprint);
-  const deployGitSha = readString(payload.deployGitSha);
-  const pid = readNumber(payload.pid);
-  const summary = readSummary(payload.summary);
-  const ageMs = Date.now() - latest.createdAt.getTime();
+  if (isLegacyHeartbeatRecord(latest) && !isJsonObject(latest.payload)) {
+    return {
+      status: "unhealthy",
+      summary: "Latest legacy heartbeat payload is invalid",
+      warnings: ["The latest heartbeat exists but does not contain a usable runtime fingerprint payload."],
+      expectedFingerprint,
+      latestHeartbeat: null,
+    };
+  }
+
+  const latestSnapshot = workerSnapshots
+    .slice()
+    .sort((left, right) => right.heartbeatAt.localeCompare(left.heartbeatAt))[0] || null;
+  const runtimeFingerprint = latestSnapshot?.runtimeFingerprint || (isLegacyHeartbeatRecord(latest) && isJsonObject(latest.payload)
+    ? readString(latest.payload.runtimeFingerprint)
+    : null);
 
   if (!runtimeFingerprint) {
     warnings.push("Latest worker heartbeat is missing a runtime fingerprint.");
@@ -148,28 +186,52 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
     warnings.push("LiveKit worker runtime fingerprint does not match the app's expected production env.");
   }
 
-  if (ageMs > 15 * 60 * 1000) {
-    warnings.push(`LiveKit worker heartbeat is stale (${Math.round(ageMs / 60000)} minutes old).`);
-  }
+  warnings.push(...fleet.warnings);
+  const dedupedWarnings = Array.from(new Set(warnings.filter(Boolean)));
 
   const status: RuntimeStatus =
-    warnings.length === 0
-      ? "healthy"
-      : warnings.some((warning) => warning.includes("does not match") || warning.includes("missing"))
-        ? "unhealthy"
-        : "degraded";
+    runtimeFingerprint && runtimeFingerprint !== expectedFingerprint
+      ? "unhealthy"
+      : fleet.status;
+
+  if (isLegacyHeartbeatRecord(latest) && isJsonObject(latest.payload)) {
+    const payload = latest.payload;
+    return {
+      status,
+      summary: dedupedWarnings[0] || fleet.summary,
+      warnings: dedupedWarnings,
+      expectedFingerprint,
+      latestHeartbeat: {
+        createdAt: latest.createdAt.toISOString(),
+        hostId: null,
+        workerRole: null,
+        surfaceSet: [],
+        deployGitSha: readString(payload.deployGitSha),
+        runtimeFingerprint,
+        pid: readNumber(payload.pid),
+        summary: readSummary(payload.summary),
+      },
+    };
+  }
+
+  const workerHeartbeat = latest as NonNullable<LatestVoiceHeartbeatRecord>;
 
   return {
     status,
-    summary: warnings[0] || "LiveKit worker runtime matches expected configuration",
-    warnings,
+    summary: dedupedWarnings[0] || fleet.summary,
+    warnings: dedupedWarnings,
     expectedFingerprint,
     latestHeartbeat: {
-      createdAt: latest.createdAt.toISOString(),
-      deployGitSha,
+      createdAt: workerHeartbeat.heartbeatAt.toISOString(),
+      hostId: workerHeartbeat.hostId,
+      workerRole: workerHeartbeat.workerRole,
+      surfaceSet: Array.isArray(workerHeartbeat.surfaceSet)
+        ? workerHeartbeat.surfaceSet.filter((value: unknown): value is string => typeof value === "string")
+        : [],
+      deployGitSha: workerHeartbeat.deployGitSha,
       runtimeFingerprint,
-      pid,
-      summary,
+      pid: null,
+      summary: readSummary(workerHeartbeat.summary),
     },
   };
 }

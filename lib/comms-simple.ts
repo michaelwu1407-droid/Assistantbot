@@ -10,6 +10,7 @@
  */
 
 import { db } from "@/lib/db";
+import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -189,6 +190,7 @@ export async function initializeSimpleComms(
       data: {
         twilioSubaccountId: accountSid, // Using main account SID for simple setup
         twilioPhoneNumber: purchasedNumber.phoneNumber,
+        twilioPhoneNumberNormalized: normalizePhone(purchasedNumber.phoneNumber),
         twilioPhoneNumberSid: purchasedNumber.sid,
         twilioSipTrunkSid: trunk.sid,
       },
@@ -218,8 +220,9 @@ export async function initializeSimpleComms(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const stack = error instanceof Error ? error.stack : undefined;
-    const errorCode = (error as any)?.code;
-    const status = (error as any)?.status;
+    const errorData = error as { code?: number; status?: number } | null;
+    const errorCode = errorData?.code;
+    const status = errorData?.status;
     
     // Handle specific Live API errors
     let detailedError = message;

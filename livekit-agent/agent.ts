@@ -24,7 +24,7 @@ import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts as agentsTts, voice } from '@livekit/agents';
-import { AudioFrame } from '@livekit/rtc-node';
+import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
 import voiceLatency from './voice-latency';
@@ -45,7 +45,8 @@ const {
 
 const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
-const VOICE_AGENT_HEARTBEAT_MS = 5 * 60 * 1000;
+const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
+const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
 const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "LIVEKIT_URL",
   "LIVEKIT_API_KEY",
@@ -65,12 +66,14 @@ const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "EARLYMARK_VOICE_LLM_PROVIDER",
   "EARLYMARK_VOICE_LLM_MODEL",
+  "EARLYMARK_VOICE_FALLBACK_LLM_MODEL",
   "EARLYMARK_VOICE_LLM_TEMPERATURE",
   "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
   "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
   "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
   "VOICE_LLM_PROVIDER",
   "VOICE_LLM_MODEL",
+  "VOICE_FALLBACK_LLM_MODEL",
   "VOICE_LLM_TEMPERATURE",
   "VOICE_LLM_MAX_COMPLETION_TOKENS",
   "VOICE_STT_MODEL",
@@ -97,6 +100,9 @@ const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "VOICE_GUARD_TEMPERATURE",
   "VOICE_GUARD_MIN_CHARS",
   "VOICE_EMPATHY_TURN_GAP",
+  "VOICE_HOST_ID",
+  "VOICE_WORKER_ROLE",
+  "VOICE_WORKER_SURFACES",
 ] as const;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
@@ -225,6 +231,28 @@ type PendingLatencyTurn = {
   openerSpeechCreatedAt: number | null;
 };
 
+type LlmProviderName = "groq" | "deepinfra";
+
+type LlmProviderConfig = {
+  provider: LlmProviderName;
+  model: string;
+  apiKey: string;
+  baseURL: string;
+  temperature: number;
+  maxCompletionTokens: number;
+  isFallback: boolean;
+};
+
+type GroundingCacheEntry = {
+  value: WorkspaceVoiceGrounding;
+  fetchedAt: number;
+};
+
+let activeCallCount = 0;
+let workerReady = false;
+let groundingRefreshPromise: Promise<void> | null = null;
+const groundingCache = new Map<string, GroundingCacheEntry>();
+
 function cloneAudioFrame(frame: AudioFrame): AudioFrame {
   return new AudioFrame(new Int16Array(frame.data), frame.sampleRate, frame.channels, frame.samplesPerChannel);
 }
@@ -331,11 +359,17 @@ class MultilingualTTS extends agentsTts.TTS {
   }
 
   synthesize(text: string, connOptions?: unknown, abortSignal?: AbortSignal): agentsTts.ChunkedStream {
-    return this.#getTts().synthesize(text, connOptions as any, abortSignal) as agentsTts.ChunkedStream;
+    return this.#getTts().synthesize(
+      text,
+      connOptions as Parameters<cartesia.TTS["synthesize"]>[1],
+      abortSignal,
+    ) as agentsTts.ChunkedStream;
   }
 
   stream(options?: { connOptions?: unknown }): agentsTts.SynthesizeStream {
-    return this.#getTts().stream(options) as agentsTts.SynthesizeStream;
+    return this.#getTts().stream(
+      options as Parameters<cartesia.TTS["stream"]>[0],
+    ) as agentsTts.SynthesizeStream;
   }
 
   async close(): Promise<void> {
@@ -443,9 +477,291 @@ function getKnownEarlymarkNumbers(): string[] {
   return Array.from(new Set(values));
 }
 
+function normalizeWorkerSurface(value: string): CallType | null {
+  if (value === "demo" || value === "inbound_demo" || value === "normal") return value;
+  return null;
+}
+
+function getConfiguredWorkerRole() {
+  return (process.env.VOICE_WORKER_ROLE || "tracey-all-agent").trim();
+}
+
+function getConfiguredHostId() {
+  return (
+    process.env.VOICE_HOST_ID ||
+    process.env.HOSTNAME ||
+    process.env.COMPUTERNAME ||
+    "unknown-host"
+  ).trim();
+}
+
+function getConfiguredWorkerSurfaces(): CallType[] {
+  const raw = (process.env.VOICE_WORKER_SURFACES || "").trim();
+  if (raw) {
+    const parsed = raw
+      .split(",")
+      .map((value) => normalizeWorkerSurface(value.trim()))
+      .filter(Boolean) as CallType[];
+    if (parsed.length > 0) {
+      return Array.from(new Set(parsed));
+    }
+  }
+
+  const workerRole = getConfiguredWorkerRole();
+  if (workerRole === "tracey-sales-agent") return ["demo", "inbound_demo"];
+  if (workerRole === "tracey-customer-agent") return ["normal"];
+  return ["demo", "inbound_demo", "normal"];
+}
+
+function inferConfiguredPrimaryProvider(callType: CallType): LlmProviderName {
+  const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+  const configured = (
+    isEarlymarkCall
+      ? process.env.EARLYMARK_VOICE_LLM_PROVIDER
+      : process.env.VOICE_LLM_PROVIDER
+  )?.trim().toLowerCase();
+
+  if (configured === "deepinfra") return "deepinfra";
+  return "groq";
+}
+
+function resolveProviderBaseUrl(provider: LlmProviderName) {
+  return provider === "groq" ? "https://api.groq.com/openai/v1" : "https://api.deepinfra.com/v1/openai";
+}
+
+function resolveProviderApiKey(provider: LlmProviderName) {
+  return provider === "groq" ? process.env.GROQ_API_KEY || "" : process.env.DEEPINFRA_API_KEY || "";
+}
+
+function resolveProviderModel(callType: CallType, provider: LlmProviderName, isFallback: boolean) {
+  const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+  const configuredModel = isEarlymarkCall
+    ? process.env.EARLYMARK_VOICE_LLM_MODEL
+    : process.env.VOICE_LLM_MODEL;
+  const configuredFallbackModel = isEarlymarkCall
+    ? process.env.EARLYMARK_VOICE_FALLBACK_LLM_MODEL
+    : process.env.VOICE_FALLBACK_LLM_MODEL;
+
+  if (!isFallback && configuredModel) {
+    return configuredModel;
+  }
+  if (isFallback && configuredFallbackModel) {
+    return configuredFallbackModel;
+  }
+
+  return provider === "groq"
+    ? "llama-3.3-70b-versatile"
+    : "meta-llama/Meta-Llama-3.1-8B-Instruct";
+}
+
+function resolveProviderTemperature(callType: CallType) {
+  const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
+  return Number(
+    isEarlymarkCall
+      ? (process.env.EARLYMARK_VOICE_LLM_TEMPERATURE || 0.1)
+      : (process.env.VOICE_LLM_TEMPERATURE || 0.2)
+  );
+}
+
+function resolveProviderMaxCompletionTokens(callType: CallType) {
+  return Number(
+    callType === "inbound_demo"
+      ? (process.env.INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS || 32)
+      : callType === "demo"
+        ? (process.env.EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS || 40)
+        : (process.env.VOICE_LLM_MAX_COMPLETION_TOKENS || 80)
+  );
+}
+
+function buildProviderConfig(callType: CallType, provider: LlmProviderName, isFallback: boolean): LlmProviderConfig | null {
+  const apiKey = resolveProviderApiKey(provider);
+  if (!apiKey) return null;
+
+  return {
+    provider,
+    model: resolveProviderModel(callType, provider, isFallback),
+    apiKey,
+    baseURL: resolveProviderBaseUrl(provider),
+    temperature: resolveProviderTemperature(callType),
+    maxCompletionTokens: resolveProviderMaxCompletionTokens(callType),
+    isFallback,
+  };
+}
+
+class FallbackLLM extends livekitLlm.LLM {
+  readonly #primary: openai.LLM;
+  readonly #fallback: openai.LLM | null;
+  readonly #primaryConfig: LlmProviderConfig;
+  readonly #fallbackConfig: LlmProviderConfig | null;
+
+  constructor(args: {
+    primary: openai.LLM;
+    fallback: openai.LLM | null;
+    primaryConfig: LlmProviderConfig;
+    fallbackConfig: LlmProviderConfig | null;
+  }) {
+    super();
+    this.#primary = args.primary;
+    this.#fallback = args.fallback;
+    this.#primaryConfig = args.primaryConfig;
+    this.#fallbackConfig = args.fallbackConfig;
+  }
+
+  label() {
+    return this.#fallbackConfig
+      ? `voice-fallback:${this.#primaryConfig.provider}->${this.#fallbackConfig.provider}`
+      : `voice:${this.#primaryConfig.provider}`;
+  }
+
+  get model() {
+    return this.#primaryConfig.model;
+  }
+
+  chat(args: Parameters<openai.LLM["chat"]>[0]) {
+    try {
+      return this.#primary.chat(args);
+    } catch (error) {
+      if (!this.#fallback) throw error;
+      console.warn("[agent] Primary LLM chat setup failed; falling back.", {
+        primaryProvider: this.#primaryConfig.provider,
+        fallbackProvider: this.#fallbackConfig?.provider,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return this.#fallback.chat(args);
+    }
+  }
+
+  prewarm() {
+    this.#primary.prewarm();
+    this.#fallback?.prewarm();
+  }
+
+  async aclose() {
+    await Promise.allSettled([
+      this.#primary.aclose(),
+      this.#fallback?.aclose() || Promise.resolve(),
+    ]);
+  }
+}
+
+function createVoiceLlm(callType: CallType) {
+  const primaryProvider = inferConfiguredPrimaryProvider(callType);
+  const fallbackProvider: LlmProviderName = primaryProvider === "groq" ? "deepinfra" : "groq";
+  const primaryConfig = buildProviderConfig(callType, primaryProvider, false);
+  const fallbackConfig = buildProviderConfig(callType, fallbackProvider, true);
+
+  if (!primaryConfig && !fallbackConfig) {
+    throw new Error("[agent] Missing API key for both Groq and DeepInfra voice providers.");
+  }
+
+  const effectivePrimary = primaryConfig || fallbackConfig!;
+  const effectiveFallback = primaryConfig ? fallbackConfig : null;
+  const primaryLlm = new openai.LLM({
+    model: effectivePrimary.model,
+    apiKey: effectivePrimary.apiKey,
+    baseURL: effectivePrimary.baseURL,
+    temperature: effectivePrimary.temperature,
+    maxCompletionTokens: effectivePrimary.maxCompletionTokens,
+  });
+  const fallbackLlm = effectiveFallback
+    ? new openai.LLM({
+      model: effectiveFallback.model,
+      apiKey: effectiveFallback.apiKey,
+      baseURL: effectiveFallback.baseURL,
+      temperature: effectiveFallback.temperature,
+      maxCompletionTokens: effectiveFallback.maxCompletionTokens,
+    })
+    : null;
+
+  return {
+    llm: new FallbackLLM({
+      primary: primaryLlm,
+      fallback: fallbackLlm,
+      primaryConfig: effectivePrimary,
+      fallbackConfig: effectiveFallback,
+    }),
+    primaryConfig: effectivePrimary,
+    fallbackConfig: effectiveFallback,
+  };
+}
+
+async function refreshVoiceGroundingIndex(force = false) {
+  if (!force && groundingRefreshPromise) {
+    return groundingRefreshPromise;
+  }
+
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  if (!appUrl || !secret) return;
+
+  groundingRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-grounding-index`, {
+        method: "GET",
+        headers: {
+          "x-voice-agent-secret": secret,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`voice-grounding-index returned ${response.status}`);
+      }
+
+      const payload = await response.json().catch(() => null);
+      const entries = Array.isArray(payload?.groundings) ? payload.groundings : [];
+      const nextCache = new Map<string, GroundingCacheEntry>();
+      const now = Date.now();
+
+      for (const entry of entries) {
+        const grounding = entry?.grounding as WorkspaceVoiceGrounding | undefined;
+        if (!grounding) continue;
+        const normalizedCalledPhone = normalizePhone(
+          (typeof entry?.calledPhoneNormalized === "string" && entry.calledPhoneNormalized) ||
+          (typeof entry?.calledPhone === "string" && entry.calledPhone) ||
+          grounding.businessPhone,
+        );
+        if (!normalizedCalledPhone) continue;
+
+        nextCache.set(normalizedCalledPhone, {
+          value: grounding,
+          fetchedAt: now,
+        });
+      }
+
+      groundingCache.clear();
+      for (const [phone, entry] of nextCache.entries()) {
+        groundingCache.set(phone, entry);
+      }
+    } catch (error) {
+      console.warn("[agent] Failed to refresh voice grounding cache:", error);
+    } finally {
+      groundingRefreshPromise = null;
+    }
+  })();
+
+  return groundingRefreshPromise;
+}
+
+function getCachedVoiceGrounding(calledPhone?: string | null) {
+  const normalizedPhone = normalizePhone(calledPhone);
+  if (!normalizedPhone) return null;
+
+  const cached = groundingCache.get(normalizedPhone);
+  if (!cached) {
+    void refreshVoiceGroundingIndex().catch(() => {});
+    return null;
+  }
+
+  if (Date.now() - cached.fetchedAt > VOICE_GROUNDING_CACHE_TTL_MS) {
+    void refreshVoiceGroundingIndex(true).catch(() => {});
+  }
+
+  return cached.value;
+}
+
 function resolveCallType(initialCallType: CallType, calledPhone: string, roomName: string): CallType {
   if (initialCallType !== "normal") return initialCallType;
-  if (roomName.startsWith("earlymark-inbound-") || roomName.startsWith("inbound_")) {
+  if (roomName.startsWith("earlymark-inbound-")) {
     return "inbound_demo";
   }
   if (getKnownEarlymarkNumbers().some((number) => phoneMatches(number, calledPhone))) {
@@ -790,8 +1106,12 @@ function getGoodbyeLine(callType: CallType): string {
   return "No worries. Thanks for calling. Bye for now.";
 }
 
-function extractTextFromConversationItem(item: any): string | null {
-  const text = typeof item?.textContent === "string" ? item.textContent.trim() : "";
+function extractTextFromConversationItem(item: unknown): string | null {
+  const textContent =
+    item && typeof item === "object" && "textContent" in item
+      ? (item as { textContent?: unknown }).textContent
+      : "";
+  const text = typeof textContent === "string" ? textContent.trim() : "";
   return text || null;
 }
 
@@ -858,8 +1178,29 @@ function getVoiceAgentRuntimeFingerprint() {
 
 function buildVoiceAgentRuntimeSummary() {
   return {
-    llmProvider: process.env.EARLYMARK_VOICE_LLM_PROVIDER || process.env.VOICE_LLM_PROVIDER || "deepinfra",
-    llmModel: process.env.EARLYMARK_VOICE_LLM_MODEL || process.env.VOICE_LLM_MODEL || "meta-llama/Llama-3.3-70B-Instruct",
+    hostId: getConfiguredHostId(),
+    workerRole: getConfiguredWorkerRole(),
+    surfaceSet: getConfiguredWorkerSurfaces(),
+    llmProvider: {
+      earlymarkPrimary: inferConfiguredPrimaryProvider("demo"),
+      earlymarkFallback: inferConfiguredPrimaryProvider("demo") === "groq" ? "deepinfra" : "groq",
+      customerPrimary: inferConfiguredPrimaryProvider("normal"),
+      customerFallback: inferConfiguredPrimaryProvider("normal") === "groq" ? "deepinfra" : "groq",
+    },
+    llmModel: {
+      earlymarkPrimary: resolveProviderModel("demo", inferConfiguredPrimaryProvider("demo"), false),
+      earlymarkFallback: resolveProviderModel(
+        "demo",
+        inferConfiguredPrimaryProvider("demo") === "groq" ? "deepinfra" : "groq",
+        true,
+      ),
+      customerPrimary: resolveProviderModel("normal", inferConfiguredPrimaryProvider("normal"), false),
+      customerFallback: resolveProviderModel(
+        "normal",
+        inferConfiguredPrimaryProvider("normal") === "groq" ? "deepinfra" : "groq",
+        true,
+      ),
+    },
     sttModel: process.env.VOICE_STT_MODEL || "nova-3",
     ttsVoiceId: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
     latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
@@ -867,6 +1208,7 @@ function buildVoiceAgentRuntimeSummary() {
     guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
     targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || "normal",
     knownInboundNumbers: getKnownEarlymarkNumbers(),
+    groundingCacheEntries: groundingCache.size,
   };
 }
 
@@ -887,8 +1229,13 @@ async function postVoiceAgentStatus() {
       "x-voice-agent-secret": secret,
     },
     body: JSON.stringify({
+      hostId: getConfiguredHostId(),
+      workerRole: getConfiguredWorkerRole(),
+      surfaceSet: getConfiguredWorkerSurfaces(),
       deployGitSha: DEPLOY_GIT_SHA,
       runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
+      ready: workerReady,
+      activeCalls: activeCallCount,
       pid: process.pid,
       startedAt: AGENT_STARTED_AT,
       heartbeatAt: new Date().toISOString(),
@@ -900,34 +1247,6 @@ async function postVoiceAgentStatus() {
     const body = await response.text().catch(() => "");
     throw new Error(`Worker status heartbeat failed: ${response.status} ${body}`);
   }
-}
-
-async function fetchVoiceGrounding(params: {
-  calledPhone?: string;
-  workspaceId?: string;
-}): Promise<WorkspaceVoiceGrounding | null> {
-  const appUrl = getAppBaseUrl();
-  const secret = getVoiceAgentWebhookSecret();
-
-  if (!appUrl || !secret) {
-    return null;
-  }
-
-  const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-context`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-voice-agent-secret": secret,
-    },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = await response.json().catch(() => null);
-  return (payload?.grounding as WorkspaceVoiceGrounding | undefined) || null;
 }
 
 function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding) {
@@ -1109,7 +1428,7 @@ export default defineAgent({
     });
 
     const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL as any) || "nova-3",
+      model: (process.env.VOICE_STT_MODEL || "nova-3") as ConstructorParameters<typeof deepgram.STT>[0]["model"],
       language: "multi",
       detectLanguage: true,
       interimResults: true,
@@ -1186,6 +1505,16 @@ export default defineAgent({
     }
 
     callType = resolveCallType(callType, calledPhone, ctx.room.name);
+    activeCallCount += 1;
+    let activeCallReleased = false;
+    const releaseActiveCall = () => {
+      if (activeCallReleased) return;
+      activeCallReleased = true;
+      activeCallCount = Math.max(0, activeCallCount - 1);
+    };
+    ctx.addShutdownCallback(async () => {
+      releaseActiveCall();
+    });
 
     const caller: CallerContext = {
       callType,
@@ -1197,49 +1526,14 @@ export default defineAgent({
 
     const normalVoiceGrounding =
       callType === "normal"
-        ? await fetchVoiceGrounding({ calledPhone }).catch((error) => {
-          console.warn("[agent] Failed to fetch voice grounding:", error);
-          return null;
-        })
+        ? getCachedVoiceGrounding(calledPhone)
         : null;
+    if (callType === "normal" && !normalVoiceGrounding) {
+      void refreshVoiceGroundingIndex().catch(() => {});
+    }
 
     const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
-    const llmProvider = (
-      process.env.GROQ_API_KEY
-        ? "groq"
-        : (
-          isEarlymarkCall
-            ? (process.env.EARLYMARK_VOICE_LLM_PROVIDER || "deepinfra")
-            : (process.env.VOICE_LLM_PROVIDER || "deepinfra")
-        )
-    ).toLowerCase();
-    const llmModel =
-      (isEarlymarkCall ? process.env.EARLYMARK_VOICE_LLM_MODEL : process.env.VOICE_LLM_MODEL) ||
-      (llmProvider === "groq" ? "llama-3.3-70b-versatile" : "meta-llama/Meta-Llama-3.1-8B-Instruct");
-    const llmApiKey = llmProvider === "groq" ? process.env.GROQ_API_KEY : process.env.DEEPINFRA_API_KEY;
-    const llmBaseURL = llmProvider === "groq" ? "https://api.groq.com/openai/v1" : "https://api.deepinfra.com/v1/openai";
-    if (!llmApiKey) {
-      throw new Error(`[agent] Missing API key for provider '${llmProvider}'.`);
-    }
-    const llmTemperature = Number(
-      isEarlymarkCall
-        ? (process.env.EARLYMARK_VOICE_LLM_TEMPERATURE || 0.1)
-        : (process.env.VOICE_LLM_TEMPERATURE || 0.2)
-    );
-    const llmMaxCompletionTokens = Number(
-      callType === "inbound_demo"
-        ? (process.env.INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS || 32)
-        : isEarlymarkCall
-          ? (process.env.EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS || 40)
-          : (process.env.VOICE_LLM_MAX_COMPLETION_TOKENS || 80)
-    );
-    const llm = new openai.LLM({
-      model: llmModel,
-      apiKey: llmApiKey,
-      baseURL: llmBaseURL,
-      temperature: llmTemperature,
-      maxCompletionTokens: llmMaxCompletionTokens,
-    });
+    const { llm, primaryConfig: primaryLlmConfig, fallbackConfig: fallbackLlmConfig } = createVoiceLlm(callType);
 
     const logPrefix = isEarlymarkCall ? "[TRACEY_EARLYMARK]" : "[TRACEY_USER]";
     const greeting = getGreeting(callType, caller);
@@ -1251,10 +1545,10 @@ export default defineAgent({
       : "Thank the caller for their time, let them know their message will be passed on, and say goodbye.";
     const voiceLatencyConfig = resolveVoiceLatencyConfig({
       callType,
-      llmProvider,
-      llmModel,
-      llmApiKey,
-      llmBaseURL,
+      llmProvider: primaryLlmConfig.provider,
+      llmModel: primaryLlmConfig.model,
+      llmApiKey: primaryLlmConfig.apiKey,
+      llmBaseURL: primaryLlmConfig.baseURL,
     });
     const openerAudioCache: Map<OpenerId, Promise<AudioFrame>> = voiceLatencyConfig.openerBankEnabled
       ? buildOpenerAudioCache(defaultTts, logPrefix)
@@ -1269,10 +1563,13 @@ export default defineAgent({
       callerBusiness,
       callerPhone,
       calledPhone,
-      llmProvider,
-      llmModel,
+      llmProvider: primaryLlmConfig.provider,
+      llmModel: primaryLlmConfig.model,
+      llmFallbackProvider: fallbackLlmConfig?.provider || null,
+      llmFallbackModel: fallbackLlmConfig?.model || null,
       customerContactMode: normalVoiceGrounding?.customerContactMode || null,
       groundedWorkspaceId: normalVoiceGrounding?.workspaceId || null,
+      groundingCacheHit: Boolean(normalVoiceGrounding),
       voiceLatency: {
         enabled: voiceLatencyConfig.enabled,
         openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
@@ -1313,13 +1610,20 @@ export default defineAgent({
 
     // Explicitly subscribe to SIP audio tracks as they arrive.
     // Earlier regressions showed that relying on the default path can leave STT with no caller audio.
-    ctx.room.on("trackPublished", (pub: any, p: any) => {
-      console.log(`${logPrefix} [TRACK] published: kind=${pub.kind} participant=${p.identity}`);
-      try { pub.setSubscribed(true); } catch { /* ignore */ }
+    ctx.room.on("trackPublished", (pub: RemoteTrackPublication, p: RemoteParticipant) => {
+      console.log(`${logPrefix} [TRACK] published: kind=${String(pub.kind)} participant=${p.identity}`);
+      try { pub.setSubscribed?.(true); } catch { /* ignore */ }
     });
-    ctx.room.on("trackSubscribed", (track: any, _pub: any, p: any) => {
-      console.log(`${logPrefix} [TRACK] subscribed: kind=${track.kind} participant=${p.identity}`);
-    });
+    ctx.room.on(
+      "trackSubscribed",
+      (
+        track: RemoteTrack,
+        _pub: RemoteTrackPublication,
+        p: RemoteParticipant,
+      ) => {
+      console.log(`${logPrefix} [TRACK] subscribed: kind=${String(track.kind)} participant=${p.identity}`);
+      },
+    );
     for (const [, remoteParticipant] of ctx.room.remoteParticipants) {
       for (const [, pub] of remoteParticipant.trackPublications) {
         console.log(`${logPrefix} [TRACK] existing: kind=${pub.kind} participant=${remoteParticipant.identity}`);
@@ -1513,7 +1817,16 @@ export default defineAgent({
     });
 
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
-      const metrics = ev.metrics as any;
+      const metrics = ev.metrics as Record<string, unknown> & {
+        type?: string;
+        speechId?: string;
+        durationMs?: number;
+        ttftMs?: number;
+        ttfbMs?: number;
+        endOfUtteranceDelayMs?: number;
+        transcriptionDelayMs?: number;
+        onUserTurnCompletedDelayMs?: number;
+      };
       if (!metrics?.type) return;
 
       switch (metrics.type) {
@@ -1555,7 +1868,7 @@ export default defineAgent({
     });
 
     session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
-      const item = ev.item as any;
+      const item = ev.item as { id?: string; type?: string; role?: string; textContent?: string } | null;
       if (!item || item.type !== "message" || transcriptItemIds.has(item.id)) return;
 
       const role = item.role === "assistant" ? "assistant" : item.role === "user" ? "user" : null;
@@ -1884,8 +2197,10 @@ export default defineAgent({
         latency,
         leadCapture,
         metadata: {
-          llmProvider,
-          llmModel,
+          llmProvider: primaryLlmConfig.provider,
+          llmModel: primaryLlmConfig.model,
+          llmFallbackProvider: fallbackLlmConfig?.provider || null,
+          llmFallbackModel: fallbackLlmConfig?.model || null,
           isEarlymarkCall,
           voiceLatency: {
             enabled: voiceLatencyConfig.enabled,
@@ -1899,11 +2214,24 @@ export default defineAgent({
       }).catch((error) => {
         console.error("[agent] Failed to persist voice call:", error);
       });
+
+      releaseActiveCall();
     });
   },
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  workerReady = true;
+  void refreshVoiceGroundingIndex(true).catch((error) => {
+    console.warn("[agent] Initial voice grounding cache warm failed:", error);
+  });
+  const groundingRefreshTimer = setInterval(() => {
+    void refreshVoiceGroundingIndex(true).catch((error) => {
+      console.warn("[agent] Voice grounding cache refresh failed:", error);
+    });
+  }, VOICE_GROUNDING_CACHE_TTL_MS);
+  groundingRefreshTimer.unref?.();
+
   void postVoiceAgentStatus().catch((error) => {
     console.error("[agent] Failed to post worker-status heartbeat:", error);
   });
@@ -1919,6 +2247,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       agent: fileURLToPath(import.meta.url),
       numIdleProcesses: 1,
       initializeProcessTimeout: 60_000,
+      agentName: getConfiguredWorkerRole(),
     }),
   );
 }

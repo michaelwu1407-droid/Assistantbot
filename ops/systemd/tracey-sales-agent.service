@@ -1,0 +1,24 @@
+[Unit]
+Description=Tracey Sales Voice Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/tracey-agent/current/livekit-agent
+EnvironmentFile=/etc/tracey-voice/common.env
+EnvironmentFile=/etc/tracey-voice/deploy.env
+Environment=VOICE_WORKER_ROLE=tracey-sales-agent
+Environment=VOICE_WORKER_SURFACES=demo,inbound_demo
+ExecStart=/usr/bin/npm run start:sales
+Restart=always
+RestartSec=5
+SyslogIdentifier=tracey-sales-agent
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

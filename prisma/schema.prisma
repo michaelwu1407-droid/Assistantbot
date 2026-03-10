@@ -82,6 +82,7 @@ model Workspace {
   // Twilio SaaS Subaccount details for dynamic AI agent phone numbers
   twilioSubaccountId        String?
   twilioPhoneNumber         String?
+  twilioPhoneNumberNormalized String?
   twilioPhoneNumberSid      String?
   twilioSipTrunkSid         String?
   twilioSubaccountAuthToken String?
@@ -139,6 +140,8 @@ model Workspace {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([twilioPhoneNumberNormalized])
 }
 
 model User {
@@ -333,6 +336,43 @@ model VoiceCall {
   @@index([workspaceId, createdAt])
   @@index([contactId, createdAt])
   @@index([callType, createdAt])
+}
+
+model VoiceWorkerHeartbeat {
+  id                 String   @id @default(cuid())
+  hostId             String
+  workerRole         String
+  surfaceSet         Json?
+  deployGitSha       String?
+  runtimeFingerprint String
+  ready              Boolean  @default(false)
+  activeCalls        Int      @default(0)
+  summary            Json?
+  heartbeatAt        DateTime
+  createdAt          DateTime @default(now())
+
+  @@index([hostId, workerRole, heartbeatAt])
+  @@index([heartbeatAt])
+}
+
+model VoiceIncident {
+  id                    String   @id @default(cuid())
+  incidentKey           String   @unique
+  surface               String
+  severity              String
+  status                String   @default("open")
+  summary               String
+  details               Json?
+  detectedAt            DateTime
+  lastObservedAt        DateTime
+  resolvedAt            DateTime?
+  lastAlertedAt         DateTime?
+  lastRecoveryAlertedAt DateTime?
+  alertCount            Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status, surface, updatedAt])
 }
 
 model Task {

@@ -3,24 +3,35 @@ import { getCustomerAgentReadiness } from '@/lib/customer-agent-readiness';
 import { checkDatabaseHealth } from '@/lib/health-check';
 import { getVoiceAgentRuntimeDrift } from '@/lib/voice-agent-runtime';
 import { auditTwilioVoiceRouting } from '@/lib/twilio-drift';
+import { getVoiceFleetHealth } from '@/lib/voice-fleet';
+import { getVoiceLatencyHealth } from '@/lib/voice-call-latency-health';
+import { combineVoiceStatuses } from '@/lib/voice-monitoring';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const [database, customerFacingAgents, voiceWorker, twilioVoiceRouting] = await Promise.all([
+    const [database, customerFacingAgents, voiceWorker, voiceFleet, voiceLatency, twilioVoiceRouting] = await Promise.all([
       checkDatabaseHealth(),
       getCustomerAgentReadiness(),
       getVoiceAgentRuntimeDrift(),
+      getVoiceFleetHealth(),
+      getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
       auditTwilioVoiceRouting({ apply: false }),
+    ]);
+
+    const voiceStatus = combineVoiceStatuses([
+      voiceWorker.status,
+      voiceFleet.status,
+      voiceLatency.status,
+      twilioVoiceRouting.status,
     ]);
 
     const healthCheck = {
       status:
         database.status === 'unhealthy' ||
         customerFacingAgents.overallStatus === 'unhealthy' ||
-        voiceWorker.status === 'unhealthy' ||
-        twilioVoiceRouting.status === 'unhealthy'
+        voiceStatus === 'unhealthy'
           ? 'degraded'
           : 'ok',
       timestamp: new Date().toISOString(),
@@ -33,13 +44,15 @@ export async function GET() {
       },
       services: {
         database: database.status,
-        voiceWorker: voiceWorker.status,
+        voiceWorker: voiceStatus,
         twilioVoiceRouting: twilioVoiceRouting.status,
         sentry: 'configured',
         posthog: process.env.NEXT_PUBLIC_POSTHOG_KEY ? 'configured' : 'disabled',
       },
       customerFacingAgents,
       voiceWorker,
+      voiceFleet,
+      voiceLatency,
       twilioVoiceRouting,
     };
 
