@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
-import { getVoiceFleetHealth } from "@/lib/voice-fleet";
+import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
@@ -19,20 +19,28 @@ export async function GET(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [fleet, twilioRouting, recentCalls, latency] = await Promise.all([
+  const [fleet, customerSaturation, twilioRouting, recentCalls, latency] = await Promise.all([
     getVoiceFleetHealth(),
+    getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: false }),
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
 
-  const status = combineVoiceStatuses([fleet.status, twilioRouting.status, recentCalls.status, latency.status]);
+  const status = combineVoiceStatuses([
+    fleet.status,
+    customerSaturation.status,
+    twilioRouting.status,
+    recentCalls.status,
+    latency.status,
+  ]);
 
   return NextResponse.json(
     {
       status,
       checkedAt: new Date().toISOString(),
       fleet,
+      customerSaturation,
       twilioRouting,
       recentCalls,
       latency,

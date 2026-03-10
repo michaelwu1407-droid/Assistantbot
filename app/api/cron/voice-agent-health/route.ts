@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
-import { getVoiceFleetHealth } from "@/lib/voice-fleet";
+import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
@@ -10,6 +10,7 @@ import {
   buildFleetIncidentObservations,
   buildLatencyIncidentObservations,
   buildRoutingIncidentObservations,
+  buildSaturationIncidentObservations,
   combineVoiceStatuses,
 } from "@/lib/voice-monitoring";
 
@@ -28,8 +29,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [fleet, twilioRouting, recentCalls, latency] = await Promise.all([
+    const [fleet, customerSaturation, twilioRouting, recentCalls, latency] = await Promise.all([
       getVoiceFleetHealth(),
+      getVoiceSurfaceSaturationHealth("normal"),
       auditTwilioVoiceRouting({ apply: true }),
       getTwilioVoiceCallHealth({ lookbackMinutes: 20, limitPerAccount: 50 }),
       getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
@@ -37,18 +39,26 @@ export async function GET(req: NextRequest) {
 
     const observations = [
       ...buildFleetIncidentObservations(fleet),
+      ...buildSaturationIncidentObservations(customerSaturation),
       ...buildRoutingIncidentObservations(twilioRouting),
       ...buildCallHealthIncidentObservations(recentCalls),
       ...buildLatencyIncidentObservations(latency),
     ];
     const incidents = await reconcileVoiceIncidents(observations);
-    const status = combineVoiceStatuses([fleet.status, twilioRouting.status, recentCalls.status, latency.status]);
+    const status = combineVoiceStatuses([
+      fleet.status,
+      customerSaturation.status,
+      twilioRouting.status,
+      recentCalls.status,
+      latency.status,
+    ]);
 
     return NextResponse.json(
       {
         status,
         checkedAt: new Date().toISOString(),
         fleet,
+        customerSaturation,
         twilioRouting,
         recentCalls,
         latency,

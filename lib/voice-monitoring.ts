@@ -1,7 +1,7 @@
 import type { TwilioVoiceRoutingDrift } from "@/lib/twilio-drift";
 import type { VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import type { VoiceIncidentObservation } from "@/lib/voice-incidents";
-import type { VoiceFleetHealth, VoiceSurface } from "@/lib/voice-fleet";
+import type { VoiceFleetHealth, VoiceSurface, VoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import type { TwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 
 export function combineVoiceStatuses(statuses: Array<"healthy" | "degraded" | "unhealthy">) {
@@ -28,6 +28,7 @@ export function buildFleetIncidentObservations(fleet: VoiceFleetHealth): VoiceIn
   (["demo", "inbound_demo", "normal"] as VoiceSurface[]).forEach((surface) => {
     const state = fleet.surfaces[surface];
     if (state.status === "healthy") return;
+    if (state.status === "degraded" && state.capacityExhausted) return;
 
     observations.push({
       incidentKey: `voice:surface:${surface}:workers`,
@@ -41,6 +42,22 @@ export function buildFleetIncidentObservations(fleet: VoiceFleetHealth): VoiceIn
   });
 
   return observations;
+}
+
+export function buildSaturationIncidentObservations(saturation: VoiceSurfaceSaturationHealth): VoiceIncidentObservation[] {
+  if (saturation.status === "healthy") return [];
+
+  return [
+    {
+      incidentKey: `voice:saturation:${saturation.surface}`,
+      surface: saturation.surface,
+      severity: "warning",
+      summary: saturation.summary,
+      details: {
+        saturation,
+      },
+    },
+  ];
 }
 
 export function buildRoutingIncidentObservations(routing: TwilioVoiceRoutingDrift): VoiceIncidentObservation[] {
