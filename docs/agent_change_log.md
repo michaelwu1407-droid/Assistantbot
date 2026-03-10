@@ -492,3 +492,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Increased the default customer-worker capacity from `6` back to `8` concurrent calls per host while keeping the sales/demo cap at `1`, and updated the documented env defaults accordingly.
 - Why: The requested operating point is now higher customer concurrency per server while still preserving a minimal reserved sales footprint and two-server failover.
 
+### 2026-03-10 18:18 (AEDT) - codex
+- Files: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- What changed: Rewrote the customer and sales voice prompts into shorter structured sections with stronger answer-first and language-lock rules, and updated the `normal` 8-minute wrap-up instruction so the agent naturally says it will pass the issue straight to the manager and asks if there is anything else it should know before handing it over.
+- Why: The previous prompts were serviceable but too broad and repetitive. This change improves prompt clarity, multilingual consistency, and end-of-call behavior without changing the underlying provider stack or call-duration limits.
+
