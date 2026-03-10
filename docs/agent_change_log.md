@@ -477,3 +477,8 @@ Rule: every agent change commit must include an entry in this file.
 - What changed: Raised the default customer-worker concurrency cap to `6` while keeping sales at `4`, documented the role-specific capacity override behavior, changed fleet health so workers at configured call capacity report as `degraded` instead of `unhealthy`, made surface routing treat all-workers-at-capacity as non-routable without classifying it as an outage, and added sustained customer-surface saturation monitoring so alerts only fire after both customer hosts stay full for multiple heartbeats.
 - Why: Customer receptionist traffic needs materially more simultaneous capacity than the sales/demo surfaces. This change biases the system toward customer calls while keeping overload visible, routable, and distinguishable from genuine worker failure.
 
+### 2026-03-10 17:08 (AEDT) - codex
+- Files: `livekit-agent/runtime-state.ts`, `livekit-agent/.env.example`, `.env.example`, `docs/agent_change_log.md`
+- What changed: Increased the default customer-worker capacity again from `6` to `8` concurrent calls per host and reduced the default sales/demo cap from `4` to `2`, with the documented env defaults updated to match.
+- Why: The production priority is now more heavily biased toward real customer receptionist traffic, with demo and inbound sales taking a smaller reserved slice of worker capacity.
+
