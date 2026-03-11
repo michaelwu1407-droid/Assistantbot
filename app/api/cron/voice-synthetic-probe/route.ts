@@ -4,6 +4,7 @@ import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
+import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,32 @@ function extractProbeResult(twiml: string) {
   if (twiml.includes("VOICE MONITOR PROBE DISABLED")) return "disabled";
   if (twiml.includes("VOICE MONITOR PROBE FALLBACK")) return "fallback";
   return "unknown";
+}
+
+async function resolveProbeTargetNumber() {
+  const explicitTarget = (process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "").trim();
+  if (explicitTarget) {
+    return { targetNumber: explicitTarget, source: "VOICE_MONITOR_PROBE_TARGET_NUMBER" as const };
+  }
+
+  const configuredInboundNumber = getKnownEarlymarkInboundNumbers()[0] || "";
+  if (configuredInboundNumber) {
+    return { targetNumber: configuredInboundNumber, source: "known_inbound_env" as const };
+  }
+
+  try {
+    const routing = await auditTwilioVoiceRouting({ apply: false });
+    const probedNumber =
+      routing.numbers.find((record) => record.scope === "earlymark" && record.found && record.phoneNumber)?.phoneNumber || "";
+
+    if (probedNumber) {
+      return { targetNumber: probedNumber, source: "twilio_routing_audit" as const };
+    }
+  } catch {
+    // Leave detailed Twilio drift failures to the dedicated health monitor.
+  }
+
+  return { targetNumber: "", source: null as const };
 }
 
 export async function GET(req: NextRequest) {
@@ -26,7 +53,7 @@ export async function GET(req: NextRequest) {
     process.env.VOICE_ALERT_SMS_TO ||
     "+61434955958"
   ).trim();
-  const targetNumber = (process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "").trim() || getKnownEarlymarkInboundNumbers()[0] || "";
+  const { targetNumber, source: targetNumberSource } = await resolveProbeTargetNumber();
   const gatewayUrl = getExpectedVoiceGatewayUrl();
 
   try {
@@ -40,6 +67,7 @@ export async function GET(req: NextRequest) {
           checkedAt: checkedAt.toISOString(),
           probeCallerConfigured: Boolean(probeCaller),
           targetNumberConfigured: Boolean(targetNumber),
+          targetNumberSource,
           gatewayUrlConfigured: Boolean(gatewayUrl),
         },
         checkedAt,
@@ -51,6 +79,10 @@ export async function GET(req: NextRequest) {
           status: "unhealthy",
           checkedAt: checkedAt.toISOString(),
           summary,
+          probeCallerConfigured: Boolean(probeCaller),
+          targetNumberConfigured: Boolean(targetNumber),
+          targetNumberSource,
+          gatewayUrlConfigured: Boolean(gatewayUrl),
         },
         { status: 500 },
       );
@@ -107,6 +139,7 @@ export async function GET(req: NextRequest) {
         checkedAt: checkedAt.toISOString(),
         probeResult,
         targetNumber,
+        targetNumberSource,
         gatewayUrl,
         responseStatus: response.status,
       },
@@ -121,6 +154,7 @@ export async function GET(req: NextRequest) {
         summary,
         probeResult,
         targetNumber,
+        targetNumberSource,
         responseStatus: response.status,
         incidents,
       },
