@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMonitorRun, getMonitorRunHealth } from "@/lib/ops-monitor-runs";
+import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
 
 export const dynamic = "force-dynamic";
 
-function isAuthorized(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const provided = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  return provided === secret;
-}
-
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isOpsAuthorized(req)) {
+    return getUnauthorizedJsonResponse();
   }
 
   const checkedAt = new Date();

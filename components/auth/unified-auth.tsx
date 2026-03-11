@@ -417,11 +417,17 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         {/* Back to website home page */}
         <Link
           href="/"
-          className="absolute top-4 left-4 h-10 w-10 rounded-full text-muted-foreground hover:text-foreground bg-gray-200 hover:bg-gray-300 transition-colors border border-gray-400 flex items-center justify-center"
+          className="absolute top-5 left-5 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/70 text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-border hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           aria-label="Back to website"
         >
-          <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 8L14 0V16L0 8Z" />
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              d="M9.5 3.5L5 8L9.5 12.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </Link>
 

@@ -1,19 +1,13 @@
 import { NextResponse } from "next/server";
+import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 
 export const dynamic = "force-dynamic";
 
-function isAuthorized(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const provided = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  return provided === secret;
-}
-
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isOpsAuthorized(req)) {
+    return getUnauthorizedJsonResponse();
   }
 
   const [twilio, voiceWorker] = await Promise.all([
