@@ -1,45 +1,47 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-// Robust client with error handling and retry logic
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isDevelopment = process.env.NODE_ENV === "development";
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase environment variables are missing:', {
-      url: !!supabaseUrl,
-      key: !!supabaseAnonKey,
-      envLoaded: !!process.env.NEXT_PUBLIC_SUPABASE_URL
-    });
-    throw new Error('Supabase configuration is incomplete');
+    if (isDevelopment) {
+      console.error("Supabase environment variables are missing:", {
+        url: !!supabaseUrl,
+        key: !!supabaseAnonKey,
+        envLoaded: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      });
+    }
+    throw new Error("Supabase configuration is incomplete");
   }
 
   try {
-    console.log('🔗 Creating Supabase client with URL:', supabaseUrl);
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce',
-        debug: process.env.NODE_ENV === 'development'
+        flowType: "pkce",
+        debug: isDevelopment,
       },
       global: {
         headers: {
-          'X-Client-Info': 'assistantbot-web'
-        }
+          "X-Client-Info": "assistantbot-web",
+        },
       },
       db: {
-        schema: 'public'
-      }
+        schema: "public",
+      },
     });
   } catch (error) {
-    console.error('❌ Failed to create Supabase client:', error);
-    throw new Error('Supabase client initialization failed');
+    if (isDevelopment) {
+      console.error("Failed to create Supabase client:", error);
+    }
+    throw new Error("Supabase client initialization failed");
   }
 }
 
-// Singleton pattern to prevent multiple client instances
 let clientInstance: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseClient() {

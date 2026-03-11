@@ -15,8 +15,6 @@ if (isEdge) {
   // This file should NOT be imported in middleware.
   prisma = null;
 } else if (!process.env.DATABASE_URL) {
-  // Warn instead of throw to allow build to proceed without env vars
-  console.warn("DATABASE_URL is not set. Prisma Client will not be initialized.");
   prisma = null;
 } else {
   if (!globalThis.prisma) {

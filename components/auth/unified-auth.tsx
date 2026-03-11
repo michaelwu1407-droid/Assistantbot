@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ interface AuthState {
   loading: boolean;
   message: string;
   needsConfirmation: boolean;
-  user: any;
+  user: User | null;
   method: "google" | "phone" | "email";
   phoneOtpSent: boolean;
   otpResendTimer: number;
@@ -687,7 +688,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
             <a href="/privacy" className="underline hover:text-primary">Privacy Policy</a>
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            © 2026 Michael Wu. All rights reserved.
+            © 2026 Earlymark AI. All rights reserved.
           </p>
         </div>
       </div>

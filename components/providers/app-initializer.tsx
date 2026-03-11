@@ -8,39 +8,39 @@ export function AppInitializer() {
   const router = useRouter();
 
   useEffect(() => {
-    // When user logs in/out in another browser or tab, refresh so this tab stays in sync
     try {
       const supabase = getSupabaseClient();
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event) => {
-        // Only refresh on critical auth events, not every token refresh
         if (event === "SIGNED_OUT") {
           router.refresh();
         }
       });
       return () => subscription.unsubscribe();
     } catch (err) {
-      console.warn("[Auth] Listener setup failed:", (err as Error)?.message ?? err);
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[Auth] Listener setup failed:", (err as Error)?.message ?? err);
+      }
     }
   }, [router]);
 
   useEffect(() => {
-    // Client-side initialization checks - defer to not block initial render
     const checkClientEnvironment = () => {
-      // Use setTimeout to defer execution until after initial render
       setTimeout(() => {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const isDevelopment = process.env.NODE_ENV === "development";
 
         if (!supabaseUrl || !supabaseKey) {
-          console.error('❌ Client-side Supabase configuration missing:', {
-            url: !!supabaseUrl,
-            key: !!supabaseKey
-          });
-          
-          // In production, show a user-friendly error
-          if (process.env.NODE_ENV === 'production') {
+          if (isDevelopment) {
+            console.error("Client-side Supabase configuration missing:", {
+              url: !!supabaseUrl,
+              key: !!supabaseKey,
+            });
+          }
+
+          if (process.env.NODE_ENV === "production") {
             document.body.innerHTML = `
               <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: system-ui;">
                 <div style="text-align: center; max-width: 400px; padding: 20px;">
@@ -53,15 +53,12 @@ export function AppInitializer() {
               </div>
             `;
           }
-        } else {
-          console.log('✅ Client-side Supabase configuration verified');
         }
       }, 0);
     };
 
-    // Run checks after component mounts
     checkClientEnvironment();
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }
