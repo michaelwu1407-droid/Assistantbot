@@ -98,16 +98,16 @@ export function Navbar() {
             </div>
 
             <div className="flex items-center gap-3">
-                <Link href="/contact" className="hidden sm:block">
-                    <Button variant="ghost" size="sm" className="text-[15px] font-medium text-midnight">
+                <Button asChild variant="ghost" size="sm" className="hidden text-[15px] font-medium text-midnight sm:inline-flex">
+                    <Link href="/contact">
                         Contact us
-                    </Button>
-                </Link>
-                <Link href="/auth" className="hidden sm:block">
-                    <Button size="sm" variant="mint" className="text-[15px] font-medium">
+                    </Link>
+                </Button>
+                <Button asChild size="sm" variant="mint" className="hidden text-[15px] font-medium sm:inline-flex">
+                    <Link href="/auth">
                         Log in / Get started
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="-mr-2 p-2 text-midnight md:hidden"
