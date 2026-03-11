@@ -13,6 +13,7 @@ jobs:
         env:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
         run: |
           set -eu
           if [ -z "${APP_BASE_URL:-}" ]; then
@@ -29,6 +30,7 @@ jobs:
               --output "${response_file}" \
               --write-out "%{http_code}" \
               -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "x-ops-key: ${OPS_KEY}" \
               "${APP_BASE_URL%/}/api/cron/voice-monitor-watchdog"
           )"
           cat "${response_file}"

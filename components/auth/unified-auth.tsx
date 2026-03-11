@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { logger } from "@/lib/logging";
 import { checkUserRoute } from "@/actions/workspace-actions";
 import { Mail, Phone, Chrome } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface AuthState {
   email: string;
@@ -32,9 +33,10 @@ interface AuthState {
   emailIntent: "signin" | "signup";
 }
 
+const supabase = getSupabaseClient();
+
 export function UnifiedAuth({ connectionError = false }: { connectionError?: boolean }) {
   const router = useRouter();
-  const supabase = createClient();
 
   const [state, setState] = useState<AuthState>({
     email: "",
@@ -54,15 +56,31 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     emailIntent: "signin",
   });
 
+  const finalizeSignedInUser = async (
+    user: User,
+    provider: "email" | "phone" | "google",
+    traits?: { email?: string; name?: string }
+  ) => {
+    MonitoringService.identifyUser(user.id, {
+      email: traits?.email ?? user.email,
+      name: traits?.name ?? user.user_metadata?.name,
+    });
+    MonitoringService.trackEvent("user_signed_in", { provider });
+
+    const route = await checkUserRoute(user.id);
+    router.push(route);
+  };
+
   useEffect(() => {
     const checkUser = async () => {
       logger.authFlow("Checking for existing user session", { action: "check_existing_user" });
 
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
-      if (error) {
-        logger.authError("Failed to check existing user", { error: error.message, details: error }, error);
-      } else if (user) {
+      if (user) {
         logger.authFlow("Found existing user session, determining route", {
           userId: user.id,
           email: user.email,
@@ -76,22 +94,8 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
 
       setState(prev => ({ ...prev, user }));
     };
-    checkUser();
-  }, [router, supabase]);
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const route = await checkUserRoute(session.user.id);
-        router.push(route);
-        router.refresh();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router, supabase]);
+    void checkUser();
+  }, [router]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -179,51 +183,29 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           session: !!data.session
         });
 
-        // Wait and verify session with retry logic
-        let sessionVerified = false;
-        let verifyError = null;
+        let sessionVerified = Boolean(data.session);
+        if (!sessionVerified) {
+          for (const delayMs of [200, 500]) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          logger.authFlow(`Session verification attempt ${attempt}`, { userId: data.user.id });
-
-          // Wait longer for session to be established
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-
-          // Verify session is actually working
-          const { data: { user: verifiedUser }, error: currentVerifyError } = await supabase.auth.getUser();
-
-          if (!currentVerifyError && verifiedUser) {
-            sessionVerified = true;
-            logger.authFlow("Session verified successfully", {
-              userId: verifiedUser.id,
-              email: verifiedUser.email,
-              attempt
-            });
-            break;
-          } else {
-            verifyError = currentVerifyError;
-            logger.authFlow(`Session verification attempt ${attempt} failed`, {
-              userId: data.user.id,
-              error: currentVerifyError?.message,
-              attempt
-            });
+            if (session?.user) {
+              sessionVerified = true;
+              break;
+            }
           }
         }
 
         if (!sessionVerified) {
           logger.authError("Session verification failed after all attempts", {
             userId: data.user.id,
-            verifyError: verifyError?.message
-          }, verifyError || new Error("Session verification failed"));
+          }, new Error("Session verification failed"));
           updateState({ loading: false, message: "Authentication successful but session failed to establish. Please try again." });
         } else {
-          MonitoringService.identifyUser(data.user.id, { name: state.name });
-          MonitoringService.trackEvent("user_signed_in", { provider: "phone" });
-
           logger.authFlow("Redirecting based on route check", { userId: data.user.id });
-          const route = await checkUserRoute(data.user.id);
-          router.push(route);
-          router.refresh();
+          await finalizeSignedInUser(data.user, "phone", { name: state.name });
         }
       } else {
         logger.authError("OTP verification returned no user", {
@@ -259,22 +241,21 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     const password = state.password;
 
     if (state.emailIntent === "signin") {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (!signInError) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = data.user;
         if (user) {
-          MonitoringService.identifyUser(user.id, { email: user.email, name: user.user_metadata?.name });
-          MonitoringService.trackEvent("user_signed_in", { provider: "email" });
-          const route = await checkUserRoute(user.id);
-          router.push(route);
+          await finalizeSignedInUser(user, "email", {
+            email: user.email,
+            name: user.user_metadata?.name,
+          });
         } else {
           router.push("/dashboard");
         }
-        router.refresh();
         return;
       }
 
@@ -443,7 +424,14 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         )}
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-12 w-12 object-contain" />
+          <Image
+            src="/latest-logo.png?v=20250305"
+            alt="Earlymark"
+            width={48}
+            height={48}
+            className="h-12 w-12 object-contain"
+            unoptimized
+          />
         </div>
 
         <div className="text-center mb-8">

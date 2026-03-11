@@ -13,6 +13,7 @@ jobs:
         env:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
         run: |
           set -eu
           if [ -z "${APP_BASE_URL:-}" ]; then
@@ -25,4 +26,5 @@ jobs:
           fi
           curl --location --fail --show-error --silent \
             -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "x-ops-key: ${OPS_KEY}" \
             "${APP_BASE_URL%/}/api/cron/customer-agent-reconcile"

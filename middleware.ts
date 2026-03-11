@@ -28,6 +28,14 @@ const INTERNAL_ONLY_PREFIXES = [
   "/admin/diagnostics",
 ]
 
+function shouldSkipSessionRefresh(pathname: string) {
+  if (pathname === "/") return true
+
+  return ["/auth", "/privacy", "/terms"].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
 export async function middleware(request: NextRequest) {
   try {
     const url = request.nextUrl
@@ -43,7 +51,7 @@ export async function middleware(request: NextRequest) {
 
     // Refresh Supabase session ONLY on page navigations, NOT APIs, to avoid cold starts on every /api request.
     let response = NextResponse.next({ request })
-    if (!pathname.startsWith('/api')) {
+    if (!pathname.startsWith('/api') && !shouldSkipSessionRefresh(pathname)) {
       response = await updateSession(request)
     }
 
