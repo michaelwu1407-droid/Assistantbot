@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCustomerAgentReadiness } from '@/lib/customer-agent-readiness';
 import { checkDatabaseHealth } from '@/lib/health-check';
 import { getVoiceAgentRuntimeDrift } from '@/lib/voice-agent-runtime';
-import { auditTwilioVoiceRouting } from '@/lib/twilio-drift';
+import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from '@/lib/twilio-drift';
 import { getVoiceFleetHealth } from '@/lib/voice-fleet';
 import { getVoiceLatencyHealth } from '@/lib/voice-call-latency-health';
 import { combineVoiceStatuses } from '@/lib/voice-monitoring';
@@ -11,13 +11,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const [database, customerFacingAgents, voiceWorker, voiceFleet, voiceLatency, twilioVoiceRouting] = await Promise.all([
+    const [database, customerFacingAgents, voiceWorker, voiceFleet, voiceLatency, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
       checkDatabaseHealth(),
       getCustomerAgentReadiness(),
       getVoiceAgentRuntimeDrift(),
       getVoiceFleetHealth(),
       getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
       auditTwilioVoiceRouting({ apply: false }),
+      auditTwilioMessagingRouting({ apply: false }),
     ]);
 
     const voiceStatus = combineVoiceStatuses([
@@ -31,6 +32,7 @@ export async function GET() {
       status:
         database.status === 'unhealthy' ||
         customerFacingAgents.overallStatus === 'unhealthy' ||
+        twilioMessagingRouting.status === 'unhealthy' ||
         voiceStatus === 'unhealthy'
           ? 'degraded'
           : 'ok',
@@ -46,6 +48,7 @@ export async function GET() {
         database: database.status,
         voiceWorker: voiceStatus,
         twilioVoiceRouting: twilioVoiceRouting.status,
+        twilioMessagingRouting: twilioMessagingRouting.status,
         sentry: 'configured',
         posthog: process.env.NEXT_PUBLIC_POSTHOG_KEY ? 'configured' : 'disabled',
       },
@@ -54,6 +57,7 @@ export async function GET() {
       voiceFleet,
       voiceLatency,
       twilioVoiceRouting,
+      twilioMessagingRouting,
     };
 
     return NextResponse.json(healthCheck);

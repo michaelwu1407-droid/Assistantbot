@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
-import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers, phoneMatches } from "@/lib/earlymark-inbound-config";
+import {
+  getExpectedSmsWebhookUrl,
+  getExpectedVoiceGatewayUrl,
+  getKnownEarlymarkInboundNumbers,
+  phoneMatches,
+} from "@/lib/earlymark-inbound-config";
 import { normalizePhone } from "@/lib/phone-utils";
 import type { VoiceSurface } from "@/lib/voice-fleet";
 import { parseManagedSubaccountFriendlyName, parseManagedVoiceNumberFriendlyName, buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
@@ -36,6 +41,35 @@ export type TwilioVoiceRoutingDrift = {
   orphanedNumbers: VoiceNumberDriftRecord[];
 };
 
+export type MessagingNumberDriftRecord = {
+  scope: "workspace" | "orphaned";
+  label: string;
+  phoneNumber: string;
+  phoneNumberSid: string | null;
+  accountSid: string | null;
+  workspaceId: string | null;
+  found: boolean;
+  managed: boolean;
+  orphaned: boolean;
+  surface: VoiceSurface;
+  currentSmsUrl: string | null;
+  currentSmsMethod: string | null;
+  currentSmsApplicationSid: string | null;
+  currentFriendlyName: string | null;
+  warnings: string[];
+  updated: boolean;
+};
+
+export type TwilioMessagingRoutingDrift = {
+  status: RuntimeStatus;
+  summary: string;
+  expectedSmsWebhookUrl: string;
+  numbers: MessagingNumberDriftRecord[];
+  warnings: string[];
+  managedNumberCount: number;
+  orphanedNumbers: MessagingNumberDriftRecord[];
+};
+
 type WorkspaceVoiceRecord = {
   id: string;
   name: string;
@@ -56,6 +90,9 @@ type TwilioIncomingNumberRecord = {
   sid: string;
   phoneNumber: string;
   friendlyName: string | null;
+  smsUrl: string | null;
+  smsMethod: string | null;
+  smsApplicationSid: string | null;
   voiceUrl: string | null;
   voiceMethod: string | null;
   voiceApplicationSid: string | null;
@@ -153,6 +190,9 @@ async function listIncomingNumbersForAccount(accountSid: string): Promise<Twilio
       sid: string;
       phone_number: string;
       friendly_name?: string | null;
+      sms_url?: string | null;
+      sms_method?: string | null;
+      sms_application_sid?: string | null;
       voice_url?: string | null;
       voice_method?: string | null;
       voice_application_sid?: string | null;
@@ -164,6 +204,9 @@ async function listIncomingNumbersForAccount(accountSid: string): Promise<Twilio
     sid: record.sid,
     phoneNumber: record.phone_number,
     friendlyName: record.friendly_name || null,
+    smsUrl: record.sms_url || null,
+    smsMethod: record.sms_method || null,
+    smsApplicationSid: record.sms_application_sid || null,
     voiceUrl: record.voice_url || null,
     voiceMethod: record.voice_method || null,
     voiceApplicationSid: record.voice_application_sid || null,
@@ -178,6 +221,9 @@ async function fetchIncomingNumber(accountSid: string, phoneNumberSid: string): 
       sid: string;
       phone_number: string;
       friendly_name?: string | null;
+      sms_url?: string | null;
+      sms_method?: string | null;
+      sms_application_sid?: string | null;
       voice_url?: string | null;
       voice_method?: string | null;
       voice_application_sid?: string | null;
@@ -188,6 +234,9 @@ async function fetchIncomingNumber(accountSid: string, phoneNumberSid: string): 
       sid: record.sid,
       phoneNumber: record.phone_number,
       friendlyName: record.friendly_name || null,
+      smsUrl: record.sms_url || null,
+      smsMethod: record.sms_method || null,
+      smsApplicationSid: record.sms_application_sid || null,
       voiceUrl: record.voice_url || null,
       voiceMethod: record.voice_method || null,
       voiceApplicationSid: record.voice_application_sid || null,
@@ -202,14 +251,23 @@ async function fetchIncomingNumber(accountSid: string, phoneNumberSid: string): 
 async function updateIncomingNumber(params: {
   accountSid: string;
   phoneNumberSid: string;
-  voiceUrl: string;
+  voiceUrl?: string;
+  smsUrl?: string;
   friendlyName?: string | null;
 }) {
-  const body = new URLSearchParams({
-    VoiceUrl: params.voiceUrl,
-    VoiceMethod: "POST",
-    VoiceApplicationSid: "",
-  });
+  const body = new URLSearchParams();
+
+  if (params.voiceUrl) {
+    body.set("VoiceUrl", params.voiceUrl);
+    body.set("VoiceMethod", "POST");
+    body.set("VoiceApplicationSid", "");
+  }
+
+  if (params.smsUrl) {
+    body.set("SmsUrl", params.smsUrl);
+    body.set("SmsMethod", "POST");
+    body.set("SmsApplicationSid", "");
+  }
 
   if (params.friendlyName) {
     body.set("FriendlyName", params.friendlyName);
@@ -360,6 +418,61 @@ function buildRecord(params: {
   } satisfies VoiceNumberDriftRecord;
 }
 
+function buildMessagingRecord(params: {
+  record: TwilioIncomingNumberRecord | null;
+  workspace: WorkspaceVoiceRecord | null;
+  managed: boolean;
+  orphaned: boolean;
+  surface: VoiceSurface;
+  desiredFriendlyName: string | null;
+  expectedSmsWebhookUrl: string;
+  expectedPhoneNumber?: string | null;
+  updated: boolean;
+}) {
+  const warnings: string[] = [];
+  const effectivePhoneNumber = params.record?.phoneNumber || params.expectedPhoneNumber || "";
+
+  if (!params.record) {
+    warnings.push(`Phone number ${effectivePhoneNumber || "[unknown]"} was not found on Twilio.`);
+  } else {
+    if (params.record.smsApplicationSid) {
+      warnings.push(`SMS Application SID is set (${params.record.smsApplicationSid}).`);
+    }
+    if ((params.record.smsUrl || "") !== params.expectedSmsWebhookUrl) {
+      warnings.push(`SMS URL is ${params.record.smsUrl || "[empty]"} instead of ${params.expectedSmsWebhookUrl}.`);
+    }
+    if ((params.record.smsMethod || "").toUpperCase() !== "POST") {
+      warnings.push(`SMS method is ${(params.record.smsMethod || "[empty]").toUpperCase()} instead of POST.`);
+    }
+    if (params.desiredFriendlyName && params.record.friendlyName !== params.desiredFriendlyName) {
+      warnings.push("Friendly name metadata is missing or stale.");
+    }
+  }
+
+  if (params.orphaned) {
+    warnings.push("Managed customer number is missing a valid workspace mapping.");
+  }
+
+  return {
+    scope: params.orphaned ? "orphaned" : "workspace",
+    label: params.workspace?.name || params.record?.friendlyName || effectivePhoneNumber || "Unknown managed number",
+    phoneNumber: effectivePhoneNumber,
+    phoneNumberSid: params.record?.sid || null,
+    accountSid: params.record?.accountSid || null,
+    workspaceId: params.workspace?.id || null,
+    found: Boolean(params.record),
+    managed: params.managed,
+    orphaned: params.orphaned,
+    surface: params.surface,
+    currentSmsUrl: params.record?.smsUrl || null,
+    currentSmsMethod: params.record?.smsMethod || null,
+    currentSmsApplicationSid: params.record?.smsApplicationSid || null,
+    currentFriendlyName: params.record?.friendlyName || null,
+    warnings,
+    updated: params.updated,
+  } satisfies MessagingNumberDriftRecord;
+}
+
 async function inspectManagedNumbers() {
   const knownEarlymarkNumbers = getKnownEarlymarkInboundNumbers();
   const workspaces = await db.workspace.findMany({
@@ -391,6 +504,7 @@ async function inspectManagedNumbers() {
   }
 
   return {
+    workspaces,
     knownEarlymarkNumbers,
     workspaceMaps,
     accountById,
@@ -451,6 +565,7 @@ export async function auditTwilioVoiceRouting(options?: { apply?: boolean }): Pr
   const inspection = await inspectManagedNumbers();
   const managedRecords: VoiceNumberDriftRecord[] = [];
   const seenEarlymark = new Set<string>();
+  const seenWorkspaceIds = new Set<string>();
 
   for (const record of inspection.numbers) {
     const account = inspection.accountById.get(record.accountSid) || null;
@@ -464,6 +579,9 @@ export async function auditTwilioVoiceRouting(options?: { apply?: boolean }): Pr
     if (!classification.managed) continue;
     if (classification.isEarlymark) {
       seenEarlymark.add(normalizePhone(record.phoneNumber));
+    }
+    if (classification.workspace?.id) {
+      seenWorkspaceIds.add(classification.workspace.id);
     }
 
     let updated = false;
@@ -504,6 +622,30 @@ export async function auditTwilioVoiceRouting(options?: { apply?: boolean }): Pr
         desiredFriendlyName: classification.desiredFriendlyName,
         expectedVoiceGatewayUrl,
         updated,
+      }),
+    );
+  }
+
+  for (const workspace of inspection.workspaces) {
+    if (!workspace.twilioPhoneNumber || seenWorkspaceIds.has(workspace.id)) continue;
+    managedRecords.push(
+      buildRecord({
+        record: null,
+        workspace,
+        managed: true,
+        orphaned: false,
+        isEarlymark: false,
+        scope: "workspace",
+        surface: "normal",
+        desiredFriendlyName: buildManagedVoiceNumberFriendlyName({
+          scope: "workspace",
+          surface: "normal",
+          workspaceId: workspace.id,
+          label: workspace.name || workspace.twilioPhoneNumber,
+        }),
+        expectedVoiceGatewayUrl,
+        expectedPhoneNumber: workspace.twilioPhoneNumber,
+        updated: false,
       }),
     );
   }
@@ -565,6 +707,150 @@ export async function auditTwilioVoiceRouting(options?: { apply?: boolean }): Pr
         ? "All managed Twilio voice numbers point to the canonical voice gateway"
         : warnings[0] || "Twilio voice routing drift detected",
     expectedVoiceGatewayUrl,
+    numbers: managedRecords,
+    warnings,
+    managedNumberCount: managedRecords.length,
+    orphanedNumbers,
+  };
+}
+
+export async function auditTwilioMessagingRouting(options?: { apply?: boolean }): Promise<TwilioMessagingRoutingDrift> {
+  const apply = Boolean(options?.apply);
+  const expectedSmsWebhookUrl = getExpectedSmsWebhookUrl();
+  const warnings: string[] = [];
+
+  if (!expectedSmsWebhookUrl) {
+    return {
+      status: "unhealthy",
+      summary: "NEXT_PUBLIC_APP_URL is missing, so the canonical Twilio SMS webhook URL cannot be derived",
+      expectedSmsWebhookUrl,
+      numbers: [],
+      warnings: ["Set NEXT_PUBLIC_APP_URL so Twilio SMS webhook reconciliation has a single source of truth."],
+      managedNumberCount: 0,
+      orphanedNumbers: [],
+    };
+  }
+
+  if (!hasTwilioAuth()) {
+    return {
+      status: "unhealthy",
+      summary: "Twilio master credentials are unavailable",
+      expectedSmsWebhookUrl,
+      numbers: [],
+      warnings: ["TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN are required to audit or fix phone-number SMS webhook drift."],
+      managedNumberCount: 0,
+      orphanedNumbers: [],
+    };
+  }
+
+  const inspection = await inspectManagedNumbers();
+  const managedRecords: MessagingNumberDriftRecord[] = [];
+  const seenWorkspaceIds = new Set<string>();
+
+  for (const record of inspection.numbers) {
+    const account = inspection.accountById.get(record.accountSid) || null;
+    const classification = classifyNumber({
+      record,
+      account,
+      workspaceMaps: inspection.workspaceMaps,
+      knownEarlymarkNumbers: inspection.knownEarlymarkNumbers,
+    });
+
+    if (!classification.managed || classification.isEarlymark) continue;
+    if (classification.workspace?.id) {
+      seenWorkspaceIds.add(classification.workspace.id);
+    }
+
+    let updated = false;
+    let effectiveRecord = record;
+
+    const needsSmsUpdate =
+      (effectiveRecord.smsUrl || "") !== expectedSmsWebhookUrl ||
+      (effectiveRecord.smsMethod || "").toUpperCase() !== "POST" ||
+      Boolean(effectiveRecord.smsApplicationSid) ||
+      (classification.desiredFriendlyName && effectiveRecord.friendlyName !== classification.desiredFriendlyName);
+
+    if (apply && needsSmsUpdate) {
+      await updateIncomingNumber({
+        accountSid: effectiveRecord.accountSid,
+        phoneNumberSid: effectiveRecord.sid,
+        smsUrl: expectedSmsWebhookUrl,
+        friendlyName: classification.desiredFriendlyName,
+      });
+      updated = true;
+      effectiveRecord = (await fetchIncomingNumber(effectiveRecord.accountSid, effectiveRecord.sid)) || effectiveRecord;
+    }
+
+    managedRecords.push(
+      buildMessagingRecord({
+        record: effectiveRecord,
+        workspace: classification.workspace,
+        managed: classification.managed,
+        orphaned: classification.orphaned,
+        surface: classification.surface,
+        desiredFriendlyName: classification.desiredFriendlyName,
+        expectedSmsWebhookUrl,
+        updated,
+      }),
+    );
+  }
+
+  for (const workspace of inspection.workspaces) {
+    if (!workspace.twilioPhoneNumber || seenWorkspaceIds.has(workspace.id)) continue;
+    managedRecords.push(
+      buildMessagingRecord({
+        record: null,
+        workspace,
+        managed: true,
+        orphaned: false,
+        surface: "normal",
+        desiredFriendlyName: buildManagedVoiceNumberFriendlyName({
+          scope: "workspace",
+          surface: "normal",
+          workspaceId: workspace.id,
+          label: workspace.name || workspace.twilioPhoneNumber,
+        }),
+        expectedSmsWebhookUrl,
+        expectedPhoneNumber: workspace.twilioPhoneNumber,
+        updated: false,
+      }),
+    );
+  }
+
+  const drifted = managedRecords.filter((record) => record.warnings.length > 0);
+  const orphanedNumbers = managedRecords.filter((record) => record.orphaned);
+  const updatedCount = managedRecords.filter((record) => record.updated).length;
+  const missingNumbers = managedRecords.filter((record) => !record.found);
+
+  if (drifted.length > 0) {
+    warnings.push(`${drifted.length} managed number(s) are not aligned to the canonical SMS webhook.`);
+  }
+  if (updatedCount > 0) {
+    warnings.push(`Reconciled ${updatedCount} number(s) back to the canonical SMS webhook.`);
+  }
+  if (orphanedNumbers.length > 0) {
+    warnings.push(`${orphanedNumbers.length} managed customer number(s) are missing workspace mappings.`);
+  }
+  if (missingNumbers.length > 0) {
+    warnings.push(`Managed Twilio number(s) missing from Twilio: ${missingNumbers.map((record) => record.phoneNumber).join(", ")}`);
+  }
+
+  const status: RuntimeStatus =
+    orphanedNumbers.length > 0 || missingNumbers.length > 0
+      ? "unhealthy"
+      : drifted.length === 0
+        ? "healthy"
+        : updatedCount > 0
+          ? "degraded"
+          : "unhealthy";
+
+  return {
+    status,
+    summary:
+      status === "healthy"
+        ? "All managed Twilio SMS numbers point to the canonical SMS webhook"
+        : warnings[0] || "Twilio SMS routing drift detected",
+    expectedSmsWebhookUrl,
     numbers: managedRecords,
     warnings,
     managedNumberCount: managedRecords.length,

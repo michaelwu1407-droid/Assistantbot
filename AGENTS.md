@@ -28,8 +28,8 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 
 - **Host environment**: Oracle Cloud (OCI) Ubuntu VM at `140.238.198.39`, SSH user `ubuntu`.
 - **Deployment staging path**: Updated agent code is first copied to `/tmp/livekit-agent/` before deployment.
-- **Current process model**: LiveKit core infrastructure runs in Docker under `/opt/livekit`, but the voice agent currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
-- **Automation model**: GitHub Actions should deploy by copying `livekit-agent/**` into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout.
+- **Current process model**: Docker is the standardized deployment architecture for the LiveKit core voice infrastructure under `/opt/livekit` (LiveKit, Redis, Caddy, SIP). The Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
+- **Automation model**: GitHub Actions should deploy the LiveKit core stack through the Docker path where applicable, but `livekit-agent/**` changes currently deploy by copying into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout or that the active worker is containerized today.
 - **Deploy verification**: The worker logs an `[agent-version]` line with `DEPLOY_GIT_SHA` on startup. GitHub Actions should verify that exact SHA appears in `/tmp/agent.log` after each deploy.
 - **Core containers**: `livekit-livekit-1`, `livekit-redis-1`, `livekit-caddy-1`, and `livekit-sip`.
 - **Restart policy**: Core containers use `--restart always` so they survive OCI reboots.

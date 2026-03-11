@@ -15,11 +15,11 @@ import { SipClient, RoomServiceClient } from "livekit-server-sdk";
  * - LIVEKIT_API_KEY: From your self-hosted LiveKit server
  * - LIVEKIT_API_SECRET: From your self-hosted LiveKit server  
  * - LIVEKIT_SIP_TRUNK_ID: Self-hosted LiveKit SIP trunk ID (starts with ST_)
- * - LIVEKIT_SIP_TERMINATION_URI: earlymark-outbound.pstn.twilio.com
+ * - LIVEKIT_SIP_TERMINATION_URI: defaults to earlymark-outbound.pstn.sydney.twilio.com
  * 
  * SETUP STEPS:
  * 1. Create SIP trunk in your self-hosted LiveKit server admin
- * 2. Configure trunk to point to Twilio SIP domain
+ * 2. Configure trunk to point to the Sydney-localized Twilio SIP domain for lowest latency
  * 3. Update LIVEKIT_SIP_TRUNK_ID with your LiveKit trunk ID (NOT Twilio TK_ ID)
  */
 

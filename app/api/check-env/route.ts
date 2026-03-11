@@ -4,16 +4,21 @@ import {
   getKnownEarlymarkInboundNumbers,
 } from "@/lib/earlymark-inbound-config";
 import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
+import {
+  getLivekitSipTerminationUri,
+  getRecommendedTwilioOriginationUri,
+} from "@/lib/livekit-sip-config";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
-import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
+import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [customerFacingAgents, voiceWorker, twilioVoiceRouting] = await Promise.all([
+  const [customerFacingAgents, voiceWorker, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
     getCustomerAgentReadiness(),
     getVoiceAgentRuntimeDrift(),
     auditTwilioVoiceRouting({ apply: false }),
+    auditTwilioMessagingRouting({ apply: false }),
   ]);
   const env = {
     // Core required for phone provisioning
@@ -30,11 +35,14 @@ export async function GET() {
       apiKey: !!process.env.LIVEKIT_API_KEY,
       apiSecret: !!process.env.LIVEKIT_API_SECRET,
       sipUri: !!process.env.LIVEKIT_SIP_URI,
+      sipTerminationUri: getLivekitSipTerminationUri(),
+      recommendedTwilioOriginationUri: getRecommendedTwilioOriginationUri(),
     },
     // Other important env vars
     app: {
       url: process.env.NEXT_PUBLIC_APP_URL,
       expectedVoiceGatewayUrl: getExpectedVoiceGatewayUrl() || null,
+      expectedSmsWebhookUrl: twilioMessagingRouting.expectedSmsWebhookUrl || null,
       supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       geminiApiKey: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY),
@@ -67,5 +75,6 @@ export async function GET() {
     customerFacingAgents,
     voiceWorker,
     twilioVoiceRouting,
+    twilioMessagingRouting,
   });
 }

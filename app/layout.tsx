@@ -1,16 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { AccessibilityProvider } from "@/components/providers/accessibility-provider";
 import "./globals.css";
-import { CommandPalette } from "@/components/core/command-palette";
-import { OfflineBanner } from "@/components/core/offline-banner";
-import { IndustryProvider } from "@/components/providers/industry-provider";
-import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
-import { Toaster } from "@/components/ui/sonner";
 import { ClientThemeProvider } from "@/components/providers/client-theme-provider";
-import { PostHogProvider } from "@/components/providers/posthog-provider";
-import { ReferralProvider } from "@/components/providers/referral-provider";
-import { AppInitializer } from "@/components/providers/app-initializer";
-import { Footer } from "@/components/layout/footer";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -51,24 +41,7 @@ export default function RootLayout({
         className={`${fontSans.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <AppInitializer />
-        <AccessibilityProvider>
-          <ClientThemeProvider>
-            <IndustryProvider>
-              {children}
-              <Footer />
-            </IndustryProvider>
-          </ClientThemeProvider>
-        </AccessibilityProvider>
-        {/* Defer non-critical providers */}
-        <PostHogProvider>
-          <ReferralProvider>
-            <CommandPalette />
-            <OfflineBanner />
-            <ServiceWorkerProvider />
-            <Toaster />
-          </ReferralProvider>
-        </PostHogProvider>
+        <ClientThemeProvider>{children}</ClientThemeProvider>
       </body>
     </html>
   );

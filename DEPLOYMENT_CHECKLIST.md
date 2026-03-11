@@ -9,6 +9,11 @@ Current production is split into 2 deploy targets:
 
 This checklist reflects the current stack, not the older Retell/Pj Buddy setup.
 
+Current voice deployment distinction:
+
+- Docker is the standardized deployment architecture for the LiveKit core voice infrastructure
+- the Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process
+
 ## 1. Web app prerequisites
 
 - verify `DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
@@ -59,6 +64,12 @@ Verify:
 
 The LiveKit worker is deployed separately from Vercel.
 
+Infrastructure model to verify before deployment:
+
+- LiveKit core infrastructure should be running via Docker on the OCI host
+- the active Twilio subaccount voice agent worker should be treated as a host-process deploy, not a Docker deploy
+- do not treat legacy native LiveKit, Redis, or Tailscale services as part of the supported runtime
+
 Required envs typically include:
 
 - `LIVEKIT_URL`
@@ -83,6 +94,11 @@ Current voice assumptions:
 ## 5. GitHub Actions worker deploy
 
 `livekit-agent/**` changes on `main` should trigger the worker deploy workflow.
+
+Important distinction:
+
+- this workflow currently updates the host-process voice agent worker
+- it does not represent a full Dockerized deployment of the Twilio subaccount voice agent runtime
 
 Before relying on it, verify repo secrets exist:
 

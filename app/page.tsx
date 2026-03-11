@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,7 +13,17 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
-import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel";
+
+const HeroDashboardReel = dynamic(
+    () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
+    {
+        loading: () => (
+            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded-[32px] border border-white/55 bg-white/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                <div className="aspect-[16/10] bg-[linear-gradient(180deg,#e2e8f0_0%,#cbd5e1_100%)] sm:aspect-[16/9]" />
+            </div>
+        ),
+    },
+);
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
 

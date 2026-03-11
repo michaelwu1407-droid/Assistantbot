@@ -4,6 +4,7 @@
 - **LiveKit Server**: Self-hosted (NOT LiveKit Cloud)
 - **SIP Flow**: LiveKit SIP trunk → Twilio SIP trunk → Phone network
 - **Demo Call Flow**: User form → API → LiveKit SIP → Twilio → Phone
+- **Lowest-latency Twilio edge for AU**: use `earlymark-outbound.pstn.sydney.twilio.com`
 
 ## Quick Setup Commands
 
@@ -24,7 +25,7 @@ livekit-cli sip-trunk list
 # Create new outbound trunk
 livekit-cli sip-trunk create \
   --name "Earlymark Outbound" \
-  --sip-server "earlymark-outbound.pstn.twilio.com" \
+  --sip-server "earlymark-outbound.pstn.sydney.twilio.com" \
   --username "YOUR_TWILIO_SID" \
   --password "YOUR_TWILIO_AUTH_TOKEN" \
   --outbound
@@ -37,11 +38,27 @@ livekit-cli sip-trunk create \
 **Local (.env.local):**
 ```bash
 LIVEKIT_SIP_TRUNK_ID="ST_YOUR_LIVEKIT_TRUNK_ID"  # NOT the Twilio TK_ ID!
+LIVEKIT_SIP_TERMINATION_URI="earlymark-outbound.pstn.sydney.twilio.com"
 ```
 
 **Vercel Dashboard:**
 1. Go to Project → Settings → Environment Variables
 2. Update `LIVEKIT_SIP_TRUNK_ID` with your LiveKit trunk ID
+3. Set `LIVEKIT_SIP_TERMINATION_URI=earlymark-outbound.pstn.sydney.twilio.com`
+
+## Twilio Console For Lowest Latency
+
+Keep the trunk in place, but point Twilio origination toward your LiveKit ingress through the Sydney edge:
+
+```text
+sip:live.earlymark.ai:5060;edge=sydney
+```
+
+For outbound termination from LiveKit into Twilio, use:
+
+```text
+earlymark-outbound.pstn.sydney.twilio.com
+```
 
 ## What I Need From You
 

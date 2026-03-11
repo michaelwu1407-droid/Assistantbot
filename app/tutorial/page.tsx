@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -190,6 +191,7 @@ export default function TutorialPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

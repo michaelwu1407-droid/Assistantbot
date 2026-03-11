@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
-import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
+import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 
 export const dynamic = "force-dynamic";
@@ -10,17 +10,27 @@ export async function GET(req: Request) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [twilio, voiceWorker] = await Promise.all([
+  const [twilio, twilioMessaging, voiceWorker] = await Promise.all([
     auditTwilioVoiceRouting({ apply: true }),
+    auditTwilioMessagingRouting({ apply: true }),
     getVoiceAgentRuntimeDrift(),
   ]);
 
-  const unhealthy = twilio.status === "unhealthy" || voiceWorker.status === "unhealthy";
+  const unhealthy =
+    twilio.status === "unhealthy" ||
+    twilioMessaging.status === "unhealthy" ||
+    voiceWorker.status === "unhealthy";
 
   return NextResponse.json(
     {
-      status: unhealthy ? "unhealthy" : twilio.status === "degraded" || voiceWorker.status === "degraded" ? "degraded" : "healthy",
+      status:
+        unhealthy
+          ? "unhealthy"
+          : twilio.status === "degraded" || twilioMessaging.status === "degraded" || voiceWorker.status === "degraded"
+            ? "degraded"
+            : "healthy",
       twilio,
+      twilioMessaging,
       voiceWorker,
       checkedAt: new Date().toISOString(),
     },

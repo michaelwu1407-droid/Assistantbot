@@ -11,6 +11,7 @@ type ProvisionResult = {
 const LATE_STAGES = new Set([
   "number-purchase",
   "sip-trunk",
+  "number-config",
   "db-update",
   "usage-trigger",
   "welcome-sms",

@@ -6,7 +6,6 @@ on:
     branches: [main]
     paths:
       - "livekit-agent/**"
-      - "ops/systemd/**"
       - ".github/workflows/deploy-livekit.yml"
 
 concurrency:
@@ -34,12 +33,11 @@ jobs:
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           tar \
-            --exclude='livekit-agent/node_modules' \
-            --exclude='livekit-agent/.env.local' \
-            --exclude='livekit-agent/.env.*.local' \
-            -czf livekit-agent-deploy.tgz \
-            livekit-agent \
-            ops/systemd
+            --exclude='node_modules' \
+            --exclude='.env.local' \
+            --exclude='.env.*.local' \
+            -czf earlymark-agent-deploy.tgz \
+            -C livekit-agent .
 
       - name: Copy Agent Package
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -48,59 +46,58 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ env.DEPLOY_KEY }}
-          source: livekit-agent-deploy.tgz
+          source: earlymark-agent-deploy.tgz
           target: /tmp
           strip_components: 0
 
-      - name: Install and Restart Services
+      - name: Install and Restart Worker
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_GIT_SHA: ${{ github.sha }}
-          LIVEKIT_AGENT_ENV_B64: ${{ secrets.LIVEKIT_AGENT_ENV_B64 }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET }}
           VOICE_HOST_ID: ${{ env.VOICE_HOST_ID }}
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ env.DEPLOY_KEY }}
-          envs: DEPLOY_GIT_SHA,LIVEKIT_AGENT_ENV_B64,NEXT_PUBLIC_APP_URL,VOICE_AGENT_WEBHOOK_SECRET,VOICE_HOST_ID
+          envs: DEPLOY_GIT_SHA,VOICE_HOST_ID
           script: |
             set -euo pipefail
 
-            sudo mkdir -p /opt/tracey-agent/current /etc/tracey-voice
-            sudo chown -R "$USER":"$USER" /opt/tracey-agent/current
-            rm -rf /opt/tracey-agent/current/livekit-agent /opt/tracey-agent/current/ops
-            tar -xzf /tmp/livekit-agent-deploy.tgz -C /opt/tracey-agent/current
-
-            if [ -n "${LIVEKIT_AGENT_ENV_B64:-}" ]; then
-              printf '%s' "$LIVEKIT_AGENT_ENV_B64" | base64 -d > /tmp/tracey-common.env
-              sudo mv /tmp/tracey-common.env /etc/tracey-voice/common.env
-            fi
-
-            if [ ! -f /etc/tracey-voice/common.env ]; then
-              echo "Missing /etc/tracey-voice/common.env and LIVEKIT_AGENT_ENV_B64 was not provided."
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "pm2 is not installed on the target host."
               exit 1
             fi
 
-            cat > /tmp/tracey-deploy.env <<EOF
-            DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
-            VOICE_HOST_ID="$VOICE_HOST_ID"
-            EOF
-            sudo mv /tmp/tracey-deploy.env /etc/tracey-voice/deploy.env
-            sudo chmod 600 /etc/tracey-voice/common.env /etc/tracey-voice/deploy.env
+            sudo mkdir -p /opt/earlymark-agent
+            sudo chown -R "$USER":"$USER" /opt/earlymark-agent
+            find /opt/earlymark-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            tar -xzf /tmp/earlymark-agent-deploy.tgz -C /opt/earlymark-agent
 
-            cd /opt/tracey-agent/current/livekit-agent
+            if [ ! -f /opt/earlymark-agent/.env.local ]; then
+              echo "Missing /opt/earlymark-agent/.env.local"
+              exit 1
+            fi
+
+            cd /opt/earlymark-agent
             npm ci --omit=dev --no-audit --no-fund
 
-            sudo cp /opt/tracey-agent/current/ops/systemd/tracey-sales-agent.service /etc/systemd/system/tracey-sales-agent.service
-            sudo cp /opt/tracey-agent/current/ops/systemd/tracey-customer-agent.service /etc/systemd/system/tracey-customer-agent.service
-            sudo systemctl daemon-reload
-            sudo systemctl enable tracey-sales-agent tracey-customer-agent
-            sudo systemctl restart tracey-sales-agent tracey-customer-agent
-            sudo systemctl is-active --quiet tracey-sales-agent
-            sudo systemctl is-active --quiet tracey-customer-agent
+            sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
+
+            set -a
+            . /opt/earlymark-agent/.env.local
+            set +a
+            export DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
+            export VOICE_HOST_ID="$VOICE_HOST_ID"
+
+            pm2 delete earlymark-sales-agent || true
+            pm2 delete earlymark-customer-agent || true
+            pm2 start npm --name earlymark-sales-agent -- run start:sales
+            pm2 start npm --name earlymark-customer-agent -- run start:customer
+            sudo env "PATH=$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" || true
+            pm2 save
+            pm2 describe earlymark-sales-agent
+            pm2 describe earlymark-customer-agent
 
       - name: Verify Worker Heartbeats
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -130,8 +127,10 @@ jobs:
             if [ "$VERIFIED" -ne 1 ]; then
               echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
               node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
-              sudo systemctl status tracey-sales-agent --no-pager || true
-              sudo systemctl status tracey-customer-agent --no-pager || true
+              pm2 describe earlymark-sales-agent || true
+              pm2 describe earlymark-customer-agent || true
+              pm2 logs earlymark-sales-agent --lines 80 --nostream || true
+              pm2 logs earlymark-customer-agent --lines 80 --nostream || true
               exit 1
             fi
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -195,6 +196,7 @@ export default function ContactPage() {
 
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

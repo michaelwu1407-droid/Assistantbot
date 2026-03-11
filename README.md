@@ -170,6 +170,8 @@ See [.env.example](C:/Users/micha/Assistantbot/.env.example) for the full list. 
 ## Deployment notes
 
 - web app deploys separately from the LiveKit worker
+- Docker is the standardized deployment architecture for the LiveKit core voice infrastructure
+- the Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process
 - GitHub Actions now auto-deploys `livekit-agent/**` changes to the OCI worker
 - the worker logs its deployed git SHA on startup for verification
 - AU Twilio number purchases require Twilio regulatory compliance approval

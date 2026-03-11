@@ -1,5 +1,6 @@
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers, phoneMatches } from "@/lib/earlymark-inbound-config";
 import { twilioMasterClient } from "@/lib/twilio";
+import { auditTwilioMessagingRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 import { getVoiceFleetHealth } from "@/lib/voice-fleet";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
@@ -41,6 +42,14 @@ function buildCheck(required: string[], warningChecks: string[] = []): AgentRead
 function maxStatus(left: ReadinessStatus, right: ReadinessStatus): ReadinessStatus {
   const order: ReadinessStatus[] = ["healthy", "degraded", "unhealthy"];
   return order[Math.max(order.indexOf(left), order.indexOf(right))];
+}
+
+function mergeCheckWarnings(check: AgentReadinessCheck, warnings: string[], status: ReadinessStatus) {
+  if (warnings.length > 0) {
+    check.warnings.push(...warnings);
+  }
+  check.status = maxStatus(check.status, status);
+  check.summary = summarize(check.status, check.missing, check.warnings);
 }
 
 async function auditInboundVoiceConfig(): Promise<AgentReadinessCheck> {
@@ -136,12 +145,17 @@ export async function getCustomerAgentReadiness(): Promise<CustomerAgentReadines
     ]),
   };
 
-  checks.inboundVoice = await auditInboundVoiceConfig();
-  const [voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
+  const [inboundVoice, smsRouting, voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
+    auditInboundVoiceConfig(),
+    auditTwilioMessagingRouting({ apply: false }),
     getVoiceAgentRuntimeDrift(),
     getVoiceFleetHealth(),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
+  checks.inboundVoice = inboundVoice;
+  if (smsRouting.status !== "healthy") {
+    mergeCheckWarnings(checks.smsInbound, smsRouting.warnings.length > 0 ? smsRouting.warnings : [smsRouting.summary], smsRouting.status);
+  }
   checks.voiceWorker = {
     status: voiceWorker.status,
     missing: [],

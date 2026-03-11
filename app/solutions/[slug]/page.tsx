@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { TRADE_SERVICES, TRADE_SERVICES_BY_SLUG } from "@/lib/trade-services";
@@ -146,6 +147,7 @@ export default async function SolutionDetailPage({
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

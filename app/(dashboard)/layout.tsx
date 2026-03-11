@@ -1,15 +1,22 @@
 import React, { Suspense } from 'react';
+import dynamic from "next/dynamic";
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/layout/Shell';
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
-import { getOrCreateWorkspace } from "@/actions/workspace-actions";
-import { getAuthUserId } from "@/lib/auth";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
-import { ChatInterface } from "@/components/chatbot/chat-interface";
-import { db } from "@/lib/db";
+import { IndustryProvider } from "@/components/providers/industry-provider";
+import { DashboardClientChrome } from "@/components/providers/dashboard-client-chrome";
+import { Toaster } from "@/components/ui/sonner";
+import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
 
-export const dynamic = "force-dynamic";
+const DeferredChatInterface = dynamic(
+  () => import("@/components/chatbot/chat-interface").then((mod) => mod.ChatInterface),
+  {
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-background" />,
+  },
+);
 
 export default async function DashboardLayout({
   children,
@@ -23,22 +30,15 @@ export default async function DashboardLayout({
   let shouldRedirectToSetup = false;
 
   try {
-    const authUserId = await getAuthUserId();
-    if (!authUserId) {
+    const dashboardState = await getDashboardShellState();
+    if (!dashboardState) {
       throw new Error("User not authenticated");
     }
-    userId = authUserId;
-    // Run workspace fetch and user role lookup in parallel
-    const [workspace, dbUser] = await Promise.all([
-      getOrCreateWorkspace(userId),
-      db.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      }).catch(() => null),
-    ]);
+    userId = dashboardState.userId;
+    const workspace = dashboardState.workspace;
     workspaceId = workspace.id;
     tutorialComplete = workspace.tutorialComplete;
-    if (dbUser?.role) userRole = dbUser.role as UserRole;
+    userRole = dashboardState.userRole;
 
     if (workspace.subscriptionStatus === "active" && !workspace.onboardingComplete) {
       shouldRedirectToSetup = true;
@@ -55,15 +55,17 @@ export default async function DashboardLayout({
   }
 
   return (
-    <>
+    <IndustryProvider>
       <ShellInitializer workspaceId={workspaceId} userId={userId} userRole={userRole} tutorialComplete={tutorialComplete} />
       <Suspense fallback={<div className="h-screen w-full bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
-        <Shell chatbot={<ChatInterface workspaceId={workspaceId} />}>
+        <Shell chatbot={<DeferredChatInterface workspaceId={workspaceId} />}>
           <OnboardingModal />
           {children}
         </Shell>
       </Suspense>
-    </>
+      <Toaster />
+      <DashboardClientChrome />
+    </IndustryProvider>
   );
 }
 

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { getLivekitSipTerminationUri } from "@/lib/livekit-sip-config";
 
 /**
  * Create SIP Trunk via LiveKit API
@@ -7,10 +8,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 const LIVEKIT_URL = process.env.LIVEKIT_URL?.replace("wss://", "https://") || "https://live.earlymark.ai";
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "";
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || "";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
+    const sipServer = getLivekitSipTerminationUri();
     const response = await fetch(`${LIVEKIT_URL}/sip/trunk`, {
       method: "POST",
       headers: {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         name: "Earlymark Outbound",
-        sip_server: "earlymark-outbound.pstn.twilio.com",
+        sip_server: sipServer,
         username: process.env.TWILIO_ACCOUNT_SID,
         password: process.env.TWILIO_AUTH_TOKEN,
         outbound: true,
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       trunkId: result.sip_trunk_id,
+      sipServer,
       result
     });
 

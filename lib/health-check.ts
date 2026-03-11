@@ -3,7 +3,7 @@ import {
   getKnownEarlymarkInboundNumbers,
 } from './earlymark-inbound-config';
 import { createAdminClient } from './supabase/server-robust';
-import { auditTwilioVoiceRouting } from './twilio-drift';
+import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from './twilio-drift';
 import { getVoiceAgentRuntimeDrift } from './voice-agent-runtime';
 
 export async function checkDatabaseHealth(): Promise<{
@@ -73,7 +73,7 @@ export function validateEnvironment(): {
   }
 
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    warnings.push('NEXT_PUBLIC_APP_URL is missing; Twilio voice gateway callbacks and diagnostics may drift');
+    warnings.push('NEXT_PUBLIC_APP_URL is missing; Twilio voice/SMS callbacks and diagnostics may drift');
   }
 
   if (getKnownEarlymarkInboundNumbers().length === 0) {
@@ -92,6 +92,17 @@ async function auditInboundVoiceRouting(): Promise<{
   warnings: string[];
 }> {
   const drift = await auditTwilioVoiceRouting({ apply: false });
+  return {
+    status: drift.status,
+    warnings: drift.warnings.length > 0 ? drift.warnings : [drift.summary].filter(Boolean),
+  };
+}
+
+async function auditInboundMessagingRouting(): Promise<{
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  warnings: string[];
+}> {
+  const drift = await auditTwilioMessagingRouting({ apply: false });
   return {
     status: drift.status,
     warnings: drift.warnings.length > 0 ? drift.warnings : [drift.summary].filter(Boolean),
@@ -126,6 +137,17 @@ export async function performStartupHealthCheck(): Promise<void> {
     }
   } catch (error) {
     console.warn('[startup] Inbound voice routing audit exception:', error);
+  }
+
+  try {
+    const messagingAudit = await auditInboundMessagingRouting();
+    if (messagingAudit.status !== 'healthy') {
+      console.warn('[startup] Inbound messaging routing audit issues:', messagingAudit.warnings);
+    } else {
+      console.log('[startup] Inbound messaging routing audit passed');
+    }
+  } catch (error) {
+    console.warn('[startup] Inbound messaging routing audit exception:', error);
   }
 
   try {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel";
@@ -118,6 +119,7 @@ export default function SolutionsPage() {
           })}
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

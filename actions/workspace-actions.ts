@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import { cache } from "react";
 import { Prisma, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
@@ -25,12 +25,6 @@ export interface WorkspaceView {
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
-
-const _CreateWorkspaceSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["TRADIE", "AGENT"]),
-  ownerId: z.string().optional(),
-});
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -131,7 +125,7 @@ export async function ensureWorkspaceUserForAuth(
  * This is the main entry point — frontend calls this on load
  * to get a workspaceId for all subsequent actions.
  */
-export async function getOrCreateWorkspace(
+async function getOrCreateWorkspaceImpl(
   ownerId?: string,
   defaults?: { name?: string; type?: "TRADIE" | "AGENT"; industryType?: "TRADES" | "REAL_ESTATE"; location?: string }
 ): Promise<WorkspaceView> {
@@ -227,6 +221,8 @@ export async function getOrCreateWorkspace(
     throw errorObj;
   }
 }
+
+export const getOrCreateWorkspace = cache(getOrCreateWorkspaceImpl);
 
 /**
  * Ensure the workspace owner has a User row (for existing workspaces created before owner sync).
@@ -686,7 +682,7 @@ export async function checkUserRoute(userId: string): Promise<string> {
       return "/dashboard";
     }
     return "/billing";
-  } catch (error) {
+  } catch {
     return "/billing";
   }
 }

@@ -12,7 +12,7 @@
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
-import { getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
+import { getExpectedSmsWebhookUrl, getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
 import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -46,6 +46,14 @@ export async function initializeSimpleComms(
 ): Promise<CommsSetupResult> {
   const livekitSipUri = process.env.LIVEKIT_SIP_URI;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://assistantbot-zeta.vercel.app";
+  const expectedVoiceGatewayUrl = getExpectedVoiceGatewayUrl();
+  const expectedSmsWebhookUrl = getExpectedSmsWebhookUrl();
+  const managedFriendlyName = buildManagedVoiceNumberFriendlyName({
+    scope: "workspace",
+    surface: "normal",
+    workspaceId,
+    label: businessName,
+  });
 
   // Detailed environment logging
   console.log("[SIMPLE-COMMS] Environment check:", {
@@ -63,7 +71,18 @@ export async function initializeSimpleComms(
     return { success: false, error, stageReached: "pre-check" };
   }
 
+  if (!expectedVoiceGatewayUrl || !expectedSmsWebhookUrl) {
+    const error = "NEXT_PUBLIC_APP_URL is required to configure Twilio voice and SMS webhooks.";
+    console.error("[SIMPLE-COMMS] ERROR:", error);
+    return { success: false, error, stageReached: "pre-check" };
+  }
+
   let stageReached = "init";
+  let purchasedNumberSid: string | null = null;
+  let purchasedPhoneNumber: string | null = null;
+  let trunkSid: string | null = null;
+  let workspacePersisted = false;
+  let cleanupWarnings: string[] = [];
 
   try {
     console.log("[SIMPLE-COMMS] Starting provisioning process...");
@@ -131,13 +150,10 @@ export async function initializeSimpleComms(
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
-      friendlyName: buildManagedVoiceNumberFriendlyName({
-        scope: "workspace",
-        surface: "normal",
-        workspaceId,
-        label: businessName,
-      }),
+      friendlyName: managedFriendlyName,
     });
+    purchasedNumberSid = purchasedNumber.sid;
+    purchasedPhoneNumber = purchasedNumber.phoneNumber;
 
     console.log("[SIMPLE-COMMS] Number purchased successfully:", purchasedNumber.phoneNumber);
     
@@ -156,6 +172,7 @@ export async function initializeSimpleComms(
     const trunk = await twilioMasterClient.trunking.v1.trunks.create({
       friendlyName: `${businessName} - LiveKit SIP`,
     });
+    trunkSid = trunk.sid;
 
     // Add an origination URI so LiveKit can route inbound calls
     if (livekitSipUri) {
@@ -173,26 +190,21 @@ export async function initializeSimpleComms(
     // Build the termination URI (using main account SID for simple setup)
     const accountSid = process.env.TWILIO_ACCOUNT_SID!;
     const terminationUri = `${accountSid}.pstn.twilio.com`;
-    const expectedVoiceGatewayUrl = getExpectedVoiceGatewayUrl();
-
-    if (expectedVoiceGatewayUrl) {
-      await twilioMasterClient.incomingPhoneNumbers(purchasedNumber.sid).update({
-        voiceUrl: expectedVoiceGatewayUrl,
-        voiceMethod: "POST",
-        voiceApplicationSid: "",
-        friendlyName: buildManagedVoiceNumberFriendlyName({
-          scope: "workspace",
-          surface: "normal",
-          workspaceId,
-          label: businessName,
-        }),
-      });
-    }
+    stageReached = "number-config";
+    await twilioMasterClient.incomingPhoneNumbers(purchasedNumber.sid).update({
+      voiceUrl: expectedVoiceGatewayUrl,
+      voiceMethod: "POST",
+      voiceApplicationSid: "",
+      smsUrl: expectedSmsWebhookUrl,
+      smsMethod: "POST",
+      smsApplicationSid: "",
+      friendlyName: managedFriendlyName,
+    });
 
     await logActivity(
       workspaceId,
       "SIP Trunk Configured",
-      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}${expectedVoiceGatewayUrl ? `, Voice gateway: ${expectedVoiceGatewayUrl}` : ""}`
+      `Trunk SID: ${trunk.sid}, Termination: ${terminationUri}${livekitSipUri ? `, LiveKit SIP: ${livekitSipUri}` : ""}, Voice gateway: ${expectedVoiceGatewayUrl}, SMS webhook: ${expectedSmsWebhookUrl}`
     );
 
     // ────────────────────────────────────────────────────────────────
@@ -210,6 +222,7 @@ export async function initializeSimpleComms(
         twilioSipTrunkSid: trunk.sid,
       },
     });
+    workspacePersisted = true;
 
     await logActivity(
       workspaceId,
@@ -265,10 +278,19 @@ export async function initializeSimpleComms(
       timestamp: new Date().toISOString()
     });
 
+    if (!workspacePersisted && (purchasedNumberSid || trunkSid)) {
+      cleanupWarnings = await cleanupProvisioningArtifacts({
+        workspaceId,
+        phoneNumberSid: purchasedNumberSid,
+        phoneNumber: purchasedPhoneNumber,
+        trunkSid,
+      });
+    }
+
     await logActivity(
       workspaceId,
       "Comms Setup Failed",
-      `Failed at stage '${stageReached}': ${detailedError}`
+      `Failed at stage '${stageReached}': ${detailedError}${cleanupWarnings.length > 0 ? ` Cleanup warnings: ${cleanupWarnings.join(" | ")}` : ""}`
     );
 
     return {
@@ -292,4 +314,39 @@ async function logActivity(workspaceId: string, title: string, content: string) 
       // No dealId/contactId — this is a system-level workspace event
     },
   });
+}
+
+async function cleanupProvisioningArtifacts(params: {
+  workspaceId: string;
+  phoneNumberSid?: string | null;
+  phoneNumber?: string | null;
+  trunkSid?: string | null;
+}) {
+  const warnings: string[] = [];
+
+  if (params.phoneNumberSid) {
+    try {
+      await twilioMasterClient!.incomingPhoneNumbers(params.phoneNumberSid).remove();
+    } catch (error) {
+      warnings.push(
+        `Failed to release purchased number ${params.phoneNumber || params.phoneNumberSid}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  if (params.trunkSid) {
+    try {
+      await twilioMasterClient!.trunking.v1.trunks(params.trunkSid).remove();
+    } catch (error) {
+      warnings.push(
+        `Failed to remove SIP trunk ${params.trunkSid}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  if (warnings.length > 0) {
+    await logActivity(params.workspaceId, "Comms Cleanup Warning", warnings.join(" ")).catch(() => { });
+  }
+
+  return warnings;
 }

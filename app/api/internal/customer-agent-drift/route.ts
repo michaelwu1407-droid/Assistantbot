@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
+import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 import { getVoiceFleetHealth } from "@/lib/voice-fleet";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
@@ -19,16 +19,26 @@ export async function GET(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [twilio, voiceWorker, fleet, latency] = await Promise.all([
+  const [twilio, twilioMessaging, voiceWorker, fleet, latency] = await Promise.all([
     auditTwilioVoiceRouting({ apply: false }),
+    auditTwilioMessagingRouting({ apply: false }),
     getVoiceAgentRuntimeDrift(),
     getVoiceFleetHealth(),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
 
+  const status = combineVoiceStatuses([twilio.status, voiceWorker.status, fleet.status, latency.status]);
+  const overallStatus =
+    twilioMessaging.status === "unhealthy"
+      ? "unhealthy"
+      : twilioMessaging.status === "degraded" && status === "healthy"
+        ? "degraded"
+        : status;
+
   return NextResponse.json({
-    status: combineVoiceStatuses([twilio.status, voiceWorker.status, fleet.status, latency.status]),
+    status: overallStatus,
     twilio,
+    twilioMessaging,
     voiceWorker,
     fleet,
     latency,
@@ -41,24 +51,32 @@ export async function POST(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const [twilio, voiceWorker, fleet, latency] = await Promise.all([
+  const [twilio, twilioMessaging, voiceWorker, fleet, latency] = await Promise.all([
     auditTwilioVoiceRouting({ apply: true }),
+    auditTwilioMessagingRouting({ apply: true }),
     getVoiceAgentRuntimeDrift(),
     getVoiceFleetHealth(),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
 
   const status = combineVoiceStatuses([twilio.status, voiceWorker.status, fleet.status, latency.status]);
+  const overallStatus =
+    twilioMessaging.status === "unhealthy"
+      ? "unhealthy"
+      : twilioMessaging.status === "degraded" && status === "healthy"
+        ? "degraded"
+        : status;
 
   return NextResponse.json(
     {
-      status,
+      status: overallStatus,
       twilio,
+      twilioMessaging,
       voiceWorker,
       fleet,
       latency,
       checkedAt: new Date().toISOString(),
     },
-    { status: status === "unhealthy" ? 500 : 200 },
+    { status: overallStatus === "unhealthy" ? 500 : 200 },
   );
 }
