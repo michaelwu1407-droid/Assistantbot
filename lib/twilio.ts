@@ -51,7 +51,7 @@ export async function createTwilioSubaccount(
         };
     } catch (error) {
         console.error("Failed to create Twilio Subaccount:", error);
-        return null;
+        throw error instanceof Error ? error : new Error("Failed to create Twilio Subaccount");
     }
 }
 

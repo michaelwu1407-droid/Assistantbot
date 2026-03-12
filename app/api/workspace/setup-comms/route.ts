@@ -57,6 +57,10 @@ export async function POST(request: NextRequest) {
       error: result.error,
       stageReached: result.stageReached,
       mode: result.mode,
+      errorCode: result.errorCode,
+      status: result.status,
+      bundleSid: result.bundleSid,
+      subaccountSid: result.subaccountSid,
       elapsedMs: result.elapsedMs,
       result: result
     });

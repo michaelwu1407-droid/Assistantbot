@@ -45,6 +45,7 @@ import {
   weeklyHoursAreUniform,
   type WeeklyHours,
 } from "@/lib/working-hours"
+import { buildLeadCaptureEmailPreview } from "@/lib/lead-capture-email"
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -538,16 +539,15 @@ export function TraceyOnboarding() {
     }
   }, [step, websiteUrl, triggerScrape])
 
-  // Generate leads email preview client-side from owner name + business name
+  // Generate the canonical inbound lead-capture address preview client-side.
   useEffect(() => {
-    if (step === 3 && !preGenLeadsEmail && ownerName && businessName) {
-      const toSlug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
-      const firstName = (ownerName.trim().split(/\s+/)[0] || "user").toLowerCase().replace(/[^a-z0-9]/g, "")
-      const bizSlug = toSlug(businessName)
-      const domainBase = "earlymark.ai"
-      setPreGenLeadsEmail(`${firstName}@${bizSlug}.${domainBase}`)
+    if (businessName.trim()) {
+      setPreGenLeadsEmail(buildLeadCaptureEmailPreview(businessName))
+      return
     }
-  }, [step, preGenLeadsEmail, ownerName, businessName])
+
+    setPreGenLeadsEmail(null)
+  }, [businessName])
 
   const resolveProvisioning = useCallback(async () => {
     if (!businessName.trim() || !phone.trim()) {
@@ -776,6 +776,9 @@ export function TraceyOnboarding() {
           leadsEmail: result.leadsEmail,
           provisioningError: result.provisioningError,
         })
+        if (result.leadsEmail) {
+          setPreGenLeadsEmail(result.leadsEmail)
+        }
         if (finalPhoneNumber) {
           setResolvedPhoneNumber(finalPhoneNumber)
         }

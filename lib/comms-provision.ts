@@ -6,6 +6,10 @@ type ProvisionResult = {
   phoneNumber?: string;
   error?: string;
   stageReached?: string;
+  errorCode?: number;
+  status?: number;
+  bundleSid?: string;
+  subaccountSid?: string;
 };
 
 const LATE_STAGES = new Set([
@@ -24,13 +28,17 @@ function shouldFallbackToSimple(result: ProvisionResult): boolean {
   return !LATE_STAGES.has(result.stageReached);
 }
 
+function isSimpleProvisioningFallbackEnabled() {
+  return (process.env.TWILIO_ENABLE_SIMPLE_PROVISIONING_FALLBACK || "").trim().toLowerCase() === "true";
+}
+
 export async function provisionTradieCommsWithFallback(
   workspaceId: string,
   businessName: string,
   ownerPhone: string
 ): Promise<ProvisionResult & { mode: "full" | "simple" }> {
   const full = await initializeTradieComms(workspaceId, businessName, ownerPhone);
-  if (full.success || !shouldFallbackToSimple(full)) {
+  if (full.success || !shouldFallbackToSimple(full) || !isSimpleProvisioningFallbackEnabled()) {
     return { ...full, mode: "full" };
   }
 

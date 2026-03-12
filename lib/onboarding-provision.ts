@@ -10,6 +10,28 @@ function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
   return settings as Record<string, unknown>;
 }
 
+function withProvisioningDiagnostics(
+  settings: Record<string, unknown>,
+  diagnostics?: {
+    stageReached?: string | null;
+    mode?: "full" | "simple" | null;
+    errorCode?: number | null;
+    status?: number | null;
+    bundleSid?: string | null;
+    subaccountSid?: string | null;
+  },
+) {
+  return {
+    ...settings,
+    onboardingProvisioningStageReached: diagnostics?.stageReached ?? null,
+    onboardingProvisioningMode: diagnostics?.mode ?? null,
+    onboardingProvisioningErrorCode: diagnostics?.errorCode ?? null,
+    onboardingProvisioningHttpStatus: diagnostics?.status ?? null,
+    onboardingProvisioningBundleSid: diagnostics?.bundleSid ?? null,
+    onboardingProvisioningSubaccountSid: diagnostics?.subaccountSid ?? null,
+  };
+}
+
 type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation";
 
 export type WorkspaceProvisioningStatus =
@@ -37,6 +59,10 @@ export async function ensureWorkspaceProvisioned(params: {
   error?: string;
   stageReached?: string;
   mode?: "full" | "simple";
+  errorCode?: number;
+  status?: number;
+  bundleSid?: string;
+  subaccountSid?: string;
   elapsedMs: number;
 }> {
   const startedAt = Date.now();
@@ -77,7 +103,7 @@ export async function ensureWorkspaceProvisioned(params: {
       where: { id: workspace.id },
       data: {
         settings: {
-          ...settings,
+          ...withProvisioningDiagnostics(settings),
           onboardingProvisioningStatus: "not_requested",
           onboardingProvisioningError: "Provision mobile business number was not enabled before payment.",
           onboardingProvisioningUpdatedAt: new Date().toISOString(),
@@ -101,7 +127,7 @@ export async function ensureWorkspaceProvisioned(params: {
       where: { id: workspace.id },
       data: {
         settings: {
-          ...settings,
+          ...withProvisioningDiagnostics(settings),
           onboardingProvisioningStatus: "requested",
           onboardingProvisioningError: "Provisioning is queued until Stripe payment completes.",
           onboardingProvisioningUpdatedAt: new Date().toISOString(),
@@ -126,7 +152,7 @@ export async function ensureWorkspaceProvisioned(params: {
       where: { id: workspace.id },
       data: {
         settings: {
-          ...settings,
+          ...withProvisioningDiagnostics(settings),
           onboardingProvisioningStatus: "already_provisioned",
           onboardingProvisionedNumber: workspace.twilioPhoneNumber,
           onboardingProvisioningError: null,
@@ -186,7 +212,7 @@ export async function ensureWorkspaceProvisioned(params: {
           where: { id: workspace.id },
           data: {
             settings: {
-              ...settings,
+              ...withProvisioningDiagnostics(settings),
               onboardingProvisioningStatus: "blocked_duplicate",
               onboardingProvisioningError: `Provisioning blocked during beta. This owner phone is already linked to ${duplicateWorkspace.name || "another workspace"} (${duplicateWorkspace.twilioPhoneNumber}).`,
               onboardingProvisioningUpdatedAt: new Date().toISOString(),
@@ -216,7 +242,7 @@ export async function ensureWorkspaceProvisioned(params: {
     where: { id: workspace.id },
     data: {
       settings: {
-        ...settings,
+        ...withProvisioningDiagnostics(settings),
         onboardingProvisioningStatus: "provisioning",
         onboardingProvisioningError: null,
         onboardingProvisioningStartedAt: new Date().toISOString(),
@@ -248,7 +274,14 @@ export async function ensureWorkspaceProvisioned(params: {
     where: { id: workspace.id },
     data: {
       settings: {
-        ...latestSettings,
+        ...withProvisioningDiagnostics(latestSettings, {
+          stageReached: result.stageReached ?? null,
+          mode: result.mode ?? null,
+          errorCode: result.errorCode ?? null,
+          status: result.status ?? null,
+          bundleSid: result.bundleSid ?? null,
+          subaccountSid: result.subaccountSid ?? null,
+        }),
         onboardingProvisioningStatus: provisioningStatus,
         onboardingProvisionedNumber: result.phoneNumber ?? null,
         onboardingProvisioningError: result.error ?? null,
@@ -277,6 +310,10 @@ export async function ensureWorkspaceProvisioned(params: {
     error: result.error,
     stageReached: result.stageReached,
     mode: result.mode,
+    errorCode: result.errorCode,
+    status: result.status,
+    bundleSid: result.bundleSid,
+    subaccountSid: result.subaccountSid,
     elapsedMs,
   };
 }

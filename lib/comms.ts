@@ -40,9 +40,18 @@ interface CommsSetupResult {
   error?: string;
   /** Partial progress indicator for debugging */
   stageReached?: string;
+  errorCode?: number;
+  status?: number;
+  bundleSid?: string;
+  subaccountSid?: string;
 }
 
 type ManagedTwilioClient = NonNullable<typeof twilioMasterClient>;
+type WorkspaceSubaccount = {
+  subaccountId: string;
+  subaccountAuthToken: string;
+  reused: boolean;
+};
 
 // ─── Main Onboarding Function ───────────────────────────────────────
 
@@ -95,21 +104,22 @@ export async function initializeTradieComms(
   let cleanupWarnings: string[] = [];
   let subClient: ManagedTwilioClient | null = null;
   let bundleSid: string | null = null;
+  let subaccountId: string | null = null;
 
   try {
     // ────────────────────────────────────────────────────────────────
     // 1. Create Twilio Subaccount
     // ────────────────────────────────────────────────────────────────
     stageReached = "subaccount";
-    const subaccount = await createTwilioSubaccount(businessName, { workspaceId });
-    if (!subaccount) {
-      return { success: false, error: "Failed to create Twilio subaccount", stageReached };
-    }
+    const subaccount = await resolveWorkspaceSubaccount(workspaceId, businessName);
+    subaccountId = subaccount.subaccountId;
+    subClient = getSubaccountClient(subaccountId, subaccount.subaccountAuthToken);
 
-    const { subaccountId, subaccountAuthToken } = subaccount;
-    subClient = getSubaccountClient(subaccountId, subaccountAuthToken);
-
-    await logActivity(workspaceId, "Twilio Subaccount Created", `SID: ${subaccountId}`);
+    await logActivity(
+      workspaceId,
+      subaccount.reused ? "Twilio Subaccount Reused" : "Twilio Subaccount Created",
+      `SID: ${subaccountId}`,
+    );
 
     stageReached = "bundle-clone";
     bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
@@ -142,6 +152,8 @@ export async function initializeTradieComms(
         success: false,
         error: "No Australian mobile numbers available with SMS + Voice capability",
         stageReached: "number-search",
+        bundleSid: bundleSid ?? undefined,
+        subaccountSid: subaccountId ?? undefined,
       };
     }
 
@@ -212,7 +224,7 @@ export async function initializeTradieComms(
       where: { id: workspaceId },
       data: {
         twilioSubaccountId: subaccountId,
-        twilioSubaccountAuthToken: subaccountAuthToken,
+        twilioSubaccountAuthToken: subaccount.subaccountAuthToken,
         twilioPhoneNumber: purchasedNumber.phoneNumber,
         twilioPhoneNumberNormalized: normalizePhone(purchasedNumber.phoneNumber),
         twilioPhoneNumberSid: purchasedNumber.sid,
@@ -271,9 +283,11 @@ export async function initializeTradieComms(
       success: true,
       phoneNumber: purchasedNumber.phoneNumber,
       stageReached: "complete",
+      bundleSid: bundleSid ?? undefined,
+      subaccountSid: subaccountId ?? undefined,
     };
   } catch (error) {
-    const { detailedError } = describeTwilioProvisioningError(error);
+    const { detailedError, code: errorCode, status } = describeTwilioProvisioningError(error);
     if (!workspacePersisted && (purchasedNumberSid || trunkSid)) {
       cleanupWarnings = await cleanupProvisioningArtifacts({
         client: subClient || twilioMasterClient,
@@ -295,7 +309,15 @@ export async function initializeTradieComms(
       `Error at stage '${stageReached}': ${detailedError}${cleanupWarnings.length > 0 ? ` Cleanup warnings: ${cleanupWarnings.join(" | ")}` : ""}`
     ).catch(() => { }); // Don't let logging failure mask the real error
 
-    return { success: false, error: detailedError, stageReached };
+    return {
+      success: false,
+      error: detailedError,
+      stageReached,
+      errorCode,
+      status,
+      bundleSid: bundleSid ?? undefined,
+      subaccountSid: subaccountId ?? undefined,
+    };
   }
 }
 
@@ -310,6 +332,53 @@ async function logActivity(workspaceId: string, title: string, content: string) 
       // No dealId/contactId — this is a system-level workspace event
     },
   });
+}
+
+async function resolveWorkspaceSubaccount(workspaceId: string, businessName: string): Promise<WorkspaceSubaccount> {
+  const masterAccountSid = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: {
+      twilioSubaccountId: true,
+      twilioSubaccountAuthToken: true,
+    },
+  });
+
+  if (!workspace) {
+    throw new Error(`Workspace ${workspaceId} was not found before Twilio provisioning started.`);
+  }
+
+  if (workspace.twilioSubaccountId && workspace.twilioSubaccountId !== masterAccountSid) {
+    if (!workspace.twilioSubaccountAuthToken) {
+      throw new Error(
+        `Workspace ${workspaceId} already has Twilio subaccount ${workspace.twilioSubaccountId} but no auth token is stored for retry provisioning.`,
+      );
+    }
+
+    return {
+      subaccountId: workspace.twilioSubaccountId,
+      subaccountAuthToken: workspace.twilioSubaccountAuthToken,
+      reused: true,
+    };
+  }
+
+  const subaccount = await createTwilioSubaccount(businessName, { workspaceId });
+  if (!subaccount) {
+    throw new Error("Failed to create Twilio subaccount");
+  }
+
+  await db.workspace.update({
+    where: { id: workspaceId },
+    data: {
+      twilioSubaccountId: subaccount.subaccountId,
+      twilioSubaccountAuthToken: subaccount.subaccountAuthToken,
+    },
+  });
+
+  return {
+    ...subaccount,
+    reused: false,
+  };
 }
 
 async function cleanupProvisioningArtifacts(params: {

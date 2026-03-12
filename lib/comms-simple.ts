@@ -25,6 +25,8 @@ interface CommsSetupResult {
   stageReached?: string;
   errorCode?: number;
   status?: number;
+  bundleSid?: string;
+  subaccountSid?: string;
 }
 
 // ─── Simple Phone Provisioning (No Subaccounts) ───────────────────────
@@ -69,13 +71,13 @@ export async function initializeSimpleComms(
   if (!twilioMasterClient) {
     const error = "Twilio credentials not configured in environment (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN). This happens before any bundle or account-type checks.";
     console.error("[SIMPLE-COMMS] ERROR:", error);
-    return { success: false, error, stageReached: "pre-check" };
+    return { success: false, error, stageReached: "pre-check", subaccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || undefined };
   }
 
   if (!expectedVoiceGatewayUrl || !expectedSmsWebhookUrl) {
     const error = "NEXT_PUBLIC_APP_URL is required to configure Twilio voice and SMS webhooks.";
     console.error("[SIMPLE-COMMS] ERROR:", error);
-    return { success: false, error, stageReached: "pre-check" };
+    return { success: false, error, stageReached: "pre-check", subaccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || undefined };
   }
 
   let stageReached = "init";
@@ -109,7 +111,8 @@ export async function initializeSimpleComms(
       return {
         success: false,
         error: `Twilio authentication failed: ${authError instanceof Error ? authError.message : "Unknown error"}`,
-        stageReached: "auth-test"
+        stageReached: "auth-test",
+        subaccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || undefined,
       };
     }
     
@@ -144,6 +147,7 @@ export async function initializeSimpleComms(
         success: false,
         error: "No Australian mobile numbers available with SMS + Voice capability",
         stageReached: "number-search",
+        subaccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || undefined,
       };
     }
 
@@ -252,6 +256,8 @@ export async function initializeSimpleComms(
       success: true,
       phoneNumber: purchasedNumber.phoneNumber,
       stageReached: "complete",
+      bundleSid: bundleSid ?? undefined,
+      subaccountSid: accountSid,
     };
   } catch (error) {
     const stack = error instanceof Error ? error.stack : undefined;
@@ -290,7 +296,9 @@ export async function initializeSimpleComms(
       error: detailedError,
       stageReached,
       errorCode,
-      status
+      status,
+      bundleSid: bundleSid ?? undefined,
+      subaccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || undefined,
     };
   }
 }

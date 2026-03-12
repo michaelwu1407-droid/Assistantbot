@@ -9,6 +9,7 @@ import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
 import { normalizeAppAgentMode } from "@/lib/agent-mode"
+import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -419,14 +420,7 @@ export async function getOrAllocateInboundEmail() {
     return workspace.inboundEmail
 }
 
-const INBOUND_LEAD_DOMAIN = process.env.INBOUND_LEAD_DOMAIN ?? "inbound.earlymark.ai"
-
-function toSlug(value: string): string {
-    return value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-}
+const INBOUND_LEAD_DOMAIN = resolveInboundLeadDomain(process.env.INBOUND_LEAD_DOMAIN)
 
 function toFirstName(value?: string | null): string {
     const raw = (value || "").trim()
@@ -455,7 +449,7 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
     })
     if (!workspace) throw new Error("Workspace not found")
 
-    const businessSlug = toSlug(workspace.name || "business")
+    const businessSlug = toLeadCaptureAlias(workspace.name || "business")
     const currentUser = workspace.users.find((u) => u.email === authUser.email)
     const firstNameBase = toFirstName(currentUser?.name || authUser.name || authUser.email?.split("@")[0])
     const legacyAlias = `${firstNameBase}-${businessSlug}`
@@ -479,7 +473,9 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
         aliasSuffix += 1
     }
 
-    if (!workspace.inboundEmailAlias || workspace.inboundEmailAlias !== uniqueAlias || workspace.inboundEmail !== `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`) {
+    const resolvedInboundEmail = buildLeadCaptureEmail(uniqueAlias, INBOUND_LEAD_DOMAIN)
+
+    if (!workspace.inboundEmailAlias || workspace.inboundEmailAlias !== uniqueAlias || workspace.inboundEmail !== resolvedInboundEmail) {
         const settings = (workspace.settings as Record<string, unknown>) ?? {}
         const existingLegacyAliases = Array.isArray(settings.legacyInboundLeadAliases)
             ? settings.legacyInboundLeadAliases.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -488,7 +484,7 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
             where: { id: workspaceId },
             data: {
                 inboundEmailAlias: uniqueAlias,
-                inboundEmail: `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`,
+                inboundEmail: resolvedInboundEmail,
                 settings: {
                     ...settings,
                     legacyInboundLeadAliases: Array.from(new Set([...existingLegacyAliases, legacyAlias].filter(Boolean))),
@@ -503,5 +499,5 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
             },
         })
     }
-    return `${uniqueAlias}@${INBOUND_LEAD_DOMAIN}`
+    return buildLeadCaptureEmail(uniqueAlias, INBOUND_LEAD_DOMAIN)
 }

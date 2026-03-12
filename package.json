@@ -17,6 +17,7 @@
     "db:seed:referral": "npx tsx prisma/seed-referral.ts",
     "retell:create-agent": "npx tsx scripts/create-retell-agent.ts",
     "twilio:list-bundles": "npx tsx scripts/list-regulatory-bundles.ts",
+    "twilio:cleanup-orphans": "npx tsx scripts/cleanup-twilio-orphan-subaccounts.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
