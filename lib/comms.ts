@@ -29,6 +29,7 @@ import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient, createTwilioSubaccount, getSubaccountClient } from "@/lib/twilio";
 import { getExpectedSmsWebhookUrl, getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
+import { describeTwilioProvisioningError, resolveAuMobileBusinessBundleSidForAccount } from "@/lib/twilio-regulatory";
 import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ export async function initializeTradieComms(
   let workspacePersisted = false;
   let cleanupWarnings: string[] = [];
   let subClient: ManagedTwilioClient | null = null;
+  let bundleSid: string | null = null;
 
   try {
     // ────────────────────────────────────────────────────────────────
@@ -108,6 +110,12 @@ export async function initializeTradieComms(
     subClient = getSubaccountClient(subaccountId, subaccountAuthToken);
 
     await logActivity(workspaceId, "Twilio Subaccount Created", `SID: ${subaccountId}`);
+
+    stageReached = "bundle-clone";
+    bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
+      targetAccountSid: subaccountId,
+      friendlyName: `${managedFriendlyName} AU Mobile Business`,
+    });
 
     // ────────────────────────────────────────────────────────────────
     // 2. Buy Australian +61 Number (SMS + Voice capable)
@@ -142,6 +150,7 @@ export async function initializeTradieComms(
     const purchasedNumber = await subClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
+      bundleSid,
     });
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
@@ -264,7 +273,7 @@ export async function initializeTradieComms(
       stageReached: "complete",
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const { detailedError } = describeTwilioProvisioningError(error);
     if (!workspacePersisted && (purchasedNumberSid || trunkSid)) {
       cleanupWarnings = await cleanupProvisioningArtifacts({
         client: subClient || twilioMasterClient,
@@ -276,16 +285,17 @@ export async function initializeTradieComms(
     }
 
     console.error(`[initializeTradieComms] Failed at stage '${stageReached}':`, error, {
+      bundleSid,
       cleanupWarnings,
     });
 
     await logActivity(
       workspaceId,
       "Comms Setup Failed",
-      `Error at stage '${stageReached}': ${message}${cleanupWarnings.length > 0 ? ` Cleanup warnings: ${cleanupWarnings.join(" | ")}` : ""}`
+      `Error at stage '${stageReached}': ${detailedError}${cleanupWarnings.length > 0 ? ` Cleanup warnings: ${cleanupWarnings.join(" | ")}` : ""}`
     ).catch(() => { }); // Don't let logging failure mask the real error
 
-    return { success: false, error: message, stageReached };
+    return { success: false, error: detailedError, stageReached };
   }
 }
 

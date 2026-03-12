@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
 import { getExpectedSmsWebhookUrl, getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
+import { describeTwilioProvisioningError, resolveAuMobileBusinessBundleSidForAccount } from "@/lib/twilio-regulatory";
 import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ export async function initializeSimpleComms(
   let trunkSid: string | null = null;
   let workspacePersisted = false;
   let cleanupWarnings: string[] = [];
+  let bundleSid: string | null = null;
 
   try {
     console.log("[SIMPLE-COMMS] Starting provisioning process...");
@@ -145,12 +147,18 @@ export async function initializeSimpleComms(
       };
     }
 
+    stageReached = "bundle-prepare";
+    bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
+      friendlyName: `${managedFriendlyName} AU Mobile Business`,
+    });
+
     stageReached = "number-purchase";
     console.log("[SIMPLE-COMMS] Stage: number-purchase, purchasing:", chosenNumber);
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
+      bundleSid,
     });
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
@@ -246,31 +254,15 @@ export async function initializeSimpleComms(
       stageReached: "complete",
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     const stack = error instanceof Error ? error.stack : undefined;
-    const errorData = error as { code?: number; status?: number } | null;
-    const errorCode = errorData?.code;
-    const status = errorData?.status;
-    
-    // Handle specific Live API errors
-    let detailedError = message;
-    if (errorCode === 21631) {
-      detailedError = "AUSTRALIAN REGULATORY BUNDLE REQUIRED: Your Twilio account needs ABN/identity verification to purchase Australian numbers. Please complete regulatory compliance in Twilio Console.";
-    } else if (errorCode === 20003) {
-      detailedError = "PERMISSION DENIED: Your Twilio account lacks permissions for Australian number inventory. Check account permissions and geographic restrictions.";
-    } else if (errorCode === 21452) {
-      detailedError = "INSUFFICIENT FUNDS: Twilio account balance too low to purchase phone number. Add funds to your Twilio account.";
-    } else if (status === 401) {
-      detailedError = "AUTHENTICATION FAILED: Invalid Twilio credentials. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in Vercel environment.";
-    } else if (status === 403) {
-      detailedError = "ACCESS FORBIDDEN: Account may be suspended or trial limitations apply. Check Twilio account status.";
-    }
+    const { message, detailedError, code: errorCode, status } = describeTwilioProvisioningError(error);
     
     console.error(`[SIMPLE-COMMS] FAILED at stage '${stageReached}':`, {
       message,
       detailedError,
       errorCode,
       status,
+      bundleSid,
       stack,
       stageReached,
       workspaceId,
