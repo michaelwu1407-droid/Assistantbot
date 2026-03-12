@@ -10,10 +10,6 @@ function normalizeEnvValue(value?: string | null) {
   return (value || "").trim();
 }
 
-function normalizeConfigured(value?: string | null) {
-  return normalizeEnvValue(value) ? "configured" : "";
-}
-
 function normalizePhone(value?: string | null) {
   if (!value) return "";
   const cleaned = value.replace(/[^\d+]/g, "");
@@ -120,10 +116,6 @@ function resolveAppBaseUrl(env: NodeJS.ProcessEnv = process.env) {
   return normalizeBaseUrl(normalizeEnvValue(env.NEXT_PUBLIC_APP_URL) || normalizeEnvValue(env.APP_URL));
 }
 
-function resolveVoiceAgentAuthMode(env: NodeJS.ProcessEnv = process.env) {
-  return normalizeConfigured(normalizeEnvValue(env.VOICE_AGENT_WEBHOOK_SECRET) || normalizeEnvValue(env.LIVEKIT_API_SECRET));
-}
-
 function getConfiguredWorkerRole(env: NodeJS.ProcessEnv = process.env) {
   return normalizeEnvValue(env.VOICE_WORKER_ROLE) || "tracey-all-agent";
 }
@@ -152,16 +144,6 @@ function inferConfiguredPrimaryProvider(callType: CallType, env: NodeJS.ProcessE
   )?.trim().toLowerCase();
 
   return configured === "deepinfra" ? "deepinfra" : "groq";
-}
-
-function resolveAlternateProvider(provider: LlmProviderName): LlmProviderName {
-  return provider === "groq" ? "deepinfra" : "groq";
-}
-
-function resolveProviderApiConfigured(provider: LlmProviderName, env: NodeJS.ProcessEnv = process.env) {
-  return provider === "groq"
-    ? normalizeConfigured(env.GROQ_API_KEY)
-    : normalizeConfigured(env.DEEPINFRA_API_KEY);
 }
 
 function resolveProviderModel(
@@ -270,8 +252,7 @@ function resolveVoiceLatencyFingerprintConfig(
   const enabled = parseBoolean(env.VOICE_LATENCY_ENABLED, true) && enabledByCallType;
   const openerBankEnabled = enabled && parseBoolean(env.VOICE_OPENER_BANK_ENABLED, true);
   const guardProvider = resolveGuardProvider(primaryProvider, env);
-  const guardApiConfigured = enabled ? resolveProviderApiConfigured(guardProvider, env) : "";
-  const guardEnabled = enabled && parseBoolean(env.VOICE_GUARD_ENABLED, true) && Boolean(guardApiConfigured);
+  const guardEnabled = enabled && parseBoolean(env.VOICE_GUARD_ENABLED, true);
 
   return {
     enabled: enabled ? "true" : "false",
@@ -291,7 +272,6 @@ function resolveVoiceLatencyFingerprintConfig(
     guardTemperature: String(clampNumber(env.VOICE_GUARD_TEMPERATURE, 0, 0, 0.3)),
     guardMinChars: String(clampNumber(env.VOICE_GUARD_MIN_CHARS, 18, 8, 80)),
     empathyTurnGap: String(clampNumber(env.VOICE_EMPATHY_TURN_GAP, 3, 1, 8)),
-    guardApiConfigured,
   };
 }
 
@@ -325,13 +305,6 @@ export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv =
     LIVEKIT_TARGET: normalizeLiveKitFingerprintUrl(normalizeEnvValue(env.LIVEKIT_URL)),
     APP_BASE_URL: resolveAppBaseUrl(env),
     EARLYMARK_INBOUND_PHONE_SET: getKnownEarlymarkInboundNumberSet(env).join(","),
-    LIVEKIT_API_KEY: normalizeConfigured(env.LIVEKIT_API_KEY),
-    LIVEKIT_API_SECRET: normalizeConfigured(env.LIVEKIT_API_SECRET),
-    VOICE_AGENT_AUTH_SECRET: resolveVoiceAgentAuthMode(env),
-    DEEPGRAM_API_KEY: normalizeConfigured(env.DEEPGRAM_API_KEY),
-    DEEPINFRA_API_KEY: normalizeConfigured(env.DEEPINFRA_API_KEY),
-    GROQ_API_KEY: normalizeConfigured(env.GROQ_API_KEY),
-    CARTESIA_API_KEY: normalizeConfigured(env.CARTESIA_API_KEY),
     VOICE_HOST_ID: normalizeEnvValue(env.VOICE_HOST_ID),
     VOICE_WORKER_ROLE: workerRole,
     VOICE_WORKER_SURFACES: surfaces.join(","),
@@ -344,8 +317,6 @@ export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv =
 
   for (const surface of surfaces) {
     const primaryProvider = inferConfiguredPrimaryProvider(surface, env);
-    const fallbackProvider = resolveAlternateProvider(primaryProvider);
-    const fallbackConfigured = resolveProviderApiConfigured(fallbackProvider, env);
     const tuning = resolveVoiceTurnTuning(surface, env);
     const latency = resolveVoiceLatencyFingerprintConfig(surface, primaryProvider, env);
     const prefix = getSurfaceKey(surface);
@@ -354,10 +325,6 @@ export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv =
     source[`${prefix}_PRIMARY_MODEL`] = resolveProviderModel(surface, primaryProvider, false, env);
     source[`${prefix}_PRIMARY_TEMPERATURE`] = resolveProviderTemperature(surface, env);
     source[`${prefix}_PRIMARY_MAX_COMPLETION_TOKENS`] = resolveProviderMaxCompletionTokens(surface, env);
-    source[`${prefix}_FALLBACK_PROVIDER`] = fallbackConfigured ? fallbackProvider : "";
-    source[`${prefix}_FALLBACK_MODEL`] = fallbackConfigured
-      ? resolveProviderModel(surface, fallbackProvider, true, env)
-      : "";
     source[`${prefix}_STT_ENDPOINTING_MS`] = tuning.sttEndpointingMs;
     source[`${prefix}_MIN_CONSECUTIVE_SPEECH_DELAY_MS`] = tuning.minConsecutiveSpeechDelayMs;
     source[`${prefix}_MIN_ENDPOINTING_DELAY_MS`] = tuning.minEndpointingDelayMs;

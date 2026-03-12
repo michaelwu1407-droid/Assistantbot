@@ -47,13 +47,6 @@ describe("buildVoiceAgentRuntimeFingerprint", () => {
     const appEnv = {
       LIVEKIT_URL: "https://live.earlymark.ai",
       NEXT_PUBLIC_APP_URL: "https://earlymark.ai",
-      LIVEKIT_API_KEY: "app-livekit-key",
-      LIVEKIT_API_SECRET: "app-livekit-secret",
-      VOICE_AGENT_WEBHOOK_SECRET: "app-webhook-secret",
-      DEEPGRAM_API_KEY: "deepgram-a",
-      DEEPINFRA_API_KEY: "deepinfra-a",
-      GROQ_API_KEY: "groq-a",
-      CARTESIA_API_KEY: "cartesia-a",
       TWILIO_PHONE_NUMBER: "+61485010634",
       VOICE_HOST_ID: "voice-host-a",
       VOICE_WORKER_ROLE: "tracey-sales-agent",
