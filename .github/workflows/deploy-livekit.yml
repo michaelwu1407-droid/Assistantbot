@@ -60,23 +60,37 @@ jobs:
           ssh_opts=(
             -i "$SSH_KEY_PATH"
             -o BatchMode=yes
-            -o ConnectTimeout=20
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=3
+            -o IdentitiesOnly=yes
+            -o PreferredAuthentications=publickey
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
           )
-          timeout 1m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'EOF'
-          set -euo pipefail
-          echo "Connected to $(hostname)"
-          test -w /tmp
-          df -h /tmp
-          command -v node
-          node --version
-          command -v npm
-          npm --version
-          command -v pm2
-          pm2 --version
-          EOF
+          for attempt in 1 2 3; do
+            if timeout 90s ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'EOF'
+            set -euo pipefail
+            echo "Connected to $(hostname)"
+            test -w /tmp
+            df -h /tmp
+            command -v node
+            node --version
+            command -v npm
+            npm --version
+            command -v pm2
+            pm2 --version
+            EOF
+            then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "SSH preflight failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "SSH preflight attempt ${attempt} failed. Retrying in 15 seconds..."
+            sleep 15
+          done
 
       - name: Copy Agent Package
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -85,12 +99,25 @@ jobs:
           ssh_opts=(
             -i "$SSH_KEY_PATH"
             -o BatchMode=yes
-            -o ConnectTimeout=20
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=3
+            -o IdentitiesOnly=yes
+            -o PreferredAuthentications=publickey
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
           )
-          timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH"
+          for attempt in 1 2 3; do
+            if timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Agent package copy failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "Agent package copy attempt ${attempt} failed. Retrying in 15 seconds..."
+            sleep 15
+          done
 
       - name: Install and Restart Worker
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -99,7 +126,10 @@ jobs:
           ssh_opts=(
             -i "$SSH_KEY_PATH"
             -o BatchMode=yes
-            -o ConnectTimeout=20
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=3
+            -o IdentitiesOnly=yes
+            -o PreferredAuthentications=publickey
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
@@ -107,45 +137,56 @@ jobs:
           remote_archive_escaped="$(printf '%q' "$REMOTE_ARCHIVE_PATH")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
-          timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
-          set -euo pipefail
+          for attempt in 1 2 3; do
+            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
+            set -euo pipefail
 
-          if ! command -v pm2 >/dev/null 2>&1; then
-            echo "pm2 is not installed on the target host."
-            exit 1
-          fi
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "pm2 is not installed on the target host."
+              exit 1
+            fi
 
-          sudo mkdir -p /opt/earlymark-agent
-          sudo chown -R "$USER":"$USER" /opt/earlymark-agent
-          find /opt/earlymark-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
-          tar -xzf "$REMOTE_ARCHIVE_PATH" -C /opt/earlymark-agent
-          rm -f "$REMOTE_ARCHIVE_PATH"
+            sudo mkdir -p /opt/earlymark-agent
+            sudo chown -R "$USER":"$USER" /opt/earlymark-agent
+            find /opt/earlymark-agent -mindepth 1 -maxdepth 1 ! -name '.env.local' -exec rm -rf {} +
+            tar -xzf "$REMOTE_ARCHIVE_PATH" -C /opt/earlymark-agent
+            rm -f "$REMOTE_ARCHIVE_PATH"
 
-          if [ ! -f /opt/earlymark-agent/.env.local ]; then
-            echo "Missing /opt/earlymark-agent/.env.local"
-            exit 1
-          fi
+            if [ ! -f /opt/earlymark-agent/.env.local ]; then
+              echo "Missing /opt/earlymark-agent/.env.local"
+              exit 1
+            fi
 
-          cd /opt/earlymark-agent
-          npm ci --omit=dev --no-audit --no-fund
+            cd /opt/earlymark-agent
+            npm ci --omit=dev --no-audit --no-fund
 
-          sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
+            sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
 
-          set -a
-          . /opt/earlymark-agent/.env.local
-          set +a
-          export DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
-          export VOICE_HOST_ID="$VOICE_HOST_ID"
+            set -a
+            . /opt/earlymark-agent/.env.local
+            set +a
+            export DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
+            export VOICE_HOST_ID="$VOICE_HOST_ID"
 
-          pm2 delete earlymark-sales-agent || true
-          pm2 delete earlymark-customer-agent || true
-          pm2 start npm --name earlymark-sales-agent -- run start:sales
-          pm2 start npm --name earlymark-customer-agent -- run start:customer
-          sudo env "PATH=$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" || true
-          pm2 save
-          pm2 describe earlymark-sales-agent
-          pm2 describe earlymark-customer-agent
-          EOF
+            pm2 delete earlymark-sales-agent || true
+            pm2 delete earlymark-customer-agent || true
+            pm2 start npm --name earlymark-sales-agent -- run start:sales
+            pm2 start npm --name earlymark-customer-agent -- run start:customer
+            sudo env "PATH=$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" || true
+            pm2 save
+            pm2 describe earlymark-sales-agent
+            pm2 describe earlymark-customer-agent
+            EOF
+            then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Worker install and restart failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "Worker install and restart attempt ${attempt} failed. Retrying in 15 seconds..."
+            sleep 15
+          done
 
       - name: Verify Worker Heartbeats
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -157,7 +198,10 @@ jobs:
           ssh_opts=(
             -i "$SSH_KEY_PATH"
             -o BatchMode=yes
-            -o ConnectTimeout=20
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=3
+            -o IdentitiesOnly=yes
+            -o PreferredAuthentications=publickey
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
@@ -166,28 +210,39 @@ jobs:
           webhook_secret_escaped="$(printf '%q' "$VOICE_AGENT_WEBHOOK_SECRET")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
-          timeout 3m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
-          set -euo pipefail
-          VERIFIED=0
+          for attempt in 1 2 3; do
+            if timeout 3m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
+            set -euo pipefail
+            VERIFIED=0
 
-          for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-            if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
-              VERIFIED=1
-              break
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+              if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
+                VERIFIED=1
+                break
+              fi
+              sleep 6
+            done
+
+            if [ "$VERIFIED" -ne 1 ]; then
+              echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
+              node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+              pm2 describe earlymark-sales-agent || true
+              pm2 describe earlymark-customer-agent || true
+              pm2 logs earlymark-sales-agent --lines 80 --nostream || true
+              pm2 logs earlymark-customer-agent --lines 80 --nostream || true
+              exit 1
             fi
-            sleep 6
+            EOF
+            then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Worker heartbeat verification failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "Worker heartbeat verification attempt ${attempt} failed. Retrying in 15 seconds..."
+            sleep 15
           done
-
-          if [ "$VERIFIED" -ne 1 ]; then
-            echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
-            node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
-            pm2 describe earlymark-sales-agent || true
-            pm2 describe earlymark-customer-agent || true
-            pm2 logs earlymark-sales-agent --lines 80 --nostream || true
-            pm2 logs earlymark-customer-agent --lines 80 --nostream || true
-            exit 1
-          fi
-          EOF
 
       - name: Cleanup SSH Credentials
         if: always() && env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
