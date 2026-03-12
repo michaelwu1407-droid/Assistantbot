@@ -67,6 +67,12 @@ jobs:
             echo "  sudo netfilter-persistent save"
             echo "- Confirm sshd is running and listening on port 22 on the host."
           }
+          print_runtime_bootstrap_guidance() {
+            echo "Remote runtime bootstrap guidance:"
+            echo "- If sshd logs show accepted GitHub publickey sessions, SSH transport is working."
+            echo "- Investigate the non-interactive runtime path next: PATH, nvm loading, node, npm, and pm2."
+            echo "- GitHub Actions remote commands must not depend on .bashrc, .profile, prompt setup, or other interactive shell init."
+          }
 
           ssh_opts=(
             -i "$SSH_KEY_PATH"
@@ -79,7 +85,37 @@ jobs:
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
           )
-          echo "Starting SSH preflight for $DEPLOY_HOST as $DEPLOY_USER"
+          run_minimal_remote_session() {
+            timeout 20s ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'exit 0'
+          }
+          run_runtime_preflight() {
+            timeout 90s ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash --noprofile --norc -se' <<'EOF'
+          set -euo pipefail
+          export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+          export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+            . "$NVM_DIR/nvm.sh"
+          fi
+          hash -r
+
+          echo "[runtime-bootstrap] PATH=$PATH"
+          for bin in bash node npm pm2; do
+            if ! command -v "$bin" >/dev/null 2>&1; then
+              echo "[runtime-bootstrap] missing required binary: $bin"
+              exit 1
+            fi
+            echo "[runtime-bootstrap] ${bin}=$(command -v "$bin")"
+          done
+          echo "[runtime-bootstrap] node_version=$(node --version)"
+          echo "[runtime-bootstrap] npm_version=$(npm --version)"
+          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
+          echo "[runtime-bootstrap] Connected to $(hostname)"
+          test -w /tmp
+          df -h /tmp
+          EOF
+          }
+
+          echo "Preflight phase 1/2: transport checks for $DEPLOY_HOST as $DEPLOY_USER"
           echo "Resolving deploy host..."
           if ! getent ahosts "$DEPLOY_HOST"; then
             echo "Failed to resolve $DEPLOY_HOST before attempting SSH."
@@ -93,30 +129,36 @@ jobs:
             print_ssh_network_guidance
             exit 1
           fi
-          echo "TCP port 22 is reachable. Proceeding to SSH banner/authentication preflight."
+          echo "TCP port 22 is reachable. Checking a minimal authenticated SSH session next."
           for attempt in 1 2 3; do
-            if timeout 90s ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'EOF'
-          set -euo pipefail
-          echo "Connected to $(hostname)"
-          test -w /tmp
-          df -h /tmp
-          command -v node
-          node --version
-          command -v npm
-          npm --version
-          command -v pm2
-          pm2 --version
-          EOF
+            if run_minimal_remote_session
+            then
+              echo "Minimal authenticated SSH session succeeded."
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "SSH transport preflight failed after ${attempt} attempts."
+              echo "Raw TCP reachability succeeded, but the workflow could not complete a minimal authenticated session."
+              print_ssh_network_guidance
+              exit 1
+            fi
+            echo "Minimal authenticated SSH session attempt ${attempt} failed. Retrying in 15 seconds..."
+            sleep 15
+          done
+
+          echo "Preflight phase 2/2: runtime bootstrap checks in a non-interactive remote shell."
+          for attempt in 1 2 3; do
+            if run_runtime_preflight
             then
               exit 0
             fi
             if [ "$attempt" -eq 3 ]; then
-              echo "SSH preflight failed after ${attempt} attempts."
-              echo "Raw TCP reachability succeeded, so investigate sshd health, SSH banner responsiveness, the configured SSH user/key, and Ubuntu iptables behavior during banner exchange."
-              print_ssh_network_guidance
+              echo "Remote runtime bootstrap preflight failed after ${attempt} attempts."
+              echo "SSH transport succeeded, so the failure is inside the remote non-interactive command path."
+              print_runtime_bootstrap_guidance
               exit 1
             fi
-            echo "SSH preflight attempt ${attempt} failed. Retrying in 15 seconds..."
+            echo "Remote runtime bootstrap attempt ${attempt} failed. Retrying in 15 seconds..."
             sleep 15
           done
 
@@ -166,8 +208,26 @@ jobs:
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
           for attempt in 1 2 3; do
-            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
+            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
+          export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+          export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+            . "$NVM_DIR/nvm.sh"
+          fi
+          hash -r
+
+          echo "[runtime-bootstrap] PATH=$PATH"
+          for bin in bash node npm pm2; do
+            if ! command -v "$bin" >/dev/null 2>&1; then
+              echo "[runtime-bootstrap] missing required binary: $bin"
+              exit 1
+            fi
+            echo "[runtime-bootstrap] ${bin}=$(command -v "$bin")"
+          done
+          echo "[runtime-bootstrap] node_version=$(node --version)"
+          echo "[runtime-bootstrap] npm_version=$(npm --version)"
+          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
 
           if ! command -v pm2 >/dev/null 2>&1; then
             echo "pm2 is not installed on the target host."
@@ -210,6 +270,7 @@ jobs:
             fi
             if [ "$attempt" -eq 3 ]; then
               echo "Worker install and restart failed after ${attempt} attempts."
+              echo "Transport and runtime bootstrap succeeded earlier; the remaining failure is in install/restart logic on the host."
               exit 1
             fi
             echo "Worker install and restart attempt ${attempt} failed. Retrying in 15 seconds..."
@@ -239,8 +300,26 @@ jobs:
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
           for attempt in 1 2 3; do
-            if timeout 3m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash -se" <<'EOF'
+            if timeout 3m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
+          export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+          export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+            . "$NVM_DIR/nvm.sh"
+          fi
+          hash -r
+
+          echo "[runtime-bootstrap] PATH=$PATH"
+          for bin in bash node npm pm2; do
+            if ! command -v "$bin" >/dev/null 2>&1; then
+              echo "[runtime-bootstrap] missing required binary: $bin"
+              exit 1
+            fi
+            echo "[runtime-bootstrap] ${bin}=$(command -v "$bin")"
+          done
+          echo "[runtime-bootstrap] node_version=$(node --version)"
+          echo "[runtime-bootstrap] npm_version=$(npm --version)"
+          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
           VERIFIED=0
 
           for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
@@ -266,6 +345,7 @@ jobs:
             fi
             if [ "$attempt" -eq 3 ]; then
               echo "Worker heartbeat verification failed after ${attempt} attempts."
+              echo "Transport and runtime bootstrap succeeded earlier; the remaining failure is in post-deploy heartbeat convergence or verification."
               exit 1
             fi
             echo "Worker heartbeat verification attempt ${attempt} failed. Retrying in 15 seconds..."

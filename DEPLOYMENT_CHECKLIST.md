@@ -122,7 +122,8 @@ sudo netfilter-persistent save
 ```
 
 - after restoring access, confirm `sshd` is running and listening on `22`
-- see `docs/OCI_SSH_FIREWALL_POSTMORTEM.md` for the March 12, 2026 incident pattern and triage steps
+- if `journalctl -u ssh` shows accepted GitHub publickey sessions for `ubuntu`, SSH transport is working and the next check is the non-interactive runtime bootstrap path (`PATH`, `nvm`, `node`, `npm`, `pm2`)
+- see `docs/OCI_SSH_FIREWALL_POSTMORTEM.md` for the March 12, 2026 two-stage incident pattern and triage steps
 
 After a worker deploy:
 
