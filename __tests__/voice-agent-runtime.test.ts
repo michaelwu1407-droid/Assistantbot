@@ -32,7 +32,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
+import { getExpectedVoiceAgentRuntimeFingerprint, getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 
 const originalEnv = { ...process.env };
 
@@ -95,6 +95,13 @@ describe("getVoiceAgentRuntimeDrift", () => {
       NEXT_PUBLIC_APP_URL: "https://app.example.com",
     };
 
+    const salesFingerprint = getExpectedVoiceAgentRuntimeFingerprint({
+      ...process.env,
+      VOICE_HOST_ID: "voice-host-a",
+      VOICE_WORKER_ROLE: "tracey-sales-agent",
+      VOICE_WORKER_SURFACES: "demo,inbound_demo",
+    } as NodeJS.ProcessEnv);
+
     findFirstHeartbeat.mockResolvedValue({
       heartbeatAt: new Date(),
       createdAt: new Date(),
@@ -102,7 +109,7 @@ describe("getVoiceAgentRuntimeDrift", () => {
       workerRole: "tracey-sales-agent",
       surfaceSet: ["demo", "inbound_demo"],
       deployGitSha: "sha",
-      runtimeFingerprint: "va_different",
+      runtimeFingerprint: salesFingerprint,
       summary: null,
     });
     findFirstLegacyHeartbeat.mockResolvedValue(null);
@@ -112,7 +119,7 @@ describe("getVoiceAgentRuntimeDrift", () => {
         workerRole: "tracey-sales-agent",
         surfaceSet: ["demo", "inbound_demo"],
         deployGitSha: "sha",
-        runtimeFingerprint: "va_different",
+        runtimeFingerprint: salesFingerprint,
         ready: true,
         activeCalls: 0,
         capacityState: "available",
@@ -130,7 +137,32 @@ describe("getVoiceAgentRuntimeDrift", () => {
     process.env = { ...originalEnv };
   });
 
-  it("treats a runtime fingerprint mismatch as degraded when the fleet is healthy", async () => {
+  it("treats a worker-scoped fingerprint match as healthy when the fleet is healthy", async () => {
+    const drift = await getVoiceAgentRuntimeDrift();
+
+    expect(drift.status).toBe("healthy");
+    expect(drift.warnings).toEqual([]);
+  });
+
+  it("treats a runtime fingerprint mismatch as degraded when a worker drifts", async () => {
+    getLatestVoiceWorkerSnapshots.mockResolvedValue([
+      {
+        hostId: "voice-host-a",
+        workerRole: "tracey-sales-agent",
+        surfaceSet: ["demo", "inbound_demo"],
+        deployGitSha: "sha",
+        runtimeFingerprint: "va_different",
+        ready: true,
+        activeCalls: 0,
+        capacityState: "available",
+        summary: null,
+        heartbeatAt: new Date().toISOString(),
+        ageMs: 1_000,
+        status: "healthy",
+        warnings: [],
+      },
+    ]);
+
     const drift = await getVoiceAgentRuntimeDrift();
 
     expect(drift.status).toBe("degraded");

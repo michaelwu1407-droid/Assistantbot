@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getVoiceFleetHealth, getLatestVoiceWorkerSnapshots, type RuntimeStatus } from "@/lib/voice-fleet";
+import {
+  getVoiceFleetHealth,
+  getLatestVoiceWorkerSnapshots,
+  type RuntimeStatus,
+  type VoiceWorkerSnapshot,
+} from "@/lib/voice-fleet";
 
 type LatestVoiceHeartbeatRecord = Awaited<ReturnType<typeof db.voiceWorkerHeartbeat.findFirst>>;
 type LatestLegacyHeartbeatRecord = Awaited<ReturnType<typeof db.webhookEvent.findFirst>>;
@@ -121,6 +126,15 @@ export function getExpectedVoiceAgentRuntimeFingerprint(env: NodeJS.ProcessEnv =
   return `va_${(hash >>> 0).toString(16)}`;
 }
 
+function buildWorkerScopedEnv(worker: Pick<VoiceWorkerSnapshot, "hostId" | "workerRole" | "surfaceSet">, env: NodeJS.ProcessEnv = process.env) {
+  return {
+    ...env,
+    VOICE_HOST_ID: worker.hostId,
+    VOICE_WORKER_ROLE: worker.workerRole,
+    VOICE_WORKER_SURFACES: worker.surfaceSet.join(","),
+  } as NodeJS.ProcessEnv;
+}
+
 function isJsonObject(value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -161,12 +175,17 @@ export async function getLatestVoiceAgentHeartbeatEvent() {
 }
 
 export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrift> {
-  const expectedFingerprint = getExpectedVoiceAgentRuntimeFingerprint();
   const [latest, workerSnapshots, fleet] = await Promise.all([
     getLatestVoiceAgentHeartbeatEvent(),
     getLatestVoiceWorkerSnapshots(),
     getVoiceFleetHealth(),
   ]);
+  const latestSnapshot = workerSnapshots
+    .slice()
+    .sort((left, right) => right.heartbeatAt.localeCompare(left.heartbeatAt))[0] || null;
+  const expectedFingerprint = latestSnapshot
+    ? getExpectedVoiceAgentRuntimeFingerprint(buildWorkerScopedEnv(latestSnapshot))
+    : getExpectedVoiceAgentRuntimeFingerprint();
   const warnings: string[] = [];
 
   if (!latest) {
@@ -189,16 +208,17 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
     };
   }
 
-  const latestSnapshot = workerSnapshots
-    .slice()
-    .sort((left, right) => right.heartbeatAt.localeCompare(left.heartbeatAt))[0] || null;
   const runtimeFingerprint = latestSnapshot?.runtimeFingerprint || (isLegacyHeartbeatRecord(latest) && isJsonObject(latest.payload)
     ? readString(latest.payload.runtimeFingerprint)
     : null);
+  const fingerprintMismatches = workerSnapshots.filter((worker) => {
+    const scopedExpectedFingerprint = getExpectedVoiceAgentRuntimeFingerprint(buildWorkerScopedEnv(worker));
+    return worker.runtimeFingerprint !== scopedExpectedFingerprint;
+  });
 
   if (!runtimeFingerprint) {
     warnings.push("Latest worker heartbeat is missing a runtime fingerprint.");
-  } else if (runtimeFingerprint !== expectedFingerprint) {
+  } else if (fingerprintMismatches.length > 0) {
     warnings.push("LiveKit worker runtime fingerprint does not match the app's expected production env.");
   }
 
@@ -208,7 +228,7 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
   const fingerprintStatus: RuntimeStatus =
     !runtimeFingerprint
       ? "unhealthy"
-      : runtimeFingerprint !== expectedFingerprint
+      : fingerprintMismatches.length > 0
         ? "degraded"
         : "healthy";
   const status = maxStatus(fleet.status, fingerprintStatus);
