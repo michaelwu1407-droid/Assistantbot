@@ -1,18 +1,10 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
 import { startVoiceWorkerBackgroundTasks } from "./agent";
+import { resolveWorkerHttpHost, resolveWorkerHttpPort } from "./runtime-config";
 import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";
 
 type VoiceSurface = "demo" | "inbound_demo" | "normal";
-
-const DEFAULT_WORKER_HTTP_HOST = "127.0.0.1";
-const DEFAULT_WORKER_HTTP_PORT = 8081;
-
-function resolveWorkerHttpPort() {
-  const rawPort = (process.env.LIVEKIT_HTTP_PORT || "").trim();
-  const parsedPort = Number.parseInt(rawPort, 10);
-  return Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : DEFAULT_WORKER_HTTP_PORT;
-}
 
 function normalizePhone(phone?: string | null) {
   if (!phone) return "";
@@ -125,7 +117,7 @@ export function runVoiceWorker(params: {
       numIdleProcesses: 1,
       initializeProcessTimeout: 60_000,
       agentName: params.agentName || params.workerRole,
-      host: (process.env.LIVEKIT_HTTP_HOST || "").trim() || DEFAULT_WORKER_HTTP_HOST,
+      host: resolveWorkerHttpHost(),
       port: resolveWorkerHttpPort(),
       requestFunc: buildRequestFunc(params.surfaces),
     }),

@@ -30,15 +30,17 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **SSH ingress requirement**: TCP `22` must be open in both OCI security rules and the Ubuntu host firewall. GitHub Actions deploys can still fail with `Connection timed out during banner exchange` if OCI ingress is correct but host `iptables` silently drops new SSH sessions.
 - **SSH firewall recovery**: If port `22` is reblocked on the host, restore it with `sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT` and immediately persist it with `sudo netfilter-persistent save`.
 - **Deploy triage boundary**: If `journalctl -u ssh` shows accepted GitHub publickey sessions for `ubuntu`, stop debugging OCI ingress and host-firewall reachability. The remaining blocker is in the remote non-interactive shell/runtime path after login.
-- **Deploy shell rule**: GitHub Actions deploy commands must not depend on `.bashrc`, `.profile`, prompt setup, or other interactive shell initialization. Bootstrap `PATH`, `node`, `npm`, and `pm2` explicitly in remote non-interactive shells.
-- **Deployment staging path**: Updated agent code is first copied to `/tmp/livekit-agent/` before deployment.
-- **Current process model**: Docker is the standardized deployment architecture for the LiveKit core voice infrastructure under `/opt/livekit` (LiveKit, Redis, Caddy, SIP). The Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
-- **Automation model**: GitHub Actions should deploy the LiveKit core stack through the Docker path where applicable, but `livekit-agent/**` changes currently deploy by copying into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout or that the active worker is containerized today.
-- **Deploy verification**: The worker logs an `[agent-version]` line with `DEPLOY_GIT_SHA` on startup. GitHub Actions should verify that exact SHA appears in `/tmp/agent.log` after each deploy.
+- **Deploy shell rule**: GitHub Actions deploy commands must not depend on `.bashrc`, `.profile`, prompt setup, or other interactive shell initialization. Bootstrap `PATH`, `node`, `npm`, `sudo`, and `systemd` access explicitly in remote non-interactive shells.
+- **Deployment staging path**: The GitHub Actions worker deploy uploads a tarball to `/tmp/earlymark-agent-deploy-${GITHUB_SHA}.tgz` and extracts it into `/opt/earlymark-agent`.
+- **Current process model**: Docker is the standardized deployment architecture for the LiveKit core voice infrastructure under `/opt/livekit` (LiveKit, Redis, Caddy, SIP). The current GitHub Actions worker deploy runs the voice workers as native `systemd` services from `/opt/earlymark-agent` using `npm run start:sales` and `npm run start:customer`.
+- **Legacy split-worker units**: The old `tracey-sales-agent` and `tracey-customer-agent` unit files have been retired from the repo. The deploy workflow still disables and removes any lingering host copies of those units so legacy `/opt/tracey-agent` drift cannot reclaim the worker path.
+- **Automation model**: GitHub Actions deploys `livekit-agent/**` by packaging that folder plus the canonical `earlymark-*.service` files, copying them to the OCI host, installing them into `/opt/earlymark-agent` and `/etc/systemd/system`, validating `/opt/earlymark-agent/.env.local`, reloading `systemd`, and restarting `earlymark-sales-agent` plus `earlymark-customer-agent`.
+- **Deploy verification**: The workflow verifies deploy convergence through `/api/internal/voice-fleet-health` and falls back to `systemctl status` plus `journalctl` for `earlymark-sales-agent` and `earlymark-customer-agent` when the heartbeat check fails.
+- **Heartbeat target**: Worker heartbeats post to `${NEXT_PUBLIC_APP_URL || APP_URL}/api/internal/voice-agent-status`. In production the worker now fails fast if neither `NEXT_PUBLIC_APP_URL` nor `APP_URL` is set, so `ECONNREFUSED 127.0.0.1:3000` should no longer appear as a silent production fallback.
 - **Core containers**: `livekit-livekit-1`, `livekit-redis-1`, `livekit-caddy-1`, and `livekit-sip`.
 - **Restart policy**: Core containers use `--restart always` so they survive OCI reboots.
 - **Primary SIP log source**: `sudo docker logs -f livekit-sip`
-- **Primary agent log source**: `tail -f /tmp/agent.log`
+- **Primary agent log source**: `sudo journalctl -u earlymark-sales-agent -u earlymark-customer-agent -n 80 --no-pager`
 - **LiveKit config file**: `/etc/livekit.yaml`
 - **LiveKit API key**: `APIAooiVTvuVU3w`
 - **Local LiveKit URL**: `http://localhost:7880` for CLI commands and agent connections on the box.

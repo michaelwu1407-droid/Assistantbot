@@ -262,6 +262,24 @@ jobs:
             echo "Missing /opt/earlymark-agent/.env.local"
             exit 1
           fi
+          if grep -nE '^[[:space:]]*export[[:space:]]+' /opt/earlymark-agent/.env.local; then
+            echo "/opt/earlymark-agent/.env.local must use plain KEY=value lines because systemd EnvironmentFile does not support export-prefixed entries."
+            exit 1
+          fi
+
+          missing_env=()
+          for key in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET VOICE_AGENT_WEBHOOK_SECRET CARTESIA_API_KEY; do
+            if ! grep -Eq "^[[:space:]]*${key}=" /opt/earlymark-agent/.env.local; then
+              missing_env+=("$key")
+            fi
+          done
+          if ! grep -Eq '^[[:space:]]*NEXT_PUBLIC_APP_URL=' /opt/earlymark-agent/.env.local && ! grep -Eq '^[[:space:]]*APP_URL=' /opt/earlymark-agent/.env.local; then
+            missing_env+=("NEXT_PUBLIC_APP_URL|APP_URL")
+          fi
+          if [ "${#missing_env[@]}" -ne 0 ]; then
+            echo "Missing required production voice worker env in /opt/earlymark-agent/.env.local: ${missing_env[*]}"
+            exit 1
+          fi
 
           cd /opt/earlymark-agent
           npm ci --omit=dev --no-audit --no-fund
@@ -272,9 +290,14 @@ jobs:
           fi
 
           sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
+          if command -v pm2 >/dev/null 2>&1; then
+            pm2 delete earlymark-agent earlymark-sales-agent earlymark-customer-agent || true
+            pm2 save || true
+          fi
           upsert_env_value "DEPLOY_GIT_SHA" "$DEPLOY_GIT_SHA" /opt/earlymark-agent/.env.local
           upsert_env_value "VOICE_HOST_ID" "$VOICE_HOST_ID" /opt/earlymark-agent/.env.local
 
+          sudo rm -f /etc/systemd/system/tracey-sales-agent.service /etc/systemd/system/tracey-customer-agent.service
           sudo install -m 0644 /opt/earlymark-agent/systemd/earlymark-sales-agent.service /etc/systemd/system/earlymark-sales-agent.service
           sudo install -m 0644 /opt/earlymark-agent/systemd/earlymark-customer-agent.service /etc/systemd/system/earlymark-customer-agent.service
           sudo systemctl daemon-reload

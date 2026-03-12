@@ -26,6 +26,13 @@ import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts 
 import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
+import {
+  assertRequiredVoiceAgentEnv,
+  getVoiceAgentAppBaseUrl,
+  getVoiceAgentWebhookSecret,
+  resolveWorkerHttpHost,
+  resolveWorkerHttpPort,
+} from './runtime-config';
 import voiceLatency from './voice-latency';
 import type { GuardDecision, OpenerBankEntry, OpenerId, VoiceTurnPrediction } from './voice-latency';
 import {
@@ -39,6 +46,7 @@ import {
 } from './runtime-state';
 
 loadEnv({ path: '.env.local' });
+assertRequiredVoiceAgentEnv();
 
 const {
   OPENER_BANK,
@@ -1366,18 +1374,6 @@ async function persistVoiceCall(payload: {
   }
 }
 
-function getAppBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    (process.env.NODE_ENV === "production" ? "https://earlymark.ai" : "http://localhost:3000")
-  );
-}
-
-function getVoiceAgentWebhookSecret() {
-  return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET;
-}
-
 function getVoiceAgentRuntimeFingerprint() {
   const source = VOICE_AGENT_RUNTIME_ENV_KEYS
     .map((key) => [key, (process.env[key] || "").trim()] as const)
@@ -2502,6 +2498,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       numIdleProcesses: 1,
       initializeProcessTimeout: 60_000,
       agentName: getConfiguredWorkerRole(),
+      host: resolveWorkerHttpHost(),
+      port: resolveWorkerHttpPort(),
     }),
   );
 }
