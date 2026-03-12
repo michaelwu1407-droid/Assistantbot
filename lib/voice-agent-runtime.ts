@@ -96,8 +96,34 @@ const VOICE_AGENT_ENV_KEYS = [
   "VOICE_WORKER_SURFACES",
 ];
 
-function normalizeEnvValue(value?: string) {
-  return (value || "").trim();
+function normalizeLiveKitFingerprintUrl(value: string) {
+  if (!value) return value;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
+
+    if (
+      (hostname === "live.earlymark.ai" && port === "443") ||
+      (hostname === "localhost" && port === "7880")
+    ) {
+      return "livekit://earlymark-primary";
+    }
+
+    const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
+    return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}${normalizedPath}`;
+  } catch {
+    return value;
+  }
+}
+
+function normalizeEnvValue(key: string, value?: string) {
+  const normalized = (value || "").trim();
+  if (key === "LIVEKIT_URL") {
+    return normalizeLiveKitFingerprintUrl(normalized);
+  }
+  return normalized;
 }
 
 function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
@@ -107,7 +133,7 @@ function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
 
 function buildFingerprintSource(env: NodeJS.ProcessEnv = process.env) {
   return Object.fromEntries(
-    VOICE_AGENT_ENV_KEYS.map((key) => [key, normalizeEnvValue(env[key])]),
+    VOICE_AGENT_ENV_KEYS.map((key) => [key, normalizeEnvValue(key, env[key])]),
   );
 }
 

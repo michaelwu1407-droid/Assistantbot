@@ -88,7 +88,7 @@ describe("getVoiceAgentRuntimeDrift", () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "production",
-      LIVEKIT_URL: "wss://livekit.example.com",
+      LIVEKIT_URL: "https://live.earlymark.ai",
       LIVEKIT_API_KEY: "livekit-key",
       LIVEKIT_API_SECRET: "livekit-secret",
       CARTESIA_API_KEY: "cartesia-key",
@@ -97,6 +97,7 @@ describe("getVoiceAgentRuntimeDrift", () => {
 
     const salesFingerprint = getExpectedVoiceAgentRuntimeFingerprint({
       ...process.env,
+      LIVEKIT_URL: "http://localhost:7880",
       VOICE_HOST_ID: "voice-host-a",
       VOICE_WORKER_ROLE: "tracey-sales-agent",
       VOICE_WORKER_SURFACES: "demo,inbound_demo",

@@ -133,6 +133,36 @@ const VOICE_AGENT_RUNTIME_ENV_KEYS = [
 ] as const;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
+function normalizeLiveKitFingerprintUrl(value: string) {
+  if (!value) return value;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
+
+    if (
+      (hostname === "live.earlymark.ai" && port === "443") ||
+      (hostname === "localhost" && port === "7880")
+    ) {
+      return "livekit://earlymark-primary";
+    }
+
+    const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
+    return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}${normalizedPath}`;
+  } catch {
+    return value;
+  }
+}
+
+function normalizeRuntimeFingerprintValue(key: typeof VOICE_AGENT_RUNTIME_ENV_KEYS[number], value?: string) {
+  const normalized = (value || "").trim();
+  if (key === "LIVEKIT_URL") {
+    return normalizeLiveKitFingerprintUrl(normalized);
+  }
+  return normalized;
+}
+
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
 const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
 const DEMO_WRAP_UP_MS = 3 * 60 * 1000;
@@ -1380,7 +1410,7 @@ async function persistVoiceCall(payload: {
 
 function getVoiceAgentRuntimeFingerprint() {
   const source = VOICE_AGENT_RUNTIME_ENV_KEYS
-    .map((key) => [key, (process.env[key] || "").trim()] as const)
+    .map((key) => [key, normalizeRuntimeFingerprintValue(key, process.env[key])] as const)
     .sort(([left], [right]) => left.localeCompare(right));
 
   const serialized = JSON.stringify(source);
