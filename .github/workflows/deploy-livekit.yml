@@ -459,7 +459,9 @@ jobs:
         if: always() && env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           set -euo pipefail
-          rm -f "$SSH_KEY_PATH"
+          if [ -n "${SSH_KEY_PATH:-}" ]; then
+            rm -f "$SSH_KEY_PATH"
+          fi
 
       - name: Skip Unconfigured Target
         if: env.DEPLOY_HOST == '' || env.DEPLOY_USER == '' || env.DEPLOY_KEY == ''
