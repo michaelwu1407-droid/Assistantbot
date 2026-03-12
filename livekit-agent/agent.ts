@@ -563,6 +563,10 @@ function getConfiguredWorkerSurfaces(): CallType[] {
   return ["demo", "inbound_demo", "normal"];
 }
 
+function getAppBaseUrl() {
+  return getVoiceAgentAppBaseUrl();
+}
+
 function inferConfiguredPrimaryProvider(callType: CallType): LlmProviderName {
   const isEarlymarkCall = callType === "demo" || callType === "inbound_demo";
   const configured = (
