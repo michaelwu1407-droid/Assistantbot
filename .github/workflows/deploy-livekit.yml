@@ -448,7 +448,18 @@ jobs:
             exit 1
           fi
 
-          NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) { console.log(await res.text()); process.exit(1); } const payload = await res.json(); if (payload?.voiceWorker?.status === 'healthy') process.exit(0); console.log(JSON.stringify(payload)); process.exit(2);"
+          DRIFT_VERIFIED=0
+          for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+            if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); if (payload?.voiceWorker?.status === 'healthy') process.exit(0); process.exit(2);"; then
+              DRIFT_VERIFIED=1
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$DRIFT_VERIFIED" -ne 1 ]; then
+            NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text()); process.exit(1);"
+          fi
           EOF
             then
               exit 0
