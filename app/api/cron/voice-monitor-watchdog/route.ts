@@ -4,6 +4,7 @@ import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
+import { getVoiceAgentHealthMonitorSummary, runVoiceAgentHealthMonitor } from "@/lib/voice-agent-health-monitor";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,50 @@ export async function GET(req: NextRequest) {
   const staleAfterMs = (Number(process.env.VOICE_MONITOR_STALE_AFTER_MINUTES || "15") || 15) * 60_000;
 
   try {
-    const voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
+    let voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
+    let refreshedVoiceAgentHealthRun = null;
+
+    if (voiceAgentHealth.status === "unhealthy") {
+      const refreshCheckedAt = new Date();
+
+      try {
+        refreshedVoiceAgentHealthRun = await runVoiceAgentHealthMonitor(refreshCheckedAt);
+        await recordMonitorRun({
+          monitorKey: "voice-agent-health",
+          status: refreshedVoiceAgentHealthRun.status,
+          summary: getVoiceAgentHealthMonitorSummary(refreshedVoiceAgentHealthRun.status),
+          details: {
+            checkedAt: refreshedVoiceAgentHealthRun.checkedAt,
+            fleetStatus: refreshedVoiceAgentHealthRun.fleet.status,
+            customerSaturationStatus: refreshedVoiceAgentHealthRun.customerSaturation.status,
+            twilioRoutingStatus: refreshedVoiceAgentHealthRun.twilioRouting.status,
+            invariantStatus: refreshedVoiceAgentHealthRun.invariants.status,
+            recentCallsStatus: refreshedVoiceAgentHealthRun.recentCalls.status,
+            latencyStatus: refreshedVoiceAgentHealthRun.latency.status,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: true,
+        });
+        voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
+      } catch (refreshError) {
+        const refreshMessage = refreshError instanceof Error ? refreshError.message : "Unknown voice monitor refresh failure";
+        await recordMonitorRun({
+          monitorKey: "voice-agent-health",
+          status: "unhealthy",
+          summary: `Voice agent health monitor crashed: ${refreshMessage}`,
+          details: {
+            checkedAt: refreshCheckedAt.toISOString(),
+            error: refreshMessage,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: false,
+        }).catch(() => null);
+        throw refreshError;
+      }
+    }
+
     const observations = buildMonitorIncidentObservations(voiceAgentHealth);
     const incidents = await reconcileVoiceIncidents(observations, {
       resolveKeys: ["voice:monitor:stale"],
@@ -32,6 +76,7 @@ export async function GET(req: NextRequest) {
       details: {
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
+        refreshedVoiceAgentHealthRun,
       },
       checkedAt,
       succeeded: true,
@@ -42,6 +87,7 @@ export async function GET(req: NextRequest) {
         status: voiceAgentHealth.status,
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
+        refreshedVoiceAgentHealthRun,
         incidents,
       },
       { status: voiceAgentHealth.status === "unhealthy" ? 500 : 200 },
