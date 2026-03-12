@@ -1,22 +1,14 @@
 import React, { Suspense } from 'react';
-import dynamic from "next/dynamic";
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/layout/Shell';
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
+import { DeferredChatInterface } from "@/components/chatbot/deferred-chat-interface";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
 import { IndustryProvider } from "@/components/providers/industry-provider";
 import { DashboardClientChrome } from "@/components/providers/dashboard-client-chrome";
 import { Toaster } from "@/components/ui/sonner";
 import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
-
-const DeferredChatInterface = dynamic(
-  () => import("@/components/chatbot/chat-interface").then((mod) => mod.ChatInterface),
-  {
-    ssr: false,
-    loading: () => <div className="h-full w-full bg-background" />,
-  },
-);
 
 export default async function DashboardLayout({
   children,
