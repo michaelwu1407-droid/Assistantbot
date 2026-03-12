@@ -4,10 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - "livekit-agent/**"
-      - "ops/systemd/**"
-      - ".github/workflows/deploy-livekit.yml"
 
 concurrency:
   group: deploy-livekit-agent
@@ -25,11 +21,29 @@ jobs:
       DEPLOY_HOST: ${{ matrix.target == 'primary' && (secrets.SSH_HOST_PRIMARY || secrets.SSH_HOST) || secrets.SSH_HOST_SECONDARY }}
       DEPLOY_USER: ${{ matrix.target == 'primary' && (secrets.SSH_USERNAME_PRIMARY || secrets.SSH_USERNAME) || secrets.SSH_USERNAME_SECONDARY }}
       DEPLOY_KEY: ${{ matrix.target == 'primary' && (secrets.SSH_PRIVATE_KEY_PRIMARY || secrets.SSH_PRIVATE_KEY) || secrets.SSH_PRIVATE_KEY_SECONDARY }}
-      VOICE_HOST_ID: ${{ matrix.target == 'primary' && 'voice-host-a' || 'voice-host-b' }}
+      VOICE_HOST_ID: ${{ matrix.target == 'primary' && (vars.VOICE_HOST_ID_PRIMARY || secrets.VOICE_HOST_ID_PRIMARY) || (vars.VOICE_HOST_ID_SECONDARY || secrets.VOICE_HOST_ID_SECONDARY) }}
     steps:
       - name: Check Out Repo
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         uses: actions/checkout@v4
+
+      - name: Validate Target Configuration
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
+        run: |
+          set -euo pipefail
+          if [ -z "${VOICE_HOST_ID:-}" ]; then
+            echo "VOICE_HOST_ID is required for the ${{ matrix.target }} target."
+            echo "Set vars.VOICE_HOST_ID_PRIMARY / vars.VOICE_HOST_ID_SECONDARY (or matching secrets) to the real OCI host IDs."
+            exit 1
+          fi
+          case "$VOICE_HOST_ID" in
+            voice-host-a|voice-host-b|voice-host-*|placeholder-*|changeme-*|example-*|example)
+              echo "VOICE_HOST_ID for ${{ matrix.target }} is still a placeholder: $VOICE_HOST_ID"
+              echo "Configure the real host ID in repo vars or secrets before deploying."
+              exit 1
+              ;;
+          esac
+          echo "Validated target ${{ matrix.target }} with VOICE_HOST_ID=$VOICE_HOST_ID"
 
       - name: Prepare SSH Credentials
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
