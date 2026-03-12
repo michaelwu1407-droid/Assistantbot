@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { buildVoiceAgentRuntimeFingerprint } from "@/livekit-agent/runtime-fingerprint";
 import {
   getVoiceFleetHealth,
   getLatestVoiceWorkerSnapshots,
@@ -27,129 +28,13 @@ export type VoiceAgentRuntimeDrift = {
   } | null;
 };
 
-// Keep this list and fingerprint algorithm in sync with livekit-agent/agent.ts.
-const VOICE_AGENT_ENV_KEYS = [
-  "LIVEKIT_URL",
-  "LIVEKIT_API_KEY",
-  "LIVEKIT_API_SECRET",
-  "NEXT_PUBLIC_APP_URL",
-  "APP_URL",
-  "VOICE_AGENT_WEBHOOK_SECRET",
-  "EARLYMARK_INBOUND_PHONE_NUMBERS",
-  "EARLYMARK_INBOUND_PHONE_NUMBER",
-  "EARLYMARK_PHONE_NUMBER",
-  "TWILIO_PHONE_NUMBER",
-  "DEEPGRAM_API_KEY",
-  "DEEPINFRA_API_KEY",
-  "GROQ_API_KEY",
-  "CARTESIA_API_KEY",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "EARLYMARK_VOICE_LLM_PROVIDER",
-  "EARLYMARK_VOICE_LLM_MODEL",
-  "EARLYMARK_VOICE_FALLBACK_LLM_MODEL",
-  "EARLYMARK_VOICE_LLM_TEMPERATURE",
-  "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "EARLYMARK_VOICE_STT_ENDPOINTING_MS",
-  "EARLYMARK_VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
-  "EARLYMARK_VOICE_MIN_ENDPOINTING_DELAY_MS",
-  "EARLYMARK_VOICE_MAX_ENDPOINTING_DELAY_MS",
-  "EARLYMARK_VOICE_MIN_INTERRUPTION_DURATION_MS",
-  "EARLYMARK_VOICE_MIN_INTERRUPTION_WORDS",
-  "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "INBOUND_VOICE_STT_ENDPOINTING_MS",
-  "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
-  "VOICE_LLM_PROVIDER",
-  "VOICE_LLM_MODEL",
-  "VOICE_FALLBACK_LLM_MODEL",
-  "VOICE_LLM_TEMPERATURE",
-  "VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "VOICE_STT_MODEL",
-  "VOICE_STT_LANGUAGE",
-  "VOICE_STT_ENDPOINTING_MS",
-  "VOICE_TTS_VOICE_ID",
-  "VOICE_TTS_LANGUAGE",
-  "VOICE_TTS_CHUNK_TIMEOUT_MS",
-  "VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
-  "VOICE_MIN_ENDPOINTING_DELAY_MS",
-  "VOICE_MAX_ENDPOINTING_DELAY_MS",
-  "VOICE_MIN_INTERRUPTION_DURATION_MS",
-  "VOICE_MIN_INTERRUPTION_WORDS",
-  "VOICE_LATENCY_ENABLED",
-  "VOICE_LATENCY_TARGET_CALL_TYPES",
-  "VOICE_OPENER_BANK_ENABLED",
-  "VOICE_OPENER_CONFIDENCE_THRESHOLD",
-  "VOICE_GUARD_ENABLED",
-  "VOICE_GUARD_PROVIDER",
-  "VOICE_GUARD_MODEL",
-  "VOICE_GUARD_BASE_URL",
-  "VOICE_GUARD_TIMEOUT_MS",
-  "VOICE_GUARD_MAX_COMPLETION_TOKENS",
-  "VOICE_GUARD_TEMPERATURE",
-  "VOICE_GUARD_MIN_CHARS",
-  "VOICE_EMPATHY_TURN_GAP",
-  "VOICE_MAX_ACTIVE_CALLS",
-  "VOICE_MAX_ACTIVE_CALLS_SALES",
-  "VOICE_MAX_ACTIVE_CALLS_CUSTOMER",
-  "VOICE_HOST_ID",
-  "VOICE_WORKER_ROLE",
-  "VOICE_WORKER_SURFACES",
-];
-
-function normalizeLiveKitFingerprintUrl(value: string) {
-  if (!value) return value;
-
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
-    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
-
-    if (
-      (hostname === "live.earlymark.ai" && port === "443") ||
-      (hostname === "localhost" && port === "7880")
-    ) {
-      return "livekit://earlymark-primary";
-    }
-
-    const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
-    return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}${normalizedPath}`;
-  } catch {
-    return value;
-  }
-}
-
-function normalizeEnvValue(key: string, value?: string) {
-  const normalized = (value || "").trim();
-  if (key === "LIVEKIT_URL") {
-    return normalizeLiveKitFingerprintUrl(normalized);
-  }
-  return normalized;
-}
-
 function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
   const order: RuntimeStatus[] = ["healthy", "degraded", "unhealthy"];
   return order[Math.max(order.indexOf(left), order.indexOf(right))];
 }
 
-function buildFingerprintSource(env: NodeJS.ProcessEnv = process.env) {
-  return Object.fromEntries(
-    VOICE_AGENT_ENV_KEYS.map((key) => [key, normalizeEnvValue(key, env[key])]),
-  );
-}
-
 export function getExpectedVoiceAgentRuntimeFingerprint(env: NodeJS.ProcessEnv = process.env) {
-  const source = buildFingerprintSource(env);
-  const serialized = JSON.stringify(
-    Object.keys(source)
-      .sort()
-      .map((key) => [key, source[key]]),
-  );
-
-  let hash = 5381;
-  for (let index = 0; index < serialized.length; index += 1) {
-    hash = ((hash << 5) + hash) ^ serialized.charCodeAt(index);
-  }
-  return `va_${(hash >>> 0).toString(16)}`;
+  return buildVoiceAgentRuntimeFingerprint(env);
 }
 
 function buildWorkerScopedEnv(worker: Pick<VoiceWorkerSnapshot, "hostId" | "workerRole" | "surfaceSet">, env: NodeJS.ProcessEnv = process.env) {

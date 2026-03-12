@@ -33,6 +33,7 @@ import {
   resolveWorkerHttpHost,
   resolveWorkerHttpPort,
 } from './runtime-config';
+import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
 import type { GuardDecision, OpenerBankEntry, OpenerId, VoiceTurnPrediction } from './voice-latency';
 import {
@@ -63,105 +64,7 @@ const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
 const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
-// Keep this list and fingerprint algorithm in sync with lib/voice-agent-runtime.ts.
-const VOICE_AGENT_RUNTIME_ENV_KEYS = [
-  "LIVEKIT_URL",
-  "LIVEKIT_API_KEY",
-  "LIVEKIT_API_SECRET",
-  "NEXT_PUBLIC_APP_URL",
-  "APP_URL",
-  "VOICE_AGENT_WEBHOOK_SECRET",
-  "EARLYMARK_INBOUND_PHONE_NUMBERS",
-  "EARLYMARK_INBOUND_PHONE_NUMBER",
-  "EARLYMARK_PHONE_NUMBER",
-  "TWILIO_PHONE_NUMBER",
-  "DEEPGRAM_API_KEY",
-  "DEEPINFRA_API_KEY",
-  "GROQ_API_KEY",
-  "CARTESIA_API_KEY",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "EARLYMARK_VOICE_LLM_PROVIDER",
-  "EARLYMARK_VOICE_LLM_MODEL",
-  "EARLYMARK_VOICE_FALLBACK_LLM_MODEL",
-  "EARLYMARK_VOICE_LLM_TEMPERATURE",
-  "EARLYMARK_VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "EARLYMARK_VOICE_STT_ENDPOINTING_MS",
-  "EARLYMARK_VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
-  "EARLYMARK_VOICE_MIN_ENDPOINTING_DELAY_MS",
-  "EARLYMARK_VOICE_MAX_ENDPOINTING_DELAY_MS",
-  "EARLYMARK_VOICE_MIN_INTERRUPTION_DURATION_MS",
-  "EARLYMARK_VOICE_MIN_INTERRUPTION_WORDS",
-  "INBOUND_VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "INBOUND_VOICE_STT_ENDPOINTING_MS",
-  "INBOUND_VOICE_MIN_INTERRUPTION_WORDS",
-  "VOICE_LLM_PROVIDER",
-  "VOICE_LLM_MODEL",
-  "VOICE_FALLBACK_LLM_MODEL",
-  "VOICE_LLM_TEMPERATURE",
-  "VOICE_LLM_MAX_COMPLETION_TOKENS",
-  "VOICE_STT_MODEL",
-  "VOICE_STT_LANGUAGE",
-  "VOICE_STT_ENDPOINTING_MS",
-  "VOICE_TTS_VOICE_ID",
-  "VOICE_TTS_LANGUAGE",
-  "VOICE_TTS_CHUNK_TIMEOUT_MS",
-  "VOICE_MIN_CONSECUTIVE_SPEECH_DELAY_MS",
-  "VOICE_MIN_ENDPOINTING_DELAY_MS",
-  "VOICE_MAX_ENDPOINTING_DELAY_MS",
-  "VOICE_MIN_INTERRUPTION_DURATION_MS",
-  "VOICE_MIN_INTERRUPTION_WORDS",
-  "VOICE_LATENCY_ENABLED",
-  "VOICE_LATENCY_TARGET_CALL_TYPES",
-  "VOICE_OPENER_BANK_ENABLED",
-  "VOICE_OPENER_CONFIDENCE_THRESHOLD",
-  "VOICE_GUARD_ENABLED",
-  "VOICE_GUARD_PROVIDER",
-  "VOICE_GUARD_MODEL",
-  "VOICE_GUARD_BASE_URL",
-  "VOICE_GUARD_TIMEOUT_MS",
-  "VOICE_GUARD_MAX_COMPLETION_TOKENS",
-  "VOICE_GUARD_TEMPERATURE",
-  "VOICE_GUARD_MIN_CHARS",
-  "VOICE_EMPATHY_TURN_GAP",
-  "VOICE_MAX_ACTIVE_CALLS",
-  "VOICE_MAX_ACTIVE_CALLS_SALES",
-  "VOICE_MAX_ACTIVE_CALLS_CUSTOMER",
-  "VOICE_HOST_ID",
-  "VOICE_WORKER_ROLE",
-  "VOICE_WORKER_SURFACES",
-] as const;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
-
-function normalizeLiveKitFingerprintUrl(value: string) {
-  if (!value) return value;
-
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
-    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
-
-    if (
-      (hostname === "live.earlymark.ai" && port === "443") ||
-      (hostname === "localhost" && port === "7880")
-    ) {
-      return "livekit://earlymark-primary";
-    }
-
-    const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
-    return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}${normalizedPath}`;
-  } catch {
-    return value;
-  }
-}
-
-function normalizeRuntimeFingerprintValue(key: typeof VOICE_AGENT_RUNTIME_ENV_KEYS[number], value?: string) {
-  const normalized = (value || "").trim();
-  if (key === "LIVEKIT_URL") {
-    return normalizeLiveKitFingerprintUrl(normalized);
-  }
-  return normalized;
-}
 
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
 const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
@@ -1409,18 +1312,7 @@ async function persistVoiceCall(payload: {
 }
 
 function getVoiceAgentRuntimeFingerprint() {
-  const source = VOICE_AGENT_RUNTIME_ENV_KEYS
-    .map((key) => [key, normalizeRuntimeFingerprintValue(key, process.env[key])] as const)
-    .sort(([left], [right]) => left.localeCompare(right));
-
-  const serialized = JSON.stringify(source);
-
-  let hash = 5381;
-  for (let index = 0; index < serialized.length; index += 1) {
-    hash = ((hash << 5) + hash) ^ serialized.charCodeAt(index);
-  }
-
-  return `va_${(hash >>> 0).toString(16)}`;
+  return buildVoiceAgentRuntimeFingerprint(process.env);
 }
 
 function buildVoiceAgentRuntimeSummary() {
