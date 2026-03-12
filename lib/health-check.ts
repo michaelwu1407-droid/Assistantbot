@@ -2,13 +2,13 @@ import {
   getCustomerAgentReadiness,
   type CustomerAgentReadiness,
 } from "@/lib/customer-agent-readiness";
+import { db } from "@/lib/db";
 import {
   getExpectedSmsWebhookUrl,
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
 } from "@/lib/earlymark-inbound-config";
 import { maxRuntimeStatus, runOpsAuditWithTimeout } from "@/lib/ops-audit";
-import { createAdminClient } from "@/lib/supabase/server-robust";
 import {
   auditTwilioMessagingRouting,
   auditTwilioVoiceRouting,
@@ -51,23 +51,10 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealthCheck> {
   const startTime = Date.now();
 
   try {
-    const adminClient = createAdminClient();
-    const { error } = await adminClient
-      .from("workspace")
-      .select("count")
-      .limit(1)
-      .single();
-
+    await db.workspace.findFirst({
+      select: { id: true },
+    });
     const latency = Date.now() - startTime;
-
-    if (error) {
-      console.error("Database health check failed:", error);
-      return {
-        status: "unhealthy",
-        error: error.message,
-        timestamp: new Date(),
-      };
-    }
 
     return {
       status: "healthy",

@@ -95,6 +95,11 @@ function normalizeEnvValue(value?: string) {
   return (value || "").trim();
 }
 
+function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
+  const order: RuntimeStatus[] = ["healthy", "degraded", "unhealthy"];
+  return order[Math.max(order.indexOf(left), order.indexOf(right))];
+}
+
 function buildFingerprintSource(env: NodeJS.ProcessEnv = process.env) {
   return Object.fromEntries(
     VOICE_AGENT_ENV_KEYS.map((key) => [key, normalizeEnvValue(env[key])]),
@@ -200,10 +205,13 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
   warnings.push(...fleet.warnings);
   const dedupedWarnings = Array.from(new Set(warnings.filter(Boolean)));
 
-  const status: RuntimeStatus =
-    runtimeFingerprint && runtimeFingerprint !== expectedFingerprint
+  const fingerprintStatus: RuntimeStatus =
+    !runtimeFingerprint
       ? "unhealthy"
-      : fleet.status;
+      : runtimeFingerprint !== expectedFingerprint
+        ? "degraded"
+        : "healthy";
+  const status = maxStatus(fleet.status, fingerprintStatus);
 
   if (isLegacyHeartbeatRecord(latest) && isJsonObject(latest.payload)) {
     const payload = latest.payload;

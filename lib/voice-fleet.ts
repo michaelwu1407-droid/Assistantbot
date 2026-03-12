@@ -63,12 +63,26 @@ export type VoiceSurfaceSaturationHealth = {
 };
 
 const VOICE_SURFACES: VoiceSurface[] = ["demo", "inbound_demo", "normal"];
-const EXPECTED_HOST_COUNT = 2;
+const DEFAULT_EXPECTED_HOST_COUNT = 1;
 const HEARTBEAT_LOOKBACK_MS = 10 * 60_000;
 const DEGRADED_HEARTBEAT_AGE_MS = 90_000;
 const UNHEALTHY_HEARTBEAT_AGE_MS = 150_000;
 const SATURATION_LOOKBACK_MINUTES = 5;
 const SATURATION_HEARTBEAT_THRESHOLD = 3;
+
+function getExpectedHostCount(env: NodeJS.ProcessEnv = process.env) {
+  const configuredHostIds = (env.VOICE_EXPECTED_HOST_IDS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (configuredHostIds.length > 0) {
+    return new Set(configuredHostIds).size;
+  }
+
+  const configuredCount = Number.parseInt((env.VOICE_EXPECTED_HOST_COUNT || "").trim(), 10);
+  return Number.isInteger(configuredCount) && configuredCount > 0 ? configuredCount : DEFAULT_EXPECTED_HOST_COUNT;
+}
 
 function isJsonObject(value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -174,7 +188,11 @@ function workerSupportsSurface(worker: VoiceWorkerSnapshot, surface: VoiceSurfac
   return worker.surfaceSet.includes(surface);
 }
 
-function buildSurfaceHealth(surface: VoiceSurface, workers: VoiceWorkerSnapshot[]): VoiceSurfaceHealth {
+function buildSurfaceHealth(
+  surface: VoiceSurface,
+  workers: VoiceWorkerSnapshot[],
+  expectedHostCount: number,
+): VoiceSurfaceHealth {
   const relevantWorkers = workers.filter((worker) => workerSupportsSurface(worker, surface));
   const availableWorkers = relevantWorkers.filter(
     (worker) => worker.status !== "unhealthy" && worker.capacityState !== "at_capacity",
@@ -196,15 +214,15 @@ function buildSurfaceHealth(surface: VoiceSurface, workers: VoiceWorkerSnapshot[
     warnings.push("No worker heartbeat has registered support for this surface.");
   } else if (allWorkersUnavailableOnlyFromCapacity) {
     warnings.push("All routable workers for this surface are at configured call capacity.");
-  } else if (availableHosts.size < EXPECTED_HOST_COUNT) {
-    warnings.push(`Only ${availableHosts.size}/${EXPECTED_HOST_COUNT} expected host(s) are currently routable.`);
+  } else if (availableHosts.size < expectedHostCount) {
+    warnings.push(`Only ${availableHosts.size}/${expectedHostCount} expected host(s) are currently routable.`);
   }
 
   const status: RuntimeStatus =
     relevantWorkers.length === 0 || relevantWorkers.every((worker) => worker.status === "unhealthy")
       ? "unhealthy"
       : allWorkersUnavailableOnlyFromCapacity ||
-        availableHosts.size < EXPECTED_HOST_COUNT ||
+        availableHosts.size < expectedHostCount ||
         relevantWorkers.some((worker) => worker.status === "degraded")
         ? "degraded"
         : "healthy";
@@ -221,7 +239,7 @@ function buildSurfaceHealth(surface: VoiceSurface, workers: VoiceWorkerSnapshot[
     warnings,
     supportingHosts: Array.from(availableHosts),
     atCapacityHosts: Array.from(atCapacityHosts),
-    expectedHostCount: EXPECTED_HOST_COUNT,
+    expectedHostCount,
     capacityExhausted: allWorkersUnavailableOnlyFromCapacity,
     workers: relevantWorkers,
   };
@@ -287,9 +305,10 @@ export async function getVoiceFleetHealth(): Promise<VoiceFleetHealth> {
   const checkedAt = new Date().toISOString();
   const workers = await getLatestVoiceWorkerSnapshots();
   const warnings: string[] = [];
+  const expectedHostCount = getExpectedHostCount();
 
   const surfaces = Object.fromEntries(
-    VOICE_SURFACES.map((surface) => [surface, buildSurfaceHealth(surface, workers)]),
+    VOICE_SURFACES.map((surface) => [surface, buildSurfaceHealth(surface, workers, expectedHostCount)]),
   ) as Record<VoiceSurface, VoiceSurfaceHealth>;
 
   const hostIds = Array.from(new Set(workers.map((worker) => worker.hostId)));
@@ -303,8 +322,8 @@ export async function getVoiceFleetHealth(): Promise<VoiceFleetHealth> {
   if (workers.length === 0) {
     warnings.push("No recent voice worker heartbeats were found.");
   }
-  if (hosts.length < EXPECTED_HOST_COUNT) {
-    warnings.push(`Only ${hosts.length}/${EXPECTED_HOST_COUNT} voice host(s) have reported in recently.`);
+  if (hosts.length < expectedHostCount) {
+    warnings.push(`Only ${hosts.length}/${expectedHostCount} voice host(s) have reported in recently.`);
   }
   for (const surface of VOICE_SURFACES) {
     if (surfaces[surface].status !== "healthy") {
@@ -337,6 +356,7 @@ export async function getVoiceFleetHealth(): Promise<VoiceFleetHealth> {
 }
 
 export async function getVoiceSurfaceSaturationHealth(surface: VoiceSurface): Promise<VoiceSurfaceSaturationHealth> {
+  const expectedHostCount = getExpectedHostCount();
   if (surface !== "normal") {
     return {
       surface,
@@ -383,17 +403,17 @@ export async function getVoiceSurfaceSaturationHealth(surface: VoiceSurface): Pr
     .map(([hostId]) => hostId);
   const warnings: string[] = [];
 
-  if (sustainedHosts.length >= EXPECTED_HOST_COUNT) {
+  if (sustainedHosts.length >= expectedHostCount) {
     warnings.push(
-      `Customer workers have stayed at configured call capacity across ${sustainedHosts.length}/${EXPECTED_HOST_COUNT} hosts for at least ${SATURATION_HEARTBEAT_THRESHOLD} heartbeats.`,
+      `Customer workers have stayed at configured call capacity across ${sustainedHosts.length}/${expectedHostCount} hosts for at least ${SATURATION_HEARTBEAT_THRESHOLD} heartbeats.`,
     );
   }
 
   return {
     surface,
-    status: sustainedHosts.length >= EXPECTED_HOST_COUNT ? "degraded" : "healthy",
+    status: sustainedHosts.length >= expectedHostCount ? "degraded" : "healthy",
     summary:
-      sustainedHosts.length >= EXPECTED_HOST_COUNT
+      sustainedHosts.length >= expectedHostCount
         ? warnings[0]
         : "Customer voice workers are not showing sustained fleet-wide saturation",
     warnings,
