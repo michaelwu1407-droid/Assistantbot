@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
+import { normalizePhone } from "@/lib/phone-utils";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
-import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 
 export const dynamic = "force-dynamic";
+
+type ProbeTargetSource = "ops_header_target" | "VOICE_MONITOR_PROBE_TARGET_NUMBER" | "known_inbound_env" | null;
+type ProbeCallerSource =
+  | "ops_header_caller"
+  | "VOICE_MONITOR_PROBE_CALLER_NUMBER"
+  | "VOICE_ALERT_SMS_TO"
+  | "default_probe_caller";
 
 function extractProbeResult(twiml: string) {
   if (twiml.includes("VOICE MONITOR PROBE PASS")) return "pass";
@@ -16,30 +23,30 @@ function extractProbeResult(twiml: string) {
   return "unknown";
 }
 
-async function resolveProbeTargetNumber() {
+function getProbeNumberOverride(req: NextRequest, headerName: string) {
+  return normalizePhone(req.headers.get(headerName) || "");
+}
+
+function resolveProbeTargetNumber(req: NextRequest): { targetNumber: string; source: ProbeTargetSource } {
+  const overrideTarget = getProbeNumberOverride(req, "x-voice-probe-target");
+  if (overrideTarget) {
+    return { targetNumber: overrideTarget, source: "ops_header_target" };
+  }
+
   const explicitTarget = (process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "").trim();
   if (explicitTarget) {
-    return { targetNumber: explicitTarget, source: "VOICE_MONITOR_PROBE_TARGET_NUMBER" as const };
+    return {
+      targetNumber: normalizePhone(explicitTarget),
+      source: "VOICE_MONITOR_PROBE_TARGET_NUMBER",
+    };
   }
 
   const configuredInboundNumber = getKnownEarlymarkInboundNumbers()[0] || "";
   if (configuredInboundNumber) {
-    return { targetNumber: configuredInboundNumber, source: "known_inbound_env" as const };
+    return { targetNumber: configuredInboundNumber, source: "known_inbound_env" };
   }
 
-  try {
-    const routing = await auditTwilioVoiceRouting({ apply: false });
-    const probedNumber =
-      routing.numbers.find((record) => record.scope === "earlymark" && record.found && record.phoneNumber)?.phoneNumber || "";
-
-    if (probedNumber) {
-      return { targetNumber: probedNumber, source: "twilio_routing_audit" as const };
-    }
-  } catch {
-    // Leave detailed Twilio drift failures to the dedicated health monitor.
-  }
-
-  return { targetNumber: "", source: null as const };
+  return { targetNumber: "", source: null };
 }
 
 export async function GET(req: NextRequest) {
@@ -48,24 +55,35 @@ export async function GET(req: NextRequest) {
   }
 
   const checkedAt = new Date();
-  const probeCaller = (
-    process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER ||
-    process.env.VOICE_ALERT_SMS_TO ||
-    "+61434955958"
-  ).trim();
-  const { targetNumber, source: targetNumberSource } = await resolveProbeTargetNumber();
+  const probeCaller =
+    getProbeNumberOverride(req, "x-voice-probe-caller") ||
+    normalizePhone(
+      process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER ||
+        process.env.VOICE_ALERT_SMS_TO ||
+        "+61434955958",
+    );
+  const probeCallerSource: ProbeCallerSource = req.headers.get("x-voice-probe-caller")
+    ? "ops_header_caller"
+    : process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER
+      ? "VOICE_MONITOR_PROBE_CALLER_NUMBER"
+      : process.env.VOICE_ALERT_SMS_TO
+        ? "VOICE_ALERT_SMS_TO"
+        : "default_probe_caller";
+  const { targetNumber, source: targetNumberSource } = resolveProbeTargetNumber(req);
   const gatewayUrl = getExpectedVoiceGatewayUrl();
 
   try {
     if (!probeCaller || !targetNumber || !gatewayUrl) {
-      const summary = "Synthetic voice probe is not fully configured.";
+      const summary = "Synthetic voice probe is not fully configured, so the scheduled probe was skipped.";
       await recordMonitorRun({
         monitorKey: "voice-synthetic-probe",
-        status: "unhealthy",
+        status: "degraded",
         summary,
         details: {
           checkedAt: checkedAt.toISOString(),
+          skipped: true,
           probeCallerConfigured: Boolean(probeCaller),
+          probeCallerSource,
           targetNumberConfigured: Boolean(targetNumber),
           targetNumberSource,
           gatewayUrlConfigured: Boolean(gatewayUrl),
@@ -76,15 +94,17 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(
         {
-          status: "unhealthy",
+          status: "degraded",
+          skipped: true,
           checkedAt: checkedAt.toISOString(),
           summary,
           probeCallerConfigured: Boolean(probeCaller),
+          probeCallerSource,
           targetNumberConfigured: Boolean(targetNumber),
           targetNumberSource,
           gatewayUrlConfigured: Boolean(gatewayUrl),
         },
-        { status: 500 },
+        { status: 200 },
       );
     }
 
@@ -138,6 +158,8 @@ export async function GET(req: NextRequest) {
       details: {
         checkedAt: checkedAt.toISOString(),
         probeResult,
+        probeCaller,
+        probeCallerSource,
         targetNumber,
         targetNumberSource,
         gatewayUrl,
@@ -153,6 +175,8 @@ export async function GET(req: NextRequest) {
         checkedAt: checkedAt.toISOString(),
         summary,
         probeResult,
+        probeCaller,
+        probeCallerSource,
         targetNumber,
         targetNumberSource,
         responseStatus: response.status,

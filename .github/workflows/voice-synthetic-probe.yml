@@ -14,6 +14,8 @@ jobs:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
+          PROBE_CALLER_NUMBER: ${{ secrets.VOICE_MONITOR_PROBE_CALLER_NUMBER || secrets.VOICE_ALERT_SMS_TO }}
+          PROBE_TARGET_NUMBER: ${{ secrets.VOICE_MONITOR_PROBE_TARGET_NUMBER || secrets.EARLYMARK_INBOUND_PHONE_NUMBER || secrets.EARLYMARK_PHONE_NUMBER || secrets.TWILIO_PHONE_NUMBER }}
         run: |
           set -eu
           if [ -z "${APP_BASE_URL:-}" ]; then
@@ -31,9 +33,12 @@ jobs:
               --write-out "%{http_code}" \
               -H "Authorization: Bearer ${CRON_SECRET}" \
               -H "x-ops-key: ${OPS_KEY}" \
+              -H "x-voice-probe-caller: ${PROBE_CALLER_NUMBER:-}" \
+              -H "x-voice-probe-target: ${PROBE_TARGET_NUMBER:-}" \
               "${APP_BASE_URL%/}/api/cron/voice-synthetic-probe"
           )"
           cat "${response_file}"
+          echo
           if [ "${status_code}" -ne 200 ]; then
             echo "voice-synthetic-probe returned HTTP ${status_code}"
             exit 1
@@ -43,6 +48,11 @@ jobs:
           with open(sys.argv[1], "r", encoding="utf-8") as handle:
               payload = json.load(handle)
           status = payload.get("status")
+          if status == "healthy":
+              raise SystemExit(0)
+          if status == "degraded" and payload.get("skipped") is True:
+              print(payload.get("summary", "voice-synthetic-probe skipped"))
+              raise SystemExit(0)
           if status != "healthy":
               raise SystemExit(f"voice-synthetic-probe returned non-healthy status: {status}")
           PY

@@ -24,7 +24,18 @@ jobs:
             echo "CRON_SECRET secret is missing."
             exit 1
           fi
-          curl --location --fail --show-error --silent \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            -H "x-ops-key: ${OPS_KEY}" \
-            "${APP_BASE_URL%/}/api/cron/customer-agent-reconcile"
+          response_file="$(mktemp)"
+          http_status="$(
+            curl --location --show-error --silent \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "x-ops-key: ${OPS_KEY}" \
+              "${APP_BASE_URL%/}/api/cron/customer-agent-reconcile"
+          )"
+          cat "$response_file"
+          echo
+          echo "HTTP ${http_status}"
+          if [ "${http_status}" -ge 400 ]; then
+            exit 1
+          fi

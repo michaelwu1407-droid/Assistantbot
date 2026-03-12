@@ -16,7 +16,6 @@
  *   - Per-turn latency attribution logs
  */
 
-import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { ReadableStream } from 'node:stream/web';
 import { config as loadEnv } from 'dotenv';
@@ -56,6 +55,7 @@ const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
 const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
+// Keep this list and fingerprint algorithm in sync with lib/voice-agent-runtime.ts.
 const VOICE_AGENT_RUNTIME_ENV_KEYS = [
   "LIVEKIT_URL",
   "LIVEKIT_API_KEY",
@@ -1383,7 +1383,14 @@ function getVoiceAgentRuntimeFingerprint() {
     .map((key) => [key, (process.env[key] || "").trim()] as const)
     .sort(([left], [right]) => left.localeCompare(right));
 
-  return createHash("sha256").update(JSON.stringify(source)).digest("hex");
+  const serialized = JSON.stringify(source);
+
+  let hash = 5381;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ serialized.charCodeAt(index);
+  }
+
+  return `va_${(hash >>> 0).toString(16)}`;
 }
 
 function buildVoiceAgentRuntimeSummary() {
@@ -2448,7 +2455,12 @@ export default defineAgent({
   },
 });
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+let workerBackgroundTasksStarted = false;
+
+export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
+  if (workerBackgroundTasksStarted) return;
+  workerBackgroundTasksStarted = true;
+
   setWorkerBootReady(true);
   try {
     const warmTts = new cartesia.TTS({
@@ -2457,30 +2469,33 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
       chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
     });
-    getSharedOpenerAudioCache(warmTts, "[agent]");
+    getSharedOpenerAudioCache(warmTts, logPrefix);
   } catch (error) {
-    console.warn("[agent] Failed to warm opener audio cache:", error);
+    console.warn(`${logPrefix} Failed to warm opener audio cache:`, error);
   }
   void refreshVoiceGroundingIndex(true).catch((error) => {
-    console.warn("[agent] Initial voice grounding cache warm failed:", error);
+    console.warn(`${logPrefix} Initial voice grounding cache warm failed:`, error);
   });
   const groundingRefreshTimer = setInterval(() => {
     void refreshVoiceGroundingIndex(true).catch((error) => {
-      console.warn("[agent] Voice grounding cache refresh failed:", error);
+      console.warn(`${logPrefix} Voice grounding cache refresh failed:`, error);
     });
   }, VOICE_GROUNDING_CACHE_TTL_MS);
   groundingRefreshTimer.unref?.();
 
   void postVoiceAgentStatus().catch((error) => {
-    console.error("[agent] Failed to post worker-status heartbeat:", error);
+    console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
   });
   const heartbeatTimer = setInterval(() => {
     void postVoiceAgentStatus().catch((error) => {
-      console.error("[agent] Failed to post worker-status heartbeat:", error);
+      console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
     });
   }, VOICE_AGENT_HEARTBEAT_MS);
   heartbeatTimer.unref?.();
+}
 
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  startVoiceWorkerBackgroundTasks();
   cli.runApp(
     new WorkerOptions({
       agent: fileURLToPath(import.meta.url),

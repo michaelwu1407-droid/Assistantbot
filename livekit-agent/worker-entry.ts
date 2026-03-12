@@ -1,5 +1,6 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
+import { startVoiceWorkerBackgroundTasks } from "./agent";
 import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";
 
 type VoiceSurface = "demo" | "inbound_demo" | "normal";
@@ -107,6 +108,7 @@ export function runVoiceWorker(params: {
 }) {
   process.env.VOICE_WORKER_ROLE = process.env.VOICE_WORKER_ROLE || params.workerRole;
   process.env.VOICE_WORKER_SURFACES = process.env.VOICE_WORKER_SURFACES || params.surfaces.join(",");
+  startVoiceWorkerBackgroundTasks(`[${params.workerRole}]`);
 
   cli.runApp(
     new WorkerOptions({
