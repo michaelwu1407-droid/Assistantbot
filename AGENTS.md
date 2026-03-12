@@ -27,6 +27,8 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 ## LiveKit Infra Context (Canonical)
 
 - **Host environment**: Oracle Cloud (OCI) Ubuntu VM at `140.238.198.39`, SSH user `ubuntu`.
+- **SSH ingress requirement**: TCP `22` must be open in both OCI security rules and the Ubuntu host firewall. GitHub Actions deploys can still fail with `Connection timed out during banner exchange` if OCI ingress is correct but host `iptables` silently drops new SSH sessions.
+- **SSH firewall recovery**: If port `22` is reblocked on the host, restore it with `sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT` and immediately persist it with `sudo netfilter-persistent save`.
 - **Deployment staging path**: Updated agent code is first copied to `/tmp/livekit-agent/` before deployment.
 - **Current process model**: Docker is the standardized deployment architecture for the LiveKit core voice infrastructure under `/opt/livekit` (LiveKit, Redis, Caddy, SIP). The Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process from `/tmp/livekit-agent` using `tsx agent.ts start`.
 - **Automation model**: GitHub Actions should deploy the LiveKit core stack through the Docker path where applicable, but `livekit-agent/**` changes currently deploy by copying into `/tmp/livekit-agent` and restarting the host process there. Do not assume `/opt/livekit-agent` is a git checkout or that the active worker is containerized today.

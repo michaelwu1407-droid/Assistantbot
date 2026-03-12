@@ -57,6 +57,17 @@ jobs:
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           set -euo pipefail
+          print_ssh_network_guidance() {
+            echo "SSH preflight guidance:"
+            echo "- Confirm DEPLOY_HOST resolves to the expected OCI public IP (primary currently expected: 140.238.198.39)."
+            echo "- Confirm OCI security lists / NSGs allow inbound TCP 22 from GitHub-hosted runners."
+            echo "- Confirm Ubuntu iptables also allows TCP 22; OCI can be open while the host firewall silently drops SSH."
+            echo "- If the host firewall reblocked SSH, run:"
+            echo "  sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT"
+            echo "  sudo netfilter-persistent save"
+            echo "- Confirm sshd is running and listening on port 22 on the host."
+          }
+
           ssh_opts=(
             -i "$SSH_KEY_PATH"
             -o BatchMode=yes
@@ -68,6 +79,21 @@ jobs:
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
           )
+          echo "Starting SSH preflight for $DEPLOY_HOST as $DEPLOY_USER"
+          echo "Resolving deploy host..."
+          if ! getent ahosts "$DEPLOY_HOST"; then
+            echo "Failed to resolve $DEPLOY_HOST before attempting SSH."
+            print_ssh_network_guidance
+            exit 1
+          fi
+          echo "Checking raw TCP reachability to $DEPLOY_HOST:22 before SSH banner exchange..."
+          if ! timeout 20 bash -lc 'exec 3<>"/dev/tcp/$1/$2"' _ "$DEPLOY_HOST" "22"; then
+            echo "Raw TCP connection to $DEPLOY_HOST:22 failed before SSH authentication."
+            echo "This usually points to OCI ingress, Ubuntu iptables, or sshd not listening on port 22."
+            print_ssh_network_guidance
+            exit 1
+          fi
+          echo "TCP port 22 is reachable. Proceeding to SSH banner/authentication preflight."
           for attempt in 1 2 3; do
             if timeout 90s ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'EOF'
           set -euo pipefail
@@ -86,6 +112,8 @@ jobs:
             fi
             if [ "$attempt" -eq 3 ]; then
               echo "SSH preflight failed after ${attempt} attempts."
+              echo "Raw TCP reachability succeeded, so investigate sshd health, SSH banner responsiveness, the configured SSH user/key, and Ubuntu iptables behavior during banner exchange."
+              print_ssh_network_guidance
               exit 1
             fi
             echo "SSH preflight attempt ${attempt} failed. Retrying in 15 seconds..."

@@ -109,6 +109,21 @@ Before relying on it, verify repo secrets exist:
 - `NEXT_PUBLIC_APP_URL`
 - `VOICE_MONITOR_DEADMAN_URL` if using an external dead-man service
 
+SSH reachability prerequisites:
+
+- `SSH_HOST_PRIMARY` / `SSH_HOST` should resolve to the OCI public IP `140.238.198.39`
+- inbound TCP `22` must be allowed in both OCI security rules and Ubuntu `iptables`
+- if GitHub Actions fails with `Connection timed out during banner exchange`, treat it as a network/firewall incident before debugging package copy or restart logic
+- if the Ubuntu firewall has reblocked SSH, recover with:
+
+```bash
+sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT
+sudo netfilter-persistent save
+```
+
+- after restoring access, confirm `sshd` is running and listening on `22`
+- see `docs/OCI_SSH_FIREWALL_POSTMORTEM.md` for the March 12, 2026 incident pattern and triage steps
+
 After a worker deploy:
 
 - check the workflow run went green
