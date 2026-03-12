@@ -1,0 +1,29 @@
+[Unit]
+Description=Earlymark Customer Voice Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/earlymark-agent
+Environment=HOME=/home/ubuntu
+Environment=NODE_ENV=production
+Environment=VOICE_WORKER_ROLE=tracey-customer-agent
+Environment=VOICE_WORKER_SURFACES=normal
+Environment=LIVEKIT_HTTP_HOST=127.0.0.1
+Environment=LIVEKIT_HTTP_PORT=8082
+EnvironmentFile=/opt/earlymark-agent/.env.local
+ExecStart=/usr/bin/env bash --noprofile --norc -lc 'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"; export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"; if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh"; fi; exec npm run start:customer'
+Restart=always
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+SyslogIdentifier=earlymark-customer-agent
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "livekit-agent/**"
+      - "ops/systemd/**"
       - ".github/workflows/deploy-livekit.yml"
 
 concurrency:
@@ -44,12 +45,17 @@ jobs:
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           set -euo pipefail
+          rm -rf deploy-stage
+          mkdir -p deploy-stage/systemd
+          cp -a livekit-agent/. deploy-stage/
+          cp ops/systemd/earlymark-sales-agent.service deploy-stage/systemd/
+          cp ops/systemd/earlymark-customer-agent.service deploy-stage/systemd/
           tar \
             --exclude='node_modules' \
             --exclude='.env.local' \
             --exclude='.env.*.local' \
             -czf earlymark-agent-deploy.tgz \
-            -C livekit-agent .
+            -C deploy-stage .
           du -h earlymark-agent-deploy.tgz
           sha256sum earlymark-agent-deploy.tgz
 
@@ -70,7 +76,7 @@ jobs:
           print_runtime_bootstrap_guidance() {
             echo "Remote runtime bootstrap guidance:"
             echo "- If sshd logs show accepted GitHub publickey sessions, SSH transport is working."
-            echo "- Investigate the non-interactive runtime path next: PATH, nvm loading, node, npm, and pm2."
+            echo "- Investigate the non-interactive runtime path next: PATH, nvm loading, node, npm, sudo, and systemd."
             echo "- GitHub Actions remote commands must not depend on .bashrc, .profile, prompt setup, or other interactive shell init."
           }
 
@@ -99,7 +105,7 @@ jobs:
           hash -r
 
           echo "[runtime-bootstrap] PATH=$PATH"
-          for bin in bash node npm pm2; do
+          for bin in bash node npm sudo systemctl; do
             if ! command -v "$bin" >/dev/null 2>&1; then
               echo "[runtime-bootstrap] missing required binary: $bin"
               exit 1
@@ -108,7 +114,13 @@ jobs:
           done
           echo "[runtime-bootstrap] node_version=$(node --version)"
           echo "[runtime-bootstrap] npm_version=$(npm --version)"
-          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
+          echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
+          if sudo systemctl is-active --quiet ssh || sudo systemctl is-active --quiet sshd; then
+            echo "[runtime-bootstrap] ssh_service_active=yes"
+          else
+            echo "[runtime-bootstrap] ssh_service_active=no"
+            exit 1
+          fi
           echo "[runtime-bootstrap] Connected to $(hostname)"
           test -w /tmp
           df -h /tmp
@@ -218,7 +230,7 @@ jobs:
           hash -r
 
           echo "[runtime-bootstrap] PATH=$PATH"
-          for bin in bash node npm pm2; do
+          for bin in bash node npm sudo systemctl; do
             if ! command -v "$bin" >/dev/null 2>&1; then
               echo "[runtime-bootstrap] missing required binary: $bin"
               exit 1
@@ -227,12 +239,18 @@ jobs:
           done
           echo "[runtime-bootstrap] node_version=$(node --version)"
           echo "[runtime-bootstrap] npm_version=$(npm --version)"
-          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
+          echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
 
-          if ! command -v pm2 >/dev/null 2>&1; then
-            echo "pm2 is not installed on the target host."
-            exit 1
-          fi
+          upsert_env_value() {
+            key="$1"
+            value="$2"
+            file="$3"
+            if grep -q "^${key}=" "$file"; then
+              sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+            else
+              printf '\n%s=%s\n' "$key" "$value" >> "$file"
+            fi
+          }
 
           sudo mkdir -p /opt/earlymark-agent
           sudo chown -R "$USER":"$USER" /opt/earlymark-agent
@@ -248,22 +266,32 @@ jobs:
           cd /opt/earlymark-agent
           npm ci --omit=dev --no-audit --no-fund
 
+          if [ ! -f /opt/earlymark-agent/systemd/earlymark-sales-agent.service ] || [ ! -f /opt/earlymark-agent/systemd/earlymark-customer-agent.service ]; then
+            echo "Missing committed systemd service files in /opt/earlymark-agent/systemd"
+            exit 1
+          fi
+
           sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
+          upsert_env_value "DEPLOY_GIT_SHA" "$DEPLOY_GIT_SHA" /opt/earlymark-agent/.env.local
+          upsert_env_value "VOICE_HOST_ID" "$VOICE_HOST_ID" /opt/earlymark-agent/.env.local
 
-          set -a
-          . /opt/earlymark-agent/.env.local
-          set +a
-          export DEPLOY_GIT_SHA="$DEPLOY_GIT_SHA"
-          export VOICE_HOST_ID="$VOICE_HOST_ID"
+          sudo install -m 0644 /opt/earlymark-agent/systemd/earlymark-sales-agent.service /etc/systemd/system/earlymark-sales-agent.service
+          sudo install -m 0644 /opt/earlymark-agent/systemd/earlymark-customer-agent.service /etc/systemd/system/earlymark-customer-agent.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable earlymark-sales-agent earlymark-customer-agent
+          sudo systemctl restart earlymark-sales-agent earlymark-customer-agent
 
-          pm2 delete earlymark-sales-agent || true
-          pm2 delete earlymark-customer-agent || true
-          pm2 start npm --name earlymark-sales-agent -- run start:sales
-          pm2 start npm --name earlymark-customer-agent -- run start:customer
-          sudo env "PATH=$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" || true
-          pm2 save
-          pm2 describe earlymark-sales-agent
-          pm2 describe earlymark-customer-agent
+          if ! sudo systemctl is-active --quiet earlymark-sales-agent; then
+            sudo systemctl status earlymark-sales-agent --no-pager || true
+            sudo journalctl -u earlymark-sales-agent -n 80 --no-pager || true
+            exit 1
+          fi
+          if ! sudo systemctl is-active --quiet earlymark-customer-agent; then
+            sudo systemctl status earlymark-customer-agent --no-pager || true
+            sudo journalctl -u earlymark-customer-agent -n 80 --no-pager || true
+            exit 1
+          fi
+          sudo systemctl status earlymark-sales-agent earlymark-customer-agent --no-pager
           EOF
             then
               exit 0
@@ -310,7 +338,7 @@ jobs:
           hash -r
 
           echo "[runtime-bootstrap] PATH=$PATH"
-          for bin in bash node npm pm2; do
+          for bin in bash node npm sudo systemctl; do
             if ! command -v "$bin" >/dev/null 2>&1; then
               echo "[runtime-bootstrap] missing required binary: $bin"
               exit 1
@@ -319,7 +347,19 @@ jobs:
           done
           echo "[runtime-bootstrap] node_version=$(node --version)"
           echo "[runtime-bootstrap] npm_version=$(npm --version)"
-          echo "[runtime-bootstrap] pm2_version=$(pm2 --version)"
+          echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
+          if ! sudo systemctl is-active --quiet earlymark-sales-agent; then
+            echo "earlymark-sales-agent is not active after deploy."
+            sudo systemctl status earlymark-sales-agent --no-pager || true
+            sudo journalctl -u earlymark-sales-agent -n 80 --no-pager || true
+            exit 1
+          fi
+          if ! sudo systemctl is-active --quiet earlymark-customer-agent; then
+            echo "earlymark-customer-agent is not active after deploy."
+            sudo systemctl status earlymark-customer-agent --no-pager || true
+            sudo journalctl -u earlymark-customer-agent -n 80 --no-pager || true
+            exit 1
+          fi
           VERIFIED=0
 
           for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
@@ -333,10 +373,8 @@ jobs:
           if [ "$VERIFIED" -ne 1 ]; then
             echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
             node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
-            pm2 describe earlymark-sales-agent || true
-            pm2 describe earlymark-customer-agent || true
-            pm2 logs earlymark-sales-agent --lines 80 --nostream || true
-            pm2 logs earlymark-customer-agent --lines 80 --nostream || true
+            sudo systemctl status earlymark-sales-agent earlymark-customer-agent --no-pager || true
+            sudo journalctl -u earlymark-sales-agent -u earlymark-customer-agent -n 80 --no-pager || true
             exit 1
           fi
           EOF
