@@ -1,8 +1,13 @@
+import twilio from "twilio";
+
 import { twilioMasterClient } from "@/lib/twilio";
 
 const MASTER_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
+const MASTER_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN?.trim() || "";
 const AU_MOBILE_BUSINESS_BUNDLE_SID = process.env.TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID?.trim() || "";
 const bundleCloneCache = new Map<string, Promise<string>>();
+const BUNDLE_READY_POLL_ATTEMPTS = 10;
+const BUNDLE_READY_POLL_DELAY_MS = 3000;
 
 type TwilioErrorLike = {
   code?: number;
@@ -51,7 +56,14 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
       targetAccountSid,
       friendlyName: params.friendlyName,
     })
-    .then((clone) => clone.bundleSid || sourceBundleSid)
+    .then(async (clone) => {
+      const clonedBundleSid = clone.bundleSid || sourceBundleSid;
+      await waitForBundleReady({
+        targetAccountSid,
+        bundleSid: clonedBundleSid,
+      });
+      return clonedBundleSid;
+    })
     .catch((error: unknown) => {
       bundleCloneCache.delete(cacheKey);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -62,6 +74,61 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
 
   bundleCloneCache.set(cacheKey, clonePromise);
   return clonePromise;
+}
+
+async function waitForBundleReady(params: { targetAccountSid: string; bundleSid: string }) {
+  if (!MASTER_ACCOUNT_SID || !MASTER_AUTH_TOKEN) {
+    throw new Error("Twilio master credentials are required before polling a cloned bundle.");
+  }
+
+  const targetClient = twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN, {
+    accountSid: params.targetAccountSid,
+  });
+
+  let lastStatus = "unknown";
+  let lastError: string | null = null;
+
+  for (let attempt = 0; attempt < BUNDLE_READY_POLL_ATTEMPTS; attempt += 1) {
+    try {
+      const bundle = await targetClient.numbers.v2.regulatoryCompliance
+        .bundles(params.bundleSid)
+        .fetch();
+      lastStatus = String(bundle.status || "unknown").toLowerCase();
+
+      if (isReadyBundleStatus(lastStatus)) {
+        return;
+      }
+
+      if (isRejectedBundleStatus(lastStatus)) {
+        throw new Error(
+          `Cloned AU mobile business bundle ${params.bundleSid} was rejected in subaccount ${params.targetAccountSid} with status '${bundle.status}'.`,
+        );
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown error";
+      if (lastError.toLowerCase().includes("rejected")) {
+        throw error;
+      }
+    }
+
+    await delay(BUNDLE_READY_POLL_DELAY_MS);
+  }
+
+  throw new Error(
+    `Timed out waiting for AU mobile business bundle ${params.bundleSid} to become usable in subaccount ${params.targetAccountSid}. Last status='${lastStatus}'${lastError ? `, lastError='${lastError}'` : ""}.`,
+  );
+}
+
+function isReadyBundleStatus(status: string) {
+  return status === "twilio-approved" || status === "approved";
+}
+
+function isRejectedBundleStatus(status: string) {
+  return status === "twilio-rejected" || status === "rejected";
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function describeTwilioProvisioningError(error: unknown) {
