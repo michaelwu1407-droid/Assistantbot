@@ -14,12 +14,16 @@ import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twil
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [customerFacingAgents, voiceWorker, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
-    getCustomerAgentReadiness(),
+  const [voiceWorker, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
     getVoiceAgentRuntimeDrift(),
     auditTwilioVoiceRouting({ apply: false }),
     auditTwilioMessagingRouting({ apply: false }),
   ]);
+  const customerFacingAgents = await getCustomerAgentReadiness({
+    twilioVoiceRouting,
+    twilioMessagingRouting,
+    voiceWorker,
+  });
   const env = {
     // Core required for phone provisioning
     twilio: {

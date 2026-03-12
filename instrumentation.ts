@@ -10,8 +10,8 @@ export async function register() {
   }
 
   try {
-    const { performStartupHealthCheck } = await import("./lib/health-check")
-    await performStartupHealthCheck()
+    const { runStartupEnvironmentValidation } = await import("./lib/health-check")
+    runStartupEnvironmentValidation()
   } catch (error) {
     console.warn("[startup] Health check issue:", error)
 

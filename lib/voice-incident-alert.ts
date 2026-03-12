@@ -21,6 +21,11 @@ function getAlertSmsRecipients() {
   return recipients.length > 0 ? recipients : [DEFAULT_ALERT_SMS_TO];
 }
 
+function isSmsAlertingEnabled() {
+  const raw = (process.env.VOICE_ALERT_SMS_ENABLED || "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
 function getAlertEmailRecipients() {
   const recipients = splitRecipients(process.env.VOICE_ALERT_EMAIL_TO);
   return recipients.length > 0 ? recipients : [DEFAULT_ALERT_EMAIL_TO];
@@ -45,9 +50,19 @@ function renderMetadata(metadata?: Record<string, unknown>) {
 }
 
 async function sendSmsNotifications(params: VoiceNotificationParams) {
+  const recipients = getAlertSmsRecipients();
+
+  if (!isSmsAlertingEnabled()) {
+    return {
+      sent: false,
+      skipped: true,
+      recipients,
+      error: "SMS alerting is disabled for voice alerts",
+    };
+  }
+
   const client = twilioMasterClient;
   const from = getAlertSmsFrom();
-  const recipients = getAlertSmsRecipients();
 
   if (!client || !from) {
     return {

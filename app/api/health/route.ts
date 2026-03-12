@@ -11,15 +11,21 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const [database, customerFacingAgents, voiceWorker, voiceFleet, voiceLatency, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
+    const [database, voiceWorker, voiceFleet, voiceLatency, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
       checkDatabaseHealth(),
-      getCustomerAgentReadiness(),
       getVoiceAgentRuntimeDrift(),
       getVoiceFleetHealth(),
       getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
       auditTwilioVoiceRouting({ apply: false }),
       auditTwilioMessagingRouting({ apply: false }),
     ]);
+    const customerFacingAgents = await getCustomerAgentReadiness({
+      twilioVoiceRouting,
+      twilioMessagingRouting,
+      voiceWorker,
+      voiceFleet,
+      voiceLatency,
+    });
 
     const voiceStatus = combineVoiceStatuses([
       voiceWorker.status,

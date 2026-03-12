@@ -1,15 +1,49 @@
-// @ts-nocheck — pre-existing type mismatch with @testing-library/react
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { ChatInterface } from '@/components/chatbot/chat-interface';
+// @ts-nocheck - pre-existing type mismatch with @testing-library/react
+import React from "react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ChatInterface } from "@/components/chatbot/chat-interface";
+import { getChatHistory } from "@/actions/chat-actions";
 
-// Mock the environment variables
-vi.mock('@/components/providers/conditional-clerk-provider', () => ({
-  ConditionalClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+vi.mock("@ai-sdk/react", async () => {
+  const React = await import("react");
+
+  return {
+    useChat: ({ messages }: { messages?: { id: string; role: string; parts: { type: string; text: string }[] }[] }) => {
+      const [chatMessages, setChatMessages] = React.useState(messages ?? []);
+
+      React.useEffect(() => {
+        setChatMessages(messages ?? []);
+      }, [messages]);
+
+      return {
+        messages: chatMessages,
+        status: "ready",
+        sendMessage: ({ text }: { text: string }) => {
+          setChatMessages((previousMessages) => [
+            ...previousMessages,
+            {
+              id: `user-${previousMessages.length + 1}`,
+              role: "user",
+              parts: [{ type: "text", text }],
+            },
+          ]);
+        },
+      };
+    },
+  };
+});
+
+vi.mock("@/hooks/use-speech-recognition", () => ({
+  useSpeechRecognition: () => ({
+    isListening: false,
+    transcript: "",
+    toggleListening: vi.fn(),
+  }),
 }));
 
-vi.mock('@/actions/chat-actions', () => ({
+vi.mock("@/actions/chat-actions", () => ({
   getChatHistory: vi.fn().mockResolvedValue([]),
   saveAssistantMessage: vi.fn(),
   confirmJobDraft: vi.fn(),
@@ -17,72 +51,73 @@ vi.mock('@/actions/chat-actions', () => ({
   getDailyDigest: vi.fn().mockResolvedValue(null),
 }));
 
-describe('ChatInterface', () => {
-  it('renders chat interface with initial message', () => {
-    render(<ChatInterface workspaceId="test-workspace" />);
+beforeAll(() => {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+});
 
-    expect(screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Type your message...')).toBeInTheDocument();
-    expect(screen.getByRole('button')).toBeInTheDocument();
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getChatHistory).mockResolvedValue([]);
+});
+
+async function renderChatInterface() {
+  const user = userEvent.setup();
+
+  render(<ChatInterface workspaceId="test-workspace" />);
+
+  await waitFor(() => {
+    expect(getChatHistory).toHaveBeenCalledWith("test-workspace", 20);
   });
 
-  it('displays user and assistant messages correctly', () => {
-    render(<ChatInterface workspaceId="test-workspace" />);
+  return { user };
+}
 
-    // Check for the initial assistant message
-    const assistantMessage = screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!");
-    expect(assistantMessage).toBeInTheDocument();
+describe("ChatInterface", () => {
+  it("renders the initial assistant message and accessible chat controls", async () => {
+    await renderChatInterface();
 
-    // The message should be in a container with proper styling
-    const messageContainer = assistantMessage.closest('div');
-    expect(messageContainer).toHaveClass('bg-slate-100');
+    expect(
+      screen.getByText("Hi! I'm Tracey, your personal assistant. Here to give you an early mark!"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Message" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start voice input" })).toBeInTheDocument();
   });
 
-  it('has a functional input field and send button', () => {
-    render(<ChatInterface workspaceId="test-workspace" />);
+  it("renders the current quick actions", async () => {
+    await renderChatInterface();
 
-    const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
-    const sendButton = screen.getByRole('button');
-
-    expect(input).toBeInTheDocument();
-    expect(sendButton).toBeInTheDocument();
-    expect(input.type).toBe('text');
+    expect(screen.getByRole("button", { name: "Schedule a job" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create a quote" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Follow up call" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move a deal" })).toBeInTheDocument();
   });
 
-  it('disables send button when input is empty', () => {
-    render(<ChatInterface workspaceId="test-workspace" />);
+  it("fills the message box from a quick action", async () => {
+    const { user } = await renderChatInterface();
 
-    const sendButton = screen.getByRole('button');
-    expect(sendButton).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Schedule a job" }));
+
+    expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue(
+      "Help me schedule a job with a client",
+    );
   });
 
-  it('enables send button when input has text', async () => {
-    const user = userEvent.setup();
-    render(<ChatInterface workspaceId="test-workspace" />);
+  it("enables the send button when the message box has text", async () => {
+    const { user } = await renderChatInterface();
 
-    const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
-    const sendButton = screen.getByRole('button');
+    await user.type(screen.getByRole("textbox", { name: "Message" }), "Test message");
 
-    // Type a message
-    await user.type(input, 'Test message');
-    expect(sendButton).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
   });
 
-  it('submits form and shows user message', async () => {
-    const user = userEvent.setup();
-    render(<ChatInterface workspaceId="test-workspace" />);
+  it("submits a user message through the mocked chat hook", async () => {
+    const { user } = await renderChatInterface();
 
-    const input = screen.getByPlaceholderText('Type your message...') as HTMLInputElement;
-    const sendButton = screen.getByRole('button');
+    await user.type(screen.getByRole("textbox", { name: "Message" }), "Test message");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
 
-    // Type a message
-    await user.type(input, 'Test message');
-    expect(sendButton).not.toBeDisabled();
-
-    // Submit the form
-    await user.click(sendButton);
-
-    // Should show user message
-    expect(screen.getByText('Test message')).toBeInTheDocument();
+    expect(screen.getByText("Test message")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("");
   });
 });

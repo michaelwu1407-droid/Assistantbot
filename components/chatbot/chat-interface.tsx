@@ -648,6 +648,7 @@ function ChatWithHistory({
           <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
             <Textarea
               id="chat-input"
+              aria-label="Message"
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -673,6 +674,7 @@ function ChatWithHistory({
             />
             <Button
               type="submit"
+              aria-label="Send message"
               disabled={isLoading || !input.trim()}
               size="icon"
               className={cn(
@@ -687,6 +689,7 @@ function ChatWithHistory({
             <Button
               type="button"
               id="voice-btn"
+              aria-label={isListening ? "Stop voice input" : "Start voice input"}
               size="icon"
               onClick={toggleListening}
               className={cn(

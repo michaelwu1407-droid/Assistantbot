@@ -1,83 +1,117 @@
-import { getCustomerAgentReadiness } from './customer-agent-readiness';
 import {
+  getCustomerAgentReadiness,
+  type CustomerAgentReadiness,
+} from "@/lib/customer-agent-readiness";
+import {
+  getExpectedSmsWebhookUrl,
+  getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
-} from './earlymark-inbound-config';
-import { createAdminClient } from './supabase/server-robust';
-import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from './twilio-drift';
-import { getVoiceAgentRuntimeDrift } from './voice-agent-runtime';
+} from "@/lib/earlymark-inbound-config";
+import { maxRuntimeStatus, runOpsAuditWithTimeout } from "@/lib/ops-audit";
+import { createAdminClient } from "@/lib/supabase/server-robust";
+import {
+  auditTwilioMessagingRouting,
+  auditTwilioVoiceRouting,
+  type TwilioMessagingRoutingDrift,
+  type TwilioVoiceRoutingDrift,
+} from "@/lib/twilio-drift";
+import {
+  getExpectedVoiceAgentRuntimeFingerprint,
+  getVoiceAgentRuntimeDrift,
+  type VoiceAgentRuntimeDrift,
+} from "@/lib/voice-agent-runtime";
+import type { RuntimeStatus } from "@/lib/voice-fleet";
 
-export async function checkDatabaseHealth(): Promise<{
-  status: 'healthy' | 'degraded' | 'unhealthy';
+export type DatabaseHealthCheck = {
+  status: "healthy" | "degraded" | "unhealthy";
   latency?: number;
   error?: string;
   timestamp: Date;
-}> {
+};
+
+export type EnvironmentValidation = {
+  valid: boolean;
+  missing: string[];
+  warnings: string[];
+};
+
+export type OpsHealthAudit = {
+  status: RuntimeStatus;
+  summary: string;
+  checkedAt: string;
+  environment: EnvironmentValidation;
+  database: DatabaseHealthCheck;
+  twilioVoiceRouting: TwilioVoiceRoutingDrift;
+  twilioMessagingRouting: TwilioMessagingRoutingDrift;
+  voiceWorker: VoiceAgentRuntimeDrift;
+  readiness: CustomerAgentReadiness;
+};
+
+export async function checkDatabaseHealth(): Promise<DatabaseHealthCheck> {
   const startTime = Date.now();
 
   try {
     const adminClient = createAdminClient();
     const { error } = await adminClient
-      .from('workspace')
-      .select('count')
+      .from("workspace")
+      .select("count")
       .limit(1)
       .single();
 
     const latency = Date.now() - startTime;
 
     if (error) {
-      console.error('Database health check failed:', error);
+      console.error("Database health check failed:", error);
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         error: error.message,
         timestamp: new Date(),
       };
     }
 
     return {
-      status: 'healthy',
+      status: "healthy",
       latency,
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Database health check exception:', error);
+    console.error("Database health check exception:", error);
     return {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      status: "unhealthy",
+      error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date(),
     };
   }
 }
 
-export function validateEnvironment(): {
-  valid: boolean;
-  missing: string[];
-  warnings: string[];
-} {
+export function validateEnvironment(): EnvironmentValidation {
   const required = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'DATABASE_URL',
-    'DIRECT_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
   ];
 
   const missing = required.filter((key) => !process.env[key]);
   const warnings: string[] = [];
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) {
-    warnings.push('NEXT_PUBLIC_SUPABASE_URL contains placeholder value');
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")) {
+    warnings.push("NEXT_PUBLIC_SUPABASE_URL contains placeholder value");
   }
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder')) {
-    warnings.push('NEXT_PUBLIC_SUPABASE_ANON_KEY contains placeholder value');
+  if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes("placeholder")) {
+    warnings.push("NEXT_PUBLIC_SUPABASE_ANON_KEY contains placeholder value");
   }
 
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    warnings.push('NEXT_PUBLIC_APP_URL is missing; Twilio voice/SMS callbacks and diagnostics may drift');
+    warnings.push("NEXT_PUBLIC_APP_URL is missing; Twilio voice/SMS callbacks and diagnostics may drift");
   }
 
   if (getKnownEarlymarkInboundNumbers().length === 0) {
-    warnings.push('No Earlymark inbound phone number is configured (EARLYMARK_INBOUND_PHONE_NUMBERS / EARLYMARK_INBOUND_PHONE_NUMBER / EARLYMARK_PHONE_NUMBER / TWILIO_PHONE_NUMBER)');
+    warnings.push(
+      "No Earlymark inbound phone number is configured (EARLYMARK_INBOUND_PHONE_NUMBERS / EARLYMARK_INBOUND_PHONE_NUMBER / EARLYMARK_PHONE_NUMBER / TWILIO_PHONE_NUMBER)",
+    );
   }
 
   return {
@@ -87,88 +121,143 @@ export function validateEnvironment(): {
   };
 }
 
-async function auditInboundVoiceRouting(): Promise<{
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  warnings: string[];
-}> {
-  const drift = await auditTwilioVoiceRouting({ apply: false });
+function getEnvironmentStatus(environment: EnvironmentValidation): RuntimeStatus {
+  if (environment.missing.length > 0) return "unhealthy";
+  if (environment.warnings.length > 0) return "degraded";
+  return "healthy";
+}
+
+function getEnvironmentSummary(environment: EnvironmentValidation) {
+  if (environment.missing.length > 0) {
+    return `Missing environment variables: ${environment.missing.join(", ")}`;
+  }
+
+  if (environment.warnings.length > 0) {
+    return environment.warnings[0];
+  }
+
+  return "Startup environment validation passed";
+}
+
+function buildDatabaseHealthFailure(message: string): DatabaseHealthCheck {
   return {
-    status: drift.status,
-    warnings: drift.warnings.length > 0 ? drift.warnings : [drift.summary].filter(Boolean),
+    status: "unhealthy",
+    error: message,
+    timestamp: new Date(),
   };
 }
 
-async function auditInboundMessagingRouting(): Promise<{
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  warnings: string[];
-}> {
-  const drift = await auditTwilioMessagingRouting({ apply: false });
+function buildTwilioVoiceRoutingFailure(message: string): TwilioVoiceRoutingDrift {
   return {
-    status: drift.status,
-    warnings: drift.warnings.length > 0 ? drift.warnings : [drift.summary].filter(Boolean),
+    status: "unhealthy",
+    summary: message,
+    expectedVoiceGatewayUrl: getExpectedVoiceGatewayUrl(),
+    numbers: [],
+    warnings: [message],
+    managedNumberCount: 0,
+    orphanedNumbers: [],
   };
 }
 
-export async function performStartupHealthCheck(): Promise<void> {
-  console.log('[startup] Performing startup health check...');
+function buildTwilioMessagingRoutingFailure(message: string): TwilioMessagingRoutingDrift {
+  return {
+    status: "unhealthy",
+    summary: message,
+    expectedSmsWebhookUrl: getExpectedSmsWebhookUrl(),
+    numbers: [],
+    warnings: [message],
+    managedNumberCount: 0,
+    orphanedNumbers: [],
+  };
+}
 
-  const envCheck = validateEnvironment();
-  if (!envCheck.valid) {
-    console.warn('[startup] Environment validation issues:', envCheck);
+function buildVoiceWorkerFailure(message: string): VoiceAgentRuntimeDrift {
+  return {
+    status: "unhealthy",
+    summary: message,
+    warnings: [message],
+    expectedFingerprint: getExpectedVoiceAgentRuntimeFingerprint(),
+    latestHeartbeat: null,
+  };
+}
+
+function pickOverallSummary(parts: Array<{ status: RuntimeStatus; summary: string }>) {
+  return parts.find((part) => part.status !== "healthy")?.summary || "Comprehensive ops audit completed successfully";
+}
+
+export function runStartupEnvironmentValidation() {
+  console.log("[startup] Performing startup environment validation...");
+
+  const environment = validateEnvironment();
+  if (!environment.valid) {
+    console.warn("[startup] Environment validation issues:", environment);
+  } else {
+    console.log("[startup] Startup environment validation passed");
   }
 
-  try {
-    const dbCheck = await checkDatabaseHealth();
-    if (dbCheck.status === 'unhealthy') {
-      console.warn('[startup] Database health check failed:', dbCheck.error);
-    } else {
-      console.log('[startup] Database health check passed:', dbCheck);
-    }
-  } catch (error) {
-    console.warn('[startup] Database health check exception:', error);
-  }
+  return environment;
+}
 
-  try {
-    const voiceAudit = await auditInboundVoiceRouting();
-    if (voiceAudit.status !== 'healthy') {
-      console.warn('[startup] Inbound voice routing audit issues:', voiceAudit.warnings);
-    } else {
-      console.log('[startup] Inbound voice routing audit passed');
-    }
-  } catch (error) {
-    console.warn('[startup] Inbound voice routing audit exception:', error);
-  }
+export async function performStartupHealthCheck(): Promise<EnvironmentValidation> {
+  return runStartupEnvironmentValidation();
+}
 
-  try {
-    const messagingAudit = await auditInboundMessagingRouting();
-    if (messagingAudit.status !== 'healthy') {
-      console.warn('[startup] Inbound messaging routing audit issues:', messagingAudit.warnings);
-    } else {
-      console.log('[startup] Inbound messaging routing audit passed');
-    }
-  } catch (error) {
-    console.warn('[startup] Inbound messaging routing audit exception:', error);
-  }
+export async function performOpsHealthAudit(options?: {
+  applyTwilioReconciliation?: boolean;
+}): Promise<OpsHealthAudit> {
+  const checkedAt = new Date();
+  const environment = validateEnvironment();
+  const applyTwilioReconciliation = Boolean(options?.applyTwilioReconciliation);
 
-  try {
-    const runtime = await getVoiceAgentRuntimeDrift();
-    if (runtime.status !== 'healthy') {
-      console.warn('[startup] LiveKit worker runtime drift:', runtime);
-    } else {
-      console.log('[startup] LiveKit worker runtime fingerprint matches expected env');
-    }
-  } catch (error) {
-    console.warn('[startup] LiveKit worker runtime audit exception:', error);
-  }
+  const [database, twilioVoiceRouting, twilioMessagingRouting, voiceWorker] = await Promise.all([
+    runOpsAuditWithTimeout("Database health check", () => checkDatabaseHealth(), buildDatabaseHealthFailure),
+    runOpsAuditWithTimeout(
+      "Twilio voice routing audit",
+      () => auditTwilioVoiceRouting({ apply: applyTwilioReconciliation }),
+      buildTwilioVoiceRoutingFailure,
+    ),
+    runOpsAuditWithTimeout(
+      "Twilio messaging routing audit",
+      () => auditTwilioMessagingRouting({ apply: applyTwilioReconciliation }),
+      buildTwilioMessagingRoutingFailure,
+    ),
+    runOpsAuditWithTimeout("Voice worker runtime audit", () => getVoiceAgentRuntimeDrift(), buildVoiceWorkerFailure),
+  ]);
 
-  try {
-    const readiness = await getCustomerAgentReadiness();
-    if (readiness.overallStatus !== 'healthy') {
-      console.warn('[startup] Customer-facing agent readiness issues:', readiness);
-    } else {
-      console.log('[startup] Customer-facing agent readiness passed');
-    }
-  } catch (error) {
-    console.warn('[startup] Customer-facing agent readiness audit exception:', error);
-  }
+  const readiness = await getCustomerAgentReadiness({
+    twilioVoiceRouting,
+    twilioMessagingRouting,
+    voiceWorker,
+  });
+
+  const environmentStatus = getEnvironmentStatus(environment);
+  const status = [
+    environmentStatus,
+    database.status,
+    twilioVoiceRouting.status,
+    twilioMessagingRouting.status,
+    voiceWorker.status,
+    readiness.overallStatus,
+  ].reduce<RuntimeStatus>((current, candidate) => maxRuntimeStatus(current, candidate), "healthy");
+
+  const summary = pickOverallSummary([
+    { status: environmentStatus, summary: getEnvironmentSummary(environment) },
+    { status: database.status, summary: database.error || "Database health check passed" },
+    { status: twilioVoiceRouting.status, summary: twilioVoiceRouting.summary },
+    { status: twilioMessagingRouting.status, summary: twilioMessagingRouting.summary },
+    { status: voiceWorker.status, summary: voiceWorker.summary },
+    { status: readiness.overallStatus, summary: readiness.checks.inboundVoice?.summary || "Customer readiness passed" },
+  ]);
+
+  return {
+    status,
+    summary,
+    checkedAt: checkedAt.toISOString(),
+    environment,
+    database,
+    twilioVoiceRouting,
+    twilioMessagingRouting,
+    voiceWorker,
+    readiness,
+  };
 }

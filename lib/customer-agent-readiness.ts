@@ -1,9 +1,28 @@
-import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers, phoneMatches } from "@/lib/earlymark-inbound-config";
-import { twilioMasterClient } from "@/lib/twilio";
-import { auditTwilioMessagingRouting } from "@/lib/twilio-drift";
-import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
-import { getVoiceFleetHealth } from "@/lib/voice-fleet";
-import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
+import {
+  getExpectedSmsWebhookUrl,
+  getExpectedVoiceGatewayUrl,
+  getKnownEarlymarkInboundNumbers,
+} from "@/lib/earlymark-inbound-config";
+import { runOpsAuditWithTimeout } from "@/lib/ops-audit";
+import { getVoiceLatencyHealth, type VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
+import {
+  getVoiceFleetHealth,
+  type RuntimeStatus,
+  type VoiceFleetHealth,
+  type VoiceSurface,
+  type VoiceSurfaceHealth,
+} from "@/lib/voice-fleet";
+import {
+  auditTwilioMessagingRouting,
+  auditTwilioVoiceRouting,
+  type TwilioMessagingRoutingDrift,
+  type TwilioVoiceRoutingDrift,
+} from "@/lib/twilio-drift";
+import {
+  getExpectedVoiceAgentRuntimeFingerprint,
+  getVoiceAgentRuntimeDrift,
+  type VoiceAgentRuntimeDrift,
+} from "@/lib/voice-agent-runtime";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -17,6 +36,14 @@ export type AgentReadinessCheck = {
 export type CustomerAgentReadiness = {
   overallStatus: ReadinessStatus;
   checks: Record<string, AgentReadinessCheck>;
+};
+
+type ReadinessDependencies = {
+  twilioVoiceRouting?: TwilioVoiceRoutingDrift;
+  twilioMessagingRouting?: TwilioMessagingRoutingDrift;
+  voiceWorker?: VoiceAgentRuntimeDrift;
+  voiceFleet?: VoiceFleetHealth;
+  voiceLatency?: VoiceLatencyHealth;
 };
 
 function summarize(status: ReadinessStatus, missing: string[], warnings: string[]) {
@@ -39,11 +66,6 @@ function buildCheck(required: string[], warningChecks: string[] = []): AgentRead
   };
 }
 
-function maxStatus(left: ReadinessStatus, right: ReadinessStatus): ReadinessStatus {
-  const order: ReadinessStatus[] = ["healthy", "degraded", "unhealthy"];
-  return order[Math.max(order.indexOf(left), order.indexOf(right))];
-}
-
 function mergeCheckWarnings(check: AgentReadinessCheck, warnings: string[], status: ReadinessStatus) {
   if (warnings.length > 0) {
     check.warnings.push(...warnings);
@@ -52,7 +74,111 @@ function mergeCheckWarnings(check: AgentReadinessCheck, warnings: string[], stat
   check.summary = summarize(check.status, check.missing, check.warnings);
 }
 
-async function auditInboundVoiceConfig(): Promise<AgentReadinessCheck> {
+function maxStatus(left: ReadinessStatus, right: ReadinessStatus): ReadinessStatus {
+  const order: ReadinessStatus[] = ["healthy", "degraded", "unhealthy"];
+  return order[Math.max(order.indexOf(left), order.indexOf(right))];
+}
+
+function normalizeWarnings(status: ReadinessStatus, summary: string, warnings: string[]) {
+  if (warnings.length > 0) return warnings;
+  if (status === "healthy" || !summary) return [];
+  return [summary];
+}
+
+function toReadinessStatus(status: RuntimeStatus): ReadinessStatus {
+  return status;
+}
+
+function createEmptySurfaceHealth(surface: VoiceSurface): VoiceSurfaceHealth {
+  return {
+    surface,
+    status: "unhealthy",
+    summary: `${surface} voice surface audit failed`,
+    warnings: [],
+    supportingHosts: [],
+    atCapacityHosts: [],
+    expectedHostCount: 0,
+    capacityExhausted: false,
+    workers: [],
+  };
+}
+
+function buildTwilioVoiceRoutingFailure(message: string): TwilioVoiceRoutingDrift {
+  return {
+    status: "unhealthy",
+    summary: message,
+    expectedVoiceGatewayUrl: getExpectedVoiceGatewayUrl(),
+    numbers: [],
+    warnings: [message],
+    managedNumberCount: 0,
+    orphanedNumbers: [],
+  };
+}
+
+function buildTwilioMessagingRoutingFailure(message: string): TwilioMessagingRoutingDrift {
+  return {
+    status: "unhealthy",
+    summary: message,
+    expectedSmsWebhookUrl: getExpectedSmsWebhookUrl(),
+    numbers: [],
+    warnings: [message],
+    managedNumberCount: 0,
+    orphanedNumbers: [],
+  };
+}
+
+function buildVoiceWorkerFailure(message: string): VoiceAgentRuntimeDrift {
+  return {
+    status: "unhealthy",
+    summary: message,
+    warnings: [message],
+    expectedFingerprint: getExpectedVoiceAgentRuntimeFingerprint(),
+    latestHeartbeat: null,
+  };
+}
+
+function buildVoiceFleetFailure(message: string): VoiceFleetHealth {
+  return {
+    status: "unhealthy",
+    summary: message,
+    warnings: [message],
+    checkedAt: new Date().toISOString(),
+    latestHeartbeatAt: null,
+    hosts: [],
+    surfaces: {
+      demo: createEmptySurfaceHealth("demo"),
+      inbound_demo: createEmptySurfaceHealth("inbound_demo"),
+      normal: createEmptySurfaceHealth("normal"),
+    },
+  };
+}
+
+function buildVoiceLatencyFailure(message: string): VoiceLatencyHealth {
+  return {
+    status: "unhealthy",
+    summary: message,
+    warnings: [message],
+    lookbackMinutes: 60,
+    scopes: [],
+  };
+}
+
+function buildResultCheck(result: {
+  status: RuntimeStatus;
+  summary: string;
+  warnings: string[];
+}): AgentReadinessCheck {
+  const status = toReadinessStatus(result.status);
+  const warnings = normalizeWarnings(status, result.summary, result.warnings);
+  return {
+    status,
+    missing: [],
+    warnings,
+    summary: status === "healthy" ? result.summary : summarize(status, [], warnings),
+  };
+}
+
+function buildInboundVoiceCheck(twilioVoiceRouting: TwilioVoiceRoutingDrift): AgentReadinessCheck {
   const required = [
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN",
@@ -61,47 +187,26 @@ async function auditInboundVoiceConfig(): Promise<AgentReadinessCheck> {
     "LIVEKIT_API_SECRET",
     "NEXT_PUBLIC_APP_URL",
   ];
-  const warnings: string[] = [];
   const missing = required.filter((key) => !process.env[key]);
-  const knownNumbers = getKnownEarlymarkInboundNumbers();
-  if (knownNumbers.length === 0) {
-    missing.push("EARLYMARK_INBOUND_PHONE_NUMBERS / EARLYMARK_INBOUND_PHONE_NUMBER / EARLYMARK_PHONE_NUMBER / TWILIO_PHONE_NUMBER");
+
+  if (getKnownEarlymarkInboundNumbers().length === 0) {
+    missing.push(
+      "EARLYMARK_INBOUND_PHONE_NUMBERS / EARLYMARK_INBOUND_PHONE_NUMBER / EARLYMARK_PHONE_NUMBER / TWILIO_PHONE_NUMBER",
+    );
   }
 
-  const expectedGatewayUrl = getExpectedVoiceGatewayUrl();
-  if (!expectedGatewayUrl) {
+  const warnings: string[] = [];
+  if (!getExpectedVoiceGatewayUrl()) {
     warnings.push("Expected voice gateway URL could not be derived from NEXT_PUBLIC_APP_URL");
   }
 
-  if (!twilioMasterClient) {
-    warnings.push("Twilio client unavailable, so inbound number routing cannot be audited");
-  } else if (knownNumbers.length > 0) {
-    try {
-      const incomingNumbers = await twilioMasterClient.incomingPhoneNumbers.list({ limit: 200 });
-      const matchedNumbers = incomingNumbers.filter((record) =>
-        knownNumbers.some((configured) => phoneMatches(configured, record.phoneNumber)),
-      );
-
-      if (matchedNumbers.length === 0) {
-        warnings.push(`Configured Earlymark inbound number(s) were not found on Twilio: ${knownNumbers.join(", ")}`);
-      }
-
-      for (const record of matchedNumbers) {
-        if (record.voiceApplicationSid) {
-          warnings.push(`Inbound number ${record.phoneNumber} uses Twilio Voice Application ${record.voiceApplicationSid} instead of direct voice webhook routing`);
-          continue;
-        }
-        if (expectedGatewayUrl && (record.voiceUrl || "") !== expectedGatewayUrl) {
-          warnings.push(`Inbound number ${record.phoneNumber} points to ${record.voiceUrl || "[empty]"} instead of ${expectedGatewayUrl}`);
-        }
-      }
-    } catch (error) {
-      warnings.push(error instanceof Error ? error.message : "Failed to audit Twilio inbound voice routing");
-    }
+  if (twilioVoiceRouting.status !== "healthy") {
+    warnings.push(...normalizeWarnings(twilioVoiceRouting.status, twilioVoiceRouting.summary, twilioVoiceRouting.warnings));
   }
 
   const status: ReadinessStatus =
-    missing.length > 0 ? "unhealthy" : warnings.length > 0 ? "degraded" : "healthy";
+    missing.length > 0 ? "unhealthy" : twilioVoiceRouting.status === "unhealthy" ? "unhealthy" : warnings.length > 0 ? "degraded" : "healthy";
+
   return {
     status,
     missing,
@@ -110,7 +215,9 @@ async function auditInboundVoiceConfig(): Promise<AgentReadinessCheck> {
   };
 }
 
-export async function getCustomerAgentReadiness(): Promise<CustomerAgentReadiness> {
+export async function getCustomerAgentReadiness(
+  dependencies: ReadinessDependencies = {},
+): Promise<CustomerAgentReadiness> {
   const geminiPresent = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
   const checks: CustomerAgentReadiness["checks"] = {
@@ -141,39 +248,63 @@ export async function getCustomerAgentReadiness(): Promise<CustomerAgentReadines
     ]),
     voicePreview: buildCheck(["CARTESIA_API_KEY"]),
     emailLeadCapture: buildCheck(geminiPresent ? [] : ["GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY"], [
-      !process.env.INBOUND_LEAD_DOMAIN ? "INBOUND_LEAD_DOMAIN is not set; generated inbound aliases may drift to defaults" : "",
+      !process.env.INBOUND_LEAD_DOMAIN
+        ? "INBOUND_LEAD_DOMAIN is not set; generated inbound aliases may drift to defaults"
+        : "",
     ]),
   };
 
-  const [inboundVoice, smsRouting, voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
-    auditInboundVoiceConfig(),
-    auditTwilioMessagingRouting({ apply: false }),
-    getVoiceAgentRuntimeDrift(),
-    getVoiceFleetHealth(),
-    getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
+  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
+    dependencies.twilioVoiceRouting
+      ? Promise.resolve(dependencies.twilioVoiceRouting)
+      : runOpsAuditWithTimeout(
+          "Twilio voice routing audit",
+          () => auditTwilioVoiceRouting({ apply: false }),
+          buildTwilioVoiceRoutingFailure,
+        ),
+    dependencies.twilioMessagingRouting
+      ? Promise.resolve(dependencies.twilioMessagingRouting)
+      : runOpsAuditWithTimeout(
+          "Twilio messaging routing audit",
+          () => auditTwilioMessagingRouting({ apply: false }),
+          buildTwilioMessagingRoutingFailure,
+        ),
+    dependencies.voiceWorker
+      ? Promise.resolve(dependencies.voiceWorker)
+      : runOpsAuditWithTimeout(
+          "Voice worker runtime audit",
+          () => getVoiceAgentRuntimeDrift(),
+          buildVoiceWorkerFailure,
+        ),
+    dependencies.voiceFleet
+      ? Promise.resolve(dependencies.voiceFleet)
+      : runOpsAuditWithTimeout(
+          "Voice fleet health audit",
+          () => getVoiceFleetHealth(),
+          buildVoiceFleetFailure,
+        ),
+    dependencies.voiceLatency
+      ? Promise.resolve(dependencies.voiceLatency)
+      : runOpsAuditWithTimeout(
+          "Voice latency audit",
+          () => getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
+          buildVoiceLatencyFailure,
+        ),
   ]);
-  checks.inboundVoice = inboundVoice;
-  if (smsRouting.status !== "healthy") {
-    mergeCheckWarnings(checks.smsInbound, smsRouting.warnings.length > 0 ? smsRouting.warnings : [smsRouting.summary], smsRouting.status);
+
+  checks.inboundVoice = buildInboundVoiceCheck(twilioVoiceRouting);
+
+  if (twilioMessagingRouting.status !== "healthy") {
+    mergeCheckWarnings(
+      checks.smsInbound,
+      normalizeWarnings(twilioMessagingRouting.status, twilioMessagingRouting.summary, twilioMessagingRouting.warnings),
+      twilioMessagingRouting.status,
+    );
   }
-  checks.voiceWorker = {
-    status: voiceWorker.status,
-    missing: [],
-    warnings: voiceWorker.warnings,
-    summary: voiceWorker.summary,
-  };
-  checks.voiceFleet = {
-    status: voiceFleet.status,
-    missing: [],
-    warnings: voiceFleet.warnings,
-    summary: voiceFleet.summary,
-  };
-  checks.voiceLatency = {
-    status: voiceLatency.status,
-    missing: [],
-    warnings: voiceLatency.warnings,
-    summary: voiceLatency.summary,
-  };
+
+  checks.voiceWorker = buildResultCheck(voiceWorker);
+  checks.voiceFleet = buildResultCheck(voiceFleet);
+  checks.voiceLatency = buildResultCheck(voiceLatency);
 
   const overallStatus = Object.values(checks).reduce<ReadinessStatus>(
     (current, check) => maxStatus(current, check.status),

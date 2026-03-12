@@ -102,6 +102,7 @@ type TwilioIncomingNumberRecord = {
 
 const masterAccountSid = (process.env.TWILIO_ACCOUNT_SID || "").trim();
 const masterAuthToken = (process.env.TWILIO_AUTH_TOKEN || "").trim();
+const DEFAULT_TWILIO_AUDIT_TIMEOUT_MS = 8_000;
 
 function hasTwilioAuth() {
   return Boolean(masterAccountSid && masterAuthToken);
@@ -111,8 +112,38 @@ function authHeader() {
   return `Basic ${Buffer.from(`${masterAccountSid}:${masterAuthToken}`).toString("base64")}`;
 }
 
+function getTwilioAuditTimeoutMs() {
+  const rawValue = Number(process.env.TWILIO_AUDIT_TIMEOUT_MS || process.env.OPS_AUDIT_TIMEOUT_MS || DEFAULT_TWILIO_AUDIT_TIMEOUT_MS);
+  return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : DEFAULT_TWILIO_AUDIT_TIMEOUT_MS;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function twilioFetch(baseUrl: string, path: string, init: RequestInit = {}) {
+  const timeoutMs = getTwilioAuditTimeoutMs();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(`${baseUrl}${path}`, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(`Twilio request timed out after ${timeoutMs}ms for ${path}`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function twilioApiGetJson<T>(path: string): Promise<T> {
-  const response = await fetch(`https://api.twilio.com${path}`, {
+  const response = await twilioFetch("https://api.twilio.com", path, {
     headers: { Authorization: authHeader() },
   });
 
@@ -124,7 +155,7 @@ async function twilioApiGetJson<T>(path: string): Promise<T> {
 }
 
 async function twilioApiPost(path: string, body: URLSearchParams) {
-  const response = await fetch(`https://api.twilio.com${path}`, {
+  const response = await twilioFetch("https://api.twilio.com", path, {
     method: "POST",
     headers: {
       Authorization: authHeader(),
@@ -141,7 +172,7 @@ async function twilioApiPost(path: string, body: URLSearchParams) {
 }
 
 async function twilioTrunkDelete(path: string) {
-  const response = await fetch(`https://trunking.twilio.com${path}`, {
+  const response = await twilioFetch("https://trunking.twilio.com", path, {
     method: "DELETE",
     headers: { Authorization: authHeader() },
   });
