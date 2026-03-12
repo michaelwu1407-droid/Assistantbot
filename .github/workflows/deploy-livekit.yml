@@ -384,6 +384,21 @@ jobs:
           echo "[runtime-bootstrap] node_version=$(node --version)"
           echo "[runtime-bootstrap] npm_version=$(npm --version)"
           echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
+          if [ -f /opt/earlymark-agent/.env.local ]; then
+            set -a
+            . /opt/earlymark-agent/.env.local
+            set +a
+          fi
+          EFFECTIVE_APP_URL="${NEXT_PUBLIC_APP_URL:-${APP_URL:-}}"
+          EFFECTIVE_VOICE_AGENT_SECRET="${VOICE_AGENT_WEBHOOK_SECRET:-${LIVEKIT_API_SECRET:-}}"
+          if [ -z "$EFFECTIVE_APP_URL" ]; then
+            echo "Missing NEXT_PUBLIC_APP_URL or APP_URL for heartbeat verification."
+            exit 1
+          fi
+          if [ -z "$EFFECTIVE_VOICE_AGENT_SECRET" ]; then
+            echo "Missing VOICE_AGENT_WEBHOOK_SECRET or LIVEKIT_API_SECRET for heartbeat verification."
+            exit 1
+          fi
           if ! sudo systemctl is-active --quiet earlymark-sales-agent; then
             echo "earlymark-sales-agent is not active after deploy."
             sudo systemctl status earlymark-sales-agent --no-pager || true
@@ -399,7 +414,7 @@ jobs:
           VERIFIED=0
 
           for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-            if node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
+            if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
               VERIFIED=1
               break
             fi
@@ -408,7 +423,7 @@ jobs:
 
           if [ "$VERIFIED" -ne 1 ]; then
             echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
-            node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+            NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
             sudo systemctl status earlymark-sales-agent earlymark-customer-agent --no-pager || true
             sudo journalctl -u earlymark-sales-agent -u earlymark-customer-agent -n 80 --no-pager || true
             exit 1
