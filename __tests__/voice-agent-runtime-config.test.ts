@@ -33,9 +33,9 @@ describe("voice agent runtime config", () => {
     );
   });
 
-  it("requires a dedicated webhook secret in production", () => {
-    expect(() => getVoiceAgentWebhookSecret(createEnv({ NODE_ENV: "production", LIVEKIT_API_SECRET: "fallback-only" }))).toThrow(
-      /VOICE_AGENT_WEBHOOK_SECRET/,
+  it("falls back to the LiveKit API secret in production when a dedicated webhook secret is absent", () => {
+    expect(getVoiceAgentWebhookSecret(createEnv({ NODE_ENV: "production", LIVEKIT_API_SECRET: "fallback-only" }))).toBe(
+      "fallback-only",
     );
   });
 
@@ -47,7 +47,7 @@ describe("voice agent runtime config", () => {
         LIVEKIT_API_KEY: "livekit-key",
         LIVEKIT_API_SECRET: "livekit-secret",
       })),
-    ).toThrow(/VOICE_AGENT_WEBHOOK_SECRET, CARTESIA_API_KEY, NEXT_PUBLIC_APP_URL\|APP_URL/);
+    ).toThrow(/CARTESIA_API_KEY, NEXT_PUBLIC_APP_URL\|APP_URL/);
   });
 
   it("accepts a complete production worker env", () => {

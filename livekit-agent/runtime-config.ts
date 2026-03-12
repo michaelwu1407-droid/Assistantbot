@@ -7,7 +7,6 @@ const REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS = [
   "LIVEKIT_URL",
   "LIVEKIT_API_KEY",
   "LIVEKIT_API_SECRET",
-  "VOICE_AGENT_WEBHOOK_SECRET",
   "CARTESIA_API_KEY",
 ] as const;
 
@@ -43,16 +42,16 @@ export function getVoiceAgentAppBaseUrl(env: NodeJS.ProcessEnv = process.env) {
 }
 
 export function getVoiceAgentWebhookSecret(env: NodeJS.ProcessEnv = process.env) {
-  const explicitSecret = normalizeEnvValue(env.VOICE_AGENT_WEBHOOK_SECRET);
+  const explicitSecret = normalizeEnvValue(env.VOICE_AGENT_WEBHOOK_SECRET) || normalizeEnvValue(env.LIVEKIT_API_SECRET);
   if (explicitSecret) {
     return explicitSecret;
   }
 
   if (isProductionVoiceAgentRuntime(env)) {
-    throw new Error("Missing required production VOICE_AGENT_WEBHOOK_SECRET.");
+    throw new Error("Missing required production VOICE_AGENT_WEBHOOK_SECRET or LIVEKIT_API_SECRET.");
   }
 
-  return normalizeEnvValue(env.LIVEKIT_API_SECRET);
+  return "";
 }
 
 export function assertRequiredVoiceAgentEnv(env: NodeJS.ProcessEnv = process.env) {
