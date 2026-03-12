@@ -7,13 +7,12 @@ import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voic
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
+import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
 export const dynamic = "force-dynamic";
 
 function isVoiceAgentAuthorized(req: NextRequest) {
-  const expected = process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
-  const provided = req.headers.get("x-voice-agent-secret") || "";
-  return Boolean(expected) && provided === expected;
+  return isVoiceAgentSecretAuthorized(req.headers.get("x-voice-agent-secret"));
 }
 
 export async function GET(req: NextRequest) {

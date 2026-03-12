@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
+import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +31,6 @@ const voiceCallPayloadSchema = z.object({
   endedAt: z.string().optional(),
 });
 
-function getExpectedSecret() {
-  return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
-}
-
 function buildSummary(callType: string, callerName?: string, callerPhone?: string, transcriptText?: string) {
   const callerLabel = callerName || callerPhone || "Caller";
   const firstMeaningfulLine = (transcriptText || "")
@@ -60,10 +57,9 @@ async function findContactId(workspaceId: string, callerPhone?: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const expectedSecret = getExpectedSecret();
     const providedSecret = req.headers.get("x-voice-agent-secret") || "";
 
-    if (!expectedSecret || providedSecret !== expectedSecret) {
+    if (!isVoiceAgentSecretAuthorized(providedSecret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

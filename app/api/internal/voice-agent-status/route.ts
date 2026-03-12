@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,16 +22,11 @@ const payloadSchema = z.object({
   summary: z.record(z.string(), z.unknown()).optional(),
 });
 
-function getExpectedSecret() {
-  return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const expectedSecret = getExpectedSecret();
     const providedSecret = req.headers.get("x-voice-agent-secret") || "";
 
-    if (!expectedSecret || providedSecret !== expectedSecret) {
+    if (!isVoiceAgentSecretAuthorized(providedSecret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

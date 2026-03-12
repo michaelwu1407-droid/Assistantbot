@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkspaceVoiceGrounding } from "@/lib/ai/context";
 import { db } from "@/lib/db";
+import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
 export const dynamic = "force-dynamic";
 
-function getExpectedSecret() {
-  return process.env.VOICE_AGENT_WEBHOOK_SECRET || process.env.LIVEKIT_API_SECRET || "";
-}
-
 export async function GET(req: NextRequest) {
-  const expectedSecret = getExpectedSecret();
   const providedSecret = req.headers.get("x-voice-agent-secret") || "";
 
-  if (!expectedSecret || providedSecret !== expectedSecret) {
+  if (!isVoiceAgentSecretAuthorized(providedSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
