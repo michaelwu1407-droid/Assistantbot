@@ -66,7 +66,7 @@ cleanup_release_dir() {
   sudo rm -rf "$RELEASE_DIR"
 }
 
-trap 'rm -f "$REMOTE_ARCHIVE_PATH"' EXIT
+trap 'rm -f "$REMOTE_ARCHIVE_PATH" "${REMOTE_SYNC_ENV_PATH:-}"' EXIT
 
 cleanup_release_dir
 sudo rm -rf "$FAILED_DIR"

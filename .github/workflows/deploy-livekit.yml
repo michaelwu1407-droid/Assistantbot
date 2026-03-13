@@ -56,6 +56,7 @@ jobs:
           echo "REMOTE_ARCHIVE_PATH=/tmp/earlymark-agent-deploy-${GITHUB_SHA}.tgz" >> "$GITHUB_ENV"
           echo "REMOTE_INSTALL_SCRIPT_PATH=/tmp/earlymark-worker-install-${GITHUB_SHA}.sh" >> "$GITHUB_ENV"
           echo "REMOTE_VERIFY_SCRIPT_PATH=/tmp/earlymark-worker-verify-${GITHUB_SHA}.sh" >> "$GITHUB_ENV"
+          echo "REMOTE_SYNC_ENV_PATH=/tmp/earlymark-worker-sync-${GITHUB_SHA}.env" >> "$GITHUB_ENV"
 
       - name: Package Agent
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -243,23 +244,31 @@ jobs:
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
           )
+          {
+            printf 'SYNCED_APP_URL=%q\n' "${NEXT_PUBLIC_APP_URL:-}"
+            printf 'SYNCED_VOICE_AGENT_WEBHOOK_SECRET=%q\n' "${VOICE_AGENT_WEBHOOK_SECRET:-}"
+            printf 'SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=%q\n' "${EARLYMARK_INBOUND_PHONE_NUMBER:-}"
+            printf 'SYNCED_DEEPGRAM_API_KEY=%q\n' "${DEEPGRAM_API_KEY:-}"
+            printf 'SYNCED_GROQ_API_KEY=%q\n' "${GROQ_API_KEY:-}"
+            printf 'SYNCED_DEEPINFRA_API_KEY=%q\n' "${DEEPINFRA_API_KEY:-}"
+            printf 'SYNCED_NEXT_PUBLIC_SUPABASE_URL=%q\n' "${NEXT_PUBLIC_SUPABASE_URL:-}"
+            printf 'SYNCED_SUPABASE_SERVICE_ROLE_KEY=%q\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          } > voice-worker-sync.env
           remote_archive_escaped="$(printf '%q' "$REMOTE_ARCHIVE_PATH")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
-          app_url_escaped="$(printf '%q' "${NEXT_PUBLIC_APP_URL:-}")"
-          webhook_secret_escaped="$(printf '%q' "${VOICE_AGENT_WEBHOOK_SECRET:-}")"
-          inbound_phone_escaped="$(printf '%q' "${EARLYMARK_INBOUND_PHONE_NUMBER:-}")"
-          deepgram_api_key_escaped="$(printf '%q' "${DEEPGRAM_API_KEY:-}")"
-          groq_api_key_escaped="$(printf '%q' "${GROQ_API_KEY:-}")"
-          deepinfra_api_key_escaped="$(printf '%q' "${DEEPINFRA_API_KEY:-}")"
-          supabase_url_escaped="$(printf '%q' "${NEXT_PUBLIC_SUPABASE_URL:-}")"
-          supabase_service_role_key_escaped="$(printf '%q' "${SUPABASE_SERVICE_ROLE_KEY:-}")"
           remote_install_script_escaped="$(printf '%q' "$REMOTE_INSTALL_SCRIPT_PATH")"
+          remote_sync_env_escaped="$(printf '%q' "$REMOTE_SYNC_ENV_PATH")"
           for attempt in 1 2 3; do
-            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} SYNCED_APP_URL=${app_url_escaped} SYNCED_VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=${inbound_phone_escaped} SYNCED_DEEPGRAM_API_KEY=${deepgram_api_key_escaped} SYNCED_GROQ_API_KEY=${groq_api_key_escaped} SYNCED_DEEPINFRA_API_KEY=${deepinfra_api_key_escaped} SYNCED_NEXT_PUBLIC_SUPABASE_URL=${supabase_url_escaped} SYNCED_SUPABASE_SERVICE_ROLE_KEY=${supabase_service_role_key_escaped} REMOTE_INSTALL_SCRIPT_PATH=${remote_install_script_escaped} bash --noprofile --norc -se" <<'EOF'
+            if timeout 2m scp "${ssh_opts[@]}" voice-worker-sync.env "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_SYNC_ENV_PATH" && \
+              timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_INSTALL_SCRIPT_PATH=${remote_install_script_escaped} REMOTE_SYNC_ENV_PATH=${remote_sync_env_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
           sed -i 's/\r$//' "$REMOTE_INSTALL_SCRIPT_PATH"
+          sed -i 's/\r$//' "$REMOTE_SYNC_ENV_PATH"
           chmod 700 "$REMOTE_INSTALL_SCRIPT_PATH"
+          set -a
+          . "$REMOTE_SYNC_ENV_PATH"
+          set +a
           bash --noprofile --norc "$REMOTE_INSTALL_SCRIPT_PATH"
           EOF
             then
