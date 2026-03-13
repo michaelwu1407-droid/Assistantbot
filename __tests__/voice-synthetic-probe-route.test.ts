@@ -52,6 +52,7 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     vi.clearAllMocks();
     vi.stubGlobal("fetch", fetchMock);
 
+    process.env.CRON_SECRET = "probe-secret";
     isOpsAuthorized.mockReturnValue(true);
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["61485010634"]);
@@ -66,6 +67,7 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    delete process.env.CRON_SECRET;
     delete process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER;
   });
 
@@ -87,6 +89,9 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://app.example.com/api/webhooks/twilio-voice-gateway",
       expect.objectContaining({
+        headers: expect.objectContaining({
+          "x-voice-probe-key": "probe-secret",
+        }),
         body: expect.stringContaining("To=%2B61412345678"),
       }),
     );

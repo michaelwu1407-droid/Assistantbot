@@ -15,6 +15,15 @@ type ProbeCallerSource =
   | "VOICE_ALERT_SMS_TO"
   | "default_probe_caller";
 
+function getGatewayProbeAuthKey() {
+  return (
+    process.env.VOICE_MONITOR_PROBE_GATEWAY_KEY ||
+    process.env.CRON_SECRET ||
+    process.env.TELEMETRY_ADMIN_KEY ||
+    ""
+  ).trim();
+}
+
 function extractProbeResult(twiml: string) {
   if (twiml.includes("VOICE MONITOR PROBE PASS")) return "pass";
   if (twiml.includes("VOICE MONITOR PROBE ORPHANED")) return "orphaned";
@@ -71,9 +80,10 @@ export async function GET(req: NextRequest) {
         : "default_probe_caller";
   const { targetNumber, source: targetNumberSource } = resolveProbeTargetNumber(req);
   const gatewayUrl = getExpectedVoiceGatewayUrl();
+  const gatewayProbeAuthKey = getGatewayProbeAuthKey();
 
   try {
-    if (!probeCaller || !targetNumber || !gatewayUrl) {
+    if (!probeCaller || !targetNumber || !gatewayUrl || !gatewayProbeAuthKey) {
       const summary = "Synthetic voice probe is not fully configured, so the scheduled probe was skipped.";
       await recordMonitorRun({
         monitorKey: "voice-synthetic-probe",
@@ -87,6 +97,7 @@ export async function GET(req: NextRequest) {
           targetNumberConfigured: Boolean(targetNumber),
           targetNumberSource,
           gatewayUrlConfigured: Boolean(gatewayUrl),
+          gatewayProbeAuthConfigured: Boolean(gatewayProbeAuthKey),
         },
         checkedAt,
         succeeded: true,
@@ -103,6 +114,7 @@ export async function GET(req: NextRequest) {
           targetNumberConfigured: Boolean(targetNumber),
           targetNumberSource,
           gatewayUrlConfigured: Boolean(gatewayUrl),
+          gatewayProbeAuthConfigured: Boolean(gatewayProbeAuthKey),
         },
         { status: 200 },
       );
@@ -116,6 +128,7 @@ export async function GET(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
+        "x-voice-probe-key": gatewayProbeAuthKey,
       },
       body: formBody.toString(),
       cache: "no-store",

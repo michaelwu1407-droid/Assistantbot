@@ -4,7 +4,6 @@ import {
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
 } from "@/lib/earlymark-inbound-config";
-import { normalizePhone, phoneMatches } from "@/lib/phone-utils";
 import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "@/lib/voice-fleet";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
@@ -120,17 +119,26 @@ function resolveSurface(params: {
   return params.workspaceMatched ? "normal" : "inbound_demo";
 }
 
-function getSyntheticProbeCallerNumber() {
-  return normalizePhone(
-    process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER ||
-      process.env.VOICE_ALERT_SMS_TO ||
-      "+61434955958",
+function getSyntheticProbeKeys() {
+  return Array.from(
+    new Set(
+      [
+        process.env.VOICE_MONITOR_PROBE_GATEWAY_KEY,
+        process.env.CRON_SECRET,
+        process.env.TELEMETRY_ADMIN_KEY,
+      ]
+        .map((value) => (value || "").trim())
+        .filter(Boolean),
+    ),
   );
 }
 
-function isSyntheticProbeCaller(callerNumber: string) {
-  const probeCaller = getSyntheticProbeCallerNumber();
-  return Boolean(probeCaller) && phoneMatches(probeCaller, callerNumber);
+function isAuthenticatedSyntheticProbe(req: NextRequest) {
+  const providedKey = (req.headers.get("x-voice-probe-key") || "").trim();
+  if (!providedKey) return false;
+
+  const expectedKeys = getSyntheticProbeKeys();
+  return expectedKeys.length > 0 && expectedKeys.includes(providedKey);
 }
 
 async function openGatewayIncident(params: {
@@ -172,7 +180,7 @@ export async function POST(req: NextRequest) {
     const digits = formData.get("Digits")?.toString() || "";
     const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
     const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
-    const syntheticProbe = isSyntheticProbeCaller(callerNumber);
+    const syntheticProbe = isAuthenticatedSyntheticProbe(req);
 
     if (dtmfPassed === "1" && digits === "1") {
       const workspace = await findWorkspaceByTwilioNumber(calledNumber);
