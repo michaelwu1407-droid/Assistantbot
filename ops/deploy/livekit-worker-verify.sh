@@ -83,7 +83,7 @@ fi
 
 VERIFIED=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } const workers = payload?.fleet?.hosts?.find((host) => host.hostId === hostId)?.workers || []; const sales = workers.find((worker) => worker.workerRole === 'tracey-sales-agent'); const customer = workers.find((worker) => worker.workerRole === 'tracey-customer-agent'); const isReady = sales && customer && sales.deployGitSha === sha && customer.deployGitSha === sha && sales.status !== 'unhealthy' && customer.status !== 'unhealthy'; if (isReady) process.exit(0); process.exit(2);"; then
     VERIFIED=1
     break
   fi
@@ -101,7 +101,7 @@ fi
 
 DRIFT_VERIFIED=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); if (!res.ok) process.exit(1); const payload = await res.json(); if (payload?.voiceWorker?.status === 'healthy') process.exit(0); process.exit(2);"; then
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } if (payload?.voiceWorker?.status === 'healthy') process.exit(0); process.exit(2);"; then
     DRIFT_VERIFIED=1
     break
   fi
