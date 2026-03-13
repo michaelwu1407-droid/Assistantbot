@@ -3,6 +3,7 @@ import { recordMonitorRun, getMonitorRunHealth } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
+import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
 import { getVoiceAgentHealthMonitorSummary, runVoiceAgentHealthMonitor } from "@/lib/voice-agent-health-monitor";
 
@@ -14,13 +15,13 @@ export async function GET(req: NextRequest) {
   }
 
   const checkedAt = new Date();
-  const staleAfterMs = (Number(process.env.VOICE_MONITOR_STALE_AFTER_MINUTES || "15") || 15) * 60_000;
+  const staleAfterMs = getVoiceMonitorStaleAfterMs();
 
   try {
     let voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
     let refreshedVoiceAgentHealthRun = null;
 
-    if (voiceAgentHealth.status === "unhealthy") {
+    if (voiceAgentHealth.status !== "healthy") {
       const refreshCheckedAt = new Date();
 
       try {

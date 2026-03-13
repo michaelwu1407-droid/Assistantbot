@@ -3,7 +3,7 @@ name: Voice Monitor Watchdog
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
 
 jobs:
   watchdog:

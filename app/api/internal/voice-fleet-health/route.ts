@@ -7,6 +7,7 @@ import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voic
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
+import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
     return getUnauthorizedJsonResponse();
   }
 
-  const staleAfterMs = (Number(process.env.VOICE_MONITOR_STALE_AFTER_MINUTES || "15") || 15) * 60_000;
-  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency, monitorHealth] = await Promise.all([
+  const staleAfterMs = getVoiceMonitorStaleAfterMs();
+  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency, monitorHealth, watchdogHealth, probeHealth] = await Promise.all([
     getVoiceFleetHealth(),
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: false }),
@@ -30,6 +31,8 @@ export async function GET(req: NextRequest) {
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
+    getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
+    getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
   ]);
   const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
 
@@ -42,6 +45,8 @@ export async function GET(req: NextRequest) {
     recentCalls.status,
     latency.status,
     monitorHealth.status,
+    watchdogHealth.status,
+    probeHealth.status,
   ]);
 
   return NextResponse.json(
@@ -56,6 +61,8 @@ export async function GET(req: NextRequest) {
       recentCalls,
       latency,
       monitorHealth,
+      watchdogHealth,
+      probeHealth,
     },
     { status: status === "unhealthy" ? 500 : 200 },
   );

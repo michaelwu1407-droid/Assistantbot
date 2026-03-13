@@ -127,6 +127,50 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
   });
 
+  it("refreshes voice-agent-health inline when the last run is still fresh but degraded", async () => {
+    getMonitorRunHealth
+      .mockResolvedValueOnce({
+        monitorKey: "voice-agent-health",
+        status: "degraded",
+        summary: "voice-agent-health is reporting on schedule but last reported degraded",
+        warnings: ["degraded"],
+        checkedAt: "2026-03-12T14:03:32.452Z",
+        lastSuccessAt: "2026-03-12T14:03:31.112Z",
+        lastFailureAt: null,
+        ageMs: 1_340,
+        staleAfterMs: 420_000,
+      })
+      .mockResolvedValueOnce({
+        monitorKey: "voice-agent-health",
+        status: "healthy",
+        summary: "voice-agent-health is reporting on schedule",
+        warnings: [],
+        checkedAt: "2026-03-12T14:03:40.000Z",
+        lastSuccessAt: "2026-03-12T14:03:39.000Z",
+        lastFailureAt: null,
+        ageMs: 1_000,
+        staleAfterMs: 420_000,
+      });
+    runVoiceAgentHealthMonitor.mockResolvedValue({
+      status: "healthy",
+      checkedAt: "2026-03-12T14:03:39.000Z",
+      fleet: { status: "healthy" },
+      customerSaturation: { status: "healthy" },
+      twilioRouting: { status: "healthy" },
+      invariants: { status: "healthy" },
+      recentCalls: { status: "healthy" },
+      latency: { status: "healthy" },
+      incidents: [],
+    });
+
+    const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-monitor-watchdog"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(runVoiceAgentHealthMonitor).toHaveBeenCalledTimes(1);
+    expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
+  });
+
   it("rejects unauthorized callers", async () => {
     isOpsAuthorized.mockReturnValue(false);
 

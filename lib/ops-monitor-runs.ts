@@ -83,7 +83,14 @@ export async function getMonitorRunHealth(monitorKey: string, staleAfterMs: numb
     warnings.push(`${monitorKey} last completed on schedule but reported status ${record.status}.`);
   }
 
-  const status: RuntimeStatus = ageMs > staleAfterMs ? "unhealthy" : "healthy";
+  const status: RuntimeStatus =
+    ageMs > staleAfterMs
+      ? "unhealthy"
+      : record.status === "unhealthy"
+        ? "unhealthy"
+        : record.status === "degraded"
+          ? "degraded"
+          : "healthy";
 
   return {
     monitorKey,
@@ -91,7 +98,9 @@ export async function getMonitorRunHealth(monitorKey: string, staleAfterMs: numb
     summary:
       status === "healthy"
         ? `${monitorKey} is reporting on schedule`
-        : warnings[0] || `${monitorKey} is not reporting healthy on schedule`,
+        : record.status !== "healthy" && ageMs <= staleAfterMs
+          ? `${monitorKey} is reporting on schedule but last reported ${record.status}`
+          : warnings[0] || `${monitorKey} is not reporting healthy on schedule`,
     warnings,
     checkedAt,
     lastSuccessAt: record.lastSuccessAt.toISOString(),
