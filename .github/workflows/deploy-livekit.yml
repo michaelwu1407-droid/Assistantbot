@@ -74,7 +74,9 @@ jobs:
             -czf earlymark-agent-deploy.tgz \
             -C deploy-stage .
           du -h earlymark-agent-deploy.tgz
-          sha256sum earlymark-agent-deploy.tgz
+          archive_sha="$(sha256sum earlymark-agent-deploy.tgz | awk '{print $1}')"
+          echo "PACKAGE_ARCHIVE_SHA256=$archive_sha" >> "$GITHUB_ENV"
+          echo "Packaged archive SHA256: $archive_sha"
 
       - name: Preflight SSH
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -191,7 +193,7 @@ jobs:
             sleep 15
           done
 
-      - name: Copy Agent Package And Scripts
+      - name: Copy Verify Script
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           set -euo pipefail
@@ -207,16 +209,14 @@ jobs:
             -o StrictHostKeyChecking=accept-new
           )
           for attempt in 1 2 3; do
-            if timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH" && \
-              timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-install.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_INSTALL_SCRIPT_PATH" && \
-              timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-verify.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_VERIFY_SCRIPT_PATH"; then
+            if timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-verify.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_VERIFY_SCRIPT_PATH"; then
               exit 0
             fi
             if [ "$attempt" -eq 3 ]; then
-              echo "Agent package/script copy failed after ${attempt} attempts."
+              echo "Worker verify script copy failed after ${attempt} attempts."
               exit 1
             fi
-            echo "Agent package/script copy attempt ${attempt} failed. Retrying in 15 seconds..."
+            echo "Worker verify script copy attempt ${attempt} failed. Retrying in 15 seconds..."
             sleep 15
           done
 
@@ -255,14 +255,23 @@ jobs:
             printf 'SYNCED_SUPABASE_SERVICE_ROLE_KEY=%q\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
           } > voice-worker-sync.env
           remote_archive_escaped="$(printf '%q' "$REMOTE_ARCHIVE_PATH")"
+          package_archive_sha_escaped="$(printf '%q' "$PACKAGE_ARCHIVE_SHA256")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
           remote_install_script_escaped="$(printf '%q' "$REMOTE_INSTALL_SCRIPT_PATH")"
           remote_sync_env_escaped="$(printf '%q' "$REMOTE_SYNC_ENV_PATH")"
           for attempt in 1 2 3; do
-            if timeout 2m scp "${ssh_opts[@]}" voice-worker-sync.env "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_SYNC_ENV_PATH" && \
-              timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_INSTALL_SCRIPT_PATH=${remote_install_script_escaped} REMOTE_SYNC_ENV_PATH=${remote_sync_env_escaped} bash --noprofile --norc -se" <<'EOF'
+            if timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH" && \
+              timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-install.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_INSTALL_SCRIPT_PATH" && \
+              timeout 2m scp "${ssh_opts[@]}" voice-worker-sync.env "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_SYNC_ENV_PATH" && \
+              timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} EXPECTED_ARCHIVE_SHA256=${package_archive_sha_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_INSTALL_SCRIPT_PATH=${remote_install_script_escaped} REMOTE_SYNC_ENV_PATH=${remote_sync_env_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
+          actual_archive_sha="$(sha256sum "$REMOTE_ARCHIVE_PATH" | awk '{print $1}')"
+          if [ "$actual_archive_sha" != "$EXPECTED_ARCHIVE_SHA256" ]; then
+            echo "Remote archive checksum mismatch: expected $EXPECTED_ARCHIVE_SHA256 got $actual_archive_sha"
+            exit 1
+          fi
+          tar -tzf "$REMOTE_ARCHIVE_PATH" >/dev/null
           sed -i 's/\r$//' "$REMOTE_INSTALL_SCRIPT_PATH"
           sed -i 's/\r$//' "$REMOTE_SYNC_ENV_PATH"
           chmod 700 "$REMOTE_INSTALL_SCRIPT_PATH"

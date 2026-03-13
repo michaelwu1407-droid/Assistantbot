@@ -146,11 +146,13 @@ if [ ! -f "$RELEASE_DIR/systemd/$SALES_UNIT" ] || [ ! -f "$RELEASE_DIR/systemd/$
 fi
 
 sudo systemctl disable --now tracey-sales-agent tracey-customer-agent || true
+sudo systemctl disable --now livekit-agent || true
 if command -v pm2 >/dev/null 2>&1; then
   pm2 delete earlymark-agent earlymark-sales-agent earlymark-customer-agent || true
   pm2 save || true
 fi
 sudo rm -f /etc/systemd/system/tracey-sales-agent.service /etc/systemd/system/tracey-customer-agent.service
+sudo rm -f /etc/systemd/system/livekit-agent.service
 
 sudo rm -rf "$PREV_DIR"
 if [ -d "$LIVE_DIR" ]; then
