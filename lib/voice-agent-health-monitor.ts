@@ -4,10 +4,12 @@ import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth, type RuntimeStatu
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
+import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
 import {
   buildBusinessInvariantIncidentObservations,
   buildCallHealthIncidentObservations,
   buildFleetIncidentObservations,
+  buildLivekitSipIncidentObservations,
   buildLatencyIncidentObservations,
   buildRoutingIncidentObservations,
   buildSaturationIncidentObservations,
@@ -20,6 +22,7 @@ export type VoiceAgentHealthMonitorResult = {
   fleet: Awaited<ReturnType<typeof getVoiceFleetHealth>>;
   customerSaturation: Awaited<ReturnType<typeof getVoiceSurfaceSaturationHealth>>;
   twilioRouting: Awaited<ReturnType<typeof auditTwilioVoiceRouting>>;
+  livekitSip: Awaited<ReturnType<typeof getLivekitSipHealth>>;
   invariants: Awaited<ReturnType<typeof getVoiceBusinessInvariantHealth>>;
   recentCalls: Awaited<ReturnType<typeof getTwilioVoiceCallHealth>>;
   latency: Awaited<ReturnType<typeof getVoiceLatencyHealth>>;
@@ -35,10 +38,11 @@ export function getVoiceAgentHealthMonitorSummary(status: RuntimeStatus) {
 export async function runVoiceAgentHealthMonitor(
   checkedAt: Date = new Date(),
 ): Promise<VoiceAgentHealthMonitorResult> {
-  const [fleet, customerSaturation, twilioRouting, recentCalls, latency] = await Promise.all([
+  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency] = await Promise.all([
     getVoiceFleetHealth(),
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: true }),
+    getLivekitSipHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 20, limitPerAccount: 50 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
@@ -48,6 +52,7 @@ export async function runVoiceAgentHealthMonitor(
     ...buildFleetIncidentObservations(fleet),
     ...buildSaturationIncidentObservations(customerSaturation),
     ...buildRoutingIncidentObservations(twilioRouting),
+    ...buildLivekitSipIncidentObservations(livekitSip),
     ...buildBusinessInvariantIncidentObservations(invariants),
     ...buildCallHealthIncidentObservations(recentCalls),
     ...buildLatencyIncidentObservations(latency),
@@ -57,6 +62,7 @@ export async function runVoiceAgentHealthMonitor(
     fleet.status,
     customerSaturation.status,
     twilioRouting.status,
+    livekitSip.status,
     invariants.status,
     recentCalls.status,
     latency.status,
@@ -68,6 +74,7 @@ export async function runVoiceAgentHealthMonitor(
     fleet,
     customerSaturation,
     twilioRouting,
+    livekitSip,
     invariants,
     recentCalls,
     latency,

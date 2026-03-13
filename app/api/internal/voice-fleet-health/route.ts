@@ -6,6 +6,7 @@ import { getVoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants
 import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
+import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 
@@ -21,10 +22,11 @@ export async function GET(req: NextRequest) {
   }
 
   const staleAfterMs = (Number(process.env.VOICE_MONITOR_STALE_AFTER_MINUTES || "15") || 15) * 60_000;
-  const [fleet, customerSaturation, twilioRouting, recentCalls, latency, monitorHealth] = await Promise.all([
+  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency, monitorHealth] = await Promise.all([
     getVoiceFleetHealth(),
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: false }),
+    getLivekitSipHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
@@ -35,6 +37,7 @@ export async function GET(req: NextRequest) {
     fleet.status,
     customerSaturation.status,
     twilioRouting.status,
+    livekitSip.status,
     invariants.status,
     recentCalls.status,
     latency.status,
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest) {
       fleet,
       customerSaturation,
       twilioRouting,
+      livekitSip,
       invariants,
       recentCalls,
       latency,

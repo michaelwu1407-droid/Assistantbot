@@ -1,4 +1,5 @@
 import type { OpsMonitorHealth } from "@/lib/ops-monitor-runs";
+import type { LivekitSipHealth } from "@/lib/livekit-sip-health";
 import type { TwilioVoiceRoutingDrift } from "@/lib/twilio-drift";
 import type { VoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants";
 import type { VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
@@ -117,6 +118,22 @@ export function buildMonitorIncidentObservations(monitorHealth: OpsMonitorHealth
       summary: monitorHealth.summary,
       details: {
         monitorHealth,
+      },
+    },
+  ];
+}
+
+export function buildLivekitSipIncidentObservations(livekitSip: LivekitSipHealth): VoiceIncidentObservation[] {
+  if (livekitSip.status === "healthy") return [];
+
+  return [
+    {
+      incidentKey: "voice:livekit:sip",
+      surface: "routing",
+      severity: livekitSip.status === "unhealthy" ? "critical" : "warning",
+      summary: livekitSip.summary,
+      details: {
+        livekitSip,
       },
     },
   ];
