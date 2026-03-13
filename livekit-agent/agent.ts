@@ -51,6 +51,7 @@ loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
 
 const {
+  DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
   OPENER_BANK,
   buildVoiceFollowupInstructions,
   getPhaseTwoBacklog,
@@ -324,25 +325,34 @@ class MultilingualTTS extends agentsTts.TTS {
     this.#defaultTts = defaultTts;
     this.#opts = opts;
     this.#currentReplyLanguage = 'en-AU';
+    this.#forwardTtsEvents(defaultTts);
   }
 
   setReplyLanguage(detected: string | null | undefined): void {
     this.#currentReplyLanguage = normalizeReplyLanguage(detected);
   }
 
+  #forwardTtsEvents(tts: cartesia.TTS): void {
+    tts.on('metrics_collected', (metrics) => {
+      this.emit('metrics_collected', metrics);
+    });
+    tts.on('error', (error) => {
+      this.emit('error', error);
+    });
+  }
+
   #getTts(): cartesia.TTS {
     const lang = this.#currentReplyLanguage;
     if (lang === 'en-AU' || lang === 'en') return this.#defaultTts;
     if (!this.#ttsByLang.has(lang)) {
-      this.#ttsByLang.set(
-        lang,
-        new cartesia.TTS({
+      const tts = new cartesia.TTS({
           model: this.#opts.model,
           voice: this.#opts.voice,
           language: lang,
           chunkTimeout: this.#opts.chunkTimeout,
-        })
-      );
+        });
+      this.#forwardTtsEvents(tts);
+      this.#ttsByLang.set(lang, tts);
     }
     return this.#ttsByLang.get(lang)!;
   }
@@ -706,7 +716,9 @@ function createCartesiaTts(language = process.env.VOICE_TTS_LANGUAGE || "en-AU")
 
 async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
   try {
-    await createCartesiaTts().synthesize("Hi there.").collect();
+    const warmTts = createCartesiaTts();
+    await warmTts.synthesize("Hi there.").collect();
+    await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
   } catch (error) {
     console.warn(`${logPrefix} Failed to prewarm Cartesia TTS:`, error);
   }
@@ -1364,7 +1376,7 @@ function buildVoiceAgentRuntimeSummary() {
     latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
     openerBankEnabled: process.env.VOICE_OPENER_BANK_ENABLED ?? "true",
     guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
-    targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || "normal",
+    targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
     knownInboundNumbers: getKnownEarlymarkNumbers(),
     groundingCacheEntries: groundingCache.size,
   };

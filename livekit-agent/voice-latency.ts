@@ -153,6 +153,8 @@ export const OPENER_BANK: OpenerBankEntry[] = [
   { id: 'i_get_that', text: 'I get that.', category: 'empathy', empathetic: true },
 ];
 
+export const DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES = 'demo,inbound_demo,normal';
+
 export function getPhaseTwoBacklog(): string[] {
   return [...PHASE_TWO_BACKLOG];
 }
@@ -174,7 +176,9 @@ export function resolveVoiceLatencyConfig(args: {
   llmApiKey?: string;
   llmBaseURL: string;
 }): VoiceLatencyConfig {
-  const targetCallTypes = parseCsv(process.env.VOICE_LATENCY_TARGET_CALL_TYPES || 'normal').filter(isVoiceCallSurface);
+  const targetCallTypes = parseCsv(
+    process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
+  ).filter(isVoiceCallSurface);
   const enabledByCallType = targetCallTypes.includes(args.callType);
   const enabled = parseBoolean(process.env.VOICE_LATENCY_ENABLED, true) && enabledByCallType;
   const openerBankEnabled = enabled && parseBoolean(process.env.VOICE_OPENER_BANK_ENABLED, true);
@@ -651,6 +655,7 @@ function canUseEmpathy(
 }
 
 const voiceLatency = {
+  DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
   OPENER_BANK,
   buildVoiceFollowupInstructions,
   getPhaseTwoBacklog,

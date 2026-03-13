@@ -83,7 +83,7 @@ describe("buildVoiceAgentRuntimeFingerprint", () => {
       INBOUND_VOICE_MIN_INTERRUPTION_WORDS: "1",
       VOICE_MAX_ACTIVE_CALLS_SALES: "1",
       VOICE_LATENCY_ENABLED: "true",
-      VOICE_LATENCY_TARGET_CALL_TYPES: "normal",
+      VOICE_LATENCY_TARGET_CALL_TYPES: "demo,inbound_demo,normal",
       VOICE_OPENER_BANK_ENABLED: "true",
       VOICE_OPENER_CONFIDENCE_THRESHOLD: "0.72",
       VOICE_GUARD_ENABLED: "true",

@@ -2,6 +2,7 @@ type CallType = "demo" | "inbound_demo" | "normal";
 type LlmProviderName = "groq" | "deepinfra";
 
 const DEFAULT_TTS_VOICE_ID = "a4a16c5e-5902-4732-b9b6-2a48efd2e11b";
+const DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES = "demo,inbound_demo,normal";
 const SURFACE_ORDER: CallType[] = ["demo", "inbound_demo", "normal"];
 
 function normalizeEnvValue(value?: string | null) {
@@ -178,8 +179,10 @@ function getMaxConcurrentCalls(env: NodeJS.ProcessEnv = process.env, workerRole 
 }
 
 function resolveLatencyTargetCallTypes(env: NodeJS.ProcessEnv = process.env) {
-  const parsed = normalizeSurfaceList(normalizeCsv(env.VOICE_LATENCY_TARGET_CALL_TYPES || "normal"));
-  return parsed.length > 0 ? parsed.join(",") : "normal";
+  const parsed = normalizeSurfaceList(
+    normalizeCsv(env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES),
+  );
+  return parsed.length > 0 ? parsed.join(",") : DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES;
 }
 
 export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv = process.env) {
