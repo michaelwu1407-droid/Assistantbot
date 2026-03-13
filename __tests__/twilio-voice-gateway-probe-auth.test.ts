@@ -5,7 +5,7 @@ const {
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
-  getLivekitSipTerminationUri,
+  getEarlymarkInboundSipUri,
   getVoiceFleetHealth,
   isVoiceSurfaceRoutable,
   reconcileVoiceIncidents,
@@ -15,7 +15,7 @@ const {
   getExpectedVoiceGatewayUrl: vi.fn(),
   getKnownEarlymarkInboundNumbers: vi.fn(),
   isKnownEarlymarkInboundNumber: vi.fn(),
-  getLivekitSipTerminationUri: vi.fn(),
+  getEarlymarkInboundSipUri: vi.fn(),
   getVoiceFleetHealth: vi.fn(),
   isVoiceSurfaceRoutable: vi.fn(),
   reconcileVoiceIncidents: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock("@/lib/earlymark-inbound-config", () => ({
 }));
 
 vi.mock("@/lib/livekit-sip-config", () => ({
-  getLivekitSipTerminationUri,
+  getEarlymarkInboundSipUri,
 }));
 
 vi.mock("@/lib/voice-fleet", () => ({
@@ -76,7 +76,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["+61485010634"]);
     isKnownEarlymarkInboundNumber.mockImplementation((phone: string) => phone === "+61485010634" || phone === "61485010634");
-    getLivekitSipTerminationUri.mockReturnValue("earlymark-outbound.pstn.sydney.twilio.com");
+    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060");
     getVoiceFleetHealth.mockResolvedValue({ status: "healthy", summary: "healthy fleet" });
     isVoiceSurfaceRoutable.mockReturnValue(true);
     reconcileVoiceIncidents.mockResolvedValue([]);
@@ -93,7 +93,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     const response = await POST(buildRequest());
     const twiml = await response.text();
 
-    expect(twiml).toContain("<Sip>earlymark-outbound.pstn.sydney.twilio.com</Sip>");
+    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 
@@ -130,7 +130,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     );
     const twiml = await response.text();
 
-    expect(twiml).toContain("<Sip>earlymark-outbound.pstn.sydney.twilio.com</Sip>");
+    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 });

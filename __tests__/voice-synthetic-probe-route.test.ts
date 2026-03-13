@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const {
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
-  getLivekitSipTerminationUri,
+  getEarlymarkInboundSipUri,
   recordMonitorRun,
   isOpsAuthorized,
   dispatchVoiceIncidentNotifications,
@@ -12,7 +12,7 @@ const {
 } = vi.hoisted(() => ({
   getExpectedVoiceGatewayUrl: vi.fn(),
   getKnownEarlymarkInboundNumbers: vi.fn(),
-  getLivekitSipTerminationUri: vi.fn(),
+  getEarlymarkInboundSipUri: vi.fn(),
   recordMonitorRun: vi.fn(),
   isOpsAuthorized: vi.fn(),
   dispatchVoiceIncidentNotifications: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock("@/lib/earlymark-inbound-config", () => ({
 }));
 
 vi.mock("@/lib/livekit-sip-config", () => ({
-  getLivekitSipTerminationUri,
+  getEarlymarkInboundSipUri,
 }));
 
 vi.mock("@/lib/ops-monitor-runs", () => ({
@@ -62,12 +62,12 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     isOpsAuthorized.mockReturnValue(true);
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["61485010634"]);
-    getLivekitSipTerminationUri.mockReturnValue("earlymark-outbound.pstn.sydney.twilio.com");
+    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060");
     reconcileVoiceIncidents.mockResolvedValue([]);
     recordMonitorRun.mockResolvedValue(undefined);
     dispatchVoiceIncidentNotifications.mockResolvedValue(null);
     fetchMock.mockResolvedValue(
-      new Response("<Response><Dial><Sip>earlymark-outbound.pstn.sydney.twilio.com</Sip></Dial></Response>", { status: 200 }),
+      new Response("<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060</Sip></Dial></Response>", { status: 200 }),
     );
     delete process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER;
   });

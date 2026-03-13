@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
-import { getLivekitSipTerminationUri } from "@/lib/livekit-sip-config";
+import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { normalizePhone } from "@/lib/phone-utils";
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
   const { targetNumber, source: targetNumberSource } = resolveProbeTargetNumber(req);
   const gatewayUrl = getExpectedVoiceGatewayUrl();
   const gatewayProbeAuthKey = getGatewayProbeAuthKey();
-  const expectedSipTarget = getLivekitSipTerminationUri();
+  const expectedSipTarget = getEarlymarkInboundSipUri(targetNumber);
 
   try {
     if (!probeCaller || !targetNumber || !gatewayUrl || !gatewayProbeAuthKey) {
