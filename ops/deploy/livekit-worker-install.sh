@@ -36,11 +36,32 @@ upsert_env_value() {
   key="$1"
   value="$2"
   file="$3"
-  if grep -q "^${key}=" "$file"; then
-    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
-  else
-    printf '\n%s=%s\n' "$key" "$value" >> "$file"
-  fi
+  tmp_file="$(mktemp)"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { updated = 0 }
+    index($0, key "=") == 1 {
+      print key "=" value
+      updated = 1
+      next
+    }
+    { print }
+    END {
+      if (!updated) {
+        print key "=" value
+      }
+    }
+  ' "$file" > "$tmp_file"
+  cat "$tmp_file" > "$file"
+  rm -f "$tmp_file"
+}
+
+normalize_env_value() {
+  value="${1:-}"
+  value="${value//$'\r'/}"
+  while [[ "$value" == *$'\n' ]]; do
+    value="${value%$'\n'}"
+  done
+  printf '%s' "$value"
 }
 
 rollback_release() {
@@ -86,6 +107,15 @@ if grep -nE '^[[:space:]]*export[[:space:]]+' "$RELEASE_DIR/.env.local"; then
   echo "$RELEASE_DIR/.env.local must use plain KEY=value lines because systemd EnvironmentFile does not support export-prefixed entries."
   exit 1
 fi
+
+SYNCED_APP_URL="$(normalize_env_value "${SYNCED_APP_URL:-}")"
+SYNCED_VOICE_AGENT_WEBHOOK_SECRET="$(normalize_env_value "${SYNCED_VOICE_AGENT_WEBHOOK_SECRET:-}")"
+SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER="$(normalize_env_value "${SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER:-}")"
+SYNCED_DEEPGRAM_API_KEY="$(normalize_env_value "${SYNCED_DEEPGRAM_API_KEY:-}")"
+SYNCED_GROQ_API_KEY="$(normalize_env_value "${SYNCED_GROQ_API_KEY:-}")"
+SYNCED_DEEPINFRA_API_KEY="$(normalize_env_value "${SYNCED_DEEPINFRA_API_KEY:-}")"
+SYNCED_NEXT_PUBLIC_SUPABASE_URL="$(normalize_env_value "${SYNCED_NEXT_PUBLIC_SUPABASE_URL:-}")"
+SYNCED_SUPABASE_SERVICE_ROLE_KEY="$(normalize_env_value "${SYNCED_SUPABASE_SERVICE_ROLE_KEY:-}")"
 
 if [ -n "${SYNCED_APP_URL:-}" ]; then
   upsert_env_value "NEXT_PUBLIC_APP_URL" "$SYNCED_APP_URL" "$RELEASE_DIR/.env.local"
