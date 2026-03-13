@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listSipInboundTrunk, listSipDispatchRule } = vi.hoisted(() => ({
+const { listSipInboundTrunk, listSipOutboundTrunk, listSipDispatchRule } = vi.hoisted(() => ({
   listSipInboundTrunk: vi.fn(),
+  listSipOutboundTrunk: vi.fn(),
   listSipDispatchRule: vi.fn(),
 }));
 
 vi.mock("livekit-server-sdk", () => ({
   SipClient: class {
     listSipInboundTrunk = listSipInboundTrunk;
+    listSipOutboundTrunk = listSipOutboundTrunk;
     listSipDispatchRule = listSipDispatchRule;
   },
 }));
@@ -24,6 +26,8 @@ describe("getLivekitSipHealth", () => {
     process.env.LIVEKIT_URL = "wss://live.earlymark.ai";
     process.env.LIVEKIT_API_KEY = "test-key";
     process.env.LIVEKIT_API_SECRET = "test-secret";
+    process.env.LIVEKIT_SIP_TRUNK_ID = "ST_outbound";
+    process.env.EARLYMARK_INBOUND_PHONE_NUMBER = "+61485010634";
   });
 
   it("reports healthy when an inbound trunk covers the Earlymark number and a dispatch rule exists", async () => {
@@ -32,6 +36,14 @@ describe("getLivekitSipHealth", () => {
         sipTrunkId: "ST_123",
         name: "Earlymark inbound",
         numbers: ["+61485010634"],
+      },
+    ]);
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_outbound",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
       },
     ]);
     listSipDispatchRule.mockResolvedValue([
@@ -53,6 +65,8 @@ describe("getLivekitSipHealth", () => {
     expect(result.status).toBe("healthy");
     expect(result.missingInboundNumbers).toEqual([]);
     expect(result.dispatchRuleCount).toBe(1);
+    expect(result.demoOutbound.status).toBe("healthy");
+    expect(result.demoOutbound.resolvedTrunkId).toBe("ST_outbound");
   });
 
   it("reports unhealthy when the Earlymark number is missing from inbound trunks", async () => {
@@ -63,6 +77,14 @@ describe("getLivekitSipHealth", () => {
         numbers: ["+61400000000"],
       },
     ]);
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_outbound",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
     listSipDispatchRule.mockResolvedValue([]);
 
     const result = await getLivekitSipHealth();
@@ -70,5 +92,44 @@ describe("getLivekitSipHealth", () => {
     expect(result.status).toBe("unhealthy");
     expect(result.missingInboundNumbers).toEqual(["+61485010634"]);
     expect(result.warnings).toContain("No LiveKit SIP dispatch rules are configured.");
+  });
+
+  it("reports degraded when the configured outbound trunk is stale but a fallback outbound trunk exists", async () => {
+    process.env.LIVEKIT_SIP_TRUNK_ID = "ST_stale";
+    listSipInboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_123",
+        name: "Earlymark inbound",
+        numbers: ["+61485010634"],
+      },
+    ]);
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_outbound_fallback",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    listSipDispatchRule.mockResolvedValue([
+      {
+        sipDispatchRuleId: "SDR_123",
+        name: "Earlymark inbound dispatch",
+        trunkIds: ["ST_123"],
+        rule: {
+          dispatchRuleIndividual: {
+            roomPrefix: "earlymark-inbound-",
+          },
+        },
+        attributes: { callType: "inbound_demo" },
+      },
+    ]);
+
+    const result = await getLivekitSipHealth();
+
+    expect(result.status).toBe("degraded");
+    expect(result.demoOutbound.status).toBe("degraded");
+    expect(result.demoOutbound.resolvedTrunkId).toBe("ST_outbound_fallback");
+    expect(result.demoOutbound.warnings[0]).toContain("LIVEKIT_SIP_TRUNK_ID");
   });
 });

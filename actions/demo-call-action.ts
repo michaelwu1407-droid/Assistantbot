@@ -1,5 +1,7 @@
 "use server";
 
+import { initiateDemoCall } from "@/lib/demo-call";
+
 /**
  * Demo call action — triggered from the homepage "Interview Tracey" form.
  *
@@ -26,33 +28,20 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
         return { success: false, error: "Please fill in all required fields." };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
     try {
-        const res = await fetch(`${appUrl}/api/demo-call`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                phone: data.phone,
-                firstName: data.firstName,
-                businessName: data.businessName,
-            }),
+        const result = await initiateDemoCall({
+            phone: data.phone,
+            firstName: data.firstName,
+            businessName: data.businessName,
         });
-
-        const result = await res.json();
-
-        if (!res.ok || !result.success) {
-            console.error("[Demo Call] API error:", result.error);
-            return {
-                success: false,
-                error: result.error || "Failed to initiate call. Please try again.",
-            };
-        }
 
         console.log("[Demo Call] Initiated:", {
             name: `${data.firstName} ${data.lastName}`.trim(),
             phone: data.phone,
             room: result.roomName,
+            trunkId: result.resolvedTrunkId,
+            callerNumber: result.callerNumber,
+            warnings: result.warnings,
         });
 
         return { success: true, message: "Tracey is calling you now!" };

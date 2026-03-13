@@ -54,6 +54,8 @@ jobs:
           chmod 600 "$key_path"
           echo "SSH_KEY_PATH=$key_path" >> "$GITHUB_ENV"
           echo "REMOTE_ARCHIVE_PATH=/tmp/earlymark-agent-deploy-${GITHUB_SHA}.tgz" >> "$GITHUB_ENV"
+          echo "REMOTE_INSTALL_SCRIPT_PATH=/tmp/earlymark-worker-install-${GITHUB_SHA}.sh" >> "$GITHUB_ENV"
+          echo "REMOTE_VERIFY_SCRIPT_PATH=/tmp/earlymark-worker-verify-${GITHUB_SHA}.sh" >> "$GITHUB_ENV"
 
       - name: Package Agent
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
@@ -188,7 +190,7 @@ jobs:
             sleep 15
           done
 
-      - name: Copy Agent Package
+      - name: Copy Agent Package And Scripts
         if: env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_KEY != ''
         run: |
           set -euo pipefail
@@ -204,14 +206,16 @@ jobs:
             -o StrictHostKeyChecking=accept-new
           )
           for attempt in 1 2 3; do
-            if timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH"; then
+            if timeout 5m scp "${ssh_opts[@]}" earlymark-agent-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_ARCHIVE_PATH" && \
+              timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-install.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_INSTALL_SCRIPT_PATH" && \
+              timeout 2m scp "${ssh_opts[@]}" ops/deploy/livekit-worker-verify.sh "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_VERIFY_SCRIPT_PATH"; then
               exit 0
             fi
             if [ "$attempt" -eq 3 ]; then
-              echo "Agent package copy failed after ${attempt} attempts."
+              echo "Agent package/script copy failed after ${attempt} attempts."
               exit 1
             fi
-            echo "Agent package copy attempt ${attempt} failed. Retrying in 15 seconds..."
+            echo "Agent package/script copy attempt ${attempt} failed. Retrying in 15 seconds..."
             sleep 15
           done
 
@@ -250,8 +254,14 @@ jobs:
           deepinfra_api_key_escaped="$(printf '%q' "${DEEPINFRA_API_KEY:-}")"
           supabase_url_escaped="$(printf '%q' "${NEXT_PUBLIC_SUPABASE_URL:-}")"
           supabase_service_role_key_escaped="$(printf '%q' "${SUPABASE_SERVICE_ROLE_KEY:-}")"
+          remote_install_script_escaped="$(printf '%q' "$REMOTE_INSTALL_SCRIPT_PATH")"
           for attempt in 1 2 3; do
-            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} SYNCED_APP_URL=${app_url_escaped} SYNCED_VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=${inbound_phone_escaped} SYNCED_DEEPGRAM_API_KEY=${deepgram_api_key_escaped} SYNCED_GROQ_API_KEY=${groq_api_key_escaped} SYNCED_DEEPINFRA_API_KEY=${deepinfra_api_key_escaped} SYNCED_NEXT_PUBLIC_SUPABASE_URL=${supabase_url_escaped} SYNCED_SUPABASE_SERVICE_ROLE_KEY=${supabase_service_role_key_escaped} bash --noprofile --norc -se" < ops/deploy/livekit-worker-install.sh
+            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} SYNCED_APP_URL=${app_url_escaped} SYNCED_VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=${inbound_phone_escaped} SYNCED_DEEPGRAM_API_KEY=${deepgram_api_key_escaped} SYNCED_GROQ_API_KEY=${groq_api_key_escaped} SYNCED_DEEPINFRA_API_KEY=${deepinfra_api_key_escaped} SYNCED_NEXT_PUBLIC_SUPABASE_URL=${supabase_url_escaped} SYNCED_SUPABASE_SERVICE_ROLE_KEY=${supabase_service_role_key_escaped} REMOTE_INSTALL_SCRIPT_PATH=${remote_install_script_escaped} bash --noprofile --norc -se" <<'EOF'
+          set -euo pipefail
+          sed -i 's/\r$//' "$REMOTE_INSTALL_SCRIPT_PATH"
+          chmod 700 "$REMOTE_INSTALL_SCRIPT_PATH"
+          bash --noprofile --norc "$REMOTE_INSTALL_SCRIPT_PATH"
+          EOF
             then
               exit 0
             fi
@@ -286,8 +296,14 @@ jobs:
           webhook_secret_escaped="$(printf '%q' "$VOICE_AGENT_WEBHOOK_SECRET")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
+          remote_verify_script_escaped="$(printf '%q' "$REMOTE_VERIFY_SCRIPT_PATH")"
           for attempt in 1 2 3; do
-            if timeout 6m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} bash --noprofile --norc -se" < ops/deploy/livekit-worker-verify.sh
+            if timeout 6m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_VERIFY_SCRIPT_PATH=${remote_verify_script_escaped} bash --noprofile --norc -se" <<'EOF'
+          set -euo pipefail
+          sed -i 's/\r$//' "$REMOTE_VERIFY_SCRIPT_PATH"
+          chmod 700 "$REMOTE_VERIFY_SCRIPT_PATH"
+          bash --noprofile --norc "$REMOTE_VERIFY_SCRIPT_PATH"
+          EOF
             then
               exit 0
             fi

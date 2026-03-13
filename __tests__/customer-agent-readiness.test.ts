@@ -6,12 +6,14 @@ const {
   getVoiceAgentRuntimeDrift,
   getVoiceFleetHealth,
   getVoiceLatencyHealth,
+  getInboundLeadEmailReadiness,
 } = vi.hoisted(() => ({
   auditTwilioVoiceRouting: vi.fn(),
   auditTwilioMessagingRouting: vi.fn(),
   getVoiceAgentRuntimeDrift: vi.fn(),
   getVoiceFleetHealth: vi.fn(),
   getVoiceLatencyHealth: vi.fn(),
+  getInboundLeadEmailReadiness: vi.fn(),
 }));
 
 vi.mock("@/lib/twilio-drift", () => ({
@@ -30,6 +32,10 @@ vi.mock("@/lib/voice-fleet", () => ({
 
 vi.mock("@/lib/voice-call-latency-health", () => ({
   getVoiceLatencyHealth,
+}));
+
+vi.mock("@/lib/inbound-lead-email-readiness", () => ({
+  getInboundLeadEmailReadiness,
 }));
 
 import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
@@ -85,6 +91,14 @@ function createVoiceFleetHealth() {
 describe("getCustomerAgentReadiness", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getInboundLeadEmailReadiness.mockResolvedValue({
+      ready: true,
+      domain: "leads.example.com",
+      issues: [],
+      dnsMxHosts: ["inbound-smtp.ap-southeast-2.amazonaws.com"],
+      resendReceivingEnabled: true,
+      resendReceivingRecordStatus: "verified",
+    });
     process.env = {
       ...originalEnv,
       GEMINI_API_KEY: "gemini-key",
@@ -142,6 +156,30 @@ describe("getCustomerAgentReadiness", () => {
         warnings: [],
         lookbackMinutes: 60,
         scopes: [],
+      },
+      livekitSip: {
+        status: "healthy",
+        summary: "livekit sip ready",
+        warnings: [],
+        checkedAt: "2026-03-12T00:00:00.000Z",
+        livekitUrl: "https://livekit.example.com",
+        inboundTrunkCount: 1,
+        outboundTrunkCount: 1,
+        dispatchRuleCount: 1,
+        expectedInboundNumbers: ["+15551234567"],
+        missingInboundNumbers: [],
+        inboundTrunks: [],
+        outboundTrunks: [],
+        demoOutbound: {
+          status: "healthy",
+          summary: "outbound ready",
+          warnings: [],
+          configuredTrunkId: "sip-trunk",
+          resolvedTrunkId: "sip-trunk",
+          configuredTrunkMatched: true,
+          callerNumber: "+15551234567",
+        },
+        dispatchRules: [],
       },
     });
 

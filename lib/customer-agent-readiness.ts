@@ -24,6 +24,7 @@ import {
   type VoiceAgentRuntimeDrift,
 } from "@/lib/voice-agent-runtime";
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness";
+import { getLivekitSipHealth, type LivekitSipHealth } from "@/lib/livekit-sip-health";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -45,6 +46,7 @@ type ReadinessDependencies = {
   voiceWorker?: VoiceAgentRuntimeDrift;
   voiceFleet?: VoiceFleetHealth;
   voiceLatency?: VoiceLatencyHealth;
+  livekitSip?: LivekitSipHealth;
 };
 
 function summarize(status: ReadinessStatus, missing: string[], warnings: string[]) {
@@ -164,6 +166,33 @@ function buildVoiceLatencyFailure(message: string): VoiceLatencyHealth {
   };
 }
 
+function buildLivekitSipFailure(message: string): LivekitSipHealth {
+  return {
+    status: "unhealthy",
+    summary: message,
+    warnings: [message],
+    checkedAt: new Date().toISOString(),
+    livekitUrl: (process.env.LIVEKIT_URL || "").trim() || null,
+    inboundTrunkCount: 0,
+    outboundTrunkCount: 0,
+    dispatchRuleCount: 0,
+    expectedInboundNumbers: getKnownEarlymarkInboundNumbers(),
+    missingInboundNumbers: getKnownEarlymarkInboundNumbers(),
+    inboundTrunks: [],
+    outboundTrunks: [],
+    demoOutbound: {
+      status: "unhealthy",
+      summary: message,
+      warnings: [message],
+      configuredTrunkId: (process.env.LIVEKIT_SIP_TRUNK_ID || "").trim() || null,
+      resolvedTrunkId: null,
+      configuredTrunkMatched: false,
+      callerNumber: null,
+    },
+    dispatchRules: [],
+  };
+}
+
 function buildResultCheck(result: {
   status: RuntimeStatus;
   summary: string;
@@ -245,8 +274,8 @@ export async function getCustomerAgentReadiness(
       "LIVEKIT_URL",
       "LIVEKIT_API_KEY",
       "LIVEKIT_API_SECRET",
-      "LIVEKIT_SIP_TRUNK_ID",
     ]),
+    livekitSip: buildCheck([]),
     voicePreview: buildCheck(["CARTESIA_API_KEY"]),
     emailLeadCapture: buildCheck(geminiPresent ? [] : ["GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY"], [
       !process.env.INBOUND_LEAD_DOMAIN
@@ -255,7 +284,7 @@ export async function getCustomerAgentReadiness(
     ]),
   };
 
-  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency, emailLeadCaptureReadiness] = await Promise.all([
+  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency, livekitSip, emailLeadCaptureReadiness] = await Promise.all([
     dependencies.twilioVoiceRouting
       ? Promise.resolve(dependencies.twilioVoiceRouting)
       : runOpsAuditWithTimeout(
@@ -291,6 +320,13 @@ export async function getCustomerAgentReadiness(
           () => getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
           buildVoiceLatencyFailure,
         ),
+    dependencies.livekitSip
+      ? Promise.resolve(dependencies.livekitSip)
+      : runOpsAuditWithTimeout(
+          "LiveKit SIP audit",
+          () => getLivekitSipHealth(),
+          buildLivekitSipFailure,
+        ),
     getInboundLeadEmailReadiness(),
   ]);
 
@@ -307,6 +343,12 @@ export async function getCustomerAgentReadiness(
   checks.voiceWorker = buildResultCheck(voiceWorker);
   checks.voiceFleet = buildResultCheck(voiceFleet);
   checks.voiceLatency = buildResultCheck(voiceLatency);
+  checks.livekitSip = buildResultCheck(livekitSip);
+  mergeCheckWarnings(
+    checks.outboundDemoVoice,
+    normalizeWarnings(livekitSip.demoOutbound.status, livekitSip.demoOutbound.summary, livekitSip.demoOutbound.warnings),
+    livekitSip.demoOutbound.status,
+  );
 
   if (!emailLeadCaptureReadiness.ready) {
     mergeCheckWarnings(checks.emailLeadCapture, emailLeadCaptureReadiness.issues, "unhealthy");

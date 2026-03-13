@@ -8,21 +8,24 @@ import {
   getLivekitSipTerminationUri,
   getRecommendedTwilioOriginationUri,
 } from "@/lib/livekit-sip-config";
+import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
 import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [voiceWorker, twilioVoiceRouting, twilioMessagingRouting] = await Promise.all([
+  const [voiceWorker, twilioVoiceRouting, twilioMessagingRouting, livekitSip] = await Promise.all([
     getVoiceAgentRuntimeDrift(),
     auditTwilioVoiceRouting({ apply: false }),
     auditTwilioMessagingRouting({ apply: false }),
+    getLivekitSipHealth(),
   ]);
   const customerFacingAgents = await getCustomerAgentReadiness({
     twilioVoiceRouting,
     twilioMessagingRouting,
     voiceWorker,
+    livekitSip,
   });
   const env = {
     // Core required for phone provisioning
@@ -38,9 +41,11 @@ export async function GET() {
       url: !!process.env.LIVEKIT_URL,
       apiKey: !!process.env.LIVEKIT_API_KEY,
       apiSecret: !!process.env.LIVEKIT_API_SECRET,
+      sipTrunkId: !!process.env.LIVEKIT_SIP_TRUNK_ID,
       sipUri: !!process.env.LIVEKIT_SIP_URI,
       sipTerminationUri: getLivekitSipTerminationUri(),
       recommendedTwilioOriginationUri: getRecommendedTwilioOriginationUri(),
+      demoOutbound: livekitSip.demoOutbound,
     },
     // Other important env vars
     app: {
@@ -78,6 +83,7 @@ export async function GET() {
     env,
     customerFacingAgents,
     voiceWorker,
+    livekitSip,
     twilioVoiceRouting,
     twilioMessagingRouting,
   });

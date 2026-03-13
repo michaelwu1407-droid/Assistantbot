@@ -1,47 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SipClient, RoomServiceClient } from "livekit-server-sdk";
-
-/**
- * POST /api/demo-call
- * Initiates an outbound SIP call to a prospect via Self-Hosted LiveKit + Twilio SIP trunk.
- * 
- * INFRASTRUCTURE SETUP:
- * - LiveKit Server: Self-hosted (NOT LiveKit Cloud)
- * - SIP Integration: LiveKit SIP trunk → Twilio SIP trunk → Phone network
- * - Agent: LiveKit agent joins room with demo-specific prompt
- * 
- * ENVIRONMENT VARIABLES NEEDED:
- * - LIVEKIT_URL: wss://your-livekit-server.com
- * - LIVEKIT_API_KEY: From your self-hosted LiveKit server
- * - LIVEKIT_API_SECRET: From your self-hosted LiveKit server  
- * - LIVEKIT_SIP_TRUNK_ID: Self-hosted LiveKit SIP trunk ID (starts with ST_)
- * - LIVEKIT_SIP_TERMINATION_URI: defaults to earlymark-outbound.pstn.sydney.twilio.com
- * 
- * SETUP STEPS:
- * 1. Create SIP trunk in your self-hosted LiveKit server admin
- * 2. Configure trunk to point to the Sydney-localized Twilio SIP domain for lowest latency
- * 3. Update LIVEKIT_SIP_TRUNK_ID with your LiveKit trunk ID (NOT Twilio TK_ ID)
- */
-
-const LIVEKIT_URL = process.env.LIVEKIT_URL || "";
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "";
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || "";
-const LIVEKIT_SIP_TRUNK_ID = process.env.LIVEKIT_SIP_TRUNK_ID || "";
+import { initiateDemoCall } from "@/lib/demo-call";
 
 export async function POST(req: NextRequest) {
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_SIP_TRUNK_ID) {
-    console.error("[demo-call] Missing LiveKit demo-call env vars", {
-      hasLivekitUrl: !!LIVEKIT_URL,
-      hasLivekitApiKey: !!LIVEKIT_API_KEY,
-      hasLivekitApiSecret: !!LIVEKIT_API_SECRET,
-      hasLivekitSipTrunkId: !!LIVEKIT_SIP_TRUNK_ID,
-    });
-    return NextResponse.json(
-      { error: "Voice infrastructure not configured" },
-      { status: 503 }
-    );
-  }
-
   let phone: string;
   let firstName: string;
   let businessName: string;
@@ -59,72 +19,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Phone number required" }, { status: 400 });
   }
 
-  // Normalize phone: ensure E.164 format for AU numbers
-  let normalizedPhone = phone.replace(/[\s\-()]/g, "");
-  if (normalizedPhone.startsWith("04")) {
-    normalizedPhone = "+61" + normalizedPhone.slice(1);
-  } else if (!normalizedPhone.startsWith("+")) {
-    normalizedPhone = "+61" + normalizedPhone.replace(/^0/, "");
-  }
-
   try {
-    // Convert wss:// URL to https:// for the API client
-    const httpUrl = LIVEKIT_URL.replace("wss://", "https://");
-    console.log("[demo-call] Using LiveKit URL:", httpUrl);
-    console.log("[demo-call] API Key present:", !!LIVEKIT_API_KEY);
-    console.log("[demo-call] API Secret present:", !!LIVEKIT_API_SECRET);
-    
-    const sipClient = new SipClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
-
-    const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    console.log("[demo-call] Creating room:", roomName);
-
-    // Create the room first - SIP participant needs an existing room
-    // Room metadata is read by the agent to personalise the greeting
-    const roomClient = new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
-    await roomClient.createRoom({
-      name: roomName,
-      emptyTimeout: 300, // 5 minutes
-      maxParticipants: 2,
-      metadata: JSON.stringify({
-        callType: "demo",
-        firstName,
-        businessName,
-        phone: normalizedPhone,
-      }),
+    const result = await initiateDemoCall({
+      phone,
+      firstName,
+      businessName,
     });
-    console.log("[demo-call] Room created successfully:", roomName);
 
-    // Create outbound SIP participant — this dials the prospect's phone
-    // and connects them into the LiveKit room where the agent will join
-    const participant = await sipClient.createSipParticipant(
-      LIVEKIT_SIP_TRUNK_ID,
-      normalizedPhone,
-      roomName,
-      {
-        participantName: firstName,
-        participantIdentity: `demo-caller-${normalizedPhone}`,
-      }
-    );
-
-    console.log("[demo-call] SIP participant created:", {
-      room: roomName,
-      phone: normalizedPhone,
-      participantSid: participant.participantId,
+    console.log("[demo-call] Initiated:", {
+      room: result.roomName,
+      phone: result.normalizedPhone,
+      resolvedTrunkId: result.resolvedTrunkId,
+      callerNumber: result.callerNumber,
+      warnings: result.warnings,
     });
 
     return NextResponse.json({
       success: true,
-      roomName,
-      message: `Calling ${normalizedPhone}...`,
+      roomName: result.roomName,
+      message: `Calling ${result.normalizedPhone}...`,
+      trunkId: result.resolvedTrunkId,
+      callerNumber: result.callerNumber,
+      warnings: result.warnings,
     });
   } catch (err) {
-    console.error("[demo-call] Failed to create SIP participant:", err);
+    console.error("[demo-call] Failed to initiate demo call:", err);
     return NextResponse.json(
       {
         error: `Failed to initiate call: ${err instanceof Error ? err.message : "Unknown error"}`,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
