@@ -559,3 +559,11 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `livekit-agent/worker-entry.ts`, `livekit-agent/agent.ts`, `docs/agent_change_log.md`
 - What changed: Removed the default explicit `agentName` from the LiveKit room workers so they register in the unnamed worker pool again, with an optional `LIVEKIT_AGENT_NAME` override only when explicitly needed.
 - Why: Earlymark inbound calls were reaching LiveKit SIP and creating rooms, but LiveKit was dispatching those rooms with `agentName: ""`. Because the workers were registered as `tracey-sales-agent` and `tracey-customer-agent`, no worker ever accepted the room and callers heard ringing until Twilio cancelled the call.
+### 2026-03-13 15:45 (AEDT) - codex
+- Files: `livekit-agent/runtime-config.ts`, `livekit-agent/agent.ts`, `livekit-agent/.env.example`, `.github/workflows/deploy-livekit.yml`, `__tests__/voice-agent-runtime-config.test.ts`, `docs/agent_change_log.md`
+- What changed: Tightened production worker env validation so the voice agent now requires Deepgram plus at least one LLM API key before boot, disabled LiveKit noise cancellation by default on self-hosted servers unless explicitly forced, and updated the LiveKit deploy workflow to sync Deepgram, Groq, DeepInfra, and Supabase lead-capture env onto the OCI worker before restart.
+- Why: The OCI worker had drifted into a half-configured state where the SIP path looked alive but the actual voice runtime was missing STT/LLM credentials, and it was still requesting a self-hosted LiveKit noise-cancellation path that produced runtime server-settings errors during live calls.
+### 2026-03-13 16:06 (AEDT) - codex
+- Files: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- What changed: Moved Cartesia warm-up out of the worker background bootstrap and into the LiveKit job-process `prewarm` hook, then reused a shared TTS constructor for the live greeting path.
+- Why: The old warm-up path ran before the LiveKit logger was initialized, so it failed every boot and left the first inbound greeting on a cold TTS path with an avoidable silent delay before Tracey spoke.

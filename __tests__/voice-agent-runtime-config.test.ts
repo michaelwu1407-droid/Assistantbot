@@ -6,6 +6,7 @@ import {
   getVoiceAgentWebhookSecret,
   resolveWorkerHttpHost,
   resolveWorkerHttpPort,
+  shouldEnableNoiseCancellation,
 } from "@/livekit-agent/runtime-config";
 
 function createEnv(overrides: Record<string, string> = {}) {
@@ -47,7 +48,7 @@ describe("voice agent runtime config", () => {
         LIVEKIT_API_KEY: "livekit-key",
         LIVEKIT_API_SECRET: "livekit-secret",
       })),
-    ).toThrow(/CARTESIA_API_KEY, NEXT_PUBLIC_APP_URL\|APP_URL/);
+    ).toThrow(/CARTESIA_API_KEY, DEEPGRAM_API_KEY, NEXT_PUBLIC_APP_URL\|APP_URL, GROQ_API_KEY\|DEEPINFRA_API_KEY/);
   });
 
   it("accepts a complete production worker env", () => {
@@ -59,8 +60,24 @@ describe("voice agent runtime config", () => {
         LIVEKIT_API_SECRET: "livekit-secret",
         VOICE_AGENT_WEBHOOK_SECRET: "voice-webhook-secret",
         CARTESIA_API_KEY: "cartesia-key",
+        DEEPGRAM_API_KEY: "deepgram-key",
+        GROQ_API_KEY: "groq-key",
         APP_URL: "https://earlymark.ai",
       })),
     ).not.toThrow();
+  });
+
+  it("disables noise cancellation by default on self-hosted LiveKit", () => {
+    expect(shouldEnableNoiseCancellation(createEnv({ LIVEKIT_URL: "http://localhost:7880" }))).toBe(false);
+  });
+
+  it("enables noise cancellation automatically for LiveKit Cloud or when explicitly forced", () => {
+    expect(shouldEnableNoiseCancellation(createEnv({ LIVEKIT_URL: "wss://project.livekit.cloud" }))).toBe(true);
+    expect(
+      shouldEnableNoiseCancellation(createEnv({
+        LIVEKIT_URL: "http://localhost:7880",
+        LIVEKIT_ENABLE_NOISE_CANCELLATION: "true",
+      })),
+    ).toBe(true);
   });
 });

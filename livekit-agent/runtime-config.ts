@@ -8,6 +8,7 @@ const REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS = [
   "LIVEKIT_API_KEY",
   "LIVEKIT_API_SECRET",
   "CARTESIA_API_KEY",
+  "DEEPGRAM_API_KEY",
 ] as const;
 
 function normalizeEnvValue(value?: string | null) {
@@ -54,14 +55,29 @@ export function getVoiceAgentWebhookSecret(env: NodeJS.ProcessEnv = process.env)
   return "";
 }
 
+export function shouldEnableNoiseCancellation(env: NodeJS.ProcessEnv = process.env) {
+  const explicit = normalizeEnvValue(env.LIVEKIT_ENABLE_NOISE_CANCELLATION).toLowerCase();
+  if (explicit === "true") {
+    return true;
+  }
+  if (explicit === "false") {
+    return false;
+  }
+
+  return /livekit\.cloud/i.test(normalizeEnvValue(env.LIVEKIT_URL));
+}
+
 export function assertRequiredVoiceAgentEnv(env: NodeJS.ProcessEnv = process.env) {
   if (!isProductionVoiceAgentRuntime(env)) {
     return;
   }
 
-  const missingKeys = REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS.filter((key) => !normalizeEnvValue(env[key]));
+  const missingKeys: string[] = REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS.filter((key) => !normalizeEnvValue(env[key]));
   if (!normalizeEnvValue(env.NEXT_PUBLIC_APP_URL) && !normalizeEnvValue(env.APP_URL)) {
-    missingKeys.push("NEXT_PUBLIC_APP_URL|APP_URL" as never);
+    missingKeys.push("NEXT_PUBLIC_APP_URL|APP_URL");
+  }
+  if (!normalizeEnvValue(env.GROQ_API_KEY) && !normalizeEnvValue(env.DEEPINFRA_API_KEY)) {
+    missingKeys.push("GROQ_API_KEY|DEEPINFRA_API_KEY");
   }
 
   if (missingKeys.length > 0) {

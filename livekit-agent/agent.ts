@@ -32,6 +32,7 @@ import {
   getVoiceAgentWebhookSecret,
   resolveWorkerHttpHost,
   resolveWorkerHttpPort,
+  shouldEnableNoiseCancellation,
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
@@ -691,6 +692,23 @@ class ProviderFallbackLLMStream extends livekitLlm.LLMStream {
     } finally {
       this.#primaryStream.close();
     }
+  }
+}
+
+function createCartesiaTts(language = process.env.VOICE_TTS_LANGUAGE || "en-AU") {
+  return new cartesia.TTS({
+    model: "sonic-3",
+    voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+    language,
+    chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+  });
+}
+
+async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
+  try {
+    await createCartesiaTts().synthesize("Hi there.").collect();
+  } catch (error) {
+    console.warn(`${logPrefix} Failed to prewarm Cartesia TTS:`, error);
   }
 }
 
@@ -1493,6 +1511,9 @@ function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding) {
 }
 
 export default defineAgent({
+  prewarm: async () => {
+    await prewarmVoiceProcess();
+  },
   entry: async (ctx) => {
     const callStartedAt = new Date();
     const callId = `${ctx.room.name}:${callStartedAt.getTime()}`;
@@ -1567,12 +1588,7 @@ export default defineAgent({
       },
     });
 
-    const defaultTts = new cartesia.TTS({
-      model: "sonic-3",
-      voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
-      language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
-      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
-    });
+    const defaultTts = createCartesiaTts();
     const ttsOpts = {
       model: "sonic-3",
       voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
@@ -1905,12 +1921,25 @@ export default defineAgent({
         allowInterruptions: true,
       },
     });
+    const enableNoiseCancellation = shouldEnableNoiseCancellation();
+    console.log(
+      `${logPrefix} [CALL_BOOT] ${JSON.stringify({
+        callId,
+        room: ctx.room.name,
+        participant: participant.identity,
+        noiseCancellationEnabled: enableNoiseCancellation,
+      })}`,
+    );
     await session.start({
       agent,
       room: ctx.room,
-      inputOptions: {
-        noiseCancellation: NoiseCancellation(),
-      },
+      ...(enableNoiseCancellation
+        ? {
+          inputOptions: {
+            noiseCancellation: NoiseCancellation(),
+          },
+        }
+        : {}),
     });
 
     session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {
@@ -2384,17 +2413,6 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
   workerBackgroundTasksStarted = true;
 
   setWorkerBootReady(true);
-  try {
-    const warmTts = new cartesia.TTS({
-      model: "sonic-3",
-      voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
-      language: process.env.VOICE_TTS_LANGUAGE || "en-AU",
-      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
-    });
-    getSharedOpenerAudioCache(warmTts, logPrefix);
-  } catch (error) {
-    console.warn(`${logPrefix} Failed to warm opener audio cache:`, error);
-  }
   void refreshVoiceGroundingIndex(true).catch((error) => {
     console.warn(`${logPrefix} Initial voice grounding cache warm failed:`, error);
   });

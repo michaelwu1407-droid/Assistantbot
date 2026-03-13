@@ -221,6 +221,11 @@ jobs:
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET || secrets.LIVEKIT_API_SECRET }}
           EARLYMARK_INBOUND_PHONE_NUMBER: ${{ secrets.VOICE_MONITOR_PROBE_TARGET_NUMBER || secrets.EARLYMARK_INBOUND_PHONE_NUMBER || secrets.EARLYMARK_PHONE_NUMBER || secrets.TWILIO_PHONE_NUMBER }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
           ssh_opts=(
@@ -240,8 +245,13 @@ jobs:
           app_url_escaped="$(printf '%q' "${NEXT_PUBLIC_APP_URL:-}")"
           webhook_secret_escaped="$(printf '%q' "${VOICE_AGENT_WEBHOOK_SECRET:-}")"
           inbound_phone_escaped="$(printf '%q' "${EARLYMARK_INBOUND_PHONE_NUMBER:-}")"
+          deepgram_api_key_escaped="$(printf '%q' "${DEEPGRAM_API_KEY:-}")"
+          groq_api_key_escaped="$(printf '%q' "${GROQ_API_KEY:-}")"
+          deepinfra_api_key_escaped="$(printf '%q' "${DEEPINFRA_API_KEY:-}")"
+          supabase_url_escaped="$(printf '%q' "${NEXT_PUBLIC_SUPABASE_URL:-}")"
+          supabase_service_role_key_escaped="$(printf '%q' "${SUPABASE_SERVICE_ROLE_KEY:-}")"
           for attempt in 1 2 3; do
-            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} SYNCED_APP_URL=${app_url_escaped} SYNCED_VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=${inbound_phone_escaped} bash --noprofile --norc -se" <<'EOF'
+            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "REMOTE_ARCHIVE_PATH=${remote_archive_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} SYNCED_APP_URL=${app_url_escaped} SYNCED_VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER=${inbound_phone_escaped} SYNCED_DEEPGRAM_API_KEY=${deepgram_api_key_escaped} SYNCED_GROQ_API_KEY=${groq_api_key_escaped} SYNCED_DEEPINFRA_API_KEY=${deepinfra_api_key_escaped} SYNCED_NEXT_PUBLIC_SUPABASE_URL=${supabase_url_escaped} SYNCED_SUPABASE_SERVICE_ROLE_KEY=${supabase_service_role_key_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
           export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
           export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -297,15 +307,33 @@ jobs:
           if [ -n "${SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER:-}" ]; then
             upsert_env_value "EARLYMARK_INBOUND_PHONE_NUMBER" "$SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER" /opt/earlymark-agent/.env.local
           fi
+          if [ -n "${SYNCED_DEEPGRAM_API_KEY:-}" ]; then
+            upsert_env_value "DEEPGRAM_API_KEY" "$SYNCED_DEEPGRAM_API_KEY" /opt/earlymark-agent/.env.local
+          fi
+          if [ -n "${SYNCED_GROQ_API_KEY:-}" ]; then
+            upsert_env_value "GROQ_API_KEY" "$SYNCED_GROQ_API_KEY" /opt/earlymark-agent/.env.local
+          fi
+          if [ -n "${SYNCED_DEEPINFRA_API_KEY:-}" ]; then
+            upsert_env_value "DEEPINFRA_API_KEY" "$SYNCED_DEEPINFRA_API_KEY" /opt/earlymark-agent/.env.local
+          fi
+          if [ -n "${SYNCED_NEXT_PUBLIC_SUPABASE_URL:-}" ]; then
+            upsert_env_value "NEXT_PUBLIC_SUPABASE_URL" "$SYNCED_NEXT_PUBLIC_SUPABASE_URL" /opt/earlymark-agent/.env.local
+          fi
+          if [ -n "${SYNCED_SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            upsert_env_value "SUPABASE_SERVICE_ROLE_KEY" "$SYNCED_SUPABASE_SERVICE_ROLE_KEY" /opt/earlymark-agent/.env.local
+          fi
           upsert_env_value "DEPLOY_GIT_SHA" "$DEPLOY_GIT_SHA" /opt/earlymark-agent/.env.local
           upsert_env_value "VOICE_HOST_ID" "$VOICE_HOST_ID" /opt/earlymark-agent/.env.local
 
           missing_env=()
-          for key in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET CARTESIA_API_KEY; do
+          for key in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET CARTESIA_API_KEY DEEPGRAM_API_KEY; do
             if ! grep -Eq "^[[:space:]]*${key}=" /opt/earlymark-agent/.env.local; then
               missing_env+=("$key")
             fi
           done
+          if ! grep -Eq '^[[:space:]]*GROQ_API_KEY=' /opt/earlymark-agent/.env.local && ! grep -Eq '^[[:space:]]*DEEPINFRA_API_KEY=' /opt/earlymark-agent/.env.local; then
+            missing_env+=("GROQ_API_KEY|DEEPINFRA_API_KEY")
+          fi
           if ! grep -Eq '^[[:space:]]*NEXT_PUBLIC_APP_URL=' /opt/earlymark-agent/.env.local && ! grep -Eq '^[[:space:]]*APP_URL=' /opt/earlymark-agent/.env.local; then
             missing_env+=("NEXT_PUBLIC_APP_URL|APP_URL")
           fi
