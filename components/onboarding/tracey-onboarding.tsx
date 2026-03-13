@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
 import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
+import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
 import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
@@ -68,6 +69,8 @@ type ProvisioningStatus =
   | "provisioned"
   | "blocked_duplicate"
   | "failed"
+
+type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -428,6 +431,7 @@ export function TraceyOnboarding() {
   // Step 3 (Email): Inbox connection
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
   const [preGenLeadsEmail, setPreGenLeadsEmail] = useState<string | null>(null)
+  const [leadCaptureEmailReadiness, setLeadCaptureEmailReadiness] = useState<LeadCaptureEmailReadiness | null>(null)
 
   // Optional team invites on the last step
   const [inviteRole, setInviteRole] = useState<"TEAM_MEMBER" | "MANAGER">("TEAM_MEMBER")
@@ -472,6 +476,10 @@ export function TraceyOnboarding() {
         }
         if (authUser.email) {
           setEmail((current) => current || authUser.email || "")
+        }
+        const readiness = await getLeadCaptureEmailReadiness()
+        if (active) {
+          setLeadCaptureEmailReadiness(readiness)
         }
       } catch {
         // Silent fallback: onboarding still works without client-side auth prefill.
@@ -542,12 +550,12 @@ export function TraceyOnboarding() {
   // Generate the canonical inbound lead-capture address preview client-side.
   useEffect(() => {
     if (businessName.trim()) {
-      setPreGenLeadsEmail(buildLeadCaptureEmailPreview(businessName))
+      setPreGenLeadsEmail(buildLeadCaptureEmailPreview(businessName, leadCaptureEmailReadiness?.domain))
       return
     }
 
     setPreGenLeadsEmail(null)
-  }, [businessName])
+  }, [businessName, leadCaptureEmailReadiness])
 
   const resolveProvisioning = useCallback(async () => {
     if (!businessName.trim() || !phone.trim()) {
@@ -1326,6 +1334,11 @@ export function TraceyOnboarding() {
                             <p className="text-xs text-slate-500 mt-0.5">
                               Set up a forwarding rule from your email to: <strong className="text-emerald-600">{preGenLeadsEmail || "Loading..."}</strong>
                             </p>
+                            {leadCaptureEmailReadiness && !leadCaptureEmailReadiness.ready && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                                Inbound email is not live yet. Do not forward leads until DNS is fixed.
+                              </p>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -1374,12 +1387,12 @@ export function TraceyOnboarding() {
                     )}
 
                     {inboxConnectionType === "forward" && preGenLeadsEmail && (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                        <p className="text-xs text-emerald-800 dark:text-emerald-200 mb-2">
-                          <strong>Your forwarding address:</strong>
+                      <div className={`${leadCaptureEmailReadiness?.ready === false ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"} border rounded-lg p-4`}>
+                        <p className={`text-xs mb-2 ${leadCaptureEmailReadiness?.ready === false ? "text-red-800 dark:text-red-200" : "text-emerald-800 dark:text-emerald-200"}`}>
+                          <strong>{leadCaptureEmailReadiness?.ready === false ? "Reserved forwarding address (not live yet):" : "Your forwarding address:"}</strong>
                         </p>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono text-emerald-700 dark:text-emerald-400 select-all">
+                          <code className={`flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureEmailReadiness?.ready === false ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-400"}`}>
                             {preGenLeadsEmail}
                           </code>
                           <Button 
@@ -1393,9 +1406,18 @@ export function TraceyOnboarding() {
                             Copy
                           </Button>
                         </div>
-                        <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2">
-                          Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.
-                        </p>
+                        {leadCaptureEmailReadiness?.ready === false ? (
+                          <div className="mt-2 text-xs text-red-700 dark:text-red-300">
+                            <p>Inbound email is not active for <strong>{leadCaptureEmailReadiness.domain}</strong>.</p>
+                            {leadCaptureEmailReadiness.issues.slice(0, 2).map((issue) => (
+                              <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2">
+                            Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1561,7 +1583,11 @@ export function TraceyOnboarding() {
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Your leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> will be activated</span>
+                              <span className={leadCaptureEmailReadiness?.ready === false ? "text-red-600 dark:text-red-400" : ""}>
+                                {leadCaptureEmailReadiness?.ready === false
+                                  ? <>Leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> is reserved, but inbound mail is not live yet.</>
+                                  : <>Your leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> will be activated</>}
+                              </span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />

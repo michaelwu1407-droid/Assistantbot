@@ -23,6 +23,7 @@ import {
   getVoiceAgentRuntimeDrift,
   type VoiceAgentRuntimeDrift,
 } from "@/lib/voice-agent-runtime";
+import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -254,7 +255,7 @@ export async function getCustomerAgentReadiness(
     ]),
   };
 
-  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency] = await Promise.all([
+  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency, emailLeadCaptureReadiness] = await Promise.all([
     dependencies.twilioVoiceRouting
       ? Promise.resolve(dependencies.twilioVoiceRouting)
       : runOpsAuditWithTimeout(
@@ -290,6 +291,7 @@ export async function getCustomerAgentReadiness(
           () => getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
           buildVoiceLatencyFailure,
         ),
+    getInboundLeadEmailReadiness(),
   ]);
 
   checks.inboundVoice = buildInboundVoiceCheck(twilioVoiceRouting);
@@ -305,6 +307,10 @@ export async function getCustomerAgentReadiness(
   checks.voiceWorker = buildResultCheck(voiceWorker);
   checks.voiceFleet = buildResultCheck(voiceFleet);
   checks.voiceLatency = buildResultCheck(voiceLatency);
+
+  if (!emailLeadCaptureReadiness.ready) {
+    mergeCheckWarnings(checks.emailLeadCapture, emailLeadCaptureReadiness.issues, "unhealthy");
+  }
 
   const overallStatus = Object.values(checks).reduce<ReadinessStatus>(
     (current, check) => maxStatus(current, check.status),

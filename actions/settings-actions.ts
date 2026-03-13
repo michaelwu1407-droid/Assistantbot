@@ -10,6 +10,7 @@ import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/l
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
 import { normalizeAppAgentMode } from "@/lib/agent-mode"
 import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
+import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -500,4 +501,8 @@ export async function getOrAllocateLeadCaptureEmail(): Promise<string> {
         })
     }
     return buildLeadCaptureEmail(uniqueAlias, INBOUND_LEAD_DOMAIN)
+}
+
+export async function getLeadCaptureEmailReadiness() {
+    return getInboundLeadEmailReadiness()
 }

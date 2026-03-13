@@ -7,12 +7,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Mail, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions";
-import { getOrAllocateLeadCaptureEmail } from "@/actions/settings-actions";
+import { getLeadCaptureEmailReadiness, getOrAllocateLeadCaptureEmail, getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions";
+
+type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
+  const [readiness, setReadiness] = useState<LeadCaptureEmailReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -20,13 +22,15 @@ export function EmailLeadCaptureSettings() {
     let cancelled = false;
     async function load() {
       try {
-        const [email, settings] = await Promise.all([
+        const [email, settings, nextReadiness] = await Promise.all([
           getOrAllocateLeadCaptureEmail(),
           getWorkspaceSettings(),
+          getLeadCaptureEmailReadiness(),
         ]);
         if (!cancelled) {
           setForwardingEmail(email);
           setAutoCallLeads(settings?.autoCallLeads ?? false);
+          setReadiness(nextReadiness);
         }
       } catch {
         if (!cancelled) setForwardingEmail("");
@@ -100,6 +104,17 @@ export function EmailLeadCaptureSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {readiness && !readiness.ready && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="font-medium">Inbound email is not live</div>
+            <div className="mt-1">Do not forward leads to this address yet. The inbound mail route for <strong>{readiness.domain}</strong> is not ready.</div>
+            <ul className="mt-2 list-disc pl-5">
+              {readiness.issues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Your forwarding email</Label>
           <div className="flex items-center gap-2">
@@ -111,7 +126,9 @@ export function EmailLeadCaptureSettings() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically.
+            {readiness?.ready
+              ? "Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically."
+              : "This address is reserved, but inbound email is not ready yet. Fix the inbound domain before forwarding live leads."}
           </p>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border/50 p-4">
@@ -125,7 +142,7 @@ export function EmailLeadCaptureSettings() {
             id="auto-call-leads"
             checked={autoCallLeads}
             onCheckedChange={handleToggleAutoCall}
-            disabled={saving}
+            disabled={saving || (readiness ? !readiness.ready : false)}
           />
         </div>
       </CardContent>
