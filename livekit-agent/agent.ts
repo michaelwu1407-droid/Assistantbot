@@ -2423,7 +2423,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       agent: fileURLToPath(import.meta.url),
       numIdleProcesses: 1,
       initializeProcessTimeout: 60_000,
-      agentName: getConfiguredWorkerRole(),
+      agentName: process.env.LIVEKIT_AGENT_NAME?.trim() || undefined,
       host: resolveWorkerHttpHost(),
       port: resolveWorkerHttpPort(),
     }),

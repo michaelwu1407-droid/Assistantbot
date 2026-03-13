@@ -555,3 +555,7 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `lib/livekit-sip-health.ts`, `lib/voice-monitoring.ts`, `lib/voice-agent-health-monitor.ts`, `app/api/internal/voice-fleet-health/route.ts`, `__tests__/livekit-sip-health.test.ts`, `docs/agent_change_log.md`
 - What changed: Added a dedicated LiveKit SIP health check that verifies the configured Earlymark inbound number is covered by a LiveKit SIP inbound trunk and that at least one LiveKit SIP dispatch rule exists for the inbound path, then wired that status into the internal voice fleet health route and the voice-agent watchdog incident pipeline.
 - Why: Production voice was able to look healthy while the LiveKit SIP service had no inbound trunks or dispatch rules, which let inbound calls fail silently. This makes that control-plane outage visible to monitoring instead of reporting a false green.
+### 2026-03-13 15:25 (AEDT) - codex
+- Files: `livekit-agent/worker-entry.ts`, `livekit-agent/agent.ts`, `docs/agent_change_log.md`
+- What changed: Removed the default explicit `agentName` from the LiveKit room workers so they register in the unnamed worker pool again, with an optional `LIVEKIT_AGENT_NAME` override only when explicitly needed.
+- Why: Earlymark inbound calls were reaching LiveKit SIP and creating rooms, but LiveKit was dispatching those rooms with `agentName: ""`. Because the workers were registered as `tracey-sales-agent` and `tracey-customer-agent`, no worker ever accepted the room and callers heard ringing until Twilio cancelled the call.

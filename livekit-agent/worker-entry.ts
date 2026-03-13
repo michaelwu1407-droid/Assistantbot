@@ -116,7 +116,10 @@ export function runVoiceWorker(params: {
       agent: fileURLToPath(new URL("./agent.ts", import.meta.url)),
       numIdleProcesses: 1,
       initializeProcessTimeout: 60_000,
-      agentName: params.agentName || params.workerRole,
+      // LiveKit's automatic room dispatch targets the unnamed worker pool.
+      // Surface routing is handled in requestFunc, so setting a workerRole as
+      // agentName prevents inbound rooms from ever reaching these workers.
+      agentName: params.agentName,
       host: resolveWorkerHttpHost(),
       port: resolveWorkerHttpPort(),
       requestFunc: buildRequestFunc(params.surfaces),
