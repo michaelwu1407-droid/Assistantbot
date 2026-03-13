@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
+import { getLivekitSipTerminationUri } from "@/lib/livekit-sip-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { normalizePhone } from "@/lib/phone-utils";
@@ -14,6 +15,7 @@ type ProbeCallerSource =
   | "VOICE_MONITOR_PROBE_CALLER_NUMBER"
   | "VOICE_ALERT_SMS_TO"
   | "default_probe_caller";
+type ProbeResult = "pass" | "fallback" | "orphaned" | "disabled" | "mismatch" | "unknown";
 
 function getGatewayProbeAuthKey() {
   return (
@@ -24,11 +26,13 @@ function getGatewayProbeAuthKey() {
   ).trim();
 }
 
-function extractProbeResult(twiml: string) {
+function extractProbeResult(twiml: string, expectedSipTarget: string): ProbeResult {
   if (twiml.includes("VOICE MONITOR PROBE PASS")) return "pass";
   if (twiml.includes("VOICE MONITOR PROBE ORPHANED")) return "orphaned";
   if (twiml.includes("VOICE MONITOR PROBE DISABLED")) return "disabled";
   if (twiml.includes("VOICE MONITOR PROBE FALLBACK")) return "fallback";
+  if (expectedSipTarget && twiml.includes(`<Sip>${expectedSipTarget}</Sip>`)) return "pass";
+  if (twiml.includes("<Dial>") && twiml.includes("<Sip>")) return "mismatch";
   return "unknown";
 }
 
@@ -81,6 +85,7 @@ export async function GET(req: NextRequest) {
   const { targetNumber, source: targetNumberSource } = resolveProbeTargetNumber(req);
   const gatewayUrl = getExpectedVoiceGatewayUrl();
   const gatewayProbeAuthKey = getGatewayProbeAuthKey();
+  const expectedSipTarget = getLivekitSipTerminationUri();
 
   try {
     if (!probeCaller || !targetNumber || !gatewayUrl || !gatewayProbeAuthKey) {
@@ -135,7 +140,7 @@ export async function GET(req: NextRequest) {
     });
 
     const twiml = await response.text();
-    const probeResult = extractProbeResult(twiml);
+    const probeResult = extractProbeResult(twiml, expectedSipTarget);
     const status = probeResult === "pass" ? "healthy" : "unhealthy";
     const summary =
       probeResult === "pass"
@@ -155,6 +160,7 @@ export async function GET(req: NextRequest) {
                 probeResult,
                 targetNumber,
                 gatewayUrl,
+                expectedSipTarget,
                 responseStatus: response.status,
                 twiml,
               },
@@ -176,6 +182,7 @@ export async function GET(req: NextRequest) {
         targetNumber,
         targetNumberSource,
         gatewayUrl,
+        expectedSipTarget,
         responseStatus: response.status,
       },
       checkedAt,
@@ -192,6 +199,7 @@ export async function GET(req: NextRequest) {
         probeCallerSource,
         targetNumber,
         targetNumberSource,
+        expectedSipTarget,
         responseStatus: response.status,
         incidents,
       },

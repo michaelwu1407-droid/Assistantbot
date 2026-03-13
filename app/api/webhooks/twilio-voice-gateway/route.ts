@@ -4,6 +4,7 @@ import {
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
 } from "@/lib/earlymark-inbound-config";
+import { getLivekitSipTerminationUri } from "@/lib/livekit-sip-config";
 import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "@/lib/voice-fleet";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
@@ -106,8 +107,16 @@ function voicemailFallbackTwiml(params: {
 </Response>`;
 }
 
-function resolveSipDomain(twilioAccountSid?: string | null, subaccountId?: string | null) {
-  const account = subaccountId || twilioAccountSid || "";
+function resolveSipDomain(params: {
+  twilioAccountSid?: string | null;
+  subaccountId?: string | null;
+  isEarlymarkInboundCall?: boolean;
+}) {
+  if (params.isEarlymarkInboundCall) {
+    return getLivekitSipTerminationUri();
+  }
+
+  const account = params.subaccountId || params.twilioAccountSid || "";
   return account ? `${account}.pstn.twilio.com` : "";
 }
 
@@ -201,7 +210,11 @@ export async function POST(req: NextRequest) {
         return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
       }
 
-      const sipDomain = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID, workspace?.twilioSubaccountId);
+      const sipDomain = resolveSipDomain({
+        twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
+        subaccountId: workspace?.twilioSubaccountId,
+        isEarlymarkInboundCall,
+      });
       if (!sipDomain) {
         console.error("[voice-gateway] Missing Twilio account SID during DTMF callback forwarding.");
         return twimlResponse(rejectTwiml());
@@ -297,7 +310,11 @@ export async function POST(req: NextRequest) {
       return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
-    const sipDomain = resolveSipDomain(process.env.TWILIO_ACCOUNT_SID, workspace?.twilioSubaccountId);
+    const sipDomain = resolveSipDomain({
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
+      subaccountId: workspace?.twilioSubaccountId,
+      isEarlymarkInboundCall,
+    });
     if (!sipDomain) {
       console.error("[voice-gateway] Missing Twilio account SID; cannot forward inbound call safely.", {
         callerNumber,
@@ -308,10 +325,6 @@ export async function POST(req: NextRequest) {
         return twimlResponse(syntheticProbeTwiml("fallback"));
       }
       return twimlResponse(rejectTwiml());
-    }
-
-    if (syntheticProbe) {
-      return twimlResponse(syntheticProbeTwiml("pass"));
     }
 
     console.log("[voice-gateway] Forwarding inbound call", {

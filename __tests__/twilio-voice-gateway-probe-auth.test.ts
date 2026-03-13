@@ -5,6 +5,7 @@ const {
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
+  getLivekitSipTerminationUri,
   getVoiceFleetHealth,
   isVoiceSurfaceRoutable,
   reconcileVoiceIncidents,
@@ -14,6 +15,7 @@ const {
   getExpectedVoiceGatewayUrl: vi.fn(),
   getKnownEarlymarkInboundNumbers: vi.fn(),
   isKnownEarlymarkInboundNumber: vi.fn(),
+  getLivekitSipTerminationUri: vi.fn(),
   getVoiceFleetHealth: vi.fn(),
   isVoiceSurfaceRoutable: vi.fn(),
   reconcileVoiceIncidents: vi.fn(),
@@ -25,6 +27,10 @@ vi.mock("@/lib/earlymark-inbound-config", () => ({
   getExpectedVoiceGatewayUrl,
   getKnownEarlymarkInboundNumbers,
   isKnownEarlymarkInboundNumber,
+}));
+
+vi.mock("@/lib/livekit-sip-config", () => ({
+  getLivekitSipTerminationUri,
 }));
 
 vi.mock("@/lib/voice-fleet", () => ({
@@ -70,6 +76,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["+61485010634"]);
     isKnownEarlymarkInboundNumber.mockImplementation((phone: string) => phone === "+61485010634" || phone === "61485010634");
+    getLivekitSipTerminationUri.mockReturnValue("earlymark-outbound.pstn.sydney.twilio.com");
     getVoiceFleetHealth.mockResolvedValue({ status: "healthy", summary: "healthy fleet" });
     isVoiceSurfaceRoutable.mockReturnValue(true);
     reconcileVoiceIncidents.mockResolvedValue([]);
@@ -86,11 +93,36 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     const response = await POST(buildRequest());
     const twiml = await response.text();
 
-    expect(twiml).toContain("<Sip>AC123.pstn.twilio.com</Sip>");
+    expect(twiml).toContain("<Sip>earlymark-outbound.pstn.sydney.twilio.com</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 
-  it("returns probe TwiML only for authenticated internal probe requests", async () => {
+  it("keeps workspace calls on the workspace subaccount SIP domain", async () => {
+    isKnownEarlymarkInboundNumber.mockReturnValue(false);
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_123",
+      twilioSubaccountId: "ACSUB123",
+      voiceEnabled: true,
+    });
+
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/twilio-voice-gateway", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          From: "+61400000000",
+          To: "+61411111111",
+        }).toString(),
+      }),
+    );
+    const twiml = await response.text();
+
+    expect(twiml).toContain("<Sip>ACSUB123.pstn.twilio.com</Sip>");
+  });
+
+  it("keeps authenticated internal probes on the same resolved SIP route", async () => {
     const response = await POST(
       buildRequest({
         "x-voice-probe-key": "probe-secret",
@@ -98,7 +130,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     );
     const twiml = await response.text();
 
-    expect(twiml).toContain("VOICE MONITOR PROBE PASS");
-    expect(twiml).not.toContain("<Sip>AC123.pstn.twilio.com</Sip>");
+    expect(twiml).toContain("<Sip>earlymark-outbound.pstn.sydney.twilio.com</Sip>");
+    expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 });
