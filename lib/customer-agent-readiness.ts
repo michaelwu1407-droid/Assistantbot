@@ -351,7 +351,7 @@ export async function getCustomerAgentReadiness(
   );
 
   if (!emailLeadCaptureReadiness.ready) {
-    mergeCheckWarnings(checks.emailLeadCapture, emailLeadCaptureReadiness.issues, "unhealthy");
+    mergeCheckWarnings(checks.emailLeadCapture, emailLeadCaptureReadiness.issues, "degraded");
   }
 
   const overallStatus = Object.values(checks).reduce<ReadinessStatus>(

@@ -192,4 +192,84 @@ describe("getCustomerAgentReadiness", () => {
     expect(getVoiceFleetHealth).not.toHaveBeenCalled();
     expect(getVoiceLatencyHealth).not.toHaveBeenCalled();
   });
+
+  it("treats inbound lead email DNS drift as degraded instead of unhealthy", async () => {
+    getInboundLeadEmailReadiness.mockResolvedValue({
+      ready: false,
+      domain: "inbound.earlymark.ai",
+      issues: [
+        "Inbound domain inbound.earlymark.ai has no valid MX record (queryMx ENOTFOUND inbound.earlymark.ai).",
+        "Resend inbound receiving record for inbound.earlymark.ai is not verified.",
+      ],
+      dnsMxHosts: [],
+      resendReceivingEnabled: false,
+      resendReceivingRecordStatus: "missing",
+    });
+
+    const readiness = await getCustomerAgentReadiness({
+      twilioVoiceRouting: {
+        status: "healthy",
+        summary: "voice ready",
+        expectedVoiceGatewayUrl: "https://app.example.com/api/webhooks/twilio-voice-gateway",
+        numbers: [],
+        warnings: [],
+        managedNumberCount: 0,
+        orphanedNumbers: [],
+      },
+      twilioMessagingRouting: {
+        status: "healthy",
+        summary: "messaging ready",
+        expectedSmsWebhookUrl: "https://app.example.com/api/twilio/webhook",
+        numbers: [],
+        warnings: [],
+        managedNumberCount: 0,
+        orphanedNumbers: [],
+      },
+      voiceWorker: {
+        status: "healthy",
+        summary: "worker ready",
+        warnings: [],
+        expectedFingerprint: "va_test",
+        latestHeartbeat: null,
+      },
+      voiceFleet: createVoiceFleetHealth(),
+      voiceLatency: {
+        status: "healthy",
+        summary: "latency ready",
+        warnings: [],
+        lookbackMinutes: 60,
+        scopes: [],
+      },
+      livekitSip: {
+        status: "healthy",
+        summary: "livekit sip ready",
+        warnings: [],
+        checkedAt: "2026-03-12T00:00:00.000Z",
+        livekitUrl: "https://livekit.example.com",
+        inboundTrunkCount: 1,
+        outboundTrunkCount: 1,
+        dispatchRuleCount: 1,
+        expectedInboundNumbers: ["+15551234567"],
+        missingInboundNumbers: [],
+        inboundTrunks: [],
+        outboundTrunks: [],
+        demoOutbound: {
+          status: "healthy",
+          summary: "outbound ready",
+          warnings: [],
+          configuredTrunkId: "sip-trunk",
+          resolvedTrunkId: "sip-trunk",
+          configuredTrunkMatched: true,
+          callerNumber: "+15551234567",
+        },
+        dispatchRules: [],
+      },
+    });
+
+    expect(readiness.overallStatus).toBe("degraded");
+    expect(readiness.checks.emailLeadCapture.status).toBe("degraded");
+    expect(readiness.checks.emailLeadCapture.warnings).toContain(
+      "Inbound domain inbound.earlymark.ai has no valid MX record (queryMx ENOTFOUND inbound.earlymark.ai).",
+    );
+  });
 });

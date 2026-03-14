@@ -63,7 +63,7 @@ export type VoiceSurfaceSaturationHealth = {
 };
 
 const VOICE_SURFACES: VoiceSurface[] = ["demo", "inbound_demo", "normal"];
-const DEFAULT_EXPECTED_HOST_COUNT = 1;
+const DEFAULT_EXPECTED_HOST_COUNT = 2;
 const HEARTBEAT_LOOKBACK_MS = 10 * 60_000;
 const DEGRADED_HEARTBEAT_AGE_MS = 90_000;
 const UNHEALTHY_HEARTBEAT_AGE_MS = 150_000;

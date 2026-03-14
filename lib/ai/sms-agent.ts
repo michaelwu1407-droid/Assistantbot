@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
 import { buildCustomerSmsSystemPrompt } from "@/lib/ai/prompt-contract";
+import { enforceCustomerFacingResponsePolicy, type CustomerFacingResponsePolicyOutcome } from "@/lib/agent-mode";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import {
     runGetAvailability,
@@ -21,6 +22,11 @@ import {
 } from "@/actions/chat-actions";
 
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+
+export type GeneratedSmsResponse = {
+    text: string;
+    policyOutcome: CustomerFacingResponsePolicyOutcome;
+};
 
 function shouldFetchMemory(text: string): boolean {
     const trimmed = text.trim();
@@ -138,7 +144,7 @@ export async function generateSMSResponse(
     interactionId: string,
     userMessage: string,
     workspaceId: string
-): Promise<string> {
+): Promise<GeneratedSmsResponse> {
     const requestStartedAt = nowMs();
 
     const apiKey =
@@ -146,7 +152,12 @@ export async function generateSMSResponse(
 
     if (!apiKey) {
         console.error("Missing GEMINI_API_KEY for SMS agent");
-        return "Thanks for your message! Someone will get back to you shortly.";
+        const policyOutcome = enforceCustomerFacingResponsePolicy({
+            modeRaw: undefined,
+            text: "Thanks for your message! Someone will get back to you shortly.",
+            channel: "sms",
+        });
+        return { text: policyOutcome.finalText, policyOutcome };
     }
 
     try {
@@ -184,6 +195,7 @@ export async function generateSMSResponse(
             bouncerStr,
             attachmentsStr,
         } = agentContext;
+        const modeRaw = (settings as { agentMode?: string | null })?.agentMode;
 
         // SMS-specific sentence guidance from workspace settings
         const wsSettings = (settings as Record<string, unknown>) ?? {};
@@ -199,7 +211,7 @@ export async function generateSMSResponse(
             businessName,
             firstReplyShouldIntroduceAi: !hasPriorAssistantReply,
             sentenceGuidance,
-            modeRaw: (settings as { agentMode?: string | null })?.agentMode,
+            modeRaw,
             businessContextBlocks: [
                 knowledgeBaseStr,
                 workingHoursStr,
@@ -245,12 +257,27 @@ export async function generateSMSResponse(
         recordLatencyMetric("sms.inbound.total_ms", totalMs);
 
         const text = result.text?.trim();
-        if (text) return text;
+        if (text) {
+            const policyOutcome = enforceCustomerFacingResponsePolicy({
+                modeRaw,
+                text,
+                channel: "sms",
+            });
+            return {
+                text: policyOutcome.finalText || text,
+                policyOutcome,
+            };
+        }
     } catch (error) {
         console.error("[SMS Agent] Error generating response:", error);
     }
 
     // Fallback if Gemini fails
-    return "Thanks for your message! Someone will get back to you shortly.";
+    const policyOutcome = enforceCustomerFacingResponsePolicy({
+        modeRaw: undefined,
+        text: "Thanks for your message! Someone will get back to you shortly.",
+        channel: "sms",
+    });
+    return { text: policyOutcome.finalText, policyOutcome };
 }
 

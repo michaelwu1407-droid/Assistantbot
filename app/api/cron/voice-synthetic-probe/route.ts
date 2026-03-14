@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
@@ -16,6 +17,42 @@ type ProbeCallerSource =
   | "VOICE_ALERT_SMS_TO"
   | "default_probe_caller";
 type ProbeResult = "pass" | "fallback" | "orphaned" | "disabled" | "mismatch" | "unknown";
+
+async function getRecentSpokenCanarySample(probeCaller: string, targetNumber: string) {
+  if (!probeCaller || !targetNumber) return null;
+
+  const recentCall = await db.voiceCall.findFirst({
+    where: {
+      callerPhone: probeCaller,
+      calledPhone: targetNumber,
+      callType: { in: ["inbound_demo", "normal"] },
+      createdAt: {
+        gte: new Date(Date.now() - 30 * 60_000),
+      },
+    },
+    select: {
+      callId: true,
+      createdAt: true,
+      transcriptText: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!recentCall) return null;
+
+  const transcript = recentCall.transcriptText || "";
+  const heardGreeting = /Tracey/i.test(transcript);
+  const capturedCallerSpeech = /Caller:/i.test(transcript);
+  const capturedAssistantSpeech = /Tracey:/i.test(transcript);
+
+  return {
+    callId: recentCall.callId,
+    createdAt: recentCall.createdAt.toISOString(),
+    heardGreeting,
+    capturedCallerSpeech,
+    capturedAssistantSpeech,
+  };
+}
 
 function getGatewayProbeAuthKey() {
   return (
@@ -141,11 +178,23 @@ export async function GET(req: NextRequest) {
 
     const twiml = await response.text();
     const probeResult = extractProbeResult(twiml, expectedSipTarget);
-    const status = probeResult === "pass" ? "healthy" : "unhealthy";
+    const spokenCanary = await getRecentSpokenCanarySample(probeCaller, targetNumber);
+    const status =
+      probeResult !== "pass"
+        ? "unhealthy"
+        : !spokenCanary
+          ? "degraded"
+          : spokenCanary.heardGreeting && spokenCanary.capturedCallerSpeech && spokenCanary.capturedAssistantSpeech
+            ? "healthy"
+            : "unhealthy";
     const summary =
-      probeResult === "pass"
-        ? "Synthetic Earlymark inbound probe passed"
-        : `Synthetic Earlymark inbound probe returned ${probeResult}`;
+      probeResult !== "pass"
+        ? `Synthetic Earlymark inbound probe returned ${probeResult}`
+        : !spokenCanary
+          ? "Gateway probe passed, but there is no recent spoken canary sample for the probe path."
+          : spokenCanary.heardGreeting && spokenCanary.capturedCallerSpeech && spokenCanary.capturedAssistantSpeech
+            ? "Synthetic Earlymark inbound probe passed with a recent spoken canary sample."
+            : "Gateway probe passed, but the recent spoken canary sample did not show a complete spoken exchange.";
 
     const observations =
       status === "healthy"
@@ -163,6 +212,7 @@ export async function GET(req: NextRequest) {
                 expectedSipTarget,
                 responseStatus: response.status,
                 twiml,
+                spokenCanary,
               },
             },
           ];
@@ -184,6 +234,7 @@ export async function GET(req: NextRequest) {
         gatewayUrl,
         expectedSipTarget,
         responseStatus: response.status,
+        spokenCanary,
       },
       checkedAt,
       succeeded: true,
@@ -201,9 +252,10 @@ export async function GET(req: NextRequest) {
         targetNumberSource,
         expectedSipTarget,
         responseStatus: response.status,
+        spokenCanary,
         incidents,
       },
-      { status: status === "healthy" ? 200 : 500 },
+      { status: status === "unhealthy" ? 500 : 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown synthetic probe failure";

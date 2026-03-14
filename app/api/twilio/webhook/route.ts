@@ -106,7 +106,8 @@ export async function POST(req: NextRequest) {
                 }
 
                 // ─── AI Response Generation ─────────────────────────────
-                const aiResponseText = await generateSMSResponse(interactionId, Body, workspaceId);
+                const aiResponse = await generateSMSResponse(interactionId, Body, workspaceId);
+                const aiResponseText = aiResponse.text;
 
                 // Log Assistant Message
                 await prisma.chatMessage.create({
@@ -114,7 +115,13 @@ export async function POST(req: NextRequest) {
                         content: aiResponseText,
                         role: "assistant",
                         workspaceId,
-                        metadata: { activityId: interactionId, contactId }
+                        metadata: {
+                            activityId: interactionId,
+                            contactId,
+                            channel: "sms",
+                            customerContactMode: aiResponse.policyOutcome.mode,
+                            responsePolicyOutcome: aiResponse.policyOutcome,
+                        }
                     }
                 })
 

@@ -168,7 +168,7 @@ describe("Tracey onboarding lead email preview", () => {
     await user.click(screen.getByRole("button", { name: /^Next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Your leads email/i)).toBeInTheDocument();
+      expect(screen.getByText(/Leads email/i)).toBeInTheDocument();
       expect(screen.getAllByText(previewEmail).length).toBeGreaterThan(0);
     });
 

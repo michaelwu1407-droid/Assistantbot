@@ -82,6 +82,7 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 
 ## Voice Debug Start Rule
 
+- Before any new voice-agent debugging or tuning session, read `docs/voice_operating_brief.md` as the curated voice handoff doc, then inspect the latest relevant entries in `docs/agent_change_log.md`.
 - Before any new voice-agent debugging session, read this file and inspect the latest `/tmp/agent.log` entries for `[voice-turn]`, `[voice-audit]`, `[voice-user-turn]`, and `[TRACK]` lines first.
 - Treat the latest measured bottleneck as the starting point. Do not guess from prompts alone when logs already show whether the delay is in STT, LLM TTFT, or TTS.
 - For inbound Earlymark calls, treat `llmTtftMs > 1200` or `ttsTtfbMs > 900` as a regression threshold worth fixing.
@@ -99,8 +100,10 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 ## Agent Change Logging (Mandatory)
 
 - Every agent-authored code/config change must include a same-commit entry in `docs/agent_change_log.md`.
+- Every voice-affecting behavior, runtime, monitoring, or topology change must also update `docs/voice_operating_brief.md`.
 - Required fields per entry: timestamp (AEST/AEDT), agent name, files changed, summary of what changed, and why.
 - If staged changes include code/config paths and no staged update to `docs/agent_change_log.md`, the commit must fail.
+- If staged changes touch voice-affecting files and no staged update to `docs/voice_operating_brief.md`, the commit must fail.
 - `CHANGELOG.md` remains product-release facing; `docs/agent_change_log.md` is the operational audit log for all agent edits.
 
 ## Tracey System Prompt (Canonical)

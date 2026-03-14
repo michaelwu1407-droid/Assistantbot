@@ -49,13 +49,13 @@ describe("getVoiceFleetHealth", () => {
     process.env = { ...originalEnv };
   });
 
-  it("treats a single configured host as healthy by default", async () => {
+  it("treats a single configured host as degraded by default until a second host exists", async () => {
     const fleet = await getVoiceFleetHealth();
 
-    expect(fleet.status).toBe("healthy");
+    expect(fleet.status).toBe("degraded");
     expect(fleet.hosts).toHaveLength(1);
-    expect(fleet.surfaces.demo.expectedHostCount).toBe(1);
-    expect(fleet.warnings).toEqual([]);
+    expect(fleet.surfaces.demo.expectedHostCount).toBe(2);
+    expect(fleet.warnings).toContain("Only 1/2 voice host(s) have reported in recently.");
   });
 
   it("degrades when two hosts are explicitly expected", async () => {

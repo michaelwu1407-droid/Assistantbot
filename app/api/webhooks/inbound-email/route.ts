@@ -528,6 +528,24 @@ export async function POST(req: NextRequest) {
 
     // 8. Response action — send the reply via Resend from the business subdomain
     if (geminiResult?.reply) {
+      await db.chatMessage.create({
+        data: {
+          workspaceId: workspace.id,
+          role: "assistant",
+          content: geminiResult.reply,
+          metadata: {
+            channel: "email",
+            activityId: activity.id,
+            contactId: contact.id,
+            dealId: activeDeal?.id ?? null,
+            subject,
+            replySent: false,
+            customerContactMode: geminiResult.policyOutcome.mode,
+            responsePolicyOutcome: geminiResult.policyOutcome,
+          },
+        },
+      });
+
       const resendKey = process.env.RESEND_API_KEY;
 
       if (resendKey) {
@@ -549,6 +567,30 @@ export async function POST(req: NextRequest) {
             console.error("[inbound-email] Resend send error:", error);
           } else {
             replySent = true;
+
+            await db.chatMessage.updateMany({
+              where: {
+                workspaceId: workspace.id,
+                role: "assistant",
+                content: geminiResult.reply,
+                metadata: {
+                  path: ["activityId"],
+                  equals: activity.id,
+                },
+              },
+              data: {
+                metadata: {
+                  channel: "email",
+                  activityId: activity.id,
+                  contactId: contact.id,
+                  dealId: activeDeal?.id ?? null,
+                  subject,
+                  replySent: true,
+                  customerContactMode: geminiResult.policyOutcome.mode,
+                  responsePolicyOutcome: geminiResult.policyOutcome,
+                },
+              },
+            });
 
             // Log the outbound reply as a separate activity
             await db.activity.create({

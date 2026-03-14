@@ -32,6 +32,8 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
         const result = await initiateDemoCall({
             phone: data.phone,
             firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
             businessName: data.businessName,
         });
 

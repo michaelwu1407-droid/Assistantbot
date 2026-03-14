@@ -23,6 +23,8 @@ export type ResolvedDemoOutboundTrunk = {
 export type DemoCallInput = {
   phone: string;
   firstName?: string;
+  lastName?: string;
+  email?: string;
   businessName?: string;
 };
 
@@ -203,6 +205,8 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
   }
 
   const firstName = input.firstName?.trim() || "there";
+  const lastName = input.lastName?.trim() || "";
+  const email = input.email?.trim().toLowerCase() || "";
   const businessName = input.businessName?.trim() || "";
   const sipClient = getLivekitSipClient();
   const roomClient = getLivekitRoomClient();
@@ -220,6 +224,8 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
     metadata: JSON.stringify({
       callType: "demo",
       firstName,
+      lastName,
+      email,
       businessName,
       phone: normalizedPhone,
     }),

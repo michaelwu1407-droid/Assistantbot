@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
+import { EARLYMARK_SALES_PILLARS } from "@/livekit-agent/earlymark-sales-brief";
 
 const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
@@ -56,8 +57,8 @@ const TRACEY_WAY = [
 
 const HIRE_FEATURES = [
     {
-        title: "Never miss a job again",
-        desc: "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
+        title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
+        desc: EARLYMARK_SALES_PILLARS[0]?.description || "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
         photoAlt: "Trade business owner taking a call while standing at a job site",
         photoSrc: "https://images.unsplash.com/photo-1581092919535-7146ff1a590d?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Lead capture",
@@ -66,8 +67,8 @@ const HIRE_FEATURES = [
         screenshotBg: "from-emerald-500/20 to-emerald-600/10",
     },
     {
-        title: "No more admin. Chat with your CRM.",
-        desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
+        title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
+        desc: EARLYMARK_SALES_PILLARS[1]?.description || "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
         photoAlt: "Business owner using a laptop in a workshop office",
         photoSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Operations",
@@ -76,8 +77,8 @@ const HIRE_FEATURES = [
         screenshotBg: "from-blue-500/20 to-blue-600/10",
     },
     {
-        title: "AI that actually works",
-        desc: "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
+        title: EARLYMARK_SALES_PILLARS[2]?.title || "AI that actually works",
+        desc: EARLYMARK_SALES_PILLARS[2]?.description || "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
         photoAlt: "Customer texting on a phone with a service professional in the background",
         photoSrc: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Customer experience",
@@ -86,8 +87,8 @@ const HIRE_FEATURES = [
         screenshotBg: "from-violet-500/20 to-violet-600/10",
     },
     {
-        title: "Total control",
-        desc: "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
+        title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
+        desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
         photoAlt: "Operations manager reviewing settings and approvals on a laptop",
         photoSrc: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Oversight",

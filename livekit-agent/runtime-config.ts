@@ -9,6 +9,8 @@ const REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS = [
   "LIVEKIT_API_SECRET",
   "CARTESIA_API_KEY",
   "DEEPGRAM_API_KEY",
+  "VOICE_TTS_VOICE_ID",
+  "VOICE_TTS_LANGUAGE",
 ] as const;
 
 function normalizeEnvValue(value?: string | null) {

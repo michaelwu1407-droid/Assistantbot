@@ -48,7 +48,7 @@ describe("voice agent runtime config", () => {
         LIVEKIT_API_KEY: "livekit-key",
         LIVEKIT_API_SECRET: "livekit-secret",
       })),
-    ).toThrow(/CARTESIA_API_KEY, DEEPGRAM_API_KEY, NEXT_PUBLIC_APP_URL\|APP_URL, GROQ_API_KEY\|DEEPINFRA_API_KEY/);
+    ).toThrow(/CARTESIA_API_KEY, DEEPGRAM_API_KEY, VOICE_TTS_VOICE_ID, VOICE_TTS_LANGUAGE, NEXT_PUBLIC_APP_URL\|APP_URL, GROQ_API_KEY\|DEEPINFRA_API_KEY/);
   });
 
   it("accepts a complete production worker env", () => {
@@ -62,6 +62,8 @@ describe("voice agent runtime config", () => {
         CARTESIA_API_KEY: "cartesia-key",
         DEEPGRAM_API_KEY: "deepgram-key",
         GROQ_API_KEY: "groq-key",
+        VOICE_TTS_VOICE_ID: "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+        VOICE_TTS_LANGUAGE: "en-AU",
         APP_URL: "https://earlymark.ai",
       })),
     ).not.toThrow();

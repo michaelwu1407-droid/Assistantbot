@@ -28,6 +28,9 @@ export type VoiceLatencyHealthScope = {
     ttsTtfbAvgMs: number;
     totalTurnStartMs: number;
     firstTurnStartMs: number;
+    dominantBottleneck: "tts_ttfb" | "llm_ttft" | "turn_start" | "balanced";
+    ttsVoiceId: string | null;
+    ttsLanguage: string | null;
   }>;
 };
 
@@ -77,11 +80,13 @@ function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
 
 function extractLatency(call: {
   latency: Prisma.JsonValue | null;
+  metadata: Prisma.JsonValue | null;
   callId: string;
   roomName: string;
   createdAt: Date;
 }) {
   const latency = isJsonObject(call.latency) ? call.latency : null;
+  const metadata = isJsonObject(call.metadata) ? call.metadata : null;
   const llmTtftAvgMs = latency ? readNumber(latency.llmTtftAvgMs) : 0;
   const ttsTtfbAvgMs = latency ? readNumber(latency.ttsTtfbAvgMs) : 0;
   const totalTurnStartMs = latency
@@ -94,6 +99,14 @@ function extractLatency(call: {
       )
     : 0;
   const firstTurnStartMs = latency ? readNumber(latency.firstTurnStartMs) : 0;
+  const dominantBottleneck: "tts_ttfb" | "llm_ttft" | "turn_start" | "balanced" =
+    ttsTtfbAvgMs > llmTtftAvgMs && ttsTtfbAvgMs >= totalTurnStartMs * 0.45
+      ? "tts_ttfb"
+      : llmTtftAvgMs >= ttsTtfbAvgMs && llmTtftAvgMs >= totalTurnStartMs * 0.35
+        ? "llm_ttft"
+        : totalTurnStartMs > 0
+          ? "turn_start"
+          : "balanced";
 
   return {
     callId: call.callId,
@@ -103,6 +116,9 @@ function extractLatency(call: {
     ttsTtfbAvgMs,
     totalTurnStartMs,
     firstTurnStartMs,
+    dominantBottleneck,
+    ttsVoiceId: typeof metadata?.ttsVoiceId === "string" ? metadata.ttsVoiceId : null,
+    ttsLanguage: typeof metadata?.ttsLanguage === "string" ? metadata.ttsLanguage : null,
   };
 }
 
@@ -129,6 +145,14 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
     warnings.push(
       `Average turn-start latency is ${averages.totalTurnStartMs}ms (threshold ${thresholds.totalTurnStartMs}ms).`,
     );
+  }
+
+  const dominantBottleneckCounts = recentCalls.reduce<Record<string, number>>((acc, call) => {
+    acc[call.dominantBottleneck] = (acc[call.dominantBottleneck] || 0) + 1;
+    return acc;
+  }, {});
+  if ((dominantBottleneckCounts.tts_ttfb || 0) >= Math.max(2, Math.ceil(recentCalls.length / 2))) {
+    warnings.push("TTS first-byte latency is currently the dominant contributor on recent calls.");
   }
 
   const isSeverelyRegressed =
@@ -183,6 +207,7 @@ export async function getVoiceLatencyHealth(options?: {
       roomName: true,
       createdAt: true,
       latency: true,
+      metadata: true,
     },
     orderBy: { createdAt: "desc" },
     take: limitPerSurface * 6,

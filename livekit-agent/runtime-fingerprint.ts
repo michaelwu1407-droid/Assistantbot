@@ -2,7 +2,10 @@ type CallType = "demo" | "inbound_demo" | "normal";
 type LlmProviderName = "groq" | "deepinfra";
 
 const DEFAULT_TTS_VOICE_ID = "a4a16c5e-5902-4732-b9b6-2a48efd2e11b";
+const DEFAULT_TTS_LANGUAGE = "en-AU";
+const DEFAULT_TTS_MODEL = "sonic-3";
 const DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES = "demo,inbound_demo,normal";
+const DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES = "demo,inbound_demo";
 const SURFACE_ORDER: CallType[] = ["demo", "inbound_demo", "normal"];
 
 function normalizeEnvValue(value?: string | null) {
@@ -207,11 +210,17 @@ export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv =
     CUSTOMER_PRIMARY_MODEL: resolveProviderModel("normal", customerPrimaryProvider, false, env),
     CUSTOMER_FALLBACK_MODEL: resolveProviderModel("normal", resolveAlternateProvider(customerPrimaryProvider), true, env),
     STT_MODEL: normalizeEnvValue(env.VOICE_STT_MODEL) || "nova-3",
+    TTS_MODEL: normalizeEnvValue(env.VOICE_TTS_MODEL) || DEFAULT_TTS_MODEL,
     TTS_VOICE_ID: normalizeEnvValue(env.VOICE_TTS_VOICE_ID) || DEFAULT_TTS_VOICE_ID,
+    TTS_LANGUAGE: normalizeEnvValue(env.VOICE_TTS_LANGUAGE) || DEFAULT_TTS_LANGUAGE,
     VOICE_LATENCY_ENABLED: parseBoolean(env.VOICE_LATENCY_ENABLED, true) ? "true" : "false",
     VOICE_OPENER_BANK_ENABLED: parseBoolean(env.VOICE_OPENER_BANK_ENABLED, true) ? "true" : "false",
     VOICE_GUARD_ENABLED: parseBoolean(env.VOICE_GUARD_ENABLED, true) ? "true" : "false",
     VOICE_LATENCY_TARGET_CALL_TYPES: resolveLatencyTargetCallTypes(env),
+    VOICE_SPECULATIVE_HEADS_ENABLED: parseBoolean(env.VOICE_SPECULATIVE_HEADS_ENABLED, true) ? "true" : "false",
+    VOICE_SPECULATIVE_HEADS_SURFACES:
+      normalizeSurfaceList(normalizeCsv(env.VOICE_SPECULATIVE_HEADS_SURFACES || DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES)).join(",") ||
+      DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES,
   };
 }
 

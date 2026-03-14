@@ -16,6 +16,7 @@ export type VoiceTurnIntent =
 export type VoiceRiskLevel = 'low' | 'medium' | 'high';
 export type VoiceRoute = 'main_llm' | 'lookup_first' | 'handoff' | 'message_capture';
 export type OpenerCategory = 'ack' | 'lookup' | 'handoff' | 'message_capture' | 'empathy';
+export type SpeculativeHeadIntent = 'capability' | 'demo' | 'pain_point' | 'next_step';
 
 export type OpenerId =
   | 'yep'
@@ -30,11 +31,25 @@ export type OpenerId =
   | 'sorry_thats_annoying'
   | 'i_get_that';
 
+export type SpeculativeHeadId =
+  | 'capability_explanation'
+  | 'demo_invitation'
+  | 'pain_point_ack'
+  | 'signup_bridge';
+
 export type OpenerBankEntry = {
   id: OpenerId;
   text: string;
   category: OpenerCategory;
   empathetic: boolean;
+};
+
+export type SpeculativeHeadBankEntry = {
+  id: SpeculativeHeadId;
+  text: string;
+  intents: VoiceTurnIntent[];
+  surfaces: VoiceCallSurface[];
+  category: SpeculativeHeadIntent;
 };
 
 export type VoiceTurnPrediction = {
@@ -66,7 +81,9 @@ export type VoiceLatencyConfig = {
   enabled: boolean;
   openerBankEnabled: boolean;
   guardEnabled: boolean;
+  speculativeHeadsEnabled: boolean;
   targetCallTypes: VoiceCallSurface[];
+  speculativeHeadSurfaces: VoiceCallSurface[];
   openerConfidenceThreshold: number;
   guardTimeoutMs: number;
   guardMinChars: number;
@@ -154,6 +171,38 @@ export const OPENER_BANK: OpenerBankEntry[] = [
 ];
 
 export const DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES = 'demo,inbound_demo,normal';
+export const DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES = 'demo,inbound_demo';
+
+export const SPECULATIVE_HEAD_BANK: SpeculativeHeadBankEntry[] = [
+  {
+    id: 'capability_explanation',
+    text: 'Yep, Earlymark can help with that.',
+    intents: ['lookup', 'general'],
+    surfaces: ['demo', 'inbound_demo'],
+    category: 'capability',
+  },
+  {
+    id: 'demo_invitation',
+    text: 'Yeah, I can show you that now.',
+    intents: ['general', 'lookup'],
+    surfaces: ['demo', 'inbound_demo'],
+    category: 'demo',
+  },
+  {
+    id: 'pain_point_ack',
+    text: 'That is exactly where we help.',
+    intents: ['complaint', 'general', 'message_capture'],
+    surfaces: ['demo', 'inbound_demo'],
+    category: 'pain_point',
+  },
+  {
+    id: 'signup_bridge',
+    text: 'Yep, the next step is straightforward.',
+    intents: ['handoff', 'general'],
+    surfaces: ['demo', 'inbound_demo'],
+    category: 'next_step',
+  },
+];
 
 export function getPhaseTwoBacklog(): string[] {
   return [...PHASE_TWO_BACKLOG];
@@ -182,6 +231,13 @@ export function resolveVoiceLatencyConfig(args: {
   const enabledByCallType = targetCallTypes.includes(args.callType);
   const enabled = parseBoolean(process.env.VOICE_LATENCY_ENABLED, true) && enabledByCallType;
   const openerBankEnabled = enabled && parseBoolean(process.env.VOICE_OPENER_BANK_ENABLED, true);
+  const speculativeHeadSurfaces = normalizeSurfaceList(
+    parseCsv(process.env.VOICE_SPECULATIVE_HEADS_SURFACES || DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES),
+  );
+  const speculativeHeadsEnabled =
+    enabled &&
+    parseBoolean(process.env.VOICE_SPECULATIVE_HEADS_ENABLED, true) &&
+    speculativeHeadSurfaces.includes(args.callType);
 
   const guardProvider = normalizeGuardProvider(process.env.VOICE_GUARD_PROVIDER || args.llmProvider);
   const guardApiKey =
@@ -213,13 +269,35 @@ export function resolveVoiceLatencyConfig(args: {
     enabled,
     openerBankEnabled,
     guardEnabled: Boolean(guardRuntime),
+    speculativeHeadsEnabled,
     targetCallTypes,
+    speculativeHeadSurfaces,
     openerConfidenceThreshold: clampNumber(process.env.VOICE_OPENER_CONFIDENCE_THRESHOLD, 0.72, 0.4, 0.95),
     guardTimeoutMs: guardRuntime?.timeoutMs ?? clampNumber(process.env.VOICE_GUARD_TIMEOUT_MS, 100, 40, 250),
     guardMinChars: clampNumber(process.env.VOICE_GUARD_MIN_CHARS, 18, 8, 80),
     empathyTurnGap: clampNumber(process.env.VOICE_EMPATHY_TURN_GAP, 3, 1, 8),
     guardRuntime,
   };
+}
+
+export function resolveSpeculativeHeadEntry(args: {
+  callType: VoiceCallSurface;
+  prediction: VoiceTurnPrediction;
+}): SpeculativeHeadBankEntry | null {
+  if (args.callType === 'normal') return null;
+  if (args.prediction.riskLevel !== 'low') return null;
+  if (args.prediction.intent === 'pricing' || args.prediction.intent === 'booking' || args.prediction.intent === 'policy') {
+    return null;
+  }
+
+  return (
+    SPECULATIVE_HEAD_BANK.find((entry) =>
+      entry.surfaces.includes(args.callType) && entry.intents.includes(args.prediction.intent),
+    ) ||
+    (args.prediction.intent === 'general'
+      ? SPECULATIVE_HEAD_BANK.find((entry) => entry.id === 'capability_explanation') || null
+      : null)
+  );
 }
 
 export function predictVoiceTurn(transcript: string, source: 'interim' | 'final'): VoiceTurnPrediction {
@@ -614,6 +692,10 @@ function parseCsv(value: string): string[] {
     .filter(Boolean);
 }
 
+function normalizeSurfaceList(values: string[]) {
+  return Array.from(new Set(values.filter(isVoiceCallSurface)));
+}
+
 function clampNumber(rawValue: string | undefined, fallback: number, min: number, max: number): number {
   const parsed = Number(rawValue);
   if (!Number.isFinite(parsed)) return fallback;
@@ -656,12 +738,15 @@ function canUseEmpathy(
 
 const voiceLatency = {
   DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
+  DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES,
   OPENER_BANK,
+  SPECULATIVE_HEAD_BANK,
   buildVoiceFollowupInstructions,
   getPhaseTwoBacklog,
   normalizeVoiceLatencyTranscript,
   predictVoiceTurn,
   resolveOpenerEntry,
+  resolveSpeculativeHeadEntry,
   resolveVoiceLatencyConfig,
   runVoiceGuardDecision,
   shouldPrimeVoiceGuard,

@@ -23,6 +23,7 @@ import * as openai from '@livekit/agents-plugin-openai';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts as agentsTts, voice } from '@livekit/agents';
+import type { STTOptions as DeepgramSTTOptions } from '@livekit/agents-plugin-deepgram';
 import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
@@ -36,7 +37,14 @@ import {
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
-import type { GuardDecision, OpenerBankEntry, OpenerId, VoiceTurnPrediction } from './voice-latency';
+import type {
+  GuardDecision,
+  OpenerBankEntry,
+  OpenerId,
+  SpeculativeHeadBankEntry,
+  SpeculativeHeadId,
+  VoiceTurnPrediction,
+} from './voice-latency';
 import {
   buildCapacitySummary,
   getActiveCallCount,
@@ -46,6 +54,15 @@ import {
   markCallStarted,
   setWorkerBootReady,
 } from './runtime-state';
+import {
+  buildCustomerModePolicyLines,
+  enforceCustomerFacingResponsePolicy,
+  type CustomerFacingResponsePolicyOutcome,
+} from './customer-contact-policy';
+import {
+  buildEarlymarkSalesBrief,
+  getEarlymarkSalesOneLiner,
+} from './earlymark-sales-brief';
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -56,6 +73,7 @@ const {
   buildVoiceFollowupInstructions,
   getPhaseTwoBacklog,
   predictVoiceTurn,
+  resolveSpeculativeHeadEntry,
   resolveOpenerEntry,
   resolveVoiceLatencyConfig,
   runVoiceGuardDecision,
@@ -119,7 +137,9 @@ type TurnAudit = {
 type CallerContext = {
   callType: CallType;
   firstName: string;
+  lastName: string;
   businessName: string;
+  email: string;
   phone: string;
   calledPhone: string;
 };
@@ -175,6 +195,12 @@ type VoiceLatencyAudit = {
   guardTimeouts: number;
   guardEligibleTurns: number;
   openerUsage: Partial<Record<OpenerId, number>>;
+  speculativeHeadLeadMs: number[];
+  speculativeHeadGapMs: number[];
+  speculativeHeadHits: number;
+  speculativeHeadCacheMisses: number;
+  speculativeHeadUsage: Partial<Record<SpeculativeHeadId, number>>;
+  speculativeHeadCancelled: number;
 };
 
 type ActiveVoiceTurnState = {
@@ -187,10 +213,16 @@ type ActiveVoiceTurnState = {
 type PendingLatencyTurn = {
   transcript: string;
   finalCreatedAt: number;
-  openerEntry: OpenerBankEntry;
+  openerEntry: OpenerBankEntry | SpeculativeHeadBankEntry;
   guardDecision: GuardDecision | null;
   prediction: VoiceTurnPrediction;
   openerSpeechCreatedAt: number | null;
+  kind: "opener" | "speculative_head";
+};
+
+type AssistantTranscriptOverride = {
+  text: string;
+  policyOutcome: CustomerFacingResponsePolicyOutcome;
 };
 
 type LlmProviderName = "groq" | "deepinfra";
@@ -235,6 +267,7 @@ type GroundingCacheEntry = {
 let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
+let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
 
 function cloneAudioFrame(frame: AudioFrame): AudioFrame {
   return new AudioFrame(new Int16Array(frame.data), frame.sampleRate, frame.channels, frame.samplesPerChannel);
@@ -247,6 +280,32 @@ function audioFrameToReadableStream(frame: AudioFrame): ReadableStream<AudioFram
       controller.close();
     },
   });
+}
+
+function stringToReadableStream(text: string): ReadableStream<string> {
+  return new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(text);
+      controller.close();
+    },
+  });
+}
+
+async function readableStreamToString(stream: ReadableStream<string>): Promise<string> {
+  const reader = stream.getReader();
+  const chunks: string[] = [];
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return chunks.join("");
 }
 
 function buildOpenerAudioCache(tts: cartesia.TTS, logPrefix: string): Map<OpenerId, Promise<AudioFrame>> {
@@ -280,9 +339,40 @@ function getSharedOpenerAudioCache(tts: cartesia.TTS, logPrefix: string) {
   return sharedOpenerAudioCache;
 }
 
+function buildSpeculativeHeadAudioCache(tts: cartesia.TTS, logPrefix: string): Map<SpeculativeHeadId, Promise<AudioFrame>> {
+  const cache = new Map<SpeculativeHeadId, Promise<AudioFrame>>();
+
+  for (const head of voiceLatency.SPECULATIVE_HEAD_BANK || []) {
+    cache.set(
+      head.id,
+      tts
+        .synthesize(head.text)
+        .collect()
+        .catch((error) => {
+          console.warn(`${logPrefix} [VOICE_LATENCY] Failed to pre-synthesize speculative head "${head.id}"`, error);
+          throw error;
+        })
+    );
+  }
+
+  void Promise.allSettled(cache.values()).then((results) => {
+    const warmed = results.filter((result) => result.status === "fulfilled").length;
+    console.log(`${logPrefix} [VOICE_LATENCY] Warmed ${warmed}/${cache.size} speculative response-head clips`);
+  });
+
+  return cache;
+}
+
+function getSharedSpeculativeHeadAudioCache(tts: cartesia.TTS, logPrefix: string) {
+  if (!sharedSpeculativeHeadAudioCache) {
+    sharedSpeculativeHeadAudioCache = buildSpeculativeHeadAudioCache(tts, logPrefix);
+  }
+  return sharedSpeculativeHeadAudioCache;
+}
+
 async function getCachedOpenerAudioFrame(
-  cache: Map<OpenerId, Promise<AudioFrame>>,
-  openerId: OpenerId,
+  cache: Map<string, Promise<AudioFrame>>,
+  openerId: string,
   maxWaitMs: number
 ): Promise<AudioFrame | null> {
   const promise = cache.get(openerId);
@@ -330,6 +420,18 @@ class MultilingualTTS extends agentsTts.TTS {
 
   setReplyLanguage(detected: string | null | undefined): void {
     this.#currentReplyLanguage = normalizeReplyLanguage(detected);
+  }
+
+  getCurrentReplyLanguage(): string {
+    return this.#currentReplyLanguage;
+  }
+
+  getConfiguredVoiceId(): string {
+    return this.#opts.voice;
+  }
+
+  getConfiguredModel(): string {
+    return this.#opts.model;
   }
 
   #forwardTtsEvents(tts: cartesia.TTS): void {
@@ -705,10 +807,22 @@ class ProviderFallbackLLMStream extends livekitLlm.LLMStream {
   }
 }
 
-function createCartesiaTts(language = process.env.VOICE_TTS_LANGUAGE || "en-AU") {
+function resolveConfiguredTtsVoiceId() {
+  return (process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b").trim();
+}
+
+function resolveConfiguredTtsLanguage() {
+  return (process.env.VOICE_TTS_LANGUAGE || "en-AU").trim();
+}
+
+function resolveConfiguredTtsModel() {
+  return (process.env.VOICE_TTS_MODEL || "sonic-3").trim();
+}
+
+function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
-    model: "sonic-3",
-    voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+    model: resolveConfiguredTtsModel(),
+    voice: resolveConfiguredTtsVoiceId(),
     language,
     chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
   });
@@ -719,6 +833,7 @@ async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
     const warmTts = createCartesiaTts();
     await warmTts.synthesize("Hi there.").collect();
     await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
+    await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
   } catch (error) {
     console.warn(`${logPrefix} Failed to prewarm Cartesia TTS:`, error);
   }
@@ -978,29 +1093,7 @@ function compactLines(lines: Array<string | null | undefined>, maxLines: number)
 }
 
 function getNormalModeInstructions(grounding?: WorkspaceVoiceGrounding | null): string[] {
-  const mode = grounding?.customerContactMode || "review_approve";
-
-  if (mode === "execute") {
-    return [
-      "The current Tracey for users mode is Execute.",
-      "This same mode applies across customer calls and texts for this business.",
-      "You may answer questions, qualify leads, and make normal business commitments that are clearly supported by the business rules and approved pricing.",
-    ];
-  }
-
-  if (mode === "info_only") {
-    return [
-      "The current Tracey for users mode is Info only.",
-      "This same mode applies across customer calls and texts for this business.",
-      "You may answer, screen, and capture details, but do not make firm bookings, quotes, or outbound commitments. Offer to pass it to the team.",
-    ];
-  }
-
-  return [
-    "The current Tracey for users mode is Review & approve.",
-    "This same mode applies across customer calls and texts for this business.",
-    "You may answer questions and gather details, but if a booking, quote, or firm commitment would normally be made, say the team will confirm it shortly.",
-  ];
+  return buildCustomerModePolicyLines(grounding?.customerContactMode);
 }
 
 function buildGroundingSnapshot(grounding?: WorkspaceVoiceGrounding | null): string {
@@ -1094,6 +1187,38 @@ ${groundingSnapshot ? `BUSINESS SNAPSHOT\n${groundingSnapshot}\n\n` : ""}CALL HA
 - The call will disconnect at 10 minutes maximum.`;
 }
 
+function buildKnownCallerDetailLines(caller: CallerContext): string[] {
+  return [
+    `First name: ${caller.firstName || "unknown"}`,
+    `Last name: ${caller.lastName || "unknown"}`,
+    `Business name: ${caller.businessName || "unknown"}`,
+    `Phone: ${caller.phone || "unknown"}`,
+    `Email: ${caller.email || "unknown"}`,
+    `Called number: ${caller.calledPhone || "unknown"}`,
+  ];
+}
+
+function buildEarlymarkSalesContext(callType: Extract<CallType, "demo" | "inbound_demo">) {
+  const brief = buildEarlymarkSalesBrief();
+  const roleSpecificLines =
+    callType === "demo"
+      ? [
+          "This is an outbound demo call to someone who already filled in the website form.",
+          "Use the known form details as baseline context. Only confirm or repair missing details when useful.",
+          "Your main job is to demonstrate capability live, discover pain points, and move the caller toward sign-up or a manager consult.",
+        ]
+      : [
+          "This is an inbound Earlymark AI sales call.",
+          "Answer Earlymark questions first, then sell using the homepage value proposition.",
+          "Capture unknown caller details early so the team can follow up and convert them later.",
+        ];
+
+  return {
+    brief,
+    roleSpecificLines,
+  };
+}
+
 function isMeaningfulUserTurn(rawTranscript: string): boolean {
   const normalized = normalizeTranscript(rawTranscript);
   if (!normalized) return false;
@@ -1150,21 +1275,20 @@ function isGoodbyeTurn(rawTranscript: string): boolean {
 }
 
 function buildDemoPrompt(caller: CallerContext): string {
+  const sales = buildEarlymarkSalesContext("demo");
   return `You are Tracey, an AI assistant from Earlymark AI.
-
-This is an outbound interview-form demo call. The person on the line asked to try Tracey via the website.
 
 IDENTITY
 - Introduce yourself as "Tracey, an AI assistant from Earlymark AI."
-- You are a live example of the product, not the manager.
-- If asked whether you are AI, answer yes briefly.
+- You are a live product demo, not the manager.
+- If asked whether you are AI, answer yes briefly and keep helping.
 
 STYLE
-- Be warm, confident, brief, and natural.
+- Be warm, commercially sharp, brief, and natural.
 - Usually speak in 1 short sentence, then pause.
 - Ask 1 focused question at a time.
 - Keep English replies Australian in tone without forcing slang.
-- Do not summarise the full call at the end.
+- Do not give long end-of-call recaps.
 
 LANGUAGE
 - Reply in the same language as the caller.
@@ -1174,31 +1298,28 @@ LANGUAGE
 - Do not switch back to English unless the caller does.
 
 PRIMARY JOB
-- Identify pain points around missed calls, lead follow-up, quoting, booking, admin load, and response times.
-- Move the caller toward either:
-  1. a consultation with an Earlymark AI manager
-  2. signing up on earlymark.ai
-- Capture lead details before the call ends: first name, business name, business type, best phone number, and email if available.
+- ${sales.roleSpecificLines.join("\n- ")}
+- Give a live spoken demo of what Earlymark can do when useful.
+- Sell from this brief: ${sales.brief}
+- Push a contextual close: direct sign-up when intent is clear, otherwise an Earlymark manager follow-up.
 
 SALES RULES
-- If they ask what Earlymark does, answer in 1 short sentence first, then ask 1 short question.
-- Answer the caller's immediate question before steering to the next step.
-- If they mention a pain point, connect it briefly to Earlymark AI and ask a follow-up.
-- Do not wait until the end to collect details.
-- Use log_lead once you have enough real information.
-- Do not call log_lead unless you have at least first name, business name, phone, and one real pain point or follow-up reason.
+- If they ask what Earlymark does, start with: "${getEarlymarkSalesOneLiner()}"
+- Answer the caller's immediate question before steering.
+- Use the homepage selling points naturally: never miss a job again, no more admin, AI that actually works, total control.
+- Show what Earlymark can do across calls, texts, emails, CRM updates, scheduling, routing, and revenue visibility when relevant.
+- Do not aggressively re-capture details already present in the form.
+- Only use log_lead when you learn materially new or corrected information, or when a real follow-up reason or call outcome needs to be persisted.
+- Do not call log_lead unless you have a real reason worth persisting.
 - Do not speak tool syntax or function-call text out loud.
 
 TRUTH RULES
-- Never invent features, integrations, pricing, timelines, or guarantees.
-- Do not claim CRM integration.
+- Never invent integrations, pricing, timelines, or guarantees.
 - If pricing, onboarding detail, or implementation detail is not confirmed, say a manager will confirm it.
 - If unsure, make up to 2 honest attempts to help, then offer manager follow-up.
 
 KNOWN CALLER DETAILS
-- First name: ${caller.firstName || "unknown"}
-- Business name: ${caller.businessName || "unknown"}
-- Phone: ${caller.phone || "unknown"}
+- ${buildKnownCallerDetailLines(caller).join("\n- ")}
 
 CALL HANDLING
 - The system has already opened with: "Hi, is this ${caller.firstName || "there"}${caller.businessName ? ` from ${caller.businessName}` : ""}?"
@@ -1210,9 +1331,8 @@ CALL HANDLING
 }
 
 function buildInboundDemoPrompt(caller: CallerContext): string {
+  const sales = buildEarlymarkSalesContext("inbound_demo");
   return `You are Tracey, an AI assistant from Earlymark AI.
-
-This is an inbound Earlymark AI sales call.
 
 IDENTITY
 - Introduce yourself as "Tracey, an AI assistant for Earlymark AI."
@@ -1235,17 +1355,21 @@ LANGUAGE
 - Do not switch back to English unless the caller does.
 
 PRIMARY JOB
-- Explain what Earlymark AI does.
-- Capture lead details: first name, business name, best phone, email, and business type.
+- ${sales.roleSpecificLines.join("\n- ")}
+- Offer a spoken product demo on the call when the caller wants one.
+- Sell from this brief: ${sales.brief}
 - Move the caller toward earlymark.ai or a manager follow-up.
 
 RULES
 - This is a sales and qualification call, not a receptionist call.
+- If they ask what Earlymark does, start with: "${getEarlymarkSalesOneLiner()}"
 - Answer the caller's question before steering toward lead capture or sign-up.
+- Use the homepage selling points naturally: never miss a job again, no more admin, AI that actually works, total control.
 - If they ask how to sign up or show clear buying intent, switch to closing mode immediately.
 - In closing mode: confirm intent, point them to earlymark.ai, collect missing details, and log the lead.
+- Capture unknown details early: first name, business name, business type, phone, email if offered, and the pain point or follow-up reason.
 - Do not delay a sign-up request with extra discovery.
-- Do not call log_lead unless you have at least first name, business name, phone, and a real follow-up reason.
+- Do not call log_lead unless you have enough real detail to support follow-up.
 - Do not speak tool syntax or function-call text out loud.
 
 TRUTH RULES
@@ -1254,10 +1378,7 @@ TRUTH RULES
 - If unsure, make up to 2 honest attempts to help, then offer manager follow-up.
 
 KNOWN CALLER DETAILS
-- First name: ${caller.firstName || "unknown"}
-- Business name: ${caller.businessName || "unknown"}
-- Phone: ${caller.phone || "unknown"}
-- Called Earlymark number: ${caller.calledPhone || "unknown"}
+- ${buildKnownCallerDetailLines(caller).join("\n- ")}
 
 CALL HANDLING
 - Keep the conversation focused on what Earlymark AI can do and the next step.
@@ -1269,6 +1390,12 @@ CALL HANDLING
 function buildEarlymarkPrompt(callType: CallType, caller: CallerContext): string {
   return callType === "demo" ? buildDemoPrompt(caller) : buildInboundDemoPrompt(caller);
 }
+
+export const __voicePromptTestUtils = {
+  buildDemoPrompt,
+  buildInboundDemoPrompt,
+  buildNormalPrompt,
+};
 
 function getGreeting(callType: CallType, caller: CallerContext): string {
   if (callType === "demo" && caller.firstName) {
@@ -1372,10 +1499,14 @@ function buildVoiceAgentRuntimeSummary() {
       ),
     },
     sttModel: process.env.VOICE_STT_MODEL || "nova-3",
-    ttsVoiceId: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+    ttsModel: resolveConfiguredTtsModel(),
+    ttsVoiceId: resolveConfiguredTtsVoiceId(),
+    ttsLanguage: resolveConfiguredTtsLanguage(),
     latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
     openerBankEnabled: process.env.VOICE_OPENER_BANK_ENABLED ?? "true",
     guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
+    speculativeHeadsEnabled: process.env.VOICE_SPECULATIVE_HEADS_ENABLED ?? "true",
+    speculativeHeadSurfaces: process.env.VOICE_SPECULATIVE_HEADS_SURFACES || "demo,inbound_demo",
     targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
     knownInboundNumbers: getKnownEarlymarkNumbers(),
     groundingCacheEntries: groundingCache.size,
@@ -1419,7 +1550,7 @@ async function postVoiceAgentStatus() {
   }
 }
 
-function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding) {
+function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding): livekitLlm.ToolContext<any> {
   const findMatches = (query: string, values: string[]) => {
     const normalized = normalizeTranscript(query);
     if (!normalized) return values.slice(0, 3);
@@ -1528,7 +1659,8 @@ export default defineAgent({
   },
   entry: async (ctx) => {
     const callStartedAt = new Date();
-    const callId = `${ctx.room.name}:${callStartedAt.getTime()}`;
+    const roomName = ctx.room.name || "unknown-room";
+    const callId = `${roomName}:${callStartedAt.getTime()}`;
 
     const logLeadTool = livekitLlm.tool({
       description: "Save a potential Earlymark lead before the call ends. Only log details the caller actually provided.",
@@ -1602,8 +1734,8 @@ export default defineAgent({
 
     const defaultTts = createCartesiaTts();
     const ttsOpts = {
-      model: "sonic-3",
-      voice: process.env.VOICE_TTS_VOICE_ID || "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+      model: resolveConfiguredTtsModel(),
+      voice: resolveConfiguredTtsVoiceId(),
       chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
     };
     const tts = new MultilingualTTS(defaultTts, ttsOpts);
@@ -1613,7 +1745,9 @@ export default defineAgent({
 
     let callType: CallType = "normal";
     let callerFirstName = "";
+    let callerLastName = "";
     let callerBusiness = "";
+    let callerEmail = "";
     let callerPhone = "";
     let calledPhone = "";
 
@@ -1624,7 +1758,9 @@ export default defineAgent({
         if (meta.callType === "demo") callType = "demo";
         if (meta.callType === "inbound_demo") callType = "inbound_demo";
         callerFirstName = meta.firstName || "";
+        callerLastName = meta.lastName || "";
         callerBusiness = meta.businessName || "";
+        callerEmail = meta.email || "";
         callerPhone = meta.phone || "";
         calledPhone = meta.calledPhone || "";
       }
@@ -1637,7 +1773,9 @@ export default defineAgent({
       if (attrs.callType === "demo") callType = "demo";
       if (attrs.callType === "inbound_demo") callType = "inbound_demo";
       callerFirstName = callerFirstName || attrs.firstName || "";
+      callerLastName = callerLastName || attrs.lastName || "";
       callerBusiness = callerBusiness || attrs.businessName || "";
+      callerEmail = callerEmail || attrs.email || attrs.customerEmail || "";
       callerPhone =
         callerPhone ||
         attrs.phone ||
@@ -1661,10 +1799,10 @@ export default defineAgent({
       callerPhone = participant.identity.replace("demo-caller-", "");
     }
 
-    callType = resolveCallType(callType, calledPhone, ctx.room.name);
+    callType = resolveCallType(callType, calledPhone, roomName);
     const voiceTurnTuning = resolveVoiceTurnTuning(callType);
     const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL || "nova-3") as ConstructorParameters<typeof deepgram.STT>[0]["model"],
+      model: (process.env.VOICE_STT_MODEL || "nova-3") as DeepgramSTTOptions["model"],
       language: "multi",
       detectLanguage: true,
       interimResults: true,
@@ -1687,7 +1825,9 @@ export default defineAgent({
     const caller: CallerContext = {
       callType,
       firstName: callerFirstName,
+      lastName: callerLastName,
       businessName: callerBusiness,
+      email: callerEmail,
       phone: callerPhone,
       calledPhone,
     };
@@ -1722,6 +1862,9 @@ export default defineAgent({
     const openerAudioCache: Map<OpenerId, Promise<AudioFrame>> = voiceLatencyConfig.openerBankEnabled
       ? getSharedOpenerAudioCache(defaultTts, logPrefix)
       : new Map<OpenerId, Promise<AudioFrame>>();
+    const speculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> = voiceLatencyConfig.speculativeHeadsEnabled
+      ? getSharedSpeculativeHeadAudioCache(defaultTts, logPrefix)
+      : new Map<SpeculativeHeadId, Promise<AudioFrame>>();
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -1729,7 +1872,9 @@ export default defineAgent({
       participant: participant.identity,
       callType,
       callerFirstName,
+      callerLastName,
       callerBusiness,
+      callerEmail,
       callerPhone,
       calledPhone,
       llmProvider: primaryLlmConfig.provider,
@@ -1744,9 +1889,16 @@ export default defineAgent({
         enabled: voiceLatencyConfig.enabled,
         openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
         guardEnabled: voiceLatencyConfig.guardEnabled,
+        speculativeHeadsEnabled: voiceLatencyConfig.speculativeHeadsEnabled,
+        speculativeHeadSurfaces: voiceLatencyConfig.speculativeHeadSurfaces,
         targetCallTypes: voiceLatencyConfig.targetCallTypes,
         openerConfidenceThreshold: voiceLatencyConfig.openerConfidenceThreshold,
         guardTimeoutMs: voiceLatencyConfig.guardTimeoutMs,
+      },
+      tts: {
+        model: tts.getConfiguredModel(),
+        voiceId: tts.getConfiguredVoiceId(),
+        defaultLanguage: resolveConfiguredTtsLanguage(),
       },
       tuning: voiceTurnTuning,
     })}`);
@@ -1759,7 +1911,7 @@ export default defineAgent({
     }
 
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
-    const tools = isEarlymarkCall
+    const tools: livekitLlm.ToolContext<any> = isEarlymarkCall
       ? {
         log_lead: logLeadTool,
         transfer_call: transferCallTool,
@@ -1769,7 +1921,35 @@ export default defineAgent({
         ...normalLookupTools,
       };
 
-    const agent = new voice.Agent({
+    class TraceyVoiceAgent extends voice.Agent {
+      override async ttsNode(text: ReadableStream<string>, modelSettings: Parameters<voice.Agent["ttsNode"]>[1]) {
+        const resolvedText = (await readableStreamToString(text)).trim();
+        if (!resolvedText) return null;
+
+        if (callType !== "normal") {
+          return voice.Agent.default.ttsNode(this, stringToReadableStream(resolvedText), modelSettings);
+        }
+
+        const policyOutcome = enforceCustomerFacingResponsePolicy({
+          modeRaw: normalVoiceGrounding?.customerContactMode,
+          text: resolvedText,
+          channel: "voice",
+        });
+        responsePolicyOutcomes.push(policyOutcome);
+        assistantTranscriptOverrides.push({
+          text: policyOutcome.finalText || resolvedText,
+          policyOutcome,
+        });
+
+        return voice.Agent.default.ttsNode(
+          this,
+          stringToReadableStream(policyOutcome.finalText || resolvedText),
+          modelSettings,
+        );
+      }
+    }
+
+    const agent = new TraceyVoiceAgent({
       instructions: isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller, normalVoiceGrounding),
       stt,
       llm,
@@ -1816,6 +1996,8 @@ export default defineAgent({
     const transcriptTurns: TranscriptTurn[] = [];
     const transcriptItemIds = new Set<string>();
     const leadCapture: LeadCapture = { toolUsed: false, payloads: [] };
+    const assistantTranscriptOverrides: AssistantTranscriptOverride[] = [];
+    const responsePolicyOutcomes: CustomerFacingResponsePolicyOutcome[] = [];
     const voiceLatencyAudit: VoiceLatencyAudit = {
       classifierMs: [],
       guardMs: [],
@@ -1826,6 +2008,12 @@ export default defineAgent({
       guardTimeouts: 0,
       guardEligibleTurns: 0,
       openerUsage: {},
+      speculativeHeadLeadMs: [],
+      speculativeHeadGapMs: [],
+      speculativeHeadHits: 0,
+      speculativeHeadCacheMisses: 0,
+      speculativeHeadUsage: {},
+      speculativeHeadCancelled: 0,
     };
     let activeVoiceTurn: ActiveVoiceTurnState = {
       prediction: null,
@@ -1978,7 +2166,12 @@ export default defineAgent({
         turn.transcript === pendingLatencyTurn.transcript &&
         pendingLatencyTurn.openerSpeechCreatedAt !== null
       ) {
-        voiceLatencyAudit.openerGapMs.push(Math.max(0, ev.createdAt - pendingLatencyTurn.openerSpeechCreatedAt));
+        const gapMs = Math.max(0, ev.createdAt - pendingLatencyTurn.openerSpeechCreatedAt);
+        if (pendingLatencyTurn.kind === "speculative_head") {
+          voiceLatencyAudit.speculativeHeadGapMs.push(gapMs);
+        } else {
+          voiceLatencyAudit.openerGapMs.push(gapMs);
+        }
         pendingLatencyTurn = null;
       }
 
@@ -2049,13 +2242,20 @@ export default defineAgent({
 
     session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
       const item = ev.item as { id?: string; type?: string; role?: string; textContent?: string } | null;
-      if (!item || item.type !== "message" || transcriptItemIds.has(item.id)) return;
+      const itemId = item?.id;
+      if (!item || item.type !== "message" || !itemId || transcriptItemIds.has(itemId)) return;
 
       const role = item.role === "assistant" ? "assistant" : item.role === "user" ? "user" : null;
-      const text = extractTextFromConversationItem(item);
+      let text = extractTextFromConversationItem(item);
+      if (role === "assistant" && assistantTranscriptOverrides.length > 0) {
+        const override = assistantTranscriptOverrides.shift();
+        if (override?.text) {
+          text = override.text;
+        }
+      }
       if (!role || !text) return;
 
-      transcriptItemIds.add(item.id);
+      transcriptItemIds.add(itemId);
       transcriptTurns.push({
         role,
         text,
@@ -2143,8 +2343,82 @@ export default defineAgent({
 
       let guardDecision: GuardDecision | null = null;
       let openerEntry: OpenerBankEntry | null = null;
+      let speculativeHeadEntry: SpeculativeHeadBankEntry | null = null;
 
       (tts as MultilingualTTS).setReplyLanguage(ev.language);
+
+      if (
+        isEarlymarkCall &&
+        voiceLatencyConfig.speculativeHeadsEnabled
+      ) {
+        speculativeHeadEntry = resolveSpeculativeHeadEntry({
+          callType,
+          prediction: finalPrediction,
+        });
+
+        if (speculativeHeadEntry) {
+          const speculativeFrame = await getCachedOpenerAudioFrame(speculativeHeadAudioCache, speculativeHeadEntry.id, 50);
+          if (speculativeFrame) {
+            session.clearUserTurn();
+
+            pendingLatencyTurn = {
+              transcript,
+              finalCreatedAt: ev.createdAt,
+              openerEntry: speculativeHeadEntry,
+              guardDecision: null,
+              prediction: finalPrediction,
+              openerSpeechCreatedAt: null,
+              kind: "speculative_head",
+            };
+
+            session.say(speculativeHeadEntry.text, {
+              audio: audioFrameToReadableStream(speculativeFrame),
+              allowInterruptions: true,
+              addToChatCtx: false,
+            });
+
+            pendingUserTurns.push({
+              transcript,
+              createdAt: ev.createdAt,
+              language: ev.language,
+            });
+
+            session.generateReply({
+              userInput: transcript,
+              instructions: `A short speculative response head has already been spoken to the caller: "${speculativeHeadEntry.text}" Continue directly into the substantive answer without repeating the same opening. ${buildVoiceFollowupInstructions({
+                prediction: finalPrediction,
+              })}`,
+            });
+
+            voiceLatencyAudit.speculativeHeadHits += 1;
+            voiceLatencyAudit.speculativeHeadLeadMs.push(Math.max(0, Date.now() - ev.createdAt));
+            voiceLatencyAudit.speculativeHeadUsage[speculativeHeadEntry.id] =
+              (voiceLatencyAudit.speculativeHeadUsage[speculativeHeadEntry.id] || 0) + 1;
+
+            console.log(
+              `[voice-speculative-head] ${JSON.stringify({
+                callId,
+                room: ctx.room.name,
+                participant: participant.identity,
+                transcript,
+                prediction: {
+                  intent: finalPrediction.intent,
+                  confidence: finalPrediction.confidence,
+                  riskLevel: finalPrediction.riskLevel,
+                  route: finalPrediction.route,
+                },
+                speculativeHeadId: speculativeHeadEntry.id,
+                speculativeHeadText: speculativeHeadEntry.text,
+              })}`,
+            );
+
+            resetActiveVoiceTurn();
+            return;
+          }
+
+          voiceLatencyAudit.speculativeHeadCacheMisses += 1;
+        }
+      }
 
       if (
         voiceLatencyConfig.enabled &&
@@ -2173,6 +2447,7 @@ export default defineAgent({
               guardDecision,
               prediction: finalPrediction,
               openerSpeechCreatedAt: null,
+              kind: "opener",
             };
 
             session.say(openerEntry.text, {
@@ -2231,6 +2506,9 @@ export default defineAgent({
       }
 
       pendingLatencyTurn = null;
+      if (speculativeHeadEntry) {
+        voiceLatencyAudit.speculativeHeadCancelled += 1;
+      }
       pendingUserTurns.push({
         transcript,
         createdAt: ev.createdAt,
@@ -2324,6 +2602,12 @@ export default defineAgent({
         guardTimeouts: voiceLatencyAudit.guardTimeouts,
         guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
         openerUsage: voiceLatencyAudit.openerUsage,
+        speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
+        speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
+        speculativeHeadHits: voiceLatencyAudit.speculativeHeadHits,
+        speculativeHeadCacheMisses: voiceLatencyAudit.speculativeHeadCacheMisses,
+        speculativeHeadUsage: voiceLatencyAudit.speculativeHeadUsage,
+        speculativeHeadCancelled: voiceLatencyAudit.speculativeHeadCancelled,
         turns: turnSummaries,
       };
 
@@ -2361,6 +2645,12 @@ export default defineAgent({
             openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
             guardTimeouts: voiceLatencyAudit.guardTimeouts,
             openerUsage: voiceLatencyAudit.openerUsage,
+            speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
+            speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
+            speculativeHeadHits: voiceLatencyAudit.speculativeHeadHits,
+            speculativeHeadCacheMisses: voiceLatencyAudit.speculativeHeadCacheMisses,
+            speculativeHeadUsage: voiceLatencyAudit.speculativeHeadUsage,
+            speculativeHeadCancelled: voiceLatencyAudit.speculativeHeadCancelled,
           },
           llmRouting: llmRunSummary,
           turns: turnSummaries,
@@ -2375,7 +2665,7 @@ export default defineAgent({
       void persistVoiceCall({
         callId,
         callType,
-        roomName: ctx.room.name,
+        roomName,
         participantIdentity: participant.identity,
         callerPhone,
         calledPhone,
@@ -2397,13 +2687,20 @@ export default defineAgent({
           llmSelectionCount: llmRunSummary.selectionCount,
           llmLastFailure: llmRunSummary.lastFailure,
           isEarlymarkCall,
+          ttsVoiceId: tts.getConfiguredVoiceId(),
+          ttsLanguage: tts.getCurrentReplyLanguage(),
+          ttsModel: tts.getConfiguredModel(),
           maxConcurrentCalls: getMaxConcurrentCalls(),
           voiceTurnTuning,
+          customerContactMode: normalVoiceGrounding?.customerContactMode || null,
+          responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
           voiceLatency: {
             enabled: voiceLatencyConfig.enabled,
             openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
             guardEnabled: voiceLatencyConfig.guardEnabled,
+            speculativeHeadsEnabled: voiceLatencyConfig.speculativeHeadsEnabled,
+            speculativeHeadSurfaces: voiceLatencyConfig.speculativeHeadSurfaces,
             targetCallTypes: voiceLatencyConfig.targetCallTypes,
           },
         },

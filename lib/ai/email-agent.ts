@@ -2,8 +2,15 @@ import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { db } from "@/lib/db";
 import { buildCustomerEmailSystemPrompt } from "@/lib/ai/prompt-contract";
+import { enforceCustomerFacingResponsePolicy, type CustomerFacingResponsePolicyOutcome } from "@/lib/agent-mode";
 
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+
+export type ProcessedInboundEmailReply = {
+  reply: string;
+  isGenuineLead: boolean;
+  policyOutcome: CustomerFacingResponsePolicyOutcome;
+};
 
 /**
  * Processes an incoming email using Gemini to generate a contextual reply.
@@ -23,7 +30,7 @@ export async function processIncomingEmailWithGemini(opts: {
   contactId?: string;
   dealId?: string;
   isFirstReplyForContact?: boolean;
-}): Promise<{ reply: string; isGenuineLead: boolean } | null> {
+}): Promise<ProcessedInboundEmailReply | null> {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
   if (!apiKey) {
@@ -108,7 +115,17 @@ export async function processIncomingEmailWithGemini(opts: {
 
     const isGenuineLead = classificationLine.toUpperCase().startsWith("GENUINE");
 
-    return { reply, isGenuineLead };
+    const policyOutcome = enforceCustomerFacingResponsePolicy({
+      modeRaw: workspace.agentMode,
+      text: reply,
+      channel: "email",
+    });
+
+    return {
+      reply: policyOutcome.finalText || reply,
+      isGenuineLead,
+      policyOutcome,
+    };
   } catch (error) {
     console.error("[email-agent] Gemini error:", error);
     return null;

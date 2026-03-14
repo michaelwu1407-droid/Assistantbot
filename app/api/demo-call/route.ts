@@ -4,12 +4,16 @@ import { initiateDemoCall } from "@/lib/demo-call";
 export async function POST(req: NextRequest) {
   let phone: string;
   let firstName: string;
+  let lastName: string;
+  let email: string;
   let businessName: string;
 
   try {
     const body = await req.json();
     phone = body.phone;
     firstName = body.firstName || "there";
+    lastName = body.lastName || "";
+    email = body.email || "";
     businessName = body.businessName || "";
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -23,6 +27,8 @@ export async function POST(req: NextRequest) {
     const result = await initiateDemoCall({
       phone,
       firstName,
+      lastName,
+      email,
       businessName,
     });
 

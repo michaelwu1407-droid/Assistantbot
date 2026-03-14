@@ -1,4 +1,5 @@
 import {
+  buildCustomerModePolicyLines,
   getCustomerContactModeLabel,
   normalizeAgentMode,
   type CanonicalCustomerContactMode,
@@ -121,34 +122,6 @@ export function renderPromptSections(sections: Array<PromptSection | null | unde
     .trim();
 }
 
-function getCustomerModePolicyLines(modeRaw?: string | null): string[] {
-  const mode = normalizeAgentMode(modeRaw);
-  const label = getCustomerContactModeLabel(mode);
-  const shared = [
-    `Current customer-contact mode: ${label}.`,
-    "This same mode applies across Tracey for users calls, texts, emails, and outbound follow-up.",
-  ];
-
-  if (mode === "execute") {
-    return [
-      ...shared,
-      "You may confirm routine next steps only when they are clearly supported by approved business rules and tool-backed information.",
-    ];
-  }
-
-  if (mode === "review_approve") {
-    return [
-      ...shared,
-      "You may answer questions and gather details, but any booking, quote, or firm commitment must be framed as pending team confirmation.",
-    ];
-  }
-
-  return [
-    ...shared,
-    "You may answer questions and capture details, but you must not make bookings, quotes, or firm commitments.",
-  ];
-}
-
 function buildCustomerFacingPromptContract(
   options: CustomerFacingPromptContractOptions,
 ): string {
@@ -171,7 +144,7 @@ function buildCustomerFacingPromptContract(
     { title: "STYLE", lines: options.styleLines },
     { title: "LANGUAGE", lines: [...SHARED_LANGUAGE_LOCK_LINES] },
     { title: "PRIMARY JOB", lines: options.primaryJobLines },
-    { title: "DECISION / MODE POLICY", lines: getCustomerModePolicyLines(options.modeRaw) },
+    { title: "DECISION / MODE POLICY", lines: buildCustomerModePolicyLines(options.modeRaw) },
     {
       title: "TRUTH RULES",
       lines: [...SHARED_CUSTOMER_TRUTH_LINES, ...compactLines(options.truthRuleLines)],
@@ -341,6 +314,6 @@ export function buildCustomerFacingModeSummary(modeRaw?: string | null): {
   return {
     mode,
     label: getCustomerContactModeLabel(mode),
-    lines: getCustomerModePolicyLines(modeRaw),
+    lines: buildCustomerModePolicyLines(modeRaw),
   };
 }
