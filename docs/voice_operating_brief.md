@@ -1,6 +1,6 @@
 # Voice Operating Brief
 
-Updated: 2026-03-14 AEDT
+Updated: 2026-03-17 AEDT
 
 ## Production topology
 
@@ -92,7 +92,8 @@ Updated: 2026-03-14 AEDT
   - monitor freshness
   - synthetic probe state
 - Single-host voice operation is treated as degraded until a second healthy host is real.
-- Synthetic probe is no longer just a gateway green check; it also reports whether a recent spoken canary sample exists for the probe path.
+- Synthetic probe now validates the public gateway first, then attempts a real PSTN spoken canary when the configured probe caller can legally originate a Twilio call.
+- The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
 - Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
   - live web release SHA
   - live worker release SHA(s)
@@ -101,12 +102,12 @@ Updated: 2026-03-14 AEDT
   - monitoring freshness
   - SMS/email readiness
   - provisioning drift
-- Worker deploy verification now checks this launch-readiness route after heartbeat/drift convergence and will roll back if the critical voice gate is still unhealthy.
+- Worker deploy verification now checks this launch-readiness route after heartbeat/drift convergence and then actively invokes `/api/cron/voice-synthetic-probe`; it rolls back if either the critical voice gate or the spoken PSTN canary is unhealthy.
 
 ## Active known risks
 
 - Worker runtime is still host-process `systemd`, not yet immutable container images.
-- The synthetic probe still depends on recent spoken call evidence instead of originating a fully automated PSTN call on every run.
+- The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, launch readiness will stay degraded.
 - Homepage copy and voice prompts now share a canonical sales brief, but homepage sections outside the main pillars can still drift if edited independently.
 - Inbound lead-email DNS drift is surfaced as degraded readiness, not a hard reconcile failure; customer-agent reconcile should only fail on runtime blockers, not missing inbound MX.
 

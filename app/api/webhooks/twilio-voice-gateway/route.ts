@@ -5,6 +5,7 @@ import {
   isKnownEarlymarkInboundNumber,
 } from "@/lib/earlymark-inbound-config";
 import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
+import { phoneMatches } from "@/lib/phone-utils";
 import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "@/lib/voice-fleet";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
@@ -151,6 +152,16 @@ function isAuthenticatedSyntheticProbe(req: NextRequest) {
   return expectedKeys.length > 0 && expectedKeys.includes(providedKey);
 }
 
+function isConfiguredSpokenProbeCaller(callerNumber: string, calledNumber: string) {
+  const configuredCaller = (process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER || "").trim();
+  if (!configuredCaller) return false;
+
+  return phoneMatches(configuredCaller, callerNumber) && (
+    isKnownEarlymarkInboundNumber(calledNumber) ||
+    phoneMatches(process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "", calledNumber)
+  );
+}
+
 async function openGatewayIncident(params: {
   incidentKey: string;
   surface: VoiceSurface | "routing" | "data";
@@ -191,6 +202,7 @@ export async function POST(req: NextRequest) {
     const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
     const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
     const syntheticProbe = isAuthenticatedSyntheticProbe(req);
+    const spokenProbeCaller = isConfiguredSpokenProbeCaller(callerNumber, calledNumber);
 
     if (dtmfPassed === "1" && digits === "1") {
       const workspace = await findWorkspaceByTwilioNumber(calledNumber);
@@ -225,12 +237,12 @@ export async function POST(req: NextRequest) {
     }
 
     const failValues = ["TN-Validation-Failed-C", "TN-Validation-Failed-B", "No-TN-Validation", "no-validation"];
-    if (stirVerstat && failValues.some((value) => stirVerstat.toLowerCase().includes(value.toLowerCase()))) {
+    if (!spokenProbeCaller && stirVerstat && failValues.some((value) => stirVerstat.toLowerCase().includes(value.toLowerCase()))) {
       console.log(`[voice-gateway] Rejected call from ${callerNumber} due to STIR/SHAKEN failure: ${stirVerstat}`);
       return twimlResponse(rejectTwiml());
     }
 
-    if (!syntheticProbe && callerNumber && checkRateLimit(callerNumber)) {
+    if (!syntheticProbe && !spokenProbeCaller && callerNumber && checkRateLimit(callerNumber)) {
       console.log(`[voice-gateway] Rate limited ${callerNumber}; requiring DTMF challenge.`);
       const gatewayUrl = getExpectedVoiceGatewayUrl();
       if (!gatewayUrl) {

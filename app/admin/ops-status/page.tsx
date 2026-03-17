@@ -143,7 +143,10 @@ export default async function OpsStatusPage() {
             <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">{data.canary.summary}</div>
             <div className="text-xs text-slate-600">
               Probe result: {data.canary.probeResult || "--"}<br />
+              Probe mode: {data.canary.probeMode || "--"}<br />
               Target: {data.canary.targetNumber || "--"}<br />
+              Call SID: {data.canary.callSid || "--"}<br />
+              Call status: {data.canary.callStatus || "--"}<br />
               Last success: {formatDate(data.canary.monitor.lastSuccessAt)}
             </div>
           </CardContent>

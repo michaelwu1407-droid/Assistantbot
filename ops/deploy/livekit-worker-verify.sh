@@ -54,6 +54,7 @@ fi
 
 EFFECTIVE_APP_URL="${NEXT_PUBLIC_APP_URL:-${APP_URL:-}}"
 EFFECTIVE_VOICE_AGENT_SECRET="${VOICE_AGENT_WEBHOOK_SECRET:-${LIVEKIT_API_SECRET:-}}"
+EFFECTIVE_OPS_KEY="${TELEMETRY_ADMIN_KEY:-${CRON_SECRET:-}}"
 
 if [ -z "$EFFECTIVE_APP_URL" ]; then
   echo "Missing NEXT_PUBLIC_APP_URL or APP_URL for heartbeat verification."
@@ -62,6 +63,11 @@ if [ -z "$EFFECTIVE_APP_URL" ]; then
 fi
 if [ -z "$EFFECTIVE_VOICE_AGENT_SECRET" ]; then
   echo "Missing VOICE_AGENT_WEBHOOK_SECRET or LIVEKIT_API_SECRET for heartbeat verification."
+  rollback_release || true
+  exit 1
+fi
+if [ -z "$EFFECTIVE_OPS_KEY" ]; then
+  echo "Missing TELEMETRY_ADMIN_KEY or CRON_SECRET for spoken canary verification."
   rollback_release || true
   exit 1
 fi
@@ -126,6 +132,22 @@ done
 if [ "$LAUNCH_GATE_VERIFIED" -ne 1 ]; then
   echo "Launch-critical voice gate did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
   NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+  rollback_release || true
+  exit 1
+fi
+
+CANARY_VERIFIED=0
+for _ in 1 2 3 4; do
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" OPS_KEY="$EFFECTIVE_OPS_KEY" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const opsKey = process.env.OPS_KEY || ''; const res = await fetch(base + '/api/cron/voice-synthetic-probe', { headers: { 'x-ops-key': opsKey }, cache: 'no-store' }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } if (payload?.status === 'healthy') process.exit(0); process.exit(2);"; then
+    CANARY_VERIFIED=1
+    break
+  fi
+  sleep 15
+done
+
+if [ "$CANARY_VERIFIED" -ne 1 ]; then
+  echo "Spoken PSTN canary failed after deploy for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
+  NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" OPS_KEY="$EFFECTIVE_OPS_KEY" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const opsKey = process.env.OPS_KEY || ''; const res = await fetch(base + '/api/cron/voice-synthetic-probe', { headers: { 'x-ops-key': opsKey }, cache: 'no-store' }); console.log(await res.text());"
   rollback_release || true
   exit 1
 fi

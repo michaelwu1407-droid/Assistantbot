@@ -312,6 +312,8 @@ jobs:
         env:
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           VOICE_AGENT_WEBHOOK_SECRET: ${{ secrets.VOICE_AGENT_WEBHOOK_SECRET || secrets.LIVEKIT_API_SECRET }}
+          TELEMETRY_ADMIN_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
           ssh_opts=(
@@ -327,11 +329,13 @@ jobs:
           )
           app_url_escaped="$(printf '%q' "$NEXT_PUBLIC_APP_URL")"
           webhook_secret_escaped="$(printf '%q' "$VOICE_AGENT_WEBHOOK_SECRET")"
+          telemetry_admin_key_escaped="$(printf '%q' "${TELEMETRY_ADMIN_KEY:-}")"
+          cron_secret_escaped="$(printf '%q' "${CRON_SECRET:-}")"
           deploy_sha_escaped="$(printf '%q' "$GITHUB_SHA")"
           voice_host_id_escaped="$(printf '%q' "$VOICE_HOST_ID")"
           remote_verify_script_escaped="$(printf '%q' "$REMOTE_VERIFY_SCRIPT_PATH")"
           for attempt in 1 2 3; do
-            if timeout 6m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_VERIFY_SCRIPT_PATH=${remote_verify_script_escaped} bash --noprofile --norc -se" <<'EOF'
+            if timeout 10m ssh "${ssh_opts[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "NEXT_PUBLIC_APP_URL=${app_url_escaped} VOICE_AGENT_WEBHOOK_SECRET=${webhook_secret_escaped} TELEMETRY_ADMIN_KEY=${telemetry_admin_key_escaped} CRON_SECRET=${cron_secret_escaped} DEPLOY_GIT_SHA=${deploy_sha_escaped} VOICE_HOST_ID=${voice_host_id_escaped} REMOTE_VERIFY_SCRIPT_PATH=${remote_verify_script_escaped} bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
           sed -i 's/\r$//' "$REMOTE_VERIFY_SCRIPT_PATH"
           chmod 700 "$REMOTE_VERIFY_SCRIPT_PATH"

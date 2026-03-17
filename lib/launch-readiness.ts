@@ -33,7 +33,10 @@ export type LaunchReadiness = {
   canary: StatusSummary & {
     monitor: Awaited<ReturnType<typeof getMonitorRunHealth>>;
     probeResult: string | null;
+    probeMode: string | null;
     targetNumber: string | null;
+    callSid: string | null;
+    callStatus: string | null;
     spokenCanary: Record<string, unknown> | null;
   };
   monitoring: StatusSummary & {
@@ -180,8 +183,31 @@ export async function getLaunchReadiness(options?: {
     summary: summarizeStatus(canaryStatus, canaryWarnings, "Spoken canary is reporting healthy."),
     warnings: canaryWarnings,
     monitor: probeHealth,
-    probeResult: typeof probeDetails?.probeResult === "string" ? probeDetails.probeResult : null,
+    probeResult:
+      typeof probeDetails?.probeResult === "string"
+        ? probeDetails.probeResult
+        : typeof probeDetails?.gatewayProbe === "object" && typeof (probeDetails.gatewayProbe as Record<string, unknown>)?.result === "string"
+          ? ((probeDetails.gatewayProbe as Record<string, unknown>).result as string)
+          : null,
+    probeMode:
+      typeof probeDetails?.spokenCanary === "object" &&
+      probeDetails.spokenCanary &&
+      typeof (probeDetails.spokenCanary as Record<string, unknown>).mode === "string"
+        ? ((probeDetails.spokenCanary as Record<string, unknown>).mode as string)
+        : null,
     targetNumber: typeof probeDetails?.targetNumber === "string" ? probeDetails.targetNumber : null,
+    callSid:
+      typeof probeDetails?.spokenCanary === "object" &&
+      probeDetails.spokenCanary &&
+      typeof (probeDetails.spokenCanary as Record<string, unknown>).callSid === "string"
+        ? ((probeDetails.spokenCanary as Record<string, unknown>).callSid as string)
+        : null,
+    callStatus:
+      typeof probeDetails?.spokenCanary === "object" &&
+      probeDetails.spokenCanary &&
+      typeof (probeDetails.spokenCanary as Record<string, unknown>).callStatus === "string"
+        ? ((probeDetails.spokenCanary as Record<string, unknown>).callStatus as string)
+        : null,
     spokenCanary:
       probeDetails && typeof probeDetails.spokenCanary === "object" && probeDetails.spokenCanary
         ? (probeDetails.spokenCanary as Record<string, unknown>)

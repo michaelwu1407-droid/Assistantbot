@@ -75,7 +75,10 @@ describe("GET /api/internal/launch-readiness", () => {
         warnings: [],
         monitor: { status: "degraded", warnings: [], lastSuccessAt: "2026-03-17T04:55:00.000Z" },
         probeResult: "pass",
+        probeMode: "gateway_only",
         targetNumber: "+61485010634",
+        callSid: null,
+        callStatus: null,
         spokenCanary: null,
       },
       monitoring: {

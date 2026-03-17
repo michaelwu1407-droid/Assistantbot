@@ -72,6 +72,11 @@
 Operational audit log for all AI agent code/config edits.  
 Rule: every agent change commit must include an entry in this file.
 
+### 2026-03-17 17:05 (AEDT) - codex
+- Files: `lib/voice-spoken-canary.ts`, `lib/voice-monitor-config.ts`, `app/api/cron/voice-synthetic-probe/route.ts`, `app/api/webhooks/twilio-voice-gateway/route.ts`, `lib/launch-readiness.ts`, `app/admin/ops-status/page.tsx`, `.github/workflows/deploy-livekit.yml`, `ops/deploy/livekit-worker-verify.sh`, `.env.example`, `__tests__/voice-spoken-canary.test.ts`, `__tests__/voice-synthetic-probe-route.test.ts`, `__tests__/launch-readiness-route.test.ts`, `docs/voice_operating_brief.md`, `docs/agent_change_log.md`
+- What changed: Replaced the old “gateway plus recent sample” synthetic voice probe with a real spoken PSTN canary path. The probe now originates a short Twilio call into the Earlymark inbound number, waits for the call to settle, then verifies that the app persisted a matching `VoiceCall` transcript containing caller and Tracey speech. The Twilio voice gateway now narrowly trusts the configured spoken-probe caller so automated canary calls do not get rate-limited or STIR-rejected, launch-readiness/admin status now expose the canary mode plus the latest probe call SID/status, and the OCI worker deploy verifier actively invokes the spoken canary with ops auth before accepting a release.
+- Why: A green gateway check is not enough for mission-critical voice, and a stale probe record is not enough for a post-deploy release gate. We needed the monitor and deploy flow to prove that a real phone call can still reach Tracey through Twilio, LiveKit SIP, the worker, STT, TTS, and transcript persistence, while still reporting clearly when the environment is not yet capable of a true PSTN canary.
+
 ### 2026-03-07 00:10 (AEDT) - codex
 - Files: `app/page.tsx`, `docs/agent_change_log.md`
 - What changed: Restored the intended homepage hero and CRM section wording. The hero now says `Your AI assistant & CRM — here to give you an early mark`, and the CRM section now says `Tracey lives in your CRM. They will contact customers and run your CRM so you don't have to.`

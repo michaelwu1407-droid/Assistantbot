@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
@@ -7,6 +6,7 @@ import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { normalizePhone } from "@/lib/phone-utils";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
+import { runVoiceSpokenPstnCanary } from "@/lib/voice-spoken-canary";
 
 export const dynamic = "force-dynamic";
 
@@ -17,42 +17,6 @@ type ProbeCallerSource =
   | "VOICE_ALERT_SMS_TO"
   | "default_probe_caller";
 type ProbeResult = "pass" | "fallback" | "orphaned" | "disabled" | "mismatch" | "unknown";
-
-async function getRecentSpokenCanarySample(probeCaller: string, targetNumber: string) {
-  if (!probeCaller || !targetNumber) return null;
-
-  const recentCall = await db.voiceCall.findFirst({
-    where: {
-      callerPhone: probeCaller,
-      calledPhone: targetNumber,
-      callType: { in: ["inbound_demo", "normal"] },
-      createdAt: {
-        gte: new Date(Date.now() - 30 * 60_000),
-      },
-    },
-    select: {
-      callId: true,
-      createdAt: true,
-      transcriptText: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (!recentCall) return null;
-
-  const transcript = recentCall.transcriptText || "";
-  const heardGreeting = /Tracey/i.test(transcript);
-  const capturedCallerSpeech = /Caller:/i.test(transcript);
-  const capturedAssistantSpeech = /Tracey:/i.test(transcript);
-
-  return {
-    callId: recentCall.callId,
-    createdAt: recentCall.createdAt.toISOString(),
-    heardGreeting,
-    capturedCallerSpeech,
-    capturedAssistantSpeech,
-  };
-}
 
 function getGatewayProbeAuthKey() {
   return (
@@ -178,23 +142,19 @@ export async function GET(req: NextRequest) {
 
     const twiml = await response.text();
     const probeResult = extractProbeResult(twiml, expectedSipTarget);
-    const spokenCanary = await getRecentSpokenCanarySample(probeCaller, targetNumber);
+    const spokenCanary = await runVoiceSpokenPstnCanary({
+      probeCaller,
+      targetNumber,
+      checkedAt,
+    });
     const status =
       probeResult !== "pass"
         ? "unhealthy"
-        : !spokenCanary
-          ? "degraded"
-          : spokenCanary.heardGreeting && spokenCanary.capturedCallerSpeech && spokenCanary.capturedAssistantSpeech
-            ? "healthy"
-            : "unhealthy";
+        : spokenCanary.status;
     const summary =
       probeResult !== "pass"
         ? `Synthetic Earlymark inbound probe returned ${probeResult}`
-        : !spokenCanary
-          ? "Gateway probe passed, but there is no recent spoken canary sample for the probe path."
-          : spokenCanary.heardGreeting && spokenCanary.capturedCallerSpeech && spokenCanary.capturedAssistantSpeech
-            ? "Synthetic Earlymark inbound probe passed with a recent spoken canary sample."
-            : "Gateway probe passed, but the recent spoken canary sample did not show a complete spoken exchange.";
+        : spokenCanary.summary;
 
     const observations =
       status === "healthy"
@@ -210,8 +170,11 @@ export async function GET(req: NextRequest) {
                 targetNumber,
                 gatewayUrl,
                 expectedSipTarget,
-                responseStatus: response.status,
-                twiml,
+                gatewayProbe: {
+                  result: probeResult,
+                  responseStatus: response.status,
+                  twiml,
+                },
                 spokenCanary,
               },
             },
@@ -233,7 +196,11 @@ export async function GET(req: NextRequest) {
         targetNumberSource,
         gatewayUrl,
         expectedSipTarget,
-        responseStatus: response.status,
+        gatewayProbe: {
+          result: probeResult,
+          responseStatus: response.status,
+          twiml,
+        },
         spokenCanary,
       },
       checkedAt,
@@ -252,6 +219,10 @@ export async function GET(req: NextRequest) {
         targetNumberSource,
         expectedSipTarget,
         responseStatus: response.status,
+        gatewayProbe: {
+          result: probeResult,
+          responseStatus: response.status,
+        },
         spokenCanary,
         incidents,
       },
