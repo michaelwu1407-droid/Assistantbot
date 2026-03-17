@@ -931,3 +931,23 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the AU address autocomplete to request `address_components` from Google Places and, when available, emit a provision-ready address string including locality + state + postcode (instead of relying on `formatted_address` which may omit postcode).
 - Why:
   - Users should not be blocked by the onboarding address gate when they select a valid address from the Google picker; we need the postcode/state data that Places provides to satisfy Twilio’s regulatory Address requirements.
+
+## 2026-03-18 02:08 (AEDT) - codex
+
+- Files changed:
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a Places Details fallback: if the initial autocomplete selection is missing postcode/state/locality, we fetch full `address_components` using `place_id` and re-emit a provision-ready AU address string.
+- Why:
+  - Some Places autocomplete responses omit `postal_code` even when it exists; doing a Details lookup makes postcode/state capture reliable so onboarding isn’t blocked for valid addresses.
+
+## 2026-03-18 02:29 (AEDT) - codex
+
+- Files changed:
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added “auto-select best match” on blur: if the user typed an address but didn’t click a dropdown item, we resolve the top Google prediction and rewrite the field into a provision-ready AU format (locality + state + postcode) when possible.
+- Why:
+  - The address field should behave like an enforced selection flow, not a free-text field. This prevents provisioning failures caused by manually typed addresses that omit required regulatory details.

@@ -84,6 +84,7 @@ function AddressAutocompleteWithGoogle({
   const [isFocused, setIsFocused] = useState(false)
   const [isResolved, setIsResolved] = useState(false)
   const [hasMapsFailure, setHasMapsFailure] = useState(false)
+  const resolvingRef = useRef(false)
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
@@ -109,11 +110,9 @@ function AddressAutocompleteWithGoogle({
     }
   }, [])
 
-  const handlePlaceChanged = useCallback(() => {
-    const place = autocompleteRef.current?.getPlace()
-    if (!place) return
-
-    const components = place.address_components ?? []
+  const pickPlaceParts = useCallback((candidate: google.maps.places.PlaceResult | null | undefined) => {
+    if (!candidate) return null
+    const components = candidate.address_components ?? []
     const get = (type: string) => components.find((c) => c.types?.includes(type))
     const streetNumber = get("street_number")?.long_name
     const route = get("route")?.long_name
@@ -127,44 +126,129 @@ function AddressAutocompleteWithGoogle({
     const country = get("country")?.short_name
 
     const streetLine =
-      streetNumber && route ? `${streetNumber} ${route}` : (place.name ?? place.formatted_address ?? "")
+      streetNumber && route ? `${streetNumber} ${route}` : (candidate.name ?? candidate.formatted_address ?? "")
 
-    // Prefer a provision-ready AU address string when we have the pieces.
     const address =
       streetLine && locality && region && postalCode
         ? `${streetLine}, ${locality} ${region} ${postalCode}`
-        : (place.formatted_address ?? place.name ?? "")
-    const latitude = place.geometry?.location?.lat() ?? null
-    const longitude = place.geometry?.location?.lng() ?? null
-    const placeId = place.place_id ?? null
+        : (candidate.formatted_address ?? candidate.name ?? "")
 
-    // Always fire the simple string onChange for backward compat
+    return {
+      address,
+      streetLine: streetLine || undefined,
+      locality: locality || undefined,
+      region: region || undefined,
+      postalCode: postalCode || undefined,
+      country: country || undefined,
+    }
+  }, [])
+
+  const applyResolvedPlace = useCallback((params: {
+    place: google.maps.places.PlaceResult
+    resolved: ReturnType<typeof pickPlaceParts>
+  }) => {
+    const latitude = params.place.geometry?.location?.lat() ?? null
+    const longitude = params.place.geometry?.location?.lng() ?? null
+    const placeId = params.place.place_id ?? null
+    const address = params.resolved?.address ?? params.place.formatted_address ?? params.place.name ?? ""
+
     onChange(address)
-
-    // Fire the structured callback with full geo data
     onPlaceSelect?.({
       address,
       latitude,
       longitude,
       placeId,
-      components: {
-        streetLine: streetLine || undefined,
-        locality: locality || undefined,
-        region: region || undefined,
-        postalCode: postalCode || undefined,
-        country: country || undefined,
-      },
+      components: params.resolved
+        ? {
+            streetLine: params.resolved.streetLine,
+            locality: params.resolved.locality,
+            region: params.resolved.region,
+            postalCode: params.resolved.postalCode,
+            country: params.resolved.country,
+          }
+        : undefined,
     })
-
-    // Show the resolved indicator briefly
     if (address) setIsResolved(true)
-  }, [onChange, onPlaceSelect])
+  }, [onChange, onPlaceSelect, pickPlaceParts])
+
+  const resolvePlaceById = useCallback((placeId: string, fallbackText: string) => {
+    try {
+      const service = new google.maps.places.PlacesService(document.createElement("div"))
+      service.getDetails(
+        {
+          placeId,
+          fields: ["address_components", "formatted_address", "name", "geometry", "place_id"],
+        },
+        (details, status) => {
+          resolvingRef.current = false
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !details) {
+            onChange(fallbackText)
+            return
+          }
+          applyResolvedPlace({ place: details, resolved: pickPlaceParts(details) })
+        },
+      )
+    } catch {
+      resolvingRef.current = false
+      onChange(fallbackText)
+    }
+  }, [applyResolvedPlace, onChange, pickPlaceParts])
+
+  const handlePlaceChanged = useCallback(() => {
+    const place = autocompleteRef.current?.getPlace()
+    if (!place) return
+    const resolved = pickPlaceParts(place)
+    // If postcode/state/locality are missing, fetch full details.
+    if (!resolved?.region || !resolved?.postalCode || !resolved?.locality) {
+      const placeId = place.place_id
+      if (placeId) {
+        resolvingRef.current = true
+        resolvePlaceById(placeId, resolved?.address ?? place.formatted_address ?? place.name ?? "")
+        return
+      }
+    }
+    applyResolvedPlace({ place, resolved })
+  }, [applyResolvedPlace, pickPlaceParts, resolvePlaceById])
+
+  const attemptAutoSelectBestMatch = useCallback(() => {
+    if (!isLoaded || hasMapsFailure) return
+    const text = value.trim()
+    if (!text || isResolved || resolvingRef.current) return
+    // Only attempt when the user has typed something meaningful.
+    if (text.length < 8) return
+
+    try {
+      resolvingRef.current = true
+      const service = new google.maps.places.AutocompleteService()
+      service.getPlacePredictions(
+        {
+          input: text,
+          componentRestrictions: { country: "au" },
+          types: ["address"],
+        },
+        (predictions, status) => {
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
+            resolvingRef.current = false
+            return
+          }
+          const top = predictions[0]
+          if (!top?.place_id) {
+            resolvingRef.current = false
+            return
+          }
+          resolvePlaceById(top.place_id, text)
+        },
+      )
+    } catch {
+      resolvingRef.current = false
+    }
+  }, [hasMapsFailure, isLoaded, isResolved, resolvePlaceById, value])
 
   useEffect(() => {
     if (!isLoaded || !inputRef.current || !apiKey || autocompleteRef.current) return
 
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ["address"],
+      types: ["geocode"],
       componentRestrictions: { country: "au" },
       fields: ["formatted_address", "name", "geometry", "place_id", "address_components"],
     })
@@ -214,7 +298,10 @@ function AddressAutocompleteWithGoogle({
         value={value}
         onChange={handleInputChange}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onBlur={() => {
+          setIsFocused(false)
+          attemptAutoSelectBestMatch()
+        }}
         className={cn("pl-9 pr-8", isResolved && "border-emerald-200")}
       />
       {isResolved && (
