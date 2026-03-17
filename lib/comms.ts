@@ -419,6 +419,14 @@ async function ensureWorkspaceRegulatoryAddress(
     return { region: match[1].toUpperCase(), postalCode: match[2] };
   };
 
+  const deriveCityFromAddress = (input: string | null | undefined) => {
+    if (!input) return "";
+    // Try to grab the locality before state/postcode, e.g. "Alexandria" from "123 Trade St, Alexandria NSW 2015"
+    const match = input.match(/,\s*([^,]+)\s+(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}/i);
+    if (match?.[1]?.trim()) return match[1].trim();
+    return "";
+  };
+
   // Try to derive an AU address from the business profile (best source).
   let street = workspace.location || "";
   let city = "";
@@ -433,22 +441,18 @@ async function ensureWorkspaceRegulatoryAddress(
           businessProfile: {
             select: {
               physicalAddress: true,
-              city: true,
             },
           },
         },
       });
       const profile = owner?.businessProfile;
       const physicalAddress = profile?.physicalAddress;
-      const configuredCity = profile?.city;
       if (physicalAddress && physicalAddress.trim().length > 0) {
         street = physicalAddress.trim();
         const parsed = parseAuRegionPostcode(physicalAddress);
         region = parsed.region;
         postalCode = parsed.postalCode;
-      }
-      if (configuredCity && configuredCity.trim().length > 0) {
-        city = configuredCity.trim();
+        city = deriveCityFromAddress(physicalAddress);
       }
     }
   } catch {

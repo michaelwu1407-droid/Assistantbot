@@ -132,7 +132,6 @@ describe("initializeTradieComms", () => {
     db.user.findUnique.mockResolvedValue({
       businessProfile: {
         physicalAddress: "123 Test St, Alexandria NSW 2015",
-        city: "Sydney",
       },
     });
 

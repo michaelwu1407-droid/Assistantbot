@@ -900,13 +900,13 @@ Rule: every agent change commit must include an entry in this file.
 ## 2026-03-18 01:18 (AEDT) - codex
 
 - Files changed:
-  - `prisma/schema.prisma`
   - `actions/tracey-onboarding.ts`
   - `components/onboarding/tracey-onboarding.tsx`
   - `lib/comms.ts`
   - `__tests__/comms.test.ts`
+  - `__tests__/tracey-onboarding-email-preview.test.tsx`
   - `docs/agent_change_log.md`
 - Summary:
-  - Added a dedicated `BusinessProfile.city` field (labelled “City” in onboarding) and updated Twilio regulatory address creation to use this field instead of any suburb-derived value.
+  - Removed the temporary City field from the onboarding UI and switched Twilio regulatory address creation back to deriving the locality from the existing Physical Address, keeping the interface unchanged while still satisfying Twilio’s `city` requirement.
 - Why:
-  - Some businesses may not want a suburb disclosed; Twilio still requires a `city` field, so we store an explicit city/locality value that can be less granular than suburb while keeping provisioning fully automatic.
+  - The onboarding flow should not gain new mandatory fields without explicit approval; we can safely infer the locality for regulatory purposes from the structured AU address the user already enters.

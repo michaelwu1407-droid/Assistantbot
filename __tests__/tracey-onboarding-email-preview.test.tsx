@@ -159,7 +159,6 @@ describe("Tracey onboarding lead email preview", () => {
       expect(screen.getByDisplayValue("123 Trade St, Alexandria NSW 2015")).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText("e.g. Sydney"), "Sydney");
     await user.click(screen.getByRole("button", { name: /^Next/i }));
 
     const previewEmail = "alexandria-automotive-services@inbound.earlymark.ai";
