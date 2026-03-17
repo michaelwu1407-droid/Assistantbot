@@ -559,6 +559,84 @@ export function TraceyOnboarding() {
         const scrapedPhysicalAddress = resolveScrapedPhysicalAddress(result.data)
         if (scrapedPhysicalAddress && !physicalAddress) {
           setPhysicalAddress(scrapedPhysicalAddress)
+          // Try to resolve structured components from the scraped text using Google Places,
+          // so scraped addresses behave like typed+selected ones for provisioning.
+          if (typeof window !== "undefined" && (window as any).google?.maps?.places) {
+            try {
+              const service = new (window as any).google.maps.places.AutocompleteService()
+              service.getPlacePredictions(
+                {
+                  input: scrapedPhysicalAddress,
+                  componentRestrictions: { country: "au" },
+                  types: ["address"],
+                },
+                (predictions: any[], status: any) => {
+                  if (
+                    status !== (window as any).google.maps.places.PlacesServiceStatus.OK ||
+                    !predictions?.length
+                  ) {
+                    return
+                  }
+                  const top = predictions[0]
+                  if (!top?.place_id) return
+                  const placesService = new (window as any).google.maps.places.PlacesService(
+                    document.createElement("div"),
+                  )
+                  placesService.getDetails(
+                    {
+                      placeId: top.place_id,
+                      fields: ["address_components", "formatted_address", "name", "geometry", "place_id"],
+                    },
+                    (details: any, detailStatus: any) => {
+                      if (
+                        detailStatus !== (window as any).google.maps.places.PlacesServiceStatus.OK ||
+                        !details
+                      ) {
+                        return
+                      }
+                      const components = details.address_components ?? []
+                      const get = (type: string) =>
+                        components.find((c: any) => c.types?.includes(type))
+                      const streetNumber = get("street_number")?.long_name
+                      const route = get("route")?.long_name
+                      const locality =
+                        get("locality")?.long_name ||
+                        get("postal_town")?.long_name ||
+                        get("sublocality")?.long_name ||
+                        get("sublocality_level_1")?.long_name
+                      const region = get("administrative_area_level_1")?.short_name
+                      const postalCode = get("postal_code")?.long_name
+                      const country = get("country")?.short_name
+                      const streetLine =
+                        streetNumber && route
+                          ? `${streetNumber} ${route}`
+                          : details.name ?? details.formatted_address ?? scrapedPhysicalAddress
+                      const resolvedAddress =
+                        streetLine && locality && region && postalCode
+                          ? `${streetLine}, ${locality} ${region} ${postalCode}`
+                          : scrapedPhysicalAddress
+                      setPhysicalAddress(resolvedAddress)
+                      setPhysicalAddressPlace({
+                        address: resolvedAddress,
+                        latitude: details.geometry?.location?.lat() ?? null,
+                        longitude: details.geometry?.location?.lng() ?? null,
+                        placeId: details.place_id ?? null,
+                        components: {
+                          streetLine: streetLine || undefined,
+                          locality: locality || undefined,
+                          region: region || undefined,
+                          postalCode: postalCode || undefined,
+                          country: country || undefined,
+                        },
+                      })
+                    },
+                  )
+                },
+              )
+            } catch {
+              // Best-effort only; scraped text still set above.
+            }
+          }
         }
         if (result.data.weeklyHours) {
           const nextWeeklyHours = normalizeWeeklyHours(result.data.weeklyHours)

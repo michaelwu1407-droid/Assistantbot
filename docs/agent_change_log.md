@@ -961,3 +961,13 @@ Rule: every agent change commit must include an entry in this file.
   - Made the onboarding “Next” gate accept a Google-selected address based on structured Places components (locality/state/postcode), even if the displayed address string is missing the postcode.
 - Why:
   - Google `formatted_address` can omit postcode; gating should use the structured data we already have from Places so users aren’t blocked after selecting a valid address.
+
+## 2026-03-18 02:55 (AEDT) - codex
+
+- Files changed:
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - When the website scrape pre-fills a Physical Address, we now immediately resolve that text via Google Places (Autocomplete + Details) and store structured locality/state/postcode components so scraped addresses behave like typed-and-selected ones for provisioning.
+- Why:
+  - Scraped addresses such as “36-42 Henderson Road, Alexandria, New South Wales, Australia” should be enough for provisioning; we now use Google’s structured data behind the scenes instead of treating the scraped string as unstructured text.
