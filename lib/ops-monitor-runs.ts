@@ -12,10 +12,15 @@ export type OpsMonitorHealth = {
   lastFailureAt: string | null;
   ageMs: number | null;
   staleAfterMs: number;
+  details: Record<string, unknown> | null;
 };
 
 function toJson(details?: Record<string, unknown>) {
   return details ? (JSON.parse(JSON.stringify(details)) as Prisma.InputJsonValue) : Prisma.JsonNull;
+}
+
+function isJsonObject(value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 export async function recordMonitorRun(params: {
@@ -66,6 +71,7 @@ export async function getMonitorRunHealth(monitorKey: string, staleAfterMs: numb
       lastFailureAt: record?.lastFailureAt?.toISOString() || null,
       ageMs: null,
       staleAfterMs,
+      details: record && isJsonObject(record.details) ? (record.details as Record<string, unknown>) : null,
     };
   }
 
@@ -107,5 +113,6 @@ export async function getMonitorRunHealth(monitorKey: string, staleAfterMs: numb
     lastFailureAt: record.lastFailureAt?.toISOString() || null,
     ageMs,
     staleAfterMs,
+    details: isJsonObject(record.details) ? (record.details as Record<string, unknown>) : null,
   };
 }

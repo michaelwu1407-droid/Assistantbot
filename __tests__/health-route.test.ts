@@ -9,6 +9,8 @@ const {
   getVoiceFleetHealth,
   getVoiceLatencyHealth,
   combineVoiceStatuses,
+  getCurrentAppReleaseInfo,
+  buildWorkerReleaseTruth,
 } = vi.hoisted(() => ({
   getCustomerAgentReadiness: vi.fn(),
   checkDatabaseHealth: vi.fn(),
@@ -18,6 +20,8 @@ const {
   getVoiceFleetHealth: vi.fn(),
   getVoiceLatencyHealth: vi.fn(),
   combineVoiceStatuses: vi.fn(),
+  getCurrentAppReleaseInfo: vi.fn(),
+  buildWorkerReleaseTruth: vi.fn(),
 }));
 
 vi.mock("@/lib/customer-agent-readiness", () => ({
@@ -47,6 +51,11 @@ vi.mock("@/lib/voice-call-latency-health", () => ({
 
 vi.mock("@/lib/voice-monitoring", () => ({
   combineVoiceStatuses,
+}));
+
+vi.mock("@/lib/release-truth", () => ({
+  getCurrentAppReleaseInfo,
+  buildWorkerReleaseTruth,
 }));
 
 import { GET } from "@/app/api/health/route";
@@ -93,6 +102,25 @@ describe("GET /api/health", () => {
       },
     });
     combineVoiceStatuses.mockReturnValue("healthy");
+    getCurrentAppReleaseInfo.mockReturnValue({
+      runtime: "web",
+      gitSha: "abcdef123456",
+      shortGitSha: "abcdef12",
+      deploymentId: "dep_123",
+      provider: "vercel",
+      nodeEnv: "production",
+    });
+    buildWorkerReleaseTruth.mockReturnValue({
+      status: "healthy",
+      summary: "worker release healthy",
+      warnings: [],
+      expectedWorkerSha: null,
+      scopedHostId: null,
+      liveDeployGitShas: ["abcdef123456"],
+      alignedHostIds: ["voice-host-a"],
+      mismatchedHostIds: [],
+      hosts: [],
+    });
   });
 
   it("includes the voice worker payload and combined service state", async () => {
@@ -108,5 +136,7 @@ describe("GET /api/health", () => {
       expectedFingerprint: "va_live",
     });
     expect(body.customerFacingAgents.overallStatus).toBe("healthy");
+    expect(body.release.app.shortGitSha).toBe("abcdef12");
+    expect(body.release.worker.status).toBe("healthy");
   });
 });

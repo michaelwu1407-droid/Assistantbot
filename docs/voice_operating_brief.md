@@ -93,6 +93,15 @@ Updated: 2026-03-14 AEDT
   - synthetic probe state
 - Single-host voice operation is treated as degraded until a second healthy host is real.
 - Synthetic probe is no longer just a gateway green check; it also reports whether a recent spoken canary sample exists for the probe path.
+- Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
+  - live web release SHA
+  - live worker release SHA(s)
+  - critical voice gate status
+  - canary state
+  - monitoring freshness
+  - SMS/email readiness
+  - provisioning drift
+- Worker deploy verification now checks this launch-readiness route after heartbeat/drift convergence and will roll back if the critical voice gate is still unhealthy.
 
 ## Active known risks
 

@@ -114,4 +114,20 @@ if [ "$DRIFT_VERIFIED" -ne 1 ]; then
   exit 1
 fi
 
+LAUNCH_GATE_VERIFIED=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } if (payload?.voiceCritical?.status === 'healthy') process.exit(0); process.exit(2);"; then
+    LAUNCH_GATE_VERIFIED=1
+    break
+  fi
+  sleep 10
+done
+
+if [ "$LAUNCH_GATE_VERIFIED" -ne 1 ]; then
+  echo "Launch-critical voice gate did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
+  NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+  rollback_release || true
+  exit 1
+fi
+
 sudo rm -rf "$PREV_DIR" "$FAILED_DIR"

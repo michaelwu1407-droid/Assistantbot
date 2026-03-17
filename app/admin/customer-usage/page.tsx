@@ -134,6 +134,11 @@ export default async function CustomerUsagePage({
         <p className="text-sm text-slate-600">
           Hidden internal surface for cross-customer usage, billing, voice, and coverage monitoring.
         </p>
+        <div>
+          <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href="/admin/ops-status">
+            Open launch status
+          </Link>
+        </div>
       </div>
 
       <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">

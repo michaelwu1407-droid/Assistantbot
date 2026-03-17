@@ -6,6 +6,7 @@ import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from '@/lib/twil
 import { getVoiceFleetHealth } from '@/lib/voice-fleet';
 import { getVoiceLatencyHealth } from '@/lib/voice-call-latency-health';
 import { combineVoiceStatuses } from '@/lib/voice-monitoring';
+import { buildWorkerReleaseTruth, getCurrentAppReleaseInfo } from '@/lib/release-truth';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,10 @@ export async function GET() {
       voiceFleet,
       voiceLatency,
     });
+    const release = {
+      app: getCurrentAppReleaseInfo(),
+      worker: buildWorkerReleaseTruth(voiceFleet),
+    };
 
     const voiceStatus = combineVoiceStatuses([
       voiceWorker.status,
@@ -59,6 +64,7 @@ export async function GET() {
         posthog: process.env.NEXT_PUBLIC_POSTHOG_KEY ? 'configured' : 'disabled',
       },
       customerFacingAgents,
+      release,
       voiceWorker,
       voiceFleet,
       voiceLatency,

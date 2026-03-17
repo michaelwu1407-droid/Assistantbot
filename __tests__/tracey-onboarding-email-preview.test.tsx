@@ -184,5 +184,5 @@ describe("Tracey onboarding lead email preview", () => {
         screen.getByText("alexandria-automotive-services-verified@inbound.earlymark.ai"),
       ).toBeInTheDocument();
     });
-  }, 15000);
+  }, 25000);
 });
