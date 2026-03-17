@@ -624,3 +624,16 @@ Rule: every agent change commit must include an entry in this file.
 - Files: `livekit-agent/voice-prompts.ts`, `livekit-agent/agent.ts`, `__tests__/voice-prompts.test.ts`, `docs/voice_operating_brief.md`, `docs/agent_change_log.md`
 - What changed: Extracted the reusable Tracey prompt builders into a dedicated shared module and switched the voice prompt regression test off the full `livekit-agent/agent.ts` runtime file. The worker now imports the shared prompt builders, while the test imports the prompt module directly instead of pulling in the full worker runtime and its native noise-cancellation dependency.
 - Why: Production Vercel builds were failing during `next build` because the test path dragged `livekit-agent/agent.ts` into the web TypeScript build, which in turn required the worker-only `@livekit/noise-cancellation-node` package that is not installed in the web app environment. This decouples the web deploy path from worker-native dependencies without changing live voice behavior.
+## 2026-03-17 13:54 (AEDT) - codex
+
+- Files changed:
+  - `app/api/health/route.ts`
+  - `__tests__/health-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Rebuilt the public health route as a thin wrapper over `getLaunchReadiness()` plus database reachability instead of recomputing a separate fragmented voice/Twilio/release view.
+  - Preserved the existing public payload shape for key consumers while adding launch-readiness, passive-production, communications, monitoring, and canary truth directly to `/api/health`.
+  - Added regression coverage for both the healthy launch-readiness-backed path and the fallback path where launch readiness fails to compute.
+- Why:
+  - The public health surface was still drifting from `/api/internal/launch-readiness` and `/admin/ops-status`, which undermined the phase-1 production-truth work and made deploy verification harder to trust.
