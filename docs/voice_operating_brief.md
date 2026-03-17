@@ -114,13 +114,16 @@ Updated: 2026-03-17 AEDT
 - Worker deploy verification now checks this launch-readiness route after heartbeat/drift convergence and then actively invokes `/api/cron/voice-synthetic-probe`; it rolls back if either the critical voice gate or the spoken PSTN canary is unhealthy.
 - Worker deploy verification is host-scoped for the actual rollout gate: heartbeat convergence, drift checks, and launch-readiness checks must all key off the targeted host plus healthy Twilio routing and LiveKit SIP, and must not reject the deploy solely because the global fleet remains single-host degraded while the second host has not been provisioned yet.
 - Worker deploy verification must preserve the rollout SHA and host ID passed in by the deploy command even after sourcing the live worker env from disk. Do not let `/opt/earlymark-worker/.env.local` silently override the SHA being verified.
+- Docker worker install/rollback must explicitly remove the fixed-name worker containers plus any stale compose-generated duplicates before `docker compose up`, otherwise a new release can fail with container-name conflicts even though the running workers are healthy.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 
 ## Active known risks
 
 - LiveKit worker containers require the RTC native Linux shared libraries baked into the Docker image. If a fresh worker image crash-loops with `libgio-2.0.so.0` or another `@livekit/rtc-node` dependency error, treat that as a broken image/runtime regression and rebuild from the canonical Dockerfile immediately.
 - Voice workers are now containerized, but single-host operation is still degraded until a second OCI host is healthy and participating in fleet truth.
+- The primary OCI worker host is now manually running `68a4ce4c`, but the deploy-only spoken PSTN canary has not yet been rerun to a confirmed healthy result after the final worker-container stop/removal hardening. Treat the Dockerized worker rollout as improved but not fully signed off until that post-patch canary passes.
 - The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, deploy verification and recovery probing are constrained.
+- `liveearlymarkai-redis-1` is still crash-looping on the OCI host because the legacy LiveKit Redis sidecar is fighting the existing host Redis port binding. It is not the active Tracey worker runtime, but it remains host hygiene drift that should be cleaned up.
 - Homepage copy and voice prompts now share a canonical sales brief, but homepage sections outside the main pillars can still drift if edited independently.
 - Inbound lead-email DNS drift is surfaced as degraded readiness, not a hard reconcile failure; customer-agent reconcile should only fail on runtime blockers, not missing inbound MX.
 - The Docker worker deploy persists env outside the release directory, but the first host migration still needs a valid existing worker env to seed `/opt/earlymark-worker-shared/.env.local`.

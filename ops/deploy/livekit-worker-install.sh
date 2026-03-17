@@ -76,6 +76,33 @@ compose_up() {
   compose_cmd "$compose_file" up -d --build --force-recreate --remove-orphans
 }
 
+remove_worker_containers() {
+  for pattern in "$SALES_CONTAINER" "$CUSTOMER_CONTAINER"; do
+    container_ids="$(sudo docker ps -aq --filter "name=${pattern}" || true)"
+    if [ -n "$container_ids" ]; then
+      # Remove both the fixed-name worker containers and any stale compose-generated duplicates.
+      while IFS= read -r container_id; do
+        [ -n "$container_id" ] || continue
+        if sudo docker rm -f "$container_id" >/dev/null 2>&1; then
+          continue
+        fi
+
+        container_pid="$(sudo docker inspect "$container_id" --format '{{.State.Pid}}' 2>/dev/null || true)"
+        if [ -n "$container_pid" ] && [ "$container_pid" != "0" ]; then
+          echo "[deploy] docker rm -f failed for $container_id; killing host PID $container_pid directly."
+          sudo kill -TERM "$container_pid" >/dev/null 2>&1 || true
+          sleep 2
+          sudo kill -KILL "$container_pid" >/dev/null 2>&1 || true
+        fi
+
+        sudo docker rm -f "$container_id" >/dev/null 2>&1 || true
+      done <<EOF
+$container_ids
+EOF
+    fi
+  done
+}
+
 log_container_details() {
   container_name="$1"
   sudo docker ps -a --filter "name=^/${container_name}$" || true
@@ -91,6 +118,7 @@ rollback_release() {
       sudo mv "$LIVE_DIR" "$FAILED_DIR"
     fi
     sudo mv "$PREV_DIR" "$LIVE_DIR"
+    remove_worker_containers
     compose_up "$LIVE_DIR/$COMPOSE_FILE_RELATIVE" || true
     return 0
   fi
@@ -217,6 +245,7 @@ if [ -d "$LIVE_DIR" ]; then
 fi
 sudo mv "$RELEASE_DIR" "$LIVE_DIR"
 
+remove_worker_containers
 if ! compose_up "$LIVE_DIR/$COMPOSE_FILE_RELATIVE"; then
   echo "[deploy] Docker worker compose up failed."
   rollback_release || true

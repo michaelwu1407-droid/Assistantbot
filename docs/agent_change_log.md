@@ -790,3 +790,34 @@ Rule: every agent change commit must include an entry in this file.
   - The live OCI worker host still needs one successful post-patch verification run end to end so the Dockerized voice-worker path is fully proven in production.
   - A second OCI voice host is still required before voice stops being single-host degraded in global launch readiness.
   - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 20:12 (AEDT) - codex
+
+- Files changed:
+  - `ops/deploy/livekit-worker-install.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed the Docker worker install path so it now force-removes both the fixed-name worker containers and any stale compose-generated duplicates before `docker compose up`, instead of colliding with its own previous container names during rollout.
+- Why:
+  - The first manual production rollout of `68a4ce4c` proved the image built correctly, but the install step still failed because Compose tried to recreate `earlymark-sales-agent` and `earlymark-customer-agent` while old containers with those names still existed. That is a deploy-path bug, not a worker-runtime bug.
+- Outstanding after this change:
+  - The live OCI worker host still needs one successful post-patch verification run end to end so the Dockerized voice-worker path is fully proven in production.
+  - A second OCI voice host is still required before voice stops being single-host degraded in global launch readiness.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 20:33 (AEDT) - codex
+
+- Files changed:
+  - `ops/deploy/livekit-worker-install.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a last-resort worker-container cleanup fallback to the Docker install path: if `docker rm -f` cannot stop the existing fixed-name worker containers, the script now kills the container init PID directly and retries removal before recreating the containers.
+  - Manually redeployed the primary OCI worker host to `68a4ce4c3f115ad6c0b4476705ace40e6a371502`; `/opt/earlymark-worker/.env.local` and both `earlymark-sales-agent` / `earlymark-customer-agent` containers now report that SHA, while `www.earlymark.ai` is already live on the matching Vercel deployment `assistantbot-drzx9hh2x-michael-s-projects-031f547b.vercel.app`.
+- Why:
+  - The initial Docker install hardening still failed on the real host because Docker could not stop the running worker containers cleanly and returned `permission denied`. The deploy path needed a direct PID-kill fallback or the rollout would keep failing despite healthy new images and correct release metadata.
+- Outstanding after this change:
+  - The deploy-only spoken PSTN canary was not rerun to completion after the final worker-stop fallback patch because the verification call was interrupted mid-session. The primary host is on the right SHA, but that canary still needs one clean healthy run before the Dockerized worker rollout is fully signed off.
+  - Global launch readiness is still degraded because only 1/2 expected OCI voice hosts exist. A second voice host is still required before voice stops being single-host degraded.
+  - The OCI LiveKit Redis sidecar container `liveearlymarkai-redis-1` is still crash-looping due to legacy host/sidecar port contention. It is not the active Tracey worker runtime, but it remains infrastructure drift that should be cleaned up.
+  - Production launch readiness still reports one failed Twilio provisioning record for workspace `My Workspace` at stage `bundle-clone`; that operator-visible provisioning issue remains unresolved.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
