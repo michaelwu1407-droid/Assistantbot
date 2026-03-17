@@ -84,6 +84,7 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 ## Voice Debug Start Rule
 
 - Before any new voice-agent debugging or tuning session, read `docs/voice_operating_brief.md` as the curated voice handoff doc, then inspect the latest relevant entries in `docs/agent_change_log.md`.
+- Before resuming any interrupted or still-open work, read `docs/current_agent_handoff.md` immediately after this file. Treat it as the canonical short resume brief for current live state and exact outstanding work.
 - Before any new voice-agent debugging session, read this file and inspect the latest `/tmp/agent.log` entries for `[voice-turn]`, `[voice-audit]`, `[voice-user-turn]`, and `[TRACK]` lines first.
 - Treat the latest measured bottleneck as the starting point. Do not guess from prompts alone when logs already show whether the delay is in STT, LLM TTFT, or TTS.
 - For inbound Earlymark calls, treat `llmTtftMs > 1200` or `ttsTtfbMs > 900` as a regression threshold worth fixing.

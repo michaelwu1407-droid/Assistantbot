@@ -821,3 +821,22 @@ Rule: every agent change commit must include an entry in this file.
   - The OCI LiveKit Redis sidecar container `liveearlymarkai-redis-1` is still crash-looping due to legacy host/sidecar port contention. It is not the active Tracey worker runtime, but it remains infrastructure drift that should be cleaned up.
   - Production launch readiness still reports one failed Twilio provisioning record for workspace `My Workspace` at stage `bundle-clone`; that operator-visible provisioning issue remains unresolved.
   - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 20:42 (AEDT) - codex
+
+- Files changed:
+  - `AGENTS.md`
+  - `HANDOVER.md`
+  - `docs/current_agent_handoff.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a single canonical short resume brief at `docs/current_agent_handoff.md` that tells future agents exactly what to read, what is live now, what was just completed, and what remains unfinished.
+  - Updated `AGENTS.md` so interrupted or still-open work must read `docs/current_agent_handoff.md` immediately after the main repo rules.
+  - Replaced the stale root `HANDOVER.md` session dump with a redirect that points agents to the new canonical handoff path instead of outdated notes.
+- Why:
+  - The repo already had enough audit history, but not a short current-state handoff that another agent could trust. `HANDOVER.md` was stale and actively risky. This change creates one obvious re-entry point so future agents do not need to infer the current state from scattered logs.
+- Outstanding after this change:
+  - The deploy-only spoken PSTN canary still needs one clean healthy rerun after the final worker-stop fallback patch.
+  - Global launch readiness is still degraded because only 1/2 expected OCI voice hosts exist.
+  - The OCI legacy Redis sidecar is still crash-looping.
+  - The failed Twilio provisioning record for workspace `My Workspace` is still unresolved.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and remaining live smoke/runbook execution.
