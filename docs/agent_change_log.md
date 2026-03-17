@@ -736,3 +736,22 @@ Rule: every agent change commit must include an entry in this file.
 - Outstanding after this change:
   - A second OCI voice host is still required before voice stops being single-host degraded.
   - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 18:28 (AEDT) - codex
+
+- Files changed:
+  - `livekit-agent/Dockerfile`
+  - `ops/deploy/livekit-worker-install.sh`
+  - `AGENTS.md`
+  - `DEPLOYMENT_CHECKLIST.md`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added the native Linux runtime libraries required by `@livekit/rtc-node` to the Dockerized worker image so the OCI worker containers can load the LiveKit RTC binding instead of crash-looping on missing `libgio-2.0.so.0`.
+  - Removed the last install-script fallback to `/opt/earlymark-agent/.env.local`, making `/opt/earlymark-worker-shared/.env.local` the only supported persisted worker env source for Dockerized deploys.
+  - Updated the canonical agent, deployment, and voice-operating docs to reflect the Docker-native env contract and the new container-image dependency on RTC shared libraries.
+- Why:
+  - The first live Docker cutover proved the topology change was right, but the image was incomplete for the LiveKit RTC native module and the install path still retained a legacy env dependency. This closes the actual crash-loop blocker and finishes the move away from the host-process `/opt/earlymark-agent` runtime model.
+- Outstanding after this change:
+  - The live OCI worker host still needs a successful Docker-image redeploy and verification against production launch-readiness.
+  - A second OCI voice host is still required before voice stops being single-host degraded.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.

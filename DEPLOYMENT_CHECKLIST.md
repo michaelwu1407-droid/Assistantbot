@@ -68,6 +68,7 @@ Infrastructure model to verify before deployment:
 
 - LiveKit core infrastructure should be running via Docker on the OCI host
 - the active Twilio subaccount voice agent workers should be running as Docker containers from `/opt/earlymark-worker`
+- the canonical worker env should come from `/opt/earlymark-worker-shared/.env.local`, not `/opt/earlymark-agent/.env.local`
 - do not treat legacy native LiveKit, Redis, or Tailscale services as part of the supported runtime
 
 Required envs typically include:

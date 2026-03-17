@@ -8,6 +8,7 @@ Updated: 2026-03-17 AEDT
 - Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
 - Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
 - Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
+- `/opt/earlymark-agent` is no longer a supported worker runtime or env fallback. Treat it only as a legacy artifact until it is explicitly removed from the host.
 - Canonical worker containers:
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
@@ -114,6 +115,7 @@ Updated: 2026-03-17 AEDT
 
 ## Active known risks
 
+- LiveKit worker containers require the RTC native Linux shared libraries baked into the Docker image. If a fresh worker image crash-loops with `libgio-2.0.so.0` or another `@livekit/rtc-node` dependency error, treat that as a broken image/runtime regression and rebuild from the canonical Dockerfile immediately.
 - Voice workers are now containerized, but single-host operation is still degraded until a second OCI host is healthy and participating in fleet truth.
 - The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, deploy verification and recovery probing are constrained.
 - Homepage copy and voice prompts now share a canonical sales brief, but homepage sections outside the main pillars can still drift if edited independently.

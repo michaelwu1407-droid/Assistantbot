@@ -29,7 +29,6 @@ FAILED_DIR="/opt/earlymark-worker.failed-${DEPLOY_GIT_SHA}"
 RELEASE_DIR="/opt/earlymark-worker.release-${DEPLOY_GIT_SHA}"
 SHARED_DIR="/opt/earlymark-worker-shared"
 SHARED_ENV_FILE="$SHARED_DIR/.env.local"
-LEGACY_ENV_FILE="/opt/earlymark-agent/.env.local"
 COMPOSE_FILE_RELATIVE="docker/worker-compose.yml"
 SALES_CONTAINER="earlymark-sales-agent"
 CUSTOMER_CONTAINER="earlymark-customer-agent"
@@ -116,8 +115,6 @@ if [ -f "$LIVE_DIR/.env.local" ]; then
   cp "$LIVE_DIR/.env.local" "$RELEASE_DIR/.env.local"
 elif [ -f "$SHARED_ENV_FILE" ]; then
   cp "$SHARED_ENV_FILE" "$RELEASE_DIR/.env.local"
-elif [ -f "$LEGACY_ENV_FILE" ]; then
-  cp "$LEGACY_ENV_FILE" "$RELEASE_DIR/.env.local"
 fi
 
 if [ ! -f "$RELEASE_DIR/.env.local" ]; then
