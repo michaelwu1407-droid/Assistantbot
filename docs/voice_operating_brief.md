@@ -94,7 +94,8 @@ Updated: 2026-03-17 AEDT
   - passive production health
   - monitor freshness
   - active probe state
-- Single-host voice operation is treated as degraded until a second healthy host is real.
+- By default, single-host voice operation is treated as degraded.
+- If you are intentionally running single-host for a period, set `VOICE_SINGLE_HOST_ACCEPTED=true` so readiness reflects real failures instead of permanently warning about the missing second host.
 - Routine launch and ops status now use passive real-traffic monitoring:
   - voice from persisted `VoiceCall` activity plus recent Twilio failures
   - inbound email from real `WebhookEvent(provider="resend", eventType="email.received")` success/failure data
@@ -120,7 +121,7 @@ Updated: 2026-03-17 AEDT
 ## Active known risks
 
 - LiveKit worker containers require the RTC native Linux shared libraries baked into the Docker image. If a fresh worker image crash-loops with `libgio-2.0.so.0` or another `@livekit/rtc-node` dependency error, treat that as a broken image/runtime regression and rebuild from the canonical Dockerfile immediately.
-- Voice workers are now containerized, but single-host operation is still degraded until a second OCI host is healthy and participating in fleet truth.
+- Voice workers are now containerized. If `VOICE_SINGLE_HOST_ACCEPTED` is not set, readiness will continue to treat single-host operation as degraded until a second OCI host is healthy and participating in fleet truth.
 - The primary OCI worker host is now manually running `68a4ce4c`, but the deploy-only spoken PSTN canary has not yet been rerun to a confirmed healthy result after the final worker-container stop/removal hardening. Treat the Dockerized worker rollout as improved but not fully signed off until that post-patch canary passes.
 - The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, deploy verification and recovery probing are constrained.
 - `liveearlymarkai-redis-1` is still crash-looping on the OCI host because the legacy LiveKit Redis sidecar is fighting the existing host Redis port binding. It is not the active Tracey worker runtime, but it remains host hygiene drift that should be cleaned up.

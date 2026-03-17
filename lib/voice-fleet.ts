@@ -70,7 +70,14 @@ const UNHEALTHY_HEARTBEAT_AGE_MS = 150_000;
 const SATURATION_LOOKBACK_MINUTES = 5;
 const SATURATION_HEARTBEAT_THRESHOLD = 3;
 
+function parseBooleanEnv(value: string | undefined) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "y";
+}
+
 function getExpectedHostCount(env: NodeJS.ProcessEnv = process.env) {
+  const singleHostAccepted = parseBooleanEnv(env.VOICE_SINGLE_HOST_ACCEPTED);
   const configuredHostIds = (env.VOICE_EXPECTED_HOST_IDS || "")
     .split(",")
     .map((value) => value.trim())
@@ -81,7 +88,10 @@ function getExpectedHostCount(env: NodeJS.ProcessEnv = process.env) {
   }
 
   const configuredCount = Number.parseInt((env.VOICE_EXPECTED_HOST_COUNT || "").trim(), 10);
-  return Number.isInteger(configuredCount) && configuredCount > 0 ? configuredCount : DEFAULT_EXPECTED_HOST_COUNT;
+  if (Number.isInteger(configuredCount) && configuredCount > 0) return configuredCount;
+
+  if (singleHostAccepted) return 1;
+  return DEFAULT_EXPECTED_HOST_COUNT;
 }
 
 function isJsonObject(value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject {

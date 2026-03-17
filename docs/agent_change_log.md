@@ -1,4 +1,4 @@
-﻿## 2026-03-10 (AEST) – Cursor AI Agent
+## 2026-03-10 (AEST) – Cursor AI Agent
 
 - **Files changed**: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
 - **Summary**: Voice agent now responds in the caller’s language: user speaks → agent replies in that language. STT uses Deepgram `language: "multi"` and `detectLanguage: true`. Added `MultilingualTTS` wrapper that sets reply language from each user turn’s `ev.language` and uses a Cartesia TTS per language (lazy). Greeting stays in default (en-AU); all subsequent replies use the detected language. LLM instructions updated (normal + Earlymark prompts) to “reply in the same language the caller is speaking.”
@@ -840,3 +840,24 @@ Rule: every agent change commit must include an entry in this file.
   - The OCI legacy Redis sidecar is still crash-looping.
   - The failed Twilio provisioning record for workspace `My Workspace` is still unresolved.
   - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and remaining live smoke/runbook execution.
+
+## 2026-03-17 22:10 (AEDT) - codex
+
+- Files changed:
+  - `lib/voice-fleet.ts`
+  - `app/admin/ops-status/page.tsx`
+  - `__tests__/voice-fleet.test.ts`
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `app/api/internal/provisioning-retry/route.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/SINGLE_HOST_DISASTER_RECOVERY.md`
+  - `docs/OCI_LEGACY_REDIS_SIDECAR_CLEANUP.md`
+  - `scripts/backup-worker-env.sh`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added `VOICE_SINGLE_HOST_ACCEPTED=true` to treat single-host voice as an explicitly accepted mode (default remains 2-host expectation), and surfaced that state in `/admin/ops-status`.
+  - Hardened the Twilio voice gateway error path to prefer voicemail recording fallback when request handling fails after the call metadata is known.
+  - Added an internal ops route to retry workspace Twilio provisioning (`POST /api/internal/provisioning-retry`) so the `bundle-clone` failure state can be re-attempted safely via the canonical provisioning path.
+  - Added single-host disaster-recovery docs plus a small host-side env backup script, and documented cleanup steps for the crash-looping legacy Redis sidecar.
+- Why:
+  - The medium-term topology decision is to run a single OCI host, so launch readiness should focus on real failures rather than a permanent “missing second host” warning, while compensating with improved fallbacks and faster recovery paths.

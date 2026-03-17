@@ -58,6 +58,17 @@ describe("getVoiceFleetHealth", () => {
     expect(fleet.warnings).toContain("Only 1/2 voice host(s) have reported in recently.");
   });
 
+  it("treats a single host as healthy when single-host operation is explicitly accepted", async () => {
+    process.env.VOICE_SINGLE_HOST_ACCEPTED = "true";
+
+    const fleet = await getVoiceFleetHealth();
+
+    expect(fleet.status).toBe("healthy");
+    expect(fleet.hosts).toHaveLength(1);
+    expect(fleet.surfaces.demo.expectedHostCount).toBe(1);
+    expect(fleet.warnings).not.toContain("Only 1/2 voice host(s) have reported in recently.");
+  });
+
   it("degrades when two hosts are explicitly expected", async () => {
     process.env.VOICE_EXPECTED_HOST_COUNT = "2";
 

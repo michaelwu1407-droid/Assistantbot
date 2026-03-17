@@ -192,6 +192,10 @@ async function openGatewayIncident(params: {
 }
 
 export async function POST(req: NextRequest) {
+  let lastCallerNumber = "";
+  let lastCalledNumber = "";
+  let lastSurface: VoiceSurface = "inbound_demo";
+
   try {
     const formData = await req.formData();
     const callerNumber = formData.get("From")?.toString() || "";
@@ -203,6 +207,8 @@ export async function POST(req: NextRequest) {
     const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
     const syntheticProbe = isAuthenticatedSyntheticProbe(req);
     const spokenProbeCaller = isConfiguredSpokenProbeCaller(callerNumber, calledNumber);
+    lastCallerNumber = callerNumber;
+    lastCalledNumber = calledNumber;
 
     if (dtmfPassed === "1" && digits === "1") {
       const workspace = await findWorkspaceByTwilioNumber(calledNumber);
@@ -210,6 +216,7 @@ export async function POST(req: NextRequest) {
         isEarlymarkInboundCall,
         workspaceMatched: Boolean(workspace),
       });
+      lastSurface = surface;
       const fleet = await getVoiceFleetHealth();
       if (!isVoiceSurfaceRoutable(fleet, surface)) {
         await openGatewayIncident({
@@ -293,6 +300,7 @@ export async function POST(req: NextRequest) {
       isEarlymarkInboundCall,
       workspaceMatched: Boolean(workspace),
     });
+    lastSurface = surface;
 
     if (workspace?.voiceEnabled === false) {
       console.log("[voice-gateway] Voice disabled for workspace; routing to voicemail fallback.");
@@ -354,6 +362,15 @@ export async function POST(req: NextRequest) {
     return twimlResponse(forwardToLiveKitTwiml(sipTarget));
   } catch (error) {
     console.error("[voice-gateway] Error:", error);
+    if (lastCallerNumber && lastCalledNumber) {
+      return twimlResponse(
+        voicemailFallbackTwiml({
+          calledNumber: lastCalledNumber,
+          callerNumber: lastCallerNumber,
+          surface: lastSurface,
+        }),
+      );
+    }
     return twimlResponse(temporarilyUnavailableTwiml());
   }
 }

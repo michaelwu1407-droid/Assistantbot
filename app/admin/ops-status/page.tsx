@@ -33,6 +33,9 @@ function SummaryMetric({ label, value }: { label: string; value: string }) {
 export default async function OpsStatusPage() {
   await requireInternalAdminAccess();
   const data = await getLaunchReadiness();
+  const singleHostAccepted = (process.env.VOICE_SINGLE_HOST_ACCEPTED || "").trim().toLowerCase() === "true"
+    || (process.env.VOICE_SINGLE_HOST_ACCEPTED || "").trim() === "1"
+    || (process.env.VOICE_SINGLE_HOST_ACCEPTED || "").trim().toLowerCase() === "yes";
 
   return (
     <div className="mx-auto max-w-[1800px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -40,6 +43,7 @@ export default async function OpsStatusPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Launch Status</h1>
           <Badge variant={statusVariant(data.status)}>{data.status}</Badge>
+          {singleHostAccepted ? <Badge variant="outline">single-host accepted</Badge> : null}
         </div>
         <p className="text-sm text-slate-600">{data.summary}</p>
         <p className="text-xs text-slate-500">Checked {formatDate(data.checkedAt)}</p>
