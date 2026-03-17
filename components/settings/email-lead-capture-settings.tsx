@@ -11,6 +11,15 @@ import { getLeadCaptureEmailReadiness, getOrAllocateLeadCaptureEmail, getWorkspa
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return null;
+  return new Date(value).toLocaleString("en-AU", {
+    timeZone: "Australia/Sydney",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
@@ -115,6 +124,26 @@ export function EmailLeadCaptureSettings() {
             </ul>
           </div>
         )}
+        {readiness?.ready && !readiness.receivingConfirmed && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="font-medium">Inbound email is verified and ready</div>
+            <div className="mt-1">
+              DNS and Resend are verified for <strong>{readiness.domain}</strong>. We have not yet observed a live inbound lead email in the last{" "}
+              {readiness.receivingConfirmationLookbackDays} days.
+            </div>
+          </div>
+        )}
+        {readiness?.ready && readiness.receivingConfirmed && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <div className="font-medium">Inbound email is live</div>
+            <div className="mt-1">
+              Recent inbound email processing confirms the route is working.
+              {formatDate(readiness.lastInboundEmailSuccessAt)
+                ? ` Last success: ${formatDate(readiness.lastInboundEmailSuccessAt)}.`
+                : ""}
+            </div>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Your forwarding email</Label>
           <div className="flex items-center gap-2">
@@ -127,7 +156,9 @@ export function EmailLeadCaptureSettings() {
           </div>
           <p className="text-xs text-muted-foreground">
             {readiness?.ready
-              ? "Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically."
+              ? readiness.receivingConfirmed
+                ? "Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically."
+                : "This address is verified and ready. Forward your first live lead email here to confirm end-to-end receiving."
               : "This address is reserved, but inbound email is not ready yet. Fix the inbound domain before forwarding live leads."}
           </p>
         </div>

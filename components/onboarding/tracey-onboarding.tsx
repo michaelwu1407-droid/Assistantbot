@@ -72,6 +72,53 @@ type ProvisioningStatus =
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>
 
+function formatSydneyDate(value: string | null | undefined) {
+  if (!value) return null
+  return new Date(value).toLocaleString("en-AU", {
+    timeZone: "Australia/Sydney",
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
+function getLeadCaptureStatusCopy(readiness: LeadCaptureEmailReadiness | null | undefined) {
+  if (!readiness) {
+    return {
+      tone: "ready" as const,
+      title: "Your forwarding address:",
+      helper: "Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.",
+      checklist: "will be activated",
+    }
+  }
+
+  if (!readiness.ready) {
+    return {
+      tone: "blocked" as const,
+      title: "Reserved forwarding address (not live yet):",
+      helper: `Inbound email is not active for ${readiness.domain}.`,
+      checklist: "is reserved, but inbound mail is not live yet.",
+    }
+  }
+
+  if (!readiness.receivingConfirmed) {
+    return {
+      tone: "verified" as const,
+      title: "Verified forwarding address:",
+      helper: `DNS and Resend are verified. Forward your first live lead email here to confirm end-to-end receiving.`,
+      checklist: "is verified and ready for your first live forwarded lead email.",
+    }
+  }
+
+  return {
+    tone: "ready" as const,
+    title: "Your forwarding address:",
+    helper: formatSydneyDate(readiness.lastInboundEmailSuccessAt)
+      ? `Recent inbound email confirms this route is live. Last success: ${formatSydneyDate(readiness.lastInboundEmailSuccessAt)}.`
+      : "Recent inbound email confirms this route is live.",
+    checklist: "is live and receiving inbound email.",
+  }
+}
+
 // ─── Constants ──────────────────────────────────────────────────
 
 const TRADE_TYPES = [
@@ -432,6 +479,7 @@ export function TraceyOnboarding() {
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
   const [preGenLeadsEmail, setPreGenLeadsEmail] = useState<string | null>(null)
   const [leadCaptureEmailReadiness, setLeadCaptureEmailReadiness] = useState<LeadCaptureEmailReadiness | null>(null)
+  const leadCaptureStatusCopy = getLeadCaptureStatusCopy(leadCaptureEmailReadiness)
 
   // Optional team invites on the last step
   const [inviteRole, setInviteRole] = useState<"TEAM_MEMBER" | "MANAGER">("TEAM_MEMBER")
@@ -1339,6 +1387,11 @@ export function TraceyOnboarding() {
                                 Inbound email is not live yet. Do not forward leads until DNS is fixed.
                               </p>
                             )}
+                            {leadCaptureEmailReadiness?.ready && !leadCaptureEmailReadiness.receivingConfirmed && (
+                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                DNS and Resend are verified. Your first forwarded lead email will confirm live receiving.
+                              </p>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -1387,12 +1440,12 @@ export function TraceyOnboarding() {
                     )}
 
                     {inboxConnectionType === "forward" && preGenLeadsEmail && (
-                      <div className={`${leadCaptureEmailReadiness?.ready === false ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"} border rounded-lg p-4`}>
-                        <p className={`text-xs mb-2 ${leadCaptureEmailReadiness?.ready === false ? "text-red-800 dark:text-red-200" : "text-emerald-800 dark:text-emerald-200"}`}>
-                          <strong>{leadCaptureEmailReadiness?.ready === false ? "Reserved forwarding address (not live yet):" : "Your forwarding address:"}</strong>
+                      <div className={`${leadCaptureStatusCopy.tone === "blocked" ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : leadCaptureStatusCopy.tone === "verified" ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"} border rounded-lg p-4`}>
+                        <p className={`text-xs mb-2 ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-800 dark:text-red-200" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-800 dark:text-amber-200" : "text-emerald-800 dark:text-emerald-200"}`}>
+                          <strong>{leadCaptureStatusCopy.title}</strong>
                         </p>
                         <div className="flex items-center gap-2">
-                          <code className={`flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureEmailReadiness?.ready === false ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-400"}`}>
+                          <code className={`flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-700 dark:text-red-300" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
                             {preGenLeadsEmail}
                           </code>
                           <Button 
@@ -1406,16 +1459,16 @@ export function TraceyOnboarding() {
                             Copy
                           </Button>
                         </div>
-                        {leadCaptureEmailReadiness?.ready === false ? (
+                        {leadCaptureStatusCopy.tone === "blocked" ? (
                           <div className="mt-2 text-xs text-red-700 dark:text-red-300">
-                            <p>Inbound email is not active for <strong>{leadCaptureEmailReadiness.domain}</strong>.</p>
-                            {leadCaptureEmailReadiness.issues.slice(0, 2).map((issue) => (
+                            <p>{leadCaptureStatusCopy.helper}</p>
+                            {(leadCaptureEmailReadiness?.issues || []).slice(0, 2).map((issue) => (
                               <p key={issue}>{issue}</p>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-2">
-                            Set up an auto-forward rule in your Gmail/Outlook to send leads to this address.
+                          <p className={`text-xs mt-2 ${leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
+                            {leadCaptureStatusCopy.helper}
                           </p>
                         )}
                       </div>
@@ -1583,10 +1636,8 @@ export function TraceyOnboarding() {
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span className={leadCaptureEmailReadiness?.ready === false ? "text-red-600 dark:text-red-400" : ""}>
-                                {leadCaptureEmailReadiness?.ready === false
-                                  ? <>Leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> is reserved, but inbound mail is not live yet.</>
-                                  : <>Your leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> will be activated</>}
+                              <span className={leadCaptureStatusCopy.tone === "blocked" ? "text-red-600 dark:text-red-400" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : ""}>
+                                Leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> {leadCaptureStatusCopy.checklist}
                               </span>
                             </li>
                             <li className="flex items-start gap-2">

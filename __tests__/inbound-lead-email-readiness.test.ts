@@ -4,9 +4,21 @@ const { resolveMx } = vi.hoisted(() => ({
   resolveMx: vi.fn(),
 }));
 
+const { findMany } = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
 vi.mock("node:dns/promises", () => ({
   default: {},
   resolveMx,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    webhookEvent: {
+      findMany,
+    },
+  },
 }));
 
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness";
@@ -18,6 +30,7 @@ describe("getInboundLeadEmailReadiness", () => {
     vi.clearAllMocks();
     vi.stubGlobal("fetch", fetchMock);
     process.env.RESEND_API_KEY = "re_test";
+    findMany.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -49,9 +62,21 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.domain).toBe("inbound.earlymark.ai");
     expect(result.issues.some((issue) => issue.includes("no valid MX record"))).toBe(true);
     expect(result.issues.some((issue) => issue.includes("not configured in Resend"))).toBe(true);
+    expect(result.stage).toBe("reserved");
+    expect(result.receivingConfirmed).toBe(false);
   });
 
   it("returns ready when the exact configured domain has verified inbound receiving", async () => {
+    findMany.mockResolvedValue([
+      {
+        status: "success",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+      },
+      {
+        status: "error",
+        createdAt: new Date("2026-03-16T01:00:00.000Z"),
+      },
+    ]);
     resolveMx.mockResolvedValue([
       {
         exchange: "inbound-smtp.ap-northeast-1.amazonaws.com",
@@ -100,5 +125,12 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.issues).toEqual([]);
     expect(result.resendReceivingEnabled).toBe(true);
     expect(result.resendReceivingRecordStatus).toBe("verified");
+    expect(result.dnsReady).toBe(true);
+    expect(result.providerVerified).toBe(true);
+    expect(result.receivingConfirmed).toBe(true);
+    expect(result.stage).toBe("receiving_confirmed");
+    expect(result.recentInboundEmailSuccessCount).toBe(1);
+    expect(result.recentInboundEmailFailureCount).toBe(1);
+    expect(result.lastInboundEmailSuccessAt).toBe("2026-03-17T01:00:00.000Z");
   });
 });

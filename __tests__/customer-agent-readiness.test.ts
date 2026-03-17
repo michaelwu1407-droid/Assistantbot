@@ -96,8 +96,17 @@ describe("getCustomerAgentReadiness", () => {
       domain: "leads.example.com",
       issues: [],
       dnsMxHosts: ["inbound-smtp.ap-southeast-2.amazonaws.com"],
+      dnsReady: true,
       resendReceivingEnabled: true,
       resendReceivingRecordStatus: "verified",
+      providerVerified: true,
+      receivingConfirmed: false,
+      stage: "provider_verified",
+      receivingConfirmationLookbackDays: 14,
+      recentInboundEmailSuccessCount: 0,
+      recentInboundEmailFailureCount: 0,
+      lastInboundEmailSuccessAt: null,
+      lastInboundEmailFailureAt: null,
     });
     process.env = {
       ...originalEnv,
@@ -202,8 +211,17 @@ describe("getCustomerAgentReadiness", () => {
         "Resend inbound receiving record for inbound.earlymark.ai is not verified.",
       ],
       dnsMxHosts: [],
+      dnsReady: false,
       resendReceivingEnabled: false,
       resendReceivingRecordStatus: "missing",
+      providerVerified: false,
+      receivingConfirmed: false,
+      stage: "reserved",
+      receivingConfirmationLookbackDays: 14,
+      recentInboundEmailSuccessCount: 0,
+      recentInboundEmailFailureCount: 0,
+      lastInboundEmailSuccessAt: null,
+      lastInboundEmailFailureAt: null,
     });
 
     const readiness = await getCustomerAgentReadiness({

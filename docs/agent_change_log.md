@@ -4,6 +4,25 @@
 - **Summary**: Voice agent now responds in the caller’s language: user speaks → agent replies in that language. STT uses Deepgram `language: "multi"` and `detectLanguage: true`. Added `MultilingualTTS` wrapper that sets reply language from each user turn’s `ev.language` and uses a Cartesia TTS per language (lazy). Greeting stays in default (en-AU); all subsequent replies use the detected language. LLM instructions updated (normal + Earlymark prompts) to “reply in the same language the caller is speaking.”
 - **Why**: To support “user calls → agent says hi → user speaks language → agent responds in said language” without pre-call contact lookup and without adding latency (no extra round-trips; language is taken from the existing STT event).
 
+## 2026-03-17 14:12 (AEDT) - codex
+
+- Files changed:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `components/settings/email-lead-capture-settings.tsx`
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `app/admin/ops-status/page.tsx`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/health-route.test.ts`
+  - `__tests__/launch-readiness-route.test.ts`
+  - `__tests__/customer-agent-readiness.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Expanded inbound lead-email readiness beyond DNS/provider verification to also report whether real inbound email has actually been received recently, including stage, timestamps, and success/failure counts.
+  - Surfaced the new reserved vs verified vs receiving-confirmed states in the ops page, onboarding flow, and workspace email settings so the app stops treating all “configured” email states as equivalent.
+  - Extended readiness regression coverage so the new shared email-readiness shape is exercised through the domain checker, launch-readiness mocks, public health mocks, and customer-agent readiness.
+- Why:
+  - The execution plan requires internal ops to distinguish between “configured on paper” and “proven by live inbound traffic” for email. Without that split, email readiness stayed too binary and operators could not tell whether the route had ever actually worked.
+
 ### 2026-03-12 18:54 (AEDT) - codex
 - Files: `livekit-agent/agent.ts`, `livekit-agent/worker-entry.ts`, `livekit-agent/runtime-config.ts`, `livekit-agent/.env.example`, `__tests__/voice-agent-runtime-config.test.ts`, `.github/workflows/deploy-livekit.yml`, `ops/systemd/earlymark-sales-agent.service`, `ops/systemd/earlymark-customer-agent.service`, `ops/systemd/tracey-sales-agent.service`, `ops/systemd/tracey-customer-agent.service`, `AGENTS.md`, `docs/agent_change_log.md`
 - What changed: Finalized the OCI worker standardization by moving shared worker host/port and production env rules into a dedicated runtime-config module, making production workers fail fast when required env such as app URL, webhook secret, LiveKit credentials, or `CARTESIA_API_KEY` is missing, removing the production localhost heartbeat fallback, updating the deploy workflow to validate `/opt/earlymark-agent/.env.local`, optionally purge stale PM2 worker processes, install the canonical `earlymark-*` systemd units on every deploy, and remove the legacy `tracey-*` unit files from the repo.

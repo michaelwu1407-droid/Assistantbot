@@ -189,6 +189,13 @@ export default async function OpsStatusPage() {
             <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">
               {data.communications.summary}
             </div>
+            <div className="text-xs text-slate-600">
+              SMS managed numbers: {data.communications.sms.managedNumberCount}<br />
+              Email domain: {data.communications.email.domain}<br />
+              Email stage: {data.communications.email.stage}<br />
+              Receiving confirmed: {data.communications.email.receivingConfirmed ? "Yes" : "No"}<br />
+              Last inbound success: {formatDate(data.communications.email.lastInboundEmailSuccessAt)}
+            </div>
           </CardContent>
         </Card>
       </section>
