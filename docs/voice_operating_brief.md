@@ -101,6 +101,7 @@ Updated: 2026-03-17 AEDT
 - Low/no traffic customer workspaces are surfaced as per-workspace `unknown`, but they do not drag top-level launch status down unless there is a real failure signal.
 - The synthetic probe is no longer the routine production health source. It is reserved for deploy verification and manual incident recovery.
 - The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
+- Worker shutdown must wait for `VoiceCall` persistence to finish after disconnect. Do not fire-and-forget the `/api/internal/voice-calls` write or the deploy-only spoken canary will produce false negatives even when Tracey answered correctly.
 - Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
   - live web release SHA
   - live worker release SHA(s)
@@ -111,6 +112,8 @@ Updated: 2026-03-17 AEDT
   - SMS/email readiness
   - provisioning drift
 - Worker deploy verification now checks this launch-readiness route after heartbeat/drift convergence and then actively invokes `/api/cron/voice-synthetic-probe`; it rolls back if either the critical voice gate or the spoken PSTN canary is unhealthy.
+- Worker deploy verification is host-scoped for the actual rollout gate: heartbeat convergence, drift checks, and launch-readiness checks must all key off the targeted host plus healthy Twilio routing and LiveKit SIP, and must not reject the deploy solely because the global fleet remains single-host degraded while the second host has not been provisioned yet.
+- Worker deploy verification must preserve the rollout SHA and host ID passed in by the deploy command even after sourcing the live worker env from disk. Do not let `/opt/earlymark-worker/.env.local` silently override the SHA being verified.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 
 ## Active known risks
@@ -132,3 +135,4 @@ Updated: 2026-03-17 AEDT
 - Deploy workflow should only run for voice-affecting changes; broad `main` deploy triggers create unnecessary worker churn.
 - Audit history is useful, but agents need a short curated voice handoff doc to avoid re-learning the same lessons from a bloated changelog.
 - Container health plus launch-readiness plus spoken-canary truth is a better worker release gate than heartbeat-only verification.
+- The spoken canary should correlate on persisted call start time plus caller/called numbers, not row creation time alone, because call rows can be written after the live call has already finished.

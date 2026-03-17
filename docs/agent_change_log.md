@@ -755,3 +755,38 @@ Rule: every agent change commit must include an entry in this file.
   - The live OCI worker host still needs a successful Docker-image redeploy and verification against production launch-readiness.
   - A second OCI voice host is still required before voice stops being single-host degraded.
   - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 19:04 (AEDT) - codex
+
+- Files changed:
+  - `ops/deploy/livekit-worker-verify.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Relaxed the host rollout gate in the Docker worker verify script so deploy verification now requires the targeted host to converge on the expected worker SHA, healthy worker roles, healthy Twilio routing, and healthy LiveKit SIP, instead of failing solely because the overall fleet is still single-host degraded pending a second OCI host.
+  - Preserved the explicit deploy SHA and host ID passed into the verify script after sourcing the live worker env from disk, preventing `/opt/earlymark-worker/.env.local` from silently overriding the release SHA being checked during rollout.
+  - Hardened rollback by force-removing the worker containers before bringing the previous Docker release back up, avoiding partial rollback failures when Docker Compose cannot stop the just-recreated containers cleanly.
+- Why:
+  - The first successful Docker cutover was immediately rolled back even though the host itself was healthy, because the verify script was still using the fleet-wide two-host target as a hard host-deploy gate. Deploy verification needs to distinguish between a bad rollout on the host being updated and the known, separate launch risk that the secondary host has not been provisioned yet.
+- Outstanding after this change:
+  - The live OCI worker host still needs a successful post-patch verification run, including the deploy-only spoken voice probe.
+  - A second OCI voice host is still required before voice stops being single-host degraded in global launch readiness.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
+## 2026-03-17 19:58 (AEDT) - codex
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `lib/voice-spoken-canary.ts`
+  - `__tests__/voice-spoken-canary.test.ts`
+  - `ops/deploy/livekit-worker-verify.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed the deploy-only spoken canary persistence race by holding worker shutdown open until `/api/internal/voice-calls` finishes, instead of fire-and-forgetting the `VoiceCall` write after disconnect.
+  - Made the spoken canary correlate on persisted call start time plus caller/called numbers, so delayed row creation does not cause a false negative after a real successful probe call.
+  - Kept the earlier host-scoped Docker verify-script hardening together with this fix so rollout verification now checks the right host, preserves the requested SHA/host ID, and only fails when the actual rollout or spoken canary is broken.
+- Why:
+  - Live OCI traces proved the canary calls were reaching Tracey, being transcribed, and generating replies, but deploy verification still failed because the worker job could exit before the `VoiceCall` persistence fetch completed. That made the deploy gate look broken even though the real audio path was working.
+- Outstanding after this change:
+  - The live OCI worker host still needs one successful post-patch verification run end to end so the Dockerized voice-worker path is fully proven in production.
+  - A second OCI voice host is still required before voice stops being single-host degraded in global launch readiness.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.

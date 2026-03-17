@@ -105,28 +105,40 @@ async function findVoiceCallVerification(params: {
 }) {
   const candidates = await db.voiceCall.findMany({
     where: {
-      createdAt: {
-        gte: new Date(params.startedAt.getTime() - 60_000),
-      },
+      OR: [
+        {
+          createdAt: {
+            gte: new Date(params.startedAt.getTime() - 60_000),
+          },
+        },
+        {
+          startedAt: {
+            gte: new Date(params.startedAt.getTime() - 2 * 60_000),
+          },
+        },
+      ],
       callType: { in: ["inbound_demo", "normal"] },
     },
     select: {
       callId: true,
       createdAt: true,
+      startedAt: true,
       callerPhone: true,
       calledPhone: true,
       transcriptText: true,
     },
     orderBy: { createdAt: "desc" },
-    take: 12,
+    take: 20,
   });
 
-  const matchedCall = candidates.find(
-    (candidate) =>
-      candidate.createdAt >= params.startedAt &&
+  const matchedCall = candidates.find((candidate) => {
+    const matchedTimestamp = candidate.startedAt || candidate.createdAt;
+    return (
+      matchedTimestamp >= new Date(params.startedAt.getTime() - 60_000) &&
       phoneMatches(candidate.callerPhone, params.probeCaller) &&
-      phoneMatches(candidate.calledPhone, params.targetNumber),
-  );
+      phoneMatches(candidate.calledPhone, params.targetNumber)
+    );
+  });
 
   if (!matchedCall) {
     return null;

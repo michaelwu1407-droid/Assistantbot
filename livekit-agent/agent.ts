@@ -1454,8 +1454,6 @@ export default defineAgent({
   },
   entry: async (ctx) => {
     const callStartedAt = new Date();
-    const roomName = ctx.room.name || "unknown-room";
-    const callId = `${roomName}:${callStartedAt.getTime()}`;
 
     const logLeadTool = livekitLlm.tool({
       description: "Save a potential Earlymark lead before the call ends. Only log details the caller actually provided.",
@@ -1537,6 +1535,8 @@ export default defineAgent({
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
+    const roomName = ctx.room.name || participant.identity || "unknown-room";
+    const callId = `${roomName}:${callStartedAt.getTime()}`;
 
     let callType: CallType = "normal";
     let callerFirstName = "";
@@ -1608,12 +1608,18 @@ export default defineAgent({
     });
     markCallStarted();
     let activeCallReleased = false;
+    let voiceCallPersistencePromise: Promise<void> | null = null;
     const releaseActiveCall = () => {
       if (activeCallReleased) return;
       activeCallReleased = true;
       markCallEnded();
     };
     ctx.addShutdownCallback(async () => {
+      if (voiceCallPersistencePromise) {
+        await voiceCallPersistencePromise.catch(() => {
+          // The persistence promise already logs the underlying failure.
+        });
+      }
       releaseActiveCall();
     });
 
@@ -2457,7 +2463,7 @@ export default defineAgent({
         .map((turn) => `${turn.role === "assistant" ? "Tracey" : "Caller"}: ${turn.text}`)
         .join("\n");
 
-      void persistVoiceCall({
+      voiceCallPersistencePromise = persistVoiceCall({
         callId,
         callType,
         roomName,
