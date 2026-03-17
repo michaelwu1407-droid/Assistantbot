@@ -921,3 +921,13 @@ Rule: every agent change commit must include an entry in this file.
   - Blocked onboarding progression unless the Physical Address includes locality + AU state + postcode (provision-ready format), and mirrored the same validation server-side.
 - Why:
   - Number provisioning should never reach Twilio regulatory address creation without the minimum address fields required to satisfy Twilio’s mandatory `city/region/postalCode` constraints.
+
+## 2026-03-18 01:52 (AEDT) - codex
+
+- Files changed:
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Updated the AU address autocomplete to request `address_components` from Google Places and, when available, emit a provision-ready address string including locality + state + postcode (instead of relying on `formatted_address` which may omit postcode).
+- Why:
+  - Users should not be blocked by the onboarding address gate when they select a valid address from the Google picker; we need the postcode/state data that Places provides to satisfy Twilio’s regulatory Address requirements.

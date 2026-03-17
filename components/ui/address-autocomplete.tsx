@@ -13,6 +13,13 @@ export interface PlaceResult {
   latitude: number | null
   longitude: number | null
   placeId: string | null
+  components?: {
+    streetLine?: string
+    locality?: string
+    region?: string
+    postalCode?: string
+    country?: string
+  }
 }
 
 interface AddressAutocompleteProps {
@@ -106,7 +113,27 @@ function AddressAutocompleteWithGoogle({
     const place = autocompleteRef.current?.getPlace()
     if (!place) return
 
-    const address = place.formatted_address ?? place.name ?? ""
+    const components = place.address_components ?? []
+    const get = (type: string) => components.find((c) => c.types?.includes(type))
+    const streetNumber = get("street_number")?.long_name
+    const route = get("route")?.long_name
+    const locality =
+      get("locality")?.long_name ||
+      get("postal_town")?.long_name ||
+      get("sublocality")?.long_name ||
+      get("sublocality_level_1")?.long_name
+    const region = get("administrative_area_level_1")?.short_name
+    const postalCode = get("postal_code")?.long_name
+    const country = get("country")?.short_name
+
+    const streetLine =
+      streetNumber && route ? `${streetNumber} ${route}` : (place.name ?? place.formatted_address ?? "")
+
+    // Prefer a provision-ready AU address string when we have the pieces.
+    const address =
+      streetLine && locality && region && postalCode
+        ? `${streetLine}, ${locality} ${region} ${postalCode}`
+        : (place.formatted_address ?? place.name ?? "")
     const latitude = place.geometry?.location?.lat() ?? null
     const longitude = place.geometry?.location?.lng() ?? null
     const placeId = place.place_id ?? null
@@ -115,7 +142,19 @@ function AddressAutocompleteWithGoogle({
     onChange(address)
 
     // Fire the structured callback with full geo data
-    onPlaceSelect?.({ address, latitude, longitude, placeId })
+    onPlaceSelect?.({
+      address,
+      latitude,
+      longitude,
+      placeId,
+      components: {
+        streetLine: streetLine || undefined,
+        locality: locality || undefined,
+        region: region || undefined,
+        postalCode: postalCode || undefined,
+        country: country || undefined,
+      },
+    })
 
     // Show the resolved indicator briefly
     if (address) setIsResolved(true)
@@ -127,7 +166,7 @@ function AddressAutocompleteWithGoogle({
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       types: ["address"],
       componentRestrictions: { country: "au" },
-      fields: ["formatted_address", "name", "geometry", "place_id"],
+      fields: ["formatted_address", "name", "geometry", "place_id", "address_components"],
     })
 
     autocomplete.addListener("place_changed", handlePlaceChanged)
