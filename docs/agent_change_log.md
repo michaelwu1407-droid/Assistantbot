@@ -886,3 +886,13 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the comms provisioning flow to require a regulatory-address stage before number search, and to attach the resolved regulatory address SID to mobile number purchases.
 - Why:
   - Twilio AU Mobile Business numbers require an AddressSid per subaccount; wiring this into the provisioning pipeline lets users complete onboarding and receive a provisioned AU mobile number without extra manual configuration in Twilio.
+
+## 2026-03-18 00:56 (AEDT) - codex
+
+- Files changed:
+  - `lib/comms.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Ensured Twilio Regulatory Address creation always provides required AU fields by deriving `city` from `BusinessProfile.baseSuburb` and parsing `region/postalCode` from the saved physical address (with a clear error if state/postcode are missing).
+- Why:
+  - Twilio rejects Address creation when required fields like `city` are missing; using the onboarding-saved suburb/address keeps provisioning fully automatic for correctly-formatted AU addresses.

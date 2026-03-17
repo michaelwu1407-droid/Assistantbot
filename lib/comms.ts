@@ -412,11 +412,18 @@ async function ensureWorkspaceRegulatoryAddress(
     return workspace.twilioRegulatoryAddressSid;
   }
 
-  // Try to derive a human-readable address from workspace or business profile.
+  const parseAuRegionPostcode = (input: string | null | undefined) => {
+    if (!input) return { region: undefined as string | undefined, postalCode: undefined as string | undefined };
+    const match = input.match(/\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\b\s*(\d{4})\b/i);
+    if (!match) return { region: undefined, postalCode: undefined };
+    return { region: match[1].toUpperCase(), postalCode: match[2] };
+  };
+
+  // Try to derive an AU address from the business profile (best source).
   let street = workspace.location || "";
-  let city: string | undefined;
-  let postalCode: string | undefined;
+  let city = "";
   let region: string | undefined;
+  let postalCode: string | undefined;
 
   try {
     if (workspace.ownerId) {
@@ -426,17 +433,44 @@ async function ensureWorkspaceRegulatoryAddress(
           businessProfile: {
             select: {
               physicalAddress: true,
+              baseSuburb: true,
             },
           },
         },
       });
-      const physicalAddress = owner?.businessProfile?.physicalAddress;
+      const profile = owner?.businessProfile;
+      const physicalAddress = profile?.physicalAddress;
+      const baseSuburb = profile?.baseSuburb;
       if (physicalAddress && physicalAddress.trim().length > 0) {
         street = physicalAddress.trim();
+        const parsed = parseAuRegionPostcode(physicalAddress);
+        region = parsed.region;
+        postalCode = parsed.postalCode;
+      }
+      if (baseSuburb && baseSuburb.trim().length > 0) {
+        city = baseSuburb.trim();
       }
     }
   } catch {
     // Best-effort only; fall back to workspace.location.
+  }
+
+  if (!city) {
+    throw new Error(
+      "AU regulatory address requires a suburb/city. Please ensure your onboarding Business Profile has a valid 'base suburb' saved.",
+    );
+  }
+
+  if (!region || !postalCode) {
+    const parsedFromWorkspace = parseAuRegionPostcode(workspace.location);
+    region = region || parsedFromWorkspace.region;
+    postalCode = postalCode || parsedFromWorkspace.postalCode;
+  }
+
+  if (!region || !postalCode) {
+    throw new Error(
+      "AU regulatory address requires state + postcode. Please update your Physical Address to include e.g. 'NSW 2000' (then retry provisioning).",
+    );
   }
 
   const address = await (subClient as any).addresses.create({

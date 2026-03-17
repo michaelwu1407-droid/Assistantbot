@@ -119,9 +119,22 @@ describe("initializeTradieComms", () => {
     db.workspace.findUnique.mockResolvedValue({
       twilioSubaccountId: "AC_sub",
       twilioSubaccountAuthToken: "auth-token",
+      twilioRegulatoryAddressSid: null,
+      ownerId: "user_123",
+      location: "123 Test St, Alexandria NSW 2015",
+      settings: {},
     });
     db.workspace.update.mockResolvedValue({});
     db.activity.create.mockResolvedValue({});
+    db.user = {
+      findUnique: vi.fn(),
+    } as any;
+    db.user.findUnique.mockResolvedValue({
+      businessProfile: {
+        physicalAddress: "123 Test St, Alexandria NSW 2015",
+        baseSuburb: "Alexandria",
+      },
+    });
 
     buildManagedVoiceNumberFriendlyName.mockReturnValue("Managed Friendly Name");
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
