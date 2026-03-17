@@ -655,11 +655,23 @@ export function TraceyOnboarding() {
 
   // ── Validation ──
 
+  const isProvisionReadyAuPhysicalAddress = (value: string) => {
+    const addr = value.trim()
+    if (!addr) return false
+    // Require a locality + state + postcode, e.g. "..., Alexandria NSW 2015"
+    return /,\s*[^,]+\s+(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b/i.test(addr)
+  }
+
   const canAdvance = (): boolean => {
     switch (step) {
       case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== ""
       case 1: return true // always can advance from mode selector
-      case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== ""
+      case 2:
+        return (
+          businessName.trim() !== "" &&
+          tradeType !== "" &&
+          isProvisionReadyAuPhysicalAddress(physicalAddress)
+        )
       case 3: return true
       case 4: return true
       default: return false
@@ -1156,6 +1168,11 @@ export function TraceyOnboarding() {
                         <p className="text-xs text-slate-500">
                           We use this address as Tracey&apos;s home base when calculating your service area.
                         </p>
+                        {physicalAddress.trim().length > 0 && !isProvisionReadyAuPhysicalAddress(physicalAddress) && (
+                          <p className="text-xs text-amber-600">
+                            Please enter a full Australian address including suburb/city, state, and postcode (e.g. &quot;Parramatta NSW 2150&quot;).
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">

@@ -910,3 +910,14 @@ Rule: every agent change commit must include an entry in this file.
   - Removed the temporary City field from the onboarding UI and switched Twilio regulatory address creation back to deriving the locality from the existing Physical Address, keeping the interface unchanged while still satisfying Twilio’s `city` requirement.
 - Why:
   - The onboarding flow should not gain new mandatory fields without explicit approval; we can safely infer the locality for regulatory purposes from the structured AU address the user already enters.
+
+## 2026-03-18 01:39 (AEDT) - codex
+
+- Files changed:
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `actions/tracey-onboarding.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Blocked onboarding progression unless the Physical Address includes locality + AU state + postcode (provision-ready format), and mirrored the same validation server-side.
+- Why:
+  - Number provisioning should never reach Twilio regulatory address creation without the minimum address fields required to satisfy Twilio’s mandatory `city/region/postalCode` constraints.
