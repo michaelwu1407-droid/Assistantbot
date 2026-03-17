@@ -861,3 +861,16 @@ Rule: every agent change commit must include an entry in this file.
   - Added single-host disaster-recovery docs plus a small host-side env backup script, and documented cleanup steps for the crash-looping legacy Redis sidecar.
 - Why:
   - The medium-term topology decision is to run a single OCI host, so launch readiness should focus on real failures rather than a permanent “missing second host” warning, while compensating with improved fallbacks and faster recovery paths.
+
+## 2026-03-17 23:18 (AEDT) - codex
+
+- Files changed:
+  - `lib/twilio-regulatory.ts`
+  - `lib/comms.ts`
+  - `__tests__/twilio-regulatory-bundle-clone.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed AU regulatory bundle cloning to correctly capture the cloned bundle SID when Twilio returns it as `sid` (not `bundleSid`), and added regression coverage.
+  - Kept the earlier subaccount-auth polling behavior so bundle readiness checks run in the correct account context.
+- Why:
+  - Provisioning could still fail with “bundle required” if we accidentally passed the parent bundle SID into the subaccount purchase request due to reading the wrong clone response field.

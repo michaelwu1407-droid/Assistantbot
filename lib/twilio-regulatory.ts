@@ -59,7 +59,11 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
       friendlyName: params.friendlyName,
     })
     .then(async (clone) => {
-      const clonedBundleSid = clone.bundleSid || sourceBundleSid;
+      const cloneRecord = clone as unknown as Record<string, unknown>;
+      const clonedBundleSid =
+        (typeof cloneRecord.bundleSid === "string" ? cloneRecord.bundleSid : null) ||
+        (typeof cloneRecord.sid === "string" ? cloneRecord.sid : null) ||
+        sourceBundleSid;
       await waitForBundleReady({
         targetAccountSid,
         bundleSid: clonedBundleSid,
