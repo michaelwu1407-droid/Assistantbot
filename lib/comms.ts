@@ -124,6 +124,7 @@ export async function initializeTradieComms(
     stageReached = "bundle-clone";
     bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
       targetAccountSid: subaccountId,
+      subaccountAuthToken: subaccount.subaccountAuthToken,
       friendlyName: `${managedFriendlyName} AU Mobile Business`,
     });
 

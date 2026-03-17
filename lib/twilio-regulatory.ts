@@ -31,6 +31,8 @@ export function requireAuMobileBusinessBundleSid() {
 
 export async function resolveAuMobileBusinessBundleSidForAccount(params: {
   targetAccountSid?: string | null;
+  /** When provided, use the subaccount's own auth token for bundle polling */
+  subaccountAuthToken?: string | null;
   friendlyName?: string;
 }) {
   const sourceBundleSid = requireAuMobileBusinessBundleSid();
@@ -61,6 +63,7 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
       await waitForBundleReady({
         targetAccountSid,
         bundleSid: clonedBundleSid,
+        subaccountAuthToken: params.subaccountAuthToken || null,
       });
       return clonedBundleSid;
     })
@@ -76,14 +79,15 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
   return clonePromise;
 }
 
-async function waitForBundleReady(params: { targetAccountSid: string; bundleSid: string }) {
-  if (!MASTER_ACCOUNT_SID || !MASTER_AUTH_TOKEN) {
-    throw new Error("Twilio master credentials are required before polling a cloned bundle.");
+async function waitForBundleReady(params: { targetAccountSid: string; bundleSid: string; subaccountAuthToken: string | null }) {
+  const hasSubaccountCreds = Boolean(params.subaccountAuthToken && params.targetAccountSid);
+  if (!hasSubaccountCreds && (!MASTER_ACCOUNT_SID || !MASTER_AUTH_TOKEN)) {
+    throw new Error("Twilio credentials are required before polling a cloned bundle.");
   }
 
-  const targetClient = twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN, {
-    accountSid: params.targetAccountSid,
-  });
+  const targetClient = hasSubaccountCreds
+    ? twilio(params.targetAccountSid, params.subaccountAuthToken as string)
+    : twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN);
 
   let lastStatus = "unknown";
   let lastError: string | null = null;
