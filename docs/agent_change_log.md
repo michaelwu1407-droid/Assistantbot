@@ -677,3 +677,14 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage for SMS failure rollup behavior and the Twilio SMS webhook persistence path, while updating existing launch-readiness and health mocks to the expanded passive-health shape.
 - Why:
   - Routine ops could already prove real voice calls and inbound email, but SMS still only had configuration drift checks. This change makes recent real inbound SMS and SMS-processing failures visible in the same passive production model, so operator status better reflects whether customer messaging is actually working.
+## 2026-03-17 14:48 (AEDT) - codex
+
+- Files changed:
+  - `lib/passive-production-health.ts`
+  - `__tests__/passive-production-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Counted workspace-scoped inbound email webhook failures in passive production health and upgraded configured workspaces with recent scoped failures from `unknown` to real email `failure`.
+  - Added regression coverage proving a workspace with recent scoped inbound email errors now contributes a real passive failure instead of being silently treated as an unknown/no-traffic case.
+- Why:
+  - Passive monitoring for email was still weaker than voice and SMS because only unscoped inbound email failures affected the global signal. Workspace-specific inbound email breakage now surfaces correctly in the same per-workspace failure model.

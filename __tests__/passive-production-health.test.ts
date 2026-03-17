@@ -206,6 +206,54 @@ describe("getPassiveProductionHealth", () => {
     expect(result.email.recentInboundEmailFailureCount).toBe(1);
   });
 
+  it("marks workspace email unhealthy when recent scoped inbound email failures are present", async () => {
+    db.workspace.findMany.mockResolvedValue([
+      {
+        id: "ws_email",
+        name: "Email Plumbing",
+        voiceEnabled: true,
+        twilioPhoneNumber: "+61400000007",
+        inboundEmail: "email@inbound.earlymark.ai",
+        inboundEmailAlias: "email",
+      },
+    ]);
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        workspaceId: "ws_email",
+        callType: "normal",
+        startedAt: isoHoursAgo(2),
+      },
+    ]);
+    db.webhookEvent.findMany
+      .mockResolvedValueOnce([
+        {
+          status: "error",
+          createdAt: isoHoursAgo(1),
+          payload: { workspaceId: "ws_email" },
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    getTwilioVoiceCallHealth.mockResolvedValue({
+      status: "healthy",
+      summary: "healthy",
+      warnings: [],
+      lookbackMinutes: 360,
+      scopes: [
+        createTwilioScope("earlymark", "healthy"),
+        createTwilioScope("ws_email", "healthy"),
+      ],
+      failingCalls: [],
+    });
+
+    const result = await getPassiveProductionHealth();
+
+    expect(result.status).toBe("unhealthy");
+    expect(result.email.status).toBe("unhealthy");
+    expect(result.email.failureWorkspaceCount).toBe(1);
+    expect(result.workspaceRows[0]?.email.classification).toBe("failure");
+    expect(result.workspaceRows[0]?.contributesToGlobalRollup).toBe(true);
+  });
+
   it("marks SMS unhealthy when active customer workspace SMS processing failures are present", async () => {
     db.workspace.findMany.mockResolvedValue([
       {

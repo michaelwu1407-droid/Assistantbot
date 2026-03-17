@@ -315,6 +315,8 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
 
   const recentEmailSuccessCountByWorkspace = new Map<string, number>();
   const lastInboundEmailSuccessAtByWorkspace = new Map<string, Date>();
+  const recentEmailFailureCountByWorkspace = new Map<string, number>();
+  const lastInboundEmailFailureAtByWorkspace = new Map<string, Date>();
   let recentInboundEmailSuccessCount = 0;
   let recentInboundEmailFailureCount = 0;
 
@@ -336,6 +338,17 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
     }
 
     if (!isRecent(event.createdAt, recentEmailFailureLookbackMs)) {
+      continue;
+    }
+
+    if (workspaceId) {
+      recentEmailFailureCountByWorkspace.set(
+        workspaceId,
+        (recentEmailFailureCountByWorkspace.get(workspaceId) || 0) + 1,
+      );
+      if (!lastInboundEmailFailureAtByWorkspace.has(workspaceId)) {
+        lastInboundEmailFailureAtByWorkspace.set(workspaceId, event.createdAt);
+      }
       continue;
     }
 
@@ -413,6 +426,7 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
     const lastInboundSmsSuccessAt = lastInboundSmsSuccessAtByWorkspace.get(workspace.id) || null;
     const lastSmsFailureAt = lastSmsFailureAtByWorkspace.get(workspace.id) || null;
     const lastInboundEmailSuccessAt = lastInboundEmailSuccessAtByWorkspace.get(workspace.id) || null;
+    const lastInboundEmailFailureAt = lastInboundEmailFailureAtByWorkspace.get(workspace.id) || null;
     const isActiveWorkspace =
       isRecent(lastVoiceSuccessAt, activeWorkspaceLookbackMs) ||
       isRecent(lastInboundSmsSuccessAt, activeWorkspaceLookbackMs) ||
@@ -473,16 +487,25 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
     const email =
       !emailConfigured
         ? buildNotConfiguredChannel("Inbound email is not configured for this workspace.")
-        : isRecent(lastInboundEmailSuccessAt, recentSignalLookbackMs)
-          ? buildHealthyChannel(
-              "Recent inbound emails were received and processed successfully.",
+        : (recentEmailFailureCountByWorkspace.get(workspace.id) || 0) > 0
+          ? buildFailureChannel(
+              "Recent inbound email processing failures were observed for this workspace.",
               lastInboundEmailSuccessAt,
+              lastInboundEmailFailureAt,
+              ["Recent inbound email processing failures were observed for this workspace."],
               recentEmailSuccessCountByWorkspace.get(workspace.id) || 0,
+              recentEmailFailureCountByWorkspace.get(workspace.id) || 0,
             )
-          : buildUnknownChannel(
-              "No recent successful inbound emails were observed for this workspace.",
-              lastInboundEmailSuccessAt,
-            );
+          : isRecent(lastInboundEmailSuccessAt, recentSignalLookbackMs)
+            ? buildHealthyChannel(
+                "Recent inbound emails were received and processed successfully.",
+                lastInboundEmailSuccessAt,
+                recentEmailSuccessCountByWorkspace.get(workspace.id) || 0,
+              )
+            : buildUnknownChannel(
+                "No recent successful inbound emails were observed for this workspace.",
+                lastInboundEmailSuccessAt,
+              );
 
     const overall = buildWorkspaceOverallStatus({ voice, sms, email });
 
