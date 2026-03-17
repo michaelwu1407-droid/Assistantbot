@@ -86,6 +86,7 @@ model Workspace {
   twilioPhoneNumberSid      String?
   twilioSipTrunkSid         String?
   twilioSubaccountAuthToken String?
+  twilioRegulatoryAddressSid String?
 
   // Voice Agent — LiveKit (Retell/Vapi are ARCHIVED, do NOT use)
   retellAgentId String? // DEPRECATED — kept for migration compatibility

@@ -105,6 +105,9 @@ describe("initializeTradieComms", () => {
         create: usageTriggerCreate,
       },
     },
+    addresses: {
+      create: vi.fn(),
+    },
   };
 
   beforeEach(() => {
@@ -133,6 +136,7 @@ describe("initializeTradieComms", () => {
     originationCreate.mockResolvedValue({});
     trunkRemove.mockResolvedValue(true);
     usageTriggerCreate.mockResolvedValue({});
+    subClient.addresses.create.mockResolvedValue({ sid: "AD_123" });
   });
 
   it("reuses a persisted workspace subaccount instead of creating a new one", async () => {

@@ -874,3 +874,15 @@ Rule: every agent change commit must include an entry in this file.
   - Kept the earlier subaccount-auth polling behavior so bundle readiness checks run in the correct account context.
 - Why:
   - Provisioning could still fail with “bundle required” if we accidentally passed the parent bundle SID into the subaccount purchase request due to reading the wrong clone response field.
+
+## 2026-03-18 00:35 (AEDT) - codex
+
+- Files changed:
+  - `prisma/schema.prisma`
+  - `lib/comms.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a per-workspace `twilioRegulatoryAddressSid` field and an `ensureWorkspaceRegulatoryAddress` helper so AU Mobile Business provisioning can automatically create and reuse a Regulatory Address inside each Twilio subaccount.
+  - Updated the comms provisioning flow to require a regulatory-address stage before number search, and to attach the resolved regulatory address SID to mobile number purchases.
+- Why:
+  - Twilio AU Mobile Business numbers require an AddressSid per subaccount; wiring this into the provisioning pipeline lets users complete onboarding and receive a provisioned AU mobile number without extra manual configuration in Twilio.

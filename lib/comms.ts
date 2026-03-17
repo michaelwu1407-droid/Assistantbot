@@ -105,6 +105,7 @@ export async function initializeTradieComms(
   let subClient: ManagedTwilioClient | null = null;
   let bundleSid: string | null = null;
   let subaccountId: string | null = null;
+  let regulatoryAddressSid: string | null = null;
 
   try {
     // ────────────────────────────────────────────────────────────────
@@ -129,7 +130,13 @@ export async function initializeTradieComms(
     });
 
     // ────────────────────────────────────────────────────────────────
-    // 2. Buy Australian +61 Number (SMS + Voice capable)
+    // 2. Ensure Regulatory Address in the subaccount
+    // ────────────────────────────────────────────────────────────────
+    stageReached = "regulatory-address";
+    regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
+
+    // ────────────────────────────────────────────────────────────────
+    // 3. Buy Australian +61 Number (SMS + Voice capable)
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
 
@@ -164,6 +171,7 @@ export async function initializeTradieComms(
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
+      addressSid: regulatoryAddressSid ?? undefined,
     });
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
@@ -380,6 +388,87 @@ async function resolveWorkspaceSubaccount(workspaceId: string, businessName: str
     ...subaccount,
     reused: false,
   };
+}
+
+async function ensureWorkspaceRegulatoryAddress(
+  workspaceId: string,
+  subClient: ManagedTwilioClient,
+  businessName: string,
+): Promise<string> {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: {
+      twilioRegulatoryAddressSid: true,
+      location: true,
+      settings: true,
+      ownerId: true,
+    },
+  });
+  if (!workspace) {
+    throw new Error(`Workspace ${workspaceId} was not found before creating a regulatory address.`);
+  }
+
+  if (workspace.twilioRegulatoryAddressSid) {
+    return workspace.twilioRegulatoryAddressSid;
+  }
+
+  // Try to derive a human-readable address from workspace or business profile.
+  let street = workspace.location || "";
+  let city: string | undefined;
+  let postalCode: string | undefined;
+  let region: string | undefined;
+
+  try {
+    if (workspace.ownerId) {
+      const owner = await db.user.findUnique({
+        where: { id: workspace.ownerId },
+        select: {
+          businessProfile: {
+            select: {
+              physicalAddress: true,
+            },
+          },
+        },
+      });
+      const physicalAddress = owner?.businessProfile?.physicalAddress;
+      if (physicalAddress && physicalAddress.trim().length > 0) {
+        street = physicalAddress.trim();
+      }
+    }
+  } catch {
+    // Best-effort only; fall back to workspace.location.
+  }
+
+  const address = await (subClient as any).addresses.create({
+    friendlyName: `${businessName} AU Mobile Business`,
+    customerName: businessName,
+    street,
+    city,
+    region,
+    postalCode,
+    country: "AU",
+  });
+
+  const addressSid: string =
+    (address && typeof (address as any).sid === "string" ? (address as any).sid : null) ??
+    (() => {
+      throw new Error("Twilio returned an unexpected response when creating regulatory address.");
+    })();
+
+  await db.workspace.update({
+    where: { id: workspaceId },
+    data: {
+      twilioRegulatoryAddressSid: addressSid,
+    },
+  });
+
+  await logActivity(
+    workspaceId,
+    "Regulatory Address Created",
+    `Regulatory address ${addressSid} was created in the Twilio subaccount for AU mobile provisioning.`,
+  );
+
+  return addressSid;
 }
 
 async function cleanupProvisioningArtifacts(params: {
