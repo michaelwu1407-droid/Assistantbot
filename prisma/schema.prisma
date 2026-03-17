@@ -626,6 +626,7 @@ model BusinessProfile {
   publicPhone        String? // Public-facing business phone
   publicEmail        String? // Public-facing business email
   physicalAddress    String? // Physical business location
+  city               String? // City/locality (not necessarily suburb)
   baseSuburb         String
   serviceRadius      Int     @default(20) // km
   serviceSuburbs     Json? // String[] — specific suburbs served

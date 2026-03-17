@@ -15,6 +15,9 @@ const {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
     activity: {
       create: vi.fn(),
     },
@@ -126,13 +129,10 @@ describe("initializeTradieComms", () => {
     });
     db.workspace.update.mockResolvedValue({});
     db.activity.create.mockResolvedValue({});
-    db.user = {
-      findUnique: vi.fn(),
-    } as any;
     db.user.findUnique.mockResolvedValue({
       businessProfile: {
         physicalAddress: "123 Test St, Alexandria NSW 2015",
-        baseSuburb: "Alexandria",
+        city: "Sydney",
       },
     });
 

@@ -433,22 +433,22 @@ async function ensureWorkspaceRegulatoryAddress(
           businessProfile: {
             select: {
               physicalAddress: true,
-              baseSuburb: true,
+              city: true,
             },
           },
         },
       });
       const profile = owner?.businessProfile;
       const physicalAddress = profile?.physicalAddress;
-      const baseSuburb = profile?.baseSuburb;
+      const configuredCity = profile?.city;
       if (physicalAddress && physicalAddress.trim().length > 0) {
         street = physicalAddress.trim();
         const parsed = parseAuRegionPostcode(physicalAddress);
         region = parsed.region;
         postalCode = parsed.postalCode;
       }
-      if (baseSuburb && baseSuburb.trim().length > 0) {
-        city = baseSuburb.trim();
+      if (configuredCity && configuredCity.trim().length > 0) {
+        city = configuredCity.trim();
       }
     }
   } catch {
@@ -457,7 +457,7 @@ async function ensureWorkspaceRegulatoryAddress(
 
   if (!city) {
     throw new Error(
-      "AU regulatory address requires a suburb/city. Please ensure your onboarding Business Profile has a valid 'base suburb' saved.",
+      "AU regulatory address requires a city. Please ensure your onboarding Business Profile has a valid 'city' saved.",
     );
   }
 

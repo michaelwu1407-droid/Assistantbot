@@ -394,6 +394,7 @@ export function TraceyOnboarding() {
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
+  const [city, setCity] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(createDefaultWeeklyHours())
   const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
@@ -659,7 +660,7 @@ export function TraceyOnboarding() {
     switch (step) {
       case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== ""
       case 1: return true // always can advance from mode selector
-      case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== ""
+      case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== "" && city.trim() !== ""
       case 3: return true
       case 4: return true
       default: return false
@@ -805,6 +806,7 @@ export function TraceyOnboarding() {
         publicPhone,
         publicEmail,
         physicalAddress,
+        city,
         serviceRadius,
         standardWorkHours: summarizeWeeklyHours(resolvedWeeklyHours),
         weeklyHours: resolvedWeeklyHours,
@@ -1155,6 +1157,17 @@ export function TraceyOnboarding() {
                         />
                         <p className="text-xs text-slate-500">
                           We use this address as Tracey&apos;s home base when calculating your service area.
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>City</Label>
+                        <Input
+                          placeholder="e.g. Sydney"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                        />
+                        <p className="text-xs text-slate-500">
+                          This is used for Australian regulatory requirements. It can be your city (not your suburb).
                         </p>
                       </div>
                       <div className="space-y-2">

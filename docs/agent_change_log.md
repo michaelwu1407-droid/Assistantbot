@@ -896,3 +896,17 @@ Rule: every agent change commit must include an entry in this file.
   - Ensured Twilio Regulatory Address creation always provides required AU fields by deriving `city` from `BusinessProfile.baseSuburb` and parsing `region/postalCode` from the saved physical address (with a clear error if state/postcode are missing).
 - Why:
   - Twilio rejects Address creation when required fields like `city` are missing; using the onboarding-saved suburb/address keeps provisioning fully automatic for correctly-formatted AU addresses.
+
+## 2026-03-18 01:18 (AEDT) - codex
+
+- Files changed:
+  - `prisma/schema.prisma`
+  - `actions/tracey-onboarding.ts`
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `lib/comms.ts`
+  - `__tests__/comms.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a dedicated `BusinessProfile.city` field (labelled “City” in onboarding) and updated Twilio regulatory address creation to use this field instead of any suburb-derived value.
+- Why:
+  - Some businesses may not want a suburb disclosed; Twilio still requires a `city` field, so we store an explicit city/locality value that can be less granular than suburb while keeping provisioning fully automatic.
