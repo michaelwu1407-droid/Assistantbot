@@ -8,7 +8,7 @@ on:
       - ".github/workflows/deploy-livekit.yml"
       - "livekit-agent/**"
       - "ops/deploy/**"
-      - "ops/systemd/**"
+      - "ops/docker/**"
       - "docs/voice_operating_brief.md"
       - "AGENTS.md"
 
@@ -70,10 +70,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf deploy-stage
-          mkdir -p deploy-stage/systemd
+          mkdir -p deploy-stage/docker
           cp -a livekit-agent/. deploy-stage/
-          cp ops/systemd/earlymark-sales-agent.service deploy-stage/systemd/
-          cp ops/systemd/earlymark-customer-agent.service deploy-stage/systemd/
+          cp ops/docker/worker-compose.yml deploy-stage/docker/
           tar \
             --exclude='node_modules' \
             --exclude='.env.local' \
@@ -102,7 +101,7 @@ jobs:
           print_runtime_bootstrap_guidance() {
             echo "Remote runtime bootstrap guidance:"
             echo "- If sshd logs show accepted GitHub publickey sessions, SSH transport is working."
-            echo "- Investigate the non-interactive runtime path next: PATH, nvm loading, node, npm, sudo, and systemd."
+            echo "- Investigate the non-interactive runtime path next: PATH, node, sudo, docker, and docker compose."
             echo "- GitHub Actions remote commands must not depend on .bashrc, .profile, prompt setup, or other interactive shell init."
           }
 
@@ -131,7 +130,7 @@ jobs:
           hash -r
 
           echo "[runtime-bootstrap] PATH=$PATH"
-          for bin in bash node npm sudo systemctl; do
+          for bin in bash node sudo docker tar; do
             if ! command -v "$bin" >/dev/null 2>&1; then
               echo "[runtime-bootstrap] missing required binary: $bin"
               exit 1
@@ -139,12 +138,11 @@ jobs:
             echo "[runtime-bootstrap] ${bin}=$(command -v "$bin")"
           done
           echo "[runtime-bootstrap] node_version=$(node --version)"
-          echo "[runtime-bootstrap] npm_version=$(npm --version)"
-          echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
-          if sudo systemctl is-active --quiet ssh || sudo systemctl is-active --quiet sshd; then
-            echo "[runtime-bootstrap] ssh_service_active=yes"
+          echo "[runtime-bootstrap] docker_version=$(sudo docker --version)"
+          if sudo docker compose version >/dev/null 2>&1; then
+            echo "[runtime-bootstrap] docker_compose_version=$(sudo docker compose version --short)"
           else
-            echo "[runtime-bootstrap] ssh_service_active=no"
+            echo "[runtime-bootstrap] missing docker compose plugin"
             exit 1
           fi
           echo "[runtime-bootstrap] Connected to $(hostname)"

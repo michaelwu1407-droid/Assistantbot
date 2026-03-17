@@ -9,41 +9,55 @@ fi
 hash -r
 
 echo "[runtime-bootstrap] PATH=$PATH"
-for bin in bash node npm sudo systemctl; do
+for bin in bash node sudo docker; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "[runtime-bootstrap] missing required binary: $bin"
     exit 1
   fi
   echo "[runtime-bootstrap] ${bin}=$(command -v "$bin")"
 done
+if ! sudo docker compose version >/dev/null 2>&1; then
+  echo "[runtime-bootstrap] missing docker compose plugin"
+  exit 1
+fi
 echo "[runtime-bootstrap] node_version=$(node --version)"
-echo "[runtime-bootstrap] npm_version=$(npm --version)"
-echo "[runtime-bootstrap] systemd_version=$(systemctl --version | sed -n '1p')"
+echo "[runtime-bootstrap] docker_version=$(sudo docker --version)"
+echo "[runtime-bootstrap] docker_compose_version=$(sudo docker compose version --short)"
 
-LIVE_DIR="/opt/earlymark-agent"
-PREV_DIR="/opt/earlymark-agent.prev"
-FAILED_DIR="/opt/earlymark-agent.failed-${DEPLOY_GIT_SHA:-unknown}"
-SALES_UNIT="earlymark-sales-agent.service"
-CUSTOMER_UNIT="earlymark-customer-agent.service"
+LIVE_DIR="/opt/earlymark-worker"
+PREV_DIR="/opt/earlymark-worker.prev"
+FAILED_DIR="/opt/earlymark-worker.failed-${DEPLOY_GIT_SHA:-unknown}"
+COMPOSE_FILE_RELATIVE="docker/worker-compose.yml"
+SALES_CONTAINER="earlymark-sales-agent"
+CUSTOMER_CONTAINER="earlymark-customer-agent"
+
+compose_cmd() {
+  compose_file="$1"
+  shift
+  sudo EARLYMARK_DEPLOY_GIT_SHA="${DEPLOY_GIT_SHA:-unknown}" docker compose --project-name earlymark-voice-workers -f "$compose_file" "$@"
+}
+
+log_container_details() {
+  container_name="$1"
+  sudo docker ps -a --filter "name=^/${container_name}$" || true
+  sudo docker inspect --format '{{json .State}}' "$container_name" 2>/dev/null || true
+  sudo docker logs --tail 120 "$container_name" 2>/dev/null || true
+}
 
 rollback_release() {
-  if [ ! -d "$PREV_DIR" ]; then
-    echo "[deploy] No previous release is available for rollback."
-    return 1
+  if [ -d "$PREV_DIR" ] && [ -f "$PREV_DIR/$COMPOSE_FILE_RELATIVE" ]; then
+    echo "[deploy] Rolling back worker release after failed verification."
+    sudo rm -rf "$FAILED_DIR"
+    if [ -d "$LIVE_DIR" ]; then
+      sudo mv "$LIVE_DIR" "$FAILED_DIR"
+    fi
+    sudo mv "$PREV_DIR" "$LIVE_DIR"
+    compose_cmd "$LIVE_DIR/$COMPOSE_FILE_RELATIVE" up -d --build --force-recreate --remove-orphans || true
+    return 0
   fi
 
-  echo "[deploy] Rolling back worker release after failed heartbeat verification."
-  sudo systemctl stop earlymark-sales-agent earlymark-customer-agent || true
-  sudo rm -rf "$FAILED_DIR"
-  if [ -d "$LIVE_DIR" ]; then
-    sudo mv "$LIVE_DIR" "$FAILED_DIR"
-  fi
-  sudo mv "$PREV_DIR" "$LIVE_DIR"
-  sudo install -m 0644 "$LIVE_DIR/systemd/$SALES_UNIT" "/etc/systemd/system/$SALES_UNIT"
-  sudo install -m 0644 "$LIVE_DIR/systemd/$CUSTOMER_UNIT" "/etc/systemd/system/$CUSTOMER_UNIT"
-  sudo systemctl daemon-reload
-  sudo systemctl restart earlymark-sales-agent earlymark-customer-agent
-  sudo systemctl status earlymark-sales-agent earlymark-customer-agent --no-pager || true
+  echo "[deploy] No previous release is available for rollback."
+  return 1
 }
 
 if [ -f "$LIVE_DIR/.env.local" ]; then
@@ -72,17 +86,27 @@ if [ -z "$EFFECTIVE_OPS_KEY" ]; then
   exit 1
 fi
 
-if ! sudo systemctl is-active --quiet earlymark-sales-agent; then
-  echo "earlymark-sales-agent is not active after deploy."
-  sudo systemctl status earlymark-sales-agent --no-pager || true
-  sudo journalctl -u earlymark-sales-agent -n 80 --no-pager || true
+wait_for_container_health() {
+  container_name="$1"
+  for _ in $(seq 1 24); do
+    status="$(sudo docker inspect "$container_name" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' 2>/dev/null || true)"
+    if [ "$status" = "healthy" ]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+if ! wait_for_container_health "$SALES_CONTAINER"; then
+  echo "$SALES_CONTAINER did not reach healthy state after deploy."
+  log_container_details "$SALES_CONTAINER"
   rollback_release || true
   exit 1
 fi
-if ! sudo systemctl is-active --quiet earlymark-customer-agent; then
-  echo "earlymark-customer-agent is not active after deploy."
-  sudo systemctl status earlymark-customer-agent --no-pager || true
-  sudo journalctl -u earlymark-customer-agent -n 80 --no-pager || true
+if ! wait_for_container_health "$CUSTOMER_CONTAINER"; then
+  echo "$CUSTOMER_CONTAINER did not reach healthy state after deploy."
+  log_container_details "$CUSTOMER_CONTAINER"
   rollback_release || true
   exit 1
 fi
@@ -99,8 +123,8 @@ done
 if [ "$VERIFIED" -ne 1 ]; then
   echo "Voice worker heartbeats did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
   NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/voice-fleet-health', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
-  sudo systemctl status earlymark-sales-agent earlymark-customer-agent --no-pager || true
-  sudo journalctl -u earlymark-sales-agent -u earlymark-customer-agent -n 80 --no-pager || true
+  log_container_details "$SALES_CONTAINER"
+  log_container_details "$CUSTOMER_CONTAINER"
   rollback_release || true
   exit 1
 fi
@@ -116,6 +140,8 @@ done
 
 if [ "$DRIFT_VERIFIED" -ne 1 ]; then
   NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const res = await fetch(base + '/api/internal/customer-agent-drift', { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+  log_container_details "$SALES_CONTAINER"
+  log_container_details "$CUSTOMER_CONTAINER"
   rollback_release || true
   exit 1
 fi
@@ -132,6 +158,8 @@ done
 if [ "$LAUNCH_GATE_VERIFIED" -ne 1 ]; then
   echo "Launch-critical voice gate did not converge for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
   NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); console.log(await res.text());"
+  log_container_details "$SALES_CONTAINER"
+  log_container_details "$CUSTOMER_CONTAINER"
   rollback_release || true
   exit 1
 fi
@@ -148,6 +176,8 @@ done
 if [ "$CANARY_VERIFIED" -ne 1 ]; then
   echo "Spoken PSTN canary failed after deploy for host $VOICE_HOST_ID on SHA $DEPLOY_GIT_SHA."
   NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" OPS_KEY="$EFFECTIVE_OPS_KEY" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const opsKey = process.env.OPS_KEY || ''; const res = await fetch(base + '/api/cron/voice-synthetic-probe', { headers: { 'x-ops-key': opsKey }, cache: 'no-store' }); console.log(await res.text());"
+  log_container_details "$SALES_CONTAINER"
+  log_container_details "$CUSTOMER_CONTAINER"
   rollback_release || true
   exit 1
 fi

@@ -10,6 +10,7 @@ import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-lear
 import { createTask } from "./task-actions";
 import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
+import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 
 async function ensurePostJobFollowUp(dealId: string) {
   const deal = await db.deal.findUnique({
@@ -630,9 +631,41 @@ export async function getDealInvoices(dealId: string) {
  * Mark an invoice as issued/sent.
  */
 export async function issueInvoice(invoiceId: string) {
+  const invoice = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: true },
+  });
+  if (!invoice) return { success: false, error: "Invoice not found" };
+
+  const { actor } = await requireDealInCurrentWorkspace(invoice.dealId);
+
   await db.invoice.update({
     where: { id: invoiceId },
     data: { status: "ISSUED", issuedAt: new Date() },
+  });
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice issued",
+      content: `Invoice ${invoice.number} marked as issued.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+      userId: actor.id,
+    },
+  });
+  await recordWorkspaceAuditEvent({
+    workspaceId: actor.workspaceId,
+    userId: actor.id,
+    action: "invoice.issued",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      previousStatus: invoice.status,
+      nextStatus: "ISSUED",
+      source: "tradie-actions.issueInvoice",
+    },
   });
   return { success: true };
 }
@@ -641,6 +674,14 @@ export async function issueInvoice(invoiceId: string) {
  * Mark an invoice as paid.
  */
 export async function markInvoicePaid(invoiceId: string) {
+  const existingInvoice = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: true },
+  });
+  if (!existingInvoice) return { success: false, error: "Invoice not found" };
+
+  const { actor } = await requireDealInCurrentWorkspace(existingInvoice.dealId);
+
   const invoice = await db.invoice.update({
     where: { id: invoiceId },
     data: { status: "PAID", paidAt: new Date() },
@@ -669,6 +710,22 @@ export async function markInvoicePaid(invoiceId: string) {
       content: `Invoice ${invoice.number} marked as paid ($${invoice.total.toLocaleString()})`,
       dealId: invoice.dealId,
       contactId: invoice.deal.contactId,
+      userId: actor.id,
+    },
+  });
+  await recordWorkspaceAuditEvent({
+    workspaceId: actor.workspaceId,
+    userId: actor.id,
+    action: "invoice.paid",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      previousStatus: existingInvoice.status,
+      nextStatus: "PAID",
+      total: Number(invoice.total),
+      source: "tradie-actions.markInvoicePaid",
     },
   });
 
@@ -691,6 +748,15 @@ export interface QuotePDFData {
   tax: number;
   total: number;
   createdAt: string;
+}
+
+function escapeHtml(value: string | null | undefined) {
+  return (value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -717,7 +783,16 @@ export async function generateQuotePDF(invoiceId: string): Promise<{
     return { success: false, error: "Invoice not found" };
   }
 
-  const lineItems = (invoice.lineItems as { desc: string; price: number }[]) ?? [];
+  await requireDealInCurrentWorkspace(invoice.dealId);
+
+  const lineItems = Array.isArray(invoice.lineItems)
+    ? (invoice.lineItems as Array<Record<string, unknown>>)
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          desc: typeof item.desc === "string" ? item.desc : "Item",
+          price: Number(item.price ?? 0),
+        }))
+    : [];
 
   const data: QuotePDFData = {
     invoiceNumber: invoice.number,
@@ -739,12 +814,12 @@ export async function generateQuotePDF(invoiceId: string): Promise<{
   const itemRows = lineItems
     .map(
       (item, i) =>
-        `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">${i + 1}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${item.desc}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">$${item.price.toFixed(2)}</td></tr>`
+        `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">${i + 1}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${escapeHtml(item.desc)}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">$${item.price.toFixed(2)}</td></tr>`
     )
     .join("");
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${invoice.number}</title>
+<html><head><meta charset="utf-8"><title>${escapeHtml(invoice.number)}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#1e293b}
 .header{display:flex;justify-content:space-between;margin-bottom:40px}
 .badge{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
@@ -753,15 +828,15 @@ table{width:100%;border-collapse:collapse;margin:20px 0}th{text-align:left;paddi
 .totals{margin-top:20px;text-align:right}.totals div{margin:4px 0}.total{font-size:20px;font-weight:700}
 @media print{body{padding:20px}}</style></head>
 <body>
-<div class="header"><div><h1 style="margin:0">QUOTE / TAX INVOICE</h1><p style="color:#64748b">${invoice.number}</p></div>
-<div style="text-align:right"><span class="badge ${invoice.status.toLowerCase()}">${invoice.status}</span>
+<div class="header"><div><h1 style="margin:0">QUOTE / TAX INVOICE</h1><p style="color:#64748b">${escapeHtml(invoice.number)}</p></div>
+<div style="text-align:right"><span class="badge ${escapeHtml(invoice.status.toLowerCase())}">${escapeHtml(invoice.status)}</span>
 <p style="color:#64748b;margin:8px 0 0">${new Date(invoice.createdAt).toLocaleDateString("en-AU")}</p></div></div>
 <div style="margin-bottom:30px"><h3 style="margin:0 0 4px">Bill To:</h3>
-<p style="margin:0">${invoice.deal.contact.name}</p>
-${invoice.deal.contact.email ? `<p style="margin:0;color:#64748b">${invoice.deal.contact.email}</p>` : ""}
-${invoice.deal.contact.phone ? `<p style="margin:0;color:#64748b">${invoice.deal.contact.phone}</p>` : ""}
-${invoice.deal.contact.address ? `<p style="margin:0;color:#64748b">${invoice.deal.contact.address}</p>` : ""}</div>
-<h3>Re: ${invoice.deal.title}</h3>
+<p style="margin:0">${escapeHtml(invoice.deal.contact.name)}</p>
+${invoice.deal.contact.email ? `<p style="margin:0;color:#64748b">${escapeHtml(invoice.deal.contact.email)}</p>` : ""}
+${invoice.deal.contact.phone ? `<p style="margin:0;color:#64748b">${escapeHtml(invoice.deal.contact.phone)}</p>` : ""}
+${invoice.deal.contact.address ? `<p style="margin:0;color:#64748b">${escapeHtml(invoice.deal.contact.address)}</p>` : ""}</div>
+<h3>Re: ${escapeHtml(invoice.deal.title)}</h3>
 <table><thead><tr><th>#</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>${itemRows}</tbody></table>
 <div class="totals"><div>Subtotal: $${Number(invoice.subtotal).toFixed(2)}</div>

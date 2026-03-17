@@ -1,7 +1,17 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns"
+import {
+  addMonths,
+  differenceInCalendarDays,
+  differenceInDays,
+  endOfDay,
+  endOfMonth,
+  isAfter,
+  startOfDay,
+  startOfMonth,
+  subDays,
+} from "date-fns"
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
@@ -68,15 +78,57 @@ export interface ReportsData {
   }
 }
 
-export async function getReportsData(workspaceId: string, monthsBack = 6): Promise<ReportsData> {
+export type ReportRange = "7d" | "30d" | "90d" | "1y"
+
+function resolveReportWindow(now: Date, range: ReportRange) {
+  switch (range) {
+    case "7d":
+      return startOfDay(subDays(now, 6))
+    case "30d":
+      return startOfDay(subDays(now, 29))
+    case "90d":
+      return startOfDay(subDays(now, 89))
+    case "1y":
+      return startOfDay(subDays(now, 364))
+    default:
+      return startOfDay(subDays(now, 29))
+  }
+}
+
+function isWithinRange(value: Date | null | undefined, start: Date, end: Date) {
+  if (!value) return false
+  return value >= start && value <= end
+}
+
+function buildMonthlyBuckets(rangeStart: Date, rangeEnd: Date) {
+  const buckets: Array<{ month: string; start: Date; end: Date }> = []
+  let cursor = startOfMonth(rangeStart)
+
+  while (!isAfter(cursor, rangeEnd)) {
+    buckets.push({
+      month: cursor.toLocaleDateString("en-AU", { month: "short" }),
+      start: cursor,
+      end: endOfMonth(cursor),
+    })
+    cursor = addMonths(cursor, 1)
+  }
+
+  return buckets
+}
+
+export async function getReportsData(workspaceId: string, range: ReportRange = "30d"): Promise<ReportsData> {
   const now = new Date()
-  const rangeStart = startOfMonth(subMonths(now, Math.max(monthsBack - 1, 0)))
+  const rangeStart = resolveReportWindow(now, range)
+  const comparisonDays = differenceInCalendarDays(now, rangeStart) + 1
+  const previousRangeEnd = endOfDay(subDays(rangeStart, 1))
+  const previousRangeStart = startOfDay(subDays(rangeStart, comparisonDays))
+
   const deals = await db.deal.findMany({
     where: {
       workspaceId,
       OR: [
-        { createdAt: { gte: rangeStart } },
-        { stageChangedAt: { gte: rangeStart } },
+        { createdAt: { gte: previousRangeStart } },
+        { stageChangedAt: { gte: previousRangeStart } },
       ],
     },
     select: {
@@ -95,45 +147,43 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
   const newContactsThisMonth = await db.contact.count({
     where: {
       workspaceId,
-      createdAt: { gte: startOfMonth(now) },
+      createdAt: { gte: rangeStart },
     },
   })
 
   const wonDeals = deals.filter((d) => d.stage === "WON")
-  const totalRevenue = wonDeals.reduce((sum, d) => sum + getDealRevenueValue(d), 0)
-  const prevMonthStart = startOfMonth(subMonths(now, 1))
-  const prevMonthEnd = endOfMonth(subMonths(now, 1))
-  const prevRevenue = wonDeals
-    .filter((d) => d.stageChangedAt && d.stageChangedAt >= prevMonthStart && d.stageChangedAt <= prevMonthEnd)
+  const wonDealsInRange = wonDeals.filter((deal) => isWithinRange(deal.stageChangedAt, rangeStart, now))
+  const wonDealsInPreviousRange = wonDeals.filter((deal) =>
+    isWithinRange(deal.stageChangedAt, previousRangeStart, previousRangeEnd),
+  )
+  const totalRevenue = wonDealsInRange.reduce((sum, d) => sum + getDealRevenueValue(d), 0)
+  const prevRevenue = wonDealsInPreviousRange
     .reduce((sum, d) => sum + getDealRevenueValue(d), 0)
-  const thisMonthRevenue = wonDeals
-    .filter((d) => d.stageChangedAt && d.stageChangedAt >= startOfMonth(now))
-    .reduce((sum, d) => sum + getDealRevenueValue(d), 0)
-  const growth = prevRevenue > 0 ? ((thisMonthRevenue - prevRevenue) / prevRevenue) * 100 : 0
+  const growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
-  const monthly: Array<{ month: string; revenue: number }> = []
-  for (let i = monthsBack - 1; i >= 0; i--) {
-    const d = subMonths(now, i)
-    const start = startOfMonth(d)
-    const end = endOfMonth(d)
-    const rev = wonDeals
-      .filter((deal) => deal.stageChangedAt && deal.stageChangedAt >= start && deal.stageChangedAt <= end)
-      .reduce((s, deal) => s + getDealRevenueValue(deal), 0)
-    monthly.push({ month: start.toLocaleDateString("en-AU", { month: "short" }), revenue: rev })
-  }
+  const monthly = buildMonthlyBuckets(rangeStart, now).map((bucket) => ({
+    month: bucket.month,
+    revenue: wonDeals
+      .filter((deal) => isWithinRange(deal.stageChangedAt, bucket.start, bucket.end))
+      .reduce((sum, deal) => sum + getDealRevenueValue(deal), 0),
+  }))
+
+  const dealsInRange = deals.filter(
+    (deal) => isWithinRange(deal.createdAt, rangeStart, now) || isWithinRange(deal.stageChangedAt, rangeStart, now),
+  )
 
   const stageCounts: Record<string, number> = {}
-  for (const d of deals) {
+  for (const d of dealsInRange) {
     const label = STAGE_LABELS[d.stage] ?? d.stage
     stageCounts[label] = (stageCounts[label] ?? 0) + 1
   }
   const byStage = Object.entries(stageCounts).map(([stage, count]) => ({ stage, count }))
 
-  const completed = deals.filter((d) => d.stage === "WON").length
-  const inProgress = deals.filter(
+  const completed = wonDealsInRange.length
+  const inProgress = dealsInRange.filter(
     (d) => !["WON", "LOST", "DELETED"].includes(d.stage)
   ).length
-  const wonWithDates = wonDeals.filter((d) => d.stageChangedAt && d.createdAt)
+  const wonWithDates = wonDealsInRange.filter((d) => d.stageChangedAt && d.createdAt)
   const avgDays =
     wonWithDates.length > 0
       ? Math.round(
@@ -143,7 +193,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       : 0
 
   const scheduledOrBeyondStages = new Set(["NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION", "WON"])
-  const jobsWonWithTracey = deals.filter((deal) => {
+  const jobsWonWithTracey = dealsInRange.filter((deal) => {
     if (!scheduledOrBeyondStages.has(deal.stage)) return false
 
     const metadata = (deal.metadata ?? {}) as Record<string, unknown>
@@ -174,7 +224,7 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
 
   const workspaceUsers = await db.user.count({ where: { workspaceId } })
   const jobsPerMember = new Map<string, { name: string; jobs: number; revenue: number }>()
-  for (const deal of wonDeals) {
+  for (const deal of wonDealsInRange) {
     const memberId = deal.assignedTo?.id
     if (!memberId) continue
     const existing = jobsPerMember.get(memberId) ?? {
@@ -196,8 +246,8 @@ export async function getReportsData(workspaceId: string, monthsBack = 6): Promi
       monthly,
     },
     deals: {
-      total: deals.length,
-      conversion: deals.length > 0 ? Math.round((completed / deals.length) * 1000) / 10 : 0,
+      total: dealsInRange.length,
+      conversion: dealsInRange.length > 0 ? Math.round((completed / dealsInRange.length) * 1000) / 10 : 0,
       byStage,
     },
     customers: {

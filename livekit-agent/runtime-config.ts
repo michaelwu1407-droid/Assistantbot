@@ -2,6 +2,8 @@ const DEFAULT_LOCAL_APP_URL = "http://localhost:3000";
 
 export const DEFAULT_WORKER_HTTP_HOST = "127.0.0.1";
 export const DEFAULT_WORKER_HTTP_PORT = 8081;
+export const DEFAULT_WORKER_HEALTH_PATH = "/tmp/voice-worker-health.json";
+export const DEFAULT_WORKER_HEALTH_STALE_MS = 180_000;
 
 const REQUIRED_PRODUCTION_VOICE_AGENT_ENV_KEYS = [
   "LIVEKIT_URL",
@@ -29,6 +31,16 @@ export function resolveWorkerHttpPort(env: NodeJS.ProcessEnv = process.env) {
   const rawPort = normalizeEnvValue(env.LIVEKIT_HTTP_PORT);
   const parsedPort = Number.parseInt(rawPort, 10);
   return Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : DEFAULT_WORKER_HTTP_PORT;
+}
+
+export function getVoiceWorkerHealthPath(env: NodeJS.ProcessEnv = process.env) {
+  return normalizeEnvValue(env.VOICE_WORKER_HEALTH_PATH) || DEFAULT_WORKER_HEALTH_PATH;
+}
+
+export function getVoiceWorkerHealthStaleMs(env: NodeJS.ProcessEnv = process.env) {
+  const rawValue = normalizeEnvValue(env.VOICE_WORKER_HEALTH_STALE_MS);
+  const parsedValue = Number.parseInt(rawValue, 10);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : DEFAULT_WORKER_HEALTH_STALE_MS;
 }
 
 export function getVoiceAgentAppBaseUrl(env: NodeJS.ProcessEnv = process.env) {

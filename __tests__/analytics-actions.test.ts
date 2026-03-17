@@ -1,0 +1,114 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const dbMocks = vi.hoisted(() => ({
+  deal: { findMany: vi.fn() },
+  contact: { count: vi.fn() },
+  customerFeedback: { aggregate: vi.fn() },
+  user: { count: vi.fn() },
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: dbMocks,
+}));
+
+import { getReportsData } from "@/actions/analytics-actions";
+
+describe("getReportsData", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-17T10:00:00.000Z"));
+    vi.clearAllMocks();
+
+    dbMocks.contact.count
+      .mockResolvedValueOnce(14)
+      .mockResolvedValueOnce(3);
+    dbMocks.customerFeedback.aggregate.mockResolvedValue({
+      _avg: { score: 4.25 },
+    });
+    dbMocks.user.count.mockResolvedValue(2);
+    dbMocks.deal.findMany.mockResolvedValue([
+      {
+        id: "deal-current-1",
+        stage: "WON",
+        value: 400,
+        invoicedAmount: 450,
+        stageChangedAt: new Date("2026-03-10T10:00:00.000Z"),
+        createdAt: new Date("2026-03-01T09:00:00.000Z"),
+        metadata: { source: "website" },
+        assignedTo: { id: "user-1", name: "Alice" },
+      },
+      {
+        id: "deal-current-2",
+        stage: "WON",
+        value: 550,
+        invoicedAmount: null,
+        stageChangedAt: new Date("2026-03-05T10:00:00.000Z"),
+        createdAt: new Date("2026-02-26T09:00:00.000Z"),
+        metadata: { leadSource: "hipages" },
+        assignedTo: { id: "user-2", name: "Bob" },
+      },
+      {
+        id: "deal-previous",
+        stage: "WON",
+        value: 300,
+        invoicedAmount: 300,
+        stageChangedAt: new Date("2026-02-02T10:00:00.000Z"),
+        createdAt: new Date("2026-01-25T09:00:00.000Z"),
+        metadata: { source: "phone" },
+        assignedTo: { id: "user-1", name: "Alice" },
+      },
+      {
+        id: "deal-pipeline",
+        stage: "CONTACTED",
+        value: 100,
+        invoicedAmount: null,
+        stageChangedAt: new Date("2026-03-12T10:00:00.000Z"),
+        createdAt: new Date("2026-03-12T09:00:00.000Z"),
+        metadata: {},
+        assignedTo: null,
+      },
+      {
+        id: "deal-manual-scheduled",
+        stage: "SCHEDULED",
+        value: 200,
+        invoicedAmount: null,
+        stageChangedAt: new Date("2026-03-11T10:00:20.000Z"),
+        createdAt: new Date("2026-03-11T10:00:00.000Z"),
+        metadata: {},
+        assignedTo: null,
+      },
+    ]);
+  });
+
+  it("uses the selected day range and compares revenue to the previous equal-length window", async () => {
+    const result = await getReportsData("ws_123", "30d");
+
+    expect(dbMocks.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_123",
+          OR: [
+            { createdAt: { gte: new Date("2026-01-16T13:00:00.000Z") } },
+            { stageChangedAt: { gte: new Date("2026-01-16T13:00:00.000Z") } },
+          ],
+        }),
+      }),
+    );
+    expect(result.revenue.total).toBe(1000);
+    expect(result.revenue.growth).toBeCloseTo(((1000 - 300) / 300) * 100, 5);
+    expect(result.deals.total).toBe(4);
+    expect(result.jobs.completed).toBe(2);
+    expect(result.customers.new).toBe(3);
+    expect(result.customers.satisfaction).toBe(4.3);
+  });
+
+  it("excludes manual jobs created directly at a scheduled stage from jobs won with Tracey", async () => {
+    const result = await getReportsData("ws_123", "30d");
+
+    expect(result.jobs.wonWithTracey).toBe(2);
+    expect(result.team.performance).toEqual([
+      { name: "Bob", jobs: 1, revenue: 550 },
+      { name: "Alice", jobs: 1, revenue: 450 },
+    ]);
+  });
+});

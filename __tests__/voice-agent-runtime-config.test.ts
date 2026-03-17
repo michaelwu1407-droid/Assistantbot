@@ -4,6 +4,8 @@ import {
   assertRequiredVoiceAgentEnv,
   getVoiceAgentAppBaseUrl,
   getVoiceAgentWebhookSecret,
+  getVoiceWorkerHealthPath,
+  getVoiceWorkerHealthStaleMs,
   resolveWorkerHttpHost,
   resolveWorkerHttpPort,
   shouldEnableNoiseCancellation,
@@ -22,6 +24,23 @@ describe("voice agent runtime config", () => {
   it("falls back to loopback and the default port when worker port config is absent", () => {
     expect(resolveWorkerHttpHost(createEnv())).toBe("127.0.0.1");
     expect(resolveWorkerHttpPort(createEnv())).toBe(8081);
+  });
+
+  it("uses a stable worker health snapshot path and stale threshold by default", () => {
+    expect(getVoiceWorkerHealthPath(createEnv())).toBe("/tmp/voice-worker-health.json");
+    expect(getVoiceWorkerHealthStaleMs(createEnv())).toBe(180000);
+  });
+
+  it("accepts explicit worker health snapshot config", () => {
+    expect(
+      getVoiceWorkerHealthPath(
+        createEnv({
+          VOICE_WORKER_HEALTH_PATH: "/var/run/earlymark/voice-health.json",
+          VOICE_WORKER_HEALTH_STALE_MS: "60000",
+        }),
+      ),
+    ).toBe("/var/run/earlymark/voice-health.json");
+    expect(getVoiceWorkerHealthStaleMs(createEnv({ VOICE_WORKER_HEALTH_STALE_MS: "60000" }))).toBe(60000);
   });
 
   it("uses localhost only outside production when no app URL env is set", () => {

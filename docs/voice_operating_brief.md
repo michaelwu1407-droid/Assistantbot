@@ -5,9 +5,10 @@ Updated: 2026-03-17 AEDT
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
-- Core LiveKit infrastructure is Dockerized on OCI.
-- Voice workers currently run as `systemd` services on OCI from `/opt/earlymark-agent`.
-- Canonical worker services:
+- Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
+- Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
+- Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
+- Canonical worker containers:
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
 - Canonical deploy workflow: `.github/workflows/deploy-livekit.yml`
@@ -113,10 +114,11 @@ Updated: 2026-03-17 AEDT
 
 ## Active known risks
 
-- Worker runtime is still host-process `systemd`, not yet immutable container images.
+- Voice workers are now containerized, but single-host operation is still degraded until a second OCI host is healthy and participating in fleet truth.
 - The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, deploy verification and recovery probing are constrained.
 - Homepage copy and voice prompts now share a canonical sales brief, but homepage sections outside the main pillars can still drift if edited independently.
 - Inbound lead-email DNS drift is surfaced as degraded readiness, not a hard reconcile failure; customer-agent reconcile should only fail on runtime blockers, not missing inbound MX.
+- The Docker worker deploy persists env outside the release directory, but the first host migration still needs a valid existing worker env to seed `/opt/earlymark-worker-shared/.env.local`.
 
 ## Recent confirmed learnings
 
@@ -127,3 +129,4 @@ Updated: 2026-03-17 AEDT
 - If `/api/health`, `/api/internal/launch-readiness`, and `/admin/ops-status` disagree, treat that as a regression in release-truth wiring rather than a harmless presentation difference.
 - Deploy workflow should only run for voice-affecting changes; broad `main` deploy triggers create unnecessary worker churn.
 - Audit history is useful, but agents need a short curated voice handoff doc to avoid re-learning the same lessons from a bloated changelog.
+- Container health plus launch-readiness plus spoken-canary truth is a better worker release gate than heartbeat-only verification.

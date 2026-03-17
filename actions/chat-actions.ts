@@ -14,6 +14,7 @@ import { getTemplates, renderTemplate } from "./template-actions";
 import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
 import { fuzzyScore } from "@/lib/search";
+import { recordWorkspaceAuditEventForCurrentActor } from "@/lib/workspace-audit";
 import {
   titleCase,
   categoriseWork,
@@ -1101,6 +1102,18 @@ export async function runCreateDraftInvoice(
       contactId: fullDeal.contactId ?? undefined,
     },
   });
+  await recordWorkspaceAuditEventForCurrentActor({
+    workspaceId,
+    action: "invoice.draft_created",
+    entityType: "invoice",
+    entityId: invoiceNumber,
+    metadata: {
+      invoiceNumber,
+      dealId: fullDeal.id,
+      total,
+      source: "chat-actions.runCreateDraftInvoiceAction",
+    },
+  });
   revalidatePath("/dashboard");
   return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
 }
@@ -1188,6 +1201,19 @@ export async function runReverseInvoiceStatus(
       content: `Invoice ${invoice.number} moved from ${invoice.status} to ${params.targetStatus}.`,
       dealId: invoice.dealId,
       contactId: invoice.deal.contactId,
+    },
+  });
+  await recordWorkspaceAuditEventForCurrentActor({
+    workspaceId,
+    action: "invoice.status_reversed",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      previousStatus: invoice.status,
+      nextStatus: params.targetStatus,
+      source: "chat-actions.runReverseInvoiceStatus",
     },
   });
   return `Reversed invoice ${invoice.number} to ${params.targetStatus}.`;
@@ -1325,6 +1351,22 @@ export async function runUpdateInvoiceFields(
       contactId: invoice.deal.contactId,
     },
   });
+  await recordWorkspaceAuditEventForCurrentActor({
+    workspaceId,
+    action: "invoice.updated",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      nextInvoiceNumber: nextNumber,
+      subtotal: inferredSubtotal,
+      tax: nextTax,
+      total: nextTotal,
+      lineItemCount: nextLineItems.length,
+      source: "chat-actions.runUpdateInvoiceFields",
+    },
+  });
 
   revalidatePath("/dashboard");
   return `Updated invoice ${nextNumber} for "${invoice.deal.title}".`;
@@ -1369,6 +1411,18 @@ export async function runVoidInvoice(
       content: `Invoice ${invoice.number} was voided.`,
       dealId: invoice.dealId,
       contactId: invoice.deal.contactId,
+    },
+  });
+  await recordWorkspaceAuditEventForCurrentActor({
+    workspaceId,
+    action: "invoice.voided",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      previousStatus: invoice.status,
+      source: "chat-actions.runVoidInvoice",
     },
   });
 

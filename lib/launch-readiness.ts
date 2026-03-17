@@ -152,12 +152,7 @@ export async function getLaunchReadiness(options?: {
     "healthy",
   );
 
-  const smsWarnings = Array.from(new Set([
-    ...twilioMessagingRouting.warnings,
-    twilioMessagingRouting.managedNumberCount === 0
-      ? "No managed Twilio SMS numbers are currently configured for production monitoring."
-      : "",
-  ].filter(Boolean)));
+  const smsWarnings = Array.from(new Set(twilioMessagingRouting.warnings.filter(Boolean)));
   const smsStatus: RuntimeStatus =
     twilioMessagingRouting.status === "unhealthy"
       ? "unhealthy"
@@ -241,7 +236,14 @@ export async function getLaunchReadiness(options?: {
     warnings: Array.from(new Set([...smsWarnings, ...emailWarnings])),
     sms: {
       status: smsStatus,
-      summary: summarizeStatus(smsStatus, smsWarnings, "Twilio SMS routing is healthy."),
+      summary:
+        twilioMessagingRouting.managedNumberCount === 0
+          ? summarizeStatus(
+              smsStatus,
+              smsWarnings,
+              "No managed production SMS numbers are configured for Earlymark, which is allowed.",
+            )
+          : summarizeStatus(smsStatus, smsWarnings, "Twilio SMS routing is healthy."),
       warnings: smsWarnings,
       managedNumberCount: twilioMessagingRouting.managedNumberCount,
       expectedSmsWebhookUrl: twilioMessagingRouting.expectedSmsWebhookUrl,

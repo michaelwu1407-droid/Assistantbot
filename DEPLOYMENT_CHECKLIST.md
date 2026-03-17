@@ -12,7 +12,7 @@ This checklist reflects the current stack, not the older Retell/Pj Buddy setup.
 Current voice deployment distinction:
 
 - Docker is the standardized deployment architecture for the LiveKit core voice infrastructure
-- the Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process
+- Docker is also the standardized deployment architecture for the Earlymark voice workers on OCI
 
 ## 1. Web app prerequisites
 
@@ -67,7 +67,7 @@ The LiveKit worker is deployed separately from Vercel.
 Infrastructure model to verify before deployment:
 
 - LiveKit core infrastructure should be running via Docker on the OCI host
-- the active Twilio subaccount voice agent worker should be treated as a host-process deploy, not a Docker deploy
+- the active Twilio subaccount voice agent workers should be running as Docker containers from `/opt/earlymark-worker`
 - do not treat legacy native LiveKit, Redis, or Tailscale services as part of the supported runtime
 
 Required envs typically include:
@@ -90,6 +90,7 @@ Current voice assumptions:
 - LiveKit worker logs deployed git SHA on startup
 - Twilio numbers must point to `/api/webhooks/twilio-voice-gateway`, not directly to SIP
 - inbound failures must fall back to voicemail, never dead SIP
+- container health must stay green for `earlymark-sales-agent` and `earlymark-customer-agent`
 
 ## 5. GitHub Actions worker deploy
 
@@ -97,8 +98,8 @@ Current voice assumptions:
 
 Important distinction:
 
-- this workflow currently updates the host-process voice agent worker
-- it does not represent a full Dockerized deployment of the Twilio subaccount voice agent runtime
+- this workflow updates the Dockerized voice worker runtime on OCI
+- it is separate from the Vercel web deploy and must still be checked independently
 
 Before relying on it, verify repo secrets exist:
 
@@ -122,14 +123,16 @@ sudo netfilter-persistent save
 ```
 
 - after restoring access, confirm `sshd` is running and listening on `22`
-- if `journalctl -u ssh` shows accepted GitHub publickey sessions for `ubuntu`, SSH transport is working and the next check is the non-interactive runtime bootstrap path (`PATH`, `nvm`, `node`, `npm`, `pm2`)
+- if `journalctl -u ssh` shows accepted GitHub publickey sessions for `ubuntu`, SSH transport is working and the next check is the non-interactive runtime bootstrap path (`PATH`, `node`, `docker`, `docker compose`)
 - see `docs/OCI_SSH_FIREWALL_POSTMORTEM.md` for the March 12, 2026 two-stage incident pattern and triage steps
 
 After a worker deploy:
 
 - check the workflow run went green
-- confirm `/tmp/agent.log` on OCI contains the deployed SHA
-- make a test call and verify runtime behavior from logs
+- confirm `/api/internal/launch-readiness` and `/admin/ops-status` show the expected live worker SHA
+- confirm `sudo docker ps` shows healthy `earlymark-sales-agent` and `earlymark-customer-agent` containers
+- confirm `sudo docker logs --tail 120 earlymark-sales-agent` and `sudo docker logs --tail 120 earlymark-customer-agent` show the deployed SHA
+- verify the deploy/recovery spoken probe passes
 
 ## 6. Production verification
 
@@ -162,9 +165,11 @@ After a worker deploy:
 - Twilio Earlymark inbound number points to the app gateway and is not attached directly to a SIP trunk
 - `/api/cron/voice-agent-health` returns healthy via GitHub Actions
 - `/api/cron/voice-monitor-watchdog` returns healthy via GitHub Actions
-- `/api/cron/voice-synthetic-probe` returns healthy via GitHub Actions
+- `/api/cron/passive-communications-health` returns healthy via GitHub Actions
+- `/api/cron/voice-synthetic-probe` is healthy when run manually for deploy/recovery verification
 - latency logs are emitted
 - call transcripts persist for new calls
+- `/admin/ops-status` shows passive production healthy and active probe separated correctly
 
 ## 7. Operational checks
 
@@ -176,8 +181,33 @@ After a worker deploy:
 - Google Maps failures degrade gracefully
 - welcome SMS path works when provisioning succeeds
 - call forwarding setup SMS flow works
+- `VOICE_MONITOR_PROBE_CALLER_NUMBER` is distinct from the Earlymark inbound number
+- launch-readiness, passive-production, and public health all agree on release truth
 
-## 8. Known split-brain risk to avoid
+## 8. Final release hardening
+
+- run the full smoke suite for:
+  - auth
+  - billing
+  - onboarding with and without number provisioning
+  - dashboard load
+  - inbound Earlymark voice
+  - outbound demo voice
+  - customer voice
+  - inbound SMS if SMS is in launch scope
+  - inbound email
+  - CRM invoice actions
+  - reports
+  - integrations in launch scope
+- confirm incident runbooks exist and are current for:
+  - voice outage
+  - inbound email outage
+  - provisioning outage
+  - deploy rollback
+  - OCI host replacement
+- treat single-host voice as degraded until a second OCI worker host is real and healthy
+
+## 9. Known split-brain risk to avoid
 
 Do not treat Vercel deploy success as voice-worker deploy success.
 

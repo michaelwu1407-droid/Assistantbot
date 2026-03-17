@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Calendar, User, FileText } from "lucide-react"
+import { Calendar, User, FileText, History, PhoneCall } from "lucide-react"
 
 import {
     Command,
@@ -77,6 +77,8 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
     const contactResults = results.filter(r => r.type === 'contact')
     const dealResults = results.filter(r => r.type === 'deal')
     const taskResults = results.filter(r => r.type === 'task')
+    const activityResults = results.filter(r => r.type === 'activity')
+    const callResults = results.filter(r => r.type === 'call')
 
     return (
         <>
@@ -100,7 +102,7 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
                 <DialogContent className="overflow-hidden p-0 shadow-lg">
                     <Command shouldFilter={false} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
                         <CommandInput
-                            placeholder="Search contacts, deals, tasks..."
+                            placeholder="Search contacts, deals, tasks, activity, calls..."
                             value={query}
                             onValueChange={setQuery}
                         />
@@ -161,6 +163,38 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
                                                 >
                                                     <Calendar className="mr-2 h-4 w-4" />
                                                     <span>{task.title}</span>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    )}
+
+                                    {activityResults.length > 0 && (
+                                        <CommandGroup heading="Activity">
+                                            {activityResults.map(activity => (
+                                                <CommandItem
+                                                    key={activity.id}
+                                                    value={activity.id}
+                                                    onSelect={() => runCommand(() => router.push(activity.url))}
+                                                >
+                                                    <History className="mr-2 h-4 w-4" />
+                                                    <span>{activity.title}</span>
+                                                    {activity.subtitle && <span className="ml-auto text-xs text-muted-foreground">{activity.subtitle}</span>}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    )}
+
+                                    {callResults.length > 0 && (
+                                        <CommandGroup heading="Calls">
+                                            {callResults.map(call => (
+                                                <CommandItem
+                                                    key={call.id}
+                                                    value={call.id}
+                                                    onSelect={() => runCommand(() => router.push(call.url))}
+                                                >
+                                                    <PhoneCall className="mr-2 h-4 w-4" />
+                                                    <span>{call.title}</span>
+                                                    {call.subtitle && <span className="ml-auto text-xs text-muted-foreground">{call.subtitle}</span>}
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>

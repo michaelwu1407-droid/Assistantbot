@@ -1,0 +1,52 @@
+services:
+  sales:
+    container_name: earlymark-sales-agent
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: npm run start:sales
+    env_file:
+      - ../.env.local
+    environment:
+      NODE_ENV: production
+      DEPLOY_GIT_SHA: ${EARLYMARK_DEPLOY_GIT_SHA:-unknown}
+      VOICE_WORKER_ROLE: tracey-sales-agent
+      VOICE_WORKER_SURFACES: demo,inbound_demo
+      LIVEKIT_HTTP_HOST: 127.0.0.1
+      LIVEKIT_HTTP_PORT: "8081"
+      VOICE_WORKER_HEALTH_PATH: /tmp/voice-worker-health.json
+      VOICE_WORKER_HEALTH_STALE_MS: "180000"
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  customer:
+    container_name: earlymark-customer-agent
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: npm run start:customer
+    env_file:
+      - ../.env.local
+    environment:
+      NODE_ENV: production
+      DEPLOY_GIT_SHA: ${EARLYMARK_DEPLOY_GIT_SHA:-unknown}
+      VOICE_WORKER_ROLE: tracey-customer-agent
+      VOICE_WORKER_SURFACES: normal
+      LIVEKIT_HTTP_HOST: 127.0.0.1
+      LIVEKIT_HTTP_PORT: "8082"
+      VOICE_WORKER_HEALTH_PATH: /tmp/voice-worker-health.json
+      VOICE_WORKER_HEALTH_STALE_MS: "180000"
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s

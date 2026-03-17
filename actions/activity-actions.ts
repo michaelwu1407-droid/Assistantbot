@@ -21,6 +21,23 @@ export interface ActivityView {
   content?: string | null;
 }
 
+type VoiceCallActivityRow = {
+  id: string;
+  callType: string;
+  callerName: string | null;
+  businessName: string | null;
+  callerPhone: string | null;
+  transcriptText: string | null;
+  summary: string | null;
+  startedAt: Date;
+  contactId: string | null;
+  contact?: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+};
+
 // ─── Validation ─────────────────────────────────────────────────────
 
 const LogActivitySchema = z.object({
@@ -48,6 +65,50 @@ function relativeTime(date: Date): string {
   return date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
 }
 
+function snippet(value: string | null | undefined, max = 180) {
+  const normalized = (value || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+  return normalized.length > max ? `${normalized.slice(0, max - 1)}...` : normalized;
+}
+
+function formatVoiceCallTitle(callType: string) {
+  switch ((callType || "").toLowerCase()) {
+    case "inbound_demo":
+      return "Earlymark inbound call";
+    case "demo":
+      return "Tracey demo call";
+    case "normal":
+      return "Customer call";
+    default:
+      return `${callType.replace(/_/g, " ")} call`.trim() || "Voice call";
+  }
+}
+
+function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
+  const transcriptSnippet = snippet(call.transcriptText, 220);
+  const summary = snippet(call.summary, 140);
+  const callerIdentity =
+    call.contact?.name ||
+    call.callerName ||
+    call.businessName ||
+    call.callerPhone ||
+    "Voice caller";
+
+  return {
+    id: `voice-call:${call.id}`,
+    type: "call",
+    title: formatVoiceCallTitle(call.callType),
+    description: summary || `Phone call with ${callerIdentity}`,
+    content: transcriptSnippet || summary,
+    time: relativeTime(call.startedAt),
+    createdAt: call.startedAt,
+    contactId: call.contactId ?? undefined,
+    contactName: call.contact?.name || call.callerName || call.businessName || undefined,
+    contactPhone: call.contact?.phone || call.callerPhone || undefined,
+    contactEmail: call.contact?.email || undefined,
+  };
+}
+
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
@@ -63,6 +124,7 @@ export async function getActivities(options?: {
 }): Promise<ActivityView[]> {
   try {
     const where: Record<string, unknown> = {};
+    const shouldIncludeVoiceCalls = !options?.typeIn?.length || options.typeIn.includes("CALL");
 
     if (options?.dealId) where.dealId = options.dealId;
     if (options?.contactId) where.contactId = options.contactId;
@@ -76,19 +138,65 @@ export async function getActivities(options?: {
       where.type = { in: options.typeIn };
     }
 
-    const activities = await db.activity.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: options?.limit ?? 20,
-      include: {
-        contact: { select: { name: true, phone: true, email: true } },
-        deal: { select: { contact: { select: { name: true, phone: true, email: true } } } },
-      },
-    });
+    const dealContextPromise =
+      options?.dealId && !options?.contactId
+        ? db.deal.findUnique({
+            where: { id: options.dealId },
+            select: { contactId: true, workspaceId: true },
+          })
+        : Promise.resolve(null);
 
-    return activities.map((a) => {
-      const contactName =
-        a.contact?.name ?? a.deal?.contact?.name ?? null;
+    const [dealContext, activities] = await Promise.all([
+      dealContextPromise,
+      db.activity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: options?.limit ?? 20,
+        include: {
+          contact: { select: { name: true, phone: true, email: true } },
+          deal: { select: { contact: { select: { name: true, phone: true, email: true } } } },
+        },
+      }),
+    ]);
+
+    const voiceCallWhere: Record<string, unknown> | null = shouldIncludeVoiceCalls
+      ? options?.contactId
+        ? { contactId: options.contactId }
+        : dealContext?.contactId
+          ? { contactId: dealContext.contactId }
+          : options?.workspaceId
+            ? { workspaceId: options.workspaceId }
+            : null
+      : null;
+
+    const voiceCalls = voiceCallWhere
+      ? await db.voiceCall.findMany({
+          where: voiceCallWhere,
+          orderBy: { startedAt: "desc" },
+          take: options?.limit ?? 20,
+          select: {
+            id: true,
+            callType: true,
+            callerName: true,
+            businessName: true,
+            callerPhone: true,
+            transcriptText: true,
+            summary: true,
+            startedAt: true,
+            contactId: true,
+            contact: {
+              select: {
+                name: true,
+                phone: true,
+                email: true,
+              },
+            },
+          },
+        })
+      : [];
+
+    const activityRows = activities.map((a) => {
+      const contactName = a.contact?.name ?? a.deal?.contact?.name ?? null;
       const contactPhone = a.contact?.phone ?? a.deal?.contact?.phone ?? null;
       const contactEmail = a.contact?.email ?? a.deal?.contact?.email ?? null;
       return {
@@ -106,6 +214,10 @@ export async function getActivities(options?: {
         contactEmail,
       };
     });
+
+    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity)]
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+      .slice(0, options?.limit ?? 20);
   } catch (error) {
     console.error("Database Error in getActivities:", error);
     return [];

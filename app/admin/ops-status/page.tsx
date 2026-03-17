@@ -192,7 +192,7 @@ export default async function OpsStatusPage() {
               {data.communications.summary}
             </div>
             <div className="text-xs text-slate-600">
-              SMS managed numbers: {data.communications.sms.managedNumberCount}<br />
+              SMS managed numbers (optional): {data.communications.sms.managedNumberCount}<br />
               Email domain: {data.communications.email.domain}<br />
               Email stage: {data.communications.email.stage}<br />
               Receiving confirmed: {data.communications.email.receivingConfirmed ? "Yes" : "No"}<br />

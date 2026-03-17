@@ -17,6 +17,7 @@ import { findNearbyBookings } from "./geo-actions";
 import { createTask } from "./task-actions";
 import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
+import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -320,6 +321,20 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       contactId,
     },
   });
+  await recordWorkspaceAuditEvent({
+    workspaceId,
+    userId: actor.id,
+    action: "deal.created",
+    entityType: "deal",
+    entityId: deal.id,
+    metadata: {
+      title,
+      stage: prismaStage,
+      value,
+      contactId,
+      source: "deal-actions.createDeal",
+    },
+  });
 
   // Run triage classifier on new leads
   try {
@@ -462,6 +477,19 @@ export async function updateDealStage(dealId: string, stage: string) {
             ...(userId && { userId }),
           },
         });
+        await recordWorkspaceAuditEvent({
+          workspaceId: deal.workspaceId,
+          userId: userId ?? undefined,
+          action: "deal.stage_changed",
+          entityType: "deal",
+          entityId: parsed.data.dealId,
+          metadata: {
+            previousStage: currentDeal.stage,
+            nextStage: "PENDING_COMPLETION",
+            source: "deal-actions.updateDealStage",
+            requestedBy: userName,
+          },
+        });
         revalidatePath("/dashboard");
         revalidatePath("/dashboard/deals");
         return { success: true };
@@ -503,6 +531,19 @@ export async function updateDealStage(dealId: string, stage: string) {
         dealId: parsed.data.dealId,
         contactId: deal.contactId ?? undefined,
         ...(userId && { userId }),
+      },
+    });
+    await recordWorkspaceAuditEvent({
+      workspaceId: deal.workspaceId,
+      userId: userId ?? undefined,
+      action: "deal.stage_changed",
+      entityType: "deal",
+      entityId: parsed.data.dealId,
+      metadata: {
+        previousStage: currentDeal.stage,
+        nextStage: prismaStage,
+        source: "deal-actions.updateDealStage",
+        requestedBy: userName,
       },
     });
 
@@ -877,6 +918,21 @@ export async function updateDeal(
       ...(userId && { userId }),
     },
   });
+  if (data.invoicedAmount !== undefined && data.invoicedAmount !== currentInvoiced) {
+    await recordWorkspaceAuditEvent({
+      workspaceId: deal.workspaceId,
+      userId: userId ?? undefined,
+      action: "invoice.amount_adjusted",
+      entityType: "deal",
+      entityId: dealId,
+      metadata: {
+        dealId,
+        previousInvoicedAmount: currentInvoiced,
+        nextInvoicedAmount: data.invoicedAmount,
+        source: "deal-actions.updateDeal",
+      },
+    });
+  }
 
   if (stageMovedToWon || draftConfirmed) {
     try {

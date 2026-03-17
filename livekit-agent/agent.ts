@@ -17,6 +17,8 @@
  */
 
 import { fileURLToPath } from 'node:url';
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { ReadableStream } from 'node:stream/web';
 import { config as loadEnv } from 'dotenv';
 import * as openai from '@livekit/agents-plugin-openai';
@@ -31,6 +33,7 @@ import {
   assertRequiredVoiceAgentEnv,
   getVoiceAgentAppBaseUrl,
   getVoiceAgentWebhookSecret,
+  getVoiceWorkerHealthPath,
   resolveWorkerHttpHost,
   resolveWorkerHttpPort,
   shouldEnableNoiseCancellation,
@@ -268,6 +271,11 @@ let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
+const workerHealthState = {
+  lastHeartbeatAttemptAt: null as string | null,
+  lastHeartbeatSuccessAt: null as string | null,
+  lastHeartbeatError: null as string | null,
+};
 
 function cloneAudioFrame(frame: AudioFrame): AudioFrame {
   return new AudioFrame(new Int16Array(frame.data), frame.sampleRate, frame.channels, frame.samplesPerChannel);
@@ -1260,40 +1268,80 @@ function buildVoiceAgentRuntimeSummary() {
   };
 }
 
+async function writeWorkerHealthSnapshot() {
+  const healthPath = getVoiceWorkerHealthPath();
+  const snapshot = {
+    updatedAt: new Date().toISOString(),
+    deployGitSha: DEPLOY_GIT_SHA,
+    workerRole: getConfiguredWorkerRole(),
+    surfaceSet: getConfiguredWorkerSurfaces(),
+    pid: process.pid,
+    runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
+    bootReady: buildCapacitySummary().bootReady,
+    activeCalls: getActiveCallCount(),
+    maxConcurrentCalls: getMaxConcurrentCalls(),
+    acceptingNewCalls: isWorkerAcceptingCalls(),
+    lastHeartbeatAttemptAt: workerHealthState.lastHeartbeatAttemptAt,
+    lastHeartbeatSuccessAt: workerHealthState.lastHeartbeatSuccessAt,
+    lastHeartbeatError: workerHealthState.lastHeartbeatError,
+    summary: buildVoiceAgentRuntimeSummary(),
+  };
+
+  await mkdir(dirname(healthPath), { recursive: true });
+  await writeFile(healthPath, JSON.stringify(snapshot), "utf8");
+}
+
 async function postVoiceAgentStatus() {
   const appUrl = getAppBaseUrl();
   const secret = getVoiceAgentWebhookSecret();
+  workerHealthState.lastHeartbeatAttemptAt = new Date().toISOString();
 
   if (!appUrl || !secret) {
+    workerHealthState.lastHeartbeatError = "Missing APP URL or worker webhook secret.";
+    await writeWorkerHealthSnapshot().catch((error) => {
+      console.warn("[agent] Failed to write worker health snapshot:", error);
+    });
     console.warn("[agent] Skipping worker-status heartbeat because APP URL or webhook secret is missing.");
     return;
   }
 
   const route = `${appUrl.replace(/\/$/, "")}/api/internal/voice-agent-status`;
-  const response = await fetch(route, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-voice-agent-secret": secret,
-    },
-    body: JSON.stringify({
-      hostId: getConfiguredHostId(),
-      workerRole: getConfiguredWorkerRole(),
-      surfaceSet: getConfiguredWorkerSurfaces(),
-      deployGitSha: DEPLOY_GIT_SHA,
-      runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
-      ready: isWorkerAcceptingCalls(),
-      activeCalls: getActiveCallCount(),
-      pid: process.pid,
-      startedAt: AGENT_STARTED_AT,
-      heartbeatAt: new Date().toISOString(),
-      summary: buildVoiceAgentRuntimeSummary(),
-    }),
-  });
+  try {
+    const response = await fetch(route, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-voice-agent-secret": secret,
+      },
+      body: JSON.stringify({
+        hostId: getConfiguredHostId(),
+        workerRole: getConfiguredWorkerRole(),
+        surfaceSet: getConfiguredWorkerSurfaces(),
+        deployGitSha: DEPLOY_GIT_SHA,
+        runtimeFingerprint: getVoiceAgentRuntimeFingerprint(),
+        ready: isWorkerAcceptingCalls(),
+        activeCalls: getActiveCallCount(),
+        pid: process.pid,
+        startedAt: AGENT_STARTED_AT,
+        heartbeatAt: new Date().toISOString(),
+        summary: buildVoiceAgentRuntimeSummary(),
+      }),
+    });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Worker status heartbeat failed: ${response.status} ${body}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Worker status heartbeat failed: ${response.status} ${body}`);
+    }
+
+    workerHealthState.lastHeartbeatSuccessAt = new Date().toISOString();
+    workerHealthState.lastHeartbeatError = null;
+    await writeWorkerHealthSnapshot();
+  } catch (error) {
+    workerHealthState.lastHeartbeatError = error instanceof Error ? error.message : String(error);
+    await writeWorkerHealthSnapshot().catch((snapshotError) => {
+      console.warn("[agent] Failed to write worker health snapshot after heartbeat failure:", snapshotError);
+    });
+    throw error;
   }
 }
 
@@ -2469,6 +2517,9 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
   workerBackgroundTasksStarted = true;
 
   setWorkerBootReady(true);
+  void writeWorkerHealthSnapshot().catch((error) => {
+    console.warn(`${logPrefix} Failed to write initial worker health snapshot:`, error);
+  });
   void refreshVoiceGroundingIndex(true).catch((error) => {
     console.warn(`${logPrefix} Initial voice grounding cache warm failed:`, error);
   });

@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { useShellStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
-import { getReportsData, type ReportsData } from "@/actions/analytics-actions"
+import { getReportsData, type ReportsData, type ReportRange } from "@/actions/analytics-actions"
 import { Button } from "@/components/ui/button"
 
 export default function AnalyticsPage() {
@@ -41,8 +41,7 @@ export default function AnalyticsPage() {
       return
     }
     setLoading(true)
-    const months = timeRange === "7d" ? 1 : timeRange === "30d" ? 3 : timeRange === "90d" ? 4 : 12
-    getReportsData(workspaceId, months)
+    getReportsData(workspaceId, timeRange as ReportRange)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false))

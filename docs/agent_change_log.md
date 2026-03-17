@@ -688,3 +688,51 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage proving a workspace with recent scoped inbound email errors now contributes a real passive failure instead of being silently treated as an unknown/no-traffic case.
 - Why:
   - Passive monitoring for email was still weaker than voice and SMS because only unscoped inbound email failures affected the global signal. Workspace-specific inbound email breakage now surfaces correctly in the same per-workspace failure model.
+## 2026-03-17 17:06 (AEDT) - codex
+
+- Files changed:
+  - `AGENTS.md`
+  - `DEPLOYMENT_CHECKLIST.md`
+  - `docs/voice_operating_brief.md`
+  - `docs/FINAL_RELEASE_RUNBOOK.md`
+  - `.github/workflows/deploy-livekit.yml`
+  - `ops/deploy/livekit-worker-install.sh`
+  - `ops/deploy/livekit-worker-verify.sh`
+  - `ops/docker/worker-compose.yml`
+  - `livekit-agent/Dockerfile`
+  - `livekit-agent/.dockerignore`
+  - `livekit-agent/healthcheck.js`
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/runtime-config.ts`
+  - `__tests__/voice-agent-runtime-config.test.ts`
+  - `lib/launch-readiness.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `actions/analytics-actions.ts`
+  - `app/dashboard/analytics/page.tsx`
+  - `__tests__/analytics-actions.test.ts`
+  - `actions/tradie-actions.ts`
+  - `__tests__/tradie-actions-pdf.test.ts`
+  - `lib/workspace-audit.ts`
+  - `actions/deal-actions.ts`
+  - `actions/chat-actions.ts`
+  - `actions/activity-actions.ts`
+  - `__tests__/activity-actions.test.ts`
+  - `actions/search-actions.ts`
+  - `components/layout/global-search.tsx`
+  - `components/core/command-palette.tsx`
+  - `app/admin/ops-status/page.tsx`
+  - `vitest.config.ts`
+  - `__tests__/stubs/server-only.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Completed the no-managed-SMS launch-readiness fix so Earlymark can legitimately run without a managed production SMS number and the ops page now labels that state as optional instead of implicitly required.
+  - Migrated the OCI voice-worker deploy path from host-process assumptions to Dockerized workers with container health snapshots, Docker Compose release directories under `/opt/earlymark-worker`, previous-release rollback, shared persisted worker env, and deploy verification that stays Docker-native instead of falling back to legacy `systemd` runtime behavior.
+  - Updated the canonical voice and deployment docs to match the new containerized worker topology and added a final release runbook covering smoke checks, rollback, and incident slices.
+  - Audited the analytics/reporting pipeline to use exact date-range windows and equal-length comparison periods, fixed printable quote/invoice PDF generation to enforce workspace access and escape HTML output, and added regression coverage for both.
+  - Added a shared workspace audit helper and wired invoice/deal mutation audit events through tradie, deal, and chat action paths so invoice creation, issue, reversal, update, void, paid state changes, and invoiced-amount adjustments now leave a durable `ActivityLog` trail.
+  - Expanded CRM correspondence/search parity by merging persisted `VoiceCall` records into `getActivities()` output, exposing the richer search corpus in the search UIs, and adding regression coverage for merged voice-call history.
+- Why:
+  - The remaining gaps were clustered around production-grade deploy safety, reporting correctness, CRM traceability, and correspondence visibility. This pass closes the most brittle runtime dependency on `/opt/earlymark-agent`, fixes concrete report/PDF correctness issues, and makes customer-facing history and operator audit trails materially more trustworthy before the next live verification and launch-hardening steps.
+- Outstanding after this change:
+  - A second OCI voice host is still required before voice stops being single-host degraded.
+  - The broader CRM/admin backlog still includes invoice-adjustment UX polish, operator-visible smart-routing surfaces, deeper recent-activity/history parity, and the remaining release smoke/runbook execution on live production.
