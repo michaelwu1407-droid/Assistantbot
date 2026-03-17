@@ -656,3 +656,24 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage for both the healthy launch-readiness-backed path and the fallback path where launch readiness fails to compute.
 - Why:
   - The public health surface was still drifting from `/api/internal/launch-readiness` and `/admin/ops-status`, which undermined the phase-1 production-truth work and made deploy verification harder to trust.
+## 2026-03-17 14:39 (AEDT) - codex
+
+- Files changed:
+  - `app/api/twilio/webhook/route.ts`
+  - `lib/passive-production-health.ts`
+  - `app/api/cron/passive-communications-health/route.ts`
+  - `app/admin/ops-status/page.tsx`
+  - `__tests__/passive-production-health.test.ts`
+  - `__tests__/passive-communications-health-route.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `__tests__/launch-readiness-route.test.ts`
+  - `__tests__/health-route.test.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added sanitized Twilio `WebhookEvent` writes for inbound SMS receipt and SMS reply success/failure inside the canonical Twilio SMS webhook route, and tagged inbound customer chat messages with explicit SMS channel metadata.
+  - Extended passive production health to include a real-traffic SMS channel sourced from recent Twilio `sms.received` / `sms.reply` webhook events, while keeping SMS unknown/no-traffic states out of the top-level global degradation path unless there is a real failure.
+  - Updated the passive communications monitor and internal ops page to surface SMS passive health alongside voice and inbound email, including workspace-level SMS classifications and recent SMS activity visibility.
+  - Added regression coverage for SMS failure rollup behavior and the Twilio SMS webhook persistence path, while updating existing launch-readiness and health mocks to the expanded passive-health shape.
+- Why:
+  - Routine ops could already prove real voice calls and inbound email, but SMS still only had configuration drift checks. This change makes recent real inbound SMS and SMS-processing failures visible in the same passive production model, so operator status better reflects whether customer messaging is actually working.

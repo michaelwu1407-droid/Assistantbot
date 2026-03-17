@@ -44,6 +44,7 @@ describe("GET /api/cron/passive-communications-health", () => {
       activeWorkspaceLookbackDays: 14,
       recentTwilioFailureLookbackMinutes: 360,
       recentEmailFailureLookbackHours: 24,
+      recentSmsFailureLookbackHours: 24,
       voice: {
         status: "degraded",
         summary: "No recent persisted Earlymark inbound voice calls were observed.",
@@ -62,6 +63,18 @@ describe("GET /api/cron/passive-communications-health", () => {
         activeWorkspaceCount: 1,
         failureWorkspaceCount: 0,
         unknownWorkspaceCount: 2,
+      },
+      sms: {
+        status: "healthy",
+        summary: "No recent real inbound SMS failure signals were observed.",
+        warnings: [],
+        activeWorkspaceCount: 1,
+        failureWorkspaceCount: 0,
+        unknownWorkspaceCount: 1,
+        recentInboundSmsSuccessCount: 0,
+        recentInboundSmsFailureCount: 0,
+        recentReplySmsSuccessCount: 0,
+        recentReplySmsFailureCount: 0,
       },
       email: {
         status: "healthy",
@@ -91,6 +104,9 @@ describe("GET /api/cron/passive-communications-health", () => {
         monitorKey: "passive-communications-health",
         status: "degraded",
         summary: "No recent persisted Earlymark inbound voice calls were observed.",
+        details: expect.objectContaining({
+          smsStatus: "healthy",
+        }),
       }),
     );
   });

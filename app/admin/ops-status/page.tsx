@@ -146,6 +146,8 @@ export default async function OpsStatusPage() {
             <div className="text-xs text-slate-600">
               Earlymark voice: {data.passiveProduction.voice.earlymark.status}<br />
               Earlymark last call: {formatDate(data.passiveProduction.voice.earlymark.lastSuccessAt)}<br />
+              SMS status: {data.passiveProduction.sms.status}<br />
+              SMS recent inbound success: {data.passiveProduction.sms.recentInboundSmsSuccessCount}<br />
               Active workspaces: {data.passiveProduction.activeWorkspaceCount}<br />
               Active failures: {data.passiveProduction.unhealthyActiveWorkspaceCount}<br />
               Unknown workspaces: {data.passiveProduction.unknownWorkspaceCount}
@@ -254,8 +256,10 @@ export default async function OpsStatusPage() {
                 <TableHead>Rollup</TableHead>
                 <TableHead>Overall</TableHead>
                 <TableHead>Voice</TableHead>
+                <TableHead>SMS</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Last Voice</TableHead>
+                <TableHead>Last SMS</TableHead>
                 <TableHead>Last Email</TableHead>
               </TableRow>
             </TableHeader>
@@ -263,15 +267,17 @@ export default async function OpsStatusPage() {
               {data.passiveProduction.workspaceRows.filter((row) =>
                 row.overallStatus !== "healthy" ||
                 row.voice.status !== "healthy" ||
+                row.sms.status !== "healthy" ||
                 row.email.status !== "healthy",
               ).length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-slate-500" colSpan={8}>No workspace-level passive production issues.</TableCell>
+                  <TableCell className="text-slate-500" colSpan={10}>No workspace-level passive production issues.</TableCell>
                 </TableRow>
               ) : data.passiveProduction.workspaceRows
                 .filter((row) =>
                   row.overallStatus !== "healthy" ||
                   row.voice.status !== "healthy" ||
+                  row.sms.status !== "healthy" ||
                   row.email.status !== "healthy",
                 )
                 .map((row) => (
@@ -286,9 +292,13 @@ export default async function OpsStatusPage() {
                       <Badge variant={statusVariant(row.voice.status)}>{row.voice.classification}</Badge>
                     </TableCell>
                     <TableCell>
+                      <Badge variant={statusVariant(row.sms.status)}>{row.sms.classification}</Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={statusVariant(row.email.status)}>{row.email.classification}</Badge>
                     </TableCell>
                     <TableCell>{formatDate(row.voice.lastSuccessAt)}</TableCell>
+                    <TableCell>{formatDate(row.sms.lastSuccessAt)}</TableCell>
                     <TableCell>{formatDate(row.email.lastSuccessAt)}</TableCell>
                   </TableRow>
                 ))}

@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       details: {
         checkedAt: passiveProduction.checkedAt,
         voiceStatus: passiveProduction.voice.status,
+        smsStatus: passiveProduction.sms.status,
         emailStatus: passiveProduction.email.status,
         activeWorkspaceCount: passiveProduction.activeWorkspaceCount,
         unhealthyActiveWorkspaceCount: passiveProduction.unhealthyActiveWorkspaceCount,

@@ -78,6 +78,7 @@ describe("GET /api/internal/launch-readiness", () => {
         activeWorkspaceLookbackDays: 14,
         recentTwilioFailureLookbackMinutes: 360,
         recentEmailFailureLookbackHours: 24,
+        recentSmsFailureLookbackHours: 24,
         voice: {
           status: "degraded",
           summary: "No recent persisted Earlymark inbound voice calls were observed.",
@@ -96,6 +97,18 @@ describe("GET /api/internal/launch-readiness", () => {
           activeWorkspaceCount: 0,
           failureWorkspaceCount: 0,
           unknownWorkspaceCount: 0,
+        },
+        sms: {
+          status: "healthy",
+          summary: "No recent real inbound SMS failure signals were observed.",
+          warnings: [],
+          activeWorkspaceCount: 0,
+          failureWorkspaceCount: 0,
+          unknownWorkspaceCount: 0,
+          recentInboundSmsSuccessCount: 0,
+          recentInboundSmsFailureCount: 0,
+          recentReplySmsSuccessCount: 0,
+          recentReplySmsFailureCount: 0,
         },
         email: {
           status: "healthy",

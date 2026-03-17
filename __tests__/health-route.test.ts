@@ -99,6 +99,7 @@ describe("GET /api/health", () => {
         activeWorkspaceLookbackDays: 14,
         recentTwilioFailureLookbackMinutes: 360,
         recentEmailFailureLookbackHours: 24,
+        recentSmsFailureLookbackHours: 24,
         voice: {
           status: "healthy",
           summary: "voice passive healthy",
@@ -117,6 +118,18 @@ describe("GET /api/health", () => {
           activeWorkspaceCount: 1,
           failureWorkspaceCount: 0,
           unknownWorkspaceCount: 0,
+        },
+        sms: {
+          status: "healthy",
+          summary: "sms passive healthy",
+          warnings: [],
+          activeWorkspaceCount: 1,
+          failureWorkspaceCount: 0,
+          unknownWorkspaceCount: 0,
+          recentInboundSmsSuccessCount: 0,
+          recentInboundSmsFailureCount: 0,
+          recentReplySmsSuccessCount: 0,
+          recentReplySmsFailureCount: 0,
         },
         email: {
           status: "healthy",

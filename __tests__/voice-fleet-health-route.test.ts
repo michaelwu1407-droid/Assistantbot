@@ -95,6 +95,7 @@ describe("GET /api/internal/voice-fleet-health", () => {
     getPassiveProductionHealth.mockResolvedValue({
       status: "healthy",
       voice: { status: "healthy" },
+      sms: { status: "healthy" },
       email: { status: "healthy" },
     });
     getLivekitSipHealth.mockResolvedValue({ status: "healthy" });

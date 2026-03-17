@@ -8,6 +8,39 @@ import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace
 
 export const maxDuration = 60;
 
+type SmsWebhookEventStatus = "success" | "error";
+
+type SmsWebhookEventPayload = {
+    workspaceId?: string;
+    workspaceName?: string;
+    from?: string | null;
+    to?: string | null;
+    messageSid?: string | null;
+    responseMessageSid?: string | null;
+    autoRespondEnabled?: boolean;
+};
+
+async function recordSmsWebhookEvent(params: {
+    eventType: "sms.received" | "sms.reply";
+    status: SmsWebhookEventStatus;
+    payload: SmsWebhookEventPayload;
+    error?: string;
+}) {
+    try {
+        await prisma.webhookEvent.create({
+            data: {
+                provider: "twilio",
+                eventType: params.eventType,
+                status: params.status,
+                payload: params.payload,
+                error: params.error || null,
+            }
+        })
+    } catch (eventError) {
+        console.error("[SMS Webhook] Failed to record webhook event:", eventError)
+    }
+}
+
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData()
@@ -18,6 +51,16 @@ export async function POST(req: NextRequest) {
 
         if (!From || !Body || !To) {
             console.error("[SMS Webhook] Missing From, To, or Body")
+            await recordSmsWebhookEvent({
+                eventType: "sms.received",
+                status: "error",
+                payload: {
+                    from: From || null,
+                    to: To || null,
+                    messageSid: MessageSid || null,
+                },
+                error: "Missing From, To, or Body",
+            })
             return new NextResponse("OK", { status: 200 })
         }
 
@@ -28,8 +71,30 @@ export async function POST(req: NextRequest) {
 
         if (!workspace) {
             console.error(`[SMS Webhook] Received SMS to ${To} but no matching Workspace was found.`)
+            await recordSmsWebhookEvent({
+                eventType: "sms.received",
+                status: "error",
+                payload: {
+                    from: From,
+                    to: To,
+                    messageSid: MessageSid || null,
+                },
+                error: `No matching workspace found for ${To}`,
+            })
             return new NextResponse("OK", { status: 200 })
         }
+
+        await recordSmsWebhookEvent({
+            eventType: "sms.received",
+            status: "success",
+            payload: {
+                workspaceId: workspace.id,
+                workspaceName: workspace.name,
+                from: From,
+                to: To,
+                messageSid: MessageSid || null,
+            },
+        })
 
         let contact = await findContactByPhone(workspace.id, From)
 
@@ -72,7 +137,15 @@ export async function POST(req: NextRequest) {
                 content: Body,
                 role: "user",
                 workspaceId: workspace.id,
-                metadata: { externalId: MessageSid, activityId: interaction.id, contactId: contact.id }
+                metadata: {
+                    externalId: MessageSid,
+                    activityId: interaction.id,
+                    contactId: contact.id,
+                    channel: "sms",
+                    direction: "inbound",
+                    from: From,
+                    to: To,
+                }
             }
         })
 
@@ -128,21 +201,61 @@ export async function POST(req: NextRequest) {
                 // ─── Send Response via Twilio REST API ──────────────────
                 const client = getWorkspaceTwilioClient(workspace);
                 if (client && workspace.twilioPhoneNumber) {
-                    await client.messages.create({
+                    const sentMessage = await client.messages.create({
                         from: To,
                         to: From,
                         body: aiResponseText,
                     });
+                    await recordSmsWebhookEvent({
+                        eventType: "sms.reply",
+                        status: "success",
+                        payload: {
+                            workspaceId,
+                            workspaceName: workspace.name,
+                            from: To,
+                            to: From,
+                            messageSid: MessageSid || null,
+                            responseMessageSid: sentMessage.sid,
+                            autoRespondEnabled: true,
+                        },
+                    })
                 } else {
-                    console.error(`[SMS Webhook] No usable Twilio messaging client configured for workspace ${workspaceId}. Cannot send reply.`, {
+                    const errorMessage = `[SMS Webhook] No usable Twilio messaging client configured for workspace ${workspaceId}. Cannot send reply.`
+                    console.error(errorMessage, {
                         workspaceId,
                         hasPhoneNumber: !!workspace.twilioPhoneNumber,
                         hasSubaccountId: !!workspace.twilioSubaccountId,
                         hasSubaccountAuthToken: !!workspace.twilioSubaccountAuthToken,
                     });
+                    await recordSmsWebhookEvent({
+                        eventType: "sms.reply",
+                        status: "error",
+                        payload: {
+                            workspaceId,
+                            workspaceName: workspace.name,
+                            from: To,
+                            to: From,
+                            messageSid: MessageSid || null,
+                            autoRespondEnabled: true,
+                        },
+                        error: errorMessage,
+                    })
                 }
             } catch (err) {
                 console.error("[SMS Webhook] Error processing message in background:", err);
+                await recordSmsWebhookEvent({
+                    eventType: "sms.reply",
+                    status: "error",
+                    payload: {
+                        workspaceId,
+                        workspaceName: workspace.name,
+                        from: To,
+                        to: From,
+                        messageSid: MessageSid || null,
+                        autoRespondEnabled: true,
+                    },
+                    error: err instanceof Error ? err.message : "Unknown SMS processing error",
+                })
             }
         })();
 
@@ -152,6 +265,12 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error("[SMS Webhook] Fatal error:", error)
+        await recordSmsWebhookEvent({
+            eventType: "sms.received",
+            status: "error",
+            payload: {},
+            error: error instanceof Error ? error.message : "Unknown fatal SMS webhook error",
+        })
         // Always return 200 to prevent Twilio retry storms
         return new NextResponse("OK", { status: 200 })
     }

@@ -5,8 +5,10 @@ import type { RuntimeStatus } from "@/lib/voice-fleet";
 const RECENT_SIGNAL_LOOKBACK_DAYS = 7;
 const ACTIVE_WORKSPACE_LOOKBACK_DAYS = 14;
 const RECENT_EMAIL_FAILURE_LOOKBACK_HOURS = 24;
+const RECENT_SMS_FAILURE_LOOKBACK_HOURS = 24;
 const RECENT_TWILIO_FAILURE_LOOKBACK_MINUTES = 6 * 60;
 const RECENT_EMAIL_EVENT_LIMIT = 2_000;
+const RECENT_SMS_EVENT_LIMIT = 2_000;
 
 type StatusSummary = {
   status: RuntimeStatus;
@@ -35,6 +37,7 @@ export type PassiveWorkspaceProductionHealth = {
   summary: string;
   warnings: string[];
   voice: PassiveChannelHealth;
+  sms: PassiveChannelHealth;
   email: PassiveChannelHealth;
 };
 
@@ -44,11 +47,21 @@ export type PassiveProductionHealth = StatusSummary & {
   activeWorkspaceLookbackDays: number;
   recentTwilioFailureLookbackMinutes: number;
   recentEmailFailureLookbackHours: number;
+  recentSmsFailureLookbackHours: number;
   voice: StatusSummary & {
     earlymark: PassiveChannelHealth;
     activeWorkspaceCount: number;
     failureWorkspaceCount: number;
     unknownWorkspaceCount: number;
+  };
+  sms: StatusSummary & {
+    activeWorkspaceCount: number;
+    failureWorkspaceCount: number;
+    unknownWorkspaceCount: number;
+    recentInboundSmsSuccessCount: number;
+    recentInboundSmsFailureCount: number;
+    recentReplySmsSuccessCount: number;
+    recentReplySmsFailureCount: number;
   };
   email: StatusSummary & {
     activeWorkspaceCount: number;
@@ -160,12 +173,18 @@ function buildNotConfiguredChannel(summary: string): PassiveChannelHealth {
 
 function buildWorkspaceOverallStatus(params: {
   voice: PassiveChannelHealth;
+  sms: PassiveChannelHealth;
   email: PassiveChannelHealth;
 }): Pick<PassiveWorkspaceProductionHealth, "overallStatus" | "overallClassification" | "summary" | "warnings"> {
-  const warnings = Array.from(new Set([...params.voice.warnings, ...params.email.warnings].filter(Boolean)));
-  const classifications = [params.voice.classification, params.email.classification];
+  const warnings = Array.from(new Set([
+    ...params.voice.warnings,
+    ...params.sms.warnings,
+    ...params.email.warnings,
+  ].filter(Boolean)));
+  const criticalClassifications = [params.voice.classification, params.sms.classification, params.email.classification];
+  const unknownClassifications = [params.voice.classification, params.email.classification];
 
-  if (classifications.includes("failure")) {
+  if (criticalClassifications.includes("failure")) {
     return {
       overallStatus: "unhealthy",
       overallClassification: "failure",
@@ -174,7 +193,7 @@ function buildWorkspaceOverallStatus(params: {
     };
   }
 
-  if (classifications.includes("unknown")) {
+  if (unknownClassifications.includes("unknown")) {
     return {
       overallStatus: "degraded",
       overallClassification: "unknown",
@@ -202,8 +221,9 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   const recentSignalLookbackMs = RECENT_SIGNAL_LOOKBACK_DAYS * 24 * 60 * 60 * 1_000;
   const activeWorkspaceLookbackMs = ACTIVE_WORKSPACE_LOOKBACK_DAYS * 24 * 60 * 60 * 1_000;
   const recentEmailFailureLookbackMs = RECENT_EMAIL_FAILURE_LOOKBACK_HOURS * 60 * 60 * 1_000;
+  const recentSmsFailureLookbackMs = RECENT_SMS_FAILURE_LOOKBACK_HOURS * 60 * 60 * 1_000;
 
-  const [workspaces, voiceCalls, inboundEmailEvents, twilioVoiceCallHealth] = await Promise.all([
+  const [workspaces, voiceCalls, inboundEmailEvents, inboundSmsEvents, twilioVoiceCallHealth] = await Promise.all([
     db.workspace.findMany({
       select: {
         id: true,
@@ -245,6 +265,23 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       orderBy: { createdAt: "desc" },
       take: RECENT_EMAIL_EVENT_LIMIT,
     }),
+    db.webhookEvent.findMany({
+      where: {
+        provider: "twilio",
+        eventType: { in: ["sms.received", "sms.reply"] },
+        createdAt: {
+          gte: new Date(Date.now() - activeWorkspaceLookbackMs),
+        },
+      },
+      select: {
+        eventType: true,
+        status: true,
+        createdAt: true,
+        payload: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: RECENT_SMS_EVENT_LIMIT,
+    }),
     getTwilioVoiceCallHealth({
       lookbackMinutes: RECENT_TWILIO_FAILURE_LOOKBACK_MINUTES,
       limitPerAccount: 20,
@@ -280,7 +317,6 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   const lastInboundEmailSuccessAtByWorkspace = new Map<string, Date>();
   let recentInboundEmailSuccessCount = 0;
   let recentInboundEmailFailureCount = 0;
-  let lastGlobalInboundEmailFailureAt: Date | null = null;
 
   for (const event of inboundEmailEvents) {
     const workspaceId = extractWorkspaceId(event.payload);
@@ -305,9 +341,66 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
 
     if (!workspaceId) {
       recentInboundEmailFailureCount += 1;
-      if (!lastGlobalInboundEmailFailureAt) {
-        lastGlobalInboundEmailFailureAt = event.createdAt;
+    }
+  }
+
+  const recentInboundSmsSuccessCountByWorkspace = new Map<string, number>();
+  const lastInboundSmsSuccessAtByWorkspace = new Map<string, Date>();
+  const recentSmsFailureCountByWorkspace = new Map<string, number>();
+  const lastSmsFailureAtByWorkspace = new Map<string, Date>();
+  let recentInboundSmsSuccessCount = 0;
+  let recentInboundSmsFailureCount = 0;
+  let recentReplySmsSuccessCount = 0;
+  let recentReplySmsFailureCount = 0;
+  let recentUnscopedInboundSmsFailureCount = 0;
+  let recentUnscopedReplySmsFailureCount = 0;
+
+  for (const event of inboundSmsEvents) {
+    const workspaceId = extractWorkspaceId(event.payload);
+
+    if (event.status === "success") {
+      if (event.eventType === "sms.received") {
+        recentInboundSmsSuccessCount += 1;
+        if (workspaceId) {
+          recentInboundSmsSuccessCountByWorkspace.set(
+            workspaceId,
+            (recentInboundSmsSuccessCountByWorkspace.get(workspaceId) || 0) + 1,
+          );
+          if (!lastInboundSmsSuccessAtByWorkspace.has(workspaceId)) {
+            lastInboundSmsSuccessAtByWorkspace.set(workspaceId, event.createdAt);
+          }
+        }
+      } else if (event.eventType === "sms.reply") {
+        recentReplySmsSuccessCount += 1;
       }
+      continue;
+    }
+
+    if (!isRecent(event.createdAt, recentSmsFailureLookbackMs)) {
+      continue;
+    }
+
+    if (event.eventType === "sms.received") {
+      recentInboundSmsFailureCount += 1;
+    } else if (event.eventType === "sms.reply") {
+      recentReplySmsFailureCount += 1;
+    }
+
+    if (workspaceId) {
+      recentSmsFailureCountByWorkspace.set(
+        workspaceId,
+        (recentSmsFailureCountByWorkspace.get(workspaceId) || 0) + 1,
+      );
+      if (!lastSmsFailureAtByWorkspace.has(workspaceId)) {
+        lastSmsFailureAtByWorkspace.set(workspaceId, event.createdAt);
+      }
+      continue;
+    }
+
+    if (event.eventType === "sms.received") {
+      recentUnscopedInboundSmsFailureCount += 1;
+    } else if (event.eventType === "sms.reply") {
+      recentUnscopedReplySmsFailureCount += 1;
     }
   }
 
@@ -317,11 +410,15 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
 
   const workspaceRows = workspaces.map<PassiveWorkspaceProductionHealth>((workspace) => {
     const lastVoiceSuccessAt = lastVoiceSuccessAtByWorkspace.get(workspace.id) || null;
+    const lastInboundSmsSuccessAt = lastInboundSmsSuccessAtByWorkspace.get(workspace.id) || null;
+    const lastSmsFailureAt = lastSmsFailureAtByWorkspace.get(workspace.id) || null;
     const lastInboundEmailSuccessAt = lastInboundEmailSuccessAtByWorkspace.get(workspace.id) || null;
     const isActiveWorkspace =
       isRecent(lastVoiceSuccessAt, activeWorkspaceLookbackMs) ||
+      isRecent(lastInboundSmsSuccessAt, activeWorkspaceLookbackMs) ||
       isRecent(lastInboundEmailSuccessAt, activeWorkspaceLookbackMs);
     const voiceConfigured = Boolean(workspace.voiceEnabled && workspace.twilioPhoneNumber);
+    const smsConfigured = Boolean(workspace.twilioPhoneNumber);
     const emailConfigured = Boolean(workspace.inboundEmail || workspace.inboundEmailAlias);
     const twilioScope = twilioScopeById.get(workspace.id) || null;
 
@@ -344,10 +441,33 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
                 recentVoiceSuccessCountByWorkspace.get(workspace.id) || 0,
                 twilioScope?.status === "degraded" ? twilioScope.warnings : [],
               )
+              : buildUnknownChannel(
+                  "No recent persisted customer voice calls were observed for this workspace.",
+                  lastVoiceSuccessAt,
+                  twilioScope?.status === "degraded" ? twilioScope.warnings : [],
+                );
+
+    const sms =
+      !smsConfigured
+        ? buildNotConfiguredChannel("SMS is not configured for this workspace.")
+        : (recentSmsFailureCountByWorkspace.get(workspace.id) || 0) > 0
+          ? buildFailureChannel(
+              "Recent real SMS processing failures were observed for this workspace.",
+              lastInboundSmsSuccessAt,
+              lastSmsFailureAt,
+              ["Recent real SMS processing failures were observed for this workspace."],
+              recentInboundSmsSuccessCountByWorkspace.get(workspace.id) || 0,
+              recentSmsFailureCountByWorkspace.get(workspace.id) || 0,
+            )
+          : isRecent(lastInboundSmsSuccessAt, recentSignalLookbackMs)
+            ? buildHealthyChannel(
+                "Recent inbound SMS messages were received and processed successfully.",
+                lastInboundSmsSuccessAt,
+                recentInboundSmsSuccessCountByWorkspace.get(workspace.id) || 0,
+              )
             : buildUnknownChannel(
-                "No recent persisted customer voice calls were observed for this workspace.",
-                lastVoiceSuccessAt,
-                twilioScope?.status === "degraded" ? twilioScope.warnings : [],
+                "No recent successful inbound SMS messages were observed for this workspace.",
+                lastInboundSmsSuccessAt,
               );
 
     const email =
@@ -364,7 +484,7 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
               lastInboundEmailSuccessAt,
             );
 
-    const overall = buildWorkspaceOverallStatus({ voice, email });
+    const overall = buildWorkspaceOverallStatus({ voice, sms, email });
 
     return {
       workspaceId: workspace.id,
@@ -376,6 +496,7 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       summary: overall.summary,
       warnings: overall.warnings,
       voice,
+      sms,
       email,
     };
   });
@@ -383,6 +504,8 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   const activeWorkspaceRows = workspaceRows.filter((row) => row.isActiveWorkspace);
   const activeVoiceFailureRows = activeWorkspaceRows.filter((row) => row.voice.classification === "failure");
   const unknownVoiceRows = workspaceRows.filter((row) => row.voice.classification === "unknown");
+  const activeSmsFailureRows = activeWorkspaceRows.filter((row) => row.sms.classification === "failure");
+  const unknownSmsRows = workspaceRows.filter((row) => row.sms.classification === "unknown");
   const activeEmailFailureRows = activeWorkspaceRows.filter((row) => row.email.classification === "failure");
   const unknownEmailRows = workspaceRows.filter((row) => row.email.classification === "unknown");
 
@@ -425,6 +548,24 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
         ? "degraded"
         : "healthy";
 
+  const smsWarnings = Array.from(
+    new Set([
+      recentUnscopedInboundSmsFailureCount > 0
+        ? `${recentUnscopedInboundSmsFailureCount} recent inbound SMS failure event(s) were observed without a scoped workspace mapping.`
+        : "",
+      recentUnscopedReplySmsFailureCount > 0
+        ? `${recentUnscopedReplySmsFailureCount} recent SMS reply failure event(s) were observed without a scoped workspace mapping.`
+        : "",
+      activeSmsFailureRows.length > 0
+        ? `${activeSmsFailureRows.length} active customer workspace(s) have real recent SMS failure signals.`
+        : "",
+    ].filter(Boolean)),
+  );
+  const smsStatus: RuntimeStatus =
+    recentInboundSmsFailureCount > 0 || recentReplySmsFailureCount > 0 || activeSmsFailureRows.length > 0
+      ? "unhealthy"
+      : "healthy";
+
   const emailWarnings = Array.from(
     new Set([
       recentInboundEmailFailureCount > 0
@@ -438,11 +579,11 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   const emailStatus: RuntimeStatus =
     recentInboundEmailFailureCount > 0 || activeEmailFailureRows.length > 0 ? "unhealthy" : "healthy";
 
-  const overallStatus = [voiceStatus, emailStatus].reduce<RuntimeStatus>(
+  const overallStatus = [voiceStatus, smsStatus, emailStatus].reduce<RuntimeStatus>(
     (current, candidate) => maxStatus(current, candidate),
     "healthy",
   );
-  const warnings = Array.from(new Set([...voiceWarnings, ...emailWarnings]));
+  const warnings = Array.from(new Set([...voiceWarnings, ...smsWarnings, ...emailWarnings]));
 
   return {
     status: overallStatus,
@@ -457,6 +598,7 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
     activeWorkspaceLookbackDays: ACTIVE_WORKSPACE_LOOKBACK_DAYS,
     recentTwilioFailureLookbackMinutes: RECENT_TWILIO_FAILURE_LOOKBACK_MINUTES,
     recentEmailFailureLookbackHours: RECENT_EMAIL_FAILURE_LOOKBACK_HOURS,
+    recentSmsFailureLookbackHours: RECENT_SMS_FAILURE_LOOKBACK_HOURS,
     voice: {
       status: voiceStatus,
       summary: summarizeStatus(
@@ -469,6 +611,22 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       activeWorkspaceCount: activeWorkspaceRows.length,
       failureWorkspaceCount: activeVoiceFailureRows.length,
       unknownWorkspaceCount: unknownVoiceRows.length,
+    },
+    sms: {
+      status: smsStatus,
+      summary: summarizeStatus(
+        smsStatus,
+        smsWarnings,
+        "No recent real inbound SMS failure signals were observed.",
+      ),
+      warnings: smsWarnings,
+      activeWorkspaceCount: activeWorkspaceRows.filter((row) => row.sms.configured).length,
+      failureWorkspaceCount: activeSmsFailureRows.length,
+      unknownWorkspaceCount: unknownSmsRows.length,
+      recentInboundSmsSuccessCount,
+      recentInboundSmsFailureCount,
+      recentReplySmsSuccessCount,
+      recentReplySmsFailureCount,
     },
     email: {
       status: emailStatus,
