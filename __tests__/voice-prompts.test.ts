@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { __voicePromptTestUtils } from "@/livekit-agent/agent";
+import {
+  buildDemoPrompt,
+  buildInboundDemoPrompt,
+  buildNormalPrompt,
+} from "@/livekit-agent/voice-prompts";
 
 const caller = {
   callType: "demo" as const,
@@ -14,7 +18,7 @@ const caller = {
 
 describe("voice prompt regression guards", () => {
   it("keeps demo sales-focused without forcing redundant lead recapture", () => {
-    const prompt = __voicePromptTestUtils.buildDemoPrompt(caller);
+    const prompt = buildDemoPrompt(caller);
 
     expect(prompt).toContain("Use the known form details as baseline context.");
     expect(prompt).toContain("never miss a job again");
@@ -24,7 +28,7 @@ describe("voice prompt regression guards", () => {
   });
 
   it("makes inbound demo capture unknown caller details and offer a spoken demo", () => {
-    const prompt = __voicePromptTestUtils.buildInboundDemoPrompt({
+    const prompt = buildInboundDemoPrompt({
       ...caller,
       callType: "inbound_demo",
     });
@@ -35,7 +39,7 @@ describe("voice prompt regression guards", () => {
   });
 
   it("keeps normal prompts customer-facing and mode-aligned", () => {
-    const prompt = __voicePromptTestUtils.buildNormalPrompt(
+    const prompt = buildNormalPrompt(
       {
         ...caller,
         callType: "normal",

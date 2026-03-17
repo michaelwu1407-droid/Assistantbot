@@ -122,5 +122,6 @@ Updated: 2026-03-17 AEDT
 - Prompt-only mode alignment is not enough; `normal` needs deterministic pre-speech and pre-send policy enforcement.
 - The Australian Cartesia voice must be explicit in production env and visible in runtime telemetry, otherwise accent drift is too easy to miss.
 - Sales surfaces drift quickly when homepage value props and voice prompts are maintained separately.
+- Prompt regression tests must import shared prompt builders, not the full worker runtime, or the web deploy path gets coupled to worker-only native dependencies.
 - Deploy workflow should only run for voice-affecting changes; broad `main` deploy triggers create unnecessary worker churn.
 - Audit history is useful, but agents need a short curated voice handoff doc to avoid re-learning the same lessons from a bloated changelog.
