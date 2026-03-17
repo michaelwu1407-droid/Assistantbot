@@ -89,16 +89,22 @@ Updated: 2026-03-17 AEDT
   - LiveKit SIP health
   - recent-call health
   - latency health
+  - passive production health
   - monitor freshness
-  - synthetic probe state
+  - active probe state
 - Single-host voice operation is treated as degraded until a second healthy host is real.
-- Synthetic probe now validates the public gateway first, then attempts a real PSTN spoken canary when the configured probe caller can legally originate a Twilio call.
+- Routine launch and ops status now use passive real-traffic monitoring:
+  - voice from persisted `VoiceCall` activity plus recent Twilio failures
+  - inbound email from real `WebhookEvent(provider="resend", eventType="email.received")` success/failure data
+- Low/no traffic customer workspaces are surfaced as per-workspace `unknown`, but they do not drag top-level launch status down unless there is a real failure signal.
+- The synthetic probe is no longer the routine production health source. It is reserved for deploy verification and manual incident recovery.
 - The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
 - Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
   - live web release SHA
   - live worker release SHA(s)
   - critical voice gate status
-  - canary state
+  - passive production state
+  - active probe state
   - monitoring freshness
   - SMS/email readiness
   - provisioning drift
@@ -107,7 +113,7 @@ Updated: 2026-03-17 AEDT
 ## Active known risks
 
 - Worker runtime is still host-process `systemd`, not yet immutable container images.
-- The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, launch readiness will stay degraded.
+- The spoken PSTN canary still depends on a distinct Twilio-owned or verified outgoing caller ID; if `VOICE_MONITOR_PROBE_CALLER_NUMBER` is not safe for outbound use, deploy verification and recovery probing are constrained.
 - Homepage copy and voice prompts now share a canonical sales brief, but homepage sections outside the main pillars can still drift if edited independently.
 - Inbound lead-email DNS drift is surfaced as degraded readiness, not a hard reconcile failure; customer-agent reconcile should only fail on runtime blockers, not missing inbound MX.
 

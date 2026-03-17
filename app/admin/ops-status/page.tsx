@@ -45,13 +45,15 @@ export default async function OpsStatusPage() {
         <p className="text-xs text-slate-500">Checked {formatDate(data.checkedAt)}</p>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
         <SummaryMetric label="Web SHA" value={data.release.app.shortGitSha || "--"} />
         <SummaryMetric label="Web Deploy" value={data.release.app.deploymentId || "--"} />
         <SummaryMetric label="Worker SHAs" value={data.release.worker.liveDeployGitShas.join(", ") || "--"} />
+        <SummaryMetric label="Active Workspaces" value={String(data.passiveProduction.activeWorkspaceCount)} />
+        <SummaryMetric label="Passive Failures" value={String(data.passiveProduction.unhealthyActiveWorkspaceCount)} />
+        <SummaryMetric label="Unknown Workspaces" value={String(data.passiveProduction.unknownWorkspaceCount)} />
         <SummaryMetric label="Provisioning Issues" value={String(data.provisioning.issueCount)} />
         <SummaryMetric label="Pending Provisioning" value={String(data.provisioning.pendingCount)} />
-        <SummaryMetric label="Managed SMS Numbers" value={String(data.communications.sms.managedNumberCount)} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
@@ -135,8 +137,26 @@ export default async function OpsStatusPage() {
       <section className="grid gap-4 xl:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Canary</CardTitle>
-            <CardDescription>Most recent spoken probe state.</CardDescription>
+            <CardTitle className="text-base">Passive Production</CardTitle>
+            <CardDescription>Routine health from real customer and Earlymark traffic, not synthetic probes.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <Badge variant={statusVariant(data.passiveProduction.status)}>{data.passiveProduction.status}</Badge>
+            <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">{data.passiveProduction.summary}</div>
+            <div className="text-xs text-slate-600">
+              Earlymark voice: {data.passiveProduction.voice.earlymark.status}<br />
+              Earlymark last call: {formatDate(data.passiveProduction.voice.earlymark.lastSuccessAt)}<br />
+              Active workspaces: {data.passiveProduction.activeWorkspaceCount}<br />
+              Active failures: {data.passiveProduction.unhealthyActiveWorkspaceCount}<br />
+              Unknown workspaces: {data.passiveProduction.unknownWorkspaceCount}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Active Probe</CardTitle>
+            <CardDescription>Deploy and incident-recovery spoken probe. Not the routine production health source.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <Badge variant={statusVariant(data.canary.status)}>{data.canary.status}</Badge>
@@ -155,7 +175,7 @@ export default async function OpsStatusPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Communications</CardTitle>
-            <CardDescription>SMS and inbound email readiness.</CardDescription>
+            <CardDescription>Configuration readiness for SMS and inbound email.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
@@ -169,6 +189,30 @@ export default async function OpsStatusPage() {
             <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">
               {data.communications.summary}
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Monitoring Freshness</CardTitle>
+            <CardDescription>Scheduled monitor freshness for control-plane and passive traffic audits.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Voice agent health</span>
+              <Badge variant={statusVariant(data.monitoring.healthAudit.status)}>{data.monitoring.healthAudit.status}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Watchdog</span>
+              <Badge variant={statusVariant(data.monitoring.watchdog.status)}>{data.monitoring.watchdog.status}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Passive traffic audit</span>
+              <Badge variant={statusVariant(data.monitoring.passiveTraffic.status)}>{data.monitoring.passiveTraffic.status}</Badge>
+            </div>
+            <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-700">{data.monitoring.summary}</div>
           </CardContent>
         </Card>
 
@@ -188,6 +232,63 @@ export default async function OpsStatusPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Workspace Passive Health</CardTitle>
+          <CardDescription>Real-traffic health for customer workspaces. Unknown means no recent traffic proving the channel is working.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Rollup</TableHead>
+                <TableHead>Overall</TableHead>
+                <TableHead>Voice</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Last Voice</TableHead>
+                <TableHead>Last Email</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.passiveProduction.workspaceRows.filter((row) =>
+                row.overallStatus !== "healthy" ||
+                row.voice.status !== "healthy" ||
+                row.email.status !== "healthy",
+              ).length === 0 ? (
+                <TableRow>
+                  <TableCell className="text-slate-500" colSpan={8}>No workspace-level passive production issues.</TableCell>
+                </TableRow>
+              ) : data.passiveProduction.workspaceRows
+                .filter((row) =>
+                  row.overallStatus !== "healthy" ||
+                  row.voice.status !== "healthy" ||
+                  row.email.status !== "healthy",
+                )
+                .map((row) => (
+                  <TableRow key={row.workspaceId}>
+                    <TableCell>{row.workspaceName}</TableCell>
+                    <TableCell>{row.isActiveWorkspace ? "Active" : "Low traffic"}</TableCell>
+                    <TableCell>{row.contributesToGlobalRollup ? "Included" : "Per-workspace only"}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(row.overallStatus)}>{row.overallClassification}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(row.voice.status)}>{row.voice.classification}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(row.email.status)}>{row.email.classification}</Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(row.voice.lastSuccessAt)}</TableCell>
+                    <TableCell>{formatDate(row.email.lastSuccessAt)}</TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">

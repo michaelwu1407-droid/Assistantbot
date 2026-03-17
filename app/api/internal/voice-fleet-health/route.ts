@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { getMonitorRunHealth } from "@/lib/ops-monitor-runs";
+import { getPassiveProductionHealth } from "@/lib/passive-production-health";
 import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants";
 import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
@@ -23,15 +24,29 @@ export async function GET(req: NextRequest) {
   }
 
   const staleAfterMs = getVoiceMonitorStaleAfterMs();
-  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency, monitorHealth, watchdogHealth, probeHealth] = await Promise.all([
+  const [
+    fleet,
+    customerSaturation,
+    twilioRouting,
+    livekitSip,
+    recentCalls,
+    latency,
+    passiveProduction,
+    monitorHealth,
+    watchdogHealth,
+    passiveMonitorHealth,
+    probeHealth,
+  ] = await Promise.all([
     getVoiceFleetHealth(),
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: false }),
     getLivekitSipHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
+    getPassiveProductionHealth(),
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
     getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
+    getMonitorRunHealth("passive-communications-health", staleAfterMs),
     getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
   ]);
   const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
@@ -44,9 +59,10 @@ export async function GET(req: NextRequest) {
     invariants.status,
     recentCalls.status,
     latency.status,
+    passiveProduction.voice.status,
     monitorHealth.status,
     watchdogHealth.status,
-    probeHealth.status,
+    passiveMonitorHealth.status,
   ]);
 
   return NextResponse.json(
@@ -60,8 +76,10 @@ export async function GET(req: NextRequest) {
       invariants,
       recentCalls,
       latency,
+      passiveProduction,
       monitorHealth,
       watchdogHealth,
+      passiveMonitorHealth,
       probeHealth,
     },
     { status: status === "unhealthy" ? 500 : 200 },

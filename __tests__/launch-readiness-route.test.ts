@@ -37,7 +37,7 @@ describe("GET /api/internal/launch-readiness", () => {
     isVoiceAgentSecretAuthorized.mockReturnValue(false);
     getLaunchReadiness.mockResolvedValue({
       status: "degraded",
-      summary: "Gateway probe passed, but there is no recent spoken canary sample for the probe path.",
+      summary: "No recent persisted Earlymark inbound voice calls were observed.",
       checkedAt: "2026-03-17T05:00:00.000Z",
       release: {
         app: {
@@ -69,6 +69,49 @@ describe("GET /api/internal/launch-readiness", () => {
         voiceWorker: { status: "healthy", warnings: [] },
         voiceFleet: { status: "healthy", warnings: [] },
       },
+      passiveProduction: {
+        status: "degraded",
+        summary: "No recent persisted Earlymark inbound voice calls were observed.",
+        warnings: ["No recent persisted Earlymark inbound voice calls were observed."],
+        checkedAt: "2026-03-17T05:00:00.000Z",
+        signalLookbackDays: 7,
+        activeWorkspaceLookbackDays: 14,
+        recentTwilioFailureLookbackMinutes: 360,
+        recentEmailFailureLookbackHours: 24,
+        voice: {
+          status: "degraded",
+          summary: "No recent persisted Earlymark inbound voice calls were observed.",
+          warnings: ["No recent persisted Earlymark inbound voice calls were observed."],
+          earlymark: {
+            status: "degraded",
+            classification: "unknown",
+            summary: "No recent persisted Earlymark inbound voice calls were observed.",
+            warnings: ["No recent persisted Earlymark inbound voice calls were observed."],
+            configured: true,
+            lastSuccessAt: null,
+            lastFailureAt: null,
+            recentSuccessCount: 0,
+            recentFailureCount: 0,
+          },
+          activeWorkspaceCount: 0,
+          failureWorkspaceCount: 0,
+          unknownWorkspaceCount: 0,
+        },
+        email: {
+          status: "healthy",
+          summary: "No recent real inbound email failure signals were observed.",
+          warnings: [],
+          activeWorkspaceCount: 0,
+          failureWorkspaceCount: 0,
+          unknownWorkspaceCount: 0,
+          recentInboundEmailSuccessCount: 0,
+          recentInboundEmailFailureCount: 0,
+        },
+        activeWorkspaceCount: 0,
+        unhealthyActiveWorkspaceCount: 0,
+        unknownWorkspaceCount: 0,
+        workspaceRows: [],
+      },
       canary: {
         status: "degraded",
         summary: "Gateway probe passed, but there is no recent spoken canary sample for the probe path.",
@@ -83,10 +126,11 @@ describe("GET /api/internal/launch-readiness", () => {
       },
       monitoring: {
         status: "healthy",
-        summary: "Voice monitors are reporting on schedule.",
+        summary: "Control-plane and passive traffic monitors are reporting on schedule.",
         warnings: [],
         healthAudit: { status: "healthy", warnings: [] },
         watchdog: { status: "healthy", warnings: [] },
+        passiveTraffic: { status: "healthy", warnings: [] },
       },
       communications: {
         status: "degraded",
@@ -157,6 +201,7 @@ describe("GET /api/internal/launch-readiness", () => {
     });
     expect(body.release.app.shortGitSha).toBe("abcdef12");
     expect(body.voiceCritical.status).toBe("healthy");
+    expect(body.passiveProduction.status).toBe("degraded");
     expect(body.canary.status).toBe("degraded");
   });
 

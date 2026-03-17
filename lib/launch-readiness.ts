@@ -2,6 +2,7 @@ import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
 import { getMonitorRunHealth } from "@/lib/ops-monitor-runs";
+import { getPassiveProductionHealth } from "@/lib/passive-production-health";
 import { getProvisioningReadinessSummary } from "@/lib/provisioning-readiness";
 import { getCurrentAppReleaseInfo, buildWorkerReleaseTruth } from "@/lib/release-truth";
 import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
@@ -30,6 +31,7 @@ export type LaunchReadiness = {
     voiceWorker: Awaited<ReturnType<typeof getVoiceAgentRuntimeDrift>>;
     voiceFleet: Awaited<ReturnType<typeof getVoiceFleetHealth>>;
   };
+  passiveProduction: Awaited<ReturnType<typeof getPassiveProductionHealth>>;
   canary: StatusSummary & {
     monitor: Awaited<ReturnType<typeof getMonitorRunHealth>>;
     probeResult: string | null;
@@ -42,6 +44,7 @@ export type LaunchReadiness = {
   monitoring: StatusSummary & {
     healthAudit: Awaited<ReturnType<typeof getMonitorRunHealth>>;
     watchdog: Awaited<ReturnType<typeof getMonitorRunHealth>>;
+    passiveTraffic: Awaited<ReturnType<typeof getMonitorRunHealth>>;
   };
   communications: StatusSummary & {
     sms: StatusSummary & {
@@ -81,9 +84,11 @@ export async function getLaunchReadiness(options?: {
     latency,
     monitorHealth,
     watchdogHealth,
+    passiveTrafficHealth,
     probeHealth,
     emailReadiness,
     provisioning,
+    passiveProduction,
   ] = await Promise.all([
     auditTwilioVoiceRouting({ apply: false }),
     auditTwilioMessagingRouting({ apply: false }),
@@ -93,9 +98,11 @@ export async function getLaunchReadiness(options?: {
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
     getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
+    getMonitorRunHealth("passive-communications-health", staleAfterMs),
     getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
     getInboundLeadEmailReadiness(),
     getProvisioningReadinessSummary(),
+    getPassiveProductionHealth(),
   ]);
 
   const readiness = await getCustomerAgentReadiness({
@@ -137,9 +144,10 @@ export async function getLaunchReadiness(options?: {
     new Set([
       ...monitorHealth.warnings,
       ...watchdogHealth.warnings,
+      ...passiveTrafficHealth.warnings,
     ].filter(Boolean)),
   );
-  const monitoringStatus = [monitorHealth.status, watchdogHealth.status].reduce<RuntimeStatus>(
+  const monitoringStatus = [monitorHealth.status, watchdogHealth.status, passiveTrafficHealth.status].reduce<RuntimeStatus>(
     (current, candidate) => maxStatus(current, candidate),
     "healthy",
   );
@@ -216,10 +224,15 @@ export async function getLaunchReadiness(options?: {
 
   const monitoring: LaunchReadiness["monitoring"] = {
     status: monitoringStatus,
-    summary: summarizeStatus(monitoringStatus, monitoringWarnings, "Voice monitors are reporting on schedule."),
+    summary: summarizeStatus(
+      monitoringStatus,
+      monitoringWarnings,
+      "Control-plane and passive traffic monitors are reporting on schedule.",
+    ),
     warnings: monitoringWarnings,
     healthAudit: monitorHealth,
     watchdog: watchdogHealth,
+    passiveTraffic: passiveTrafficHealth,
   };
 
   const communications: LaunchReadiness["communications"] = {
@@ -243,7 +256,7 @@ export async function getLaunchReadiness(options?: {
 
   const overallStatus = [
     voiceCritical.status,
-    canary.status,
+    passiveProduction.status,
     monitoring.status,
     communications.status,
     provisioning.status,
@@ -254,8 +267,8 @@ export async function getLaunchReadiness(options?: {
   const summary =
     voiceCritical.status !== "healthy"
       ? voiceCritical.summary
-      : canary.status !== "healthy"
-        ? canary.summary
+      : passiveProduction.status !== "healthy"
+        ? passiveProduction.summary
         : monitoring.status !== "healthy"
           ? monitoring.summary
           : communications.status !== "healthy"
@@ -275,6 +288,7 @@ export async function getLaunchReadiness(options?: {
       worker: workerRelease,
     },
     voiceCritical,
+    passiveProduction,
     canary,
     monitoring,
     communications,
