@@ -441,18 +441,23 @@ async function ensureWorkspaceRegulatoryAddress(
           businessProfile: {
             select: {
               physicalAddress: true,
+              baseSuburb: true,
             },
           },
         },
       });
       const profile = owner?.businessProfile;
       const physicalAddress = profile?.physicalAddress;
+      const baseSuburb = profile?.baseSuburb;
       if (physicalAddress && physicalAddress.trim().length > 0) {
         street = physicalAddress.trim();
         const parsed = parseAuRegionPostcode(physicalAddress);
         region = parsed.region;
         postalCode = parsed.postalCode;
         city = deriveCityFromAddress(physicalAddress);
+      }
+      if (!city && baseSuburb && baseSuburb.trim().length > 0) {
+        city = baseSuburb.trim();
       }
     }
   } catch {
@@ -461,7 +466,7 @@ async function ensureWorkspaceRegulatoryAddress(
 
   if (!city) {
     throw new Error(
-      "AU regulatory address requires a city. Please ensure your onboarding Business Profile has a valid 'city' saved.",
+      "AU regulatory address requires a city/locality. Please make sure your Physical Address includes a suburb/city before the state and postcode (e.g. '123 Trade St, Alexandria NSW 2015').",
     );
   }
 
