@@ -38,7 +38,7 @@ import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
 import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
-import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { AddressAutocomplete, type PlaceResult } from "@/components/ui/address-autocomplete"
 import {
   createDefaultWeeklyHours,
   normalizeWeeklyHours,
@@ -394,6 +394,7 @@ export function TraceyOnboarding() {
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
+  const [physicalAddressPlace, setPhysicalAddressPlace] = useState<PlaceResult | null>(null)
   const [serviceRadius, setServiceRadius] = useState(20)
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(createDefaultWeeklyHours())
   const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
@@ -662,6 +663,11 @@ export function TraceyOnboarding() {
     return /,\s*[^,]+\s+(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b/i.test(addr)
   }
 
+  const isProvisionReadyAuPlace = (place: PlaceResult | null) => {
+    const c = place?.components
+    return Boolean(c?.locality && c?.region && c?.postalCode)
+  }
+
   const canAdvance = (): boolean => {
     switch (step) {
       case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== ""
@@ -670,7 +676,7 @@ export function TraceyOnboarding() {
         return (
           businessName.trim() !== "" &&
           tradeType !== "" &&
-          isProvisionReadyAuPhysicalAddress(physicalAddress)
+          (isProvisionReadyAuPlace(physicalAddressPlace) || isProvisionReadyAuPhysicalAddress(physicalAddress))
         )
       case 3: return true
       case 4: return true
@@ -1163,12 +1169,21 @@ export function TraceyOnboarding() {
                         <AddressAutocomplete
                           placeholder="123 Trade St, Parramatta NSW 2150"
                           value={physicalAddress}
-                          onChange={setPhysicalAddress}
+                          onChange={(next) => {
+                            setPhysicalAddress(next)
+                            setPhysicalAddressPlace(null)
+                          }}
+                          onPlaceSelect={(place) => {
+                            setPhysicalAddress(place.address)
+                            setPhysicalAddressPlace(place)
+                          }}
                         />
                         <p className="text-xs text-slate-500">
                           We use this address as Tracey&apos;s home base when calculating your service area.
                         </p>
-                        {physicalAddress.trim().length > 0 && !isProvisionReadyAuPhysicalAddress(physicalAddress) && (
+                        {physicalAddress.trim().length > 0 &&
+                          !isProvisionReadyAuPlace(physicalAddressPlace) &&
+                          !isProvisionReadyAuPhysicalAddress(physicalAddress) && (
                           <p className="text-xs text-amber-600">
                             Please enter a full Australian address including suburb/city, state, and postcode (e.g. &quot;Parramatta NSW 2150&quot;).
                           </p>

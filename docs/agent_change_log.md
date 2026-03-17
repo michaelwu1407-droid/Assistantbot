@@ -951,3 +951,13 @@ Rule: every agent change commit must include an entry in this file.
   - Added “auto-select best match” on blur: if the user typed an address but didn’t click a dropdown item, we resolve the top Google prediction and rewrite the field into a provision-ready AU format (locality + state + postcode) when possible.
 - Why:
   - The address field should behave like an enforced selection flow, not a free-text field. This prevents provisioning failures caused by manually typed addresses that omit required regulatory details.
+
+## 2026-03-18 02:46 (AEDT) - codex
+
+- Files changed:
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Made the onboarding “Next” gate accept a Google-selected address based on structured Places components (locality/state/postcode), even if the displayed address string is missing the postcode.
+- Why:
+  - Google `formatted_address` can omit postcode; gating should use the structured data we already have from Places so users aren’t blocked after selecting a valid address.
