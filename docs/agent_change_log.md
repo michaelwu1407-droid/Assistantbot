@@ -971,3 +971,13 @@ Rule: every agent change commit must include an entry in this file.
   - When the website scrape pre-fills a Physical Address, we now immediately resolve that text via Google Places (Autocomplete + Details) and store structured locality/state/postcode components so scraped addresses behave like typed-and-selected ones for provisioning.
 - Why:
   - Scraped addresses such as “36-42 Henderson Road, Alexandria, New South Wales, Australia” should be enough for provisioning; we now use Google’s structured data behind the scenes instead of treating the scraped string as unstructured text.
+
+## 2026-03-18 03:14 (AEDT) - codex
+
+- Files changed:
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added background auto-resolution for programmatically filled addresses (e.g. scraped-from-website). When the address value changes and the user isn’t actively typing, we automatically resolve the best Google match and fetch full details so postcode/state/locality are available without requiring a dropdown click or blur.
+- Why:
+  - The onboarding address gate and Twilio provisioning should not depend on the user manually interacting with the address field after a scrape; the system must infer missing postcode/state from Google in the background.

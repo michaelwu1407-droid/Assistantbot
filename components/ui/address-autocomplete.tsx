@@ -244,6 +244,24 @@ function AddressAutocompleteWithGoogle({
     }
   }, [hasMapsFailure, isLoaded, isResolved, resolvePlaceById, value])
 
+  // If the value is programmatically filled (e.g. website scrape),
+  // resolve it in the background without requiring user blur/click.
+  useEffect(() => {
+    if (!isLoaded || hasMapsFailure) return
+    if (isFocused) return
+    if (isResolved) return
+    const text = value.trim()
+    if (text.length < 8) return
+
+    const t = window.setTimeout(() => {
+      attemptAutoSelectBestMatch()
+    }, 350)
+
+    return () => {
+      window.clearTimeout(t)
+    }
+  }, [attemptAutoSelectBestMatch, hasMapsFailure, isFocused, isLoaded, isResolved, value])
+
   useEffect(() => {
     if (!isLoaded || !inputRef.current || !apiKey || autocompleteRef.current) return
 
