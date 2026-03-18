@@ -604,7 +604,7 @@ async function ensureWorkspaceRegulatoryAddress(
     );
   }
 
-  const address = await (subClient as any).addresses.create({
+  const addressPayload = {
     friendlyName: `${businessName} AU Mobile Business`,
     customerName: businessName,
     street,
@@ -612,7 +612,24 @@ async function ensureWorkspaceRegulatoryAddress(
     region,
     postalCode,
     isoCountry: "AU",
-  });
+    autoCorrectAddress: true,
+  };
+  console.log(`[regulatory-address] Twilio addresses.create payload:`, JSON.stringify(addressPayload));
+
+  let address: any;
+  try {
+    address = await (subClient as any).addresses.create(addressPayload);
+  } catch (twilioErr: any) {
+    console.error(`[regulatory-address] Twilio addresses.create failed:`, {
+      message: twilioErr?.message,
+      code: twilioErr?.code,
+      status: twilioErr?.status,
+      moreInfo: twilioErr?.moreInfo,
+    });
+    throw new Error(
+      twilioErr?.message || "The address you have provided cannot be validated.",
+    );
+  }
 
   const addressSid: string =
     (address && typeof (address as any).sid === "string" ? (address as any).sid : null) ??

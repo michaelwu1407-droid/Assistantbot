@@ -1,3 +1,9 @@
+## 2026-03-18 13:30 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Added `autoCorrectAddress: true` to Twilio `addresses.create` call so Twilio attempts address correction rather than strict rejection. Added detailed error logging (Twilio error code, status, moreInfo) and payload logging for the create call to diagnose future failures.
+- **Why**: Twilio's strict address validation was rejecting the AU address even with correct structured components. The `autoCorrectAddress` flag enables Twilio's built-in address correction.
+
 ## 2026-03-18 13:15 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
