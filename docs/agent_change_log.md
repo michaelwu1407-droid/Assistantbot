@@ -1,3 +1,9 @@
+## 2026-03-18 12:30 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `__tests__/tracey-onboarding-email-preview.test.tsx`, `docs/agent_change_log.md`
+- **Summary**: Fixed provisioning reading an empty address from the database. Root cause: provisioning triggered on step 5 entry (via `resolveProvisioning` → `/api/workspace/setup-comms`) but the form data was only written to the DB on final "Activate Tracey" click (later). Added `saveBusinessProfileForProvisioning` server action that persists businessName, physicalAddress, and baseSuburb before the provisioning API fires.
+- **Why**: The address was correctly entered in the form UI but never saved to the database before the provisioning code tried to read it, resulting in empty-string address and the "Could not determine the city/locality" error.
+
 ## 2026-03-18 12:00 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`

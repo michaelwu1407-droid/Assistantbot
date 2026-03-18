@@ -33,7 +33,7 @@ import {
   File as FileIcon,
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
-import { saveTraceyOnboarding, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
+import { saveTraceyOnboarding, saveBusinessProfileForProvisioning, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
 import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
@@ -682,6 +682,20 @@ export function TraceyOnboarding() {
     setProvisioningError(null)
 
     try {
+      // Persist profile data so the provisioning API can read the address from the DB
+      const preSave = await saveBusinessProfileForProvisioning({
+        businessName,
+        physicalAddress,
+        ownerName,
+        phone,
+      })
+      if (!preSave.success) {
+        setProvisioningStatus("failed")
+        setProvisioningError(preSave.error || "Could not save business profile before provisioning.")
+        setResolvedPhoneNumber(null)
+        return
+      }
+
       const res = await fetch("/api/workspace/setup-comms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -709,7 +723,7 @@ export function TraceyOnboarding() {
         error instanceof Error ? error.message : "We could not provision your Earlymark number. Please try again."
       )
     }
-  }, [businessName, phone])
+  }, [businessName, phone, physicalAddress, ownerName])
 
   useEffect(() => {
     if (step !== 5 || provisioningChecked) return

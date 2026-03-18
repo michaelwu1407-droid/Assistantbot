@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
   scrapeWebsite,
   saveTraceyOnboarding,
+  saveBusinessProfileForProvisioning,
   getAuthUser,
   createInvite,
   toastSuccess,
@@ -13,6 +14,7 @@ const {
 } = vi.hoisted(() => ({
   scrapeWebsite: vi.fn(),
   saveTraceyOnboarding: vi.fn(),
+  saveBusinessProfileForProvisioning: vi.fn(),
   getAuthUser: vi.fn(),
   createInvite: vi.fn(),
   toastSuccess: vi.fn(),
@@ -48,6 +50,7 @@ vi.mock("@/actions/scraper-actions", () => ({
 
 vi.mock("@/actions/tracey-onboarding", () => ({
   saveTraceyOnboarding,
+  saveBusinessProfileForProvisioning,
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -120,6 +123,7 @@ describe("Tracey onboarding lead email preview", () => {
       phoneNumber: "+61485010634",
       leadsEmail: "alexandria-automotive-services-verified@inbound.earlymark.ai",
     });
+    saveBusinessProfileForProvisioning.mockResolvedValue({ success: true });
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({

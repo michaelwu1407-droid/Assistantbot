@@ -160,6 +160,69 @@ async function persistProvisioningState(params: {
   });
 }
 
+// ─── Pre-Provisioning Save ──────────────────────────────────────
+// Persists just enough profile data for Twilio provisioning to work,
+// called before the provisioning API fires on the last onboarding step.
+
+export async function saveBusinessProfileForProvisioning(params: {
+  businessName: string;
+  physicalAddress: string;
+  ownerName: string;
+  phone: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const userId = await getAuthUserId();
+  if (!userId) return { success: false, error: "Not authenticated" };
+
+  const { businessName, physicalAddress, ownerName, phone } = params;
+  if (!businessName?.trim() || !physicalAddress?.trim()) {
+    return { success: false, error: "Business name and physical address are required." };
+  }
+
+  const baseSuburb = deriveBaseSuburbFromAddress(physicalAddress);
+
+  try {
+    const workspace = await getOrCreateWorkspace(userId, {
+      name: businessName,
+      type: "TRADIE",
+      industryType: "TRADES",
+      location: physicalAddress,
+    });
+
+    const appUser = await ensureWorkspaceUserForAuth({
+      workspaceId: workspace.id,
+      role: "OWNER",
+      name: ownerName,
+      phone,
+    });
+
+    await db.workspace.update({
+      where: { id: workspace.id },
+      data: { location: physicalAddress },
+    });
+
+    await db.businessProfile.upsert({
+      where: { userId: appUser.id },
+      create: {
+        userId: appUser.id,
+        businessName,
+        physicalAddress,
+        baseSuburb,
+        tradeType: "General",
+      },
+      update: {
+        businessName,
+        physicalAddress,
+        baseSuburb,
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("[saveBusinessProfileForProvisioning]", err);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to save profile" };
+  }
+}
+
 // ─── Server Action ──────────────────────────────────────────────
 
 export async function saveTraceyOnboarding(
