@@ -110,6 +110,21 @@ function AddressAutocompleteWithGoogle({
     }
   }, [])
 
+  // Detect Google error overlays injected into the DOM and switch to plain mode
+  useEffect(() => {
+    const container = inputRef.current?.parentElement
+    if (!container) return
+    const observer = new MutationObserver(() => {
+      const errEl = container.querySelector('[class*="gm-err"], [class*="dismissButton"]')
+      if (errEl) {
+        setHasMapsFailure(true)
+        observer.disconnect()
+      }
+    })
+    observer.observe(container, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [isLoaded])
+
   const pickPlaceParts = useCallback((candidate: google.maps.places.PlaceResult | null | undefined) => {
     if (!candidate) return null
     const components = candidate.address_components ?? []
@@ -304,9 +319,15 @@ function AddressAutocompleteWithGoogle({
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative overflow-hidden", className)}>
+      {/* Suppress Google Maps error watermarks injected over the input */}
+      <style>{`
+        .pac-container { z-index: 9999 !important; }
+        .gm-err-container, .gm-err-autocomplete, .gm-style-pbc,
+        div[class^="gm-err"], div[class*=" gm-err"] { display: none !important; }
+      `}</style>
       <MapPin className={cn(
-        "absolute left-2.5 top-2.5 h-4 w-4 transition-colors",
+        "absolute left-2.5 top-2.5 h-4 w-4 transition-colors z-10",
         isResolved ? "text-emerald-500" : isFocused ? "text-primary" : "text-slate-400"
       )} />
       <Input
@@ -320,10 +341,10 @@ function AddressAutocompleteWithGoogle({
           setIsFocused(false)
           attemptAutoSelectBestMatch()
         }}
-        className={cn("pl-9 pr-8", isResolved && "border-emerald-200")}
+        className={cn("pl-9 pr-8 relative z-10", isResolved && "border-emerald-200")}
       />
       {isResolved && (
-        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-emerald-500" />
+        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-emerald-500 z-10" />
       )}
     </div>
   )

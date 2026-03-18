@@ -1219,9 +1219,6 @@ export function TraceyOnboarding() {
                           onChange={(next) => setPhysicalAddress(next)}
                           onPlaceSelect={(place) => setPhysicalAddress(place.address)}
                         />
-                        <p className="text-xs text-slate-500">
-                          We use this address as Tracey&apos;s home base when calculating your service area.
-                        </p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">

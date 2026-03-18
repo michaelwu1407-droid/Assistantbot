@@ -1,3 +1,9 @@
+## 2026-03-18 11:30 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `components/ui/address-autocomplete.tsx`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- **Summary**: Suppressed Google Maps API error watermarks (grey circles with exclamation marks) that were overlaying the address input. Added CSS overrides to hide `gm-err-*` elements, `overflow-hidden` on the wrapper, `z-10` on the input/icons, and a MutationObserver to detect error overlays and fall back to a plain text input. Removed the unnecessary helper text below the address field.
+- **Why**: Google Maps API auth/billing issues were injecting error watermarks directly over the address input, making it look broken. The server-side geocoding handles address resolution regardless, so the client-side overlay needed to be suppressed and the component made resilient to Google API failures.
+
 ## 2026-03-18 11:00 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
