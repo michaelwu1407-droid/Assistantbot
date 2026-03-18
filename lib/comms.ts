@@ -609,7 +609,7 @@ async function ensureWorkspaceRegulatoryAddress(
     city,
     region,
     postalCode,
-    country: "AU",
+    isoCountry: "AU",
   });
 
   const addressSid: string =

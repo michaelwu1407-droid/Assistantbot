@@ -1,3 +1,9 @@
+## 2026-03-18 13:00 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Fixed `Required parameter "params['isoCountry']" missing` error in Twilio regulatory address creation. The parameter was named `country: "AU"` but Twilio's API requires `isoCountry: "AU"`.
+- **Why**: Twilio's `addresses.create` endpoint uses `isoCountry` (ISO 3166-1 alpha-2) as the required parameter name, not `country`.
+
 ## 2026-03-18 12:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `__tests__/tracey-onboarding-email-preview.test.tsx`, `docs/agent_change_log.md`
