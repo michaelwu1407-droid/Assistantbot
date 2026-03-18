@@ -550,12 +550,14 @@ async function ensureWorkspaceRegulatoryAddress(
       console.log(`[regulatory-address] physicalAddress=${JSON.stringify(physicalAddress)}, baseSuburb=${JSON.stringify(baseSuburb)}, workspaceLocation=${JSON.stringify(workspace.location)}`);
 
       if (physicalAddress && physicalAddress.trim().length > 0) {
-        street = physicalAddress.trim();
+        // Extract just the street portion (before the first comma)
+        const parts = physicalAddress.split(",").map((s) => s.trim()).filter(Boolean);
+        street = parts[0] || physicalAddress.trim();
         const parsed = parseAuRegionPostcode(physicalAddress);
         region = parsed.region;
         postalCode = parsed.postalCode;
         city = deriveCityFromAddress(physicalAddress);
-        console.log(`[regulatory-address] local parse: city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
+        console.log(`[regulatory-address] local parse: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
       }
       if (!city && baseSuburb && baseSuburb.trim().length > 0) {
         city = baseSuburb.trim();
@@ -564,8 +566,8 @@ async function ensureWorkspaceRegulatoryAddress(
 
       // If local parsing couldn't get all components, use Google Geocoding API
       if (!city || !region || !postalCode) {
-        const source = physicalAddress || workspace.location || "";
-        if (source.trim()) {
+        const source = (physicalAddress || workspace.location || "").trim();
+        if (source) {
           try {
             console.log(`[regulatory-address] geocoding fallback for: ${JSON.stringify(source)}`);
             const geo = await geocodeAuAddress(source);
@@ -574,7 +576,7 @@ async function ensureWorkspaceRegulatoryAddress(
               if (!city) city = geo.city;
               if (!region) region = geo.region;
               if (!postalCode) postalCode = geo.postalCode;
-              if (!street || street === source) street = geo.street;
+              street = geo.street;
             }
           } catch (geoErr) {
             console.error(`[regulatory-address] geocoding error:`, geoErr);

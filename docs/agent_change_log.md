@@ -1,3 +1,9 @@
+## 2026-03-18 13:15 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Fixed Twilio "address cannot be validated" error. The `street` field was being sent as the full address string (e.g. "36-42 Henderson Road, Alexandria, New South Wales, Australia") instead of just the street portion ("36-42 Henderson Road"). Now extracts just the first comma-separated segment for the street field. Also fixed the geocoding street override comparison bug (trimmed vs untrimmed mismatch) — when geocoding succeeds, its street always takes priority.
+- **Why**: Twilio's `addresses.create` expects `street` to be only the street line. Sending the full address string caused Twilio to reject it as unvalidatable.
+
 ## 2026-03-18 13:00 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
