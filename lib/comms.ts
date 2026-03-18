@@ -393,6 +393,8 @@ async function resolveWorkspaceSubaccount(workspaceId: string, businessName: str
 /**
  * Server-side geocoding via Google Geocoding API.
  * Resolves a free-text AU address into structured components.
+ *
+ * Uses the app URL as Referer header so referrer-restricted keys still work.
  */
 async function geocodeAuAddress(rawAddress: string): Promise<{
   street: string;
@@ -403,16 +405,34 @@ async function geocodeAuAddress(rawAddress: string): Promise<{
   const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim();
   if (!apiKey) return null;
 
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.APP_URL ??
+    ""
+  ).trim();
+
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
   url.searchParams.set("address", rawAddress);
   url.searchParams.set("region", "au");
   url.searchParams.set("components", "country:AU");
   url.searchParams.set("key", apiKey);
 
-  const resp = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
-  if (!resp.ok) return null;
+  const headers: Record<string, string> = {};
+  if (appUrl) headers["Referer"] = appUrl.endsWith("/") ? appUrl : `${appUrl}/`;
+
+  const resp = await fetch(url.toString(), {
+    headers,
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!resp.ok) {
+    console.error(`[geocodeAuAddress] HTTP ${resp.status} for "${rawAddress}"`);
+    return null;
+  }
   const data = await resp.json();
-  if (data.status !== "OK" || !data.results?.length) return null;
+  if (data.status !== "OK" || !data.results?.length) {
+    console.error(`[geocodeAuAddress] status=${data.status}, error=${data.error_message ?? "none"} for "${rawAddress}"`);
+    return null;
+  }
 
   const components: Array<{ long_name: string; short_name: string; types: string[] }> =
     data.results[0].address_components ?? [];
@@ -486,14 +506,21 @@ async function ensureWorkspaceRegulatoryAddress(
 
   const deriveCityFromAddress = (input: string | null | undefined) => {
     if (!input) return "";
-    // Match "Alexandria NSW 2015" or "Alexandria, New South Wales"
+    // Strategy 1: "Alexandria NSW 2015"
     const abbrevMatch = input.match(/,\s*([^,]+)\s+(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}/i);
     if (abbrevMatch?.[1]?.trim()) return abbrevMatch[1].trim();
-    // Match before full state name: "Alexandria, New South Wales, Australia"
+    // Strategy 2: "Alexandria, New South Wales, Australia"
     for (const full of Object.keys(AU_STATE_ABBREVS)) {
-      const re = new RegExp(`,\\s*([^,]+),?\\s+${full.replace(/ /g, "\\s+")}`, "i");
+      const re = new RegExp(`,\\s*([^,]+?)[,\\s]+${full.replace(/ /g, "\\s+")}`, "i");
       const m = input.match(re);
       if (m?.[1]?.trim()) return m[1].trim();
+    }
+    // Strategy 3: second comma-separated segment as locality
+    // e.g. "36-42 Henderson Road, Alexandria, ..." → "Alexandria"
+    const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const candidate = parts[1];
+      if (candidate && candidate.length > 1 && candidate.length < 40) return candidate;
     }
     return "";
   };
@@ -519,15 +546,20 @@ async function ensureWorkspaceRegulatoryAddress(
       const profile = owner?.businessProfile;
       const physicalAddress = profile?.physicalAddress;
       const baseSuburb = profile?.baseSuburb;
+
+      console.log(`[regulatory-address] physicalAddress=${JSON.stringify(physicalAddress)}, baseSuburb=${JSON.stringify(baseSuburb)}, workspaceLocation=${JSON.stringify(workspace.location)}`);
+
       if (physicalAddress && physicalAddress.trim().length > 0) {
         street = physicalAddress.trim();
         const parsed = parseAuRegionPostcode(physicalAddress);
         region = parsed.region;
         postalCode = parsed.postalCode;
         city = deriveCityFromAddress(physicalAddress);
+        console.log(`[regulatory-address] local parse: city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
       }
       if (!city && baseSuburb && baseSuburb.trim().length > 0) {
         city = baseSuburb.trim();
+        console.log(`[regulatory-address] using baseSuburb as city: ${JSON.stringify(city)}`);
       }
 
       // If local parsing couldn't get all components, use Google Geocoding API
@@ -535,32 +567,38 @@ async function ensureWorkspaceRegulatoryAddress(
         const source = physicalAddress || workspace.location || "";
         if (source.trim()) {
           try {
+            console.log(`[regulatory-address] geocoding fallback for: ${JSON.stringify(source)}`);
             const geo = await geocodeAuAddress(source);
+            console.log(`[regulatory-address] geocode result: ${JSON.stringify(geo)}`);
             if (geo) {
               if (!city) city = geo.city;
               if (!region) region = geo.region;
               if (!postalCode) postalCode = geo.postalCode;
               if (!street || street === source) street = geo.street;
             }
-          } catch {
-            // geocoding is best-effort
+          } catch (geoErr) {
+            console.error(`[regulatory-address] geocoding error:`, geoErr);
           }
         }
       }
+    } else {
+      console.warn(`[regulatory-address] workspace ${workspaceId} has no ownerId`);
     }
-  } catch {
-    // Best-effort; fall back to workspace.location.
+  } catch (outerErr) {
+    console.error(`[regulatory-address] outer error:`, outerErr);
   }
+
+  console.log(`[regulatory-address] final: city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}, street=${JSON.stringify(street)}`);
 
   if (!city) {
     throw new Error(
-      "Could not determine the city/locality from your address. Please update your Physical Address to include a suburb (e.g. '123 Trade St, Alexandria NSW 2015').",
+      `Could not determine the city/locality from your address "${street}". Please update your Physical Address to include a suburb (e.g. '123 Trade St, Alexandria NSW 2015').`,
     );
   }
 
   if (!region || !postalCode) {
     throw new Error(
-      "Could not determine the state and postcode from your address. Please update your Physical Address to include state and postcode (e.g. 'Alexandria NSW 2015').",
+      `Could not determine state/postcode from your address "${street}". Please update your Physical Address (e.g. 'Alexandria NSW 2015').`,
     );
   }
 

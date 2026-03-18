@@ -1,3 +1,9 @@
+## 2026-03-18 12:00 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Fixed server-side geocoding failing due to Google API key having HTTP referrer restrictions. The `geocodeAuAddress` function now sends the app URL (`NEXT_PUBLIC_APP_URL`) as the `Referer` header so the referrer-restricted key works from Vercel serverless functions. Added diagnostic logging throughout `ensureWorkspaceRegulatoryAddress` to trace physicalAddress, baseSuburb, local parse results, geocoding results, and final values. Added a third city-derivation strategy: if regex fails, fall back to the second comma-separated segment of the address. Added error logging for geocoding API failures.
+- **Why**: The server-side geocoding was silently failing because the API key has `RefererNotAllowedMapError` restrictions and server-side fetch sends no Referer header by default. Also needed better observability for future debugging.
+
 ## 2026-03-18 11:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `components/ui/address-autocomplete.tsx`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
