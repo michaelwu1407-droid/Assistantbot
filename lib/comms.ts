@@ -390,6 +390,63 @@ async function resolveWorkspaceSubaccount(workspaceId: string, businessName: str
   };
 }
 
+/**
+ * Server-side geocoding via Google Geocoding API.
+ * Resolves a free-text AU address into structured components.
+ */
+async function geocodeAuAddress(rawAddress: string): Promise<{
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
+} | null> {
+  const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim();
+  if (!apiKey) return null;
+
+  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+  url.searchParams.set("address", rawAddress);
+  url.searchParams.set("region", "au");
+  url.searchParams.set("components", "country:AU");
+  url.searchParams.set("key", apiKey);
+
+  const resp = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  if (data.status !== "OK" || !data.results?.length) return null;
+
+  const components: Array<{ long_name: string; short_name: string; types: string[] }> =
+    data.results[0].address_components ?? [];
+
+  const get = (type: string) => components.find((c: { types: string[] }) => c.types.includes(type));
+
+  const streetNumber = get("street_number")?.long_name ?? "";
+  const route = get("route")?.long_name ?? "";
+  const city =
+    get("locality")?.long_name ??
+    get("postal_town")?.long_name ??
+    get("sublocality")?.long_name ??
+    "";
+  const region = get("administrative_area_level_1")?.short_name ?? "";
+  const postalCode = get("postal_code")?.long_name ?? "";
+
+  if (!city || !region || !postalCode) return null;
+
+  const street = streetNumber && route ? `${streetNumber} ${route}` : rawAddress.split(",")[0]?.trim() ?? rawAddress;
+
+  return { street, city, region, postalCode };
+}
+
+const AU_STATE_ABBREVS: Record<string, string> = {
+  "new south wales": "NSW",
+  "victoria": "VIC",
+  "queensland": "QLD",
+  "western australia": "WA",
+  "south australia": "SA",
+  "tasmania": "TAS",
+  "australian capital territory": "ACT",
+  "northern territory": "NT",
+};
+
 async function ensureWorkspaceRegulatoryAddress(
   workspaceId: string,
   subClient: ManagedTwilioClient,
@@ -414,20 +471,33 @@ async function ensureWorkspaceRegulatoryAddress(
 
   const parseAuRegionPostcode = (input: string | null | undefined) => {
     if (!input) return { region: undefined as string | undefined, postalCode: undefined as string | undefined };
-    const match = input.match(/\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\b\s*(\d{4})\b/i);
-    if (!match) return { region: undefined, postalCode: undefined };
-    return { region: match[1].toUpperCase(), postalCode: match[2] };
+    // Match abbreviated state + postcode: "NSW 2015"
+    const abbrevMatch = input.match(/\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\b\s*(\d{4})\b/i);
+    if (abbrevMatch) return { region: abbrevMatch[1].toUpperCase(), postalCode: abbrevMatch[2] };
+    // Match full state name: "New South Wales" -> "NSW"
+    for (const [full, abbr] of Object.entries(AU_STATE_ABBREVS)) {
+      if (input.toLowerCase().includes(full)) {
+        const pcMatch = input.match(/\b(\d{4})\b/);
+        return { region: abbr, postalCode: pcMatch?.[1] };
+      }
+    }
+    return { region: undefined, postalCode: undefined };
   };
 
   const deriveCityFromAddress = (input: string | null | undefined) => {
     if (!input) return "";
-    // Try to grab the locality before state/postcode, e.g. "Alexandria" from "123 Trade St, Alexandria NSW 2015"
-    const match = input.match(/,\s*([^,]+)\s+(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}/i);
-    if (match?.[1]?.trim()) return match[1].trim();
+    // Match "Alexandria NSW 2015" or "Alexandria, New South Wales"
+    const abbrevMatch = input.match(/,\s*([^,]+)\s+(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}/i);
+    if (abbrevMatch?.[1]?.trim()) return abbrevMatch[1].trim();
+    // Match before full state name: "Alexandria, New South Wales, Australia"
+    for (const full of Object.keys(AU_STATE_ABBREVS)) {
+      const re = new RegExp(`,\\s*([^,]+),?\\s+${full.replace(/ /g, "\\s+")}`, "i");
+      const m = input.match(re);
+      if (m?.[1]?.trim()) return m[1].trim();
+    }
     return "";
   };
 
-  // Try to derive an AU address from the business profile (best source).
   let street = workspace.location || "";
   let city = "";
   let region: string | undefined;
@@ -459,26 +529,38 @@ async function ensureWorkspaceRegulatoryAddress(
       if (!city && baseSuburb && baseSuburb.trim().length > 0) {
         city = baseSuburb.trim();
       }
+
+      // If local parsing couldn't get all components, use Google Geocoding API
+      if (!city || !region || !postalCode) {
+        const source = physicalAddress || workspace.location || "";
+        if (source.trim()) {
+          try {
+            const geo = await geocodeAuAddress(source);
+            if (geo) {
+              if (!city) city = geo.city;
+              if (!region) region = geo.region;
+              if (!postalCode) postalCode = geo.postalCode;
+              if (!street || street === source) street = geo.street;
+            }
+          } catch {
+            // geocoding is best-effort
+          }
+        }
+      }
     }
   } catch {
-    // Best-effort only; fall back to workspace.location.
+    // Best-effort; fall back to workspace.location.
   }
 
   if (!city) {
     throw new Error(
-      "AU regulatory address requires a city/locality. Please make sure your Physical Address includes a suburb/city before the state and postcode (e.g. '123 Trade St, Alexandria NSW 2015').",
+      "Could not determine the city/locality from your address. Please update your Physical Address to include a suburb (e.g. '123 Trade St, Alexandria NSW 2015').",
     );
   }
 
   if (!region || !postalCode) {
-    const parsedFromWorkspace = parseAuRegionPostcode(workspace.location);
-    region = region || parsedFromWorkspace.region;
-    postalCode = postalCode || parsedFromWorkspace.postalCode;
-  }
-
-  if (!region || !postalCode) {
     throw new Error(
-      "AU regulatory address requires state + postcode. Please update your Physical Address to include e.g. 'NSW 2000' (then retry provisioning).",
+      "Could not determine the state and postcode from your address. Please update your Physical Address to include state and postcode (e.g. 'Alexandria NSW 2015').",
     );
   }
 

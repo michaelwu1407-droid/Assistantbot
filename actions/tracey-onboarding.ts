@@ -80,13 +80,7 @@ const TraceyOnboardingSchema = z.object({
   tradeType: z.string().trim().min(1, "Trade type is required"),
   publicPhone: z.string().trim().optional(),
   publicEmail: z.string().trim().optional(),
-  physicalAddress: z.string()
-    .trim()
-    .min(1, "Physical address is required")
-    .refine(
-      (value) => /,\s*[^,]+\s+(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b/i.test(value),
-      "Please enter a full Australian address including suburb/city, state, and postcode (e.g. 'Parramatta NSW 2150').",
-    ),
+  physicalAddress: z.string().trim().min(1, "Physical address is required"),
   serviceRadius: z.number().min(1).max(200).default(20),
   standardWorkHours: z.string().trim().min(1),
   weeklyHours: WeeklyHoursSchema.optional(),

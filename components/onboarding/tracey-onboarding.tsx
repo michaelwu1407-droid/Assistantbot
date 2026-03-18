@@ -38,7 +38,7 @@ import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
 import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
-import { AddressAutocomplete, type PlaceResult } from "@/components/ui/address-autocomplete"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import {
   createDefaultWeeklyHours,
   normalizeWeeklyHours,
@@ -394,7 +394,6 @@ export function TraceyOnboarding() {
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
-  const [physicalAddressPlace, setPhysicalAddressPlace] = useState<PlaceResult | null>(null)
   const [serviceRadius, setServiceRadius] = useState(20)
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(createDefaultWeeklyHours())
   const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
@@ -616,19 +615,6 @@ export function TraceyOnboarding() {
                           ? `${streetLine}, ${locality} ${region} ${postalCode}`
                           : scrapedPhysicalAddress
                       setPhysicalAddress(resolvedAddress)
-                      setPhysicalAddressPlace({
-                        address: resolvedAddress,
-                        latitude: details.geometry?.location?.lat() ?? null,
-                        longitude: details.geometry?.location?.lng() ?? null,
-                        placeId: details.place_id ?? null,
-                        components: {
-                          streetLine: streetLine || undefined,
-                          locality: locality || undefined,
-                          region: region || undefined,
-                          postalCode: postalCode || undefined,
-                          country: country || undefined,
-                        },
-                      })
                     },
                   )
                 },
@@ -734,28 +720,11 @@ export function TraceyOnboarding() {
 
   // ── Validation ──
 
-  const isProvisionReadyAuPhysicalAddress = (value: string) => {
-    const addr = value.trim()
-    if (!addr) return false
-    // Require a locality + state + postcode, e.g. "..., Alexandria NSW 2015"
-    return /,\s*[^,]+\s+(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b/i.test(addr)
-  }
-
-  const isProvisionReadyAuPlace = (place: PlaceResult | null) => {
-    const c = place?.components
-    return Boolean(c?.locality && c?.region && c?.postalCode)
-  }
-
   const canAdvance = (): boolean => {
     switch (step) {
       case 0: return ownerName.trim() !== "" && phone.trim() !== "" && email.trim() !== ""
       case 1: return true // always can advance from mode selector
-      case 2:
-        return (
-          businessName.trim() !== "" &&
-          tradeType !== "" &&
-          (isProvisionReadyAuPlace(physicalAddressPlace) || isProvisionReadyAuPhysicalAddress(physicalAddress))
-        )
+      case 2: return businessName.trim() !== "" && tradeType !== "" && physicalAddress.trim() !== ""
       case 3: return true
       case 4: return true
       default: return false
@@ -1247,25 +1216,12 @@ export function TraceyOnboarding() {
                         <AddressAutocomplete
                           placeholder="123 Trade St, Parramatta NSW 2150"
                           value={physicalAddress}
-                          onChange={(next) => {
-                            setPhysicalAddress(next)
-                            setPhysicalAddressPlace(null)
-                          }}
-                          onPlaceSelect={(place) => {
-                            setPhysicalAddress(place.address)
-                            setPhysicalAddressPlace(place)
-                          }}
+                          onChange={(next) => setPhysicalAddress(next)}
+                          onPlaceSelect={(place) => setPhysicalAddress(place.address)}
                         />
                         <p className="text-xs text-slate-500">
                           We use this address as Tracey&apos;s home base when calculating your service area.
                         </p>
-                        {physicalAddress.trim().length > 0 &&
-                          !isProvisionReadyAuPlace(physicalAddressPlace) &&
-                          !isProvisionReadyAuPhysicalAddress(physicalAddress) && (
-                          <p className="text-xs text-amber-600">
-                            Please enter a full Australian address including suburb/city, state, and postcode (e.g. &quot;Parramatta NSW 2150&quot;).
-                          </p>
-                        )}
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">

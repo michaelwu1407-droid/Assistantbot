@@ -1,3 +1,9 @@
+## 2026-03-18 11:00 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `actions/tracey-onboarding.ts`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- **Summary**: Fixed Twilio AU phone provisioning failing for addresses like "36-42 Henderson Road, Alexandria, New South Wales, Australia". Root cause: (1) server-side Zod validation on `physicalAddress` required a regex match for abbreviated state+postcode (e.g. "NSW 2015") which Google's formatted_address often omits; (2) the Google Maps client-side key (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) was not set in Vercel, so all client-side Google Places enrichment was silently skipped. Fix: removed the strict regex gate from both client and server validation, added server-side Google Geocoding API fallback in `ensureWorkspaceRegulatoryAddress` to resolve city/state/postcode from free-text addresses, and added full-state-name-to-abbreviation mapping for local parsing.
+- **Why**: Users entering or auto-filling addresses via Google autocomplete or website scrape were blocked from completing onboarding because the address string didn't match the narrow regex, even though Google's Geocoding API can resolve the missing components server-side.
+
 ## 2026-03-10 (AEST) – Cursor AI Agent
 
 - **Files changed**: `livekit-agent/agent.ts`, `docs/agent_change_log.md`
