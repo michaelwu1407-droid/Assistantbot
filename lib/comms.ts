@@ -130,10 +130,17 @@ export async function initializeTradieComms(
     });
 
     // ────────────────────────────────────────────────────────────────
-    // 2. Ensure Regulatory Address in the subaccount
+    // 2. Ensure Regulatory Address in the subaccount (best-effort)
+    // The regulatory bundle already contains address info; the separate
+    // addressSid is supplementary and not always required for AU mobile.
     // ────────────────────────────────────────────────────────────────
     stageReached = "regulatory-address";
-    regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
+    try {
+      regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
+    } catch (addrErr) {
+      console.warn(`[initializeTradieComms] Address creation failed (non-fatal, proceeding with bundle only):`, addrErr instanceof Error ? addrErr.message : addrErr);
+      regulatoryAddressSid = null;
+    }
 
     // ────────────────────────────────────────────────────────────────
     // 3. Buy Australian +61 Number (SMS + Voice capable)
@@ -167,12 +174,16 @@ export async function initializeTradieComms(
 
     stageReached = "number-purchase";
 
-    const purchasedNumber = await subClient.incomingPhoneNumbers.create({
+    const numberCreateParams: Record<string, string> = {
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
-      addressSid: regulatoryAddressSid ?? undefined,
-    });
+    };
+    if (regulatoryAddressSid) {
+      numberCreateParams.addressSid = regulatoryAddressSid;
+    }
+    console.log(`[initializeTradieComms] number-purchase params:`, JSON.stringify(numberCreateParams));
+    const purchasedNumber = await subClient.incomingPhoneNumbers.create(numberCreateParams);
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
 

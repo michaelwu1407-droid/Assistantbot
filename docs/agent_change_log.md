@@ -1,3 +1,9 @@
+## 2026-03-18 14:00 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Made regulatory address creation non-fatal. If Twilio's address validator rejects the address, provisioning now continues with just the bundleSid (the cloned regulatory bundle already contains approved address info). The addressSid is only included in the number purchase if it was successfully created. Added number-purchase param logging.
+- **Why**: Twilio's strict address validation was blocking AU provisioning even with valid address components. The regulatory bundle already contains the approved address, so the separate addressSid is supplementary.
+
 ## 2026-03-18 13:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
