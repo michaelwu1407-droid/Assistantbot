@@ -24,6 +24,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<ReportsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [revenueExpanded, setRevenueExpanded] = useState(false)
+  const [customersExpanded, setCustomersExpanded] = useState(false)
   const workspaceId = useShellStore((s) => s.workspaceId)
   const userRole = useShellStore((s) => s.userRole)
   const router = useRouter()
@@ -149,7 +150,10 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Card 2: Customers */}
-          <Card>
+          <Card
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setCustomersExpanded(!customersExpanded)}
+          >
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-medium text-neutral-500">Customers</p>
@@ -177,6 +181,9 @@ export default function AnalyticsPage() {
                   )}
                 </div>
               </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-2">
+                {customersExpanded ? "Click to collapse" : "Click to see ratings"}
+              </p>
             </CardContent>
           </Card>
 
@@ -242,6 +249,132 @@ export default function AnalyticsPage() {
                     ))}
                   </svg>
                 );
+              })()}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Customer ratings (expandable) */}
+        {customersExpanded && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Star className="h-4 w-4 text-amber-500" />
+                Customer Ratings
+              </CardTitle>
+              <CardDescription>Ratings distribution, latest feedback, and trend</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const dist = data.customers.ratingDistribution
+                const maxCount = Math.max(...dist.map((d) => d.count), 1)
+
+                return (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-secondary/30 rounded-lg">
+                        <p className="text-xs font-medium text-neutral-500">Avg rating</p>
+                        <p className="text-3xl font-bold text-neutral-900 mt-1">
+                          {data.customers.satisfaction}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          out of 10
+                        </p>
+                      </div>
+                      <div className="p-4 bg-secondary/30 rounded-lg">
+                        <p className="text-xs font-medium text-neutral-500">Total ratings</p>
+                        <p className="text-3xl font-bold text-neutral-900 mt-1">
+                          {data.customers.ratingCount}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">in selected range</p>
+                      </div>
+                      <div className="p-4 bg-secondary/30 rounded-lg">
+                        <p className="text-xs font-medium text-neutral-500">New customers</p>
+                        <p className="text-3xl font-bold text-neutral-900 mt-1">
+                          {data.customers.new}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">created in range</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-neutral-900">Distribution</p>
+                        <p className="text-xs text-muted-foreground">Score 1-10</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        {dist.map(({ score, count }) => (
+                          <div key={score} className="p-3 bg-secondary/40 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-medium text-neutral-700">Score {score}</p>
+                              <p className="text-xs text-muted-foreground">{count}</p>
+                            </div>
+                            <div className="h-2 bg-secondary rounded mt-2 overflow-hidden">
+                              <div
+                                className="h-2 bg-primary rounded"
+                                style={{ width: `${(count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-neutral-900">Latest feedback</p>
+                        <p className="text-xs text-muted-foreground">Newest 10</p>
+                      </div>
+                      {data.customers.latestFeedback.length > 0 ? (
+                        <div className="space-y-3 max-h-72 overflow-auto pr-1">
+                          {data.customers.latestFeedback.map((fb) => (
+                            <div key={fb.id} className="p-3 bg-secondary/30 rounded-lg">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-xs font-medium text-neutral-900">{fb.contactName}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(fb.createdAt).toLocaleDateString("en-AU")}
+                                </p>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Score: <span className="font-medium text-neutral-900">{fb.score}</span> / 10
+                              </p>
+                              <p className="text-sm text-neutral-800 mt-2">
+                                {fb.comment ? fb.comment : "No comment provided"}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Deal: {fb.dealTitle}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No feedback yet in this range.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-neutral-900">Satisfaction trend</p>
+                        <p className="text-xs text-muted-foreground">Avg rating per month</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                        {data.customers.monthlySatisfaction.map((m) => (
+                          <div key={m.month} className="p-3 bg-secondary/30 rounded-lg">
+                            <p className="text-xs text-muted-foreground">{m.month}</p>
+                            <p className="text-sm font-medium text-neutral-900 mt-1">
+                              {m.count > 0 ? m.avg : "—"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {m.count} rating{m.count === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
               })()}
             </CardContent>
           </Card>

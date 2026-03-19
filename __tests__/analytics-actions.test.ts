@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbMocks = vi.hoisted(() => ({
   deal: { findMany: vi.fn() },
   contact: { count: vi.fn() },
-  customerFeedback: { aggregate: vi.fn() },
+  customerFeedback: { aggregate: vi.fn(), findMany: vi.fn() },
   user: { count: vi.fn() },
 }));
 
@@ -25,6 +25,30 @@ describe("getReportsData", () => {
     dbMocks.customerFeedback.aggregate.mockResolvedValue({
       _avg: { score: 4.25 },
     });
+    dbMocks.customerFeedback.findMany
+      .mockResolvedValueOnce([
+        { score: 4, createdAt: new Date("2026-02-20T10:00:00.000Z") },
+        { score: 5, createdAt: new Date("2026-03-05T10:00:00.000Z") },
+        { score: 4, createdAt: new Date("2026-03-10T10:00:00.000Z") },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "fb-1",
+          score: 4,
+          comment: "Friendly service",
+          createdAt: new Date("2026-03-10T10:00:00.000Z"),
+          contact: { name: "John Smith" },
+          deal: { title: "Tyre replacement" },
+        },
+        {
+          id: "fb-2",
+          score: 5,
+          comment: null,
+          createdAt: new Date("2026-03-05T10:00:00.000Z"),
+          contact: { name: "Jane Roe" },
+          deal: { title: "Brake check" },
+        },
+      ]);
     dbMocks.user.count.mockResolvedValue(2);
     dbMocks.deal.findMany.mockResolvedValue([
       {
@@ -100,6 +124,7 @@ describe("getReportsData", () => {
     expect(result.jobs.completed).toBe(2);
     expect(result.customers.new).toBe(3);
     expect(result.customers.satisfaction).toBe(4.3);
+    expect(result.customers.ratingCount).toBe(3);
   });
 
   it("excludes manual jobs created directly at a scheduled stage from jobs won with Tracey", async () => {

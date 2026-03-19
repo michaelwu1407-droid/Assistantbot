@@ -64,6 +64,17 @@ export interface ReportsData {
     total: number
     new: number
     satisfaction: number
+    ratingCount: number
+    ratingDistribution: Array<{ score: number; count: number }>
+    monthlySatisfaction: Array<{ month: string; avg: number; count: number }>
+    latestFeedback: Array<{
+      id: string
+      score: number
+      comment: string | null
+      createdAt: string
+      contactName: string
+      dealTitle: string
+    }>
   }
   jobs: {
     completed: number
@@ -222,6 +233,61 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
     _avg: { score: true },
   })
 
+  const [feedbackScores, latestFeedbackRows] = await Promise.all([
+    db.customerFeedback.findMany({
+      where: {
+        contact: { workspaceId },
+        createdAt: { gte: rangeStart },
+      },
+      select: {
+        score: true,
+        createdAt: true,
+      },
+    }),
+    db.customerFeedback.findMany({
+      where: {
+        contact: { workspaceId },
+        createdAt: { gte: rangeStart },
+      },
+      include: {
+        contact: { select: { name: true } },
+        deal: { select: { title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ])
+
+  const ratingCount = feedbackScores.length
+
+  const distributionCounts: Record<number, number> = {}
+  for (const fb of feedbackScores) {
+    // Ratings are stored as Int 1-10 (see `CustomerFeedback.score`).
+    const score = fb.score
+    if (score < 1 || score > 10) continue
+    distributionCounts[score] = (distributionCounts[score] ?? 0) + 1
+  }
+  const ratingDistribution = Array.from({ length: 10 }, (_, i) => {
+    const score = i + 1
+    return { score, count: distributionCounts[score] ?? 0 }
+  })
+
+  const monthlySatisfaction = buildMonthlyBuckets(rangeStart, now).map((bucket) => {
+    const inBucket = feedbackScores.filter((f) => isWithinRange(f.createdAt, bucket.start, bucket.end))
+    const count = inBucket.length
+    const avg = count > 0 ? Number((inBucket.reduce((sum, f) => sum + f.score, 0) / count).toFixed(1)) : 0
+    return { month: bucket.month, avg, count }
+  })
+
+  const latestFeedback = latestFeedbackRows.map((f) => ({
+    id: f.id,
+    score: f.score,
+    comment: f.comment ?? null,
+    createdAt: f.createdAt.toISOString(),
+    contactName: f.contact?.name || "Unknown",
+    dealTitle: f.deal?.title || "Unknown Deal",
+  }))
+
   const workspaceUsers = await db.user.count({ where: { workspaceId } })
   const jobsPerMember = new Map<string, { name: string; jobs: number; revenue: number }>()
   for (const deal of wonDealsInRange) {
@@ -254,6 +320,10 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
       total: contacts,
       new: newContactsThisMonth,
       satisfaction: feedback._avg.score ? Number(feedback._avg.score.toFixed(1)) : 0,
+      ratingCount,
+      ratingDistribution,
+      monthlySatisfaction,
+      latestFeedback,
     },
     jobs: {
       completed,
