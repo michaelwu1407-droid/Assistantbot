@@ -1,3 +1,9 @@
+## 2026-03-19 19:50 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Further Twilio address validation: abbreviate street suffixes (Road→Rd, Street→St, etc.) before sending; retry with region as abbreviation (NSW) if first attempt with full state name fails; log full Twilio error (code, body) on failure.
+- **Why**: Validators often expect abbreviated street types; some expect state abbreviation instead of full name. Two attempts (full region then abbrev) and suffix normalization improve acceptance.
+
 ## 2026-03-19 18:05 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`

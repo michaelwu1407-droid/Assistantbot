@@ -497,6 +497,37 @@ function normalizeStreetForValidation(street: string): string {
   return t;
 }
 
+/** Australian street suffix abbreviations (validators often expect these). */
+const AU_STREET_SUFFIX_ABBREVS: Record<string, string> = {
+  " Road": " Rd",
+  " Street": " St",
+  " Avenue": " Ave",
+  " Drive": " Dr",
+  " Lane": " Ln",
+  " Court": " Ct",
+  " Place": " Pl",
+  " Crescent": " Cr",
+  " Parade": " Pde",
+  " Boulevard": " Blvd",
+  " Highway": " Hwy",
+  " Circuit": " Cct",
+  " Terrace": " Tce",
+  " Way": " Way",
+  " Close": " Cl",
+  " Grove": " Gr",
+  " Square": " Sq",
+  " Road,": " Rd,",
+  " Street,": " St,",
+};
+
+function abbreviateStreetSuffixes(street: string): string {
+  let s = street.trim();
+  for (const [full, abbr] of Object.entries(AU_STREET_SUFFIX_ABBREVS)) {
+    s = s.replace(new RegExp(full.replace(/\s/g, "\\s"), "gi"), abbr);
+  }
+  return s.trim();
+}
+
 async function ensureWorkspaceRegulatoryAddress(
   workspaceId: string,
   subClient: ManagedTwilioClient,
@@ -620,6 +651,7 @@ async function ensureWorkspaceRegulatoryAddress(
   }
 
   street = normalizeStreetForValidation(street);
+  street = abbreviateStreetSuffixes(street);
   const regionForTwilio = region ? (AU_STATE_FULL_NAMES[region.toUpperCase()] ?? region) : undefined;
   console.log(`[regulatory-address] final (normalized): street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(regionForTwilio)}, postalCode=${JSON.stringify(postalCode)}`);
 
@@ -635,31 +667,43 @@ async function ensureWorkspaceRegulatoryAddress(
     );
   }
 
-  const addressPayload = {
+  const buildPayload = (useFullRegion: boolean) => ({
     friendlyName: `${businessName} AU Mobile Business`,
     customerName: truncateCustomerName(businessName),
     street,
     city,
-    region: regionForTwilio ?? region,
+    region: useFullRegion ? (regionForTwilio ?? region) : (region ?? ""),
     postalCode,
     isoCountry: "AU",
     autoCorrectAddress: true,
-  };
-  console.log(`[regulatory-address] Twilio addresses.create payload:`, JSON.stringify(addressPayload));
+  });
 
   let address: any;
-  try {
-    address = await (subClient as any).addresses.create(addressPayload);
-  } catch (twilioErr: any) {
-    console.error(`[regulatory-address] Twilio addresses.create failed:`, {
-      message: twilioErr?.message,
-      code: twilioErr?.code,
-      status: twilioErr?.status,
-      moreInfo: twilioErr?.moreInfo,
-    });
-    throw new Error(
-      twilioErr?.message || "The address you have provided cannot be validated.",
-    );
+  let lastError: Error | null = null;
+
+  for (const useFullRegion of [true, false]) {
+    const addressPayload = buildPayload(useFullRegion);
+    console.log(`[regulatory-address] Twilio addresses.create attempt (region=${useFullRegion ? "full" : "abbrev"}):`, JSON.stringify(addressPayload));
+    try {
+      address = await (subClient as any).addresses.create(addressPayload);
+      lastError = null;
+      break;
+    } catch (twilioErr: any) {
+      lastError = twilioErr;
+      console.error(`[regulatory-address] Twilio addresses.create failed:`, {
+        code: twilioErr?.code,
+        status: twilioErr?.status,
+        message: twilioErr?.message,
+        moreInfo: twilioErr?.moreInfo,
+        body: (twilioErr as any)?.body,
+      });
+      if (useFullRegion) continue;
+    }
+  }
+
+  if (lastError || !address) {
+    const msg = (lastError as any)?.message || "The address you have provided cannot be validated.";
+    throw new Error(msg);
   }
 
   const addressSid: string =
