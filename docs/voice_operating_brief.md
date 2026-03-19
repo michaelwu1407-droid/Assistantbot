@@ -58,6 +58,12 @@ Updated: 2026-03-17 AEDT
 - Must align strictly with the workspace customer-contact mode across voice, SMS, email, and outbound follow-up.
 - If the generated response violates mode, it must be rewritten before it is spoken or sent.
 
+### Voice continuity guarantee
+
+- `app/api/webhooks/twilio-voice-gateway` must fail safe:
+  - On any routing/runtime failure (STIR/SHAKEN failure, rate-limit, missing sipTarget, handler exceptions), it must return `voicemailFallbackTwiml` so the caller can always leave a voicemail recording.
+  - It must also open a `VoiceIncident` so failures are visible in internal incident tracking.
+
 ## Customer-contact mode policy
 
 - `execute`

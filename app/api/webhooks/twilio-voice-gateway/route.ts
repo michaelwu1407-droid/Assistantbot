@@ -238,7 +238,19 @@ export async function POST(req: NextRequest) {
       });
       if (!sipTarget) {
         console.error("[voice-gateway] Missing Twilio account SID during DTMF callback forwarding.");
-        return twimlResponse(rejectTwiml());
+        await openGatewayIncident({
+          incidentKey: "voice:gateway:missing-sip-target-dtmf",
+          surface: "data",
+          summary: "DTMF callback could not resolve sipTarget; routing to voicemail.",
+          callerNumber,
+          calledNumber,
+          workspaceId: workspace?.id || null,
+          details: {
+            subaccountId: workspace?.twilioSubaccountId || null,
+            twilioAccountSidProvided: Boolean(process.env.TWILIO_ACCOUNT_SID),
+          },
+        });
+        return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
       }
       return twimlResponse(forwardToLiveKitTwiml(sipTarget));
     }
@@ -246,17 +258,40 @@ export async function POST(req: NextRequest) {
     const failValues = ["TN-Validation-Failed-C", "TN-Validation-Failed-B", "No-TN-Validation", "no-validation"];
     if (!spokenProbeCaller && stirVerstat && failValues.some((value) => stirVerstat.toLowerCase().includes(value.toLowerCase()))) {
       console.log(`[voice-gateway] Rejected call from ${callerNumber} due to STIR/SHAKEN failure: ${stirVerstat}`);
-      return twimlResponse(rejectTwiml());
+      const surface = resolveSurface({
+        isEarlymarkInboundCall,
+        workspaceMatched: false,
+      });
+      await openGatewayIncident({
+        incidentKey: "voice:call:stir-failed",
+        surface: "routing",
+        summary: "STIR/SHAKEN failure; routing to voicemail.",
+        callerNumber,
+        calledNumber,
+        workspaceId: null,
+        details: {
+          stirVerstat,
+        },
+      });
+      return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
     if (!syntheticProbe && !spokenProbeCaller && callerNumber && checkRateLimit(callerNumber)) {
       console.log(`[voice-gateway] Rate limited ${callerNumber}; requiring DTMF challenge.`);
-      const gatewayUrl = getExpectedVoiceGatewayUrl();
-      if (!gatewayUrl) {
-        console.error("[voice-gateway] NEXT_PUBLIC_APP_URL is missing, so DTMF challenge cannot be issued safely.");
-        return twimlResponse(temporarilyUnavailableTwiml());
-      }
-      return twimlResponse(dtmfChallengeTwiml(gatewayUrl, calledNumber));
+      const workspace = calledNumber ? await findWorkspaceByTwilioNumber(calledNumber) : null;
+      const surface = resolveSurface({
+        isEarlymarkInboundCall,
+        workspaceMatched: Boolean(workspace),
+      });
+      await openGatewayIncident({
+        incidentKey: "voice:call:rate-limited",
+        surface: "routing",
+        summary: "Rate limit exceeded; routing to voicemail.",
+        callerNumber,
+        calledNumber,
+        workspaceId: workspace?.id || null,
+      });
+      return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
     const workspace = calledNumber ? await findWorkspaceByTwilioNumber(calledNumber) : null;
@@ -347,7 +382,15 @@ export async function POST(req: NextRequest) {
       if (syntheticProbe) {
         return twimlResponse(syntheticProbeTwiml("fallback"));
       }
-      return twimlResponse(rejectTwiml());
+      await openGatewayIncident({
+        incidentKey: "voice:gateway:missing-sip-target",
+        surface: "data",
+        summary: "Missing sipTarget; routing to voicemail.",
+        callerNumber,
+        calledNumber,
+        workspaceId: workspace?.id || null,
+      });
+      return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
     console.log("[voice-gateway] Forwarding inbound call", {
@@ -363,6 +406,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[voice-gateway] Error:", error);
     if (lastCallerNumber && lastCalledNumber) {
+      await openGatewayIncident({
+        incidentKey: "voice:gateway:handler-exception",
+        surface: lastSurface || "inbound_demo",
+        summary: "Voice gateway handler threw; routing to voicemail.",
+        callerNumber: lastCallerNumber,
+        calledNumber: lastCalledNumber,
+        workspaceId: null,
+      }).catch(() => {});
       return twimlResponse(
         voicemailFallbackTwiml({
           calledNumber: lastCalledNumber,

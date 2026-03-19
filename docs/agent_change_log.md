@@ -1062,6 +1062,25 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Scraped addresses such as “36-42 Henderson Road, Alexandria, New South Wales, Australia” should be enough for provisioning; we now use Google’s structured data behind the scenes instead of treating the scraped string as unstructured text.
 
+## 2026-03-19 10:45 (AEDT) - codex
+
+- Files changed:
+  - `lib/comms.ts`
+  - `__tests__/comms.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Subaccount flow restored (Twilio-documented approach).** Numbers are still purchased
+    in the main account (where bundle + address coexist), then **transferred** to the
+    customer's subaccount per [Twilio: Exchange phone numbers between accounts](https://www.twilio.com/docs/iam/api/subaccounts#exchanging-numbers).
+  - Flow: create/reuse subaccount → purchase number in main account (bundle + address) →
+    create compliant Address in subaccount → transfer number to subaccount →
+    create SIP trunk and set voice/SMS URLs in subaccount → persist subaccount SID and token.
+  - Ensures per-customer billing and resource isolation while avoiding "Address not contained
+    in bundle" (no bundle clone; purchase in main then transfer).
+- Why:
+  - User confirmed subaccounts are the right model. Twilio docs require a compliant address
+    in the target subaccount before transfer; we create one, then transfer. No bundle cloning.
+
 ## 2026-03-19 10:10 (AEDT) - codex
 
 - Files changed:
@@ -1097,3 +1116,19 @@ Rule: every agent change commit must include an entry in this file.
   - Added background auto-resolution for programmatically filled addresses (e.g. scraped-from-website). When the address value changes and the user isn’t actively typing, we automatically resolve the best Google match and fetch full details so postcode/state/locality are available without requiring a dropdown click or blur.
 - Why:
   - The onboarding address gate and Twilio provisioning should not depend on the user manually interacting with the address field after a scrape; the system must infer missing postcode/state from Google in the background.
+
+## 2026-03-20 01:55 (AEDT) - codex
+
+- Files changed:
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `app/api/chat/route.ts`
+  - `lib/ai/context.ts`
+  - `docs/agent_change_log.md`
+  - `docs/voice_operating_brief.md`
+- Summary:
+  - Hardened `twilio-voice-gateway` failure handling so STIR/SHAKEN failures, rate-limits, missing sipTarget cases, and handler exceptions always route to `voicemailFallbackTwiml` (which includes `<Record>`) and open a `VoiceIncident`.
+  - Updated CRM dashboard chat prompting so the pricing “on-site assessment” fallback is phrased for the **business/operator** audience (not spoken in an end-customer tone).
+  - Added `pricingAudience` support to `buildAgentContext()` so the unlisted-task pricing rule can be reworded by channel.
+- Why:
+  - Voice continuity: callers should always be able to leave a voicemail and admins can track failures in incident views.
+  - Internal chat correctness: dashboard users should not receive customer-facing disclaimer phrasing.

@@ -12,6 +12,12 @@ import { summarizeWeeklyHours } from "@/lib/working-hours";
 
 type BuildAgentContextOptions = {
     includeHistoricalPricing?: boolean;
+  /**
+   * Controls how we phrase pricing rules when the prompt is given to the LLM.
+   * - "customer": speak like messaging to an end customer
+   * - "business": speak to the business/operator in dashboard chat
+   */
+  pricingAudience?: "customer" | "business";
 };
 
 type AgentContextPayload = {
@@ -75,6 +81,7 @@ export async function buildAgentContext(
     options?: BuildAgentContextOptions
 ): Promise<AgentContextPayload> {
     const includeHistoricalPricing = options?.includeHistoricalPricing ?? true;
+    const pricingAudience = options?.pricingAudience ?? "customer";
     const cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
     const cached = agentContextCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -278,12 +285,20 @@ export async function buildAgentContext(
         : "";
 
     const callOutFee = settings?.callOutFee || 0;
+    const unlistedTasksRule =
+        pricingAudience === "business"
+            ? "Unlisted tasks: No approved pricing found in your glossary for this. For a firm quote, an on-site assessment is required. Focus on locking the booking."
+            : 'Unlisted tasks: "A firm quote requires an on-site assessment." Focus on locking the booking.';
+    const customWorkRule =
+        pricingAudience === "business"
+            ? `For custom work that is not in the glossary, plan for an on-site assessment before providing a firm quote. The call-out fee is $${callOutFee} for the assessment, and does not apply if the issue is fixed on the first visit.`
+            : `For custom work that is not in the glossary, say: "Our call-out fee is $${callOutFee} for the assessment, and if we successfully fix it on the spot that fee does not apply. Otherwise we use the assessment to give you a firm quote."`;
     const pricingRulesStr = `\nPRICING RULES:
 1. Only quote a final price for tasks with an EXACT match in the GLOSSARY below. Never invent prices.
-2. Unlisted tasks: "A firm quote requires an on-site assessment." Focus on locking the booking.
+2. ${unlistedTasksRule.replace(/^Unlisted tasks:\s*/i, "")}
 3. Only mention the call-out fee when it is useful customer-facing pricing context. Do NOT remind the business owner about their own fee rules.
 4. Universal call-out fee rule: if the technician attends and successfully fixes the issue, the call-out fee does NOT apply.
-5. For custom work that is not in the glossary, say: "Our call-out fee is $${callOutFee} for the assessment, and if we successfully fix it on the spot that fee does not apply. Otherwise we use the assessment to give you a firm quote."
+5. ${customWorkRule.replace(/^For custom work that is not in the glossary,\s*/i, "For custom work that is not in the glossary, ")}
 ${glossaryStr}`;
 
     // ── Business Knowledge (already fetched in parallel batch above) ──

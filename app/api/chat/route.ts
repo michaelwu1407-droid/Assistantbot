@@ -358,7 +358,7 @@ export async function POST(req: Request) {
       shouldRunStructuredExtraction
         ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
         : Promise.resolve([]),
-      buildAgentContext(workspaceId, userId, { includeHistoricalPricing }),
+      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" }),
       shouldGetMemoryContext
         ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 700, "")
         : Promise.resolve(""),
@@ -595,7 +595,7 @@ export async function POST(req: Request) {
       pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
 - For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
-- If pricingLookup returns no match, say "A firm quote requires an on-site assessment." Do NOT estimate or guess.
+- If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
 - When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
       messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
       uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
