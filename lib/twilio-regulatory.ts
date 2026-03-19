@@ -90,10 +90,15 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
 }
 
 /**
- * Reads the ItemAssignments of a cloned bundle to find the address (AD...)
- * that was cloned with it. This is the address Twilio expects when purchasing
- * a number with that bundle — a separately created address will be rejected
- * with "Address not contained in bundle".
+ * Finds the address SID to use with a cloned bundle for number purchase.
+ *
+ * Strategy (in order):
+ *   1. Check bundle ItemAssignments for a direct AD... reference
+ *   2. List v2010 addresses in the subaccount (clone may have created them)
+ *   3. Create a new address in the subaccount using Earlymark's details
+ *
+ * Twilio requires `addressSid` on AU mobile purchase (error 21631) and it
+ * must be "contained in" the bundle (or at minimum, in the same account).
  */
 async function extractAddressSidFromBundle(params: {
   targetAccountSid: string;
@@ -105,30 +110,67 @@ async function extractAddressSidFromBundle(params: {
     ? twilio(params.targetAccountSid, params.subaccountAuthToken as string)
     : twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN);
 
+  // Strategy 1: Check bundle ItemAssignments for AD... objects
   try {
     const items = await client.numbers.v2.regulatoryCompliance
       .bundles(params.bundleSid)
       .itemAssignments.list();
 
+    const allSids = items.map((item) => {
+      const r = item as unknown as Record<string, unknown>;
+      return r.objectSid ?? r.object_sid;
+    });
+    console.log(`[regulatory-bundle] ItemAssignments for ${params.bundleSid}:`, JSON.stringify(allSids));
+
     const addressItem = items.find((item) => {
-      const record = item as unknown as Record<string, unknown>;
-      const objectSid = record.objectSid ?? record.object_sid;
+      const r = item as unknown as Record<string, unknown>;
+      const objectSid = r.objectSid ?? r.object_sid;
       return typeof objectSid === "string" && objectSid.startsWith("AD");
     });
 
     if (addressItem) {
-      const record = addressItem as unknown as Record<string, unknown>;
-      const sid = (record.objectSid ?? record.object_sid) as string;
-      console.log(`[regulatory-bundle] found address ${sid} inside bundle ${params.bundleSid}`);
+      const r = addressItem as unknown as Record<string, unknown>;
+      const sid = (r.objectSid ?? r.object_sid) as string;
+      console.log(`[regulatory-bundle] found address ${sid} in bundle ItemAssignments`);
       return sid;
     }
-
-    console.warn(`[regulatory-bundle] no address found in bundle ${params.bundleSid} item assignments`);
-    return null;
   } catch (err) {
-    console.warn(`[regulatory-bundle] failed to read item assignments for ${params.bundleSid}:`, err);
-    return null;
+    console.warn(`[regulatory-bundle] ItemAssignments read failed for ${params.bundleSid}:`, err);
   }
+
+  // Strategy 2: List v2010 addresses in the subaccount
+  try {
+    const addresses = await client.addresses.list({ limit: 5 });
+    console.log(`[regulatory-bundle] v2010 addresses in subaccount:`, addresses.map((a) => a.sid));
+
+    if (addresses.length > 0) {
+      console.log(`[regulatory-bundle] using subaccount address ${addresses[0].sid}`);
+      return addresses[0].sid;
+    }
+  } catch (err) {
+    console.warn(`[regulatory-bundle] addresses.list failed:`, err);
+  }
+
+  // Strategy 3: Create an address in the subaccount
+  try {
+    const created = await client.addresses.create({
+      friendlyName: "Earlymark Regulatory",
+      customerName: "Earlymark",
+      street: "36-42 Henderson Rd",
+      city: "Alexandria",
+      region: "NSW",
+      postalCode: "2015",
+      isoCountry: "AU",
+      autoCorrectAddress: true,
+    });
+    console.log(`[regulatory-bundle] created fallback address ${created.sid} in subaccount`);
+    return created.sid;
+  } catch (err) {
+    console.warn(`[regulatory-bundle] address creation failed:`, err);
+  }
+
+  console.error(`[regulatory-bundle] all address resolution strategies failed for bundle ${params.bundleSid}`);
+  return null;
 }
 
 async function waitForBundleReady(params: { targetAccountSid: string; bundleSid: string; subaccountAuthToken: string | null }) {

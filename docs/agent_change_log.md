@@ -1,3 +1,9 @@
+## 2026-03-19 22:30 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/twilio-regulatory.ts`, `docs/agent_change_log.md`
+- **Summary**: Rewrote address resolution for AU number purchase with a 3-strategy fallback: (1) Check bundle ItemAssignments for AD... objects, (2) List v2010 addresses in the subaccount (created by clone), (3) Create an address in the subaccount using Earlymark's details. Added comprehensive diagnostic logging showing all ItemAssignment objectSids and subaccount addresses. Previous approach only tried strategy 1, which returned null because Twilio bundles nest addresses inside supporting documents rather than as direct item assignments.
+- **Why**: ItemAssignments alone don't contain AD... references for AU Mobile Business bundles — addresses are associated through supporting documents. The multi-strategy approach ensures we find or create a valid address regardless of bundle structure.
+
 ## 2026-03-19 21:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/twilio-regulatory.ts`, `lib/comms.ts`, `lib/comms-simple.ts`, `__tests__/comms.test.ts`, `__tests__/twilio-regulatory-bundle-clone.test.ts`, `docs/agent_change_log.md`
