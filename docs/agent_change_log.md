@@ -1062,6 +1062,32 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Scraped addresses such as “36-42 Henderson Road, Alexandria, New South Wales, Australia” should be enough for provisioning; we now use Google’s structured data behind the scenes instead of treating the scraped string as unstructured text.
 
+## 2026-03-19 10:10 (AEDT) - codex
+
+- Files changed:
+  - `lib/comms.ts`
+  - `lib/comms-simple.ts`
+  - `lib/twilio-regulatory.ts`
+  - `__tests__/comms.test.ts`
+  - `__tests__/twilio-regulatory-bundle-clone.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Architectural fix**: Stopped purchasing AU mobile numbers in Twilio subaccounts.
+    Numbers are now purchased in the **main account** where the regulatory bundle and its
+    address coexist. This eliminates the persistent "Address not contained in bundle"
+    error caused by bundle cloning not replicating addresses across account boundaries.
+  - Removed subaccount creation/cloning from the number purchase flow. The main account's
+    source bundle SID and its address (found via Supporting Document `attributes.address_sids`)
+    are used directly.
+  - Added `findSourceBundleAddressSid()` that inspects the source bundle's ItemAssignments
+    and Supporting Documents in the main account to discover the correct address.
+  - `resolveAuMobileBusinessBundleSidForAccount` simplified back to returning a plain string.
+  - Tests and comms-simple.ts updated to match.
+- Why:
+  - Twilio bundle clones copy documents but reference the original account's addresses.
+    Subaccount purchases always failed because the address was either missing or not linked
+    to the cloned bundle. Purchasing in the main account is the architecturally correct fix.
+
 ## 2026-03-18 03:14 (AEDT) - codex
 
 - Files changed:

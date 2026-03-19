@@ -13,7 +13,7 @@ import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
 import { getExpectedSmsWebhookUrl, getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
-import { describeTwilioProvisioningError, resolveAuMobileBusinessBundleSidForAccount } from "@/lib/twilio-regulatory";
+import { describeTwilioProvisioningError, requireAuMobileBusinessBundleSid, findSourceBundleAddressSid } from "@/lib/twilio-regulatory";
 import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -152,10 +152,8 @@ export async function initializeSimpleComms(
     }
 
     stageReached = "bundle-prepare";
-    const bundleResult = await resolveAuMobileBusinessBundleSidForAccount({
-      friendlyName: `${managedFriendlyName} AU Mobile Business`,
-    });
-    bundleSid = bundleResult.bundleSid;
+    bundleSid = requireAuMobileBusinessBundleSid();
+    const addressSid = await findSourceBundleAddressSid();
 
     stageReached = "number-purchase";
     console.log("[SIMPLE-COMMS] Stage: number-purchase, purchasing:", chosenNumber);
@@ -165,8 +163,8 @@ export async function initializeSimpleComms(
       friendlyName: managedFriendlyName,
       bundleSid,
     };
-    if (bundleResult.addressSid) {
-      purchaseParams.addressSid = bundleResult.addressSid;
+    if (addressSid) {
+      purchaseParams.addressSid = addressSid;
     }
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create(purchaseParams);

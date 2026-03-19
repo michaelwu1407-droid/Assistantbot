@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   db,
-  createTwilioSubaccount,
-  getSubaccountClient,
-  resolveAuMobileBusinessBundleSidForAccount,
+  requireAuMobileBusinessBundleSid,
+  findSourceBundleAddressSid,
   getExpectedSmsWebhookUrl,
   getExpectedVoiceGatewayUrl,
   buildManagedVoiceNumberFriendlyName,
@@ -22,9 +21,8 @@ const {
       create: vi.fn(),
     },
   },
-  createTwilioSubaccount: vi.fn(),
-  getSubaccountClient: vi.fn(),
-  resolveAuMobileBusinessBundleSidForAccount: vi.fn(),
+  requireAuMobileBusinessBundleSid: vi.fn(),
+  findSourceBundleAddressSid: vi.fn(),
   getExpectedSmsWebhookUrl: vi.fn(),
   getExpectedVoiceGatewayUrl: vi.fn(),
   buildManagedVoiceNumberFriendlyName: vi.fn(),
@@ -37,8 +35,6 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/twilio", () => ({
   twilioMasterClient,
-  createTwilioSubaccount,
-  getSubaccountClient,
 }));
 
 vi.mock("@/lib/twilio-regulatory", () => ({
@@ -48,7 +44,8 @@ vi.mock("@/lib/twilio-regulatory", () => ({
     code: undefined,
     status: undefined,
   }),
-  resolveAuMobileBusinessBundleSidForAccount,
+  requireAuMobileBusinessBundleSid,
+  findSourceBundleAddressSid,
 }));
 
 vi.mock("@/lib/earlymark-inbound-config", () => ({
@@ -91,49 +88,32 @@ describe("initializeTradieComms", () => {
     },
   );
   const usageTriggerCreate = vi.fn();
-  const subClient = {
-    availablePhoneNumbers: vi.fn(() => ({
-      mobile: {
-        list: mobileList,
-      },
-    })),
-    incomingPhoneNumbers,
-    trunking: {
-      v1: {
-        trunks,
-      },
-    },
-    usage: {
-      triggers: {
-        create: usageTriggerCreate,
-      },
-    },
-    addresses: {},
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TWILIO_ACCOUNT_SID = "AC_master";
+    process.env.TWILIO_AUTH_TOKEN = "master_auth";
     process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
     process.env.LIVEKIT_SIP_URI = "sip:earlymark@sip.livekit.cloud";
-    db.workspace.findUnique.mockResolvedValue({
-      twilioSubaccountId: "AC_sub",
-      twilioSubaccountAuthToken: "auth-token",
-      ownerId: "user_123",
-      location: "123 Test St, Alexandria NSW 2015",
-      settings: {},
+
+    Object.assign(twilioMasterClient, {
+      availablePhoneNumbers: vi.fn(() => ({
+        mobile: { list: mobileList },
+      })),
+      incomingPhoneNumbers,
+      trunking: { v1: { trunks } },
+      usage: { triggers: { create: usageTriggerCreate } },
     });
+
     db.workspace.update.mockResolvedValue({});
     db.activity.create.mockResolvedValue({});
 
     buildManagedVoiceNumberFriendlyName.mockReturnValue("Managed Friendly Name");
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getExpectedSmsWebhookUrl.mockReturnValue("https://app.example.com/api/twilio/webhook");
-    resolveAuMobileBusinessBundleSidForAccount.mockResolvedValue({
-      bundleSid: "BU_sub",
-      addressSid: "AD_from_bundle",
-    });
-    getSubaccountClient.mockReturnValue(subClient);
+    requireAuMobileBusinessBundleSid.mockReturnValue("BU_source");
+    findSourceBundleAddressSid.mockResolvedValue("AD_from_bundle");
+
     mobileList.mockResolvedValue([{ phoneNumber: "+61485010634" }]);
     incomingCreate.mockResolvedValue({ sid: "PN_123", phoneNumber: "+61485010634" });
     incomingUpdate.mockResolvedValue({});
@@ -144,26 +124,26 @@ describe("initializeTradieComms", () => {
     usageTriggerCreate.mockResolvedValue({});
   });
 
-  it("reuses a persisted workspace subaccount instead of creating a new one", async () => {
+  it("purchases number in main account with source bundle and address", async () => {
     const result = await initializeTradieComms(
       "ws_123",
       "Alexandria Automotive Services",
       "+61434955958",
     );
 
-    expect(createTwilioSubaccount).not.toHaveBeenCalled();
-    expect(getSubaccountClient).toHaveBeenCalledWith("AC_sub", "auth-token");
-    expect(resolveAuMobileBusinessBundleSidForAccount).toHaveBeenCalledWith(
+    expect(requireAuMobileBusinessBundleSid).toHaveBeenCalled();
+    expect(findSourceBundleAddressSid).toHaveBeenCalled();
+    expect(incomingCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        targetAccountSid: "AC_sub",
+        bundleSid: "BU_source",
+        addressSid: "AD_from_bundle",
+        phoneNumber: "+61485010634",
       }),
     );
     expect(db.workspace.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "ws_123" },
         data: expect.objectContaining({
-          twilioSubaccountId: "AC_sub",
-          twilioSubaccountAuthToken: "auth-token",
           twilioPhoneNumber: "+61485010634",
         }),
       }),
@@ -171,8 +151,7 @@ describe("initializeTradieComms", () => {
     expect(result).toMatchObject({
       success: true,
       phoneNumber: "+61485010634",
-      bundleSid: "BU_sub",
-      subaccountSid: "AC_sub",
+      bundleSid: "BU_source",
     });
   });
 });

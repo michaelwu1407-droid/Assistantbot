@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch, itemAssignmentsList } = vi.hoisted(() => {
+const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch } = vi.hoisted(() => {
   const bundleFetch = vi.fn();
-  const itemAssignmentsList = vi.fn();
   const bundleCloneCreate = vi.fn();
   const twilioMasterClient = {
     numbers: {
@@ -19,15 +18,12 @@ const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch, itemA
         regulatoryCompliance: {
           bundles: () => ({
             fetch: bundleFetch,
-            itemAssignments: {
-              list: itemAssignmentsList,
-            },
           }),
         },
       },
     },
   }));
-  return { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch, itemAssignmentsList };
+  return { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch };
 });
 
 vi.mock("@/lib/twilio", () => ({
@@ -49,13 +45,10 @@ describe("resolveAuMobileBusinessBundleSidForAccount", () => {
     process.env.TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID = "BU_SOURCE";
   });
 
-  it("uses clone.sid when clone.bundleSid is missing and extracts address from bundle", async () => {
+  it("uses clone.sid when clone.bundleSid is missing", async () => {
     vi.resetModules();
     bundleCloneCreate.mockResolvedValue({ sid: "BU_CLONED" });
     bundleFetch.mockResolvedValue({ status: "approved" });
-    itemAssignmentsList.mockResolvedValue([
-      { objectSid: "AD_BUNDLE_ADDR" },
-    ]);
 
     const { resolveAuMobileBusinessBundleSidForAccount } = await import("@/lib/twilio-regulatory");
     const result = await resolveAuMobileBusinessBundleSidForAccount({
@@ -64,10 +57,9 @@ describe("resolveAuMobileBusinessBundleSidForAccount", () => {
       friendlyName: "test",
     });
 
-    expect(result).toEqual({ bundleSid: "BU_CLONED", addressSid: "AD_BUNDLE_ADDR" });
+    expect(result).toBe("BU_CLONED");
     expect(twilioFactory).toHaveBeenCalledWith("AC_SUB", "sub_token");
     expect(bundleFetch).toHaveBeenCalled();
-    expect(itemAssignmentsList).toHaveBeenCalled();
   });
 });
 

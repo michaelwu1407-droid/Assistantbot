@@ -5,7 +5,7 @@ import { twilioMasterClient } from "@/lib/twilio";
 const MASTER_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
 const MASTER_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN?.trim() || "";
 const AU_MOBILE_BUSINESS_BUNDLE_SID = process.env.TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID?.trim() || "";
-const bundleCloneCache = new Map<string, Promise<{ bundleSid: string; addressSid: string | null }>>();
+const bundleCloneCache = new Map<string, Promise<string>>();
 const BUNDLE_READY_POLL_ATTEMPTS = 10;
 const BUNDLE_READY_POLL_DELAY_MS = 3000;
 
@@ -33,12 +33,12 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
   targetAccountSid?: string | null;
   subaccountAuthToken?: string | null;
   friendlyName?: string;
-}): Promise<{ bundleSid: string; addressSid: string | null }> {
+}): Promise<string> {
   const sourceBundleSid = requireAuMobileBusinessBundleSid();
   const targetAccountSid = params.targetAccountSid?.trim() || MASTER_ACCOUNT_SID;
 
   if (!targetAccountSid || targetAccountSid === MASTER_ACCOUNT_SID) {
-    return { bundleSid: sourceBundleSid, addressSid: null };
+    return sourceBundleSid;
   }
 
   if (!twilioMasterClient) {
@@ -68,14 +68,7 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
         bundleSid: clonedBundleSid,
         subaccountAuthToken: params.subaccountAuthToken || null,
       });
-
-      const addressSid = await extractAddressSidFromBundle({
-        targetAccountSid,
-        subaccountAuthToken: params.subaccountAuthToken || null,
-        bundleSid: clonedBundleSid,
-      });
-
-      return { bundleSid: clonedBundleSid, addressSid };
+      return clonedBundleSid;
     })
     .catch((error: unknown) => {
       bundleCloneCache.delete(cacheKey);
@@ -90,86 +83,84 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
 }
 
 /**
- * Finds the address SID to use with a cloned bundle for number purchase.
+ * Finds the address SID referenced by the SOURCE bundle in the MAIN account.
  *
- * Strategy (in order):
- *   1. Check bundle ItemAssignments for a direct AD... reference
- *   2. List v2010 addresses in the subaccount (clone may have created them)
- *   3. Create a new address in the subaccount using Earlymark's details
+ * Twilio bundles link addresses through Supporting Documents: the document's
+ * `attributes.address_sids` array holds the AD... SIDs. When purchasing a
+ * number with both bundleSid and addressSid, the address MUST be one that's
+ * linked to the bundle — a separately created address is rejected with
+ * "Address not contained in bundle".
  *
- * Twilio requires `addressSid` on AU mobile purchase (error 21631) and it
- * must be "contained in" the bundle (or at minimum, in the same account).
+ * This function inspects the main account's source bundle (not a clone)
+ * because clones reference the original account's addresses, which don't
+ * exist in the subaccount.
  */
-async function extractAddressSidFromBundle(params: {
-  targetAccountSid: string;
-  subaccountAuthToken: string | null;
-  bundleSid: string;
-}): Promise<string | null> {
-  const hasSubaccountCreds = Boolean(params.subaccountAuthToken && params.targetAccountSid);
-  const client = hasSubaccountCreds
-    ? twilio(params.targetAccountSid, params.subaccountAuthToken as string)
-    : twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN);
+export async function findSourceBundleAddressSid(): Promise<string | null> {
+  if (!twilioMasterClient) return null;
 
-  // Strategy 1: Check bundle ItemAssignments for AD... objects
+  const sourceBundleSid = getConfiguredAuMobileBusinessBundleSid();
+  if (!sourceBundleSid) return null;
+
+  // Strategy 1: Direct AD... in ItemAssignments
   try {
-    const items = await client.numbers.v2.regulatoryCompliance
-      .bundles(params.bundleSid)
+    const items = await twilioMasterClient.numbers.v2.regulatoryCompliance
+      .bundles(sourceBundleSid)
       .itemAssignments.list();
 
     const allSids = items.map((item) => {
       const r = item as unknown as Record<string, unknown>;
       return r.objectSid ?? r.object_sid;
     });
-    console.log(`[regulatory-bundle] ItemAssignments for ${params.bundleSid}:`, JSON.stringify(allSids));
+    console.log(`[regulatory] source bundle ${sourceBundleSid} ItemAssignments:`, JSON.stringify(allSids));
 
-    const addressItem = items.find((item) => {
+    for (const item of items) {
       const r = item as unknown as Record<string, unknown>;
-      const objectSid = r.objectSid ?? r.object_sid;
-      return typeof objectSid === "string" && objectSid.startsWith("AD");
-    });
+      const objectSid = (r.objectSid ?? r.object_sid) as string | undefined;
+      if (objectSid?.startsWith("AD")) {
+        console.log(`[regulatory] found address ${objectSid} directly in bundle`);
+        return objectSid;
+      }
+    }
 
-    if (addressItem) {
-      const r = addressItem as unknown as Record<string, unknown>;
-      const sid = (r.objectSid ?? r.object_sid) as string;
-      console.log(`[regulatory-bundle] found address ${sid} in bundle ItemAssignments`);
-      return sid;
+    // Strategy 2: Read Supporting Documents' attributes.address_sids
+    for (const item of items) {
+      const r = item as unknown as Record<string, unknown>;
+      const objectSid = (r.objectSid ?? r.object_sid) as string | undefined;
+      if (!objectSid?.startsWith("RD")) continue;
+
+      try {
+        const doc = await twilioMasterClient.numbers.v2.regulatoryCompliance
+          .supportingDocuments(objectSid)
+          .fetch();
+        const attrs = doc.attributes as Record<string, unknown> | null;
+        console.log(`[regulatory] supporting doc ${objectSid} attributes:`, JSON.stringify(attrs));
+
+        if (attrs && Array.isArray(attrs.address_sids) && attrs.address_sids.length > 0) {
+          const adSid = attrs.address_sids[0] as string;
+          console.log(`[regulatory] found address ${adSid} in supporting doc ${objectSid}`);
+          return adSid;
+        }
+      } catch (docErr) {
+        console.warn(`[regulatory] failed to fetch supporting doc ${objectSid}:`, docErr);
+      }
     }
   } catch (err) {
-    console.warn(`[regulatory-bundle] ItemAssignments read failed for ${params.bundleSid}:`, err);
+    console.warn(`[regulatory] failed to inspect source bundle ${sourceBundleSid}:`, err);
   }
 
-  // Strategy 2: List v2010 addresses in the subaccount
+  // Strategy 3: List AU addresses in the main account
   try {
-    const addresses = await client.addresses.list({ limit: 5 });
-    console.log(`[regulatory-bundle] v2010 addresses in subaccount:`, addresses.map((a) => a.sid));
-
+    const addresses = await twilioMasterClient.addresses.list({ isoCountry: "AU", limit: 5 });
+    console.log(`[regulatory] main account AU addresses:`, addresses.map((a) => ({ sid: a.sid, street: a.street })));
     if (addresses.length > 0) {
-      console.log(`[regulatory-bundle] using subaccount address ${addresses[0].sid}`);
+      console.log(`[regulatory] using main account address ${addresses[0].sid}`);
       return addresses[0].sid;
     }
   } catch (err) {
-    console.warn(`[regulatory-bundle] addresses.list failed:`, err);
+    console.warn(`[regulatory] failed to list main account addresses:`, err);
   }
 
-  // Strategy 3: Create an address in the subaccount
-  try {
-    const created = await client.addresses.create({
-      friendlyName: "Earlymark Regulatory",
-      customerName: "Earlymark",
-      street: "36-42 Henderson Rd",
-      city: "Alexandria",
-      region: "NSW",
-      postalCode: "2015",
-      isoCountry: "AU",
-      autoCorrectAddress: true,
-    });
-    console.log(`[regulatory-bundle] created fallback address ${created.sid} in subaccount`);
-    return created.sid;
-  } catch (err) {
-    console.warn(`[regulatory-bundle] address creation failed:`, err);
-  }
-
-  console.error(`[regulatory-bundle] all address resolution strategies failed for bundle ${params.bundleSid}`);
+  console.error(`[regulatory] could not find any address for source bundle ${sourceBundleSid}`);
   return null;
 }
 

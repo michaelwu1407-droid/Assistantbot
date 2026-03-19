@@ -27,9 +27,9 @@
 
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone-utils";
-import { twilioMasterClient, createTwilioSubaccount, getSubaccountClient } from "@/lib/twilio";
+import { twilioMasterClient } from "@/lib/twilio";
 import { getExpectedSmsWebhookUrl, getExpectedVoiceGatewayUrl } from "@/lib/earlymark-inbound-config";
-import { describeTwilioProvisioningError, resolveAuMobileBusinessBundleSidForAccount } from "@/lib/twilio-regulatory";
+import { describeTwilioProvisioningError, requireAuMobileBusinessBundleSid, findSourceBundleAddressSid } from "@/lib/twilio-regulatory";
 import { buildManagedVoiceNumberFriendlyName } from "@/lib/voice-number-metadata";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -47,11 +47,6 @@ interface CommsSetupResult {
 }
 
 type ManagedTwilioClient = NonNullable<typeof twilioMasterClient>;
-type WorkspaceSubaccount = {
-  subaccountId: string;
-  subaccountAuthToken: string;
-  reused: boolean;
-};
 
 // ─── Main Onboarding Function ───────────────────────────────────────
 
@@ -102,49 +97,34 @@ export async function initializeTradieComms(
   let trunkSid: string | null = null;
   let workspacePersisted = false;
   let cleanupWarnings: string[] = [];
-  let subClient: ManagedTwilioClient | null = null;
   let bundleSid: string | null = null;
-  let subaccountId: string | null = null;
+  const masterAccountSid = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
 
   try {
     // ────────────────────────────────────────────────────────────────
-    // 1. Create Twilio Subaccount
+    // 1. Resolve bundle + address in the MAIN account
+    //    Bundle cloning to subaccounts is broken for AU mobile because
+    //    cloned bundles reference the main account's addresses, which
+    //    don't exist in the subaccount. Purchasing in the main account
+    //    where both the bundle and address coexist is the reliable path.
     // ────────────────────────────────────────────────────────────────
-    stageReached = "subaccount";
-    const subaccount = await resolveWorkspaceSubaccount(workspaceId, businessName);
-    subaccountId = subaccount.subaccountId;
-    subClient = getSubaccountClient(subaccountId, subaccount.subaccountAuthToken);
+    stageReached = "bundle-resolve";
+    bundleSid = requireAuMobileBusinessBundleSid();
 
-    await logActivity(
-      workspaceId,
-      subaccount.reused ? "Twilio Subaccount Reused" : "Twilio Subaccount Created",
-      `SID: ${subaccountId}`,
-    );
-
-    stageReached = "bundle-clone";
-    const bundleResult = await resolveAuMobileBusinessBundleSidForAccount({
-      targetAccountSid: subaccountId,
-      subaccountAuthToken: subaccount.subaccountAuthToken,
-      friendlyName: `${managedFriendlyName} AU Mobile Business`,
-    });
-    bundleSid = bundleResult.bundleSid;
-    const bundleAddressSid = bundleResult.addressSid;
+    stageReached = "address-resolve";
+    const addressSid = await findSourceBundleAddressSid();
+    console.log(`[provisioning] bundle=${bundleSid}, address=${addressSid}`);
 
     // ────────────────────────────────────────────────────────────────
     // 2. Buy Australian +61 Number (SMS + Voice capable)
-    //    addressSid must be the one inside the cloned bundle.
+    //    Purchased in the main account where bundle + address coexist.
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
 
-    // Search for available AU mobile numbers with SMS + Voice.
-    let chosenNumber: string | null = null;
-
-    const mobileNumbers = await subClient.availablePhoneNumbers("AU")
+    const mobileNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
       .mobile.list({ smsEnabled: true, voiceEnabled: true, limit: 5 });
 
-    if (mobileNumbers.length > 0) {
-      chosenNumber = mobileNumbers[0].phoneNumber;
-    }
+    const chosenNumber = mobileNumbers.length > 0 ? mobileNumbers[0].phoneNumber : null;
 
     if (!chosenNumber) {
       await logActivity(
@@ -157,7 +137,6 @@ export async function initializeTradieComms(
         error: "No Australian mobile numbers available with SMS + Voice capability",
         stageReached: "number-search",
         bundleSid: bundleSid ?? undefined,
-        subaccountSid: subaccountId ?? undefined,
       };
     }
 
@@ -168,19 +147,19 @@ export async function initializeTradieComms(
       friendlyName: managedFriendlyName,
       bundleSid,
     };
-    if (bundleAddressSid) {
-      purchaseParams.addressSid = bundleAddressSid;
+    if (addressSid) {
+      purchaseParams.addressSid = addressSid;
     }
     console.log(`[number-purchase] params:`, JSON.stringify(purchaseParams));
 
-    const purchasedNumber = await subClient.incomingPhoneNumbers.create(purchaseParams);
+    const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create(purchaseParams);
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
 
     await logActivity(
       workspaceId,
       "Phone Number Purchased",
-      `Number: ${purchasedNumber.phoneNumber} (SID: ${purchasedNumber.sid})`
+      `Number: ${purchasedNumber.phoneNumber} (SID: ${purchasedNumber.sid}) in main account`
     );
 
     // ────────────────────────────────────────────────────────────────
@@ -188,14 +167,13 @@ export async function initializeTradieComms(
     // ────────────────────────────────────────────────────────────────
     stageReached = "sip-trunk";
 
-    const trunk = await subClient.trunking.v1.trunks.create({
+    const trunk = await twilioMasterClient.trunking.v1.trunks.create({
       friendlyName: `${businessName} - LiveKit SIP`,
     });
     trunkSid = trunk.sid;
 
-    // Add an origination URI so LiveKit can route inbound calls
     if (livekitSipUri) {
-      await subClient.trunking.v1
+      await twilioMasterClient.trunking.v1
         .trunks(trunk.sid)
         .originationUrls.create({
           friendlyName: "LiveKit Inbound",
@@ -206,10 +184,9 @@ export async function initializeTradieComms(
         });
     }
 
-    // Build the termination URI (subaccount SID-based)
-    const terminationUri = `${subaccountId}.pstn.twilio.com`;
+    const terminationUri = `${masterAccountSid}.pstn.twilio.com`;
     stageReached = "number-config";
-    await subClient.incomingPhoneNumbers(purchasedNumber.sid).update({
+    await twilioMasterClient.incomingPhoneNumbers(purchasedNumber.sid).update({
       voiceUrl: expectedVoiceGatewayUrl,
       voiceMethod: "POST",
       voiceApplicationSid: "",
@@ -233,8 +210,8 @@ export async function initializeTradieComms(
     await db.workspace.update({
       where: { id: workspaceId },
       data: {
-        twilioSubaccountId: subaccountId,
-        twilioSubaccountAuthToken: subaccount.subaccountAuthToken,
+        twilioSubaccountId: masterAccountSid,
+        twilioSubaccountAuthToken: process.env.TWILIO_AUTH_TOKEN?.trim() || "",
         twilioPhoneNumber: purchasedNumber.phoneNumber,
         twilioPhoneNumberNormalized: normalizePhone(purchasedNumber.phoneNumber),
         twilioPhoneNumberSid: purchasedNumber.sid,
@@ -255,7 +232,7 @@ export async function initializeTradieComms(
     stageReached = "usage-trigger";
 
     try {
-      await subClient.usage.triggers.create({
+      await twilioMasterClient.usage.triggers.create({
         friendlyName: `${businessName} daily limit`,
         usageCategory: 'totalprice',
         triggerBy: 'price',
@@ -271,7 +248,6 @@ export async function initializeTradieComms(
       );
     } catch (triggerErr) {
       console.error("[initializeTradieComms] Usage trigger creation failed:", triggerErr);
-      // Non-fatal, just log and continue
       await logActivity(
         workspaceId,
         "Billing Circuit Breaker Warning",
@@ -280,7 +256,7 @@ export async function initializeTradieComms(
     }
 
     // ────────────────────────────────────────────────────────────────
-    // 6. Send Welcome SMS to the Tradie
+    // 6. Complete
     // ────────────────────────────────────────────────────────────────
     stageReached = "complete";
     await logActivity(
@@ -294,13 +270,13 @@ export async function initializeTradieComms(
       phoneNumber: purchasedNumber.phoneNumber,
       stageReached: "complete",
       bundleSid: bundleSid ?? undefined,
-      subaccountSid: subaccountId ?? undefined,
+      subaccountSid: masterAccountSid,
     };
   } catch (error) {
     const { detailedError, code: errorCode, status } = describeTwilioProvisioningError(error);
     if (!workspacePersisted && (purchasedNumberSid || trunkSid)) {
       cleanupWarnings = await cleanupProvisioningArtifacts({
-        client: subClient || twilioMasterClient,
+        client: twilioMasterClient,
         workspaceId,
         phoneNumberSid: purchasedNumberSid,
         phoneNumber: purchasedPhoneNumber,
@@ -317,7 +293,7 @@ export async function initializeTradieComms(
       workspaceId,
       "Comms Setup Failed",
       `Error at stage '${stageReached}': ${detailedError}${cleanupWarnings.length > 0 ? ` Cleanup warnings: ${cleanupWarnings.join(" | ")}` : ""}`
-    ).catch(() => { }); // Don't let logging failure mask the real error
+    ).catch(() => { });
 
     return {
       success: false,
@@ -326,7 +302,7 @@ export async function initializeTradieComms(
       errorCode,
       status,
       bundleSid: bundleSid ?? undefined,
-      subaccountSid: subaccountId ?? undefined,
+      subaccountSid: masterAccountSid,
     };
   }
 }
@@ -342,53 +318,6 @@ async function logActivity(workspaceId: string, title: string, content: string) 
       // No dealId/contactId — this is a system-level workspace event
     },
   });
-}
-
-async function resolveWorkspaceSubaccount(workspaceId: string, businessName: string): Promise<WorkspaceSubaccount> {
-  const masterAccountSid = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-    select: {
-      twilioSubaccountId: true,
-      twilioSubaccountAuthToken: true,
-    },
-  });
-
-  if (!workspace) {
-    throw new Error(`Workspace ${workspaceId} was not found before Twilio provisioning started.`);
-  }
-
-  if (workspace.twilioSubaccountId && workspace.twilioSubaccountId !== masterAccountSid) {
-    if (!workspace.twilioSubaccountAuthToken) {
-      throw new Error(
-        `Workspace ${workspaceId} already has Twilio subaccount ${workspace.twilioSubaccountId} but no auth token is stored for retry provisioning.`,
-      );
-    }
-
-    return {
-      subaccountId: workspace.twilioSubaccountId,
-      subaccountAuthToken: workspace.twilioSubaccountAuthToken,
-      reused: true,
-    };
-  }
-
-  const subaccount = await createTwilioSubaccount(businessName, { workspaceId });
-  if (!subaccount) {
-    throw new Error("Failed to create Twilio subaccount");
-  }
-
-  await db.workspace.update({
-    where: { id: workspaceId },
-    data: {
-      twilioSubaccountId: subaccount.subaccountId,
-      twilioSubaccountAuthToken: subaccount.subaccountAuthToken,
-    },
-  });
-
-  return {
-    ...subaccount,
-    reused: false,
-  };
 }
 
 async function cleanupProvisioningArtifacts(params: {
