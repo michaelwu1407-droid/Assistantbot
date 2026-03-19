@@ -397,14 +397,67 @@ function truncateCustomerName(name: string, maxLen: number = 21): string {
   return trimmed.slice(0, maxLen).trim();
 }
 
+const EARLYMARK_ADDRESS = {
+  street: "36-42 Henderson Rd",
+  city: "Alexandria",
+  region: "NSW",
+  postalCode: "2015",
+  isoCountry: "AU",
+} as const;
+
 /**
- * Replicates a pre-validated address from the main Twilio account into a subaccount.
+ * Finds (or creates) an AU address in the main Twilio account to use as the
+ * regulatory template for all subaccount number purchases.
  *
- * Twilio's API address validator rejects many valid AU addresses that the Console
- * UI accepts. The reliable approach is:
- *   1. Create ONE validated address in the main account via the Twilio Console.
- *   2. Store its SID in TWILIO_VALIDATED_ADDRESS_SID.
- *   3. For each subaccount, read those validated fields and create the same address.
+ * AU mobile numbers require `address_requirements: "any"` — Twilio just needs
+ * a valid address on file, it does NOT need to be the end-user's address.
+ * Earlymark's own business address satisfies this for every customer.
+ *
+ * Resolution order:
+ *   1. Explicit env var TWILIO_VALIDATED_ADDRESS_SID (fastest, optional override)
+ *   2. Any existing AU address already in the main account
+ *   3. Auto-create one using Earlymark's registered business address
+ */
+async function resolveMainAccountAddressSid(): Promise<string> {
+  if (!twilioMasterClient) throw new Error("Twilio master client is not configured.");
+
+  const envSid = (process.env.TWILIO_VALIDATED_ADDRESS_SID ?? "").trim();
+  if (envSid) {
+    console.log(`[regulatory-address] using explicit TWILIO_VALIDATED_ADDRESS_SID: ${envSid}`);
+    return envSid;
+  }
+
+  const existing = await twilioMasterClient.addresses.list({ isoCountry: "AU", limit: 1 });
+  if (existing.length > 0) {
+    console.log(`[regulatory-address] found existing AU address in main account: ${existing[0].sid}`);
+    return existing[0].sid;
+  }
+
+  try {
+    const created = await twilioMasterClient.addresses.create({
+      friendlyName: "Earlymark Regulatory",
+      customerName: "Earlymark",
+      ...EARLYMARK_ADDRESS,
+      autoCorrectAddress: true,
+    });
+    console.log(`[regulatory-address] auto-created AU address in main account: ${created.sid}`);
+    return created.sid;
+  } catch (err) {
+    throw new Error(
+      `No AU address found in main Twilio account and auto-creation failed. ` +
+      `Create one at https://console.twilio.com/us1/develop/phone-numbers/manage/addresses ` +
+      `and optionally set TWILIO_VALIDATED_ADDRESS_SID. ` +
+      `Error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
+ * Ensures the subaccount has an AU regulatory address by replicating the
+ * fields from the main account's template address.
+ *
+ * Each Twilio subaccount is isolated, so an AddressSid from the main account
+ * can't be used directly — we read the fields and create a copy.
  */
 async function ensureWorkspaceRegulatoryAddress(
   workspaceId: string,
@@ -422,30 +475,13 @@ async function ensureWorkspaceRegulatoryAddress(
     return workspace.twilioRegulatoryAddressSid;
   }
 
-  const sourceAddressSid = (process.env.TWILIO_VALIDATED_ADDRESS_SID ?? "").trim();
-  if (!sourceAddressSid) {
-    throw new Error(
-      "TWILIO_VALIDATED_ADDRESS_SID is not set. Create a validated address in the Twilio Console and set its SID in the environment.",
-    );
-  }
-
   if (!twilioMasterClient) {
     throw new Error("Twilio master client is not configured.");
   }
 
-  // Read the validated address from the main account
+  const sourceAddressSid = await resolveMainAccountAddressSid();
   const source = await twilioMasterClient.addresses(sourceAddressSid).fetch();
-  console.log(`[regulatory-address] source address from main account:`, {
-    sid: source.sid,
-    street: source.street,
-    city: source.city,
-    region: source.region,
-    postalCode: source.postalCode,
-    isoCountry: source.isoCountry,
-    validated: source.validated,
-  });
 
-  // Replicate into the subaccount with the same validated fields
   const addressPayload = {
     friendlyName: `${truncateCustomerName(businessName)} AU Mobile`,
     customerName: truncateCustomerName(businessName),
@@ -456,7 +492,7 @@ async function ensureWorkspaceRegulatoryAddress(
     isoCountry: source.isoCountry,
     autoCorrectAddress: true,
   };
-  console.log(`[regulatory-address] creating in subaccount:`, JSON.stringify(addressPayload));
+  console.log(`[regulatory-address] replicating into subaccount:`, JSON.stringify(addressPayload));
 
   const address = await (subClient as any).addresses.create(addressPayload);
 
@@ -476,7 +512,7 @@ async function ensureWorkspaceRegulatoryAddress(
   await logActivity(
     workspaceId,
     "Regulatory Address Created",
-    `Regulatory address ${addressSid} was created in the Twilio subaccount for AU mobile provisioning.`,
+    `Regulatory address ${addressSid} replicated into subaccount for AU mobile provisioning.`,
   );
 
   return addressSid;

@@ -29,7 +29,10 @@ const {
   getExpectedVoiceGatewayUrl: vi.fn(),
   buildManagedVoiceNumberFriendlyName: vi.fn(),
   twilioMasterClient: {
-    addresses: vi.fn(),
+    addresses: Object.assign(vi.fn(), {
+      list: vi.fn(),
+      create: vi.fn(),
+    }),
   } as Record<string, unknown>,
 }));
 
@@ -120,7 +123,7 @@ describe("initializeTradieComms", () => {
     process.env.TWILIO_ACCOUNT_SID = "AC_master";
     process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
     process.env.LIVEKIT_SIP_URI = "sip:earlymark@sip.livekit.cloud";
-    process.env.TWILIO_VALIDATED_ADDRESS_SID = "AD_main_validated";
+    delete process.env.TWILIO_VALIDATED_ADDRESS_SID;
 
     db.workspace.findUnique.mockResolvedValue({
       twilioSubaccountId: "AC_sub",
@@ -133,11 +136,15 @@ describe("initializeTradieComms", () => {
     db.workspace.update.mockResolvedValue({});
     db.activity.create.mockResolvedValue({});
 
-    // Mock reading the validated address from the main account
+    // Auto-resolve: list finds an existing AU address in the main account
+    (twilioMasterClient as any).addresses.list.mockResolvedValue([
+      { sid: "AD_found_in_main" },
+    ]);
+    // Then fetch its details for replication
     (twilioMasterClient as any).addresses.mockReturnValue({
       fetch: vi.fn().mockResolvedValue({
-        sid: "AD_main_validated",
-        street: "123 Test St",
+        sid: "AD_found_in_main",
+        street: "36-42 Henderson Rd",
         city: "Alexandria",
         region: "NSW",
         postalCode: "2015",

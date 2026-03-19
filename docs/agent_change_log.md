@@ -1,3 +1,9 @@
+## 2026-03-19 21:10 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `__tests__/comms.test.ts`, `docs/agent_change_log.md`
+- **Summary**: Made AU regulatory address provisioning fully automatic — no manual Twilio Console steps per customer. The system now auto-discovers any existing AU address in the main Twilio account (or creates one using Earlymark's business address) and replicates it into each new subaccount. `TWILIO_VALIDATED_ADDRESS_SID` is now an optional override, not a requirement. The user's onboarding address is only for service-area calculation, not for Twilio regulatory.
+- **Why**: AU mobile numbers require `address_requirements: "any"` — Twilio needs any valid address on file, not the end-user's address. Previous approach incorrectly required a manual per-setup step. Earlymark's own address satisfies the requirement for every customer, making onboarding fully hands-off.
+
 ## 2026-03-19 20:00 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `__tests__/comms.test.ts`, `docs/agent_change_log.md`
