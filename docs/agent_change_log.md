@@ -1,3 +1,9 @@
+## 2026-03-19 21:15 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Removed the separate regulatory-address creation stage and `addressSid` from number purchase. The cloned AU Mobile Business bundle already contains the regulatory address, so passing a separate `addressSid` caused "Address not contained in bundle" errors. Now only `bundleSid` is passed to `incomingPhoneNumbers.create`.
+- **Why**: Twilio validates that any `addressSid` passed to number purchase must be registered within the bundle. Since the bundle clone already carries its own address, the standalone address replication was redundant and conflicting.
+
 ## 2026-03-19 21:10 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `__tests__/comms.test.ts`, `docs/agent_change_log.md`

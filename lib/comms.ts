@@ -105,7 +105,6 @@ export async function initializeTradieComms(
   let subClient: ManagedTwilioClient | null = null;
   let bundleSid: string | null = null;
   let subaccountId: string | null = null;
-  let regulatoryAddressSid: string | null = null;
 
   try {
     // ────────────────────────────────────────────────────────────────
@@ -130,13 +129,9 @@ export async function initializeTradieComms(
     });
 
     // ────────────────────────────────────────────────────────────────
-    // 2. Ensure Regulatory Address in the subaccount (required for AU mobile)
-    // ────────────────────────────────────────────────────────────────
-    stageReached = "regulatory-address";
-    regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
-
-    // ────────────────────────────────────────────────────────────────
-    // 3. Buy Australian +61 Number (SMS + Voice capable)
+    // 2. Buy Australian +61 Number (SMS + Voice capable)
+    //    The cloned bundle already contains the regulatory address,
+    //    so a separate addressSid is not needed (and would conflict).
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
 
@@ -171,7 +166,6 @@ export async function initializeTradieComms(
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
-      addressSid: regulatoryAddressSid,
     });
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
