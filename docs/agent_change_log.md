@@ -1,3 +1,9 @@
+## 2026-03-19 20:00 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `__tests__/comms.test.ts`, `docs/agent_change_log.md`
+- **Summary**: Replaced all address-parsing/geocoding/normalization heuristics with a reliable approach: read a pre-validated address from the main Twilio account (via `TWILIO_VALIDATED_ADDRESS_SID`) and replicate its exact fields into each subaccount. Removed unused geocoding, state-name mapping, street normalization, and suffix abbreviation code. The address data comes from Twilio itself, so the validator always accepts it.
+- **Why**: Twilio's API address validator consistently rejected addresses that the Console UI accepts. Geocoding and format heuristics were unreliable. Using Twilio's own validated address data as the source of truth eliminates all format-guessing.
+
 ## 2026-03-19 19:50 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`

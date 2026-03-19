@@ -390,95 +390,6 @@ async function resolveWorkspaceSubaccount(workspaceId: string, businessName: str
   };
 }
 
-/**
- * Server-side geocoding via Google Geocoding API.
- * Resolves a free-text AU address into structured components.
- *
- * Uses the app URL as Referer header so referrer-restricted keys still work.
- */
-async function geocodeAuAddress(rawAddress: string): Promise<{
-  street: string;
-  city: string;
-  region: string;
-  postalCode: string;
-} | null> {
-  const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim();
-  if (!apiKey) return null;
-
-  const appUrl = (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.APP_URL ??
-    ""
-  ).trim();
-
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("address", rawAddress);
-  url.searchParams.set("region", "au");
-  url.searchParams.set("components", "country:AU");
-  url.searchParams.set("key", apiKey);
-
-  const headers: Record<string, string> = {};
-  if (appUrl) headers["Referer"] = appUrl.endsWith("/") ? appUrl : `${appUrl}/`;
-
-  const resp = await fetch(url.toString(), {
-    headers,
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!resp.ok) {
-    console.error(`[geocodeAuAddress] HTTP ${resp.status} for "${rawAddress}"`);
-    return null;
-  }
-  const data = await resp.json();
-  if (data.status !== "OK" || !data.results?.length) {
-    console.error(`[geocodeAuAddress] status=${data.status}, error=${data.error_message ?? "none"} for "${rawAddress}"`);
-    return null;
-  }
-
-  const components: Array<{ long_name: string; short_name: string; types: string[] }> =
-    data.results[0].address_components ?? [];
-
-  const get = (type: string) => components.find((c: { types: string[] }) => c.types.includes(type));
-
-  const streetNumber = get("street_number")?.long_name ?? "";
-  const route = get("route")?.long_name ?? "";
-  const city =
-    get("locality")?.long_name ??
-    get("postal_town")?.long_name ??
-    get("sublocality")?.long_name ??
-    "";
-  const region = get("administrative_area_level_1")?.short_name ?? "";
-  const postalCode = get("postal_code")?.long_name ?? "";
-
-  if (!city || !region || !postalCode) return null;
-
-  const street = streetNumber && route ? `${streetNumber} ${route}` : rawAddress.split(",")[0]?.trim() ?? rawAddress;
-
-  return { street, city, region, postalCode };
-}
-
-const AU_STATE_ABBREVS: Record<string, string> = {
-  "new south wales": "NSW",
-  "victoria": "VIC",
-  "queensland": "QLD",
-  "western australia": "WA",
-  "south australia": "SA",
-  "tasmania": "TAS",
-  "australian capital territory": "ACT",
-  "northern territory": "NT",
-};
-
-/** Full state names for Twilio (AU validator often expects these). */
-const AU_STATE_FULL_NAMES: Record<string, string> = {
-  NSW: "New South Wales",
-  VIC: "Victoria",
-  QLD: "Queensland",
-  WA: "Western Australia",
-  SA: "South Australia",
-  TAS: "Tasmania",
-  ACT: "Australian Capital Territory",
-  NT: "Northern Territory",
-};
-
 /** Twilio CustomerName max 21 3-byte characters. */
 function truncateCustomerName(name: string, maxLen: number = 21): string {
   const trimmed = name.trim();
@@ -487,47 +398,14 @@ function truncateCustomerName(name: string, maxLen: number = 21): string {
 }
 
 /**
- * Normalize street line for address validators: replace number ranges (e.g. "36-42")
- * with the first number only, since many validators reject ranges.
+ * Replicates a pre-validated address from the main Twilio account into a subaccount.
+ *
+ * Twilio's API address validator rejects many valid AU addresses that the Console
+ * UI accepts. The reliable approach is:
+ *   1. Create ONE validated address in the main account via the Twilio Console.
+ *   2. Store its SID in TWILIO_VALIDATED_ADDRESS_SID.
+ *   3. For each subaccount, read those validated fields and create the same address.
  */
-function normalizeStreetForValidation(street: string): string {
-  const t = street.trim();
-  const rangeMatch = t.match(/^(\d+)\s*[-–—]\s*(\d+)\s+(.*)$/);
-  if (rangeMatch) return `${rangeMatch[1]} ${rangeMatch[3].trim()}`;
-  return t;
-}
-
-/** Australian street suffix abbreviations (validators often expect these). */
-const AU_STREET_SUFFIX_ABBREVS: Record<string, string> = {
-  " Road": " Rd",
-  " Street": " St",
-  " Avenue": " Ave",
-  " Drive": " Dr",
-  " Lane": " Ln",
-  " Court": " Ct",
-  " Place": " Pl",
-  " Crescent": " Cr",
-  " Parade": " Pde",
-  " Boulevard": " Blvd",
-  " Highway": " Hwy",
-  " Circuit": " Cct",
-  " Terrace": " Tce",
-  " Way": " Way",
-  " Close": " Cl",
-  " Grove": " Gr",
-  " Square": " Sq",
-  " Road,": " Rd,",
-  " Street,": " St,",
-};
-
-function abbreviateStreetSuffixes(street: string): string {
-  let s = street.trim();
-  for (const [full, abbr] of Object.entries(AU_STREET_SUFFIX_ABBREVS)) {
-    s = s.replace(new RegExp(full.replace(/\s/g, "\\s"), "gi"), abbr);
-  }
-  return s.trim();
-}
-
 async function ensureWorkspaceRegulatoryAddress(
   workspaceId: string,
   subClient: ManagedTwilioClient,
@@ -535,176 +413,52 @@ async function ensureWorkspaceRegulatoryAddress(
 ): Promise<string> {
   const workspace = await db.workspace.findUnique({
     where: { id: workspaceId },
-    select: {
-      twilioRegulatoryAddressSid: true,
-      location: true,
-      settings: true,
-      ownerId: true,
-    },
+    select: { twilioRegulatoryAddressSid: true },
   });
   if (!workspace) {
     throw new Error(`Workspace ${workspaceId} was not found before creating a regulatory address.`);
   }
-
   if (workspace.twilioRegulatoryAddressSid) {
     return workspace.twilioRegulatoryAddressSid;
   }
 
-  const parseAuRegionPostcode = (input: string | null | undefined) => {
-    if (!input) return { region: undefined as string | undefined, postalCode: undefined as string | undefined };
-    // Match abbreviated state + postcode: "NSW 2015"
-    const abbrevMatch = input.match(/\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\b\s*(\d{4})\b/i);
-    if (abbrevMatch) return { region: abbrevMatch[1].toUpperCase(), postalCode: abbrevMatch[2] };
-    // Match full state name: "New South Wales" -> "NSW"
-    for (const [full, abbr] of Object.entries(AU_STATE_ABBREVS)) {
-      if (input.toLowerCase().includes(full)) {
-        const pcMatch = input.match(/\b(\d{4})\b/);
-        return { region: abbr, postalCode: pcMatch?.[1] };
-      }
-    }
-    return { region: undefined, postalCode: undefined };
-  };
-
-  const deriveCityFromAddress = (input: string | null | undefined) => {
-    if (!input) return "";
-    // Strategy 1: "Alexandria NSW 2015"
-    const abbrevMatch = input.match(/,\s*([^,]+)\s+(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}/i);
-    if (abbrevMatch?.[1]?.trim()) return abbrevMatch[1].trim();
-    // Strategy 2: "Alexandria, New South Wales, Australia"
-    for (const full of Object.keys(AU_STATE_ABBREVS)) {
-      const re = new RegExp(`,\\s*([^,]+?)[,\\s]+${full.replace(/ /g, "\\s+")}`, "i");
-      const m = input.match(re);
-      if (m?.[1]?.trim()) return m[1].trim();
-    }
-    // Strategy 3: second comma-separated segment as locality
-    // e.g. "36-42 Henderson Road, Alexandria, ..." → "Alexandria"
-    const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
-    if (parts.length >= 2) {
-      const candidate = parts[1];
-      if (candidate && candidate.length > 1 && candidate.length < 40) return candidate;
-    }
-    return "";
-  };
-
-  let street = workspace.location || "";
-  let city = "";
-  let region: string | undefined;
-  let postalCode: string | undefined;
-
-  try {
-    if (workspace.ownerId) {
-      const owner = await db.user.findUnique({
-        where: { id: workspace.ownerId },
-        select: {
-          businessProfile: {
-            select: {
-              physicalAddress: true,
-              baseSuburb: true,
-            },
-          },
-        },
-      });
-      const profile = owner?.businessProfile;
-      const physicalAddress = profile?.physicalAddress;
-      const baseSuburb = profile?.baseSuburb;
-
-      console.log(`[regulatory-address] physicalAddress=${JSON.stringify(physicalAddress)}, baseSuburb=${JSON.stringify(baseSuburb)}`);
-
-      const source = (physicalAddress || workspace.location || "").trim();
-
-      // Prefer Google Geocoding as single source of truth for Twilio (validated, canonical components)
-      if (source) {
-        try {
-          const geo = await geocodeAuAddress(source);
-          if (geo) {
-            street = geo.street;
-            city = geo.city;
-            region = geo.region;
-            postalCode = geo.postalCode;
-            console.log(`[regulatory-address] using geocoded: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
-          }
-        } catch (geoErr) {
-          console.warn(`[regulatory-address] geocoding failed, falling back to local parse:`, geoErr instanceof Error ? geoErr.message : geoErr);
-        }
-      }
-
-      // Fallback: local parsing when geocoding unavailable or failed
-      if (!city || !region || !postalCode) {
-        if (physicalAddress && physicalAddress.trim().length > 0) {
-          const parts = physicalAddress.split(",").map((s) => s.trim()).filter(Boolean);
-          street = parts[0] || physicalAddress.trim();
-          const parsed = parseAuRegionPostcode(physicalAddress);
-          region = parsed.region;
-          postalCode = parsed.postalCode;
-          city = deriveCityFromAddress(physicalAddress);
-          console.log(`[regulatory-address] local parse: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
-        }
-        if (!city && baseSuburb && baseSuburb.trim().length > 0) {
-          city = baseSuburb.trim();
-        }
-      }
-    } else {
-      console.warn(`[regulatory-address] workspace ${workspaceId} has no ownerId`);
-    }
-  } catch (outerErr) {
-    console.error(`[regulatory-address] outer error:`, outerErr);
-  }
-
-  street = normalizeStreetForValidation(street);
-  street = abbreviateStreetSuffixes(street);
-  const regionForTwilio = region ? (AU_STATE_FULL_NAMES[region.toUpperCase()] ?? region) : undefined;
-  console.log(`[regulatory-address] final (normalized): street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(regionForTwilio)}, postalCode=${JSON.stringify(postalCode)}`);
-
-  if (!city) {
+  const sourceAddressSid = (process.env.TWILIO_VALIDATED_ADDRESS_SID ?? "").trim();
+  if (!sourceAddressSid) {
     throw new Error(
-      `Could not determine the city/locality from your address "${street}". Please update your Physical Address to include a suburb (e.g. '123 Trade St, Alexandria NSW 2015').`,
+      "TWILIO_VALIDATED_ADDRESS_SID is not set. Create a validated address in the Twilio Console and set its SID in the environment.",
     );
   }
 
-  if (!region || !postalCode) {
-    throw new Error(
-      `Could not determine state/postcode from your address "${street}". Please update your Physical Address (e.g. 'Alexandria NSW 2015').`,
-    );
+  if (!twilioMasterClient) {
+    throw new Error("Twilio master client is not configured.");
   }
 
-  const buildPayload = (useFullRegion: boolean) => ({
-    friendlyName: `${businessName} AU Mobile Business`,
-    customerName: truncateCustomerName(businessName),
-    street,
-    city,
-    region: useFullRegion ? (regionForTwilio ?? region) : (region ?? ""),
-    postalCode,
-    isoCountry: "AU",
-    autoCorrectAddress: true,
+  // Read the validated address from the main account
+  const source = await twilioMasterClient.addresses(sourceAddressSid).fetch();
+  console.log(`[regulatory-address] source address from main account:`, {
+    sid: source.sid,
+    street: source.street,
+    city: source.city,
+    region: source.region,
+    postalCode: source.postalCode,
+    isoCountry: source.isoCountry,
+    validated: source.validated,
   });
 
-  let address: any;
-  let lastError: Error | null = null;
+  // Replicate into the subaccount with the same validated fields
+  const addressPayload = {
+    friendlyName: `${truncateCustomerName(businessName)} AU Mobile`,
+    customerName: truncateCustomerName(businessName),
+    street: source.street,
+    city: source.city,
+    region: source.region,
+    postalCode: source.postalCode,
+    isoCountry: source.isoCountry,
+    autoCorrectAddress: true,
+  };
+  console.log(`[regulatory-address] creating in subaccount:`, JSON.stringify(addressPayload));
 
-  for (const useFullRegion of [true, false]) {
-    const addressPayload = buildPayload(useFullRegion);
-    console.log(`[regulatory-address] Twilio addresses.create attempt (region=${useFullRegion ? "full" : "abbrev"}):`, JSON.stringify(addressPayload));
-    try {
-      address = await (subClient as any).addresses.create(addressPayload);
-      lastError = null;
-      break;
-    } catch (twilioErr: any) {
-      lastError = twilioErr;
-      console.error(`[regulatory-address] Twilio addresses.create failed:`, {
-        code: twilioErr?.code,
-        status: twilioErr?.status,
-        message: twilioErr?.message,
-        moreInfo: twilioErr?.moreInfo,
-        body: (twilioErr as any)?.body,
-      });
-      if (useFullRegion) continue;
-    }
-  }
-
-  if (lastError || !address) {
-    const msg = (lastError as any)?.message || "The address you have provided cannot be validated.";
-    throw new Error(msg);
-  }
+  const address = await (subClient as any).addresses.create(addressPayload);
 
   const addressSid: string =
     (address && typeof (address as any).sid === "string" ? (address as any).sid : null) ??
