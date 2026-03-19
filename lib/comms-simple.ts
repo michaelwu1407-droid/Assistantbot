@@ -152,18 +152,24 @@ export async function initializeSimpleComms(
     }
 
     stageReached = "bundle-prepare";
-    bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
+    const bundleResult = await resolveAuMobileBusinessBundleSidForAccount({
       friendlyName: `${managedFriendlyName} AU Mobile Business`,
     });
+    bundleSid = bundleResult.bundleSid;
 
     stageReached = "number-purchase";
     console.log("[SIMPLE-COMMS] Stage: number-purchase, purchasing:", chosenNumber);
 
-    const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create({
+    const purchaseParams: Record<string, string> = {
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
-    });
+    };
+    if (bundleResult.addressSid) {
+      purchaseParams.addressSid = bundleResult.addressSid;
+    }
+
+    const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create(purchaseParams);
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
 

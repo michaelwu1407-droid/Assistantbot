@@ -122,16 +122,17 @@ export async function initializeTradieComms(
     );
 
     stageReached = "bundle-clone";
-    bundleSid = await resolveAuMobileBusinessBundleSidForAccount({
+    const bundleResult = await resolveAuMobileBusinessBundleSidForAccount({
       targetAccountSid: subaccountId,
       subaccountAuthToken: subaccount.subaccountAuthToken,
       friendlyName: `${managedFriendlyName} AU Mobile Business`,
     });
+    bundleSid = bundleResult.bundleSid;
+    const bundleAddressSid = bundleResult.addressSid;
 
     // ────────────────────────────────────────────────────────────────
     // 2. Buy Australian +61 Number (SMS + Voice capable)
-    //    The cloned bundle already contains the regulatory address,
-    //    so a separate addressSid is not needed (and would conflict).
+    //    addressSid must be the one inside the cloned bundle.
     // ────────────────────────────────────────────────────────────────
     stageReached = "number-search";
 
@@ -162,11 +163,17 @@ export async function initializeTradieComms(
 
     stageReached = "number-purchase";
 
-    const purchasedNumber = await subClient.incomingPhoneNumbers.create({
+    const purchaseParams: Record<string, string> = {
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
-    });
+    };
+    if (bundleAddressSid) {
+      purchaseParams.addressSid = bundleAddressSid;
+    }
+    console.log(`[number-purchase] params:`, JSON.stringify(purchaseParams));
+
+    const purchasedNumber = await subClient.incomingPhoneNumbers.create(purchaseParams);
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
 
@@ -382,134 +389,6 @@ async function resolveWorkspaceSubaccount(workspaceId: string, businessName: str
     ...subaccount,
     reused: false,
   };
-}
-
-/** Twilio CustomerName max 21 3-byte characters. */
-function truncateCustomerName(name: string, maxLen: number = 21): string {
-  const trimmed = name.trim();
-  if (trimmed.length <= maxLen) return trimmed;
-  return trimmed.slice(0, maxLen).trim();
-}
-
-const EARLYMARK_ADDRESS = {
-  street: "36-42 Henderson Rd",
-  city: "Alexandria",
-  region: "NSW",
-  postalCode: "2015",
-  isoCountry: "AU",
-} as const;
-
-/**
- * Finds (or creates) an AU address in the main Twilio account to use as the
- * regulatory template for all subaccount number purchases.
- *
- * AU mobile numbers require `address_requirements: "any"` — Twilio just needs
- * a valid address on file, it does NOT need to be the end-user's address.
- * Earlymark's own business address satisfies this for every customer.
- *
- * Resolution order:
- *   1. Explicit env var TWILIO_VALIDATED_ADDRESS_SID (fastest, optional override)
- *   2. Any existing AU address already in the main account
- *   3. Auto-create one using Earlymark's registered business address
- */
-async function resolveMainAccountAddressSid(): Promise<string> {
-  if (!twilioMasterClient) throw new Error("Twilio master client is not configured.");
-
-  const envSid = (process.env.TWILIO_VALIDATED_ADDRESS_SID ?? "").trim();
-  if (envSid) {
-    console.log(`[regulatory-address] using explicit TWILIO_VALIDATED_ADDRESS_SID: ${envSid}`);
-    return envSid;
-  }
-
-  const existing = await twilioMasterClient.addresses.list({ isoCountry: "AU", limit: 1 });
-  if (existing.length > 0) {
-    console.log(`[regulatory-address] found existing AU address in main account: ${existing[0].sid}`);
-    return existing[0].sid;
-  }
-
-  try {
-    const created = await twilioMasterClient.addresses.create({
-      friendlyName: "Earlymark Regulatory",
-      customerName: "Earlymark",
-      ...EARLYMARK_ADDRESS,
-      autoCorrectAddress: true,
-    });
-    console.log(`[regulatory-address] auto-created AU address in main account: ${created.sid}`);
-    return created.sid;
-  } catch (err) {
-    throw new Error(
-      `No AU address found in main Twilio account and auto-creation failed. ` +
-      `Create one at https://console.twilio.com/us1/develop/phone-numbers/manage/addresses ` +
-      `and optionally set TWILIO_VALIDATED_ADDRESS_SID. ` +
-      `Error: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-}
-
-/**
- * Ensures the subaccount has an AU regulatory address by replicating the
- * fields from the main account's template address.
- *
- * Each Twilio subaccount is isolated, so an AddressSid from the main account
- * can't be used directly — we read the fields and create a copy.
- */
-async function ensureWorkspaceRegulatoryAddress(
-  workspaceId: string,
-  subClient: ManagedTwilioClient,
-  businessName: string,
-): Promise<string> {
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { twilioRegulatoryAddressSid: true },
-  });
-  if (!workspace) {
-    throw new Error(`Workspace ${workspaceId} was not found before creating a regulatory address.`);
-  }
-  if (workspace.twilioRegulatoryAddressSid) {
-    return workspace.twilioRegulatoryAddressSid;
-  }
-
-  if (!twilioMasterClient) {
-    throw new Error("Twilio master client is not configured.");
-  }
-
-  const sourceAddressSid = await resolveMainAccountAddressSid();
-  const source = await twilioMasterClient.addresses(sourceAddressSid).fetch();
-
-  const addressPayload = {
-    friendlyName: `${truncateCustomerName(businessName)} AU Mobile`,
-    customerName: truncateCustomerName(businessName),
-    street: source.street,
-    city: source.city,
-    region: source.region,
-    postalCode: source.postalCode,
-    isoCountry: source.isoCountry,
-    autoCorrectAddress: true,
-  };
-  console.log(`[regulatory-address] replicating into subaccount:`, JSON.stringify(addressPayload));
-
-  const address = await (subClient as any).addresses.create(addressPayload);
-
-  const addressSid: string =
-    (address && typeof (address as any).sid === "string" ? (address as any).sid : null) ??
-    (() => {
-      throw new Error("Twilio returned an unexpected response when creating regulatory address.");
-    })();
-
-  await db.workspace.update({
-    where: { id: workspaceId },
-    data: {
-      twilioRegulatoryAddressSid: addressSid,
-    },
-  });
-
-  await logActivity(
-    workspaceId,
-    "Regulatory Address Created",
-    `Regulatory address ${addressSid} replicated into subaccount for AU mobile provisioning.`,
-  );
-
-  return addressSid;
 }
 
 async function cleanupProvisioningArtifacts(params: {

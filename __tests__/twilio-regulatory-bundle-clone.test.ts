@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch } = vi.hoisted(() => {
+const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch, itemAssignmentsList } = vi.hoisted(() => {
   const bundleFetch = vi.fn();
+  const itemAssignmentsList = vi.fn();
   const bundleCloneCreate = vi.fn();
   const twilioMasterClient = {
     numbers: {
@@ -18,12 +19,15 @@ const { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch } = vi
         regulatoryCompliance: {
           bundles: () => ({
             fetch: bundleFetch,
+            itemAssignments: {
+              list: itemAssignmentsList,
+            },
           }),
         },
       },
     },
   }));
-  return { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch };
+  return { twilioMasterClient, twilioFactory, bundleCloneCreate, bundleFetch, itemAssignmentsList };
 });
 
 vi.mock("@/lib/twilio", () => ({
@@ -45,21 +49,25 @@ describe("resolveAuMobileBusinessBundleSidForAccount", () => {
     process.env.TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID = "BU_SOURCE";
   });
 
-  it("uses clone.sid when clone.bundleSid is missing", async () => {
+  it("uses clone.sid when clone.bundleSid is missing and extracts address from bundle", async () => {
     vi.resetModules();
     bundleCloneCreate.mockResolvedValue({ sid: "BU_CLONED" });
     bundleFetch.mockResolvedValue({ status: "approved" });
+    itemAssignmentsList.mockResolvedValue([
+      { objectSid: "AD_BUNDLE_ADDR" },
+    ]);
 
     const { resolveAuMobileBusinessBundleSidForAccount } = await import("@/lib/twilio-regulatory");
-    const sid = await resolveAuMobileBusinessBundleSidForAccount({
+    const result = await resolveAuMobileBusinessBundleSidForAccount({
       targetAccountSid: "AC_SUB",
       subaccountAuthToken: "sub_token",
       friendlyName: "test",
     });
 
-    expect(sid).toBe("BU_CLONED");
+    expect(result).toEqual({ bundleSid: "BU_CLONED", addressSid: "AD_BUNDLE_ADDR" });
     expect(twilioFactory).toHaveBeenCalledWith("AC_SUB", "sub_token");
     expect(bundleFetch).toHaveBeenCalled();
+    expect(itemAssignmentsList).toHaveBeenCalled();
   });
 });
 

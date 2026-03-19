@@ -1,3 +1,9 @@
+## 2026-03-19 21:30 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/twilio-regulatory.ts`, `lib/comms.ts`, `lib/comms-simple.ts`, `__tests__/comms.test.ts`, `__tests__/twilio-regulatory-bundle-clone.test.ts`, `docs/agent_change_log.md`
+- **Summary**: Fixed number purchase to use the address already inside the cloned bundle. When a bundle is cloned, Twilio copies all items including the address. `resolveAuMobileBusinessBundleSidForAccount` now returns `{ bundleSid, addressSid }` by reading the bundle's ItemAssignments API to find the cloned address (AD...). Both are passed to `incomingPhoneNumbers.create`. Removed all standalone address-creation code (EARLYMARK_ADDRESS, resolveMainAccountAddressSid, ensureWorkspaceRegulatoryAddress). Fixed misleading error 21631 message.
+- **Why**: Twilio requires both `bundleSid` (regulatory compliance) and `addressSid` (address requirement) for AU mobile purchase. The `addressSid` must be one registered inside the bundle — a separately created address triggers "Address not contained in bundle". Reading the address from the bundle's own ItemAssignments is the correct approach per Twilio docs.
+
 ## 2026-03-19 21:15 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`

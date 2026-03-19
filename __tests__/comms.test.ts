@@ -28,12 +28,7 @@ const {
   getExpectedSmsWebhookUrl: vi.fn(),
   getExpectedVoiceGatewayUrl: vi.fn(),
   buildManagedVoiceNumberFriendlyName: vi.fn(),
-  twilioMasterClient: {
-    addresses: Object.assign(vi.fn(), {
-      list: vi.fn(),
-      create: vi.fn(),
-    }),
-  } as Record<string, unknown>,
+  twilioMasterClient: {} as Record<string, unknown>,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -113,9 +108,7 @@ describe("initializeTradieComms", () => {
         create: usageTriggerCreate,
       },
     },
-    addresses: {
-      create: vi.fn(),
-    },
+    addresses: {},
   };
 
   beforeEach(() => {
@@ -123,12 +116,9 @@ describe("initializeTradieComms", () => {
     process.env.TWILIO_ACCOUNT_SID = "AC_master";
     process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
     process.env.LIVEKIT_SIP_URI = "sip:earlymark@sip.livekit.cloud";
-    delete process.env.TWILIO_VALIDATED_ADDRESS_SID;
-
     db.workspace.findUnique.mockResolvedValue({
       twilioSubaccountId: "AC_sub",
       twilioSubaccountAuthToken: "auth-token",
-      twilioRegulatoryAddressSid: null,
       ownerId: "user_123",
       location: "123 Test St, Alexandria NSW 2015",
       settings: {},
@@ -136,27 +126,13 @@ describe("initializeTradieComms", () => {
     db.workspace.update.mockResolvedValue({});
     db.activity.create.mockResolvedValue({});
 
-    // Auto-resolve: list finds an existing AU address in the main account
-    (twilioMasterClient as any).addresses.list.mockResolvedValue([
-      { sid: "AD_found_in_main" },
-    ]);
-    // Then fetch its details for replication
-    (twilioMasterClient as any).addresses.mockReturnValue({
-      fetch: vi.fn().mockResolvedValue({
-        sid: "AD_found_in_main",
-        street: "36-42 Henderson Rd",
-        city: "Alexandria",
-        region: "NSW",
-        postalCode: "2015",
-        isoCountry: "AU",
-        validated: true,
-      }),
-    });
-
     buildManagedVoiceNumberFriendlyName.mockReturnValue("Managed Friendly Name");
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getExpectedSmsWebhookUrl.mockReturnValue("https://app.example.com/api/twilio/webhook");
-    resolveAuMobileBusinessBundleSidForAccount.mockResolvedValue("BU_sub");
+    resolveAuMobileBusinessBundleSidForAccount.mockResolvedValue({
+      bundleSid: "BU_sub",
+      addressSid: "AD_from_bundle",
+    });
     getSubaccountClient.mockReturnValue(subClient);
     mobileList.mockResolvedValue([{ phoneNumber: "+61485010634" }]);
     incomingCreate.mockResolvedValue({ sid: "PN_123", phoneNumber: "+61485010634" });
@@ -166,7 +142,6 @@ describe("initializeTradieComms", () => {
     originationCreate.mockResolvedValue({});
     trunkRemove.mockResolvedValue(true);
     usageTriggerCreate.mockResolvedValue({});
-    subClient.addresses.create.mockResolvedValue({ sid: "AD_123" });
   });
 
   it("reuses a persisted workspace subaccount instead of creating a new one", async () => {

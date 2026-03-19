@@ -5,7 +5,7 @@ import { twilioMasterClient } from "@/lib/twilio";
 const MASTER_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID?.trim() || "";
 const MASTER_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN?.trim() || "";
 const AU_MOBILE_BUSINESS_BUNDLE_SID = process.env.TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID?.trim() || "";
-const bundleCloneCache = new Map<string, Promise<string>>();
+const bundleCloneCache = new Map<string, Promise<{ bundleSid: string; addressSid: string | null }>>();
 const BUNDLE_READY_POLL_ATTEMPTS = 10;
 const BUNDLE_READY_POLL_DELAY_MS = 3000;
 
@@ -31,15 +31,14 @@ export function requireAuMobileBusinessBundleSid() {
 
 export async function resolveAuMobileBusinessBundleSidForAccount(params: {
   targetAccountSid?: string | null;
-  /** When provided, use the subaccount's own auth token for bundle polling */
   subaccountAuthToken?: string | null;
   friendlyName?: string;
-}) {
+}): Promise<{ bundleSid: string; addressSid: string | null }> {
   const sourceBundleSid = requireAuMobileBusinessBundleSid();
   const targetAccountSid = params.targetAccountSid?.trim() || MASTER_ACCOUNT_SID;
 
   if (!targetAccountSid || targetAccountSid === MASTER_ACCOUNT_SID) {
-    return sourceBundleSid;
+    return { bundleSid: sourceBundleSid, addressSid: null };
   }
 
   if (!twilioMasterClient) {
@@ -69,7 +68,14 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
         bundleSid: clonedBundleSid,
         subaccountAuthToken: params.subaccountAuthToken || null,
       });
-      return clonedBundleSid;
+
+      const addressSid = await extractAddressSidFromBundle({
+        targetAccountSid,
+        subaccountAuthToken: params.subaccountAuthToken || null,
+        bundleSid: clonedBundleSid,
+      });
+
+      return { bundleSid: clonedBundleSid, addressSid };
     })
     .catch((error: unknown) => {
       bundleCloneCache.delete(cacheKey);
@@ -81,6 +87,48 @@ export async function resolveAuMobileBusinessBundleSidForAccount(params: {
 
   bundleCloneCache.set(cacheKey, clonePromise);
   return clonePromise;
+}
+
+/**
+ * Reads the ItemAssignments of a cloned bundle to find the address (AD...)
+ * that was cloned with it. This is the address Twilio expects when purchasing
+ * a number with that bundle — a separately created address will be rejected
+ * with "Address not contained in bundle".
+ */
+async function extractAddressSidFromBundle(params: {
+  targetAccountSid: string;
+  subaccountAuthToken: string | null;
+  bundleSid: string;
+}): Promise<string | null> {
+  const hasSubaccountCreds = Boolean(params.subaccountAuthToken && params.targetAccountSid);
+  const client = hasSubaccountCreds
+    ? twilio(params.targetAccountSid, params.subaccountAuthToken as string)
+    : twilio(MASTER_ACCOUNT_SID, MASTER_AUTH_TOKEN);
+
+  try {
+    const items = await client.numbers.v2.regulatoryCompliance
+      .bundles(params.bundleSid)
+      .itemAssignments.list();
+
+    const addressItem = items.find((item) => {
+      const record = item as unknown as Record<string, unknown>;
+      const objectSid = record.objectSid ?? record.object_sid;
+      return typeof objectSid === "string" && objectSid.startsWith("AD");
+    });
+
+    if (addressItem) {
+      const record = addressItem as unknown as Record<string, unknown>;
+      const sid = (record.objectSid ?? record.object_sid) as string;
+      console.log(`[regulatory-bundle] found address ${sid} inside bundle ${params.bundleSid}`);
+      return sid;
+    }
+
+    console.warn(`[regulatory-bundle] no address found in bundle ${params.bundleSid} item assignments`);
+    return null;
+  } catch (err) {
+    console.warn(`[regulatory-bundle] failed to read item assignments for ${params.bundleSid}:`, err);
+    return null;
+  }
 }
 
 async function waitForBundleReady(params: { targetAccountSid: string; bundleSid: string; subaccountAuthToken: string | null }) {
@@ -146,9 +194,12 @@ export function describeTwilioProvisioningError(error: unknown) {
   const status = errorData?.status;
 
   let detailedError = message;
-  if (code === 21649 || code === 21631) {
+  if (code === 21649) {
     detailedError =
       "AUSTRALIAN REGULATORY BUNDLE REQUIRED: This Twilio purchase request needs a valid Australia Mobile Business bundle. Confirm TWILIO_AU_MOBILE_BUSINESS_BUNDLE_SID points to your approved bundle and that the bundle is available to the target subaccount.";
+  } else if (code === 21631) {
+    detailedError =
+      "AU NUMBER REQUIRES ADDRESS: Twilio requires an AddressSid for this number type. The address must be one contained in the regulatory bundle. Check that the bundle clone includes an address in its ItemAssignments.";
   } else if (code === 20003) {
     detailedError =
       "PERMISSION DENIED: Your Twilio account lacks permissions for Australian number inventory. Check account permissions and geographic restrictions.";
