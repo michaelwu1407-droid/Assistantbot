@@ -1,3 +1,9 @@
+## 2026-03-19 18:05 (AEDT) – Cursor AI Agent
+
+- **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`
+- **Summary**: Fixed Twilio AU address validation the right way. (1) Use Google Geocoding as primary source for address components when physicalAddress is present; fall back to local parsing only if geocoding fails or is unavailable. (2) Normalize for validators: street number ranges (e.g. "36-42 Henderson Road") → first number only ("36 Henderson Road"); send Region as full state name ("New South Wales") via AU_STATE_FULL_NAMES; truncate CustomerName to 21 chars per Twilio limit. (3) Address creation is required again—removed non-fatal swallow so provisioning fails clearly if address cannot be created.
+- **Why**: Twilio's AU address validator was rejecting addresses; using geocoded canonical components plus full state name and range normalization meets their validation. AddressSid is required for AU mobile purchase (error 21631).
+
 ## 2026-03-18 14:00 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/comms.ts`, `docs/agent_change_log.md`

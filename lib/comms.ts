@@ -130,17 +130,10 @@ export async function initializeTradieComms(
     });
 
     // ────────────────────────────────────────────────────────────────
-    // 2. Ensure Regulatory Address in the subaccount (best-effort)
-    // The regulatory bundle already contains address info; the separate
-    // addressSid is supplementary and not always required for AU mobile.
+    // 2. Ensure Regulatory Address in the subaccount (required for AU mobile)
     // ────────────────────────────────────────────────────────────────
     stageReached = "regulatory-address";
-    try {
-      regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
-    } catch (addrErr) {
-      console.warn(`[initializeTradieComms] Address creation failed (non-fatal, proceeding with bundle only):`, addrErr instanceof Error ? addrErr.message : addrErr);
-      regulatoryAddressSid = null;
-    }
+    regulatoryAddressSid = await ensureWorkspaceRegulatoryAddress(workspaceId, subClient, businessName);
 
     // ────────────────────────────────────────────────────────────────
     // 3. Buy Australian +61 Number (SMS + Voice capable)
@@ -174,16 +167,12 @@ export async function initializeTradieComms(
 
     stageReached = "number-purchase";
 
-    const numberCreateParams: Record<string, string> = {
+    const purchasedNumber = await subClient.incomingPhoneNumbers.create({
       phoneNumber: chosenNumber,
       friendlyName: managedFriendlyName,
       bundleSid,
-    };
-    if (regulatoryAddressSid) {
-      numberCreateParams.addressSid = regulatoryAddressSid;
-    }
-    console.log(`[initializeTradieComms] number-purchase params:`, JSON.stringify(numberCreateParams));
-    const purchasedNumber = await subClient.incomingPhoneNumbers.create(numberCreateParams);
+      addressSid: regulatoryAddressSid,
+    });
     purchasedNumberSid = purchasedNumber.sid;
     purchasedPhoneNumber = purchasedNumber.phoneNumber;
 
@@ -478,6 +467,36 @@ const AU_STATE_ABBREVS: Record<string, string> = {
   "northern territory": "NT",
 };
 
+/** Full state names for Twilio (AU validator often expects these). */
+const AU_STATE_FULL_NAMES: Record<string, string> = {
+  NSW: "New South Wales",
+  VIC: "Victoria",
+  QLD: "Queensland",
+  WA: "Western Australia",
+  SA: "South Australia",
+  TAS: "Tasmania",
+  ACT: "Australian Capital Territory",
+  NT: "Northern Territory",
+};
+
+/** Twilio CustomerName max 21 3-byte characters. */
+function truncateCustomerName(name: string, maxLen: number = 21): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return trimmed.slice(0, maxLen).trim();
+}
+
+/**
+ * Normalize street line for address validators: replace number ranges (e.g. "36-42")
+ * with the first number only, since many validators reject ranges.
+ */
+function normalizeStreetForValidation(street: string): string {
+  const t = street.trim();
+  const rangeMatch = t.match(/^(\d+)\s*[-–—]\s*(\d+)\s+(.*)$/);
+  if (rangeMatch) return `${rangeMatch[1]} ${rangeMatch[3].trim()}`;
+  return t;
+}
+
 async function ensureWorkspaceRegulatoryAddress(
   workspaceId: string,
   subClient: ManagedTwilioClient,
@@ -558,40 +577,39 @@ async function ensureWorkspaceRegulatoryAddress(
       const physicalAddress = profile?.physicalAddress;
       const baseSuburb = profile?.baseSuburb;
 
-      console.log(`[regulatory-address] physicalAddress=${JSON.stringify(physicalAddress)}, baseSuburb=${JSON.stringify(baseSuburb)}, workspaceLocation=${JSON.stringify(workspace.location)}`);
+      console.log(`[regulatory-address] physicalAddress=${JSON.stringify(physicalAddress)}, baseSuburb=${JSON.stringify(baseSuburb)}`);
 
-      if (physicalAddress && physicalAddress.trim().length > 0) {
-        // Extract just the street portion (before the first comma)
-        const parts = physicalAddress.split(",").map((s) => s.trim()).filter(Boolean);
-        street = parts[0] || physicalAddress.trim();
-        const parsed = parseAuRegionPostcode(physicalAddress);
-        region = parsed.region;
-        postalCode = parsed.postalCode;
-        city = deriveCityFromAddress(physicalAddress);
-        console.log(`[regulatory-address] local parse: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
-      }
-      if (!city && baseSuburb && baseSuburb.trim().length > 0) {
-        city = baseSuburb.trim();
-        console.log(`[regulatory-address] using baseSuburb as city: ${JSON.stringify(city)}`);
-      }
+      const source = (physicalAddress || workspace.location || "").trim();
 
-      // If local parsing couldn't get all components, use Google Geocoding API
-      if (!city || !region || !postalCode) {
-        const source = (physicalAddress || workspace.location || "").trim();
-        if (source) {
-          try {
-            console.log(`[regulatory-address] geocoding fallback for: ${JSON.stringify(source)}`);
-            const geo = await geocodeAuAddress(source);
-            console.log(`[regulatory-address] geocode result: ${JSON.stringify(geo)}`);
-            if (geo) {
-              if (!city) city = geo.city;
-              if (!region) region = geo.region;
-              if (!postalCode) postalCode = geo.postalCode;
-              street = geo.street;
-            }
-          } catch (geoErr) {
-            console.error(`[regulatory-address] geocoding error:`, geoErr);
+      // Prefer Google Geocoding as single source of truth for Twilio (validated, canonical components)
+      if (source) {
+        try {
+          const geo = await geocodeAuAddress(source);
+          if (geo) {
+            street = geo.street;
+            city = geo.city;
+            region = geo.region;
+            postalCode = geo.postalCode;
+            console.log(`[regulatory-address] using geocoded: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
           }
+        } catch (geoErr) {
+          console.warn(`[regulatory-address] geocoding failed, falling back to local parse:`, geoErr instanceof Error ? geoErr.message : geoErr);
+        }
+      }
+
+      // Fallback: local parsing when geocoding unavailable or failed
+      if (!city || !region || !postalCode) {
+        if (physicalAddress && physicalAddress.trim().length > 0) {
+          const parts = physicalAddress.split(",").map((s) => s.trim()).filter(Boolean);
+          street = parts[0] || physicalAddress.trim();
+          const parsed = parseAuRegionPostcode(physicalAddress);
+          region = parsed.region;
+          postalCode = parsed.postalCode;
+          city = deriveCityFromAddress(physicalAddress);
+          console.log(`[regulatory-address] local parse: street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}`);
+        }
+        if (!city && baseSuburb && baseSuburb.trim().length > 0) {
+          city = baseSuburb.trim();
         }
       }
     } else {
@@ -601,7 +619,9 @@ async function ensureWorkspaceRegulatoryAddress(
     console.error(`[regulatory-address] outer error:`, outerErr);
   }
 
-  console.log(`[regulatory-address] final: city=${JSON.stringify(city)}, region=${JSON.stringify(region)}, postalCode=${JSON.stringify(postalCode)}, street=${JSON.stringify(street)}`);
+  street = normalizeStreetForValidation(street);
+  const regionForTwilio = region ? (AU_STATE_FULL_NAMES[region.toUpperCase()] ?? region) : undefined;
+  console.log(`[regulatory-address] final (normalized): street=${JSON.stringify(street)}, city=${JSON.stringify(city)}, region=${JSON.stringify(regionForTwilio)}, postalCode=${JSON.stringify(postalCode)}`);
 
   if (!city) {
     throw new Error(
@@ -617,10 +637,10 @@ async function ensureWorkspaceRegulatoryAddress(
 
   const addressPayload = {
     friendlyName: `${businessName} AU Mobile Business`,
-    customerName: businessName,
+    customerName: truncateCustomerName(businessName),
     street,
     city,
-    region,
+    region: regionForTwilio ?? region,
     postalCode,
     isoCountry: "AU",
     autoCorrectAddress: true,
