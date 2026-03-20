@@ -1216,3 +1216,13 @@ Rule: every agent change commit must include an entry in this file.
   - Drill-down resets when collapsing the revenue card or changing the time range.
 - Why:
   - Operators could see monthly revenue totals but had no way to understand what drove each month. The drill-down gives immediate visibility into which jobs, contacts, and sources contributed to a given month.
+
+## 2026-03-21 12:00 (AEDT) - codex
+
+- Files changed:
+  - components/core/sidebar.tsx
+- Summary:
+  - Removed the dedicated left-sidebar blue "Ask Tracey" chat-mode button.
+  - Made the Earlymark logo button on the top-left of the left sidebar open Chat mode (calls goToBasic()), using the same behavior as the removed button.
+- Why:
+  - Match the requested UX: use the top-left Earlymark logo as the entry point into chat mode, and reduce sidebar clutter.
