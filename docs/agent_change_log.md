@@ -1226,3 +1226,13 @@ Rule: every agent change commit must include an entry in this file.
   - Made the Earlymark logo button on the top-left of the left sidebar open Chat mode (calls goToBasic()), using the same behavior as the removed button.
 - Why:
   - Match the requested UX: use the top-left Earlymark logo as the entry point into chat mode, and reduce sidebar clutter.
+
+## 2026-03-21 12:30 (AEDT) - codex
+
+- Files changed:
+  - pp/dashboard/analytics/page.tsx
+- Summary:
+  - Removed the “Distribution” score grid under Customer Ratings.
+  - Replaced it with a “Score curve” bell-curve style score visual using the existing rating distribution counts.
+- Why:
+  - The distribution grid was visually noisy; a smoother score curve is easier to read while preserving the same underlying signal.

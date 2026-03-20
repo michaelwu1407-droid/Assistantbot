@@ -416,24 +416,73 @@ export default function AnalyticsPage() {
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-neutral-900">Distribution</p>
-                        <p className="text-xs text-muted-foreground">Score 1-10</p>
+                        <p className="text-sm font-medium text-neutral-900">Score curve</p>
+                        <p className="text-xs text-muted-foreground">Bell-curve style (1–10)</p>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                        {dist.map(({ score, count }) => (
-                          <div key={score} className="p-3 bg-secondary/40 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-medium text-neutral-700">Score {score}</p>
-                              <p className="text-xs text-muted-foreground">{count}</p>
-                            </div>
-                            <div className="h-2 bg-secondary rounded mt-2 overflow-hidden">
-                              <div
-                                className="h-2 bg-primary rounded"
-                                style={{ width: `${(count / maxCount) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
+
+                      <div className="bg-secondary/30 rounded-lg p-3">
+                        {(() => {
+                          const W = 240
+                          const H = 86
+                          const PAD_LEFT = 18
+                          const PAD_RIGHT = 10
+                          const PAD_TOP = 10
+                          const PAD_BOTTOM = 18
+                          const chartW = W - PAD_LEFT - PAD_RIGHT
+                          const chartH = H - PAD_TOP - PAD_BOTTOM
+
+                          const points = dist.map(({ score, count }, idx) => {
+                            const x = PAD_LEFT + (dist.length > 1 ? (idx / (dist.length - 1)) * chartW : chartW / 2)
+                            const y = PAD_TOP + (maxCount > 0 ? (1 - count / maxCount) * chartH : chartH)
+                            return { x, y, score, count }
+                          })
+
+                          const gridCount = 4
+                          const gridLines = Array.from({ length: gridCount }, (_, i) => {
+                            const frac = i / (gridCount - 1)
+                            const val = maxCount * (1 - frac)
+                            const y = PAD_TOP + frac * chartH
+                            return { y, val }
+                          })
+
+                          const poly = points.map(p => `${p.x},${p.y}`).join(" ")
+                          const fillPoly = `${PAD_LEFT},${PAD_TOP + chartH} ${poly} ${PAD_LEFT + chartW},${PAD_TOP + chartH}`
+
+                          return (
+                            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-24">
+                              {gridLines.map((g, i) => (
+                                <g key={i}>
+                                  <line x1={PAD_LEFT} y1={g.y} x2={W - PAD_RIGHT} y2={g.y} stroke="#e2e8f0" strokeWidth={1} />
+                                  <text x={PAD_LEFT - 4} y={g.y + 3} textAnchor="end" className="fill-slate-400" fontSize={9}>
+                                    {Math.round(g.val).toLocaleString("en-AU")}
+                                  </text>
+                                </g>
+                              ))}
+
+                              <polygon points={fillPoly} fill="rgba(0,210,139,0.12)" />
+                              <polyline points={poly} fill="none" stroke="#00D28B" strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
+
+                              {points.map((p, i) => (
+                                <g key={i}>
+                                  <circle cx={p.x} cy={p.y} r={4} fill="#00D28B" stroke="white" strokeWidth={2} />
+                                </g>
+                              ))}
+
+                              {points.map((p, i) => (
+                                <text
+                                  key={`x-${i}`}
+                                  x={p.x}
+                                  y={H - 6}
+                                  textAnchor="middle"
+                                  className="fill-slate-500"
+                                  fontSize={9}
+                                >
+                                  {p.score}
+                                </text>
+                              ))}
+                            </svg>
+                          )
+                        })()}
                       </div>
                     </div>
 
