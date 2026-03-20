@@ -294,6 +294,19 @@
     color: var(--color-neutral-500);
   }
 
+  /* Corner radius harmonization
+   * Some pages/components use Tailwind's `rounded*` classes directly (e.g. `rounded`,
+   * `rounded-lg`, `rounded-xl`). Force them to align with the shared `--radius`
+   * token so the "standard base radius = 18px" is visually consistent everywhere.
+   */
+  .rounded,
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl {
+    border-radius: var(--radius) !important;
+  }
+
   /* THE OTTORIZE CARD: Solid white, layered soft shadows, rounded corners */
   .ott-card {
     @apply bg-card border border-border/60 rounded-[18px] transition-all duration-300;
