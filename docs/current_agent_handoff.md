@@ -39,7 +39,7 @@ Start here before reading the longer audit/backlog docs.
 ## Current Live State
 
 - Repo branch: `main`
-- Latest pushed repo SHA: `916e2b0a`
+- Latest pushed repo SHA: `c126a152`
 - Production web alias:
   - `https://www.earlymark.ai`
 - Current live Vercel deployment:
@@ -98,9 +98,9 @@ Start here before reading the longer audit/backlog docs.
 
 ### Broader active backlog still not finished
 
-1. Invoice-adjustment UX polish
-2. Operator-visible smart-routing surfaces
-3. Deeper recent-activity/history parity
+1. ~~Invoice-adjustment UX polish~~ — DONE (email, line-item edit, reverse status, sync badge, void)
+2. ~~Operator-visible smart-routing surfaces~~ — DONE (incident details in admin, voicemail in activity feed)
+3. ~~Deeper recent-activity/history parity~~ — DONE (MEETING + TASK in inbox, voicemail in feed)
 4. Remaining release smoke/runbook execution
 5. Second-host voice rollout and multi-host sign-off
 
