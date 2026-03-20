@@ -1,3 +1,8 @@
+### 2026-03-21 00:30 (AEDT) - antigravity
+- Files: `app/page.tsx`, `tsconfig.json`, `package.json`, `package-lock.json`, `docs/agent_change_log.md`
+- What changed: Fixed a TypeScript compilation error in the homepage by adding the missing `screenshotBg` property to the `HIRE_FEATURES` array. Resolved multiple test-related TypeScript errors by adding `vitest/globals` to `tsconfig.json` and installing `@testing-library/dom` as a dev dependency.
+- Why: The missing `screenshotBg` property caused production builds to fail. Test-related type errors and a missing dependency were blocking the pre-commit hook and overall repository health.
+
 ## 2026-03-19 22:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/twilio-regulatory.ts`, `docs/agent_change_log.md`

@@ -60,21 +60,25 @@ const HIRE_FEATURES = [
         title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
         desc: EARLYMARK_SALES_PILLARS[0]?.description || "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
         eyebrow: "Lead capture",
+        screenshotBg: "from-blue-50 to-blue-100",
     },
     {
         title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
         desc: EARLYMARK_SALES_PILLARS[1]?.description || "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
         eyebrow: "Operations",
+        screenshotBg: "from-emerald-50 to-emerald-100",
     },
     {
         title: EARLYMARK_SALES_PILLARS[2]?.title || "AI that actually works",
         desc: EARLYMARK_SALES_PILLARS[2]?.description || "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
         eyebrow: "Customer experience",
+        screenshotBg: "from-purple-50 to-purple-100",
     },
     {
         title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
         desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
         eyebrow: "Oversight",
+        screenshotBg: "from-orange-50 to-orange-100",
     },
 ];
 
