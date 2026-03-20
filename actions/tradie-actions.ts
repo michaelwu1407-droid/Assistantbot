@@ -779,6 +779,185 @@ export async function voidInvoice(invoiceId: string) {
   return { success: true };
 }
 
+/**
+ * Reverse a PAID invoice back to ISSUED, or an ISSUED invoice back to DRAFT.
+ */
+export async function reverseInvoiceStatus(
+  invoiceId: string,
+  targetStatus: "DRAFT" | "ISSUED"
+) {
+  const existing = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: true },
+  });
+  if (!existing) return { success: false, error: "Invoice not found" };
+  if (existing.status === "VOID") return { success: false, error: "Cannot reverse a voided invoice" };
+  if (existing.status === targetStatus) return { success: false, error: `Already ${targetStatus}` };
+  if (existing.status === "DRAFT") return { success: false, error: "Already at earliest status" };
+  if (existing.status === "ISSUED" && targetStatus !== "DRAFT") return { success: false, error: "ISSUED can only reverse to DRAFT" };
+
+  const { actor } = await requireDealInCurrentWorkspace(existing.dealId);
+
+  await db.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      status: targetStatus,
+      paidAt: targetStatus === "DRAFT" ? null : existing.paidAt,
+      issuedAt: targetStatus === "DRAFT" ? null : existing.issuedAt,
+    },
+  });
+
+  if (existing.status === "PAID") {
+    await db.deal.update({
+      where: { id: existing.dealId },
+      data: { stage: "INVOICED" },
+    });
+  }
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice status reversed",
+      content: `Invoice ${existing.number} reversed from ${existing.status} to ${targetStatus}.`,
+      dealId: existing.dealId,
+      contactId: existing.deal.contactId,
+      userId: actor.id,
+    },
+  });
+  await recordWorkspaceAuditEvent({
+    workspaceId: actor.workspaceId,
+    userId: actor.id,
+    action: "invoice.reversed",
+    entityType: "invoice",
+    entityId: existing.id,
+    metadata: {
+      invoiceNumber: existing.number,
+      dealId: existing.dealId,
+      previousStatus: existing.status,
+      nextStatus: targetStatus,
+      source: "tradie-actions.reverseInvoiceStatus",
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update line items on a DRAFT invoice.
+ */
+export async function updateInvoiceLineItems(
+  invoiceId: string,
+  items: { desc: string; price: number }[]
+) {
+  const existing = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: true },
+  });
+  if (!existing) return { success: false, error: "Invoice not found" };
+  if (existing.status !== "DRAFT") return { success: false, error: "Only DRAFT invoices can be edited" };
+
+  const { actor } = await requireDealInCurrentWorkspace(existing.dealId);
+
+  const validItems = items.filter((i) => i.desc.trim() && i.price >= 0);
+  if (!validItems.length) return { success: false, error: "At least one valid line item is required" };
+
+  const subtotal = validItems.reduce((sum, i) => sum + i.price, 0);
+  const tax = subtotal * 0.1;
+  const total = subtotal + tax;
+
+  await db.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      lineItems: JSON.parse(JSON.stringify(validItems)),
+      subtotal,
+      tax,
+      total,
+    },
+  });
+  await recordWorkspaceAuditEvent({
+    workspaceId: actor.workspaceId,
+    userId: actor.id,
+    action: "invoice.lineItemsUpdated",
+    entityType: "invoice",
+    entityId: existing.id,
+    metadata: {
+      invoiceNumber: existing.number,
+      itemCount: validItems.length,
+      newTotal: total,
+      source: "tradie-actions.updateInvoiceLineItems",
+    },
+  });
+
+  return { success: true, subtotal, tax, total };
+}
+
+/**
+ * Email an invoice/quote to the contact.
+ */
+export async function emailInvoice(invoiceId: string) {
+  const invoice = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: { include: { contact: true, workspace: true } } },
+  });
+  if (!invoice) return { success: false, error: "Invoice not found" };
+
+  await requireDealInCurrentWorkspace(invoice.dealId);
+
+  const contact = invoice.deal.contact;
+  if (!contact.email) return { success: false, error: `${contact.name} has no email address on file` };
+
+  const pdfResult = await generateQuotePDF(invoiceId);
+  if (!pdfResult.success || !pdfResult.html) return { success: false, error: "Could not generate invoice content" };
+
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) return { success: false, error: "Email is not configured (RESEND_API_KEY missing)" };
+
+  const { Resend } = await import("resend");
+  const resend = new Resend(resendKey);
+
+  const workspaceName = invoice.deal.workspace?.name ?? "Earlymark";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai";
+  const subject = `${invoice.status === "DRAFT" ? "Quote" : "Invoice"} ${invoice.number} from ${workspaceName}`;
+
+  const { error: resendError } = await resend.emails.send({
+    from: `"${workspaceName}" <${fromEmail}>`,
+    to: [contact.email],
+    subject,
+    html: pdfResult.html,
+  });
+
+  if (resendError) {
+    console.error("[emailInvoice] Resend error:", resendError);
+    return { success: false, error: `Failed to send: ${resendError.message}` };
+  }
+
+  await db.activity.create({
+    data: {
+      type: "EMAIL",
+      title: "Invoice emailed",
+      content: `${invoice.number} emailed to ${contact.name} (${contact.email})`,
+      dealId: invoice.dealId,
+      contactId: contact.id,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Get Xero/MYOB sync status for an invoice (stub; returns false until accounting integration is live).
+ */
+export async function getInvoiceSyncStatus(invoiceId: string) {
+  const invoice = await db.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) return null;
+  return {
+    invoiceId: invoice.id,
+    synced: false as const,
+    provider: null as string | null,
+    externalId: null as string | null,
+  };
+}
+
 // ─── PDF / Printable Quote ──────────────────────────────────────────
 
 export interface QuotePDFData {

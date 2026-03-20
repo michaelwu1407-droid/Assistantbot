@@ -1185,3 +1185,20 @@ Rule: every agent change commit must include an entry in this file.
   - Invoice lifecycle was chatbot-only; operators need direct UI controls.
   - Routing incident details were stored but hidden from operators.
   - MEETING and TASK activities were excluded from inbox feeds, creating a blind spot.
+
+## 2026-03-21 10:15 (AEDT) - codex
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `actions/tradie-actions.ts`
+  - `actions/activity-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Real email invoice**: `emailInvoice` server action sends the generated HTML invoice to the contact via Resend. Email button in billing tab is now live.
+  - **Line-item editor**: Inline editor on DRAFT invoices lets operators add, edit, and remove line items with auto-recalculated GST totals. `updateInvoiceLineItems` server action validates and saves.
+  - **Xero/MYOB sync status**: Each invoice card now shows a cloud/no-cloud badge with sync status fetched from `getInvoiceSyncStatus` (stub: always shows Not synced until accounting integration is live).
+  - **Reverse status UI**: PAID invoices get a Reverse to Issued button, ISSUED invoices get Back to Draft. `reverseInvoiceStatus` server action handles the state machine and reverts deal stage when un-paying.
+  - **Voicemail in activity feed**: Voicemail recordings from `WebhookEvent` (provider `twilio_voice_fallback`) are now surfaced in the activity feed as call-type entries. Matched to workspaces via Twilio phone number, with contact resolution by caller phone.
+- Why:
+  - Operators had no way to email, edit, or reverse invoices from the UI; all actions were chatbot-only.
+  - Voicemail-only calls (never reached LiveKit) were invisible in the activity feed, creating a blind spot for missed customer contact.
