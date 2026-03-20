@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowRight, ChevronLeft, ChevronRight, ChevronDown,
     Phone, MessageSquare, Calendar, MapPin, Users,
-    BarChart3, Bot, ToggleRight, ToggleLeft,
+    BarChart3, Bot, ToggleRight, ToggleLeft, Mail, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -59,42 +59,22 @@ const HIRE_FEATURES = [
     {
         title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
         desc: EARLYMARK_SALES_PILLARS[0]?.description || "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
-        photoAlt: "Trade business owner taking a call while standing at a job site",
-        photoSrc: "https://images.unsplash.com/photo-1581092919535-7146ff1a590d?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Lead capture",
-        mediaTitle: "On site while Tracey handles the inbound rush",
-        mediaNote: "Answer every lead without stepping off the tools.",
-        screenshotBg: "from-emerald-500/20 to-emerald-600/10",
     },
     {
         title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
         desc: EARLYMARK_SALES_PILLARS[1]?.description || "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
-        photoAlt: "Business owner using a laptop in a workshop office",
-        photoSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Operations",
-        mediaTitle: "Run the back office from one clean command layer",
-        mediaNote: "Quotes, schedules, follow-ups, and pipeline updates without the CRM clutter.",
-        screenshotBg: "from-blue-500/20 to-blue-600/10",
     },
     {
         title: EARLYMARK_SALES_PILLARS[2]?.title || "AI that actually works",
         desc: EARLYMARK_SALES_PILLARS[2]?.description || "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
-        photoAlt: "Customer texting on a phone with a service professional in the background",
-        photoSrc: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Customer experience",
-        mediaTitle: "Fast, natural responses that still feel personal",
-        mediaNote: "Reply across voice, SMS, and email without sounding robotic or losing control.",
-        screenshotBg: "from-violet-500/20 to-violet-600/10",
     },
     {
         title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
         desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
-        photoAlt: "Operations manager reviewing settings and approvals on a laptop",
-        photoSrc: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80",
         eyebrow: "Oversight",
-        mediaTitle: "Approval rules, visibility, and guardrails built in",
-        mediaNote: "Stay in control of what Tracey can confirm, quote, or escalate.",
-        screenshotBg: "from-slate-500/20 to-slate-600/10",
     },
 ];
 
@@ -260,11 +240,157 @@ function ChatDemo() {
 
 // ─── Feature Carousel ─────────────────────────────────────────────────────────
 
+// ── Inline product mockups for Hire Tracey section ───────────────────────────
+
+function HireMockup0() {
+    // Lead capture — mini kanban "New request" column
+    const cards = [
+        { title: "Hot water replacement", client: "Mrs Henderson", value: "$1,400", time: "Just now" },
+        { title: "Bathroom renovation", client: "T. Nguyen", value: "$8,200", time: "12m ago" },
+        { title: "Fence repair quote", client: "B. Clarke", value: "$2,400", time: "1h ago" },
+    ];
+    return (
+        <div className="h-full flex flex-col bg-[#F8FAFC] p-4 gap-3">
+            <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                <span className="text-xs font-bold text-slate-800">New requests</span>
+                <span className="ml-auto text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{cards.length} new</span>
+            </div>
+            {cards.map((c, i) => (
+                <div key={i} className="bg-white rounded-xl border border-neutral-200 border-l-4 border-l-blue-500 px-4 py-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{c.title}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{c.client}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                            <p className="text-sm font-bold text-blue-600">{c.value}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{c.time}</p>
+                        </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5">
+                        <Bot className="w-3 h-3 text-emerald-500" />
+                        <span className="text-[10px] text-emerald-600 font-medium">Tracey answered · logged to CRM</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function HireMockup1() {
+    // Operations — chat with CRM
+    const messages = [
+        { from: "user", text: "Schedule the Smith job for Friday" },
+        { from: "tracey", text: "Done! Scheduled for Friday 9am. Confirmation SMS sent to Sarah Smith. ✅" },
+        { from: "user", text: "What's my revenue this week?" },
+        { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% vs last week 📈" },
+    ];
+    return (
+        <div className="h-full flex flex-col bg-[#0f172a]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <Bot className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <span className="text-xs font-semibold text-white">Tracey Chat</span>
+                <span className="ml-auto text-[10px] text-emerald-400">● Online</span>
+            </div>
+            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4">
+                {messages.map((m, i) => (
+                    <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
+                        {m.from === "tracey" && (
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                <Bot className="w-3 h-3 text-emerald-400" />
+                            </div>
+                        )}
+                        <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}>
+                            {m.text}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function HireMockup2() {
+    // Customer experience — inbox feed
+    const items = [
+        { icon: Phone, color: "#3B82F6", bg: "#EFF6FF", label: "Tracey answered call", detail: "Kitchen reno · Mrs Wilson · $4,200", badge: "Booked" },
+        { icon: MessageSquare, color: "#00D28B", bg: "#E0FAF2", label: "SMS follow-up sent", detail: "Deck build · J. Morrison — awaiting reply", badge: "Sent" },
+        { icon: Mail, color: "#8B5CF6", bg: "#F5F3FF", label: "Quote emailed", detail: "Hot water · Henderson · $1,400", badge: "Delivered" },
+        { icon: CheckCircle2, color: "#6B7280", bg: "#F3F4F6", label: "Payment reminder sent", detail: "Fence repair · B. Clarke · $2,400", badge: "Chasing" },
+    ];
+    return (
+        <div className="h-full flex flex-col bg-white">
+            <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-neutral-900">Customer Inbox</p>
+                    <p className="text-[10px] text-neutral-500">Tracey-handled interactions</p>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Live</span>
+            </div>
+            <div className="flex-1 flex flex-col divide-y divide-neutral-100">
+                {items.map((item, i) => {
+                    const Icon = item.icon;
+                    return (
+                        <div key={i} className="flex items-start gap-3 px-4 py-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.bg }}>
+                                <Icon className="w-4 h-4" style={{ color: item.color }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-neutral-800">{item.label}</p>
+                                <p className="text-[10px] text-neutral-500 truncate mt-0.5">{item.detail}</p>
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ color: item.color, backgroundColor: item.bg }}>
+                                {item.badge}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function HireMockup3() {
+    // Oversight — settings panel
+    const settings = [
+        { label: "Auto-respond to incoming calls", on: true },
+        { label: "Require approval for quotes", on: true },
+        { label: "Send payment follow-up reminders", on: true },
+        { label: "Auto-close stale jobs after 30 days", on: false },
+    ];
+    return (
+        <div className="h-full flex flex-col bg-[#F8FAFC] p-4 gap-3">
+            <div className="mb-1">
+                <p className="text-xs font-bold text-slate-800">Tracey permissions</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
+            </div>
+            {settings.map((s, i) => (
+                <div key={i} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm">
+                    <span className="text-xs font-medium text-slate-700 pr-4">{s.label}</span>
+                    <div className={`w-10 h-5 rounded-full flex items-center px-0.5 shrink-0 transition-colors ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
+                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                    </div>
+                </div>
+            ))}
+            <div className="mt-1 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-[11px] text-emerald-700 font-medium">All changes synced to Tracey instantly</span>
+            </div>
+        </div>
+    );
+}
+
+const HIRE_MOCKUPS = [HireMockup0, HireMockup1, HireMockup2, HireMockup3];
+
 function HireFeatureGrid() {
     return (
         <div className="mt-4 flex flex-col gap-10">
             {HIRE_FEATURES.map((feature, i) => {
                 const isEven = i % 2 === 0;
+                const Mockup = HIRE_MOCKUPS[i];
 
                 return (
                     <motion.div
@@ -280,26 +406,8 @@ function HireFeatureGrid() {
                             <p className="mt-3 text-sm leading-relaxed text-slate-body">{feature.desc}</p>
                         </div>
 
-                        <div className={`relative min-h-[340px] overflow-hidden rounded-[32px] border border-slate-200/70 bg-slate-900 shadow-[0_26px_70px_rgba(15,23,42,0.18)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                            <Image
-                                src={feature.photoSrc}
-                                alt={feature.photoAlt}
-                                fill
-                                sizes="(min-width: 768px) 50vw, 100vw"
-                                className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.32)_45%,rgba(15,23,42,0.84)_100%)]" />
-                            <div className="absolute inset-x-5 bottom-5 rounded-[28px] border border-white/20 bg-white/12 p-5 text-white backdrop-blur-md">
-                                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/65">
-                                    {feature.eyebrow}
-                                </div>
-                                <div className="mt-2 text-xl font-semibold leading-tight">
-                                    {feature.mediaTitle}
-                                </div>
-                                <p className="mt-2 max-w-md text-sm leading-6 text-white/80">
-                                    {feature.mediaNote}
-                                </p>
-                            </div>
+                        <div className={`relative min-h-[340px] overflow-hidden rounded-[32px] border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                            {Mockup && <Mockup />}
                         </div>
                     </motion.div>
                 );
@@ -564,14 +672,13 @@ function TestimonialsCarousel() {
 // ─── FAQ Section ──────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
-    { q: "What is Tracey?", a: "Tracey is your AI-powered business assistant. She answers calls, manages your CRM, follows up with customers, handles scheduling, and chases payments — all so you can focus on the work." },
-    { q: "How does the AI phone answering work?", a: "When a customer calls your business number, the call forwards to Tracey. She answers professionally, gathers job details, logs everything in your CRM, and can even provide quotes and book appointments based on your preferences." },
-    { q: "Can I try it for free?", a: "Yes! You can interview Tracey for free right from this page. She'll call you and show you exactly what she can do. No credit card required to get started." },
-    { q: "What trades/industries does Earlymark support?", a: "Earlymark works for any service-based business — plumbers, electricians, builders, landscapers, cleaners, HVAC technicians, real estate agents, and more. If you deal with customers and jobs, Tracey can help." },
-    { q: "How does Tracey learn about my business?", a: "During onboarding, Tracey conducts a conversational interview about your business — services, pricing, availability, and preferences. No forms or spreadsheets. Just chat naturally and Tracey builds your profile." },
-    { q: "Can I control what Tracey says to customers?", a: "Absolutely. You set approval rules for quotes, customize response templates, configure which actions require your sign-off, and maintain full oversight of every customer interaction." },
-    { q: "Do I need technical skills to use Earlymark?", a: "Not at all. Everything is conversational. Tell Tracey what you need in plain English and she handles the rest. No training, no complex software to learn." },
-    { q: "How much does it cost?", a: "Earlymark Pro is billed monthly or yearly through Stripe. There is no free trial, and promo codes can be applied directly in Stripe Checkout when available." },
+    { q: "What is Tracey?", a: "Tracey is your AI-powered receptionist, CRM manager, and follow-up specialist built for trade and service businesses. She answers every inbound call 24/7, logs jobs, sends quotes, chases payments, and keeps your pipeline moving — all without you lifting a finger. Think of her as a full-time admin assistant who never sleeps and never misses a message." },
+    { q: "How does Tracey answer my calls?", a: "Your business number simply forwards to Tracey when you're unavailable — or always, if you prefer. She answers professionally in your business name, gathers job details, answers common questions about your services and pricing, and logs everything straight into your CRM. She can also provide quotes and book appointments on the spot, based on the rules and availability you've set." },
+    { q: "How long does it take to get set up?", a: "Most businesses are live within a day. When you sign up, Tracey interviews you about your business — your services, pricing, availability, and preferences — in a natural conversation. No forms to fill in, no spreadsheets. Once that's done, she's ready to start answering calls and managing your pipeline." },
+    { q: "What types of businesses does Earlymark support?", a: "Earlymark is built for any trade or service business — plumbers, electricians, builders, landscapers, cleaners, HVAC technicians, pest controllers, locksmiths, painters, and more. If you're running jobs and need someone to handle the phones and admin, Tracey can help." },
+    { q: "Can I control what Tracey does and says?", a: "Absolutely. You're in full control. Set approval rules so Tracey asks before confirming a quote above a certain value. Customise how she introduces herself, what she says about your services, and when she escalates to you. You can review every conversation in your inbox and override anything at any time. Tracey works within the guardrails you set." },
+    { q: "Do I need to be tech-savvy to use Earlymark?", a: "Not at all. Earlymark is designed for busy tradies and business owners, not software engineers. You talk to Tracey in plain English — just like texting — and she handles the rest. There's no complex setup, no spreadsheets to fill in, and no training required. If you can send a text message, you can run Earlymark." },
+    { q: "How much does Earlymark cost?", a: "Earlymark Pro is available as a monthly or annual subscription, billed securely through Stripe. Annual plans offer a meaningful discount. Promo codes can be applied at checkout. Visit our pricing page or get in touch to find the right plan for your business." },
 ];
 
 function FaqSection() {
@@ -720,17 +827,17 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-emerald-400 mb-4 rounded-full" />
-                                <h3 className="text-lg font-semibold text-slate-900">Win more customers. Win more revenue</h3>
+                                <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
                                 <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
                             </div>
                             <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-blue-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-blue-400 mb-4 rounded-full" />
-                                <h3 className="text-lg font-semibold text-slate-900">Make life easier. Automate customer admin</h3>
+                                <h3 className="text-lg font-semibold text-slate-900">Automate customer admin</h3>
                                 <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
                             </div>
                             <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-violet-50/80 to-violet-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-violet-400 mb-4 rounded-full" />
-                                <h3 className="text-lg font-semibold text-slate-900">Better, more reliable customer experience</h3>
+                                <h3 className="text-lg font-semibold text-slate-900">Provide a more reliable customer experience</h3>
                                 <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
                             </div>
                         </div>
@@ -826,7 +933,7 @@ export default function Home() {
                         {/* LHS — Text */}
                         <div className="flex flex-col gap-8">
                             <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. They will contact customers and run your CRM so you don&apos;t have to.
+                                Tracey lives in your CRM. She will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
 
@@ -991,10 +1098,10 @@ export default function Home() {
                 <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Powerful features,<br />zero complexity
+                            Simple but comprehensive features
                         </h2>
                         <p className="text-slate-body mt-3 text-lg">
-                            Six powerful features working together so you can focus on the work, not the paperwork.
+                            All the features you need to get the job done. Focus on the work, not the paperwork.
                         </p>
                     </motion.div>
 
