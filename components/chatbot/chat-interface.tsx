@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction, getDailyDigest } from '@/actions/chat-actions';
+import { getTeamMembers } from '@/actions/invite-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { usePathname } from 'next/navigation';
@@ -65,6 +66,7 @@ interface JobDraftData {
   phone?: string;
   email?: string;
   customerType?: string;
+  assignedToId?: string | null;
   notes?: string; // New notes field for language preferences
 }
 
@@ -91,9 +93,35 @@ function JobDraftCard({
   const [customerType, setCustomerType] = useState<'Person' | 'Business'>(() =>
     (data.customerType === 'Business' ? 'Business' : 'Person')
   );
+  const [assignedToId, setAssignedToId] = useState<string>(data.assignedToId ?? "");
   const [submitting, setSubmitting] = useState(false);
   const category = data.workCategory ?? 'General';
   const warnings = data.warnings ?? [];
+
+  const hasSchedule = Boolean(schedule?.trim());
+
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [teamMembersLoading, setTeamMembersLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTeamMembersLoading(true);
+    getTeamMembers()
+      .then((members) => {
+        if (cancelled) return;
+        setTeamMembers(members as any);
+      })
+      .catch(() => {
+        // If team list can't load, we'll still render the rest of the draft card.
+        if (!cancelled) setTeamMembers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTeamMembersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -111,6 +139,7 @@ function JobDraftCard({
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         contactType: customerType === 'Business' ? 'BUSINESS' : 'PERSON',
+        assignedToId: hasSchedule ? assignedToId || null : null,
         notes: notes.trim() || undefined, // Pass language preferences and other notes
       });
       if (result.success) {
@@ -168,6 +197,26 @@ function JobDraftCard({
             <Input className="h-8 text-xs" value={schedule} onChange={(e) => setSchedule(e.target.value)} />
           </div>
         </div>
+        {hasSchedule && (
+          <div>
+            <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Assignee</label>
+            <select
+              className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs"
+              value={assignedToId}
+              onChange={(e) => setAssignedToId(e.target.value)}
+            >
+              <option value="">Select a team member</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            {teamMembersLoading && (
+              <p className="text-[10px] text-muted-foreground mt-1">Loading team members...</p>
+            )}
+          </div>
+        )}
         <div>
           <label className="text-[10px] text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-0.5 block">Address</label>
           <Input className="h-8 text-xs" value={address} onChange={(e) => setAddress(e.target.value)} />
@@ -216,7 +265,7 @@ function JobDraftCard({
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={submitting || !firstName.trim() || !workDescription.trim()}
+          disabled={submitting || !firstName.trim() || !workDescription.trim() || (hasSchedule && !assignedToId)}
           className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Create job
@@ -231,7 +280,8 @@ function ChatWithHistory({
   initialMessages,
 }: {
   workspaceId: string;
-  initialMessages: { id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[];
+  // Parts can include tool-call structures; we keep it flexible so remounts can restore full UI state.
+  initialMessages: { id: string; role: 'user' | 'assistant'; parts: any[] }[];
 }) {
   const [input, setInput] = useState('');
   const [selectedDeals, setSelectedDeals] = useState<CrmSelectionItem[]>([]);
@@ -246,6 +296,8 @@ function ChatWithHistory({
   const nextSendBlockedRef = useRef(false);
   const hasInitializedScrollRef = useRef(false);
   const previousMessageCountRef = useRef(0);
+  /** Track send time to measure client-perceived TTFT */
+  const sendTimestampRef = useRef<number>(0);
   const pathname = usePathname();
 
   const getContextualQuickActions = () => {
@@ -323,7 +375,38 @@ function ChatWithHistory({
     },
   });
 
+  // Persist messages in-session so switching Chat <-> Advanced doesn't reset the visible history.
+  useEffect(() => {
+    try {
+      const storageKey = `chatMessages:${workspaceId}`;
+      const serializable = messages.map((m: any) => ({
+        id: m.id,
+        role: m.role,
+        parts: m.parts ?? [],
+      }));
+      sessionStorage.setItem(storageKey, JSON.stringify(serializable));
+    } catch {
+      // Non-fatal: sessionStorage can be blocked.
+    }
+  }, [workspaceId, messages]);
+
   const isLoading = status === 'submitted' || status === 'streaming';
+
+  // Measure client-perceived time-to-first-token
+  useEffect(() => {
+    if (status === 'streaming' && sendTimestampRef.current > 0) {
+      const ttft = Math.round(performance.now() - sendTimestampRef.current);
+      sendTimestampRef.current = 0;
+      try {
+        navigator.sendBeacon('/api/internal/telemetry/client', JSON.stringify({
+          metric: 'chat.client.ttft_ms',
+          duration: ttft,
+        }));
+      } catch {
+        // Non-critical telemetry — ignore failures
+      }
+    }
+  }, [status]);
 
   const openDigestModal = async (kind: "morning" | "evening") => {
     if (!workspaceId) return;
@@ -359,6 +442,7 @@ function ChatWithHistory({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    sendTimestampRef.current = performance.now();
     sendMessage({ text: input });
     setInput('');
   };
@@ -817,13 +901,32 @@ function ChatWithHistory({
 }
 
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
-  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[] | null>(null);
+  // Read sessionStorage synchronously during init so the very first render
+  // passes restored messages to useChat. useChat only reads `messages` on
+  // mount — a deferred setInitialMessages via useEffect arrives too late.
+  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: any[] }[] | null>(() => {
+    if (!workspaceId) return [];
+    try {
+      const storageKey = `chatMessages:${workspaceId}`;
+      const raw = sessionStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // sessionStorage may be blocked; fall through to DB fetch.
+    }
+    return null;
+  });
 
   useEffect(() => {
+    // If sessionStorage already provided messages, skip the DB fetch.
+    if (initialMessages !== null) return;
     if (!workspaceId) {
       setInitialMessages([]);
       return;
     }
+
     let cancelled = false;
     // Load only last 20 messages for faster initial render
     getChatHistory(workspaceId, 20)
@@ -834,7 +937,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         if (!cancelled) setInitialMessages([]);
       });
     return () => { cancelled = true; };
-  }, [workspaceId]);
+  }, [workspaceId, initialMessages]);
 
   if (!workspaceId) {
     return (

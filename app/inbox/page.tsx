@@ -20,7 +20,7 @@ export default async function InboxPage() {
     const userId = result;
     workspace = await getOrCreateWorkspace(userId);
     const [activities, contacts] = await Promise.all([
-      getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE"] }),
+      getActivities({ workspaceId: workspace.id, typeIn: ["EMAIL", "CALL", "NOTE", "TASK", "MEETING"] }),
       getContacts(workspace.id),
     ]);
     interactions = activities;

@@ -165,18 +165,48 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
     )
   }, [])
 
+  // Auto-locate only if permission is already granted (avoid repeated prompts).
+  useEffect(() => {
+    let cancelled = false
+    const maybeAutoLocate = async () => {
+      try {
+        const permissions = (navigator as any).permissions
+        if (!permissions?.query) return
+        const status = await permissions.query({ name: "geolocation" })
+        if (cancelled) return
+        if (status?.state === "granted") {
+          locateMe()
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    maybeAutoLocate()
+    return () => {
+      cancelled = true
+    }
+  }, [locateMe])
+
   useEffect(() => {
     const map = mapRef.current
-    if (!map || markers.length === 0) return
+    if (!map || markers.length === 0) {
+      // If there are no markers yet, but we have user position, center there.
+      if (map && userPosition) {
+        map.panTo(userPosition)
+        map.setZoom(15)
+      }
+      return
+    }
     const bounds = new google.maps.LatLngBounds()
     markers.forEach(({ job }) => bounds.extend(getJobPosition(job)))
+    if (userPosition) bounds.extend(userPosition)
     map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 })
     const listener = google.maps.event.addListener(map, "idle", () => {
       const zoom = map.getZoom()
       if (zoom && zoom > 14) map.setZoom(14)
       google.maps.event.removeListener(listener)
     })
-  }, [markers])
+  }, [markers, userPosition])
 
   if (loadError || hasMapsFailure) {
     if (onFallbackToLeaflet) {

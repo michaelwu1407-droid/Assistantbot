@@ -2,12 +2,13 @@ import { db } from "@/lib/db"
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
+import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 
@@ -226,15 +227,22 @@ export default async function DealDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Photos / Activity as tabs if we keep them – optional secondary row or modal */}
+      {/* Billing + Photos as tabs */}
       <div className="shrink-0">
-        <Tabs defaultValue="photos" className="w-full">
+        <Tabs defaultValue="billing" className="w-full">
           <TabsList className="h-9">
+            <TabsTrigger value="billing" className="gap-2 text-xs">
+              <DollarSign className="w-3.5 h-3.5" />
+              Invoices
+            </TabsTrigger>
             <TabsTrigger value="photos" className="gap-2 text-xs">
               <ImageIcon className="w-3.5 h-3.5" />
               Photos {deal.jobPhotos?.length ? `(${deal.jobPhotos.length})` : ""}
             </TabsTrigger>
           </TabsList>
+          <TabsContent value="billing" className="mt-2">
+            <JobBillingTab dealId={deal.id} />
+          </TabsContent>
           <TabsContent value="photos" className="mt-2">
             <DealPhotosUpload dealId={deal.id} initialPhotos={deal.jobPhotos ?? []} />
           </TabsContent>

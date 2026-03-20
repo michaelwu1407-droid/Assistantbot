@@ -28,7 +28,7 @@ export default async function InboxPage() {
         const [activities, contacts] = await Promise.all([
             getActivities({
                 workspaceId: workspace.id,
-                typeIn: ["CALL", "EMAIL", "NOTE"],
+                typeIn: ["CALL", "EMAIL", "NOTE", "TASK", "MEETING"],
                 limit: 80,
             }),
             getContacts(workspace.id),

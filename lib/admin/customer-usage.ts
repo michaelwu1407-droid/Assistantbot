@@ -203,6 +203,7 @@ export type CustomerUsageDashboardData = {
         severity: string;
         status: string;
         updatedAt: string;
+        details: unknown;
       }>;
     };
     cost: {
@@ -1153,6 +1154,7 @@ export async function getCustomerUsageDashboardData(
               severity: incident.severity,
               status: incident.status,
               updatedAt: incident.updatedAt.toISOString(),
+              details: incident.details ?? null,
             })),
           },
           cost: {

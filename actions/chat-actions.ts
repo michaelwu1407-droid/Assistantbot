@@ -678,6 +678,7 @@ export async function runCreateJobNatural(
     phone?: string;
     email?: string;
     contactType?: "PERSON" | "BUSINESS";
+    assignedToId?: string | null;
     notes?: string; // New notes field for language preferences
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
@@ -713,6 +714,7 @@ export async function runCreateJobNatural(
     workspaceId,
     address: params.address?.trim(),
     scheduledAt,
+    assignedToId: params.assignedToId || null,
     metadata: {
       address: params.address,
       schedule: params.schedule,
@@ -749,6 +751,7 @@ export async function confirmJobDraft(
     phone?: string;
     email?: string;
     contactType?: "PERSON" | "BUSINESS";
+    assignedToId?: string | null;
     notes?: string; // New notes field for language preferences
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
@@ -762,6 +765,7 @@ export async function confirmJobDraft(
     phone: draft.phone?.trim(),
     email: draft.email?.trim(),
     contactType: draft.contactType ?? "PERSON",
+    assignedToId: draft.assignedToId || null,
     notes: draft.notes?.trim(), // Pass notes for language preferences
   });
   return {

@@ -53,7 +53,7 @@ export interface ReportsData {
   revenue: {
     total: number
     growth: number
-    monthly: Array<{ month: string; revenue: number }>
+    monthly: Array<{ month: string; revenue: number; start: string; end: string }>
   }
   deals: {
     total: number
@@ -87,6 +87,25 @@ export interface ReportsData {
     productivity: number
     performance: Array<{ name: string; jobs: number; revenue: number }>
   }
+}
+
+export interface MonthlyRevenueBreakdown {
+  month: string
+  start: string
+  end: string
+  totalRevenue: number
+  dealCount: number
+  deals: Array<{
+    id: string
+    title: string
+    contactName: string
+    revenue: number
+    completedAt: string
+    source: string
+  }>
+  bySource: Array<{ source: string; revenue: number; count: number }>
+  avgDealValue: number
+  largestDeal: { title: string; revenue: number } | null
 }
 
 export type ReportRange = "7d" | "30d" | "90d" | "1y"
@@ -177,6 +196,8 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
     revenue: wonDeals
       .filter((deal) => isWithinRange(deal.stageChangedAt, bucket.start, bucket.end))
       .reduce((sum, deal) => sum + getDealRevenueValue(deal), 0),
+    start: bucket.start.toISOString(),
+    end: bucket.end.toISOString(),
   }))
 
   const dealsInRange = deals.filter(
@@ -336,5 +357,84 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
       productivity,
       performance: teamPerformance,
     },
+  }
+}
+
+/**
+ * Drill into a specific month's revenue — returns the list of completed deals
+ * with contact names, values, and a breakdown by source/type.
+ */
+export async function getMonthlyRevenueBreakdown(
+  workspaceId: string,
+  monthStart: string,
+  monthEnd: string,
+): Promise<MonthlyRevenueBreakdown> {
+  const start = startOfDay(new Date(monthStart))
+  const end = endOfDay(new Date(monthEnd))
+
+  const deals = await db.deal.findMany({
+    where: {
+      workspaceId,
+      stage: "WON",
+      stageChangedAt: { gte: start, lte: end },
+    },
+    select: {
+      id: true,
+      title: true,
+      value: true,
+      invoicedAmount: true,
+      stageChangedAt: true,
+      createdAt: true,
+      metadata: true,
+      contact: { select: { name: true } },
+    },
+    orderBy: { stageChangedAt: "desc" },
+  })
+
+  const mapped = deals.map((d) => {
+    const revenue = getDealRevenueValue(d)
+    const meta = (d.metadata ?? {}) as Record<string, unknown>
+    const source =
+      typeof meta.source === "string" ? meta.source :
+      typeof meta.leadSource === "string" ? meta.leadSource :
+      typeof meta.provider === "string" ? meta.provider :
+      "Direct"
+    return {
+      id: d.id,
+      title: d.title,
+      contactName: d.contact?.name || "Unknown",
+      revenue,
+      completedAt: (d.stageChangedAt ?? d.createdAt).toISOString(),
+      source: source.charAt(0).toUpperCase() + source.slice(1),
+    }
+  })
+
+  const totalRevenue = mapped.reduce((s, d) => s + d.revenue, 0)
+
+  const sourceMap = new Map<string, { revenue: number; count: number }>()
+  for (const d of mapped) {
+    const existing = sourceMap.get(d.source) ?? { revenue: 0, count: 0 }
+    existing.revenue += d.revenue
+    existing.count += 1
+    sourceMap.set(d.source, existing)
+  }
+  const bySource = Array.from(sourceMap.entries())
+    .map(([source, v]) => ({ source, ...v }))
+    .sort((a, b) => b.revenue - a.revenue)
+
+  const largest = mapped.length > 0
+    ? mapped.reduce((best, d) => d.revenue > best.revenue ? d : best, mapped[0])
+    : null
+
+  return {
+    month: start.toLocaleDateString("en-AU", { month: "short", year: "numeric" }),
+    start: start.toISOString(),
+    end: end.toISOString(),
+    totalRevenue,
+    dealCount: mapped.length,
+    deals: mapped,
+    bySource,
+    avgDealValue: mapped.length > 0 ? Math.round(totalRevenue / mapped.length) : 0,
+    largestDeal: largest ? { title: largest.title, revenue: largest.revenue } : null,
   }
 }

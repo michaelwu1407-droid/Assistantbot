@@ -15,7 +15,6 @@ import {
     UsersRound,
     Settings2,
     LogOut,
-    MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -84,19 +83,18 @@ export function Sidebar({ className, expanded }: SidebarProps) {
     return (
         <TooltipProvider delayDuration={0}>
             <aside id="sidebar-nav" className={cn("flex h-full flex-col items-center border-r border-neutral-200 bg-white py-5 z-20 transition-all duration-300 shrink-0", className)} style={expanded ? undefined : { width: SIDEBAR_WIDTH }}>
-                {/* Logo */}
+                {/* Logo -> Chat mode */}
                 <div className="mb-6 flex h-9 w-9 items-center justify-center">
-                    <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" unoptimized />
-                </div>
-
-                <div className="px-1.5 w-full mb-4">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
-                                onClick={() => goToBasic()}
-                                className="flex h-10 w-full items-center justify-center rounded-lg bg-blue-100 text-blue-600 transition-colors duration-150 hover:bg-blue-200 hover:text-blue-700"
+                                type="button"
+                                onClick={goToBasic}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-neutral-100"
+                                aria-label="Open chat mode"
+                                title="Open chat mode"
                             >
-                                <MessageSquare size={20} strokeWidth={1.75} />
+                                <Image src="/latest-logo.png" alt="Earlymark Logo" width={28} height={28} className="rounded-lg" unoptimized />
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="text-xs">

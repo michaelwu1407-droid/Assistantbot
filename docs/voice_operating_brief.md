@@ -1,6 +1,6 @@
 # Voice Operating Brief
 
-Updated: 2026-03-17 AEDT
+Updated: 2026-03-21 AEDT
 
 ## Production topology
 
@@ -13,6 +13,12 @@ Updated: 2026-03-17 AEDT
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
 - Canonical deploy workflow: `.github/workflows/deploy-livekit.yml`
+
+## Twilio provisioning topology
+
+- AU mobile numbers are purchased in the **main Twilio account** (with `bundleSid` + `addressSid` from the main account's regulatory bundle), then **transferred** to the customer's subaccount via `incomingPhoneNumbers(sid).update({ accountSid })`.
+- After transfer, a compliant address is created in the subaccount, and the SIP trunk + voice/SMS webhooks are configured using the subaccount client.
+- The main account's regulatory bundle address is resolved automatically via `findSourceBundleAddressSid()` — no manual Twilio Console steps per customer.
 
 ## Required runtime contract
 
@@ -63,6 +69,11 @@ Updated: 2026-03-17 AEDT
 - `app/api/webhooks/twilio-voice-gateway` must fail safe:
   - On any routing/runtime failure (STIR/SHAKEN failure, rate-limit, missing sipTarget, handler exceptions), it must return `voicemailFallbackTwiml` so the caller can always leave a voicemail recording.
   - It must also open a `VoiceIncident` so failures are visible in internal incident tracking.
+  - Even if caller/called metadata is missing from the webhook payload, the handler exception path must still record the incident and return `voicemailFallbackTwiml`.
+  - Spoken fallback prompts use AWS Polly `Polly.Olivia` (Australian English) for the initial spoken line before `<Record>`.
+  - The canonical voicemail greeting is: "Sorry, we can't reach you right now. Please leave a message for the team and we'll get back to you."
+  - Incident creation (`openGatewayIncident`) is non-blocking (`void`) to avoid webhook timeouts that trigger Twilio's generic "application error" message.
+  - Voicemail recordings are stored as `WebhookEvent` records (`provider: "twilio_voice_fallback"`, `eventType: "voicemail_recorded"`) and are surfaced in the operator activity feed alongside normal voice calls.
 
 ## Customer-contact mode policy
 

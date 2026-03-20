@@ -109,6 +109,76 @@ function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
   };
 }
 
+// ─── Voicemail helpers ───────────────────────────────────────────────
+
+function normalizePhone(phone: string) {
+  return phone.replace(/[\s\-()]+/g, "").replace(/^0/, "+61");
+}
+
+async function fetchVoicemailActivities(workspaceId: string, limit: number): Promise<ActivityView[]> {
+  try {
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { twilioPhoneNumber: true },
+    });
+    if (!workspace?.twilioPhoneNumber) return [];
+
+    const normalized = normalizePhone(workspace.twilioPhoneNumber);
+
+    const events = await db.webhookEvent.findMany({
+      where: {
+        provider: "twilio_voice_fallback",
+        eventType: "voicemail_recorded",
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit * 2,
+    });
+
+    const matched = events.filter((e) => {
+      if (!e.payload || typeof e.payload !== "object") return false;
+      const p = e.payload as Record<string, unknown>;
+      const called = String(p.called || "").replace(/[\s\-()]+/g, "");
+      return called === normalized || called === workspace.twilioPhoneNumber;
+    });
+
+    const contactCache = new Map<string, { name: string; phone: string | null; email: string | null } | null>();
+
+    return Promise.all(
+      matched.slice(0, limit).map(async (e) => {
+        const p = e.payload as Record<string, string>;
+        const callerPhone = p.from || "";
+        const duration = p.recordingDuration ? `${p.recordingDuration}s` : "";
+        const transcription = snippet(p.transcriptionText, 180);
+
+        if (callerPhone && !contactCache.has(callerPhone)) {
+          const c = await db.contact.findFirst({
+            where: { workspaceId, phone: { contains: callerPhone.slice(-9) } },
+            select: { name: true, phone: true, email: true },
+          });
+          contactCache.set(callerPhone, c);
+        }
+        const contact = contactCache.get(callerPhone) ?? null;
+
+        return {
+          id: `voicemail:${e.id}`,
+          type: "call",
+          title: "Voicemail received",
+          description: transcription || `${duration} voicemail from ${contact?.name || callerPhone || "unknown"}`,
+          content: transcription,
+          time: relativeTime(e.createdAt),
+          createdAt: e.createdAt,
+          contactName: contact?.name || undefined,
+          contactPhone: contact?.phone || callerPhone || undefined,
+          contactEmail: contact?.email || undefined,
+        } satisfies ActivityView;
+      })
+    );
+  } catch (err) {
+    console.error("[fetchVoicemailActivities] Error:", err);
+    return [];
+  }
+}
+
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
@@ -120,7 +190,7 @@ export async function getActivities(options?: {
   workspaceId?: string;
   limit?: number;
   /** For inbox: only return these activity types (e.g. CALL, EMAIL, NOTE). */
-  typeIn?: ("CALL" | "EMAIL" | "NOTE" | "TASK")[];
+  typeIn?: ("CALL" | "EMAIL" | "NOTE" | "TASK" | "MEETING")[];
 }): Promise<ActivityView[]> {
   try {
     const where: Record<string, unknown> = {};
@@ -215,7 +285,11 @@ export async function getActivities(options?: {
       };
     });
 
-    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity)]
+    const voicemailRows = shouldIncludeVoiceCalls && options?.workspaceId
+      ? await fetchVoicemailActivities(options.workspaceId, options.limit ?? 20)
+      : [];
+
+    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity), ...voicemailRows]
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
       .slice(0, options?.limit ?? 20);
   } catch (error) {

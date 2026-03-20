@@ -1,3 +1,8 @@
+### 2026-03-21 00:30 (AEDT) - antigravity
+- Files: `app/page.tsx`, `tsconfig.json`, `package.json`, `package-lock.json`, `docs/agent_change_log.md`
+- What changed: Fixed a TypeScript compilation error in the homepage by adding the missing `screenshotBg` property to the `HIRE_FEATURES` array. Resolved multiple test-related TypeScript errors by adding `vitest/globals` to `tsconfig.json` and installing `@testing-library/dom` as a dev dependency.
+- Why: The missing `screenshotBg` property caused production builds to fail. Test-related type errors and a missing dependency were blocking the pre-commit hook and overall repository health.
+
 ## 2026-03-19 22:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/twilio-regulatory.ts`, `docs/agent_change_log.md`
@@ -1132,3 +1137,119 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Voice continuity: callers should always be able to leave a voicemail and admins can track failures in incident views.
   - Internal chat correctness: dashboard users should not receive customer-facing disclaimer phrasing.
+
+## 2026-03-20 02:35 (AEDT) - codex
+
+- Files changed:
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `components/chatbot/chat-interface.tsx`
+  - `actions/chat-actions.ts`
+  - `lib/comms.ts`
+  - `__tests__/comms.test.ts`
+  - `docs/voice_operating_brief.md`
+- Summary:
+  - Ensured the voice gateway handler exception path always records a `VoiceIncident` and returns `voicemailFallbackTwiml` even when caller/called metadata is missing.
+  - Added an **Assignee** dropdown to the “New job — review & confirm” draft card for scheduled jobs, and pass `assignedToId` through job creation.
+  - Preserved CRM chat history across “Chat” <-> “Advanced” toggles by storing in-session messages and restoring them on remount.
+  - Finalised/updated the Twilio subaccount provisioning flow in `lib/comms.ts` and refreshed test mocks accordingly.
+- Why:
+  - Voice continuity guarantee: callers must always be able to leave a voicemail after any failure.
+  - Scheduled job creation UX: backend validation requires `assignedToId` in Scheduled stage, so the UI now collects it.
+  - Operator UX: switching views should not erase the conversation they just had.
+
+## 2026-03-20 19:37 (AEDT) - codex
+
+- Files changed:
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `app/api/webhooks/twilio-voice-fallback/route.ts`
+  - `lib/voice-spoken-canary.ts`
+  - `docs/voice_operating_brief.md`
+- Summary:
+  - Updated voicemail spoken prompts to use the Australian-sounding `Polly.Olivia` voice and changed the first line to: “Sorry, we can't reach you right now...”.
+  - Made incident creation non-blocking inside the voice gateway so Twilio is less likely to hit webhook timeouts/generic application errors.
+- Why:
+  - Fix user-facing mismatch on failure prompts and reduce webhook latency that can trigger Twilio’s “application error”.
+
+## 2026-03-21 09:30 (AEDT) - codex
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `actions/tradie-actions.ts`
+  - `app/dashboard/deals/[id]/page.tsx`
+  - `app/admin/customer-usage/page.tsx`
+  - `lib/admin/customer-usage.ts`
+  - `actions/activity-actions.ts`
+  - `app/dashboard/inbox/page.tsx`
+  - `app/inbox/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Invoice UX polish**: Replaced flat PAID/non-PAID badge with per-status colour badges (DRAFT grey, ISSUED blue, PAID green, VOID red strikethrough). Added Issue, Mark Paid, and Void action buttons contextual to each invoice state. Added price validation feedback. Added `voidInvoice` server action to `tradie-actions.ts`. Added Invoices tab to deal detail page.
+  - **Operator-visible routing surfaces**: Expanded the Open Voice Incidents panel in the customer-usage admin page to surface `details` JSON (caller, called, STIR/SHAKEN, routing reason, source, subaccount, managed number, workspace).
+  - **Activity feed parity**: Added MEETING and TASK to the inbox `typeIn` filter on both inbox pages and expanded the union type in `activity-actions.ts`. All five activity types now appear consistently across feeds.
+- Why:
+  - Invoice lifecycle was chatbot-only; operators need direct UI controls.
+  - Routing incident details were stored but hidden from operators.
+  - MEETING and TASK activities were excluded from inbox feeds, creating a blind spot.
+
+## 2026-03-21 10:15 (AEDT) - codex
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `actions/tradie-actions.ts`
+  - `actions/activity-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Real email invoice**: `emailInvoice` server action sends the generated HTML invoice to the contact via Resend. Email button in billing tab is now live.
+  - **Line-item editor**: Inline editor on DRAFT invoices lets operators add, edit, and remove line items with auto-recalculated GST totals. `updateInvoiceLineItems` server action validates and saves.
+  - **Xero/MYOB sync status**: Each invoice card now shows a cloud/no-cloud badge with sync status fetched from `getInvoiceSyncStatus` (stub: always shows Not synced until accounting integration is live).
+  - **Reverse status UI**: PAID invoices get a Reverse to Issued button, ISSUED invoices get Back to Draft. `reverseInvoiceStatus` server action handles the state machine and reverts deal stage when un-paying.
+  - **Voicemail in activity feed**: Voicemail recordings from `WebhookEvent` (provider `twilio_voice_fallback`) are now surfaced in the activity feed as call-type entries. Matched to workspaces via Twilio phone number, with contact resolution by caller phone.
+- Why:
+  - Operators had no way to email, edit, or reverse invoices from the UI; all actions were chatbot-only.
+  - Voicemail-only calls (never reached LiveKit) were invisible in the activity feed, creating a blind spot for missed customer contact.
+
+## 2026-03-21 11:40 (AEDT) - codex
+
+- Files changed:
+  - `actions/analytics-actions.ts`
+  - `app/dashboard/analytics/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added `getMonthlyRevenueBreakdown` server action returning per-deal revenue breakdown for a given month (deal list with contact, value, source, plus aggregate stats like avg deal value, largest deal, by-source split).
+  - Revenue trend chart months are now clickable: clicking a month dot or label fetches the drill-down and shows a breakdown panel with summary cards, source breakdown, and a scrollable list of completed jobs.
+  - Monthly bucket data now includes `start` and `end` ISO dates so the frontend can request per-month data without guessing date ranges.
+  - Drill-down resets when collapsing the revenue card or changing the time range.
+- Why:
+  - Operators could see monthly revenue totals but had no way to understand what drove each month. The drill-down gives immediate visibility into which jobs, contacts, and sources contributed to a given month.
+
+## 2026-03-21 12:00 (AEDT) - codex
+
+- Files changed:
+  - components/core/sidebar.tsx
+- Summary:
+  - Removed the dedicated left-sidebar blue "Ask Tracey" chat-mode button.
+  - Made the Earlymark logo button on the top-left of the left sidebar open Chat mode (calls goToBasic()), using the same behavior as the removed button.
+- Why:
+  - Match the requested UX: use the top-left Earlymark logo as the entry point into chat mode, and reduce sidebar clutter.
+
+## 2026-03-21 12:30 (AEDT) - codex
+
+- Files changed:
+  - pp/dashboard/analytics/page.tsx
+- Summary:
+  - Removed the “Distribution” score grid under Customer Ratings.
+  - Replaced it with a “Score curve” bell-curve style score visual using the existing rating distribution counts.
+- Why:
+  - The distribution grid was visually noisy; a smoother score curve is easier to read while preserving the same underlying signal.
+
+## 2026-03-21 12:15 (AEDT) - codex
+
+- Files changed:
+  - `components/map/map-view.tsx`
+  - `components/map/google-map-view.tsx`
+- Summary:
+  - Map pages no longer stick to a hardcoded Melbourne center when loading.
+  - Added geolocation-based auto-centering on page load (only when browser geolocation permission is already granted), and included the user location in the map fit-bounds calculation.
+  - Leaflet fallback now includes a My Location button and renders your location marker after geolocation.
+- Why:
+  - Users reported that opening /dashboard/map always started at the same Melbourne spot, instead of their current location.
