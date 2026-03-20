@@ -122,6 +122,68 @@ export async function getLatencySnapshot(): Promise<LatencySnapshot> {
   };
 }
 
+type LatencyWaterfall = {
+  generatedAt: string;
+  phases: Record<string, PercentileSummary>;
+  topTools: { tool: string; summary: PercentileSummary }[];
+};
+
+const WATERFALL_PHASES = [
+  'chat.web.preprocessing_ms',
+  'chat.web.preprocessing.job_extraction_ms',
+  'chat.web.preprocessing.agent_context_ms',
+  'chat.web.preprocessing.memory_fetch_ms',
+  'chat.web.ttft_ms',
+  'chat.web.tool_calls_ms',
+  'chat.web.model_ms',
+  'chat.web.total_ms',
+  'chat.client.ttft_ms',
+];
+
+export async function getLatencyWaterfall(topToolsCount = 10): Promise<LatencyWaterfall> {
+  const phases: Record<string, PercentileSummary> = {};
+  const topTools: { tool: string; summary: PercentileSummary }[] = [];
+
+  try {
+    const dbMetrics = await db.telemetryMetric.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
+    });
+
+    const grouped = new Map<string, number[]>();
+    for (const row of dbMetrics) {
+      const existing = grouped.get(row.metric) ?? [];
+      existing.push(row.duration);
+      grouped.set(row.metric, existing);
+    }
+
+    // Phase summaries
+    for (const phase of WATERFALL_PHASES) {
+      const values = grouped.get(phase);
+      phases[phase] = values ? summarize(values) : summarize([]);
+    }
+
+    // Tool breakdown sorted by p95 descending
+    const toolEntries: { tool: string; summary: PercentileSummary }[] = [];
+    for (const [metric, values] of grouped.entries()) {
+      if (metric.startsWith('chat.web.tool.') && metric.endsWith('_ms')) {
+        const toolName = metric.slice('chat.web.tool.'.length, -'_ms'.length);
+        toolEntries.push({ tool: toolName, summary: summarize(values) });
+      }
+    }
+    toolEntries.sort((a, b) => b.summary.p95Ms - a.summary.p95Ms);
+    topTools.push(...toolEntries.slice(0, topToolsCount));
+  } catch (err) {
+    console.error("[Telemetry ERROR] Failed to build waterfall:", err);
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    phases,
+    topTools,
+  };
+}
+
 export async function resetLatencyTelemetry() {
   metricStore.clear();
   try {

@@ -1,4 +1,4 @@
-import { getLatencySnapshot, resetLatencyTelemetry } from "@/lib/telemetry/latency";
+import { getLatencySnapshot, getLatencyWaterfall, resetLatencyTelemetry } from "@/lib/telemetry/latency";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,14 @@ export async function GET(req: Request) {
   if (!isAuthorized(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const url = new URL(req.url);
+  const view = url.searchParams.get("view");
+  if (view === "waterfall") {
+    const topTools = parseInt(url.searchParams.get("top_tools") ?? "10", 10);
+    return new Response(JSON.stringify(await getLatencyWaterfall(topTools)), {
       headers: { "Content-Type": "application/json" },
     });
   }

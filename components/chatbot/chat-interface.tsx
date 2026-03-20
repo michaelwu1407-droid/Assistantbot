@@ -296,6 +296,8 @@ function ChatWithHistory({
   const nextSendBlockedRef = useRef(false);
   const hasInitializedScrollRef = useRef(false);
   const previousMessageCountRef = useRef(0);
+  /** Track send time to measure client-perceived TTFT */
+  const sendTimestampRef = useRef<number>(0);
   const pathname = usePathname();
 
   const getContextualQuickActions = () => {
@@ -390,6 +392,22 @@ function ChatWithHistory({
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
+  // Measure client-perceived time-to-first-token
+  useEffect(() => {
+    if (status === 'streaming' && sendTimestampRef.current > 0) {
+      const ttft = Math.round(performance.now() - sendTimestampRef.current);
+      sendTimestampRef.current = 0;
+      try {
+        navigator.sendBeacon('/api/internal/telemetry/client', JSON.stringify({
+          metric: 'chat.client.ttft_ms',
+          duration: ttft,
+        }));
+      } catch {
+        // Non-critical telemetry — ignore failures
+      }
+    }
+  }, [status]);
+
   const openDigestModal = async (kind: "morning" | "evening") => {
     if (!workspaceId) return;
     setDigestLoading(kind);
@@ -424,6 +442,7 @@ function ChatWithHistory({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    sendTimestampRef.current = performance.now();
     sendMessage({ text: input });
     setInput('');
   };
@@ -882,29 +901,30 @@ function ChatWithHistory({
 }
 
 export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
-  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: any[] }[] | null>(null);
-
-  useEffect(() => {
-    if (!workspaceId) {
-      setInitialMessages([]);
-      return;
-    }
-
-    // Fast path: restore in-session messages so UI state survives remounts.
+  // Read sessionStorage synchronously during init so the very first render
+  // passes restored messages to useChat. useChat only reads `messages` on
+  // mount — a deferred setInitialMessages via useEffect arrives too late.
+  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: any[] }[] | null>(() => {
+    if (!workspaceId) return [];
     try {
       const storageKey = `chatMessages:${workspaceId}`;
       const raw = sessionStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Only short-circuit when we actually have messages to restore.
-        // (Some test setups may leave an empty array behind.)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setInitialMessages(parsed);
-          return;
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {
-      // Ignore session restoration failures and fall back to DB history.
+      // sessionStorage may be blocked; fall through to DB fetch.
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    // If sessionStorage already provided messages, skip the DB fetch.
+    if (initialMessages !== null) return;
+    if (!workspaceId) {
+      setInitialMessages([]);
+      return;
     }
 
     let cancelled = false;
@@ -917,7 +937,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
         if (!cancelled) setInitialMessages([]);
       });
     return () => { cancelled = true; };
-  }, [workspaceId]);
+  }, [workspaceId, initialMessages]);
 
   if (!workspaceId) {
     return (

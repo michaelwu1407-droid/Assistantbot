@@ -9,7 +9,7 @@ import { appendTicketNote } from "@/actions/activity-actions";
 import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
-import { getAgentTools } from "@/lib/ai/tools";
+import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
@@ -347,21 +347,32 @@ export async function POST(req: Request) {
     const preprocessingStartedAt = nowMs();
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
     const lastMessageContent = getUserMessageText(lastUserMessage) || content;
-    const shouldRunStructuredExtraction = shouldAttemptStructuredJobExtraction(content);
-    const includeHistoricalPricing = shouldIncludeHistoricalPricing(content);
-    const shouldGetMemoryContext = shouldFetchMemory(lastMessageContent);
+
+    // Pre-classify intent BEFORE preprocessing so flow-control messages can skip expensive work
+    const classification = preClassify(content);
+    const isFlowControl = classification.intent === 'flow_control';
+
+    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content);
+    const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);
+    const shouldGetMemoryContext = !isFlowControl && shouldFetchMemory(lastMessageContent);
 
     // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
     // This is the critical speed optimization — these 3 operations are independent and
     // were previously running sequentially, adding 1-3+ seconds of dead time.
+    const jobExtractionStart = nowMs();
+    const agentContextStart = nowMs();
+    const memoryFetchStart = nowMs();
     const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
-      shouldRunStructuredExtraction
+      (shouldRunStructuredExtraction
         ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
-        : Promise.resolve([]),
-      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" }),
-      shouldGetMemoryContext
-        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 700, "")
-        : Promise.resolve(""),
+        : Promise.resolve([])
+      ).then(r => { recordLatencyMetric('chat.web.preprocessing.job_extraction_ms', nowMs() - jobExtractionStart); return r; }),
+      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" })
+        .then(r => { recordLatencyMetric('chat.web.preprocessing.agent_context_ms', nowMs() - agentContextStart); return r; }),
+      (shouldGetMemoryContext
+        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 400, "")
+        : Promise.resolve("")
+      ).then(r => { recordLatencyMetric('chat.web.preprocessing.memory_fetch_ms', nowMs() - memoryFetchStart); return r; }),
     ]);
 
     const {
@@ -528,7 +539,7 @@ export async function POST(req: Request) {
 
     // Context pruning: keep only the last MAX_HISTORY_MESSAGES to avoid unbounded
     // token growth and rising latency/cost. System messages always pass through.
-    const MAX_HISTORY_MESSAGES = 12;
+    const MAX_HISTORY_MESSAGES = 8;
     if (modelMessages.length > MAX_HISTORY_MESSAGES) {
       const systemMsgs = modelMessages.filter((m: any) => m.role === "system");
       const nonSystemMsgs = modelMessages.filter((m: any) => m.role !== "system");
@@ -557,8 +568,7 @@ export async function POST(req: Request) {
     // multiJobInstruction removed — the multi-job early-return (lines above)
     // handles this before streamText is reached, so it was always "".
 
-    // ── Pre-classify intent for context injection ──
-    const classification = preClassify(content);
+    // ── Intent hints for context injection (classification already done above) ──
     const intentHintsStr = classification.contextHints.length > 0
       ? `\n\n[[INTENT HINTS for this turn]]\n${classification.contextHints.join("\n")}\n[[END INTENT HINTS]]`
       : "";
@@ -571,7 +581,7 @@ export async function POST(req: Request) {
         .join("\n")}\nWhen the user says "these", "selected", or "current selection", use these deal IDs for bulk tools. Do not assume this selection if the user is referring to some other set.`
       : "";
     const tools = instrumentToolsWithLatency(
-      getAgentTools(workspaceId, settings, userId),
+      getAgentToolsForIntent(workspaceId, settings, userId, classification),
       (toolName, durationMs) => {
         toolCallsMs += durationMs;
         recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
@@ -604,13 +614,22 @@ export async function POST(req: Request) {
       jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
     });
     const llmStartedAt = nowMs();
+    let ttftRecorded = false;
+    let ttftMs = 0;
     const result = streamText({
       model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      maxOutputTokens: 1024,
+      maxOutputTokens: 512,
       system: systemPrompt,
       messages: modelMessages as any,
       tools,
       stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
+      onChunk: ({ chunk }) => {
+        if (!ttftRecorded && chunk.type === 'text-delta') {
+          ttftRecorded = true;
+          ttftMs = nowMs() - llmStartedAt;
+          recordLatencyMetric('chat.web.ttft_ms', ttftMs);
+        }
+      },
       onStepFinish: ({ toolResults }) => {
         if (toolResults) {
           for (const tr of toolResults) {
@@ -681,7 +700,7 @@ export async function POST(req: Request) {
     });
 
     const response = result.toUIMessageStreamResponse();
-    response.headers.set("Server-Timing", `preprocessing;dur=${preprocessingMs}, llm_startup;dur=${nowMs() - llmStartedAt}, tool_calls;dur=${toolCallsMs}`);
+    response.headers.set("Server-Timing", `preprocessing;dur=${preprocessingMs}, ttft;dur=${ttftMs}, llm_startup;dur=${nowMs() - llmStartedAt}, tool_calls;dur=${toolCallsMs}`);
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
