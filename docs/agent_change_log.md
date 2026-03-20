@@ -1202,3 +1202,17 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Operators had no way to email, edit, or reverse invoices from the UI; all actions were chatbot-only.
   - Voicemail-only calls (never reached LiveKit) were invisible in the activity feed, creating a blind spot for missed customer contact.
+
+## 2026-03-21 11:40 (AEDT) - codex
+
+- Files changed:
+  - `actions/analytics-actions.ts`
+  - `app/dashboard/analytics/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added `getMonthlyRevenueBreakdown` server action returning per-deal revenue breakdown for a given month (deal list with contact, value, source, plus aggregate stats like avg deal value, largest deal, by-source split).
+  - Revenue trend chart months are now clickable: clicking a month dot or label fetches the drill-down and shows a breakdown panel with summary cards, source breakdown, and a scrollable list of completed jobs.
+  - Monthly bucket data now includes `start` and `end` ISO dates so the frontend can request per-month data without guessing date ranges.
+  - Drill-down resets when collapsing the revenue card or changing the time range.
+- Why:
+  - Operators could see monthly revenue totals but had no way to understand what drove each month. The drill-down gives immediate visibility into which jobs, contacts, and sources contributed to a given month.

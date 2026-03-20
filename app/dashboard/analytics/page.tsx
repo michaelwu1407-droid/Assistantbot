@@ -16,7 +16,13 @@ import {
 } from "lucide-react"
 import { useShellStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
-import { getReportsData, type ReportsData, type ReportRange } from "@/actions/analytics-actions"
+import {
+  getReportsData,
+  getMonthlyRevenueBreakdown,
+  type ReportsData,
+  type ReportRange,
+  type MonthlyRevenueBreakdown,
+} from "@/actions/analytics-actions"
 import { Button } from "@/components/ui/button"
 
 export default function AnalyticsPage() {
@@ -25,6 +31,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [revenueExpanded, setRevenueExpanded] = useState(false)
   const [customersExpanded, setCustomersExpanded] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  const [monthBreakdown, setMonthBreakdown] = useState<MonthlyRevenueBreakdown | null>(null)
+  const [monthLoading, setMonthLoading] = useState(false)
   const workspaceId = useShellStore((s) => s.workspaceId)
   const userRole = useShellStore((s) => s.userRole)
   const router = useRouter()
@@ -42,6 +51,8 @@ export default function AnalyticsPage() {
       return
     }
     setLoading(true)
+    setSelectedMonth(null)
+    setMonthBreakdown(null)
     getReportsData(workspaceId, timeRange as ReportRange)
       .then(setData)
       .catch(console.error)
@@ -127,7 +138,7 @@ export default function AnalyticsPage() {
           {/* Card 1: Revenue — click to expand trend */}
           <Card
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setRevenueExpanded(!revenueExpanded)}
+            onClick={() => { setRevenueExpanded(!revenueExpanded); if (revenueExpanded) { setSelectedMonth(null); setMonthBreakdown(null) } }}
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
@@ -210,9 +221,9 @@ export default function AnalyticsPage() {
                 <TrendingUp className="h-4 w-4" />
                 Revenue Trend
               </CardTitle>
-              <CardDescription>Monthly revenue over time</CardDescription>
+              <CardDescription>Monthly revenue over time — click a month to see the breakdown</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {(() => {
                 const months = data.revenue.monthly;
                 const allZero = months.every(m => m.revenue === 0);
@@ -224,7 +235,7 @@ export default function AnalyticsPage() {
                 const points = months.map((m, i) => {
                   const x = PAD_LEFT + (months.length > 1 ? (i / (months.length - 1)) * chartW : chartW / 2);
                   const y = PAD_TOP + chartH - (maxRev > 0 ? (m.revenue / maxRev) * chartH : 0);
-                  return { x, y, month: m.month, revenue: m.revenue };
+                  return { x, y, month: m.month, revenue: m.revenue, start: m.start, end: m.end };
                 });
                 const gridCount = 4;
                 const gridLines = Array.from({ length: gridCount }, (_, i) => {
@@ -232,6 +243,16 @@ export default function AnalyticsPage() {
                   const y = PAD_TOP + chartH - (maxRev > 0 ? (val / maxRev) * chartH : 0);
                   return { y, val };
                 });
+                const handleMonthClick = async (month: string, start: string, end: string) => {
+                  if (selectedMonth === month) { setSelectedMonth(null); setMonthBreakdown(null); return }
+                  setSelectedMonth(month)
+                  setMonthLoading(true)
+                  try {
+                    const bd = await getMonthlyRevenueBreakdown(workspaceId!, start, end)
+                    setMonthBreakdown(bd)
+                  } catch (e) { console.error(e) }
+                  finally { setMonthLoading(false) }
+                };
                 return (
                   <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-48">
                     {gridLines.map((g, i) => (
@@ -242,14 +263,110 @@ export default function AnalyticsPage() {
                     ))}
                     <polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#00D28B" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
                     {points.map((p, i) => (
-                      <circle key={i} cx={p.x} cy={p.y} r={4} fill="#00D28B" stroke="white" strokeWidth={2} />
+                      <g key={i} className="cursor-pointer" onClick={() => handleMonthClick(p.month, p.start, p.end)}>
+                        <circle cx={p.x} cy={p.y} r={14} fill="transparent" />
+                        <circle cx={p.x} cy={p.y} r={selectedMonth === p.month ? 7 : 4} fill={selectedMonth === p.month ? "#059669" : "#00D28B"} stroke="white" strokeWidth={2} />
+                      </g>
                     ))}
                     {points.map((p, i) => (
-                      <text key={`lbl-${i}`} x={p.x} y={H - 6} textAnchor="middle" className="fill-slate-500" fontSize={10}>{p.month}</text>
+                      <text
+                        key={`lbl-${i}`}
+                        x={p.x}
+                        y={H - 6}
+                        textAnchor="middle"
+                        className={`cursor-pointer ${selectedMonth === p.month ? "fill-emerald-700 font-semibold" : "fill-slate-500"}`}
+                        fontSize={10}
+                        onClick={() => handleMonthClick(p.month, p.start, p.end)}
+                      >
+                        {p.month}
+                      </text>
                     ))}
                   </svg>
                 );
               })()}
+
+              {/* Month drill-down */}
+              {selectedMonth && (
+                <div className="border-t pt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-neutral-900">
+                      {selectedMonth} breakdown
+                    </h3>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => { setSelectedMonth(null); setMonthBreakdown(null) }}>
+                      Close
+                    </Button>
+                  </div>
+
+                  {monthLoading && <p className="text-sm text-muted-foreground py-4 text-center">Loading...</p>}
+
+                  {!monthLoading && monthBreakdown && (
+                    <div className="space-y-4">
+                      {/* Summary row */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3 bg-secondary/30 rounded-lg">
+                          <p className="text-xs text-muted-foreground">Revenue</p>
+                          <p className="text-lg font-bold text-neutral-900">${monthBreakdown.totalRevenue.toLocaleString("en-AU")}</p>
+                        </div>
+                        <div className="p-3 bg-secondary/30 rounded-lg">
+                          <p className="text-xs text-muted-foreground">Jobs completed</p>
+                          <p className="text-lg font-bold text-neutral-900">{monthBreakdown.dealCount}</p>
+                        </div>
+                        <div className="p-3 bg-secondary/30 rounded-lg">
+                          <p className="text-xs text-muted-foreground">Avg deal value</p>
+                          <p className="text-lg font-bold text-neutral-900">${monthBreakdown.avgDealValue.toLocaleString("en-AU")}</p>
+                        </div>
+                        {monthBreakdown.largestDeal && (
+                          <div className="p-3 bg-secondary/30 rounded-lg">
+                            <p className="text-xs text-muted-foreground">Largest deal</p>
+                            <p className="text-sm font-bold text-neutral-900">${monthBreakdown.largestDeal.revenue.toLocaleString("en-AU")}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{monthBreakdown.largestDeal.title}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* By source */}
+                      {monthBreakdown.bySource.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">By source</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {monthBreakdown.bySource.map((s) => (
+                              <div key={s.source} className="px-3 py-2 bg-secondary/40 rounded-lg text-xs">
+                                <span className="font-medium text-neutral-900">{s.source}</span>
+                                <span className="text-muted-foreground ml-2">{s.count} job{s.count !== 1 ? "s" : ""}</span>
+                                <span className="text-emerald-700 ml-2 font-semibold">${s.revenue.toLocaleString("en-AU")}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Individual deals */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Completed jobs</p>
+                        <div className="max-h-64 overflow-auto space-y-2 pr-1">
+                          {monthBreakdown.deals.length === 0 && (
+                            <p className="text-sm text-muted-foreground py-4">No completed jobs this month.</p>
+                          )}
+                          {monthBreakdown.deals.map((deal) => (
+                            <div key={deal.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-neutral-900 truncate">{deal.title}</p>
+                                <p className="text-xs text-muted-foreground">{deal.contactName} · {deal.source}</p>
+                              </div>
+                              <div className="text-right shrink-0 ml-3">
+                                <p className="text-sm font-semibold text-emerald-700">${deal.revenue.toLocaleString("en-AU")}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {new Date(deal.completedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
