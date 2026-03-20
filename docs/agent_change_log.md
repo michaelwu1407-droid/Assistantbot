@@ -1236,3 +1236,15 @@ Rule: every agent change commit must include an entry in this file.
   - Replaced it with a “Score curve” bell-curve style score visual using the existing rating distribution counts.
 - Why:
   - The distribution grid was visually noisy; a smoother score curve is easier to read while preserving the same underlying signal.
+
+## 2026-03-21 12:15 (AEDT) - codex
+
+- Files changed:
+  - `components/map/map-view.tsx`
+  - `components/map/google-map-view.tsx`
+- Summary:
+  - Map pages no longer stick to a hardcoded Melbourne center when loading.
+  - Added geolocation-based auto-centering on page load (only when browser geolocation permission is already granted), and included the user location in the map fit-bounds calculation.
+  - Leaflet fallback now includes a My Location button and renders your location marker after geolocation.
+- Why:
+  - Users reported that opening /dashboard/map always started at the same Melbourne spot, instead of their current location.

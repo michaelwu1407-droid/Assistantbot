@@ -1,10 +1,10 @@
 "use client"
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { AlertCircle, CalendarClock, CheckCircle2, ChevronRight, Clock, Compass, Layers, MapPin, MessageSquare, Navigation, Route } from "lucide-react"
+import { AlertCircle, CalendarClock, CheckCircle2, ChevronRight, Clock, Compass, Layers, LocateFixed, MapPin, MessageSquare, Navigation, Route } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
@@ -94,6 +94,8 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isRouteMode, setIsRouteMode] = useState(false)
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
+  const [locating, setLocating] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [jobToComplete, setJobToComplete] = useState<Job | null>(null)
   const [viewJobDealId, setViewJobDealId] = useState<string | null>(null)
@@ -150,6 +152,48 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   const visibleTodayJobs = isRouteMode ? (activeTargetJob ? [activeTargetJob] : []) : jobsToday
   const effectiveSelectedJobId = isRouteMode && activeTargetJob ? activeTargetJob.id : selectedJobId
   const effectiveFlyTarget = isRouteMode && activeTargetJob ? getJobPosition(activeTargetJob) : flyTarget
+
+  const locateMe = useCallback(async () => {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords: [number, number] = [position.coords.latitude, position.coords.longitude]
+        setUserPosition(coords)
+        setLocating(false)
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }, [])
+
+  // Auto-locate only if permission is already granted (so we don't constantly prompt).
+  useEffect(() => {
+    let cancelled = false
+    const maybeAutoLocate = async () => {
+      try {
+        const permissions = (navigator as any).permissions
+        if (!permissions?.query) return
+        const status = await permissions.query({ name: "geolocation" })
+        if (cancelled) return
+        if (status?.state === "granted") {
+          locateMe()
+        }
+      } catch {
+        // Ignore: browser may not support permissions API; user can still click the button.
+      }
+    }
+    maybeAutoLocate()
+    return () => {
+      cancelled = true
+    }
+  }, [locateMe])
+
+  const fitPositions: [number, number][] = useMemo(() => {
+    const positions: [number, number][] = [...visiblePositions]
+    if (userPosition) positions.push(userPosition)
+    return positions
+  }, [visiblePositions, userPosition])
 
   return (
     <div className="relative flex h-full w-full min-h-0">
@@ -399,15 +443,24 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
 
       <div className="relative min-h-[300px] min-w-0 flex-1">
         <MapContainer
-          center={DEFAULT_CENTER}
+          center={userPosition ?? DEFAULT_CENTER}
           zoom={12}
           scrollWheelZoom
           className="h-full w-full rounded-xl"
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer attribution={TILE_ATTR} url={TILE_URL} />
-          {!effectiveSelectedJobId && <FitBounds positions={visiblePositions} />}
+          {!effectiveSelectedJobId && <FitBounds positions={fitPositions} />}
           <FlyToJob position={effectiveFlyTarget} />
+
+          {/* Your location marker (appears after geolocation) */}
+          {userPosition && (
+            <CircleMarker
+              center={userPosition}
+              radius={7}
+              pathOptions={{ color: "#4285F4", weight: 2, fillOpacity: 0.2 }}
+            />
+          )}
 
           {showToday && visibleTodayJobs.map((job) => {
             const [lat, lng] = getJobPosition(job)
@@ -501,6 +554,20 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
             )
           })}
         </MapContainer>
+
+        {!isRouteMode && (
+          <button
+            type="button"
+            onClick={locateMe}
+            disabled={locating}
+            className="absolute right-4 top-4 z-[1000] flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-lg transition-all hover:bg-slate-50 disabled:opacity-50"
+            title="Find my location"
+            aria-label={locating ? "Locating current position" : "Find my current location"}
+          >
+            <LocateFixed className={cn("h-4 w-4 text-blue-600", locating && "animate-spin")} />
+            <span className="text-xs font-semibold text-slate-600">{locating ? "Locating..." : "My Location"}</span>
+          </button>
+        )}
 
         {!isRouteMode && (
           <div className="absolute bottom-4 left-4 z-[1000]">
