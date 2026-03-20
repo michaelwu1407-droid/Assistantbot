@@ -120,7 +120,7 @@ export async function getActivities(options?: {
   workspaceId?: string;
   limit?: number;
   /** For inbox: only return these activity types (e.g. CALL, EMAIL, NOTE). */
-  typeIn?: ("CALL" | "EMAIL" | "NOTE" | "TASK")[];
+  typeIn?: ("CALL" | "EMAIL" | "NOTE" | "TASK" | "MEETING")[];
 }): Promise<ActivityView[]> {
   try {
     const where: Record<string, unknown> = {};

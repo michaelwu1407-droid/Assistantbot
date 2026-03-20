@@ -732,6 +732,53 @@ export async function markInvoicePaid(invoiceId: string) {
   return { success: true };
 }
 
+/**
+ * Void a DRAFT or ISSUED invoice. PAID invoices must be reversed first.
+ */
+export async function voidInvoice(invoiceId: string) {
+  const existing = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { deal: true },
+  });
+  if (!existing) return { success: false, error: "Invoice not found" };
+  if (existing.status === "VOID") return { success: false, error: "Already voided" };
+  if (existing.status === "PAID") return { success: false, error: "Reverse to ISSUED or DRAFT before voiding" };
+
+  const { actor } = await requireDealInCurrentWorkspace(existing.dealId);
+
+  await db.invoice.update({
+    where: { id: invoiceId },
+    data: { status: "VOID", paidAt: null },
+  });
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Invoice voided",
+      content: `Invoice ${existing.number} has been voided.`,
+      dealId: existing.dealId,
+      contactId: existing.deal.contactId,
+      userId: actor.id,
+    },
+  });
+  await recordWorkspaceAuditEvent({
+    workspaceId: actor.workspaceId,
+    userId: actor.id,
+    action: "invoice.voided",
+    entityType: "invoice",
+    entityId: existing.id,
+    metadata: {
+      invoiceNumber: existing.number,
+      dealId: existing.dealId,
+      previousStatus: existing.status,
+      nextStatus: "VOID",
+      source: "tradie-actions.voidInvoice",
+    },
+  });
+
+  return { success: true };
+}
+
 // ─── PDF / Printable Quote ──────────────────────────────────────────
 
 export interface QuotePDFData {

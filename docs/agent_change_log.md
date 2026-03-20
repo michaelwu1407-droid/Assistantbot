@@ -1164,3 +1164,24 @@ Rule: every agent change commit must include an entry in this file.
   - Made incident creation non-blocking inside the voice gateway so Twilio is less likely to hit webhook timeouts/generic application errors.
 - Why:
   - Fix user-facing mismatch on failure prompts and reduce webhook latency that can trigger Twilio’s “application error”.
+
+## 2026-03-21 09:30 (AEDT) - codex
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `actions/tradie-actions.ts`
+  - `app/dashboard/deals/[id]/page.tsx`
+  - `app/admin/customer-usage/page.tsx`
+  - `lib/admin/customer-usage.ts`
+  - `actions/activity-actions.ts`
+  - `app/dashboard/inbox/page.tsx`
+  - `app/inbox/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Invoice UX polish**: Replaced flat PAID/non-PAID badge with per-status colour badges (DRAFT grey, ISSUED blue, PAID green, VOID red strikethrough). Added Issue, Mark Paid, and Void action buttons contextual to each invoice state. Added price validation feedback. Added `voidInvoice` server action to `tradie-actions.ts`. Added Invoices tab to deal detail page.
+  - **Operator-visible routing surfaces**: Expanded the Open Voice Incidents panel in the customer-usage admin page to surface `details` JSON (caller, called, STIR/SHAKEN, routing reason, source, subaccount, managed number, workspace).
+  - **Activity feed parity**: Added MEETING and TASK to the inbox `typeIn` filter on both inbox pages and expanded the union type in `activity-actions.ts`. All five activity types now appear consistently across feeds.
+- Why:
+  - Invoice lifecycle was chatbot-only; operators need direct UI controls.
+  - Routing incident details were stored but hidden from operators.
+  - MEETING and TASK activities were excluded from inbox feeds, creating a blind spot.
