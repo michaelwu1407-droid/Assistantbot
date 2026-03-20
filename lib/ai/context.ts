@@ -66,8 +66,16 @@ export type WorkspaceVoiceGrounding = {
     noGoRules: string[];
 };
 
-const AGENT_CONTEXT_CACHE_TTL_MS = 30_000;
+const AGENT_CONTEXT_CACHE_TTL_MS = 120_000;
 const agentContextCache = new Map<string, { expiresAt: number; value: AgentContextPayload }>();
+
+/** Bust the agent context cache for a workspace (call when settings change). */
+export function invalidateAgentContextCache(workspaceId: string) {
+    for (const key of agentContextCache.keys()) {
+        if (key.startsWith(`${workspaceId}:`)) agentContextCache.delete(key);
+    }
+}
+
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60_000;
 const voiceGroundingCache = new Map<string, { expiresAt: number; value: WorkspaceVoiceGrounding | null }>();
 
@@ -84,8 +92,29 @@ export async function buildAgentContext(
     const pricingAudience = options?.pricingAudience ?? "customer";
     const cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
     const cached = agentContextCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (cached) {
+        if (cached.expiresAt > Date.now()) {
+            return cached.value; // Fresh cache hit
+        }
+        // Stale — return immediately, refresh in background
+        buildAgentContextFresh(workspaceId, providedUserId, options, cacheKey).catch(() => {});
         return cached.value;
+    }
+
+    // No cache at all — block and fetch
+    return buildAgentContextFresh(workspaceId, providedUserId, options, cacheKey);
+}
+
+async function buildAgentContextFresh(
+    workspaceId: string,
+    providedUserId?: string,
+    options?: BuildAgentContextOptions,
+    cacheKey?: string,
+): Promise<AgentContextPayload> {
+    const includeHistoricalPricing = options?.includeHistoricalPricing ?? true;
+    const pricingAudience = options?.pricingAudience ?? "customer";
+    if (!cacheKey) {
+        cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
     }
 
     // ── Parallel batch 1: all independent DB/auth queries ────────────────
@@ -502,7 +531,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
 
 // Lazy initialization of Mem0 Memory Client
 let memoryClient: MemoryClient | null = null;
-const MEMORY_CACHE_TTL_MS = 20_000;
+const MEMORY_CACHE_TTL_MS = 60_000;
 const memorySearchCache = new Map<string, { expiresAt: number; value: string }>();
 
 export function getMemoryClient(): MemoryClient | null {

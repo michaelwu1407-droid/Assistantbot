@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import type { PreClassification } from "@/lib/ai/pre-classifier";
 import {
     runMoveDeal,
     runBulkMoveDeals,
@@ -566,4 +567,51 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => calculate(params),
         }),
     };
+}
+
+// Tools that are always included regardless of intent classification
+const CORE_TOOLS = [
+    'listDeals', 'searchContacts', 'contactSupport', 'showConfirmationCard',
+    'showJobDraftForConfirmation', 'updateAiPreferences', 'addAgentFlag',
+    'undoLastAction',
+];
+
+// Intent-specific tool groups that supplement core tools
+const INTENT_TOOL_GROUPS: Record<string, string[]> = {
+    pricing: ['pricingLookup', 'pricingCalculator', 'createDraftInvoice', 'updateInvoiceAmount'],
+    scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary'],
+    communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification'],
+    reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue'],
+    contact_lookup: ['getClientContext', 'createContact', 'updateContactFields'],
+    invoice: [
+        'createDraftInvoice', 'issueInvoice', 'markInvoicePaid', 'voidInvoice',
+        'reverseInvoiceStatus', 'updateInvoiceFields', 'updateInvoiceAmount',
+        'sendInvoiceReminder', 'getInvoiceStatus', 'pricingLookup', 'pricingCalculator',
+    ],
+    support: ['appendTicketNote'],
+    flow_control: [], // Minimal tools for "ok", "yes", "next", etc.
+};
+
+/**
+ * Returns a subset of agent tools relevant to the detected intent.
+ * Falls back to the full tool set for "general" intent or low-confidence classifications.
+ */
+export function getAgentToolsForIntent(
+    workspaceId: string,
+    settings: AgentToolSettings | null | undefined,
+    userId: string | undefined,
+    classification: PreClassification,
+) {
+    const allTools = getAgentTools(workspaceId, settings, userId);
+
+    // Low confidence or general intent: send all tools
+    if (classification.intent === 'general' || classification.confidence < 0.5) {
+        return allTools;
+    }
+
+    const intentTools = INTENT_TOOL_GROUPS[classification.intent] ?? [];
+    const relevant = new Set([...CORE_TOOLS, ...intentTools, ...classification.suggestedTools]);
+    return Object.fromEntries(
+        Object.entries(allTools).filter(([k]) => relevant.has(k))
+    ) as typeof allTools;
 }
