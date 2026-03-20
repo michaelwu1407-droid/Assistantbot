@@ -12,7 +12,7 @@ function completionTwiml() {
   return new NextResponse(
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Nicole">Thanks. Your message has been recorded and the team will be notified.</Say>
+  <Say voice="Polly.Olivia">Thanks. Your message has been recorded and the team will be notified.</Say>
   <Hangup />
 </Response>`,
     {

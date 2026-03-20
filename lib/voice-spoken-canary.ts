@@ -72,7 +72,7 @@ function buildProbeTwiml(phrase: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Pause length="1" />
-  <Say voice="Polly.Nicole">${escapeXml(phrase)}</Say>
+  <Say voice="Polly.Olivia">${escapeXml(phrase)}</Say>
   <Pause length="${pauseSeconds}" />
   <Hangup />
 </Response>`;

@@ -64,6 +64,7 @@ Updated: 2026-03-17 AEDT
   - On any routing/runtime failure (STIR/SHAKEN failure, rate-limit, missing sipTarget, handler exceptions), it must return `voicemailFallbackTwiml` so the caller can always leave a voicemail recording.
   - It must also open a `VoiceIncident` so failures are visible in internal incident tracking.
   - Even if caller/called metadata is missing from the webhook payload, the handler exception path must still record the incident and return `voicemailFallbackTwiml`.
+  - Spoken fallback prompts use an Australian-sounding AWS Polly voice (for the initial spoken line before `<Record>`).
 
 ## Customer-contact mode policy
 

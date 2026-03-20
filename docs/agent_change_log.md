@@ -1151,3 +1151,16 @@ Rule: every agent change commit must include an entry in this file.
   - Voice continuity guarantee: callers must always be able to leave a voicemail after any failure.
   - Scheduled job creation UX: backend validation requires `assignedToId` in Scheduled stage, so the UI now collects it.
   - Operator UX: switching views should not erase the conversation they just had.
+
+## 2026-03-20 19:37 (AEDT) - codex
+
+- Files changed:
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `app/api/webhooks/twilio-voice-fallback/route.ts`
+  - `lib/voice-spoken-canary.ts`
+  - `docs/voice_operating_brief.md`
+- Summary:
+  - Updated voicemail spoken prompts to use the Australian-sounding `Polly.Olivia` voice and changed the first line to: “Sorry, we can't reach you right now...”.
+  - Made incident creation non-blocking inside the voice gateway so Twilio is less likely to hit webhook timeouts/generic application errors.
+- Why:
+  - Fix user-facing mismatch on failure prompts and reduce webhook latency that can trigger Twilio’s “application error”.

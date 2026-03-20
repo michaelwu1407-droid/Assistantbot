@@ -47,7 +47,7 @@ function rejectTwiml() {
 function temporarilyUnavailableTwiml() {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Nicole">Sorry, this number is temporarily unavailable. Please try again later.</Say>
+  <Say voice="Polly.Olivia">Sorry, this number is temporarily unavailable. Please try again later.</Say>
   <Hangup />
 </Response>`;
 }
@@ -56,9 +56,9 @@ function dtmfChallengeTwiml(gatewayUrl: string, calledNumber: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${gatewayUrl}?dtmf_passed=1&amp;CalledNumber=${encodeURIComponent(calledNumber)}" method="POST" timeout="10">
-    <Say voice="Polly.Nicole">To speak with the assistant, please press 1.</Say>
+    <Say voice="Polly.Olivia">To speak with the assistant, please press 1.</Say>
   </Gather>
-  <Say voice="Polly.Nicole">We didn't receive a response. Goodbye.</Say>
+  <Say voice="Polly.Olivia">We didn't receive a response. Goodbye.</Say>
   <Hangup />
 </Response>`;
 }
@@ -84,7 +84,7 @@ function syntheticProbeTwiml(result: "pass" | "fallback" | "orphaned" | "disable
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Nicole">${message}</Say>
+  <Say voice="Polly.Olivia">${message}</Say>
   <Hangup />
 </Response>`;
 }
@@ -101,9 +101,9 @@ function voicemailFallbackTwiml(params: {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Nicole">Our assistant is temporarily unavailable, but we can still take a message for the team.</Say>
+  <Say voice="Polly.Olivia">Sorry, we can't reach you right now. Please leave a message for the team and we'll get back to you.</Say>
   <Record playBeep="true" maxLength="120" timeout="5"${actionUrl ? ` action="${actionUrl}" method="POST"` : ""} />
-  <Say voice="Polly.Nicole">We did not receive a recording. Goodbye.</Say>
+  <Say voice="Polly.Olivia">We did not receive a recording. Goodbye.</Say>
   <Hangup />
 </Response>`;
 }
@@ -171,24 +171,29 @@ async function openGatewayIncident(params: {
   workspaceId?: string | null;
   details?: Record<string, unknown>;
 }) {
-  await reconcileVoiceIncidents(
-    [
-      {
-        incidentKey: params.incidentKey,
-        surface: params.surface,
-        severity: "critical",
-        summary: params.summary,
-        details: {
-          source: "twilio-voice-gateway",
-          callerNumber: params.callerNumber,
-          calledNumber: params.calledNumber,
-          workspaceId: params.workspaceId || null,
-          ...(params.details || {}),
+  try {
+    await reconcileVoiceIncidents(
+      [
+        {
+          incidentKey: params.incidentKey,
+          surface: params.surface,
+          severity: "critical",
+          summary: params.summary,
+          details: {
+            source: "twilio-voice-gateway",
+            callerNumber: params.callerNumber,
+            calledNumber: params.calledNumber,
+            workspaceId: params.workspaceId || null,
+            ...(params.details || {}),
+          },
         },
-      },
-    ],
-    { resolveMissing: false },
-  );
+      ],
+      { resolveMissing: false },
+    );
+  } catch (err) {
+    // Never block Twilio webhook responses on incident notification/DB work.
+    console.error("[voice-gateway] openGatewayIncident failed (swallowed):", err);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -219,7 +224,7 @@ export async function POST(req: NextRequest) {
       lastSurface = surface;
       const fleet = await getVoiceFleetHealth();
       if (!isVoiceSurfaceRoutable(fleet, surface)) {
-        await openGatewayIncident({
+        void openGatewayIncident({
           incidentKey: `voice:surface:${surface}:workers`,
           surface,
           summary: `Incoming ${surface} call was sent to voicemail because no healthy workers were routable.`,
@@ -238,7 +243,7 @@ export async function POST(req: NextRequest) {
       });
       if (!sipTarget) {
         console.error("[voice-gateway] Missing Twilio account SID during DTMF callback forwarding.");
-        await openGatewayIncident({
+        void openGatewayIncident({
           incidentKey: "voice:gateway:missing-sip-target-dtmf",
           surface: "data",
           summary: "DTMF callback could not resolve sipTarget; routing to voicemail.",
@@ -262,7 +267,7 @@ export async function POST(req: NextRequest) {
         isEarlymarkInboundCall,
         workspaceMatched: false,
       });
-      await openGatewayIncident({
+      void openGatewayIncident({
         incidentKey: "voice:call:stir-failed",
         surface: "routing",
         summary: "STIR/SHAKEN failure; routing to voicemail.",
@@ -283,7 +288,7 @@ export async function POST(req: NextRequest) {
         isEarlymarkInboundCall,
         workspaceMatched: Boolean(workspace),
       });
-      await openGatewayIncident({
+      void openGatewayIncident({
         incidentKey: "voice:call:rate-limited",
         surface: "routing",
         summary: "Rate limit exceeded; routing to voicemail.",
@@ -304,7 +309,7 @@ export async function POST(req: NextRequest) {
         managedNumber,
       });
 
-      await openGatewayIncident({
+      void openGatewayIncident({
         incidentKey: managedNumber?.managed ? "voice:routing:orphaned-number" : "voice:data:missing-critical-mapping",
         surface: managedNumber?.managed ? "routing" : "data",
         summary: managedNumber?.managed
@@ -353,7 +358,7 @@ export async function POST(req: NextRequest) {
         surface,
         fleetSummary: fleet.summary,
       });
-      await openGatewayIncident({
+      void openGatewayIncident({
         incidentKey: `voice:surface:${surface}:workers`,
         surface,
         summary: `Incoming ${surface} call was sent to voicemail because no healthy workers were routable.`,
@@ -382,7 +387,7 @@ export async function POST(req: NextRequest) {
       if (syntheticProbe) {
         return twimlResponse(syntheticProbeTwiml("fallback"));
       }
-      await openGatewayIncident({
+      void openGatewayIncident({
         incidentKey: "voice:gateway:missing-sip-target",
         surface: "data",
         summary: "Missing sipTarget; routing to voicemail.",
@@ -412,7 +417,7 @@ export async function POST(req: NextRequest) {
     const calledNumber = lastCalledNumber || "";
     const surface: VoiceSurface = (lastSurface as VoiceSurface) || "inbound_demo";
 
-    await openGatewayIncident({
+    void openGatewayIncident({
       incidentKey: "voice:gateway:handler-exception",
       surface,
       summary: "Voice gateway handler threw; routing to voicemail.",
