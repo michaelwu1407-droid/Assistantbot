@@ -106,7 +106,7 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   /* Radius - base for shadcn calc */
-  --radius: 1.5rem;
+  --radius: 18px;
 
   /* LIGHT THEME - Earlymark "Mint & Milk" */
   --background: #F7F8FA;
@@ -296,7 +296,7 @@
 
   /* THE OTTORIZE CARD: Solid white, layered soft shadows, rounded corners */
   .ott-card {
-    @apply bg-card border border-border/60 rounded-lg transition-all duration-300;
+    @apply bg-card border border-border/60 rounded-[18px] transition-all duration-300;
     box-shadow: var(--shadow-xs);
   }
 
@@ -334,7 +334,7 @@
 
   /* ELEVATED CARD: Stronger shadow for featured content */
   .ott-card-elevated {
-    @apply bg-card border border-border/60 rounded-lg transition-all duration-300;
+    @apply bg-card border border-border/60 rounded-[18px] transition-all duration-300;
     box-shadow: var(--shadow-ott-elevated);
   }
 

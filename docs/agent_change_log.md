@@ -1,3 +1,8 @@
+### 2026-03-21 02:00 (AEDT) - antigravity
+- Files: `app/contact/page.tsx`, `app/page.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: Revamped the `/contact` route into a full-featured "Pricing & Contact" page. Introduced a humorous two-column comparison (Regular Assistant vs. Earlymark Pro), ROI stats, a new feature grid, and updated pricing FAQs. Swapped the ROI and Feature Grid sections for better flow and tightened all copy for punchiness.
+- Why: To provide a more persuasive value proposition for Earlymark Pro. The 18px corner radius was applied globally to modernize the UI consistent with the new pricing layout.
+
 ### 2026-03-21 00:30 (AEDT) - antigravity
 - Files: `app/page.tsx`, `tsconfig.json`, `package.json`, `package-lock.json`, `docs/agent_change_log.md`
 - What changed: Fixed a TypeScript compilation error in the homepage by adding the missing `screenshotBg` property to the `HIRE_FEATURES` array. Resolved multiple test-related TypeScript errors by adding `vitest/globals` to `tsconfig.json` and installing `@testing-library/dom` as a dev dependency.
