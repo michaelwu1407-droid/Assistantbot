@@ -178,74 +178,125 @@ const TESTIMONIALS = [
 
 // ─── Feature mockup panels ────────────────────────────────────────────────────
 
-/** 1 · Customer communication — incoming call + CRM log */
+/** Shared mini sidebar for all feature mockups */
+function MockupSidebar({ active }: { active: "chat" | "dashboard" | "inbox" | "map" | "calendar" | "contacts" }) {
+  const items = [
+    { id: "chat", icon: Bot },
+    { id: "dashboard", icon: MessageSquare },
+    { id: "inbox", icon: Mail },
+    { id: "map", icon: MapPin },
+    { id: "calendar", icon: Calendar },
+  ] as const
+  return (
+    <div className="w-10 shrink-0 flex flex-col items-center gap-1 py-3 bg-white border-r border-[#E5E7EB]">
+      {items.map(({ id, icon: Icon }) => (
+        <div key={id} className="w-7 h-7 flex items-center justify-center rounded"
+          style={id === active ? { backgroundColor: "#E0FAF2" } : undefined}>
+          <Icon className="w-3.5 h-3.5" style={{ color: id === active ? "#00D28B" : "#9ca3af" }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** 1 · Customer communication — frosted glass chat */
 function MockupComms() {
   return (
-    <div className="h-full flex flex-col bg-[#0f172a] rounded-[24px] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-        <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <Bot className="w-4 h-4 text-emerald-400" />
-        </div>
-        <span className="text-xs font-semibold text-white">Tracey · AI Receptionist</span>
-        <span className="ml-auto text-[10px] text-emerald-400 font-medium">● Live</span>
-      </div>
-      <div className="flex-1 flex flex-col justify-end gap-3 px-4 py-4">
-        {[
-          { from: "system", text: "📞  Incoming call — +61 412 345 678" },
-          { from: "tracey", text: "Hi, thanks for calling Green Valley Plumbing! I'm Tracey. How can I help you today?" },
-          { from: "customer", text: "Hi — my hot water system stopped working this morning." },
-          { from: "tracey", text: "Sorry to hear that! I've logged a new job: Hot water fault · 42 Elm St. I'll check availability and send you a booking confirmation shortly. ✅" },
-        ].map((m, i) => (
-          <div key={i} className={`flex gap-2 items-end ${m.from === "customer" ? "flex-row-reverse" : ""}`}>
-            {m.from === "tracey" && (
-              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                <Bot className="w-3 h-3 text-emerald-400" />
-              </div>
-            )}
-            <div className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed max-w-[82%] ${
-              m.from === "customer" ? "bg-slate-600 text-white rounded-tr-sm"
-              : m.from === "system" ? "bg-blue-500/20 text-blue-300 rounded-lg text-center w-full text-center"
-              : "bg-white/10 text-white/90 rounded-bl-sm"
-            }`}>
-              {m.text}
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="chat" />
+      <div className="flex-1 flex flex-col bg-[#F7F8FA] p-2">
+        <div className="flex-1 flex flex-col rounded overflow-hidden bg-white/70 backdrop-blur border border-white/50 shadow">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200/60 bg-white/70">
+            <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: "#E0FAF2" }}>
+              <Bot className="w-3.5 h-3.5" style={{ color: "#00D28B" }} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-slate-900 leading-none">Ask Tracey</p>
+              <p className="text-[9px] mt-0.5 flex items-center gap-1" style={{ color: "#00D28B" }}>
+                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#00D28B" }} />
+                Online
+              </p>
             </div>
           </div>
-        ))}
+          <div className="flex-1 flex flex-col justify-end gap-2 px-3 py-3 overflow-hidden">
+            {[
+              { from: "system", text: "📞 Incoming call — +61 412 345 678" },
+              { from: "tracey", text: "Hi, thanks for calling! I'm Tracey. How can I help?" },
+              { from: "customer", text: "My hot water stopped working this morning." },
+              { from: "tracey", text: "Logged: Hot water fault · 42 Elm St. Booking confirmation on its way. ✅" },
+            ].map((m, i) => (
+              <div key={i} className={`flex gap-1.5 items-end ${m.from === "customer" ? "flex-row-reverse" : ""}`}>
+                {m.from === "tracey" && (
+                  <div className="w-4 h-4 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: "#E0FAF2" }}>
+                    <Bot className="w-2.5 h-2.5" style={{ color: "#00D28B" }} />
+                  </div>
+                )}
+                <div className={`px-2.5 py-1.5 text-[10px] leading-relaxed max-w-[82%] rounded-full ${
+                  m.from === "customer" ? "text-white rounded-br-sm"
+                  : m.from === "system" ? "bg-blue-50 text-blue-600 text-center w-full rounded"
+                  : "text-slate-900 border border-slate-200/50 bg-white/90 rounded-bl-sm"
+                }`}
+                  style={m.from === "customer" ? { backgroundColor: "#00D28B" } : undefined}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="px-3 pb-2.5">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200/60 rounded-full px-3 py-1.5">
+              <span className="text-[10px] text-slate-400 flex-1">Message Tracey…</span>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "#00D28B" }}>
+                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-/** 2 · CRM operations — chat commands */
+/** 2 · CRM operations — kanban board */
 function MockupCRM() {
+  const cols = [
+    { label: "New", dot: "#3B82F6", cards: [{ title: "Hot water replacement", client: "Mrs Henderson", value: "$1,400" }, { title: "Bathroom reno", client: "T. Nguyen", value: "$8,200" }] },
+    { label: "Scheduled", dot: "#00D28B", cards: [{ title: "Deck build", client: "J. Morrison", value: "$6,100" }, { title: "Fence repair", client: "B. Clarke", value: "$2,400" }] },
+    { label: "Complete", dot: "#6B7280", cards: [{ title: "Kitchen reno", client: "S. Wilson", value: "$4,200" }] },
+  ]
   return (
-    <div className="h-full flex flex-col bg-[#0f172a] rounded-[24px] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-        <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <Bot className="w-4 h-4 text-emerald-400" />
-        </div>
-        <span className="text-xs font-semibold text-white">Tracey Chat</span>
-      </div>
-      <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4">
-        {[
-          { from: "user", text: "Schedule the Smith job for Friday morning" },
-          { from: "tracey", text: "Done — Smith Plumbing booked Friday 8am. Confirmation SMS sent to Sarah. ✅" },
-          { from: "user", text: "What's my revenue this week?" },
-          { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% on last week. 📈" },
-          { from: "user", text: "Send the Henderson quote at $1,400" },
-          { from: "tracey", text: "Quote sent to Mrs Henderson for $1,400. I'll follow up in 24 hrs if no response. 📋" },
-        ].map((m, i) => (
-          <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
-            {m.from === "tracey" && (
-              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                <Bot className="w-3 h-3 text-emerald-400" />
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="dashboard" />
+      <div className="flex-1 flex flex-col bg-[#F7F8FA] overflow-hidden relative">
+        <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none z-0"
+          style={{ background: "radial-gradient(80% 60% at 50% 0%, rgba(0,210,139,0.10) 0%, rgba(0,210,139,0) 100%)" }} />
+        <div className="relative z-10 flex flex-col h-full p-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
+            {[{ label: "March Revenue", value: "$14,280" }, { label: "Won with Tracey", value: "$8,400" }, { label: "Upcoming", value: "6 jobs" }].map(k => (
+              <div key={k.label} className="bg-white rounded border border-[#E5E7EB] px-2 py-1.5">
+                <span className="text-[8px] text-neutral-500 uppercase tracking-wide block">{k.label}</span>
+                <span className="text-sm font-bold text-neutral-900">{k.value}</span>
               </div>
-            )}
-            <div className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}>
-              {m.text}
-            </div>
+            ))}
           </div>
-        ))}
+          <div className="flex-1 grid grid-cols-3 gap-1.5 min-h-0">
+            {cols.map(col => (
+              <div key={col.label} className="bg-white rounded border border-[#E5E7EB] p-2 flex flex-col gap-1.5 overflow-hidden">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: col.dot }} />
+                  <span className="text-[10px] font-semibold text-neutral-700 truncate">{col.label}</span>
+                  <span className="ml-auto text-[9px] text-neutral-400 bg-neutral-100 px-1 py-0.5 rounded-full">{col.cards.length}</span>
+                </div>
+                {col.cards.map(card => (
+                  <div key={card.title} className="bg-neutral-50 border border-neutral-200 rounded px-2 py-1.5 border-l-2" style={{ borderLeftColor: col.dot }}>
+                    <p className="text-[10px] font-semibold text-neutral-800 truncate">{card.title}</p>
+                    <p className="text-[9px] text-neutral-500 truncate">{card.client}</p>
+                    <p className="text-[10px] font-bold mt-0.5" style={{ color: col.dot }}>{card.value}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -264,35 +315,38 @@ function MockupCalendar() {
     { day: 4, start: 0, dur: 3, label: "Bathroom reno", color: "#8B5CF6", bg: "#F5F3FF" },
   ]
   return (
-    <div className="h-full flex flex-col bg-white rounded-[24px] overflow-hidden">
-      <div className="flex border-b border-neutral-200 bg-slate-50">
-        <div className="w-10 shrink-0" />
-        {days.map(d => (
-          <div key={d} className="flex-1 text-center py-2.5 text-[10px] font-semibold text-slate-500 border-l border-neutral-100">{d}</div>
-        ))}
-      </div>
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-10 shrink-0 flex flex-col">
-          {hours.map(h => (
-            <div key={h} className="flex-1 flex items-start justify-end pr-1.5 pt-0.5" style={{ height: H }}>
-              <span className="text-[8px] text-neutral-400">{h}</span>
-            </div>
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="calendar" />
+      <div className="flex-1 flex flex-col bg-white overflow-hidden">
+        <div className="flex border-b border-[#E5E7EB]">
+          <div className="w-10 shrink-0" />
+          {days.map(d => (
+            <div key={d} className="flex-1 text-center py-2.5 text-[10px] font-semibold text-slate-500 border-l border-neutral-100">{d}</div>
           ))}
         </div>
-        <div className="flex flex-1">
-          {days.map((d, di) => (
-            <div key={d} className="flex-1 border-l border-neutral-100 relative">
-              {hours.map((_, hi) => (
-                <div key={hi} className="border-b border-neutral-50" style={{ height: H }} />
-              ))}
-              {jobs.filter(j => j.day === di).map((j, ji) => (
-                <div key={ji} className="absolute inset-x-0.5 rounded-md px-1.5 py-1 overflow-hidden"
-                  style={{ top: j.start * H, height: j.dur * H - 2, backgroundColor: j.bg, borderLeft: `2.5px solid ${j.color}` }}>
-                  <p className="text-[8px] font-bold leading-tight truncate" style={{ color: j.color }}>{j.label}</p>
-                </div>
-              ))}
-            </div>
-          ))}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-10 shrink-0 flex flex-col">
+            {hours.map(h => (
+              <div key={h} className="flex-1 flex items-start justify-end pr-1.5 pt-0.5" style={{ height: H }}>
+                <span className="text-[8px] text-neutral-400">{h}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-1">
+            {days.map((d, di) => (
+              <div key={d} className="flex-1 border-l border-neutral-100 relative">
+                {hours.map((_, hi) => (
+                  <div key={hi} className="border-b border-neutral-50" style={{ height: H }} />
+                ))}
+                {jobs.filter(j => j.day === di).map((j, ji) => (
+                  <div key={ji} className="absolute inset-x-0.5 rounded px-1.5 py-1 overflow-hidden"
+                    style={{ top: j.start * H, height: j.dur * H - 2, backgroundColor: j.bg, borderLeft: `2.5px solid ${j.color}` }}>
+                    <p className="text-[8px] font-bold leading-tight truncate" style={{ color: j.color }}>{j.label}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -309,31 +363,34 @@ function MockupInbox() {
     { icon: CheckCircle2, color: "#6B7280", bg: "#F3F4F6", label: "Job completed", detail: "Bathroom reno · S. Wilson · $4,200 collected", badge: "Done" },
   ]
   return (
-    <div className="h-full flex flex-col bg-white rounded-[24px] overflow-hidden">
-      <div className="px-4 py-3 border-b border-neutral-200 bg-slate-50 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold text-slate-800">Activity Inbox</p>
-          <p className="text-[10px] text-slate-500">All Tracey actions · today</p>
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="inbox" />
+      <div className="flex-1 flex flex-col bg-white overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+          <div>
+            <p className="text-xs font-bold text-slate-800">Activity Inbox</p>
+            <p className="text-[10px] text-slate-500">All Tracey actions · today</p>
+          </div>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E0FAF2", color: "#065F46" }}>● Live</span>
         </div>
-        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">● Live</span>
-      </div>
-      <div className="flex-1 flex flex-col divide-y divide-neutral-100 overflow-hidden">
-        {items.map((item, i) => {
-          const Icon = item.icon
-          return (
-            <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: item.bg }}>
-                <Icon className="w-3.5 h-3.5" style={{ color: item.color }} />
+        <div className="flex-1 flex flex-col divide-y divide-neutral-100 overflow-hidden">
+          {items.map((item, i) => {
+            const Icon = item.icon
+            return (
+              <div key={i} className="flex items-start gap-3 px-4 py-2.5 hover:bg-neutral-50">
+                <div className="w-7 h-7 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: item.bg }}>
+                  <Icon className="w-3.5 h-3.5" style={{ color: item.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold text-slate-800">{item.label}</p>
+                  <p className="text-[9px] text-slate-500 truncate mt-0.5">{item.detail}</p>
+                </div>
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{ color: item.color, backgroundColor: item.bg }}>{item.badge}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-semibold text-slate-800">{item.label}</p>
-                <p className="text-[9px] text-slate-500 truncate mt-0.5">{item.detail}</p>
-              </div>
-              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                style={{ color: item.color, backgroundColor: item.bg }}>{item.badge}</span>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -342,39 +399,42 @@ function MockupInbox() {
 /** 5 · Job map & routing */
 function MockupMap() {
   const pins = [
-    { x: "22%", y: "38%", label: "Hot water", color: "#3B82F6", num: 1 },
-    { x: "55%", y: "55%", label: "Deck build", color: "#00D28B", num: 2 },
-    { x: "74%", y: "30%", label: "Kitchen reno", color: "#6B7280", num: 3 },
+    { x: "28%", y: "38%", label: "Hot water", color: "#3B82F6", num: 1 },
+    { x: "58%", y: "55%", label: "Deck build", color: "#00D28B", num: 2 },
+    { x: "76%", y: "30%", label: "Kitchen reno", color: "#6B7280", num: 3 },
   ]
   return (
-    <div className="h-full relative overflow-hidden rounded-[24px]"
-      style={{ background: "linear-gradient(135deg,#e8ede4 0%,#dce6d8 40%,#e0e8dc 100%)" }}>
-      <div className="absolute inset-0 opacity-20"
-        style={{ backgroundImage: "linear-gradient(#94a3b8 1px,transparent 1px),linear-gradient(90deg,#94a3b8 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.35 }}>
-        <path d="M 22% 38% Q 38% 47% 55% 55%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-        <path d="M 55% 55% Q 66% 42% 74% 30%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-        <path d="M 22% 38% Q 38% 47% 55% 55% Q 66% 42% 74% 30%" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
-      </svg>
-      {pins.map(p => (
-        <div key={p.num} className="absolute" style={{ left: p.x, top: p.y, transform: "translate(-50%,-50%)" }}>
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: p.color }}>{p.num}</div>
-            <div className="mt-1 bg-white text-[9px] font-semibold text-slate-700 px-2 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">{p.label}</div>
-          </div>
-        </div>
-      ))}
-      <div className="absolute top-3 left-3 bg-white/95 rounded-xl border border-neutral-200 shadow-sm px-3 py-2">
-        <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">Today</p>
-        <p className="text-sm font-bold text-slate-900 leading-none mt-0.5">3 jobs</p>
-      </div>
-      <div className="absolute bottom-3 right-3 bg-white/95 rounded-xl border border-neutral-200 shadow-sm px-3 py-2 flex flex-col gap-1.5">
-        {[{ color: "#3B82F6", label: "New" }, { color: "#00D28B", label: "Scheduled" }, { color: "#6B7280", label: "Done" }].map(l => (
-          <div key={l.label} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: l.color }} />
-            <span className="text-[9px] text-slate-600">{l.label}</span>
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="map" />
+      <div className="flex-1 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg,#e8ede4 0%,#dce6d8 40%,#e0e8dc 100%)" }}>
+        <div className="absolute inset-0 opacity-20"
+          style={{ backgroundImage: "linear-gradient(#94a3b8 1px,transparent 1px),linear-gradient(90deg,#94a3b8 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
+        <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.35 }}>
+          <path d="M 28% 38% Q 43% 47% 58% 55%" stroke="#94a3b8" strokeWidth="3" fill="none" />
+          <path d="M 58% 55% Q 68% 42% 76% 30%" stroke="#94a3b8" strokeWidth="3" fill="none" />
+          <path d="M 28% 38% Q 43% 47% 58% 55% Q 68% 42% 76% 30%" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
+        </svg>
+        {pins.map(p => (
+          <div key={p.num} className="absolute" style={{ left: p.x, top: p.y, transform: "translate(-50%,-50%)" }}>
+            <div className="flex flex-col items-center">
+              <div className="w-7 h-7 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: p.color }}>{p.num}</div>
+              <div className="mt-0.5 bg-white text-[8px] font-semibold text-slate-700 px-1.5 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">{p.label}</div>
+            </div>
           </div>
         ))}
+        <div className="absolute top-2 left-2 bg-white/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5">
+          <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">Today</p>
+          <p className="text-sm font-bold text-slate-900 leading-none mt-0.5">3 jobs</p>
+        </div>
+        <div className="absolute bottom-2 right-2 bg-white/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5 flex flex-col gap-1">
+          {[{ color: "#3B82F6", label: "New" }, { color: "#00D28B", label: "Scheduled" }, { color: "#6B7280", label: "Done" }].map(l => (
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }} />
+              <span className="text-[8px] text-slate-600">{l.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -389,22 +449,25 @@ function MockupControl() {
     { label: "Auto-close stale jobs after 30 days", on: false },
   ]
   return (
-    <div className="h-full flex flex-col bg-[#F8FAFC] rounded-[24px] overflow-hidden p-5 gap-3">
-      <div className="mb-1">
-        <p className="text-xs font-bold text-slate-800">Tracey permissions</p>
-        <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
-      </div>
-      {settings.map((s, i) => (
-        <div key={i} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm">
-          <span className="text-[11px] font-medium text-slate-700 pr-4 leading-snug">{s.label}</span>
-          <div className={`w-10 h-5 rounded-full flex items-center px-0.5 shrink-0 ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
-            <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-          </div>
+    <div className="h-full flex flex-row overflow-hidden">
+      <MockupSidebar active="contacts" />
+      <div className="flex-1 flex flex-col bg-[#F7F8FA] p-4 gap-3 overflow-hidden">
+        <div className="mb-1">
+          <p className="text-xs font-bold text-slate-800">Tracey permissions</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
         </div>
-      ))}
-      <div className="mt-auto flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
-        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-        <span className="text-[11px] text-emerald-700 font-medium">Changes sync to Tracey instantly</span>
+        {settings.map((s, i) => (
+          <div key={i} className="flex items-center justify-between bg-white border border-[#E5E7EB] rounded px-3 py-2.5 shadow-sm">
+            <span className="text-[11px] font-medium text-slate-700 pr-3 leading-snug">{s.label}</span>
+            <div className={`w-9 h-5 rounded-full flex items-center px-0.5 shrink-0 ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
+              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+            </div>
+          </div>
+        ))}
+        <div className="mt-auto flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded px-3 py-2.5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="text-[11px] text-emerald-700 font-medium">Changes sync to Tracey instantly</span>
+        </div>
       </div>
     </div>
   )
@@ -467,10 +530,10 @@ export default function FeaturesPage() {
                 const Icon = job.icon
                 return (
                   <motion.div key={job.num} {...fadeUp(i * 0.07)}
-                    className="rounded-[24px] border border-slate-200 bg-slate-50/60 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                    className="rounded border border-slate-200 bg-slate-50/60 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center gap-3">
                       <span className="text-[11px] font-bold text-primary/60 tracking-wider">{job.num}</span>
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded bg-emerald-50 flex items-center justify-center">
                         <Icon className="w-5 h-5 text-primary" />
                       </div>
                     </div>
@@ -514,7 +577,7 @@ export default function FeaturesPage() {
                 </motion.div>
 
                 {/* Mockup col */}
-                <motion.div {...fadeUp(0.08)} className={`h-[360px] rounded-[28px] overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
+                <motion.div {...fadeUp(0.08)} className={`h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
                   {Mockup && <Mockup />}
                 </motion.div>
 
@@ -537,8 +600,8 @@ export default function FeaturesPage() {
                 const Icon = step.icon
                 return (
                   <motion.div key={step.num} {...fadeUp(i * 0.1)}
-                    className="relative flex flex-col items-center text-center p-7 rounded-[24px] bg-slate-50/60 border border-slate-200">
-                    <div className="w-14 h-14 rounded-2xl bg-white border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
+                    className="relative flex flex-col items-center text-center p-7 rounded bg-slate-50/60 border border-slate-200">
+                    <div className="w-14 h-14 rounded bg-white border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <span className="text-[11px] font-bold text-primary/60 tracking-widest mb-2">{step.num}</span>
@@ -560,7 +623,7 @@ export default function FeaturesPage() {
               <p className="mt-3 text-base text-slate-600">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
 
-            <motion.div {...fadeUp(0.06)} className="rounded-[28px] overflow-hidden border border-slate-200 shadow-sm">
+            <motion.div {...fadeUp(0.06)} className="rounded overflow-hidden border border-slate-200 shadow-sm">
               {/* Header row */}
               <div className="grid grid-cols-3 bg-midnight text-white">
                 <div className="px-5 py-4 text-sm font-semibold text-white/60">Task</div>
@@ -595,7 +658,7 @@ export default function FeaturesPage() {
             <div className="grid md:grid-cols-2 gap-6">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div key={i} {...fadeUp(i * 0.08)}
-                  className="rounded-[28px] border border-slate-200 bg-slate-50/60 p-8 flex flex-col gap-6">
+                  className="rounded border border-slate-200 bg-slate-50/60 p-8 flex flex-col gap-6">
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(s => (
                       <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">

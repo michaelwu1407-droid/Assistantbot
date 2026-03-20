@@ -19,7 +19,7 @@ const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
     {
         loading: () => (
-            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded-[32px] border border-white/55 bg-white/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded border border-white/55 bg-white/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                 <div className="aspect-[16/10] bg-[linear-gradient(180deg,#e2e8f0_0%,#cbd5e1_100%)] sm:aspect-[16/9]" />
             </div>
         ),
@@ -60,25 +60,25 @@ const HIRE_FEATURES = [
         title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
         desc: EARLYMARK_SALES_PILLARS[0]?.description || "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
         eyebrow: "Lead capture",
-        screenshotBg: "from-blue-50 to-blue-100",
+        bullets: ["Answers every call, day or night", "Logs the job straight to your CRM", "Sends quotes automatically"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
         desc: EARLYMARK_SALES_PILLARS[1]?.description || "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
         eyebrow: "Operations",
-        screenshotBg: "from-emerald-50 to-emerald-100",
+        bullets: ["Chat to update any job in seconds", "Query revenue, pipeline, or schedule", "No forms, no manual data entry"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[2]?.title || "AI that actually works",
         desc: EARLYMARK_SALES_PILLARS[2]?.description || "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
         eyebrow: "Customer experience",
-        screenshotBg: "from-purple-50 to-purple-100",
+        bullets: ["Replies to texts and emails instantly", "Follows up on unpaid quotes", "Handles objections and rebooking"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
         desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
         eyebrow: "Oversight",
-        screenshotBg: "from-orange-50 to-orange-100",
+        bullets: ["Set approval rules for quotes", "Review every conversation", "Adjust Tracey&apos;s behaviour anytime"],
     },
 ];
 
@@ -147,7 +147,7 @@ function ChatDemo() {
     const current = CHAT_DEMO[step];
 
     return (
-        <div className="rounded-3xl overflow-hidden shadow-2xl bg-[#0F172A] border border-white/10 select-none">
+        <div className="rounded overflow-hidden shadow-2xl bg-[#0F172A] border border-white/10 select-none">
             {/* Browser chrome */}
             <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10 bg-white/5">
                 <div className="flex gap-1.5">
@@ -156,7 +156,7 @@ function ChatDemo() {
                     <span className="w-3 h-3 rounded-full bg-green-500/60 block" />
                 </div>
                 <div className="flex-1 flex justify-center">
-                    <div className="bg-white/10 rounded-md px-4 py-1 text-[11px] text-white/40 font-medium tracking-wide">
+                    <div className="bg-white/10 rounded px-4 py-1 text-[11px] text-white/40 font-medium tracking-wide">
                         earlymark.ai/dashboard — Tracey Chat
                     </div>
                 </div>
@@ -174,7 +174,7 @@ function ChatDemo() {
                             transition={{ duration: 0.3 }}
                             className="flex justify-end"
                         >
-                            <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%] shadow leading-relaxed">
+                            <div className="bg-primary text-white rounded rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%] shadow leading-relaxed">
                                 {current.user}
                             </div>
                         </motion.div>
@@ -193,7 +193,7 @@ function ChatDemo() {
                             <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                                 <Bot className="w-4 h-4 text-primary" />
                             </div>
-                            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1.5 items-center">
+                            <div className="bg-white/10 rounded rounded-bl-sm px-4 py-3 flex gap-1.5 items-center">
                                 {[0, 0.18, 0.36].map((d, i) => (
                                     <motion.span
                                         key={i}
@@ -220,7 +220,7 @@ function ChatDemo() {
                             <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                                 <Bot className="w-4 h-4 text-primary" />
                             </div>
-                            <div className="bg-white/10 text-white/90 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm max-w-[80%] leading-relaxed">
+                            <div className="bg-white/10 text-white/90 rounded rounded-bl-sm px-4 py-2.5 text-sm max-w-[80%] leading-relaxed">
                                 {current.agent}
                             </div>
                         </motion.div>
@@ -261,7 +261,7 @@ function HireMockup0() {
                 <span className="ml-auto text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{cards.length} new</span>
             </div>
             {cards.map((c, i) => (
-                <div key={i} className="bg-white rounded-xl border border-neutral-200 border-l-4 border-l-blue-500 px-4 py-3 shadow-sm">
+                <div key={i} className="bg-white rounded border border-neutral-200 border-l-4 border-l-blue-500 px-4 py-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-slate-800 truncate">{c.title}</p>
@@ -307,7 +307,7 @@ function HireMockup1() {
                                 <Bot className="w-3 h-3 text-emerald-400" />
                             </div>
                         )}
-                        <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}>
+                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}>
                             {m.text}
                         </div>
                     </div>
@@ -339,7 +339,7 @@ function HireMockup2() {
                     const Icon = item.icon;
                     return (
                         <div key={i} className="flex items-start gap-3 px-4 py-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.bg }}>
+                            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: item.bg }}>
                                 <Icon className="w-4 h-4" style={{ color: item.color }} />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -372,14 +372,14 @@ function HireMockup3() {
                 <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
             </div>
             {settings.map((s, i) => (
-                <div key={i} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm">
+                <div key={i} className="flex items-center justify-between bg-white border border-neutral-200 rounded px-4 py-3 shadow-sm">
                     <span className="text-xs font-medium text-slate-700 pr-4">{s.label}</span>
                     <div className={`w-10 h-5 rounded-full flex items-center px-0.5 shrink-0 transition-colors ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
                         <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
                     </div>
                 </div>
             ))}
-            <div className="mt-1 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+            <div className="mt-1 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded px-4 py-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-[11px] text-emerald-700 font-medium">All changes synced to Tracey instantly</span>
             </div>
@@ -391,7 +391,7 @@ const HIRE_MOCKUPS = [HireMockup0, HireMockup1, HireMockup2, HireMockup3];
 
 function HireFeatureGrid() {
     return (
-        <div className="mt-4 flex flex-col gap-10">
+        <div className="mt-4 flex flex-col gap-20">
             {HIRE_FEATURES.map((feature, i) => {
                 const isEven = i % 2 === 0;
                 const Mockup = HIRE_MOCKUPS[i];
@@ -400,17 +400,25 @@ function HireFeatureGrid() {
                     <motion.div
                         key={feature.title}
                         {...fadeUp(i * 0.08)}
-                        className="grid items-center gap-6 md:grid-cols-2"
+                        className="grid items-center gap-8 md:grid-cols-2"
                     >
-                        <div className={`rounded-[32px] border border-border bg-white p-7 shadow-sm transition-shadow hover:shadow-md ${!isEven ? "md:order-2" : "md:order-1"}`}>
+                        <div className={`flex flex-col gap-4 ${!isEven ? "md:order-2" : "md:order-1"}`}>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
                                 {feature.eyebrow}
                             </div>
-                            <h3 className="mt-3 text-xl font-bold leading-snug text-midnight">{feature.title}</h3>
-                            <p className="mt-3 text-sm leading-relaxed text-slate-body">{feature.desc}</p>
+                            <h3 className="text-2xl md:text-3xl font-bold leading-snug text-midnight">{feature.title}</h3>
+                            <p className="text-base leading-relaxed text-slate-body">{feature.desc}</p>
+                            <ul className="flex flex-col gap-2 mt-1">
+                                {feature.bullets.map((b) => (
+                                    <li key={b} className="flex items-center gap-2.5 text-sm text-slate-body">
+                                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                                        <span dangerouslySetInnerHTML={{ __html: b }} />
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
 
-                        <div className={`relative min-h-[340px] overflow-hidden rounded-[32px] border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                        <div className={`relative min-h-[380px] overflow-hidden rounded border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
                             {Mockup && <Mockup />}
                         </div>
                     </motion.div>
@@ -467,12 +475,12 @@ function FeatureCarousel() {
                                 layout
                                 animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
                                 transition={{ duration: 0.4, ease: EASE_STANDARD }}
-                                className={`rounded-3xl p-7 flex flex-col gap-4 shrink-0 w-[85vw] md:w-auto snap-center ${isCentre
+                                className={`rounded p-7 flex flex-col gap-4 shrink-0 w-[85vw] md:w-auto snap-center ${isCentre
                                     ? "bg-midnight text-white shadow-xl"
                                     : "bg-white border border-border"
                                     }`}
                             >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isCentre ? "bg-primary/20" : "bg-mint-50"}`}>
+                                <div className={`w-12 h-12 rounded flex items-center justify-center ${isCentre ? "bg-primary/20" : "bg-mint-50"}`}>
                                     <Icon className="w-6 h-6 text-primary" />
                                 </div>
                                 <div>
@@ -512,7 +520,7 @@ function FeatureCarousel() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded-xl border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition";
+    "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition";
 
 function InterviewForm() {
     const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", businessName: "" });
@@ -607,7 +615,7 @@ function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old"
         <div className="flex flex-wrap gap-2 items-center">
             {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium leading-snug ${isOld
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium leading-snug ${isOld
                         ? "bg-red-50 text-red-700 border border-red-100"
                         : "bg-emerald-50 text-emerald-700 border border-emerald-100"
                         }`}>
@@ -652,7 +660,7 @@ function TestimonialsCarousel() {
     return (
         <div className="w-full flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 hide-scrollbar">
             {TESTIMONIALS.map((t, i) => (
-                <div key={i} className="shrink-0 w-[85vw] md:w-[350px] snap-center bg-white rounded-3xl p-8 shadow-sm border border-border flex flex-col justify-between">
+                <div key={i} className="shrink-0 w-[85vw] md:w-[350px] snap-center bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
                     <div>
                         <div className="flex gap-1 mb-4">
                             {[1, 2, 3, 4, 5].map(star => (
@@ -704,7 +712,7 @@ function FaqSection() {
                     {FAQ_ITEMS.map((item, idx) => {
                         const isOpen = openIndices.includes(idx);
                         return (
-                            <div key={idx} className="border border-border rounded-xl overflow-hidden">
+                            <div key={idx} className="border border-border rounded overflow-hidden">
                                 <button
                                     onClick={() => toggle(idx)}
                                     className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
@@ -792,7 +800,7 @@ export default function Home() {
                     {/* Dashboard hero reel */}
                     <motion.div {...fadeUp(0.14)} className="w-full max-w-5xl mx-auto">
                         <HeroDashboardReel />
-                        {false ? <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20">
+                        {false ? <div className="rounded overflow-hidden shadow-2xl border border-white/20">
                             {/* Browser chrome */}
                             <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 border-b border-slate-300">
                                 <div className="flex gap-1.5">
@@ -801,7 +809,7 @@ export default function Home() {
                                     <span className="w-3 h-3 rounded-full bg-green-400 block" />
                                 </div>
                                 <div className="flex-1 flex justify-center">
-                                    <div className="bg-white rounded-md px-4 py-1 text-[11px] text-slate-400 font-medium">
+                                    <div className="bg-white rounded px-4 py-1 text-[11px] text-slate-400 font-medium">
                                         earlymark.ai/dashboard
                                     </div>
                                 </div>
@@ -817,7 +825,7 @@ export default function Home() {
                                         </div>
                                         <div className="space-y-2">
                                             {col.cards.map((card) => (
-                                                <div key={card} className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600 truncate">{card}</div>
+                                                <div key={card} className="bg-slate-50 border border-slate-200 rounded px-3 py-2 text-xs text-slate-600 truncate">{card}</div>
                                             ))}
                                         </div>
                                     </div>
@@ -829,17 +837,17 @@ export default function Home() {
                     {/* Value Props — gradient glass cards (no icons) */}
                     <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-emerald-400 mb-4 rounded-full" />
                                 <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
                                 <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
                             </div>
-                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-blue-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-blue-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-blue-400 mb-4 rounded-full" />
                                 <h3 className="text-lg font-semibold text-slate-900">Automate customer admin</h3>
                                 <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
                             </div>
-                            <div className="rounded-xl backdrop-blur-sm bg-gradient-to-br from-violet-50/80 to-violet-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-violet-50/80 to-violet-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <div className="h-0.5 w-12 bg-violet-400 mb-4 rounded-full" />
                                 <h3 className="text-lg font-semibold text-slate-900">Provide a more reliable customer experience</h3>
                                 <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
@@ -863,7 +871,7 @@ export default function Home() {
 
                     <motion.div
                         {...fadeUp(0.06)}
-                        className="max-w-6xl mx-auto rounded-3xl overflow-hidden border border-border shadow-sm bg-white grid md:grid-cols-2"
+                        className="max-w-6xl mx-auto rounded overflow-hidden border border-border shadow-sm bg-white grid md:grid-cols-2"
                     >
                         <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-border bg-[#FAF7F8]">
                             <h3 className="text-2xl font-bold text-rose-600 mb-6">The old way</h3>
@@ -942,7 +950,7 @@ export default function Home() {
                         </div>
 
                         {/* RHS — Interview Form */}
-                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 p-7 shadow-xl">
+                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
                             <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">
                                 Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.
@@ -998,7 +1006,7 @@ export default function Home() {
                                 0: (
                                     /* Never miss a job — incoming call UI */
                                     <div className="space-y-3">
-                                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded px-4 py-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0"><Phone className="w-4 h-4 text-blue-600" /></div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-semibold text-slate-700">Incoming call</p>
@@ -1006,11 +1014,11 @@ export default function Home() {
                                             </div>
                                             <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center"><Phone className="w-3.5 h-3.5 text-white" /></div>
                                         </div>
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded">
                                             <Bot className="w-4 h-4 text-emerald-600" />
                                             <span className="text-xs text-emerald-700 font-medium">Tracey answered ✓</span>
                                         </div>
-                                        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3">
+                                        <div className="bg-white border border-slate-200 rounded px-4 py-3">
                                             <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider mb-1">New lead</p>
                                             <p className="text-xs font-medium text-slate-700">Kitchen renovation — $4,200</p>
                                         </div>
@@ -1019,15 +1027,15 @@ export default function Home() {
                                 1: (
                                     /* Chat with CRM — chat interface mockup */
                                     <div className="space-y-3">
-                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">Schedule the Smith job for Friday</div></div>
+                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">Schedule the Smith job for Friday</div></div>
                                         <div className="flex gap-2 items-end">
                                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">Done! Scheduled for Friday 9am. I&apos;ve also sent a confirmation SMS to Sarah Smith. ✅</div>
+                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">Done! Scheduled for Friday 9am. I&apos;ve also sent a confirmation SMS to Sarah Smith. ✅</div>
                                         </div>
-                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">What&apos;s my revenue this week?</div></div>
+                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">What&apos;s my revenue this week?</div></div>
                                         <div className="flex gap-2 items-end">
                                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">$8,450 across 4 completed jobs. You&apos;re up 12% vs last week 📈</div>
+                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">$8,450 across 4 completed jobs. You&apos;re up 12% vs last week 📈</div>
                                         </div>
                                     </div>
                                 ),
@@ -1036,19 +1044,19 @@ export default function Home() {
                                     <div className="space-y-3">
                                         <div className="flex gap-2 items-end">
                                             <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
-                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700">Hi, I got a quote from you for $2,400. Can you do the work next week?</div>
+                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700">Hi, I got a quote from you for $2,400. Can you do the work next week?</div>
                                         </div>
                                         <div className="flex gap-2 items-end flex-row-reverse">
                                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Hi! Yes, we have availability Tuesday or Wednesday. Which works better for you?</div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded rounded-br-sm px-3 py-2 text-xs text-emerald-800">Hi! Yes, we have availability Tuesday or Wednesday. Which works better for you?</div>
                                         </div>
                                         <div className="flex gap-2 items-end">
                                             <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
-                                            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-3 py-2 text-xs text-slate-700">Tuesday works. See you then!</div>
+                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700">Tuesday works. See you then!</div>
                                         </div>
                                         <div className="flex gap-2 items-end flex-row-reverse">
                                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve confirmed it in the schedule. 📅</div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve confirmed it in the schedule. 📅</div>
                                         </div>
                                     </div>
                                 ),
@@ -1056,7 +1064,7 @@ export default function Home() {
                                     /* Total control — mini settings panel */
                                     <div className="space-y-3">
                                         {[{ label: "Auto-respond to calls", on: true }, { label: "Require approval for quotes", on: true }, { label: "Send follow-up reminders", on: true }, { label: "Auto-close stale jobs", on: false }].map((s) => (
-                                            <div key={s.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+                                            <div key={s.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded px-4 py-2.5">
                                                 <span className="text-xs font-medium text-slate-700">{s.label}</span>
                                                 {s.on ? <ToggleRight className="w-6 h-6 text-emerald-500" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
                                             </div>
@@ -1070,13 +1078,13 @@ export default function Home() {
                                     {...fadeUp(i * 0.08)}
                                     className={`grid md:grid-cols-2 gap-6 items-center ${!isEven ? "md:direction-rtl" : ""}`}
                                 >
-                                    <div className={`bg-white rounded-3xl border border-border p-7 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow ${!isEven ? "md:order-2" : "md:order-1"}`}>
+                                    <div className={`bg-white rounded border border-border p-7 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow ${!isEven ? "md:order-2" : "md:order-1"}`}>
                                         <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
                                         <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
                                     </div>
 
-                                    <div className={`rounded-3xl bg-gradient-to-br ${f.screenshotBg} border border-border/50 overflow-hidden p-6 ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                                        <div className="rounded-lg border bg-white shadow-sm p-4">
+                                    <div className={`rounded bg-[#F8FAFC] border border-border/50 overflow-hidden p-6 ${!isEven ? "md:order-1" : "md:order-2"}`}>
+                                        <div className="rounded border bg-white shadow-sm p-4">
                                             {mockups[i]}
                                         </div>
                                     </div>
@@ -1112,29 +1120,38 @@ export default function Home() {
                     <motion.div {...fadeUp(0.06)} className="px-6">
                         <FeatureCarousel />
                     </motion.div>
-
-                    <motion.h3 {...fadeUp(0.08)} className="text-center text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
-                        Give yourself an <span className="text-primary">early mark</span> today
-                    </motion.h3>
-
-                    <motion.div {...fadeUp(0.1)} className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Link href="/auth">
-                            <Button size="lg" variant="mint">
-                                Get started
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <Link href="/contact#contact-form">
-                            <Button size="lg" variant="outline">
-                                Get a demo
-                            </Button>
-                        </Link>
-                    </motion.div>
                 </div>
             </section >
 
             {/* ── E.5: FAQ Section ── */}
             <FaqSection />
+
+            {/* ── E.6: Early Mark CTA ── */}
+            <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
+                    <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
+                        Ready to start
+                    </motion.p>
+                    <motion.h2 {...fadeUp(0.04)} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
+                        Give yourself an early mark today
+                    </motion.h2>
+                    <motion.p {...fadeUp(0.08)} className="text-lg text-white/65 leading-7 max-w-xl">
+                        Start with your own workflow, your own rules, and a setup that actually reflects how your business runs.
+                    </motion.p>
+                    <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
+                        <Link href="/auth">
+                            <Button size="lg" variant="mint">
+                                Get started <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <Link href="/contact#contact-form">
+                            <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">
+                                Get a demo
+                            </Button>
+                        </Link>
+                    </motion.div>
+                </div>
+            </section>
 
             {/* ── F. Footer ── */}
             < footer className="bg-midnight text-white/55 py-16 px-6" >
