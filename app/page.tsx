@@ -1176,7 +1176,7 @@ export default function Home() {
                                 { label: "Product", href: "/features" },
                                 { label: "Solutions", href: "/solutions" },
                                 { label: "Tutorial", href: "/tutorial" },
-                                { label: "Pricing", href: "/contact" },
+                                { label: "Pricing", href: "/pricing" },
                                 { label: "Contact", href: "/contact" },
                             ].map((l) => (
                                 <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">

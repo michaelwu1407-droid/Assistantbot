@@ -1,3 +1,8 @@
+### 2026-03-21 02:05 (AEDT) - Cursor AI Agent
+- Files: `app/pricing/page.tsx`, `app/contact/page.tsx`, `app/page.tsx`, `components/layout/navbar.tsx`, `middleware.ts`, `tailwind.config.ts`, `docs/agent_change_log.md`
+- What changed: Split the accidentally-overwritten `/contact` pricing UI into its own `/pricing` route, restored the original `/contact` page, and fixed navigation links (navbar + Home) so “Pricing” and “Contact” point to the correct URLs. Also wired Tailwind `rounded-*` utilities to the shared `--radius: 18px` tokens so the 18px base radius applies consistently across the UI.
+- Why: Prevented the Contact page from being replaced by pricing, and ensured the “standard base radius 18px” update actually affects pages like Home that were still using the default Tailwind rounding.
+
 ### 2026-03-21 02:00 (AEDT) - antigravity
 - Files: `app/contact/page.tsx`, `app/page.tsx`, `app/globals.css`, `docs/agent_change_log.md`
 - What changed: Revamped the `/contact` route into a full-featured "Pricing & Contact" page. Introduced a humorous two-column comparison (Regular Assistant vs. Earlymark Pro), ROI stats, a new feature grid, and updated pricing FAQs. Swapped the ROI and Feature Grid sections for better flow and tightened all copy for punchiness.
