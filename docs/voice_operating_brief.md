@@ -99,6 +99,11 @@ Updated: 2026-03-21 AEDT
 - Low-risk latency acceleration is enabled through:
   - cached opener bank
   - speculative response heads on `demo` and `inbound_demo`
+  - guard circuit breaker: after 3 consecutive guard timeouts in a single call, the guard is skipped for the remainder (saves ~100ms/turn during provider degradation)
+  - LLM connection pre-warming: TCP+TLS connections to Groq and DeepInfra are warmed during agent prewarm alongside TTS, eliminating the 50-150ms cold-start penalty on the first real LLM call
+  - LLM-to-TTS streaming: on `demo` and `inbound_demo` calls, LLM tokens are streamed directly to TTS without buffering the full response (saves 100-300ms per turn); `normal` calls still buffer for customer-contact policy enforcement
+  - mid-stream LLM failure recovery: if the primary LLM stream dies after first token, the agent plays a cached "Just a sec." filler and retries on the fallback provider instead of failing silently
+  - adaptive endpointing: caller speech cadence is measured over the first 3 turns; slow speakers (avg pause > 400ms) get 80-120ms more endpointing room, fast speakers (avg pause < 200ms) get 40-60ms less
 
 ## Monitoring expectations
 

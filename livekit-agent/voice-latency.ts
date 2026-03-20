@@ -154,6 +154,7 @@ const PHASE_TWO_BACKLOG = [
   'speculative TTS branch caching',
   'broader overseer model for response monitoring',
   'branch selection tied to endpoint certainty',
+  'speculative LLM generation on interim STT transcripts',
 ];
 
 export const OPENER_BANK: OpenerBankEntry[] = [

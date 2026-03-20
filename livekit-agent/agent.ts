@@ -197,6 +197,9 @@ type VoiceLatencyAudit = {
   openerCacheMisses: number;
   guardTimeouts: number;
   guardEligibleTurns: number;
+  guardCircuitBreakerTripped: boolean;
+  guardCircuitBreakerAtTurn: number | null;
+  midStreamRecoveries: number;
   openerUsage: Partial<Record<OpenerId, number>>;
   speculativeHeadLeadMs: number[];
   speculativeHeadGapMs: number[];
@@ -271,6 +274,22 @@ let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
+const RECOVERY_FILLER_TEXT = "Just a sec.";
+let sharedRecoveryFillerFrame: Promise<AudioFrame> | null = null;
+
+function getSharedRecoveryFillerFrame(tts: cartesia.TTS, logPrefix: string): Promise<AudioFrame> {
+  if (!sharedRecoveryFillerFrame) {
+    sharedRecoveryFillerFrame = tts
+      .synthesize(RECOVERY_FILLER_TEXT)
+      .collect()
+      .catch((error) => {
+        console.warn(`${logPrefix} [VOICE_LATENCY] Failed to pre-synthesize recovery filler`, error);
+        sharedRecoveryFillerFrame = null;
+        throw error;
+      });
+  }
+  return sharedRecoveryFillerFrame;
+}
 const workerHealthState = {
   lastHeartbeatAttemptAt: null as string | null,
   lastHeartbeatSuccessAt: null as string | null,
@@ -795,7 +814,21 @@ class ProviderFallbackLLMStream extends livekitLlm.LLMStream {
       await this.#pipeStream(this.#primaryStream);
     } catch (error) {
       this.#owner.noteFailure(error);
-      if (!this.#fallback || !this.#fallbackConfig || this.#hasBegunResponse) {
+
+      if (this.#hasBegunResponse && this.#fallback && this.#fallbackConfig) {
+        // Mid-stream failure: signal the agent layer to play recovery filler and retry
+        console.warn("[agent] Primary LLM stream failed AFTER first token; signaling mid-stream recovery.", {
+          primaryProvider: this.#primaryConfig.provider,
+          fallbackProvider: this.#fallbackConfig.provider,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        this.#owner.recordFallback();
+        this.#owner.setPreferFallback();
+        this.#owner.midStreamFailureCallback?.();
+        return;
+      }
+
+      if (!this.#fallback || !this.#fallbackConfig) {
         throw error;
       }
 
@@ -836,15 +869,44 @@ function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   });
 }
 
-async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
-  try {
-    const warmTts = createCartesiaTts();
-    await warmTts.synthesize("Hi there.").collect();
-    await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
-    await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
-  } catch (error) {
-    console.warn(`${logPrefix} Failed to prewarm Cartesia TTS:`, error);
+async function prewarmLlmConnections(logPrefix = "[agent-prewarm]") {
+  const providers: Array<{ name: LlmProviderName; baseURL: string; apiKey: string }> = [];
+  for (const provider of ["groq", "deepinfra"] as LlmProviderName[]) {
+    const apiKey = resolveProviderApiKey(provider);
+    if (!apiKey) continue;
+    providers.push({ name: provider, baseURL: resolveProviderBaseUrl(provider), apiKey });
   }
+  await Promise.allSettled(
+    providers.map(async (p) => {
+      try {
+        const response = await fetch(`${p.baseURL.replace(/\/$/, "")}/models`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${p.apiKey}` },
+          signal: AbortSignal.timeout(5000),
+        });
+        console.log(`${logPrefix} LLM connection warmed: ${p.name} (${response.status})`);
+      } catch (error) {
+        console.warn(`${logPrefix} LLM prewarm failed for ${p.name}:`, error);
+      }
+    })
+  );
+}
+
+async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
+  await Promise.allSettled([
+    (async () => {
+      try {
+        const warmTts = createCartesiaTts();
+        await warmTts.synthesize("Hi there.").collect();
+        await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
+        await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
+        getSharedRecoveryFillerFrame(warmTts, logPrefix);
+      } catch (error) {
+        console.warn(`${logPrefix} Failed to prewarm Cartesia TTS:`, error);
+      }
+    })(),
+    prewarmLlmConnections(logPrefix),
+  ]);
 }
 
 class ProviderFallbackLLM extends livekitLlm.LLM {
@@ -858,6 +920,8 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
   #fallbackCount = 0;
   #selectionCount = 0;
   #lastFailure: string | null = null;
+  #onMidStreamFailure: (() => void) | null = null;
+  #preferFallback = false;
 
   constructor(args: {
     primary: openai.LLM;
@@ -897,6 +961,18 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
     this.#lastFailure = error instanceof Error ? error.message : String(error);
   }
 
+  setOnMidStreamFailure(cb: (() => void) | null) {
+    this.#onMidStreamFailure = cb;
+  }
+
+  get midStreamFailureCallback() {
+    return this.#onMidStreamFailure;
+  }
+
+  setPreferFallback() {
+    this.#preferFallback = true;
+  }
+
   getRunSummary(): LlmRunSummary {
     return {
       primaryProvider: this.#primaryConfig.provider,
@@ -913,6 +989,24 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
   }
 
   chat(args: Parameters<openai.LLM["chat"]>[0]) {
+    // After a mid-stream failure, prefer the fallback provider for subsequent calls
+    if (this.#preferFallback && this.#fallback && this.#fallbackConfig) {
+      try {
+        const fallbackStream = this.#fallback.chat(args);
+        this.recordProviderSelection(this.#fallbackConfig);
+        return new ProviderFallbackLLMStream({
+          owner: this,
+          primaryStream: fallbackStream,
+          fallback: null,
+          primaryConfig: this.#fallbackConfig,
+          fallbackConfig: null,
+          chatArgs: args,
+        });
+      } catch {
+        // Fallback also failed to set up; fall through to primary
+      }
+    }
+
     try {
       const primaryStream = this.#primary.chat(args);
       this.recordProviderSelection(this.#primaryConfig);
@@ -1724,12 +1818,15 @@ export default defineAgent({
 
     class TraceyVoiceAgent extends voice.Agent {
       override async ttsNode(text: ReadableStream<string>, modelSettings: Parameters<voice.Agent["ttsNode"]>[1]) {
+        // Demo/inbound_demo: stream LLM tokens directly to TTS without buffering.
+        // This avoids waiting for the full LLM response and saves 100-300ms per turn.
+        if (callType !== "normal") {
+          return voice.Agent.default.ttsNode(this, text, modelSettings);
+        }
+
+        // Normal calls: must buffer for customer-contact policy enforcement.
         const resolvedText = (await readableStreamToString(text)).trim();
         if (!resolvedText) return null;
-
-        if (callType !== "normal") {
-          return voice.Agent.default.ttsNode(this, stringToReadableStream(resolvedText), modelSettings);
-        }
 
         const policyOutcome = enforceCustomerFacingResponsePolicy({
           modeRaw: normalVoiceGrounding?.customerContactMode,
@@ -1808,6 +1905,9 @@ export default defineAgent({
       openerCacheMisses: 0,
       guardTimeouts: 0,
       guardEligibleTurns: 0,
+      guardCircuitBreakerTripped: false,
+      guardCircuitBreakerAtTurn: null,
+      midStreamRecoveries: 0,
       openerUsage: {},
       speculativeHeadLeadMs: [],
       speculativeHeadGapMs: [],
@@ -1821,6 +1921,21 @@ export default defineAgent({
       guardPromise: null,
       guardTranscript: null,
       guardStartedAt: null,
+    };
+    const GUARD_CIRCUIT_BREAKER_THRESHOLD = 3;
+    let guardCircuitBreaker = {
+      consecutiveFailures: 0,
+      open: false,
+      trippedAtTurn: null as number | null,
+    };
+    const ADAPTIVE_ENDPOINTING_CALIBRATION_TURNS = 3;
+    const cadenceTracker = {
+      speechEndTimestamps: [] as number[],
+      speechStartTimestamps: [] as number[],
+      pauseDurations: [] as number[],
+      calibrated: false,
+      adjustmentMs: 0,
+      adjustmentApplied: false,
     };
     let pendingLatencyTurn: PendingLatencyTurn | null = null;
     let turnCounter = 0;
@@ -1871,6 +1986,58 @@ export default defineAgent({
       };
     };
 
+    const calibrateEndpointing = () => {
+      if (cadenceTracker.calibrated) return;
+      cadenceTracker.calibrated = true;
+
+      const avgPause =
+        cadenceTracker.pauseDurations.reduce((a, b) => a + b, 0) / cadenceTracker.pauseDurations.length;
+
+      let adjustmentMs = 0;
+      let category: string;
+
+      if (avgPause > 400) {
+        // Slow speaker: increase endpointing to avoid cutting them off
+        adjustmentMs = Math.min(120, Math.max(80, Math.round((avgPause - 400) * 0.5)));
+        category = "slow";
+      } else if (avgPause < 200) {
+        // Fast speaker: decrease endpointing for snappier responses
+        adjustmentMs = -Math.min(60, Math.max(40, Math.round((200 - avgPause) * 0.5)));
+        category = "fast";
+      } else {
+        category = "normal";
+      }
+
+      cadenceTracker.adjustmentMs = adjustmentMs;
+
+      if (adjustmentMs !== 0) {
+        const newMin = Math.max(100, voiceTurnTuning.minEndpointingDelayMs + adjustmentMs);
+        const newMax = Math.max(newMin + 100, voiceTurnTuning.maxEndpointingDelayMs + adjustmentMs);
+        try {
+          // Attempt runtime update of session voice options
+          const opts = (session as any).voiceOptions || (session as any)._voiceOptions;
+          if (opts && typeof opts === "object") {
+            opts.minEndpointingDelay = newMin;
+            opts.maxEndpointingDelay = newMax;
+            cadenceTracker.adjustmentApplied = true;
+          }
+        } catch {
+          // LiveKit SDK may not support runtime mutation — log for offline tuning
+        }
+      }
+
+      console.log(
+        `${logPrefix} [ADAPTIVE_ENDPOINTING] ${JSON.stringify({
+          callId,
+          category,
+          avgPauseMs: Math.round(avgPause),
+          adjustmentMs,
+          applied: cadenceTracker.adjustmentApplied,
+          pauseSamples: cadenceTracker.pauseDurations.length,
+        })}`
+      );
+    };
+
     const shouldReuseGuardDecision = (candidateTranscript: string) => {
       const existingTranscript = (activeVoiceTurn.guardTranscript || "").trim().toLowerCase();
       const nextTranscript = candidateTranscript.trim().toLowerCase();
@@ -1879,6 +2046,7 @@ export default defineAgent({
     };
 
     const primeVoiceGuard = (transcript: string, prediction: VoiceTurnPrediction) => {
+      if (guardCircuitBreaker.open) return;
       if (!shouldPrimeVoiceGuard(prediction, transcript, voiceLatencyConfig)) return;
       if (activeVoiceTurn.guardPromise && shouldReuseGuardDecision(transcript)) {
         return;
@@ -1896,6 +2064,7 @@ export default defineAgent({
     };
 
     const resolveGuardDecision = async (transcript: string, prediction: VoiceTurnPrediction) => {
+      if (guardCircuitBreaker.open) return null;
       if (!shouldPrimeVoiceGuard(prediction, transcript, voiceLatencyConfig)) return null;
       if (!activeVoiceTurn.guardPromise || !shouldReuseGuardDecision(transcript)) {
         primeVoiceGuard(transcript, prediction);
@@ -1905,8 +2074,18 @@ export default defineAgent({
       const startedAt = activeVoiceTurn.guardStartedAt || Date.now();
       const decision = await activeVoiceTurn.guardPromise;
       voiceLatencyAudit.guardMs.push(Date.now() - startedAt);
-      if (decision?.timedOut) {
+      if (!decision || decision.timedOut) {
         voiceLatencyAudit.guardTimeouts += 1;
+        guardCircuitBreaker.consecutiveFailures += 1;
+        if (guardCircuitBreaker.consecutiveFailures >= GUARD_CIRCUIT_BREAKER_THRESHOLD) {
+          guardCircuitBreaker.open = true;
+          guardCircuitBreaker.trippedAtTurn = userTurnCounter;
+          voiceLatencyAudit.guardCircuitBreakerTripped = true;
+          voiceLatencyAudit.guardCircuitBreakerAtTurn = userTurnCounter;
+          console.log(`${logPrefix} [GUARD_CIRCUIT_BREAKER] Tripped after ${guardCircuitBreaker.consecutiveFailures} consecutive failures at turn ${userTurnCounter}`);
+        }
+      } else {
+        guardCircuitBreaker.consecutiveFailures = 0;
       }
       return decision;
     };
@@ -1922,6 +2101,25 @@ export default defineAgent({
         allowInterruptions: true,
       },
     });
+    // Wire mid-stream LLM failure recovery: play "Just a sec." and retry on fallback
+    llm.setOnMidStreamFailure(() => {
+      if (isDisconnecting) return;
+      console.warn(`${logPrefix} [MID_STREAM_RECOVERY] Playing recovery filler and retrying on fallback LLM`);
+      if (sharedRecoveryFillerFrame) {
+        sharedRecoveryFillerFrame
+          .then((frame) => {
+            session.say(RECOVERY_FILLER_TEXT, {
+              audio: audioFrameToReadableStream(cloneAudioFrame(frame)),
+              allowInterruptions: true,
+              addToChatCtx: false,
+            });
+          })
+          .catch(() => {});
+      }
+      session.generateReply();
+      voiceLatencyAudit.midStreamRecoveries += 1;
+    });
+
     const enableNoiseCancellation = shouldEnableNoiseCancellation();
     console.log(
       `${logPrefix} [CALL_BOOT] ${JSON.stringify({
@@ -2083,6 +2281,11 @@ export default defineAgent({
       if (!transcript) return;
 
       if (!ev.isFinal) {
+        // Adaptive endpointing: track speech-start (first interim after a final)
+        if (cadenceTracker.speechEndTimestamps.length > cadenceTracker.speechStartTimestamps.length) {
+          cadenceTracker.speechStartTimestamps.push(Date.now());
+        }
+
         if (!voiceLatencyConfig.enabled || !isMeaningfulUserTurn(transcript)) return;
 
         const classifierStartedAt = Date.now();
@@ -2091,6 +2294,19 @@ export default defineAgent({
         activeVoiceTurn.prediction = interimPrediction;
         primeVoiceGuard(transcript, interimPrediction);
         return;
+      }
+
+      // Adaptive endpointing: track speech-end and compute pause durations
+      cadenceTracker.speechEndTimestamps.push(Date.now());
+      if (cadenceTracker.speechEndTimestamps.length >= 2 && cadenceTracker.speechStartTimestamps.length >= cadenceTracker.speechEndTimestamps.length - 1) {
+        const prevEnd = cadenceTracker.speechEndTimestamps[cadenceTracker.speechEndTimestamps.length - 2]!;
+        const nextStart = cadenceTracker.speechStartTimestamps[cadenceTracker.speechEndTimestamps.length - 2];
+        if (nextStart && nextStart > prevEnd) {
+          cadenceTracker.pauseDurations.push(nextStart - prevEnd);
+        }
+      }
+      if (!cadenceTracker.calibrated && cadenceTracker.pauseDurations.length >= ADAPTIVE_ENDPOINTING_CALIBRATION_TURNS) {
+        calibrateEndpointing();
       }
 
       if (!isMeaningfulUserTurn(transcript)) {
@@ -2402,6 +2618,9 @@ export default defineAgent({
         openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
         guardTimeouts: voiceLatencyAudit.guardTimeouts,
         guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
+        guardCircuitBreakerTripped: voiceLatencyAudit.guardCircuitBreakerTripped,
+        guardCircuitBreakerAtTurn: voiceLatencyAudit.guardCircuitBreakerAtTurn,
+        midStreamRecoveries: voiceLatencyAudit.midStreamRecoveries,
         openerUsage: voiceLatencyAudit.openerUsage,
         speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
         speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
@@ -2445,6 +2664,9 @@ export default defineAgent({
             openerHits: voiceLatencyAudit.openerHits,
             openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
             guardTimeouts: voiceLatencyAudit.guardTimeouts,
+            guardCircuitBreakerTripped: voiceLatencyAudit.guardCircuitBreakerTripped,
+            guardCircuitBreakerAtTurn: voiceLatencyAudit.guardCircuitBreakerAtTurn,
+            midStreamRecoveries: voiceLatencyAudit.midStreamRecoveries,
             openerUsage: voiceLatencyAudit.openerUsage,
             speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
             speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
@@ -2454,6 +2676,14 @@ export default defineAgent({
             speculativeHeadCancelled: voiceLatencyAudit.speculativeHeadCancelled,
           },
           llmRouting: llmRunSummary,
+          adaptiveEndpointing: {
+            avgPauseMs: cadenceTracker.pauseDurations.length
+              ? Math.round(cadenceTracker.pauseDurations.reduce((a, b) => a + b, 0) / cadenceTracker.pauseDurations.length)
+              : null,
+            adjustmentMs: cadenceTracker.adjustmentMs,
+            applied: cadenceTracker.adjustmentApplied,
+            pauseSamples: cadenceTracker.pauseDurations.length,
+          },
           turns: turnSummaries,
         })}`
       );

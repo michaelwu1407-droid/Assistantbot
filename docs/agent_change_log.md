@@ -1,3 +1,15 @@
+## 2026-03-20 – Claude AI Agent
+
+- **Files changed**: `livekit-agent/agent.ts`, `livekit-agent/voice-latency.ts`, `docs/voice_operating_brief.md`, `docs/agent_change_log.md`
+- **Summary**: Five voice agent latency and reliability improvements:
+  1. **Guard circuit breaker**: After 3 consecutive guard timeouts/failures in a call, the guard is skipped entirely for the rest of that call. Saves ~100ms/turn during provider degradation. Tracked in `voiceLatencyAudit.guardCircuitBreakerTripped`.
+  2. **LLM connection pre-warming**: Groq and DeepInfra TCP+TLS connections are warmed during `prewarmVoiceProcess()` in parallel with TTS prewarm via `/models` endpoint. Saves 50-150ms on first turn.
+  3. **LLM-to-TTS streaming**: `TraceyVoiceAgent.ttsNode()` now passes LLM token stream directly to TTS for `demo`/`inbound_demo` calls instead of buffering the full response. Saves 100-300ms per turn. `normal` calls still buffer for policy enforcement.
+  4. **Mid-stream LLM failure recovery**: When primary LLM stream dies after first token, plays pre-cached "Just a sec." audio and retries full generation on fallback provider. `ProviderFallbackLLM` gains `setOnMidStreamFailure` callback and `preferFallback` flag. Tracked in `voiceLatencyAudit.midStreamRecoveries`.
+  5. **Adaptive endpointing**: Measures caller speech cadence (pause durations) over first 3 turns and adjusts endpointing range. Slow speakers (+80-120ms), fast speakers (-40-60ms). Attempts runtime session option mutation with graceful fallback to logging.
+  - Also added "speculative LLM generation on interim STT transcripts" to `PHASE_TWO_BACKLOG`.
+- **Why**: Voice agent architecture review confirmed provider stack and latency strategy are top-tier. These 5 improvements address remaining optimization opportunities at effectively $0/call: guard degradation resilience, first-turn cold start, TTS buffer bottleneck, mid-stream failure silence, and per-caller endpointing adaptation.
+
 ## 2026-03-19 22:30 (AEDT) – Cursor AI Agent
 
 - **Files changed**: `lib/twilio-regulatory.ts`, `docs/agent_change_log.md`
