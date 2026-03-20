@@ -405,23 +405,31 @@ export async function POST(req: NextRequest) {
     return twimlResponse(forwardToLiveKitTwiml(sipTarget));
   } catch (error) {
     console.error("[voice-gateway] Error:", error);
-    if (lastCallerNumber && lastCalledNumber) {
-      await openGatewayIncident({
-        incidentKey: "voice:gateway:handler-exception",
-        surface: lastSurface || "inbound_demo",
-        summary: "Voice gateway handler threw; routing to voicemail.",
-        callerNumber: lastCallerNumber,
-        calledNumber: lastCalledNumber,
-        workspaceId: null,
-      }).catch(() => {});
-      return twimlResponse(
-        voicemailFallbackTwiml({
-          calledNumber: lastCalledNumber,
-          callerNumber: lastCallerNumber,
-          surface: lastSurface,
-        }),
-      );
-    }
-    return twimlResponse(temporarilyUnavailableTwiml());
+
+    // Always fail-safe to voicemail so the caller can still leave a message,
+    // even if we couldn't fully resolve routing context for this call.
+    const callerNumber = lastCallerNumber || "";
+    const calledNumber = lastCalledNumber || "";
+    const surface: VoiceSurface = (lastSurface as VoiceSurface) || "inbound_demo";
+
+    await openGatewayIncident({
+      incidentKey: "voice:gateway:handler-exception",
+      surface,
+      summary: "Voice gateway handler threw; routing to voicemail.",
+      callerNumber,
+      calledNumber,
+      workspaceId: null,
+      details: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    }).catch(() => {});
+
+    return twimlResponse(
+      voicemailFallbackTwiml({
+        calledNumber,
+        callerNumber,
+        surface,
+      }),
+    );
   }
 }

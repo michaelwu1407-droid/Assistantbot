@@ -1132,3 +1132,22 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Voice continuity: callers should always be able to leave a voicemail and admins can track failures in incident views.
   - Internal chat correctness: dashboard users should not receive customer-facing disclaimer phrasing.
+
+## 2026-03-20 02:35 (AEDT) - codex
+
+- Files changed:
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `components/chatbot/chat-interface.tsx`
+  - `actions/chat-actions.ts`
+  - `lib/comms.ts`
+  - `__tests__/comms.test.ts`
+  - `docs/voice_operating_brief.md`
+- Summary:
+  - Ensured the voice gateway handler exception path always records a `VoiceIncident` and returns `voicemailFallbackTwiml` even when caller/called metadata is missing.
+  - Added an **Assignee** dropdown to the “New job — review & confirm” draft card for scheduled jobs, and pass `assignedToId` through job creation.
+  - Preserved CRM chat history across “Chat” <-> “Advanced” toggles by storing in-session messages and restoring them on remount.
+  - Finalised/updated the Twilio subaccount provisioning flow in `lib/comms.ts` and refreshed test mocks accordingly.
+- Why:
+  - Voice continuity guarantee: callers must always be able to leave a voicemail after any failure.
+  - Scheduled job creation UX: backend validation requires `assignedToId` in Scheduled stage, so the UI now collects it.
+  - Operator UX: switching views should not erase the conversation they just had.
