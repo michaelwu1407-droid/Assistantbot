@@ -147,23 +147,23 @@ function ChatDemo() {
     const current = CHAT_DEMO[step];
 
     return (
-        <div className="rounded overflow-hidden shadow-2xl bg-[#0F172A] border border-white/10 select-none">
+        <div className="rounded overflow-hidden shadow-2xl bg-white border border-neutral-200 select-none">
             {/* Browser chrome */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10 bg-white/5">
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-neutral-200 bg-neutral-50">
                 <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-red-500/60 block" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500/60 block" />
-                    <span className="w-3 h-3 rounded-full bg-green-500/60 block" />
+                    <span className="w-3 h-3 rounded-full bg-red-400/60 block" />
+                    <span className="w-3 h-3 rounded-full bg-yellow-400/60 block" />
+                    <span className="w-3 h-3 rounded-full bg-green-400/60 block" />
                 </div>
                 <div className="flex-1 flex justify-center">
-                    <div className="bg-white/10 rounded px-4 py-1 text-[11px] text-white/40 font-medium tracking-wide">
+                    <div className="bg-neutral-200/60 rounded px-4 py-1 text-[11px] text-neutral-500 font-medium tracking-wide">
                         earlymark.ai/dashboard — Tracey Chat
                     </div>
                 </div>
             </div>
 
             {/* Messages */}
-            <div className="px-6 py-8 min-h-[260px] flex flex-col justify-end gap-4">
+            <div className="px-6 py-8 min-h-[260px] flex flex-col justify-end gap-4 bg-[#F8FAFC]">
                 <AnimatePresence mode="wait">
                     {phase !== "idle" && (
                         <motion.div
@@ -190,14 +190,14 @@ function ChatDemo() {
                             exit={{ opacity: 0 }}
                             className="flex items-end gap-2"
                         >
-                            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                <Bot className="w-4 h-4 text-primary" />
+                            <div className="w-7 h-7 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                                <Image src="/latest-logo.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" unoptimized />
                             </div>
-                            <div className="bg-white/10 rounded rounded-bl-sm px-4 py-3 flex gap-1.5 items-center">
+                            <div className="bg-white border border-neutral-200 rounded rounded-bl-sm px-4 py-3 flex gap-1.5 items-center shadow-sm">
                                 {[0, 0.18, 0.36].map((d, i) => (
                                     <motion.span
                                         key={i}
-                                        className="w-2 h-2 rounded-full bg-white/40 block"
+                                        className="w-2 h-2 rounded-full bg-neutral-300 block"
                                         animate={{ y: [0, -6, 0] }}
                                         transition={{ repeat: Infinity, duration: 0.65, delay: d }}
                                     />
@@ -217,10 +217,10 @@ function ChatDemo() {
                             transition={{ duration: 0.35 }}
                             className="flex items-end gap-2"
                         >
-                            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                <Bot className="w-4 h-4 text-primary" />
+                            <div className="w-7 h-7 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                                <Image src="/latest-logo.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" unoptimized />
                             </div>
-                            <div className="bg-white/10 text-white/90 rounded rounded-bl-sm px-4 py-2.5 text-sm max-w-[80%] leading-relaxed">
+                            <div className="bg-white border border-neutral-200 text-neutral-800 rounded rounded-bl-sm px-4 py-2.5 text-sm max-w-[80%] leading-relaxed shadow-sm">
                                 {current.agent}
                             </div>
                         </motion.div>
@@ -229,12 +229,12 @@ function ChatDemo() {
             </div>
 
             {/* Step dots */}
-            <div className="flex justify-center gap-2 pb-5">
+            <div className="flex justify-center gap-2 pb-5 pt-3 bg-white border-t border-neutral-100">
                 {CHAT_DEMO.map((_, i) => (
                     <button
                         key={i}
                         onClick={() => setStep(i)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-5 bg-primary" : "w-1.5 bg-white/20"}`}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-5 bg-primary" : "w-1.5 bg-neutral-300"}`}
                     />
                 ))}
             </div>
@@ -273,7 +273,7 @@ function HireMockup0() {
                         </div>
                     </div>
                     <div className="mt-2 flex items-center gap-1.5">
-                        <Bot className="w-3 h-3 text-emerald-500" />
+                        <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
                         <span className="text-[10px] text-emerald-600 font-medium">Tracey answered · logged to CRM</span>
                     </div>
                 </div>
@@ -291,23 +291,23 @@ function HireMockup1() {
         { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% vs last week 📈" },
     ];
     return (
-        <div className="h-full flex flex-col bg-[#0f172a]">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <Bot className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="h-full flex flex-col bg-white">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-200">
+                <div className="w-6 h-6 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
+                    <Image src="/latest-logo.png" alt="" width={14} height={14} className="w-3.5 h-3.5 object-contain" unoptimized />
                 </div>
-                <span className="text-xs font-semibold text-white">Tracey Chat</span>
-                <span className="ml-auto text-[10px] text-emerald-400">● Online</span>
+                <span className="text-xs font-semibold text-neutral-900">Tracey Chat</span>
+                <span className="ml-auto text-[10px] text-emerald-500">● Online</span>
             </div>
-            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4">
+            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4 bg-[#F8FAFC]">
                 {messages.map((m, i) => (
                     <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
                         {m.from === "tracey" && (
-                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                <Bot className="w-3 h-3 text-emerald-400" />
+                            <div className="w-5 h-5 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                                <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
                             </div>
                         )}
-                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}>
+                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-primary text-white rounded-tr-sm" : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"}`}>
                             {m.text}
                         </div>
                     </div>
@@ -403,9 +403,6 @@ function HireFeatureGrid() {
                         className="grid items-center gap-8 md:grid-cols-2"
                     >
                         <div className={`flex flex-col gap-4 ${!isEven ? "md:order-2" : "md:order-1"}`}>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-                                {feature.eyebrow}
-                            </div>
                             <h3 className="text-2xl md:text-3xl font-bold leading-snug text-midnight">{feature.title}</h3>
                             <p className="text-base leading-relaxed text-slate-body">{feature.desc}</p>
                             <ul className="flex flex-col gap-2 mt-1">
@@ -475,19 +472,16 @@ function FeatureCarousel() {
                                 layout
                                 animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
                                 transition={{ duration: 0.4, ease: EASE_STANDARD }}
-                                className={`rounded p-7 flex flex-col gap-4 shrink-0 w-[85vw] md:w-auto snap-center ${isCentre
-                                    ? "bg-midnight text-white shadow-xl"
-                                    : "bg-white border border-border"
-                                    }`}
+                                className={`rounded p-7 flex flex-col gap-4 shrink-0 w-[85vw] md:w-auto snap-center bg-white border ${isCentre ? "border-primary/25 shadow-lg" : "border-border"}`}
                             >
-                                <div className={`w-12 h-12 rounded flex items-center justify-center ${isCentre ? "bg-primary/20" : "bg-mint-50"}`}>
+                                <div className="w-12 h-12 rounded flex items-center justify-center bg-mint-50">
                                     <Icon className="w-6 h-6 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className={`font-bold text-lg leading-snug ${isCentre ? "text-white" : "text-midnight"}`}>
+                                    <h3 className="font-bold text-lg leading-snug text-midnight">
                                         {feature.title}
                                     </h3>
-                                    <p className={`text-sm mt-2 leading-relaxed ${isCentre ? "text-white/65" : "text-slate-body"}`}>
+                                    <p className="text-sm mt-2 leading-relaxed text-slate-body">
                                         {feature.desc}
                                     </p>
                                 </div>
@@ -837,18 +831,15 @@ export default function Home() {
                     {/* Value Props — gradient glass cards (no icons) */}
                     <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <div className="h-0.5 w-12 bg-emerald-400 mb-4 rounded-full" />
+                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
                                 <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
                             </div>
-                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-blue-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <div className="h-0.5 w-12 bg-blue-400 mb-4 rounded-full" />
+                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Automate customer admin</h3>
                                 <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
                             </div>
-                            <div className="rounded backdrop-blur-sm bg-gradient-to-br from-violet-50/80 to-violet-100/40 border border-white/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <div className="h-0.5 w-12 bg-violet-400 mb-4 rounded-full" />
+                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Provide a more reliable customer experience</h3>
                                 <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
                             </div>
@@ -1129,14 +1120,11 @@ export default function Home() {
             {/* ── E.6: Early Mark CTA ── */}
             <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
                 <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-                    <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
-                        Ready to start
-                    </motion.p>
-                    <motion.h2 {...fadeUp(0.04)} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
+                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
                         Give yourself an early mark today
                     </motion.h2>
-                    <motion.p {...fadeUp(0.08)} className="text-lg text-white/65 leading-7 max-w-xl">
-                        Start with your own workflow, your own rules, and a setup that actually reflects how your business runs.
+                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
+                        No contracts. No complexity. Try Tracey free.
                     </motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth">
