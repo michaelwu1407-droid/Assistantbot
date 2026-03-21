@@ -18,6 +18,7 @@ import { createTask } from "./task-actions";
 import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
+import { kanbanStageRequiresScheduledDate, prismaStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ const STAGE_ACTIVITY_LABELS: Record<string, string> = {
   pending_approval: "Pending approval",
   completed: "Completed",
   lost: "Lost",
-  deleted: "Deleted jobs",
+  deleted: "Deleted",
 };
 
 async function queueCompletionFollowUp(
@@ -408,7 +409,15 @@ export async function updateDealStage(dealId: string, stage: string) {
       return { success: false, error: "Assign a team member before moving to Scheduled." };
     }
 
-    // Team members moving to Completed go to Pending approval; only managers/owners can set WON directly
+    // Scheduled column and later require a job date (product rule)
+    if (kanbanStageRequiresScheduledDate(parsed.data.stage) && !currentDeal.scheduledAt) {
+      return {
+        success: false,
+        error: "Set a scheduled date before moving the job to this stage.",
+      };
+    }
+
+    // Team members moving to Completion go to Pending approval; only managers/owners can set WON directly
     if (prismaStage === "WON") {
       let userRole: string = "TEAM_MEMBER";
       try {
@@ -845,6 +854,15 @@ export async function updateDeal(
   if (data.stage !== undefined) {
     const prismaStage = STAGE_REVERSE[data.stage];
     if (!prismaStage) return { success: false, error: `Invalid stage: ${data.stage}` };
+    const nextScheduledAt =
+      data.scheduledAt !== undefined
+        ? data.scheduledAt == null || data.scheduledAt === ""
+          ? null
+          : new Date(data.scheduledAt as string | Date)
+        : deal.scheduledAt;
+    if (kanbanStageRequiresScheduledDate(data.stage) && !nextScheduledAt) {
+      return { success: false, error: "Set a scheduled date before moving the job to this stage." };
+    }
     update.stage = prismaStage as DealUpdate["stage"];
     update.stageChangedAt = new Date();
   }

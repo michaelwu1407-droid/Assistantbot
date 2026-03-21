@@ -19,7 +19,7 @@ import { completeTutorial } from "@/actions/workspace-actions"
 const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
-  const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath } = useShellStore()
+  const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, setAssistantPanelExpanded } = useShellStore()
   const { theme } = useTheme()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -36,6 +36,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Keep global flag in sync so dashboard Kanban can use min board width only when RHS chat is open (no forced horizontal scroll when chat is collapsed).
+  useEffect(() => {
+    setAssistantPanelExpanded(chatbotExpanded)
+  }, [chatbotExpanded, setAssistantPanelExpanded])
 
   // Always start pages at top after route changes in dashboard shell.
   useEffect(() => {
@@ -134,8 +139,9 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     }
   };
 
+  // Full viewport height — avoid calc(100dvh-57px), which left a ~57px body-colour strip at the bottom (57px belongs to the assistant mode toggle row, not the shell).
   return (
-    <div className="h-[calc(100dvh-57px)] w-full bg-background relative flex flex-col overflow-hidden">
+    <div className="h-dvh min-h-0 w-full bg-background relative flex flex-col overflow-hidden">
       {/* Tutorial Overlay always mounted, handles its own visibility */}
       <TutorialOverlay onComplete={handleTutorialComplete} />
 
@@ -178,7 +184,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex h-full overflow-hidden">
+        <div className="flex-1 flex h-full min-w-0 overflow-hidden">
           {/* Desktop Sidebar - Hidden on Mobile */}
           <Sidebar className="hidden md:flex shrink-0" />
 
@@ -186,10 +192,16 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <MobileSidebar />
 
           {mounted ? (
-            <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full">
-              {/* Left Canvas - 75% for Desktop, handled by resizable panels */}
-              <ResizablePanel defaultSize={75} minSize={30} id="main-canvas-panel">
-                <div id="main-canvas" className="h-full w-full overflow-y-auto relative bg-background">
+            <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full min-w-0 w-full">
+              {/* Left canvas + assistant must sum to 100% default so the main pane reliably compresses when chat expands */}
+              <ResizablePanel defaultSize={72} minSize={30} id="main-canvas-panel" className="min-w-0">
+                <div
+                  id="main-canvas"
+                  className={cn(
+                    "h-full w-full min-w-0 overflow-y-auto relative bg-[var(--main-canvas)]",
+                    chatbotExpanded ? "overflow-x-auto" : "overflow-x-hidden max-md:overflow-x-auto"
+                  )}
+                >
                   {children}
                 </div>
               </ResizablePanel>
@@ -234,7 +246,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 onCollapse={() => setChatbotExpanded(false)}
                 onExpand={() => setChatbotExpanded(true)}
                 id="assistant-panel"
-                className="hidden md:block transition-all duration-300 ease-in-out pl-0"
+                className="hidden md:block min-w-0 pl-0"
               >
                 {/* Mode Toggle — Segmented control */}
                 <div className="flex items-center justify-center px-4 py-3 bg-background border-b border-neutral-200">
@@ -267,7 +279,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
                 <div
                   id="assistant-pane"
-                  className="h-[calc(100%-57px)] w-full min-w-[320px] border-l border-border/50 bg-background/50 backdrop-blur-sm"
+                  className="h-[calc(100%-57px)] w-full min-w-0 max-w-full overflow-hidden border-l border-border/50 bg-background/50 backdrop-blur-sm"
                   onClick={() => {
                     if (!chatbotExpanded) {
                       chatbotPanelRef.current?.expand()
@@ -280,8 +292,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </ResizablePanel>
             </ResizablePanelGroup>
           ) : (
-            <div className="flex-1 h-full">
-              <div id="main-canvas" className="h-full w-full overflow-y-auto relative bg-background">
+            <div className="flex-1 h-full min-w-0">
+              <div id="main-canvas" className="h-full w-full min-w-0 overflow-y-auto overflow-x-auto relative bg-[var(--main-canvas)]">
                 {children}
               </div>
             </div>

@@ -3,19 +3,33 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DealNotes } from "@/components/crm/deal-notes"
-import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase } from "lucide-react"
+import { StaleJobReconciliationModal } from "@/components/crm/stale-job-reconciliation-modal"
+import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, AlertTriangle, ChevronDown } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
-import { updateDeal, approveCompletion, rejectCompletion } from "@/actions/deal-actions"
+import { updateDeal, approveCompletion, rejectCompletion, updateDealStage, type DealView } from "@/actions/deal-actions"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  getKanbanColumnSwatchClass,
+  getKanbanStagePillClasses,
+  getOverdueStyling,
+  KANBAN_STAGE_PICKER_OPTIONS,
+  prismaStageToKanbanColumn,
+  PRISMA_STAGE_LABELS,
+} from "@/lib/deal-utils"
+import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 
 interface DealDetailModalProps {
   dealId: string | null
@@ -90,7 +104,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
 }
 
 function DealDetailContent({
-  deal,
+  deal: initialDeal,
   contactDeals,
   onOpenChange,
   currentUserRole,
@@ -105,22 +119,84 @@ function DealDetailContent({
   initialTab?: "activities" | "jobs" | "notes"
 }) {
   const router = useRouter()
+  const [deal, setDeal] = useState(initialDeal)
+  useEffect(() => {
+    setDeal(initialDeal)
+  }, [initialDeal])
+
   const [activeDetailTab, setActiveDetailTab] = useState<"activities" | "jobs" | "notes">(initialTab || "activities")
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
-  const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const isPendingApproval = deal.stage === "PENDING_COMPLETION"
   const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
+
+  const [overdueDismissed, setOverdueDismissed] = useState(false)
+  const [showReconcile, setShowReconcile] = useState(false)
+
+  useEffect(() => {
+    setOverdueDismissed(false)
+  }, [deal.id])
+
+  const overdueStyling = getOverdueStyling({
+    stage: deal.stage,
+    scheduledAt: deal.scheduledAt ? new Date(deal.scheduledAt) : null,
+    actualOutcome: deal.actualOutcome ?? null,
+  })
+
+  const [stageChanging, setStageChanging] = useState(false)
+
+  const handleStageChange = async (targetKanban: string) => {
+    const currentCol = prismaStageToKanbanColumn(deal.stage)
+    if (currentCol === targetKanban) return
+    if (targetKanban === "scheduled" && !deal.assignedToId) {
+      toast.error("Assign a team member before moving to Scheduled.")
+      return
+    }
+    if (kanbanStageRequiresScheduledDate(targetKanban) && !deal.scheduledAt) {
+      toast.error("Set a scheduled date before moving the job to this stage.")
+      return
+    }
+    setStageChanging(true)
+    try {
+      const result = await updateDealStage(deal.id, targetKanban)
+      if (!result.success) {
+        toast.error(result.error ?? "Could not update stage")
+        return
+      }
+      toast.success("Stage updated")
+      const res = await fetch(`/api/deals/${deal.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setDeal(data.deal)
+      }
+      onDealUpdated?.()
+      router.refresh()
+    } finally {
+      setStageChanging(false)
+    }
+  }
 
   const handleEdit = () => {
     onOpenChange(false)
     router.push(`/dashboard/deals/${deal.id}`)
   }
 
+  const handleEditContact = () => {
+    if (!contact?.id) {
+      toast.error("No contact to edit")
+      return
+    }
+    onOpenChange(false)
+    router.push(`/dashboard/contacts/${contact.id}`)
+  }
+
   const [isEditingInvoice, setIsEditingInvoice] = useState(false)
   const [invoiceVal, setInvoiceVal] = useState(deal.invoicedAmount?.toString() || "")
+  useEffect(() => {
+    setInvoiceVal(deal.invoicedAmount?.toString() || "")
+  }, [deal.id, deal.invoicedAmount])
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [showRejectInput, setShowRejectInput] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
@@ -132,7 +208,7 @@ function DealDetailContent({
       await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
       toast.success("Invoice amount updated")
       setIsEditingInvoice(false)
-      deal.invoicedAmount = isNaN(val) ? null : val
+      setDeal((d: any) => ({ ...d, invoicedAmount: isNaN(val) ? null : val }))
     } catch {
       toast.error("Failed to update invoice amount")
     } finally {
@@ -144,7 +220,7 @@ function DealDetailContent({
     try {
       await updateDeal(deal.id, { isDraft: false })
       toast.success("Job confirmed")
-      deal.isDraft = false
+      setDeal((d: any) => ({ ...d, isDraft: false }))
       onOpenChange(false)
       onDealUpdated?.()
     } catch {
@@ -157,7 +233,7 @@ function DealDetailContent({
       const result = await approveCompletion(deal.id)
       if (result.success) {
         toast.success("Job approved and marked completed")
-        deal.stage = "WON"
+        setDeal((d: any) => ({ ...d, stage: "WON" }))
         onOpenChange(false)
         onDealUpdated?.()
         router.refresh()
@@ -187,6 +263,45 @@ function DealDetailContent({
 
   return (
     <>
+      {overdueStyling.badgeText && !overdueDismissed && (
+        <div
+          className={cn(
+            "flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5 text-sm text-white",
+            overdueStyling.severity === "critical" && "bg-red-500",
+            overdueStyling.severity === "warning" && "bg-orange-500",
+            (overdueStyling.severity === "mild" || overdueStyling.severity === "none") && "bg-amber-500"
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="font-semibold">{overdueStyling.badgeText}</span>
+            <span className="truncate opacity-90" title={overdueStyling.badgeTitle}>
+              {overdueStyling.badgeTitle || "Past scheduled time with no outcome recorded."}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-8 bg-white/20 text-white hover:bg-white/30"
+              onClick={() => setShowReconcile(true)}
+            >
+              Reconcile
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-white hover:bg-white/20"
+              aria-label="Dismiss overdue warning"
+              onClick={() => setOverdueDismissed(true)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
       {deal.isDraft && (
         <div className="bg-indigo-50 border-b border-indigo-100 p-3 shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2 text-indigo-700 text-sm">
@@ -231,88 +346,141 @@ function DealDetailContent({
           <span>Edit the job and move it back to Completed when ready, or a manager can approve from here if it’s pending again.</span>
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 p-4 md:p-6 border-b">
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-slate-900">{deal.title}</h1>
-              <Badge variant="outline" className="text-xs tracking-wider font-semibold">
-                {stageLabel}
-              </Badge>
-            </div>
-            <p className="text-slate-500 text-sm mt-0.5">
-              {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} • <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString()}</span>
+      {/* Header — Job | Name + stage picker (LHS) + Edit (RHS) */}
+      <div className="shrink-0 border-b">
+        <div className="flex items-start justify-between gap-4 p-4 md:p-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold text-slate-900">
+              <span className="break-words">{deal.title}</span>
+              <span className="font-normal text-slate-400"> | </span>
+              <span className="font-semibold text-slate-800">{contact?.name ?? "—"}</span>
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
+              <span className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString()}</span>
             </p>
           </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className={cn(
+                    "inline-flex h-8 min-w-[9rem] justify-between gap-2 rounded-md border-0 px-3 text-xs font-medium text-white shadow-sm no-underline hover:no-underline",
+                    getKanbanStagePillClasses(deal.stage)
+                  )}
+                  disabled={stageChanging}
+                >
+                  <span className="truncate text-left">
+                    {PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage}
+                  </span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-white/90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[min(100vw-2rem,14rem)]">
+                {KANBAN_STAGE_PICKER_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.id}
+                    className="flex items-center gap-2"
+                    disabled={stageChanging || prismaStageToKanbanColumn(deal.stage) === opt.id}
+                    onClick={() => void handleStageChange(opt.id)}
+                  >
+                    <span
+                      className={cn("h-2.5 w-2.5 shrink-0 rounded-full", getKanbanColumnSwatchClass(opt.id))}
+                      aria-hidden
+                    />
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleEdit}>
-          <Edit className="w-4 h-4 mr-2" />
-          Edit
-        </Button>
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 p-4 md:p-6 overflow-y-auto">
         {/* Left: Contact + Current job */}
         <div className="lg:col-span-1 flex flex-col gap-4">
-          {/* Contact details */}
-          <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Contact details
-            </h3>
+          {/* Contact details — name is in header; edit opens contact */}
+          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+                <FileText className="h-4 w-4" />
+                Contact details
+              </h3>
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEditContact}>
+                <Edit className="mr-1 h-3 w-3" />
+                Edit
+              </Button>
+            </div>
             {contact ? (
               <div className="space-y-2.5 text-sm">
-                <div>
-                  <p className="text-slate-500 text-xs">Name</p>
-                  <p className="font-medium text-slate-900">{contact.name}</p>
-                </div>
-                {contact.email && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Email</p>
-                    <p className="font-medium text-slate-900">{contact.email}</p>
-                  </div>
-                )}
                 {contact.phone && (
                   <div>
-                    <p className="text-slate-500 text-xs">Phone</p>
-                    <a href={`tel:${contact.phone}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-slate-500">Phone</p>
+                    <a
+                      href={`tel:${contact.phone}`}
+                      className="mt-0.5 flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                       {contact.phone}
                     </a>
                   </div>
                 )}
+                {contact.email && (
+                  <div>
+                    <p className="text-xs text-slate-500">Email</p>
+                    <a href={`mailto:${contact.email}`} className="font-medium text-slate-900 hover:underline">
+                      {contact.email}
+                    </a>
+                  </div>
+                )}
                 {contact.company && (
                   <div>
-                    <p className="text-slate-500 text-xs">Company</p>
+                    <p className="text-xs text-slate-500">Company</p>
                     <p className="font-medium text-slate-900">{contact.company}</p>
                   </div>
                 )}
                 {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
                   <div className="flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                     <div>
-                      <p className="text-slate-500 text-xs">Address</p>
+                      <p className="text-xs text-slate-500">Address</p>
                       <p className="font-medium text-slate-900">{deal.address || (metadata.address as string)}</p>
                     </div>
                   </div>
                 )}
+                {!contact.phone && !contact.email && !contact.company && !deal.address && !(typeof metadata.address === "string" && metadata.address) && (
+                  <p className="text-sm text-slate-500">Add phone, email, or address via Edit.</p>
+                )}
               </div>
             ) : (
-              <p className="text-slate-500 text-sm">No contact associated.</p>
+              <p className="text-sm text-slate-500">No contact associated.</p>
             )}
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <Briefcase className="w-4 h-4" />
-              Current job
-            </h3>
+          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+                <Briefcase className="h-4 w-4" />
+                Current job
+              </h3>
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEdit}>
+                <Edit className="mr-1 h-3 w-3" />
+                Edit
+              </Button>
+            </div>
             <div className="space-y-2.5 text-sm">
               <div>
-                <p className="text-slate-500 text-xs">Job</p>
+                <p className="text-xs text-slate-500">Job</p>
                 <p className="font-medium text-slate-900">{deal.title}</p>
               </div>
               <div>
@@ -467,6 +635,23 @@ function DealDetailContent({
             ))}
           </div>
         </div>
+      )}
+
+      {showReconcile && (
+        <StaleJobReconciliationModal
+          deal={
+            {
+              ...deal,
+              contactName: contact?.name ?? "",
+            } as DealView
+          }
+          onClose={() => setShowReconcile(false)}
+          onSuccess={() => {
+            setShowReconcile(false)
+            onDealUpdated?.()
+            router.refresh()
+          }}
+        />
       )}
     </>
   )

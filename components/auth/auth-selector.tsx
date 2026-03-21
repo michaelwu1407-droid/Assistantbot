@@ -49,6 +49,8 @@ export function AuthSelector() {
     return `+61${cleaned}`;
   };
 
+  const looksLikePhoneValue = (value: string) => value.replace(/\D/g, "").length >= 8;
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -62,7 +64,7 @@ export function AuthSelector() {
           phone: formattedPhone,
           options: {
             data: {
-              name: name || phone,
+              name: name.trim() && !looksLikePhoneValue(name.trim()) ? name.trim() : undefined,
             }
           }
         });
@@ -363,7 +365,7 @@ export function AuthSelector() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Smith"
-                  required
+                  required={signUpMethod === "email"}
                 />
               </div>
 

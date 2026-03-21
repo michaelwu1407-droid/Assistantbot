@@ -46,9 +46,21 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
       return null;
     }
 
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const given = str(meta.given_name);
+    const family = str(meta.family_name);
+    const combinedGiven = [given, family].filter(Boolean).join(" ").trim();
+    const displayName =
+      str(meta.full_name) ||
+      combinedGiven ||
+      str(meta.name) ||
+      user.email?.split("@")[0] ||
+      "User";
+
     const userData = {
       id: user.id,
-      name: user.user_metadata?.name || user.email?.split('@')[0] || "User",
+      name: displayName,
       email: user.email,
       bio: user.user_metadata?.bio,
       image: user.user_metadata?.avatar_url || user.user_metadata?.picture,

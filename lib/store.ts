@@ -15,8 +15,11 @@ interface ShellState {
   userRole: UserRole
   mobileMenuOpen: boolean
   sidebarMinimized: boolean
+  /** RHS chat / assistant panel is expanded (not collapsed to zero width) — dashboard Kanban uses this to allow horizontal scroll only when the panel is open. */
+  assistantPanelExpanded: boolean
   _hydrated: boolean
   setViewMode: (mode: ViewMode) => void
+  setAssistantPanelExpanded: (open: boolean) => void
   setLastAdvancedPath: (path: string) => void
   setPersona: (persona: Persona) => void
   setTutorialComplete: () => void
@@ -42,7 +45,9 @@ export const useShellStore = create<ShellState>((set, get) => ({
   userRole: 'OWNER' as UserRole,
   mobileMenuOpen: false,
   sidebarMinimized: false,
+  assistantPanelExpanded: false,
   _hydrated: false,
+  setAssistantPanelExpanded: (open: boolean) => set({ assistantPanelExpanded: open }),
   setViewMode: (mode: ViewMode) => {
     try { localStorage.setItem('pj_view_mode', mode) } catch { }
     set({ viewMode: mode })

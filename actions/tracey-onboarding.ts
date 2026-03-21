@@ -223,6 +223,49 @@ export async function saveBusinessProfileForProvisioning(params: {
   }
 }
 
+export async function getProvisioningIntentForOnboarding(): Promise<{
+  success: boolean;
+  provisionPhoneNumberRequested: boolean;
+  provisioningStatus: WorkspaceProvisioningStatus | null;
+  error?: string;
+}> {
+  const userId = await getAuthUserId();
+  if (!userId) {
+    return {
+      success: false,
+      provisionPhoneNumberRequested: false,
+      provisioningStatus: null,
+      error: "Not authenticated",
+    };
+  }
+
+  try {
+    const workspace = await getOrCreateWorkspace(userId);
+    const persisted = await db.workspace.findUnique({
+      where: { id: workspace.id },
+      select: { settings: true },
+    });
+    const settings = getWorkspaceSettings(persisted?.settings);
+    const provisionPhoneNumberRequested = settings.provisionPhoneNumberRequested === true;
+    const rawStatus = typeof settings.onboardingProvisioningStatus === "string"
+      ? (settings.onboardingProvisioningStatus as WorkspaceProvisioningStatus)
+      : null;
+
+    return {
+      success: true,
+      provisionPhoneNumberRequested,
+      provisioningStatus: rawStatus,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      provisionPhoneNumberRequested: false,
+      provisioningStatus: null,
+      error: error instanceof Error ? error.message : "Failed to read provisioning intent",
+    };
+  }
+}
+
 // ─── Server Action ──────────────────────────────────────────────
 
 export async function saveTraceyOnboarding(
@@ -251,12 +294,13 @@ export async function saveTraceyOnboarding(
   const normalizedWeeklyHours = d.weeklyHours;
   const firstOpenHours = getFirstOpenHours(normalizedWeeklyHours);
 
-  // Get user email from auth
+  // Email: phone-only Supabase accounts often have no auth email — use onboarding email or stable fallback (same as workspace user bootstrap).
   const { getAuthUser } = await import("@/lib/auth");
   const authUser = await getAuthUser();
-  if (!authUser?.email) {
-    return { success: false, error: "User email not found" };
-  }
+  const resolvedOwnerEmail =
+    (authUser?.email?.trim() ? authUser.email.trim() : "") ||
+    d.email.trim() ||
+    `${userId}@phone-auth.local`;
 
   // Readiness checks (non-blocking)
   const readiness = {
@@ -277,6 +321,7 @@ export async function saveTraceyOnboarding(
       role: "OWNER",
       name: d.ownerName,
       phone: d.phone,
+      authUserIdOverride: userId,
     });
 
     // ── PHASE A: Transactional Core Writes ──
@@ -285,7 +330,7 @@ export async function saveTraceyOnboarding(
       await tx.user.update({
         where: { id: appUser.id },
         data: {
-          email: authUser.email!,
+          email: resolvedOwnerEmail,
           name: d.ownerName,
           phone: d.phone,
           workspaceId: workspace.id,

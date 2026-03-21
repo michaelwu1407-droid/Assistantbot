@@ -101,6 +101,17 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+.sunlight-shadow {
+  box-shadow: 0px 12px 24px rgba(47, 47, 46, 0.04);
+}
+.ghost-border {
+  outline: 1px solid rgba(175, 173, 172, 0.15);
+}
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+}
+
 :root {
   /* Typography - Plus Jakarta Sans */
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -110,6 +121,8 @@
 
   /* LIGHT THEME - Earlymark "Mint & Milk" */
   --background: #F7F8FA;
+  /* Main content area (excl. sidebar): 10% blend toward slate */
+  --main-canvas: color-mix(in srgb, var(--background) 90%, #94a3b8 10%);
   --foreground: #0D1117;
 
   --card: #FFFFFF;
@@ -154,6 +167,7 @@
 .dark {
   /* DARK THEME */
   --background: #0F141B;
+  --main-canvas: color-mix(in srgb, var(--background) 90%, #000000 10%);
   --foreground: #D8E1EC;
 
   --card: #151C25;
@@ -375,4 +389,34 @@
 }
 .animate-bounce-gentle {
   animation: bounce-gentle 2s ease-in-out 3;
+}
+
+/* Kanban deal card — contact name horizontal ticker on hover when truncated */
+@keyframes kanban-card-name-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--kanban-name-shift, 0px)));
+  }
+}
+
+/* Kanban columns + shared: scroll works; scrollbars hidden (no track width) */
+.kanban-column-scroll,
+.scrollbar-hide {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.kanban-column-scroll::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+.kanban-column-scroll::-webkit-scrollbar-thumb,
+.kanban-column-scroll::-webkit-scrollbar-track,
+.scrollbar-hide::-webkit-scrollbar-thumb,
+.scrollbar-hide::-webkit-scrollbar-track {
+  background: transparent !important;
 }

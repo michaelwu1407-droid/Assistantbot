@@ -708,15 +708,15 @@ function ChatWithHistory({
             <p className="text-xs font-medium text-neutral-400 mb-2 uppercase tracking-wide">
               Quick actions
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {getContextualQuickActions().map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prompt)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 rounded-full text-sm text-neutral-700 hover:border-primary hover:text-primary hover:bg-primary-muted transition-colors duration-150"
+                  className="flex w-full min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 bg-white border border-neutral-200 rounded-full text-xs sm:text-sm text-neutral-700 hover:border-primary hover:text-primary hover:bg-primary-muted transition-colors duration-150 text-center"
                 >
-                  <action.icon size={13} className="text-primary" />
-                  {action.label}
+                  <action.icon size={13} className="shrink-0 text-primary" />
+                  <span className="truncate">{action.label}</span>
                 </button>
               ))}
             </div>

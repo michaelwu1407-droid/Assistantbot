@@ -4,6 +4,9 @@ import { getOrCreateWorkspace, ensureOwnerHasUserRow } from "@/actions/workspace
 import { getTeamMembers } from "@/actions/invite-actions"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { getAuthUser } from "@/lib/auth"
+import { resolveHeaderDisplayName } from "@/lib/display-name"
+import { ensureDashboardDemoDeals } from "@/actions/dashboard-demo-seeds"
+import { db } from "@/lib/db"
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +33,9 @@ export default async function DashboardPage(props: {
 
     try {
         workspace = await getOrCreateWorkspace(userId)
+        if (process.env.NODE_ENV === "development") {
+            await ensureDashboardDemoDeals(workspace.id).catch(() => {})
+        }
         // Run independent queries in parallel once workspace is available
         const [, dealsResult, teamResult] = await Promise.all([
             ensureOwnerHasUserRow(workspace),
@@ -39,12 +45,19 @@ export default async function DashboardPage(props: {
         deals = dealsResult
         teamMembers = teamResult
         const currentMember = teamMembers.find((m) => m.isCurrentUser)
-        if (currentMember?.name?.trim()) {
-            userName = currentMember.name
-        }
+        const appUserRow = await db.user.findFirst({
+            where: {
+                OR: [{ id: userId }, ...(authUser.email ? [{ email: authUser.email }] : [])],
+            },
+            select: { name: true, email: true },
+        })
+        userName = resolveHeaderDisplayName({
+            authName: authUser.name,
+            dbName: currentMember?.name ?? appUserRow?.name ?? null,
+            email: currentMember?.email ?? appUserRow?.email ?? authUser.email ?? null,
+        })
     } catch (error) {
         console.error("DashboardPage failed to load:", error);
-        require('fs').writeFileSync('tmp-error.txt', String(error) + "\n" + (error as any).stack);
         dbError = true;
     }
 

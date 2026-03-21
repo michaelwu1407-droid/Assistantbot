@@ -21,9 +21,17 @@ interface GlobalSearchProps {
     workspaceId?: string
     open?: boolean
     onOpenChange?: (open: boolean) => void
+    /** Wider trigger bar (e.g. dashboard header); default keeps compact palette-style widths elsewhere */
+    variant?: "default" | "bar"
 }
 
-export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpenChange: externalOnOpenChange }: GlobalSearchProps) {
+export function GlobalSearch({
+    className,
+    workspaceId,
+    open: externalOpen,
+    onOpenChange: externalOnOpenChange,
+    variant = "default",
+}: GlobalSearchProps) {
     const [internalOpen, setInternalOpen] = React.useState(false)
     const router = useRouter()
 
@@ -86,7 +94,10 @@ export function GlobalSearch({ className, workspaceId, open: externalOpen, onOpe
                 <Button
                     variant="outline"
                     className={cn(
-                        "relative h-9 w-full justify-start rounded-[0.5rem] bg-background text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-64",
+                        "relative w-full justify-start font-normal text-muted-foreground shadow-none",
+                        variant === "bar"
+                            ? "h-9 min-h-9 rounded-lg border-border/40 bg-muted/40 text-sm sm:pr-12 md:w-full md:min-w-0"
+                            : "h-9 rounded-[0.5rem] bg-background text-sm sm:pr-12 md:w-40 lg:w-64",
                         className
                     )}
                     onClick={() => setOpen(true)}

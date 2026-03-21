@@ -8,8 +8,18 @@ import { ActivityModal } from "@/components/modals/activity-modal"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
 import { ensureDailyNotifications } from "@/actions/notification-actions"
+import { useShellStore } from "@/lib/store"
 import { Header } from "./header"
-import { SetupWidget } from "./setup-widget"
+import { Button } from "@/components/ui/button"
+import { Plus, Filter } from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 interface TeamMemberOption {
     id: string
@@ -28,6 +38,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ workspace, deals, teamMembers, userName, userId }: DashboardClientProps) {
+    const FILTER_ALL = "__all__"
     const currentUser = teamMembers.find((m) => (m as { isCurrentUser?: boolean }).isCurrentUser)
     const currentUserRole = currentUser?.role ?? "TEAM_MEMBER"
     const defaultFilter =
@@ -37,52 +48,118 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
     const [filterByUserId, setFilterByUserId] = useState<string | null>(defaultFilter)
 
     useEffect(() => {
-        ensureDailyNotifications(workspace.id).catch(() => { })
+        ensureDailyNotifications(workspace.id).catch(() => {})
     }, [workspace.id])
 
-    return (
-        <div className="h-full flex flex-col overflow-hidden relative bg-background">
-            {/* ATMOSPHERIC GLOW - MINT RADIAL */}
-            <div className="absolute top-0 left-0 right-0 h-[500px] ott-glow pointer-events-none z-0 opacity-40 dark:opacity-20" />
+    const hasTeamFilter = teamMembers.length > 0
+    const filterSelectValue =
+        hasTeamFilter && filterByUserId && teamMembers.some((m) => m.id === filterByUserId)
+            ? filterByUserId
+            : FILTER_ALL
+    const kanbanFilterByUserId = hasTeamFilter ? filterByUserId : null
 
-            <div className="relative z-10 flex flex-col h-full p-2 md:p-3 md:pt-2 gap-1.5">
+    const assistantPanelExpanded = useShellStore((s) => s.assistantPanelExpanded)
+
+    const newDealLabel =
+        workspace.industryType === "TRADES"
+            ? "New Job"
+            : workspace.industryType === "REAL_ESTATE"
+              ? "New Listing"
+              : "New Deal"
+
+    const pipelineHeaderActions = (
+        <>
+            <Button
+                id="new-deal-btn"
+                onClick={() => setIsNewDealModalOpen(true)}
+                className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold sunlight-shadow truncate"
+            >
+                <Plus className="h-3.5 w-3.5 mr-0.5 shrink-0" />
+                {newDealLabel}
+            </Button>
+            <Select
+                disabled={!hasTeamFilter}
+                value={filterSelectValue}
+                onValueChange={(v) => setFilterByUserId(v === FILTER_ALL ? null : v)}
+            >
+                <SelectTrigger
+                    title={!hasTeamFilter ? "Invite team in Settings to filter by person" : undefined}
+                    className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 bg-muted rounded-lg border-none text-xs font-medium hover:bg-muted/80 transition-colors gap-1 disabled:opacity-60"
+                >
+                    <Filter className="h-3 w-3" />
+                    <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value={FILTER_ALL}>All</SelectItem>
+                    {teamMembers.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                            {m.name || m.email}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </>
+    )
+
+    return (
+        <div className="dashboard-stitch h-full flex flex-col overflow-hidden bg-transparent text-[15px] leading-snug">
+            {/* Sticky template top bar — stays visible while KPI + board scroll */}
+            <div className="sticky top-0 z-20 shrink-0 border-b border-border/10 bg-[var(--main-canvas)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--main-canvas)]/80">
                 <Header
                     userName={userName}
                     userId={userId}
                     workspaceId={workspace.id}
-                    teamMembers={teamMembers}
-                    filterByUserId={filterByUserId}
-                    onFilterByUserChange={setFilterByUserId}
+                    userRole={currentUserRole}
                     onOpenActivity={() => setIsActivityModalOpen(true)}
-                    onNewDeal={() => setIsNewDealModalOpen(true)}
+                    headerActions={pipelineHeaderActions}
                 />
-
-                <div className="px-1 sm:px-0 mt-1">
-                    <SetupWidget />
-                </div>
-
-                {/* Dashboard Content Grid — no containment; shape + colour separate the two zones */}
-                <div className="flex flex-col flex-1 min-h-0 gap-0">
-
-                    {/* Top row: pill-shaped cards, distinct background */}
-                    <div className="shrink-0 flex flex-col sm:flex-row w-full gap-2 sm:gap-3 min-h-[52px] sm:min-h-[60px] px-1 pt-0.5 sm:pb-2 bg-slate-100/70 dark:bg-slate-800/40 overflow-x-auto mb-8 border-b border-border/40 pb-8">
-                        <DashboardKpiCards deals={deals} />
-                    </div>
-
-                {/* Kanban: full-width white board */}
-                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1">
-                        <div className="h-full w-full overflow-hidden min-h-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <KanbanBoard
-                                deals={deals}
-                                industryType={workspace.industryType}
-                                filterByUserId={filterByUserId}
-                                teamMembers={teamMembers}
-                                currentUserRole={currentUserRole}
-                            />
-                        </div>
-                    </div>
-                </div>
             </div>
+
+            {/* Scrollable main — KPI + pipeline + Kanban */}
+            <main
+                className={cn(
+                    /* modest bottom padding — column lists add their own pb; FABs float above content */
+                    "flex min-h-0 flex-1 flex-col overflow-hidden px-6 pb-6 min-w-0",
+                    assistantPanelExpanded ? "overflow-x-hidden" : "overflow-x-auto md:overflow-x-hidden"
+                )}
+            >
+                <div
+                    className={cn(
+                        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                        assistantPanelExpanded && "overflow-x-auto"
+                    )}
+                >
+                    <div
+                        className={cn(
+                            "flex min-h-0 flex-1 flex-col overflow-hidden",
+                            assistantPanelExpanded && "min-w-[1200px]"
+                        )}
+                    >
+                        {/* Hero Metrics — pb-0 so the divider below sits in one symmetric gap (no extra grey band below cards) */}
+                        <div className="-mx-6 shrink-0 px-6 pt-5 pb-0 bg-muted/35">
+                            <DashboardKpiCards deals={deals} />
+                        </div>
+
+                        {/* Equal space above and below the rule between KPI strip and Kanban */}
+                        <div className="-mx-6 shrink-0 px-6 py-5 bg-transparent" aria-hidden>
+                            <div className="h-px w-full bg-border/80" />
+                        </div>
+
+                        <section className="flex min-h-0 flex-1 flex-col overflow-hidden pb-1 pt-0">
+                            <div className="-mx-2 flex min-h-0 min-w-0 flex-1 overflow-hidden px-2">
+                                <KanbanBoard
+                                    className="min-h-0 min-w-0 flex-1"
+                                    deals={deals}
+                                    industryType={workspace.industryType}
+                                    filterByUserId={kanbanFilterByUserId}
+                                    teamMembers={teamMembers}
+                                    currentUserRole={currentUserRole}
+                                />
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </main>
 
             <NewDealModal
                 isOpen={isNewDealModalOpen}
@@ -90,7 +167,6 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                 workspaceId={workspace.id}
                 teamMembers={teamMembers}
             />
-
             <ActivityModal
                 isOpen={isActivityModalOpen}
                 onClose={() => setIsActivityModalOpen(false)}

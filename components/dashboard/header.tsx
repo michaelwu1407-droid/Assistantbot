@@ -1,72 +1,45 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useIndustry } from "@/components/providers/industry-provider"
+import { useState, useEffect, type ReactNode } from "react"
 import { NotificationsBtn } from "./notifications-btn"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Play, Menu, Users, Activity } from "lucide-react"
+import { Search, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Menu, Activity } from "lucide-react"
 import { getWeather } from "@/actions/weather-actions"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search"
-import { Breadcrumbs } from "@/components/layout/breadcrumbs"
-import { cn } from "@/lib/utils"
-
-interface TeamMemberOption {
-    id: string
-    name: string | null
-    email: string
-    role: string
-}
 
 interface HeaderProps {
     userName: string
     userId: string
     workspaceId: string
-    teamMembers?: TeamMemberOption[]
+    userRole?: string
+    onOpenActivity: () => void
+    onNewDeal?: () => void
+    teamMembers?: unknown[]
     filterByUserId?: string | null
     onFilterByUserChange?: (value: string | null) => void
-    onOpenActivity: () => void
-    onNewDeal: () => void
+    showFilter?: boolean
+    showPrimaryCta?: boolean
+    /** Renders between the search bar and weather/activity (e.g. New Job + Filter on dashboard) */
+    headerActions?: ReactNode
 }
 
-const FILTER_ALL = "__all__"
-
-export function Header({ userName, userId, workspaceId, teamMembers = [], filterByUserId, onFilterByUserChange = () => { }, onOpenActivity, onNewDeal }: HeaderProps) {
-    const { industry } = useIndustry()
-    const router = useRouter()
-    const [weather, setWeather] = useState<{ temp: number, condition: string } | null>(null)
+export function Header({ userName, userId, workspaceId, userRole, onOpenActivity, headerActions }: HeaderProps) {
+    const [weather, setWeather] = useState<{ temp: number; condition: string } | null>(null)
 
     useEffect(() => {
         const fetchWeather = async (lat: number, lng: number) => {
             try {
                 const data = await getWeather(lat, lng)
-                if (data) {
-                    setWeather({ temp: data.temperature, condition: data.condition })
-                }
-            } catch (e) {
-                console.error("Weather fetch error", e)
+                if (data) setWeather({ temp: data.temperature, condition: data.condition })
+            } catch {
+                // Weather is non-critical — silently degrade
             }
         }
-
-        // Try browser geo, fallback to Sydney
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        if (typeof navigator !== "undefined" && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                () => fetchWeather(-33.8688, 151.2093) // Sydney fallback
+                () => fetchWeather(-33.8688, 151.2093)
             )
         } else {
             fetchWeather(-33.8688, 151.2093)
@@ -75,126 +48,81 @@ export function Header({ userName, userId, workspaceId, teamMembers = [], filter
 
     const getWeatherIcon = (condition: string) => {
         const c = condition.toLowerCase()
-        if (c.includes("rain") || c.includes("drizzle")) return <CloudRain className="h-5 w-5 text-blue-400" />
-        if (c.includes("snow")) return <CloudSnow className="h-5 w-5 text-slate-300" />
-        if (c.includes("thunder")) return <CloudLightning className="h-5 w-5 text-amber-400" />
-        if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-5 w-5 text-slate-400" />
-        return <Sun className="h-5 w-5 text-amber-500" />
+        if (c.includes("rain") || c.includes("drizzle")) return <CloudRain className="h-4 w-4 text-primary" />
+        if (c.includes("snow")) return <CloudSnow className="h-4 w-4 text-slate-300" />
+        if (c.includes("thunder")) return <CloudLightning className="h-4 w-4 text-amber-400" />
+        if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-4 w-4 text-slate-400" />
+        return <Sun className="h-4 w-4 text-amber-500" />
     }
 
-    const firstName = userName.split(/[@\s\.]/)[0] // Get first part before @, space, or dot
-
-    const [greeting, setGreeting] = useState(`Hey ${firstName}`)
-
-    useEffect(() => {
-        const hour = new Date().getHours()
-        const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
-
-        if (industry === "TRADES") {
-            setGreeting(`G'day, ${firstName}`)
-        } else if (industry === "REAL_ESTATE") {
-            setGreeting(`Hey ${firstName}`)
-        } else {
-            setGreeting(`${timeGreeting}, ${firstName}`)
-        }
-    }, [industry, firstName])
-
-    const getSubtitle = () => {
-        if (industry === "TRADES") return "Here's what's happening on site today."
-        if (industry === "REAL_ESTATE") return "Here's your pipeline update."
-        return "Here's the latest update on your business."
-    }
+    const firstName = userName?.split(/[@\s.]/)[0] || "User"
+    const roleLabel = userRole === "OWNER" ? "Owner" : userRole === "MANAGER" ? "Manager" : userRole === "TEAM_MEMBER" ? "Team Member" : "Owner"
 
     return (
-        <div className="flex items-center justify-between shrink-0 pb-2 pt-2">
-            <div className="flex items-center gap-6">
+        <header className="glass-panel flex items-center gap-2 md:gap-3 h-12 px-4 md:px-6 shrink-0 min-w-0">
+            {/* Left: mobile menu + full-width search bar (template) */}
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden -ml-2 text-muted-foreground"
+                    className="md:hidden -ml-2 text-muted-foreground shrink-0"
                     onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
                 >
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-5 w-5" />
                 </Button>
-                <div>
-                    {/* Compact single-line header */}
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-xl md:text-2xl font-bold text-[#0F172A] tracking-tight leading-none whitespace-nowrap">
-                            {greeting}
-                        </h1>
-                        {weather && (
-                            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 bg-[#ECFDF5] border border-[#00D28B]/20 rounded-full animate-in fade-in slide-in-from-left-2">
-                                {getWeatherIcon(weather.condition)}
-                                <span className="text-xs font-bold text-[#00D28B]">{weather.temp}°</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-3 md:gap-4">
-                {/* Filter by team member - only show when team exists */}
-                {teamMembers.length > 0 && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-slate-500 hidden sm:inline">Filter:</span>
-                        <Select
-                            value={filterByUserId ?? FILTER_ALL}
-                            onValueChange={(v) => onFilterByUserChange(v === FILTER_ALL ? null : v)}
-                        >
-                            <SelectTrigger className="w-[140px] sm:w-[160px] flex border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900" aria-label="Filter jobs by team member">
-                                <Users className="h-4 w-4 mr-1.5 text-slate-500 shrink-0" />
-                                <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={FILTER_ALL}>All</SelectItem>
-                                {teamMembers.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.name || m.email}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-                {/* Global Search - CMD+K */}
-                <GlobalSearch workspaceId={workspaceId} className="mr-2 hidden md:flex" />
-
-                {/* Mobile Search Trigger */}
+                <GlobalSearch
+                    workspaceId={workspaceId}
+                    variant="bar"
+                    className="hidden md:flex flex-1 min-w-0 w-full"
+                />
                 <Button
-                    id="search-btn"
                     variant="ghost"
                     size="icon"
-                    className="md:hidden text-muted-foreground hover:bg-muted"
-                    onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+                    className="md:hidden text-muted-foreground"
+                    onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
                 >
                     <Search className="h-5 w-5" />
                 </Button>
-
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                    onClick={onOpenActivity}
-                    aria-label="Open recent activity"
-                >
-                    <Activity className="h-5 w-5" />
-                </Button>
-
-                <NotificationsBtn userId={userId} />
-
-                {/* PRIMARY CTA */}
-                <Button
-                    id="new-deal-btn"
-                    onClick={onNewDeal}
-                    className="h-10 px-5 shadow-xs"
-                >
-                    <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
-                    <span className="hidden sm:inline font-semibold text-sm">
-                        {industry === "TRADES" ? "New Job" : industry === "REAL_ESTATE" ? "New Listing" : "New Deal"}
-                    </span>
-                    <span className="sm:hidden">New</span>
-                </Button>
             </div>
-        </div>
+
+            {/* Between search and activity: optional pipeline actions (dashboard: New Job + Filter) */}
+            {headerActions ? (
+                <div className="flex items-center gap-1 shrink-0">{headerActions}</div>
+            ) : null}
+
+            {/* Right: weather + notifications + activity + divider + user identity — h-9 aligns with search + pipeline buttons */}
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
+                <div className="flex items-center gap-1.5">
+                    {/* Weather pill */}
+                    {weather && (
+                        <div className="flex h-9 items-center gap-1.5 px-2.5 bg-primary/5 rounded-full border border-primary/10">
+                            {getWeatherIcon(weather.condition)}
+                            <span className="text-xs font-bold text-primary tabular-nums">{weather.temp}°</span>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:opacity-100 transition-colors"
+                        onClick={onOpenActivity}
+                        aria-label="Open recent activity"
+                    >
+                        <Activity className="h-4 w-4" />
+                    </button>
+                    <NotificationsBtn userId={userId} />
+                </div>
+                {/* Divider */}
+                <div className="h-6 w-px bg-border/20" />
+                {/* User identity */}
+                <div className="flex items-center gap-2 pl-1">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-[13px] font-bold leading-tight">{firstName}</p>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{roleLabel}</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-muted flex items-center justify-center text-xs font-bold text-primary">
+                        {firstName.charAt(0).toUpperCase()}
+                    </div>
+                </div>
+            </div>
+        </header>
     )
 }

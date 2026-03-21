@@ -3,17 +3,46 @@
  * Helper functions for deal-related operations and validation
  */
 
-import type { Deal, DealStage } from '@prisma/client';
+import type { DealStage } from '@prisma/client';
+import { cn } from "@/lib/utils";
+
+/** Kanban column header background tokens — same as `kanban-board.tsx` COLUMNS `color`. */
+export const KANBAN_COLUMN_HEADER_BG: Record<string, string> = {
+  new_request: "bg-status-new",
+  quote_sent: "bg-status-quote",
+  scheduled: "bg-status-scheduled",
+  ready_to_invoice: "bg-status-awaiting",
+  completed: "bg-status-complete",
+  deleted: "bg-neutral-400",
+  lost: "bg-slate-500",
+}
+
+/** Static hover backgrounds (JIT-safe) so the stage pill keeps Kanban colour on hover. */
+export const KANBAN_COLUMN_HEADER_HOVER_BG: Record<string, string> = {
+  new_request: "hover:bg-status-new",
+  quote_sent: "hover:bg-status-quote",
+  scheduled: "hover:bg-status-scheduled",
+  ready_to_invoice: "hover:bg-status-awaiting",
+  completed: "hover:bg-status-complete",
+  deleted: "hover:bg-neutral-400",
+  lost: "hover:bg-slate-500",
+}
+
+/** Prisma or Kanban string (e.g. DealView uses "scheduled"). */
+function isScheduledLikeStage(stage: string): boolean {
+  const u = String(stage).toUpperCase();
+  return u === 'SCHEDULED' || u === 'NEGOTIATION';
+}
 
 /**
  * Check if a deal is overdue (stale)
  * A deal is considered overdue if:
- * - It's in SCHEDULED stage
+ * - It's in SCHEDULED (or NEGOTIATION) stage
  * - The scheduled date has passed
  * - No actual outcome has been recorded yet
  */
 export function checkIfDealIsOverdue(deal: {
-  stage: DealStage;
+  stage: DealStage | string;
   scheduledAt: Date | null;
   actualOutcome: string | null;
 }): boolean {
@@ -23,7 +52,7 @@ export function checkIfDealIsOverdue(deal: {
   const scheduledDate = new Date(deal.scheduledAt);
 
   return (
-    deal.stage === 'SCHEDULED' &&
+    isScheduledLikeStage(String(deal.stage)) &&
     scheduledDate < now &&
     !deal.actualOutcome
   );
@@ -34,7 +63,7 @@ export function checkIfDealIsOverdue(deal: {
  * Returns 0 if not overdue
  */
 export function getOverdueDays(deal: {
-  stage: DealStage;
+  stage: DealStage | string;
   scheduledAt: Date | null;
   actualOutcome: string | null;
 }): number {
@@ -52,7 +81,7 @@ export function getOverdueDays(deal: {
  * Get visual styling for overdue deals
  */
 export function getOverdueStyling(deal: {
-  stage: DealStage;
+  stage: DealStage | string;
   scheduledAt: Date | null;
   actualOutcome: string | null;
 }) {
@@ -63,39 +92,39 @@ export function getOverdueStyling(deal: {
     return {
       borderClass: '',
       badgeText: '',
+      badgeTitle: '',
       badgeClass: '',
       severity: 'none' as const
     };
   }
 
+  const longTitle = `Scheduled in the past (${overdueDays} day${overdueDays === 1 ? '' : 's'} ago). Click to reconcile or record an outcome.`;
+
   if (overdueDays >= 7) {
     return {
       borderClass: 'border-red-500 dark:border-red-800',
-      badgeText: `Action Required: ${overdueDays} days overdue`,
+      badgeText: 'Overdue',
+      badgeTitle: longTitle,
       badgeClass: 'bg-red-500 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
       severity: 'critical' as const
     };
-  } else if (overdueDays >= 3) {
+  }
+  if (overdueDays >= 3) {
     return {
       borderClass: 'border-orange-500 dark:border-orange-800',
-      badgeText: `Past Date: ${overdueDays} days ago`,
+      badgeText: 'Overdue',
+      badgeTitle: longTitle,
       badgeClass: 'bg-orange-500 text-white dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800 border',
       severity: 'warning' as const
     };
-    return {
-      borderClass: 'border-orange-500',
-      badgeText: `Past Date: ${overdueDays} days ago`,
-      badgeClass: 'bg-orange-500 text-white',
-      severity: 'warning' as const
-    };
-  } else {
-    return {
-      borderClass: 'border-amber-500 dark:border-amber-800',
-      badgeText: 'Past Date',
-      badgeClass: 'bg-amber-500 text-white dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 border',
-      severity: 'mild' as const
-    };
   }
+  return {
+    borderClass: 'border-amber-500 dark:border-amber-800',
+    badgeText: 'Overdue',
+    badgeTitle: longTitle,
+    badgeClass: 'bg-amber-500 text-white dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 border',
+    severity: 'mild' as const
+  };
 }
 
 /**
@@ -116,7 +145,7 @@ export const STAGE_OPTIONS = [
   { value: "ready_to_invoice", label: "Ready to invoice" },
   { value: "completed", label: "Completed" },
   { value: "lost", label: "Lost" },
-  { value: "deleted", label: "Deleted jobs" },
+  { value: "deleted", label: "Deleted" },
 ];
 
 export const PRISMA_STAGE_TO_UI_STAGE: Record<string, string> = {
@@ -142,7 +171,73 @@ export const PRISMA_STAGE_LABELS: Record<string, string> = {
   PENDING_COMPLETION: "Pending approval",
   WON: "Completed",
   LOST: "Lost",
-  DELETED: "Deleted jobs",
+  DELETED: "Deleted",
 };
+
+/** Kanban column ids + labels for the deal modal stage picker (same order as `kanban-board.tsx` columns + lost). */
+export const KANBAN_STAGE_PICKER_OPTIONS = [
+  { id: "new_request", label: "New request" },
+  { id: "quote_sent", label: "Quote sent" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "ready_to_invoice", label: "Awaiting payment" },
+  { id: "completed", label: "Completed" },
+  { id: "lost", label: "Lost" },
+  { id: "deleted", label: "Deleted" },
+] as const
+
+/**
+ * Maps Prisma `deal.stage` to the Kanban column id passed to `updateDealStage` / board grouping.
+ * Pending approval and completed both map to `completed` for column equality.
+ */
+export function prismaStageToKanbanColumn(prismaStage: string): string {
+  const ui = PRISMA_STAGE_TO_UI_STAGE[prismaStage] ?? "new_request"
+  if (ui === "pending_approval") return "completed"
+  if (ui === "pipeline") return "quote_sent"
+  return ui
+}
+
+/**
+ * Deal modal stage pill / trigger — fills with the same colour as the matching Kanban column header.
+ * Pending approval uses amber (same as strip) even though it sits in the Completed column.
+ */
+export function getKanbanStagePillClasses(prismaStage: string): string {
+  const ui = PRISMA_STAGE_TO_UI_STAGE[prismaStage] ?? ""
+  if (ui === "pending_approval") {
+    return "bg-amber-500 text-white hover:bg-amber-600 focus-visible:ring-amber-400"
+  }
+  if (ui === "pipeline") {
+    return "bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500"
+  }
+  const col = prismaStageToKanbanColumn(prismaStage)
+  const bg = KANBAN_COLUMN_HEADER_BG[col] ?? "bg-slate-500"
+  const hoverBg = KANBAN_COLUMN_HEADER_HOVER_BG[col] ?? "hover:bg-slate-500"
+  return cn(
+    bg,
+    hoverBg,
+    "text-white border-transparent shadow-sm hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+  )
+}
+
+/** Small swatch for dropdown rows — Kanban column id. */
+export function getKanbanColumnSwatchClass(columnId: string): string {
+  return KANBAN_COLUMN_HEADER_BG[columnId] ?? "bg-slate-500"
+}
+
+/** Full-width stage strip background (aligned with Kanban column colours in `kanban-board.tsx`). */
+export function getStageStripBarClass(prismaStage: string): string {
+  const ui = PRISMA_STAGE_TO_UI_STAGE[prismaStage] ?? ""
+  const map: Record<string, string> = {
+    new_request: "bg-status-new",
+    quote_sent: "bg-status-quote",
+    scheduled: "bg-status-scheduled",
+    pipeline: "bg-violet-600",
+    ready_to_invoice: "bg-status-awaiting",
+    completed: "bg-status-complete",
+    deleted: "bg-neutral-400",
+    pending_approval: "bg-amber-500",
+    lost: "bg-slate-500",
+  }
+  return map[ui] ?? "bg-slate-500"
+}
 
 export type ActualOutcome = typeof ACTUAL_OUTCOME_OPTIONS[number]['value'];

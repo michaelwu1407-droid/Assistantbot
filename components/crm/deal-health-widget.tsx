@@ -27,7 +27,7 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
                             <span className="text-base font-extrabold text-[#0F172A] tracking-tighter leading-none">
                                 ${totalValue.toLocaleString()}
                             </span>
-                            <span className="text-[9px] font-bold text-[#00D28B]">+12%</span>
+                            <span className="text-[9px] font-bold text-muted-foreground">vs last mo.</span>
                         </div>
                     </div>
                     <div className="w-6 h-6 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#0F172A]">
@@ -45,7 +45,7 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
                             <span className="text-base font-extrabold text-[#0F172A] tracking-tighter leading-none">
                                 {healthyCount}
                             </span>
-                            <span className="text-[9px] font-bold text-[#00D28B]">Active</span>
+                            <span className="text-[9px] font-bold text-muted-foreground">On track</span>
                         </div>
                     </div>
                     <div className="w-6 h-6 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#0F172A]">

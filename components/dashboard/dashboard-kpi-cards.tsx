@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type ReactNode } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
-import { StatCard } from "@/components/ui/stat-card"
 import {
   Select,
   SelectContent,
@@ -19,8 +18,32 @@ interface DashboardKpiCardsProps {
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "July", "August", "September", "October", "November", "December",
 ]
+
+function KpiMetric({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <h2
+      className={cn(
+        "text-xl font-extrabold leading-none tracking-tight tabular-nums text-black dark:text-black",
+        className
+      )}
+    >
+      {children}
+    </h2>
+  )
+}
+
+const kpiLabelClass =
+  "text-[10px] font-bold uppercase tracking-widest text-black dark:text-black"
+
+/** Label↔metric gap −⅓ vs `gap-1` (4px → ~2.67px). Grid: `gap-3` between the four cards. */
+const cardShell =
+  "flex min-h-[5.75rem] flex-col justify-between gap-[0.17rem] rounded-lg border p-2.5 ghost-border sunlight-shadow"
+
+/** ~10% deeper than flat emerald-50 (subtle ring + tint). Black text on top. */
+const kpiSharedTint =
+  "border-emerald-200/75 bg-emerald-50 shadow-sm ring-1 ring-emerald-100/45 dark:border-emerald-800/55 dark:bg-emerald-950/42 dark:ring-emerald-800/35"
 
 export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const [staleWeeks, setStaleWeeks] = useState(2)
@@ -40,12 +63,16 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
     )
     const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const upcomingCount = deals.filter((d) => {
       if (d.stage !== "scheduled") return false
-      if (!d.scheduledAt) return true
+      if (!d.scheduledAt) return false
       const scheduled = new Date(d.scheduledAt)
-      return scheduled >= now && scheduled <= sevenDaysFromNow
+      return (
+        scheduled.getMonth() === currentMonth &&
+        scheduled.getFullYear() === currentYear &&
+        scheduled >= startOfToday
+      )
     }).length
     const staleDays = staleWeeks * 7
     const followUpCount = deals.filter((d) => {
@@ -59,49 +86,43 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const monthLabel = MONTHS[currentMonth]
 
   return (
-    <div id="kpi-cards" className="grid grid-cols-4 gap-3 h-full flex-[4] min-w-0">
-      <StatCard
-        label={`${monthLabel} Revenue`}
-        value={`$${revenue.toLocaleString()}`}
-      />
-      <StatCard
-        label="Jobs Won With Tracey"
-        value={`$${travisWonRevenue.toLocaleString()}`}
-      />
-      <StatCard
-        label="Upcoming jobs this week"
-        value={upcomingCount}
-      />
-      <div className="bg-card rounded-lg border border-neutral-200 shadow-sm px-4 py-3 flex flex-col gap-0.5">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          Follow-up
-        </span>
-        <div className="flex items-end justify-between gap-1">
-          <span
-            className={cn(
-              "text-2xl font-bold tracking-tight",
-              followUpCount > 0 ? "text-amber-600" : "text-neutral-900"
-            )}
-          >
-            {followUpCount}
-          </span>
-          <Select
-            value={String(staleWeeks)}
-            onValueChange={(v) => setStaleWeeks(Number(v))}
-          >
-            <SelectTrigger className="h-6 w-[48px] text-[10px] font-medium px-1 border-neutral-200 shrink-0">
+    <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className={cn(cardShell, kpiSharedTint)}>
+        <p className={kpiLabelClass}>{monthLabel} Revenue</p>
+        <KpiMetric>${revenue.toLocaleString()}</KpiMetric>
+      </div>
+
+      <div className={cn(cardShell, kpiSharedTint)}>
+        <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
+        <KpiMetric>${travisWonRevenue.toLocaleString()}</KpiMetric>
+      </div>
+
+      <div className={cn(cardShell, kpiSharedTint)}>
+        <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
+        <KpiMetric>{upcomingCount}</KpiMetric>
+      </div>
+
+      <div className={cn(cardShell, kpiSharedTint, "relative")}>
+        <p className={cn(kpiLabelClass, "min-w-0 pr-14")}>Follow-up</p>
+        <div className="absolute right-2.5 top-2.5 z-10">
+          <Select value={String(staleWeeks)} onValueChange={(v) => setStaleWeeks(Number(v))}>
+            <SelectTrigger
+              aria-label="Stale follow-up window in weeks"
+              className="h-7 min-w-[3rem] shrink-0 border-black/15 bg-white px-2 text-xs font-semibold text-black dark:text-black"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {[1, 2, 3, 4, 6, 8].map((w) => (
-                <SelectItem key={w} value={String(w)} className="text-xs">
+                <SelectItem key={w} value={String(w)} className="text-sm">
                   {w}w
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
+        <KpiMetric>{followUpCount}</KpiMetric>
       </div>
-    </div>
+    </section>
   )
 }

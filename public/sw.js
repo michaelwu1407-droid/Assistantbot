@@ -36,7 +36,9 @@ self.addEventListener("fetch", (event) => {
   if (event.request.url.includes("/api/") || event.request.url.includes("_rsc=")) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || new Response("Offline", { status: 503, statusText: "Offline" });
+        });
       }),
     );
     return;
@@ -56,7 +58,7 @@ self.addEventListener("fetch", (event) => {
         })
         .catch((err) => {
           console.log("SW: Fetch failed", err);
-          return cachedResponse;
+          return cachedResponse || new Response("Offline", { status: 503, statusText: "Offline" });
         });
 
       return cachedResponse || fetchPromise;

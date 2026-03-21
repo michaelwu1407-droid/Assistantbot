@@ -4,11 +4,11 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Calendar, DollarSign, MapPin, Briefcase, User, Trash2, AlertTriangle, Flag, ArrowRight, FileEdit, Clock } from "lucide-react"
+import { MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DealView } from "@/actions/deal-actions"
+import { approveCompletion, DealView, rejectCompletion } from "@/actions/deal-actions"
 import { format } from "date-fns"
-import { checkIfDealIsOverdue, getOverdueStyling } from "@/lib/deal-utils"
+import { getOverdueStyling } from "@/lib/deal-utils"
 import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
 import {
   DropdownMenu,
@@ -17,9 +17,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { updateDealStage } from "@/actions/deal-actions"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import { HoverScrollName } from "@/components/ui/hover-scroll-name"
 
 interface TeamMemberOption {
   id: string
@@ -42,19 +52,50 @@ interface DealCardProps {
   selectionMode?: boolean
   onToggleSelected?: (dealId: string, checked: boolean) => void
   onEnterSelectionMode?: (dealId: string) => void
+  /** Used for Kanban inline completion approval; optional elsewhere. */
+  currentUserRole?: string
 }
 
-function formatScheduledTime(scheduledAt: Date | null | undefined): string {
-  if (!scheduledAt) return "—"
-  const d = new Date(scheduledAt)
-  return new Intl.DateTimeFormat("en-AU", {
-    timeZone: "Australia/Sydney",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(d)
+/** Overdue bottom strip — 65% colour opacity (design reference: /dashboard/design/deal-cards). */
+function overdueBannerOverlayClasses(severity: "critical" | "warning" | "mild" | "none"): string {
+  if (severity === "critical") return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
+  if (severity === "warning") return "bg-orange-500/65 text-white shadow-inner dark:bg-orange-600/65"
+  return "bg-amber-500/65 text-white shadow-inner dark:bg-amber-600/65"
+}
+
+/** Bottom strip for health / draft / pending — 65% opacity to match overdue / design page. */
+function statusBannerOverlayClasses(label: string): string {
+  switch (label) {
+    case "Pending approval":
+      return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
+    case "Draft":
+      return "bg-indigo-400/65 text-indigo-950 shadow-inner dark:bg-indigo-500/65 dark:text-indigo-950"
+    case "Urgent":
+      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+    case "Follow up":
+      return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
+    case "Rejected":
+      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+    default:
+      return "bg-muted/65 text-foreground shadow-inner"
+  }
+}
+
+/** Top-right card date: prefer job schedule, else created date (template always showed a day). */
+function cornerDateLabel(deal: DealView): { text: string; title: string } {
+  if (deal.scheduledAt) {
+    return {
+      text: format(new Date(deal.scheduledAt), "MMM d"),
+      title: "Scheduled date",
+    }
+  }
+  if (deal.createdAt) {
+    return {
+      text: format(new Date(deal.createdAt), "MMM d"),
+      title: "Created date",
+    }
+  }
+  return { text: "", title: "" }
 }
 
 export function DealCard({
@@ -70,15 +111,23 @@ export function DealCard({
   selectionMode = false,
   onToggleSelected,
   onEnterSelectionMode,
+  currentUserRole = "TEAM_MEMBER",
 }: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [approvalBusy, setApprovalBusy] = useState(false)
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
+  const showKanbanApproval =
+    !overlay && isManager && deal.stage === "pending_approval"
 
   // Check if deal is overdue
   const overdueStyling = getOverdueStyling({
-    stage: deal.stage as any,
+    stage: deal.stage,
     scheduledAt: deal.scheduledAt || null,
-    actualOutcome: deal.actualOutcome || null
+    actualOutcome: deal.actualOutcome || null,
   })
   const router = useRouter()
   const {
@@ -103,49 +152,58 @@ export function DealCard({
   }
 
   // Add an explicitly handled class toggle for simple interaction scaling
-  let cardClasses = "group relative w-full bg-white rounded-xl border border-neutral-200 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer select-none"
+  let cardClasses = "group relative w-full bg-card rounded-lg ghost-border sunlight-shadow transition-all duration-200 cursor-pointer select-none"
   let statusLabel = ""
-  let statusClass = ""
 
-  // Add overdue styling
+  /** When overdue, that is the only top-right status (no Urgent/Follow up/Draft/etc.). */
+  const overdueOnlyStatus = overdueStyling.badgeText !== ""
+
+  if (!overdueOnlyStatus) {
+    if (deal.health?.status === "ROTTING") {
+      statusLabel = "Urgent"
+    } else if (deal.health?.status === "STALE") {
+      statusLabel = "Follow up"
+    }
+
+    if (deal.isDraft) {
+      cardClasses = "group relative w-full rounded-lg bg-indigo-50/60 border-2 border-dashed border-indigo-400 dark:bg-indigo-950/20 dark:border-indigo-500/60"
+      statusLabel = "Draft"
+    }
+
+    if (deal.stage === "pending_approval") {
+      cardClasses = "group relative w-full rounded-lg bg-amber-50/80 border-2 border-dashed border-amber-400 dark:bg-amber-950/30 dark:border-amber-500/60"
+      statusLabel = "Pending approval"
+    }
+
+    // Rejected: was sent back from completion
+    const metadata = (deal.metadata || {}) as Record<string, unknown>
+    const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
+    if (isRejected && statusLabel === "") {
+      statusLabel = "Rejected"
+    }
+  }
+
+  // Add overdue border on top of base card (overdue wins over health/draft look)
   if (overdueStyling.borderClass) {
     cardClasses += ` ${overdueStyling.borderClass}`
   }
 
-  if (deal.health?.status === "ROTTING") {
-    cardClasses = "ott-card rounded-lg bg-red-50 border-red-500/30 shadow-[0_0_15px_-3px_rgba(239,68,68,0.15)] p-4 dark:border-red-500/40"
-    statusLabel = "Urgent"
-    statusClass = "bg-red-100 text-red-700 border-red-200"
-  } else if (deal.health?.status === "STALE") {
-    cardClasses = "ott-card rounded-lg bg-amber-50 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] p-4 dark:border-amber-500/40"
-    statusLabel = "Follow up"
-    statusClass = "bg-amber-100 text-amber-700 border-amber-200"
-  }
-
-  if (deal.isDraft) {
-    cardClasses = "ott-card rounded-lg bg-indigo-50/60 border-2 border-dashed border-indigo-400 p-4 dark:bg-indigo-950/20 dark:border-indigo-500/60"
-    statusLabel = "Draft"
-    statusClass = "bg-indigo-100 text-indigo-700 border-indigo-200"
-  }
-
-  // Pending approval: in Completed column but styled differently until manager approves
-  if (deal.stage === "pending_approval") {
-    cardClasses = "ott-card rounded-lg bg-amber-50/80 border-amber-400 border-2 border-dashed p-4 dark:bg-amber-950/30 dark:border-amber-500/60"
-    statusLabel = "Pending approval"
-    statusClass = "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700"
-  }
-
-  // Rejected: was sent back from completion; show Rejected badge
-  const metadata = (deal.metadata || {}) as Record<string, unknown>
-  const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
-  if (isRejected && statusLabel === "") {
-    statusLabel = "Rejected"
-    statusClass = "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-200"
-  }
-
-  const showHealthBadge = statusLabel !== "" || overdueStyling.badgeText !== ""
+  /** Status / overdue: bottom overlay (3C) — coloured layer runs under price + status text (no white gap). */
+  const showStatusBanner = !!overdueStyling.badgeText || (!!statusLabel && statusLabel.length > 0)
+  const overlayLabel = overdueStyling.badgeText
+    ? overdueStyling.badgeText
+    : statusLabel
+  const overlayBannerClass = overdueStyling.badgeText
+    ? overdueBannerOverlayClasses(overdueStyling.severity)
+    : statusBannerOverlayClasses(statusLabel)
 
   const isUnread = (deal as any).hasUnreadMessages || (deal.metadata && (deal.metadata as any).unread === true);
+
+  const corner = cornerDateLabel(deal)
+
+  const assigneeInitial = deal.assignedToName?.trim()
+    ? deal.assignedToName.trim().charAt(0).toUpperCase()
+    : null
 
   if (overlay) {
     cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-[#00D28B]/20"
@@ -162,11 +220,120 @@ export function DealCard({
     }
   }
 
+  const cardHintTitle =
+    deal.stage === "pending_approval"
+      ? isManager
+        ? "Approve or reject on this card, or open job for details"
+        : "Open job — managers approve or reject completion in the job details"
+      : overdueStyling.badgeText
+        ? "Open job — overdue can be reconciled from job details"
+        : undefined
+
+  const handleApproveKanban = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setApprovalBusy(true)
+    try {
+      const result = await approveCompletion(deal.id)
+      if (result.success) {
+        toast.success("Job approved and marked completed")
+        router.refresh()
+      } else {
+        toast.error(result.error ?? "Failed to approve")
+      }
+    } catch {
+      toast.error("Failed to approve")
+    } finally {
+      setApprovalBusy(false)
+    }
+  }
+
+  const submitRejectKanban = async () => {
+    setApprovalBusy(true)
+    try {
+      const result = await rejectCompletion(deal.id, rejectReason.trim() || undefined)
+      if (result.success) {
+        toast.success("Completion rejected. The job was sent back for editing.")
+        setRejectDialogOpen(false)
+        setRejectReason("")
+        router.refresh()
+      } else {
+        toast.error(result.error ?? "Failed to reject")
+      }
+    } catch {
+      toast.error("Failed to reject")
+    } finally {
+      setApprovalBusy(false)
+    }
+  }
+
+  /** Tooltip for the overlapping status strip (3C). */
+  const statusBannerTitle =
+    overdueStyling.badgeText
+      ? overdueStyling.badgeTitle || "Open job for details"
+      : statusLabel === "Urgent" || statusLabel === "Follow up"
+        ? "Based on time since last activity on this deal — not the same as a past scheduled job date"
+        : statusLabel
+
+  /** Left side only — under the 3C overlay (tint + label may cover this). */
+  const footerPriceLeftOnly = (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="inline-flex shrink-0 items-center rounded-md bg-primary/10 px-2 py-0.5">
+        <span className="text-xs font-bold text-primary">
+          $ {deal.invoicedAmount !== undefined ? deal.invoicedAmount.toLocaleString() : deal.value.toLocaleString()}
+        </span>
+      </div>
+      {assigneeInitial ? (
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-primary/10 text-[10px] font-bold text-primary"
+          title={deal.assignedToName ?? "Assigned"}
+        >
+          {assigneeInitial}
+        </div>
+      ) : (
+        <span className="min-w-[1.25rem] text-[10px] font-medium text-muted-foreground">-</span>
+      )}
+    </div>
+  )
+
+  const footerTrashButton =
+    onDelete && !overlay ? (
+      <button
+        type="button"
+        data-no-card-click
+        onClick={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+          onDelete()
+        }}
+        className="shrink-0 py-1 pl-1 text-muted-foreground transition-colors hover:text-destructive"
+        title="Move to Deleted"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    ) : null
+
+  const footerBaseRow = (
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-2 pl-[22px]">
+      {footerPriceLeftOnly}
+      {footerTrashButton}
+    </div>
+  )
+
   return (
-    <div ref={setNodeRef} style={style} className="relative group touch-none" data-kanban-card="true">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative group touch-none w-full min-w-0"
+      data-kanban-card="true"
+    >
       {/* Draggable area: whole card. Bin is a sibling so it doesn't start drag. Activation distance (in Kanban) turns small moves into click. */}
       <div
-        className={cn("relative overflow-hidden", cardClasses)}
+        className={cn(
+          "relative flex min-h-0 w-full min-w-0 flex-col gap-0 overflow-hidden",
+          cardClasses
+        )}
+        title={cardHintTitle}
         {...(!overlay ? { ...attributes, ...listeners } : {})}
         onPointerDown={() => {
           if (overlay || selectionMode || !onEnterSelectionMode) return
@@ -200,232 +367,206 @@ export function DealCard({
         role="button"
         tabIndex={0}
       >
-        {/* Draft banner */}
-        {deal.isDraft && (
-          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-indigo-100/80 border border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-700">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
-            </span>
-            <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300"><FileEdit className="w-3 h-3 mr-0.5 inline" />Draft — Needs approval</span>
-          </div>
-        )}
-        {/* Pending approval banner */}
-        {deal.stage === "pending_approval" && (
-          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-100/80 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-700">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-            </span>
-            <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300"><Clock className="w-3 h-3 mr-0.5 inline" />Pending — Awaiting manager approval</span>
-          </div>
-        )}
-        {/* Top right: added date by default; Follow up / Urgent when condition triggered */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1 text-right" data-no-card-click={selectionMode ? true : undefined}>
-          {!overlay && selectionMode && onToggleSelected && (
-            <Checkbox
-              checked={isSelected}
-              aria-label={`Select ${deal.title}`}
-              onCheckedChange={(checked) => onToggleSelected(deal.id, checked === true)}
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-            />
-          )}
-          {overdueStyling.badgeText ? (
-            <div className="flex flex-col gap-1">
-              <span
-                className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border flex items-center gap-1 cursor-pointer hover:opacity-80",
-                  overdueStyling.badgeClass
-                )}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (onReconcile) {
-                    onReconcile(deal.id)
-                  } else {
-                    setShowReconciliationModal(true)
-                  }
-                }}
-                title="Click to reconcile this overdue job"
+        {/* Main fields — no flex-1 (avoids empty white band between body and footer). */}
+        <div className="flex shrink-0 flex-col px-3 pt-2">
+          <div className="flex flex-col gap-2 pt-0">
+            <div className="flex w-full min-w-0 shrink-0 items-center gap-1.5">
+              {!overlay && selectionMode && onToggleSelected && (
+                <Checkbox
+                  checked={isSelected}
+                  aria-label={`Select ${deal.title}`}
+                  className="shrink-0"
+                  onCheckedChange={(checked) => onToggleSelected(deal.id, checked === true)}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                />
+              )}
+              <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <HoverScrollName text={deal.contactName || "No name"} />
+              <div
+                className="flex shrink-0 flex-col items-end gap-0.5 pl-1 text-right"
+                data-no-card-click={selectionMode ? true : undefined}
               >
-                <AlertTriangle className="w-3 h-3" />
-                {overdueStyling.badgeText}
-              </span>
-              {statusLabel && (
                 <span
-                  className={cn(
-                    "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
-                    statusClass
-                  )}
-                  title="Follow up = no activity for a while; Urgent = needs attention now"
+                  className="text-[10px] font-medium tabular-nums text-muted-foreground"
+                  title={corner.text ? corner.title : "No date"}
                 >
-                  {statusLabel}
+                  {corner.text || "-"}
                 </span>
-              )}
-            </div>
-          ) : showHealthBadge ? (
-            <span
-              className={cn(
-                "text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide border",
-                statusClass
-              )}
-              title="Follow up = no activity for a while; Urgent = needs attention now"
-            >
-              {statusLabel}
-            </span>
-          ) : (
-            <span className="text-[10px] text-slate-500 dark:text-slate-400" title={deal.scheduledAt ? "Scheduled date" : "Not scheduled"}>
-              {deal.scheduledAt
-                ? format(new Date(deal.scheduledAt), "MMM d")
-                : <span className="text-slate-400 italic text-[10px]">Not scheduled</span>}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-2.5 relative z-10 pr-12">
-          {/* Customer name */}
-          <div className="flex items-center gap-1.5 text-[#0F172A] font-semibold text-xs">
-            <User className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
-            <span className="truncate">{deal.contactName || "No name"}</span>
-          </div>
-
-          {/* Address */}
-          {deal.address && (
-            <div className="flex items-start gap-1.5 text-xs text-[#64748B] dark:text-slate-400">
-              <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span className="truncate line-clamp-2">{deal.address}</span>
-            </div>
-          )}
-
-          {/* Job (title) */}
-          <div className="flex items-center gap-1.5 text-[#0F172A] font-medium text-xs relative">
-            <Briefcase className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
-            <span className="truncate pr-3">{deal.title}</span>
-            {isUnread && <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" title="Unread messages" />}
-          </div>
-
-          {/* Assignee: clickable name opens assignment dropdown */}
-          {(teamMembers.length > 0 || deal.assignedToName) && (
-            <div className="flex items-center gap-1" data-no-card-click>
-              {onAssign && teamMembers.length > 0 && !overlay ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        "text-[11px] flex items-center gap-1 hover:underline cursor-pointer",
-                        columnId === "scheduled" && !deal.assignedToName
-                          ? "text-amber-600 dark:text-amber-400 font-medium"
-                          : "text-[#64748B] dark:text-slate-400"
-                      )}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <User className="w-3 h-3 shrink-0" />
-                      {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                    {(() => {
-                      const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(columnId || "")
-                      return requiresAssignment ? (
-                        <DropdownMenuItem disabled className="text-slate-400 cursor-not-allowed">
-                          Cannot unassign (move to earlier stage first)
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => onAssign(null)}>
-                          Unassign
-                        </DropdownMenuItem>
-                      )
-                    })()}
-                    {teamMembers.map((m) => (
-                      <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
-                        {m.name || m.email}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <span className={cn(
-                  "text-[11px] flex items-center gap-1",
-                  columnId === "scheduled" && !deal.assignedToName
-                    ? "text-amber-600 dark:text-amber-400 font-medium"
-                    : "text-[#64748B] dark:text-slate-400"
-                )}>
-                  <User className="w-3 h-3 shrink-0" />
-                  {deal.assignedToName ?? (columnId === "scheduled" ? "Assign team member" : "Unassigned")}
-                </span>
-              )}
-            </div>
-          )}
-
-
-          {/* Lead Source badge */}
-          <div className="flex items-center gap-1">
-            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600">
-              {deal.source || "—"}
-            </span>
-          </div>
-
-          {/* Agent Triage Flags — warnings from AI Bouncer/Advisor engine */}
-          {deal.agentFlags && deal.agentFlags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {deal.agentFlags.map((flag, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/40 dark:text-orange-200 dark:border-orange-700"
-                  title={`AI Flag: ${flag}`}
-                >
-                  <Flag className="w-2.5 h-2.5" />
-                  {flag}
-                </span>
-              ))}
-            </div>
-          )}
-
-
-
-          {/* Bottom row: value LHS, scheduled time RHS */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-neutral-100">
-            <div className="flex items-center text-xs font-medium bg-primary-subtle text-primary px-2 py-0.5 rounded-full">
-              {deal.invoicedAmount !== undefined ? (
-                <>
-                  <span className="text-emerald-600 mr-1 flex items-center"><DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" /> Inv:</span>
-                  ${deal.invoicedAmount.toLocaleString()}
-                </>
-              ) : (
-                <>
-                  <DollarSign className="w-3 h-3 text-[#00D28B] mr-0.5 shrink-0" />
-                  {deal.value.toLocaleString()}
-                </>
-              )}
-            </div>
-            {deal.scheduledAt ? (
-              <div className="flex items-center text-xs text-[#64748B] dark:text-slate-400">
-                <Calendar className="w-3 h-3 mr-1 shrink-0" />
-                {formatScheduledTime(deal.scheduledAt)}
               </div>
-            ) : (
-              <span className="text-[10px] text-slate-400 italic">Not scheduled</span>
+            </div>
+            {deal.address && (
+              <div className="flex min-h-0 items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span
+                  className="min-w-0 truncate text-[10.5px] leading-tight text-muted-foreground"
+                  title={deal.address}
+                >
+                  {deal.address}
+                </span>
+              </div>
+            )}
+            <div className="flex min-h-0 items-center gap-2">
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span
+                className="min-w-0 truncate text-[11px] font-medium leading-tight text-muted-foreground"
+                title={deal.title}
+              >
+                {deal.title}
+              </span>
+              {isUnread && (
+                <span
+                  className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary shadow-[0_0_8px_rgba(0,210,139,0.6)]"
+                  title="Unread messages"
+                />
+              )}
+            </div>
+            {(teamMembers.length > 0 || deal.assignedToName) && (
+              <div className="flex min-h-0 items-center gap-2" data-no-card-click>
+                <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                {onAssign && teamMembers.length > 0 && !overlay ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="min-w-0 truncate text-left text-[10px] text-muted-foreground hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {deal.assignedToName ?? "Unassigned"}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(
+                          columnId || ""
+                        )
+                        return requiresAssignment ? (
+                          <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
+                            Cannot unassign (move to earlier stage first)
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => onAssign(null)}>Unassign</DropdownMenuItem>
+                        )
+                      })()}
+                      {teamMembers.map((m) => (
+                        <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
+                          {m.name || m.email}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <span className="min-w-0 truncate text-[10px] text-muted-foreground">
+                    {deal.assignedToName ?? "Unassigned"}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
-      </div>
-      {/* Delete (move to Deleted jobs) at bottom right */}
-      {onDelete && !overlay && (
-        <button
-          type="button"
-          data-no-card-click
-          onClick={(e) => {
-            e.stopPropagation()
-            e.preventDefault()
-            onDelete()
-          }}
-          className="absolute bottom-3 right-3 z-20 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          title="Move to Deleted jobs"
+
+        {/* 3C footer: same horizontal rhythm as address row — px-3 + icon-width spacer + gap-2, then price vs bin */}
+        <div
+          className={cn(
+            "relative mt-1.5 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
+            showKanbanApproval && "min-h-0"
+          )}
         >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      )}
+          {showKanbanApproval && (
+            <div
+              className="relative z-20 flex shrink-0 flex-wrap gap-1.5 border-b border-border/10 bg-card/95 px-3 pb-1.5 pt-1.5 dark:bg-card/90"
+              data-no-card-click
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2.5 text-xs font-semibold"
+                disabled={approvalBusy}
+                onClick={handleApproveKanban}
+              >
+                Approve
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 border-amber-400 px-2.5 text-xs font-semibold text-amber-900 hover:bg-amber-50 dark:text-amber-100 dark:hover:bg-amber-950/40"
+                disabled={approvalBusy}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  setRejectDialogOpen(true)
+                }}
+              >
+                Reject
+              </Button>
+            </div>
+          )}
+
+          {showStatusBanner ? (
+            <div className="relative z-0 min-h-[2.5rem]">
+              <div className="relative z-0 flex min-h-[2.5rem] items-center gap-2 px-3 pb-2 pt-1.5">
+                {footerBaseRow}
+              </div>
+              <div
+                className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center rounded-b-lg"
+                title={statusBannerTitle}
+              >
+                <div className={cn("absolute inset-0 rounded-b-lg shadow-inner", overlayBannerClass)} />
+                <div className="relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[10px] font-bold uppercase leading-none tracking-wide text-white drop-shadow-md">
+                  {overdueStyling.badgeText ? (
+                    <>
+                      <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="truncate">{overlayLabel}</span>
+                    </>
+                  ) : (
+                    <span className="truncate">{overlayLabel}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative flex min-h-[2.5rem] items-center gap-2 bg-muted/15 px-3 pb-2 pt-1.5 dark:bg-muted/25">
+              {footerBaseRow}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AlertDialog
+        open={rejectDialogOpen}
+        onOpenChange={(open) => {
+          setRejectDialogOpen(open)
+          if (!open) setRejectReason("")
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject completion?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The job will be sent back so your team can edit it. You can add an optional note for them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            placeholder="Reason (optional)"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={approvalBusy}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={approvalBusy}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+              onClick={() => void submitRejectKanban()}
+            >
+              Reject & send back
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Stale Job Reconciliation Modal */}
       {showReconciliationModal && (

@@ -25,7 +25,7 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
   { id: "scheduled", title: "Scheduled" },
   { id: "ready_to_invoice", title: "Awaiting payment" },
   { id: "completed", title: "Completed" },
-  { id: "deleted", title: "Deleted jobs" },
+  { id: "deleted", title: "Deleted" },
 ]
 
 type SortMode = "alpha" | "last_interacted"

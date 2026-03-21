@@ -66,20 +66,22 @@ type EnsureWorkspaceUserParams = {
   name?: string | null;
   phone?: string | null;
   hasOnboarded?: boolean;
+  authUserIdOverride?: string | null;
 };
 
 export async function ensureWorkspaceUserForAuth(
   params: EnsureWorkspaceUserParams
 ): Promise<{ id: string; email: string; workspaceId: string }> {
   const authUser = await getAuthUser();
-  const authUserId = await getAuthUserId();
+  const authUserId = params.authUserIdOverride ?? await getAuthUserId();
 
-  if (!authUser?.email) {
-    throw new Error("Authenticated user email not found");
-  }
+  const fallbackEmail = authUserId
+    ? `${authUserId}@phone-auth.local`
+    : `workspace-${params.workspaceId}@phone-auth.local`;
+  const resolvedEmail = authUser?.email ?? fallbackEmail;
 
   const existingByEmail = await db.user.findUnique({
-    where: { email: authUser.email },
+    where: { email: resolvedEmail },
     select: { id: true, email: true, workspaceId: true, role: true },
   });
 
@@ -105,8 +107,8 @@ export async function ensureWorkspaceUserForAuth(
   const created = await db.user.create({
     data: {
       ...(authUserId ? { id: authUserId } : {}),
-      email: authUser.email,
-      name: params.name ?? authUser.name ?? null,
+      email: resolvedEmail,
+      name: params.name ?? authUser?.name ?? null,
       ...(params.phone !== undefined ? { phone: params.phone } : {}),
       workspaceId: params.workspaceId,
       role: params.role ?? "OWNER",
@@ -172,6 +174,7 @@ async function getOrCreateWorkspaceImpl(
         const ensuredUser = await ensureWorkspaceUserForAuth({
           workspaceId: workspace.id,
           role: "OWNER",
+          authUserIdOverride: ownerId,
         });
         logger.authFlow("Ensured owner User row for new workspace", {
           workspaceId: workspace.id,

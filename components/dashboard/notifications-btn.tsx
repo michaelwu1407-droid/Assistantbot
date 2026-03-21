@@ -10,7 +10,7 @@ import { toast } from "sonner"
 
 const ACTION_LABELS: Record<string, { label: string; icon: React.ElementType; className: string }> = {
     CONFIRM_JOB: { label: "Confirm", icon: CheckCircle2, className: "bg-green-600 hover:bg-green-700 text-white" },
-    CALL_CLIENT: { label: "Call", icon: Phone, className: "bg-blue-600 hover:bg-blue-700 text-white" },
+    CALL_CLIENT: { label: "Call", icon: Phone, className: "bg-primary hover:bg-primary/90 text-white" },
     SEND_INVOICE: { label: "Invoice", icon: FileText, className: "bg-emerald-600 hover:bg-emerald-700 text-white" },
     APPROVE_COMPLETION: { label: "Approve", icon: ClipboardCheck, className: "bg-amber-600 hover:bg-amber-700 text-white" },
 }
@@ -74,13 +74,13 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
             <Button
                 variant="ghost"
                 size="icon"
-                className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                className="relative h-9 w-9 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => {
                     setIsOpen(!isOpen)
                     if (!isOpen) fetchNotifications()
                 }}
             >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
                     <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
                 )}
@@ -98,7 +98,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                             {unreadCount > 0 && (
                                 <button
                                     onClick={handleMarkAllRead}
-                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                    className="text-xs text-primary hover:text-primary/80 font-medium"
                                 >
                                     Mark all read
                                 </button>
@@ -120,7 +120,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                             key={n.id}
                                             className={cn(
                                                 "p-3 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer",
-                                                !n.read && "bg-blue-50/30"
+                                                !n.read && "bg-primary/10"
                                             )}
                                             onClick={() => {
                                                 if (n.link) {
@@ -142,7 +142,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                         "h-2 w-2 rounded-full",
                                                         n.type === 'ERROR' ? "bg-red-500" :
                                                             n.type === 'WARNING' ? "bg-amber-500" :
-                                                                n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-blue-500",
+                                                            n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-primary",
                                                         n.read && "bg-slate-300"
                                                     )} />
                                                 )}
@@ -176,7 +176,7 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
                                                         e.stopPropagation();
                                                         void handleMarkRead(n.id);
                                                     }}
-                                                    className="self-start text-slate-300 hover:text-blue-600 transition-colors"
+                                                    className="self-start text-slate-300 hover:text-primary transition-colors"
                                                     title="Mark as read"
                                                 >
                                                     <Check className="h-4 w-4" />

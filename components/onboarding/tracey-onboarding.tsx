@@ -33,7 +33,12 @@ import {
   File as FileIcon,
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
-import { saveTraceyOnboarding, saveBusinessProfileForProvisioning, type TraceyOnboardingData } from "@/actions/tracey-onboarding"
+import {
+  saveTraceyOnboarding,
+  saveBusinessProfileForProvisioning,
+  getProvisioningIntentForOnboarding,
+  type TraceyOnboardingData,
+} from "@/actions/tracey-onboarding"
 import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
@@ -69,6 +74,12 @@ type ProvisioningStatus =
   | "provisioned"
   | "blocked_duplicate"
   | "failed"
+
+function looksLikePhoneValue(value?: string | null) {
+  if (!value) return false
+  const digits = value.replace(/\D/g, "")
+  return digits.length >= 8
+}
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>
 
@@ -147,19 +158,17 @@ function resolveScrapedPhysicalAddress(data: {
   suburbs?: string[]
   rawSummary?: string
 }) {
-  if (data.address?.trim()) return data.address.trim()
-  if (Array.isArray(data.suburbs) && data.suburbs.length > 0) {
-    const firstSuburb = data.suburbs.find((suburb) => suburb.trim().length > 0)
-    if (firstSuburb) return firstSuburb.trim()
+  const strictAddressPattern =
+    /\b\d{1,6}[A-Za-z]?\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}\s+(?:Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Boulevard|Blvd|Court|Ct|Crescent|Cres|Place|Pl|Way|Terrace|Tce|Parade|Pde)\b/i
+  const auStatePostcodePattern = /\b(?:NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s*\d{4}\b/i
+
+  const candidateAddress = data.address?.trim()
+  if (candidateAddress && strictAddressPattern.test(candidateAddress) && auStatePostcodePattern.test(candidateAddress)) {
+    return candidateAddress
   }
-  if (data.rawSummary) {
-    const addressLikeMatch = data.rawSummary.match(
-      /\b(?:located in|based in|based at|service based in|servicing|serves)\s+([A-Za-z0-9\s,'-]{4,80})/i
-    )
-    if (addressLikeMatch?.[1]) {
-      return addressLikeMatch[1].trim().replace(/[.,;:]$/, "")
-    }
-  }
+
+  // Do not auto-fill from broad suburb/raw-summary hints because they can be unrelated
+  // to the business's actual physical address (especially service-area websites).
   return ""
 }
 
@@ -473,7 +482,8 @@ export function TraceyOnboarding() {
   const [provisioningStatus, setProvisioningStatus] = useState<ProvisioningStatus>("idle")
   const [resolvedPhoneNumber, setResolvedPhoneNumber] = useState<string | null>(null)
   const [provisioningError, setProvisioningError] = useState<string | null>(null)
-  const [provisioningChecked, setProvisioningChecked] = useState(false)
+  const [provisionPhoneNumberRequested, setProvisionPhoneNumberRequested] = useState<boolean | null>(null)
+  const provisioningInitRef = useRef(false)
 
   // Step 3 (Email): Inbox connection
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
@@ -494,9 +504,25 @@ export function TraceyOnboarding() {
   const [isUploading, setIsUploading] = useState(false)
 
   const canActivateTracey =
-    provisioningStatus === "not_requested" ||
-    ((provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
-      Boolean(resolvedPhoneNumber))
+    provisionPhoneNumberRequested === false ||
+    (provisionPhoneNumberRequested === true &&
+      ((provisioningStatus === "already_provisioned" || provisioningStatus === "provisioned") &&
+        Boolean(resolvedPhoneNumber)))
+
+  const activationBlockedReason =
+    provisionPhoneNumberRequested === null
+      ? "Still checking your billing settings. Wait a few seconds and try again."
+      : provisionPhoneNumberRequested === false
+        ? ""
+        : provisioningStatus === "blocked_duplicate"
+          ? "Provisioning is blocked for this phone during beta. Use a different owner phone or contact support."
+          : provisioningStatus === "requested"
+            ? "Provisioning is waiting for payment confirmation."
+            : provisioningStatus === "provisioning"
+              ? "Still setting up your number. Please wait a moment and try again."
+              : provisioningStatus === "failed"
+                ? 'Number provisioning failed. Use "Retry number setup" below or contact support.'
+                : "Your dedicated number is not ready yet. Wait for provisioning to finish or retry below."
 
   const provisioningStatusMessage =
     provisioningStatus === "provisioning"
@@ -519,15 +545,26 @@ export function TraceyOnboarding() {
         const authUser = await getAuthUser()
         if (!active || !authUser) return
 
-        if (authUser.name) {
+        if (authUser.name && !looksLikePhoneValue(authUser.name)) {
           setOwnerName((current) => current || authUser.name)
         }
         if (authUser.email) {
           setEmail((current) => current || authUser.email || "")
         }
-        const readiness = await getLeadCaptureEmailReadiness()
+        const [readiness, provisioningIntent] = await Promise.all([
+          getLeadCaptureEmailReadiness(),
+          getProvisioningIntentForOnboarding(),
+        ])
         if (active) {
           setLeadCaptureEmailReadiness(readiness)
+          if (provisioningIntent.success) {
+            setProvisionPhoneNumberRequested(provisioningIntent.provisionPhoneNumberRequested)
+            if (!provisioningIntent.provisionPhoneNumberRequested) {
+              setProvisioningStatus("not_requested")
+              setResolvedPhoneNumber(null)
+              setProvisioningError(null)
+            }
+          }
         }
       } catch {
         // Silent fallback: onboarding still works without client-side auth prefill.
@@ -671,6 +708,13 @@ export function TraceyOnboarding() {
   }, [businessName, leadCaptureEmailReadiness])
 
   const resolveProvisioning = useCallback(async () => {
+    if (provisionPhoneNumberRequested === false) {
+      setProvisioningStatus("not_requested")
+      setProvisioningError(null)
+      setResolvedPhoneNumber(null)
+      return
+    }
+
     if (!businessName.trim() || !phone.trim()) {
       setProvisioningStatus("failed")
       setProvisioningError("Business name and owner phone are required before provisioning.")
@@ -723,14 +767,26 @@ export function TraceyOnboarding() {
         error instanceof Error ? error.message : "We could not provision your Earlymark number. Please try again."
       )
     }
-  }, [businessName, phone, physicalAddress, ownerName])
+  }, [businessName, phone, physicalAddress, ownerName, provisionPhoneNumberRequested])
 
   useEffect(() => {
-    if (step !== 5 || provisioningChecked) return
+    if (step !== 5) {
+      provisioningInitRef.current = false
+      return
+    }
+    if (provisionPhoneNumberRequested === null) return
+    if (provisioningInitRef.current) return
+    provisioningInitRef.current = true
 
-    setProvisioningChecked(true)
+    if (provisionPhoneNumberRequested === false) {
+      setProvisioningStatus("not_requested")
+      setProvisioningError(null)
+      setResolvedPhoneNumber(null)
+      return
+    }
+
     void resolveProvisioning()
-  }, [step, provisioningChecked, resolveProvisioning])
+  }, [step, provisionPhoneNumberRequested, resolveProvisioning])
 
   // ── Validation ──
 
@@ -920,10 +976,10 @@ export function TraceyOnboarding() {
         toast.success("Welcome aboard! Tracey is ready to go.")
       } else {
         toast.error(result.error || "Something went wrong")
-        setSubmitting(false)
       }
     } catch {
       toast.error("An unexpected error occurred")
+    } finally {
       setSubmitting(false)
     }
   }
@@ -1713,7 +1769,7 @@ export function TraceyOnboarding() {
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span className={leadCaptureStatusCopy.tone === "blocked" ? "text-red-600 dark:text-red-400" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : ""}>
+                              <span className={leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : ""}>
                                 Leads email <strong>{preGenLeadsEmail || "will be generated"}</strong> {leadCaptureStatusCopy.checklist}
                               </span>
                             </li>
@@ -1727,12 +1783,11 @@ export function TraceyOnboarding() {
                               {provisioningError}
                             </div>
                           )}
-                          {provisioningStatus === "failed" && (
+                          {provisioningStatus === "failed" && provisionPhoneNumberRequested !== false && (
                             <Button
                               type="button"
                               variant="outline"
                               onClick={() => {
-                                setProvisioningChecked(true)
                                 void resolveProvisioning()
                               }}
                               className="gap-2"
@@ -1802,14 +1857,29 @@ export function TraceyOnboarding() {
                         </div>
 
                         <Button
-                          onClick={handleSubmit}
-                          disabled={submitting || !canActivateTracey}
+                          type="button"
+                          onClick={() => {
+                            if (submitting) {
+                              toast.info("Still processing, please wait...")
+                              return
+                            }
+                            if (!canActivateTracey) {
+                              toast.error(activationBlockedReason)
+                              return
+                            }
+                            void handleSubmit()
+                          }}
                           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11"
                         >
                           {submitting ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Setting up your account...
+                            </>
+                          ) : provisionPhoneNumberRequested === null ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Checking billing settings...
                             </>
                           ) : !canActivateTracey ? (
                             <>

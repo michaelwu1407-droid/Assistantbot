@@ -1,3 +1,288 @@
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: DealCard footer: replaced fragile empty-span spacer with explicit `pl-[22px]` (= icon 14px + gap 8px) on a single `justify-between` flex row. Dollar pill now at exactly 34px from card edge (matching body text). Bin pushed to right via `justify-between` so icon right aligns with date right. Removed bin wrapper div.
+- Why: Empty `<span>` spacer was collapsing; dollar and bin still misaligned.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/ui/hover-scroll-name.tsx`, `components/crm/deal-card.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: (1) HoverScrollName ticker 3x faster (5s to 1.6s). (2) DealCard footer: removed -mx-3 on wrapper so px-3 aligns with body; dollar left-aligns with address/job. Bin right-padding removed so bin right-aligns with date. Removed fallback spacer. (3) KPI grid gap-3 to gap-6 (doubled).
+- Why: User: scroll too slow; dollar and bin misaligned; KPI cards need more space.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `components/ui/hover-scroll-name.tsx`, `components/ui/hover-carousel-text.tsx` (deleted, unused), `docs/agent_change_log.md`
+- What changed: **“Awaiting payment”** column — **only** that label (no multi-phrase carousel). When the column is narrow, **hover** runs the same **horizontal ticker** as contact names (**`HoverScrollName`** + **`textClassName`** for header type). Removed leftover **`AWAITING_PAYMENT_TITLE_PHRASES`** constant.
+- Why: User: single phrase only; hover scrolls to show full words, not rotating alternate titles.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI** — label↔metric **`gap-1` → `gap-[0.17rem]`** (−⅓). **`Kanban`**: **one** **`overflow-y`** on **board** (cards); **md+** **frozen** **`KanbanColumnHeader`** row; **`DroppableColumn`** no per-column scroll. **`DealCard`**: footer **row = icon spacer + flex-1 price + `pl-1` bin** (match **date** column); **remove** **`-mx-3`**; dollar **`text-xs`**; **`mt-1.5`→`mt-1`**. **`KanbanColumnHeader`** extracted.
+- Why: User: KPI row gap, unified board scroll + sticky titles, footer L/R alignment, dollar size.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/ui/hover-carousel-text.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **`Awaiting payment`** — **`HoverCarouselText`** **`truncate={false}`** (no **“…”**); **`autoRotate`**; slightly smaller **`text-[10px]`** on narrow screens. **Banner footer** — same **spacer + `px-3`** row as **no-banner** (fix **$** alignment). **`.scrollbar-hide`** alias + stronger **webkit** hide. **KPI grid** **`gap-[0.33rem]` → `gap-3`**, card label↔metric **`gap-1`**. **`DealCard`** **`pt-3`→`pt-2`**, inner **`pt-1`→`pt-0`** (less top padding vs sides).
+- Why: User: full carousel phrase, footer alignment, hidden column scrollbars, breathing room between KPI cards, tighter card top.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-client.tsx`, `components/ui/hover-carousel-text.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **`Awaiting payment`** — **`HoverCarouselText`** with **`autoRotate`** + **`leading-none`** + **`flex-1 overflow-hidden`** (single line, no wrap). **`DealCard`** footer — **`px-3`** + **14px spacer** + **`gap-2`** (same as address row) so **$** / **bin** align with text/date columns; job line **`text-[11px]`** vs location **`text-[10.5px]`**. **`Kanban`** — **`.kanban-column-scroll`** (hidden scrollbar, no width); **`pb-8`** column list. **Dashboard** **`main`** **`pb-24` → `pb-6`** (less blank bottom).
+- Why: User: aligned footer, 1-line rotating column title, invisible scrollbars, trim bottom padding.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-client.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/ui/hover-carousel-text.tsx`, `components/ui/hover-scroll-name.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **KPI** — gaps **−⅓** again (**`gap-[0.33rem]`** grid, **`gap-[0.11rem]`** label↔metric). **`DealCard`** — banner label **`text-white`**; footer **`pl-[34px] pr-3`** (line up with address/job + date); address + job **`text-[10.5px]`**; **`HoverScrollName`** (contact name ticker). **`Kanban`** — **column scroll** (`DroppableColumn` **`pb-24`**); **dashboard** **`main`** no vertical scroll. **`Awaiting payment`**: **`HoverCarouselText`**. **`@keyframes kanban-card-name-ticker`** in **`globals.css`**.
+- Why: User batch: KPI spacing, white banner text, footer inset, font step, name hover carousel, column title carousel, per-column scroll.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **`DealCard`** — body back to **`text-[10px]`** (less cramped than **`text-xs`**). **3C** footer like **`/dashboard/design/deal-cards`**: **one row** **`justify-between`** (price + bin), **shorter** strip **`min-h-[2.5rem]`** + **`px-2.5 pb-2 pt-1.5`**; overlay **`pointer-events-none`** (no absolute trash); status **`truncate`** one line; non-overdue label **`text-foreground`**. **`Kanban`** column titles **`min-w-0 truncate`** + flex fix so **“Awaiting payment”** stays **one line** (ellipsis if needed, **`title`** full text).
+- Why: User: smaller body type again; banner height match no-banner; restore 3C bin/price layout; column header wrap fix.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **`DealCard`** — **same** bottom **strip height** with or without banner (**`min-h-[3.25rem]`** + **`px-3 py-2`** on plain footer); secondary lines **`text-xs`** again (address, job, date, assignee, status strip, avatar) — matches older Kanban (**`e5166caa`** used **`text-xs`**, not **`text-[10px]`**). **`DashboardKpiCards`** — grid **`gap-3` → `gap-2`**; card **`gap-1` → `gap-[0.167rem]`** (~**⅓** less space between label and big number).
+- Why: User: aligned footers; confirm no typography regression; tighter top KPI row.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Restored** full **design/deal-cards** mocks **(1)(2)(3a–d)**. Copy clarifies **only the dashboard Kanban** uses **(3C) @ 65%**; design URL is comparison-only. **`DealCard`** unchanged (**65%** overlays).
+- Why: User meant **3C 65% for the board**, not stripping the internal design page.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **`/dashboard/design/deal-cards`** — **only** **(3C)** at **65%** (removed **(1)**, **(2)**, **45/55/75** variants). **`DealCard`** banner overlays **`/55` → `/65`**; card shell **`min-h-[176px]` → `min-h-0`** again so height follows content (no forced hollow middle).
+- Why: User asked to stop piling options; single reference **3C + 65%** + match live Kanban.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **`DealCard`** — **no** **`flex-1`** on main body + **`min-h-0`** card (drop **`min-h-[176px]`**) to **remove** middle **white** **gap**. Banner **`/45` → `/55`** opacity. Footer **`px-4 py-2.5`**, trash **`right-3`**, price **`pr-14`**; **`mt-1.5`** above footer.
+- Why: User: less edge crowding, stronger banner, no hollow middle.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **`DealCard`** **3C** — **price/assignee** stay on a **base row**; **absolute** **`inset-0`** **tint + status** **overlap** that row (may obscure **$**); **trash** **abs** **right** **`z-[4]`** above overlay, **clickable**.
+- Why: Banner must **overlap** the dollar/trash line, not share one flex row with it.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **`DealCard`** — status text (**OVERDUE**, **Draft**, etc.) on the **same row** as price + trash (one tinted band); **shorter** cards. **White** pill / dash / assignee / label / trash for **every** banner type, not only overdue.
+- Why: User asked for inline OVERDUE + universal light footer on all banners.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI** — **aligned** metric row across all four cards (`min-h` label row); **Follow-up** stale window **`absolute`** top-right + **`text-xs`** / **`h-7`** trigger (was misaligned + tiny **9px** text). **`DealCard`** — **flex ~9 / ~11** (~**55%** bottom) for **price + status** (no **`mt-2`** gap); **muted** fill when no banner; **one step smaller** body text (**`text-[10px]`** etc.) except **contact name** **`text-sm`**; **managers**: **Approve** / **Reject** on **`pending_approval`** cards + **`AlertDialog`** reject reason. **Design demos** — copy + **`mt-0`** on overlay mock footer.
+- Why: Plan: KPI alignment, card strip/gap, typography, 55% bottom zone, easier manager approval from Kanban.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card.tsx`, `scripts/promote-user-to-manager.ts`, `package.json`, `docs/agent_change_log.md`
+- What changed: **KPI** — labels **flush top** (`justify-between` + **`min-h-[5.75rem]`**), **all label + metric text black** (including dark). **`DealCard`** — restored **3C** **single** absolute tint under **price row + status** (price/trash sit **on** the overlay again; **no** white gap). **`db:promote-manager`** script + **`scripts/promote-user-to-manager.ts`** to set **`MANAGER`** by email for local testing.
+- Why: User feedback on KPI alignment/colour; banner must overlap price row; need a safe way to test manager approval.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/layout/Shell.tsx`, `docs/agent_change_log.md`
+- What changed: **Dashboard shell** — root height **`h-dvh`** (was `calc(100dvh - 57px)`). The subtracted **57px** was leaving a **full-width band** at the bottom of the window (plain **`body`** background); **57px** is the **Chat/Advanced** toggle row inside the **assistant** panel, not a global top chrome offset.
+- Why: User saw a pale strip at the bottom (aligned with the chat FAB) cutting off sidebar/Kanban; removing the mistaken height gap fixes it.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `components/crm/contacts-client.tsx`, `lib/deal-utils.ts`, `actions/dashboard-demo-seeds.ts`, `docs/agent_change_log.md`
+- What changed: **KPI** — **~10%** deeper than flat mint (`emerald-50` + **ring**), **black** text unchanged. **`DealCard`** — **all** statuses + **overdue** use **bottom** **45%** overlay (no top strip); **flush** bottom (`px-3 pt-3 pb-0`); **tooltips** for **pending** / **overdue**. **Kanban** + **pickers**: column **"Deleted"**. **Design** **(3)**: **45/55/65/75%** mocks. **Dev** **seeds**: **36** **`[Stress] …`** deals for load testing.
+- Why: User feedback on tint, banner edges, approval discovery, column name, stress data, opacity variants.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban `DealCard`** — design **(3C)**: non-overdue status = **45%** full-bleed **bottom** overlay (`statusBannerOverlayClasses`); **no** top strip. **Overdue** keeps **top** strip for reconcile. **KPI row** — **black** / **`neutral-100`** text; **deeper** green (`emerald-100/95`, `emerald-300` border, dark `emerald-950/50`).
+- Why: User chose 3C for dashboard cards; KPI readability + stronger mint.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card-pending-banner-demos.tsx`, `docs/agent_change_log.md`
+- What changed: **Design deal-cards (3)** — three side-by-side mocks: **25%**, **34%**, **45%** amber overlay (`opacity` prop on `FooterWithOverlappingBanner`). **(1)/(2)** stay in a two-column row; **(3)** variants in a dedicated section below.
+- Why: User asked to compare three opacity levels for the bottom banner.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card-pending-banner-demos.tsx`, `docs/agent_change_log.md`
+- What changed: **Design deal-cards (3)** — bottom strip is **full card width** (no extra side padding wrapper); **`rounded-b-lg`**; amber fill **`/34`** / **`/40`** (was ~11%). **(1)** mock: **`rounded-t-lg`** on top banner to match card corners.
+- Why: User wanted (3) to match (1)’s edge-to-edge banner, less washed out.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI row** — toned down from solid emerald: **light green wash** (`emerald-50` / dark `emerald-950/35`) + **dark green numbers** (not white-on-green). **Design deal-cards (3)** — uses the **same markup/classes as (1)** (`pendingBannerBaseClass`) with **~11–14%** amber fill over the price row; **`pointer-events-none`** unchanged.
+- Why: User found full green too loud; (3) should match (1)’s strip but much more see-through.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI strip** — **emerald** fill (**`bg-emerald-600`** / dark **`emerald-800`**), **white** labels + numbers; Follow-up **Select** trigger styled on the coloured card. **Reverted** Kanban **`DealCard`** bottom-banner experiment — **top** banner only again. **Design `/dashboard/design/deal-cards`** — **(3)** is a **transparent overlay** over the price + delete row (**`pointer-events-none`** so trash still clicks); removed live **`DealCard`** bottom mock.
+- Why: User wanted KPIs to pop with white text; clarified bottom banner as **overlap** over price/trash, design-only mock.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal card** — middle block **`gap-2`** (was `gap-2.5`). **`statusBannerPosition`** + optional **`metadata.bannerPosition === "bottom"`**: semi-transparent **bottom** status strip above the price row, **no** top `h-7` band — **shorter** card; trash unchanged bottom-right. **Kanban**: first **pending approval** deal in **Completed** uses **bottom** strip. **Design demos** — static (3) uses frosted banner; **live `DealCard`** mock section. **KPI row** — **one** shared tint (**`kpiSharedTint`**, slate) on all four cards for contrast on the main canvas.
+- Why: User asked for tighter gaps, unified KPI colour that reads on the background, and one bottom-banner card variant.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban multi-select** — long-press selection with **2+** cards sets **group drag**: **drag one** moves **all** selected to the target column (same scheduled/assignee rules); **cancel** restores prior stages; overlay shows a **count badge**. **Selection toolbar** — **trash** opens **AlertDialog** for **bulk move to Deleted**; **Cancel** exits selection (replaces “Done selecting”). **Single-card trash** deletes **without** browser confirm. **`handleDragEnd`** fixes single-drag revert when drop target is invalid.
+- Why: User asked for grouped moves, bulk delete with confirmation only, and instant single delete.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **Kanban** middle block **`gap-2`** (double prior `gap-1`) between address / job / assignee rows. **`--main-canvas`**: **10%** blend (`90%` background + `10%` slate / black).
+- Why: User asked to double row gap and slightly stronger canvas tint.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card.tsx`, `components/dashboard/dashboard-client.tsx`, `components/layout/Shell.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **KPI Follow-up** metric uses the **same number style** as the other three (**no** leading zero, **no** amber-only colour). **Deal cards** — **removed** **Urgent / Follow up** health **left coloured borders** (top banners unchanged); **tighter** middle (**lower** `min-h`, **no** `mt-auto` on footer, slightly tighter gaps); **corner date** uses **`text-muted-foreground`** + **`tabular-nums`**. **Main workspace** (not sidebar): new **`--main-canvas`** (~50% darker than page bg in light) on **`#main-canvas`** in **`Shell`**; dashboard shell **transparent**; sticky header uses **`main-canvas`**; KPI strip **`bg-muted/35`**.
+- Why: User screenshot — match Follow-up KPI formatting, less card whitespace, no health side bars, darker canvas behind white cards.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban `DealCard`** — **reverted** overlapping/semi-transparent top banners; status strips are **stacked** again **above** the name row (opaque colours). **Equal height** kept via a **fixed `h-7`** band on every card: **real banner** or **empty spacer** + **`min-h-[168px]`** + **`mt-auto`** footer.
+- Why: User disliked overlapping banners; still wants uniform card height with or without a banner.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `lib/deal-utils.ts`, `components/crm/deal-detail-modal.tsx`, `components/crm/deal-detail-stage-demos.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal modal stage pill** — trigger uses **Kanban column colours** (`KANBAN_COLUMN_HEADER_BG` + **`KANBAN_COLUMN_HEADER_HOVER_BG`**, **`getKanbanStagePillClasses`**) matching **`kanban-board`** headers; **pending approval** = amber, **pipeline** = violet. **Link** button variant so primary hover does not override. Dropdown rows show a **colour dot** per stage. **Design demo** uses **`getKanbanStagePillClasses("SCHEDULED")`** for the sample pill.
+- Why: User asked for the stage control to be coloured per Kanban column.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban `DealCard`** — **assignee** initial in a **dashboard-style circle** (**`w-8 h-8`** `rounded-full` `bg-primary/10` `border-2 border-muted`) **next to the price**; **no assignee** shows **`-`**. **Typography** — all card text **except contact name** bumped **one Tailwind step** (e.g. **`text-[10px]` → `text-xs`**, price **`text-xs` → `text-sm`**); icons **`h-4`**. **Status banners** — **semi-transparent** (`/85` + light blur) **absolute overlay** over a fixed **`h-7`** top band; **name row** overlaps (**`-mt-7`**) so banners don’t add extra stack height; **`min-h-[168px]`** + **`mt-auto`** footer for equal card height. **Removed** dead **`agentFlags`** slice vars and unused **`checkIfDealIsOverdue`** import.
+- Why: User request — assignee at a glance, larger secondary text, **equal card height** with overlapping transparent banners.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `lib/deal-utils.ts`, `components/crm/deal-detail-modal.tsx`, `components/crm/deal-detail-stage-demos.tsx`, `app/dashboard/design/deal-detail-modal/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal detail modal** — **pipeline stage** is a **dropdown** (with **chevron**) **left of** **Edit** in the header; options match Kanban (**`KANBAN_STAGE_PICKER_OPTIONS`**) and call **`updateDealStage`** (same as drag). Client checks **assignee** for Scheduled + **scheduled date** for later stages; refetches deal on success. **Removed** full-width **stage strip** under the header. **`prismaStageToKanbanColumn`** helper in **`deal-utils`**. **Design page** — production header mock at top; older strip/pipeline layouts marked **reference**. (Supersedes earlier **Option 1 strip** in the modal entry below.)
+- Why: User chose stage picker in header; card moves column when stage changes.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `lib/deal-utils.ts`, `components/crm/deal-detail-modal.tsx`, `components/crm/deal-detail-stage-demos.tsx`, `app/dashboard/design/deal-detail-modal/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal detail modal** — header shows **`Job title | Contact name`**; **stage** as **Option 1** full-width **coloured strip** (`getStageStripBarClass`). **Overdue** bar at top with **Reconcile** + **dismiss (X)** (session-only). **Contact** card drops **Name** row; **phone / email / company / address**; **Edit** top-right → contact page. **Current job** **Edit** top-right → deal edit. **`StaleJobReconciliationModal`** wired from Reconcile. **`getStageStripBarClass`** in **`deal-utils`**. **Design page** **`/dashboard/design/deal-detail-modal`** — static **5 stage layout options** to choose from.
+- Why: User-approved plan — richer modal + compare stage UI before locking one variant.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Removed Kanban triage chips** — **`agentFlags`** are no longer rendered on **`DealCard`** (no orange chip row / **+N**). **`Flag`** import removed. **`deal-card-flag-layout-demos.tsx`** deleted; **`/dashboard/design/deal-cards`** only loads **pending-banner** demos; metadata description updated. **Status top banners unchanged.**
+- Why: User approved hiding triage chips; backend may still store `agentFlags` (triage / AI tools).
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI row alignment** — each card uses **`flex flex-col`** with a **fixed min-height label row** (**`min-h-[2.75rem]`**) and **`mt-auto`** on the **metric** block so **$ / counts share one visual baseline**; metrics use **`leading-none`** + **`tabular-nums`**. **RHS chat + horizontal scroll** — when **`assistantPanelExpanded`**, **`main`** uses **`overflow-x-hidden`** and a single inner **`overflow-x-auto`** wraps **KPI strip + divider + Kanban** inside **`min-w-[1200px]`** so the **whole block scrolls together** (removed nested **`overflow-x-auto`** / **`md:min-w-[1200px]`** only on Kanban).
+- Why: User screenshot — metric numbers not on one line; KPI strip should stay aligned with Kanban when the main column is narrow with chat open.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI cards** — removed **`min-h-[5.75rem]`**, label **`min-h-[2.75rem]`**, and **`mt-auto`** (they created a large empty band between title and value). Cards now use **`flex flex-col gap-1`**, **`p-2.5`**, and a shared **`cardShell`** so label + number sit **tight** with only a small gap.
+- Why: User screenshot — too much blank space in the middle of each KPI card.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/deal-card-flag-layout-demos.tsx`, `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal card statuses** — production matches **(1) full-width opaque banner at top** for **Overdue** (clickable, severity colours) and all **status labels** (Draft, Pending approval, Urgent, Follow up, Rejected); **corner** shows **date only**. **Triage `agentFlags`** unchanged — **Option A** (two chips + **+N**). Removed status **pills** and second-row status. **Design page** copy updated; metadata **description** added. **(2)/(3)** banner mocks marked reference-only.
+- Why: User chose top banner for all statuses; Option A remains for flags.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card-pending-banner-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **`/dashboard/design/deal-cards`** — added **three static mocks** for **Pending approval** as an **opaque full-width banner** (not the pill): **(1)** banner at **top** of card, **(2)** in the **middle** (after name, before address/job), **(3)** at **bottom** (after address/job, **above** price row). Uses dashed amber card chrome + **`bg-amber-400`** strip; sample copy matches pending-approval demo style.
+- Why: User asked to compare banner placement before changing production `DealCard`.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal card name row** — sortable wrapper + card shell use **`w-full min-w-0`**; title sits in **`flex-1 min-w-0 overflow-hidden`** with **`h5`** **`w-full truncate text-left`** so the name uses the full width up to the date column (avoids early ellipsis + empty gap before **Mar 21**). **Removed** fixed **`w-[4.5rem]`** on the date/status column so it **sizes to content** + **`pl-1`** only (more room for the name).
+- Why: User screenshot — contact name truncated far too early with large whitespace before the date.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/deal-card-flag-layout-demos.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal card density** — removed fixed **`h-[240px]`** so cards size to content (no tall empty band); slightly tighter **`p-3`**, row gaps, and footer **`pt-1.5`**. **Flag layout demos** — each of Options **A / B / C** now shows **three** mock cards in a responsive grid, each with **different example names + flags** (third Option A/C example includes **`+1`** / three flags). Mock cards use tighter **`p-2.5`** and no forced title row height.
+- Why: User wanted less whitespace after the fixed-height change and three variations per style with different flags to choose from.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI / Kanban divider** — removed **`pb-4`** under the KPI strip and the strip’s **`border-b`** so the grey area doesn’t add asymmetric space above the rule; divider wrapper uses **`py-5`** so padding **above** and **below** the **`h-px`** line matches (visually equidistant between the card row and Kanban headers).
+- Why: User screenshot showed the rule sitting lower (closer to Kanban) because extra padding sat above the line only.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/layout/global-search.tsx`, `components/dashboard/header.tsx`, `components/dashboard/notifications-btn.tsx`, `components/dashboard/dashboard-client.tsx`, `components/crm/deal-card.tsx`, `components/crm/deal-card-flag-layout-demos.tsx`, `app/dashboard/design/deal-cards/page.tsx`, `docs/agent_change_log.md`
+- What changed: **Bottom overlap** — dashboard **`main`** uses **`pb-24`** so scrollable content clears **fixed** bottom **chat** + **nav** FABs (those buttons are for opening RHS chat when collapsed and mobile nav; they are not a full-width bar — a separate **“N”** stripe is usually the Next.js dev overlay, not this app). **Header alignment** — search **bar** trigger **`h-9`** **`text-sm`** (was taller **`text-[15px]`**); **New Job** / **Filter** **`h-9`** **`text-xs`**; **Activity** / **Notifications** **`h-9`** **`w-9`** with **`h-4`** icons; weather pill **`h-9`**. **Deal cards** — fixed **`h-[240px]`** **`flex`** **`flex-col`**; **name** **`truncate`** **single line** toward a **`w-[4.5rem]`** date column; **Draft** / **Pending approval** / long statuses on a **second row**; **triage flags** — max **two** compact chips + **`+N`** with full list on **`title`** (Option A). **`/dashboard/design/deal-cards`** shows **Options A–C** mockups for flag placement.
+- Why: User screenshot — FABs covering Kanban, mismatched top-bar typography, uneven card heights / flag wrapping; requested flag layout alternatives.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/header.tsx`, `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **Dashboard layout** — removed the **“Deal Pipeline”** heading row; **New Job** + **Filter** moved into the **top glass header** via optional **`headerActions`**, placed **after the search bar** and **before** weather / **Activity** / **Notifications** / profile. Header uses a three-zone flex row (search | pipeline actions | right cluster).
+- Why: User preview request — compare pipeline title + in-content buttons vs compact header placement.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `lib/store.ts`, `components/layout/Shell.tsx`, `components/dashboard/dashboard-client.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI row** — cards ~**⅙ smaller** (tighter padding, `text-xl` values, smaller labels). **Gap** between KPI strip and pipeline: **divider line** + padding (removed old **`-mt-[2cm]`** / oversized bottom padding). **Kanban horizontal scroll** — **`assistantPanelExpanded`** in **`useShellStore`**, synced from **Shell** `chatbotExpanded`; **`md:min-w-[1200px]`** and inner **`overflow-x-auto`** only when RHS chat is **open**; **`#main-canvas`** uses **`overflow-x-hidden`** when chat collapsed (**`max-md:overflow-x-auto`** for phones). **Pipeline toolbar** — **New Job** / **Filter** ~**half** width (`min-w-[4.75rem]`), ~**⅓ shorter** height (`h-7`), smaller icons/text.
+- Why: User wanted smaller KPIs with a visible separator, no forced horizontal scroll until chat opens (except mobile), and compact pipeline buttons.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **Dashboard** — reduced vertical gap between the **top 4 KPI cards** and **Deal Pipeline** by removing **`mb-8`** under the KPI strip, adding **`pb-20`** inside the strip so the next block can use **`-mt-[2cm]`** without overlapping the cards (pipeline block moves up ~2cm).
+- Why: User asked to tighten the space between the KPI row and the Kanban header.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-client.tsx`, `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban + RHS chat** — pipeline min width is **`md:min-w-[1200px]`** (not `xl:`) so a **narrow main column** with a **wide browser window** still gets a horizontal scroll track instead of squashing six columns. **Grid** is **`md:grid-cols-6`** (dropped viewport-`xl` and the 3-column middle step) so column count matches the scrollable board width. Wrapper keeps **`overflow-x-auto`**.
+- Why: `xl:` breakpoints follow **viewport** width; with chat expanded the **panel** can be far narrower than `xl` while the window is still “xl”, so columns were compressing.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `lib/deal-utils.ts`, `docs/agent_change_log.md`
+- What changed: **Overdue** pill text is always **“Overdue”** (no “7d” / day count in the label; days stay on **hover** via `badgeTitle`). **Overdue overrides** all other top-right statuses — no second pill for Urgent, Follow up, Draft, Pending approval, or Rejected; card chrome for health/draft/pending is **not** applied when overdue (base card + overdue border).
+- Why: User asked for a single clear status and no stacked labels when a job is past its scheduled date.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/deal-card.tsx`, `lib/deal-utils.ts`, `docs/agent_change_log.md`
+- What changed: **Dashboard KPI** — fourth card title is **Follow-up** (was “Pending Follow-up”); the **weeks** selector sits on the **same row** as the title, with the count on the row below. **Deal cards** — removed **Draft** / **Pending approval** **banners**; status is shown only as the **top-right pill** (less duplicate chrome). **Overdue** — date line under the pill when overdue; hover uses `badgeTitle` for detail. Health pills (Urgent / Follow up) keep a tooltip clarifying they’re **last-activity** based, **not** the same as calendar overdue (later tightened: overdue label is plain **“Overdue”** and overrides other statuses — see newer log entry).
+- Why: User choices 1B / 2A / 3A plus home KPI copy/layout; plain-language distinction for overdue vs activity health.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/layout/Shell.tsx`, `components/dashboard/dashboard-client.tsx`, `components/chatbot/chat-interface.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban horizontal scroll** — `#main-canvas` and dashboard `main` allow `overflow-x-auto`; pipeline section wraps the board in a container with `xl:min-w-[1200px]` so six columns keep a readable width when the RHS chat is open (scroll sideways instead of crushing cards). **Chat quick actions** — welcome quick-action buttons use a **2-column grid** with `w-full` and centered content so pairs like “Follow up call” / “Move a deal” match width.
+- Why: User reported Kanban cards still compressing with chat expanded; restore horizontal scroll behavior and equal quick-action chip sizes.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `lib/auth.ts`, `lib/display-name.ts`, `app/dashboard/page.tsx`, `components/dashboard/dashboard-client.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: Header name uses Supabase `full_name` / `given_name`+`family_name` before `name`, plus Prisma `User` lookup by auth id or email for `resolveHeaderDisplayName` so phone sign-up shows a real name when stored in DB. Fallback label is email local part or `Account` instead of always `You`. KPI row: removed RHS micro-copy (“This month”, “Won”, “Next: 7d”, “High Priority”/“Clear”); titles carry month where metrics are calendar-month scoped; **Upcoming Jobs** now counts scheduled jobs in the **current month** from today onward (monthly reset). Pipeline toolbar: **New Job** and **Filter** use matching `h-10` / `min-w-[9.5rem]`. Reduced KPI strip padding and margin below it so the Kanban sits higher.
+- Why: User feedback on header label, KPI clutter, button alignment, and wasted vertical gap above the board.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `lib/deal-utils.ts`, `components/dashboard/dashboard-kpi-cards.tsx`, `actions/dashboard-demo-seeds.ts`, `components/crm/deal-health-widget.tsx`, `docs/agent_change_log.md`
+- What changed: **Deal card** — removed absolute-positioned duplicate date strip; single flex row (checkbox + name with `min-w-0` / `break-words` + right column for date / overdue / status pills) fixes name/date overlap. **Overdue** — `checkIfDealIsOverdue` / `getOverdueStyling` now treat Kanban stage strings (`scheduled`, Prisma `SCHEDULED`/`NEGOTIATION`) consistently; removed dead duplicate `return` in `getOverdueStyling`. **KPI** — right micro-labels use explicit `text-slate-600` / `dark:text-slate-400` so they don’t pick up primary tint. **Dev demo seeds** — added 8 showcase `[Demo] …` rows (stale, rotting, overdue, draft, pending approval, rejected metadata, triage `agentFlags`, unread) plus `Activity` backdates for health; base specs get `scheduledAt` where required (e.g. NEGOTIATION, INVOICED, WON). **deal-health-widget** — prior neutral micro-copy retained from earlier pass.
+- Why: Implement “Deal card layout + showcase demo deals” plan — fix overlapping text and surface all card variants in dev.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/layout/Shell.tsx`, `lib/deal-stage-rules.ts`, `actions/deal-actions.ts`, `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `components/crm/deal-health-widget.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: Shell horizontal layout: `min-w-0` on the flex shell + panel group, removed assistant panel CSS transition and replaced assistant pane `min-w-[320px]` with `min-w-0 max-w-full overflow-hidden` so the main canvas reliably shrinks when the RHS chat widens. Enforced pipeline rule: deals cannot move to Scheduled / Awaiting payment / Completed (server + Kanban drag) without `scheduledAt`; assign-to-scheduled modal now requires a date too. Drag-over no longer previews invalid columns (no date / no assignee for Scheduled). Deal card corner shows `-` instead of “Not scheduled” when there is no schedule/created corner date. Upcoming Jobs KPI only counts scheduled-stage deals that actually have a date. Centralized stage checks in `lib/deal-stage-rules.ts`. Neutralized green “+12%” / “Active” micro-labels in `deal-health-widget` (muted copy) in case that widget is surfaced.
+- Why: User-reported regressions (chat expand not compressing main column, unwanted “Not scheduled” copy, missing schedule gate for later stages, KPI green micro-label confusion on older builds).
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `actions/dashboard-demo-seeds.ts`, `app/dashboard/page.tsx`, `components/layout/global-search.tsx`, `components/dashboard/header.tsx`, `components/dashboard/dashboard-client.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `lib/display-name.ts`, `docs/agent_change_log.md`
+- What changed: Dashboard template parity pass — KPI cards use muted micro-labels (no green “Live/Active” chrome), distinct tinted card backgrounds, and slightly larger label text while keeping the large KPI values at `text-2xl`. Header display name uses `resolveHeaderDisplayName` to avoid showing phone-like strings. Dev-only `ensureDashboardDemoDeals` seeds 10 idempotent `[Demo]` deals across Prisma stages for the signed-in workspace owner. Dashboard layout: sticky top bar + scrollable main; `GlobalSearch` gains `variant="bar"` for a full-width trigger in the header; team filter is always visible (disabled with tooltip when there are no team members). Kanban first-column empty state uses the same dashed add control as other columns. Deal cards show **created** month/day in the header corner when there is no `scheduledAt`. Removed debug `writeFileSync` from the dashboard page error path.
+- Why: Match the Stitch template behaviour and fix resize/header/demo-data issues called out in the dashboard parity plan.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/header.tsx`, `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: Added user identity (name + role + avatar initial) to the top-right of the header to match the template. Weather pill now renders next to notifications. Filter button order fixed: New Deal first, then Filter (matching template layout). Passed `userRole` from DashboardClient to Header. Added silent catch on weather fetch to prevent "Failed to fetch" console errors on localhost.
+- Why: Template screenshot showed user profile top-right, weather next to notifications, and filter positioned after New Deal button — all were missing or misplaced.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `app/globals.css`, `components/dashboard/header.tsx`, `components/dashboard/dashboard-client.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: Full dashboard layout rewrite to faithfully match the Stitch-by-Google template. Added template CSS utilities (`sunlight-shadow`, `ghost-border`, `glass-panel`) to globals.css. Header: glass-panel top bar with search left, weather+activity+notifications right. KPI cards: `bg-muted rounded-lg ghost-border sunlight-shadow`, 9px uppercase labels, extrabold values. Kanban: CSS grid columns with colored vertical bars, 11px uppercase headers, zero-chrome drop zones, template "Add Card" dashed button. Deal cards: `p-3.5 ghost-border sunlight-shadow`, template info rows, bottom separator with price pill and inline delete. Pipeline header: "Deal Pipeline" title left, "New Deal" primary button + Filter right. Retained all existing lucide-react icons, live data, drag-and-drop, colour scheme, and 6-stage pipeline.
+- Why: Previous dashboard layout did not match the provided template structure, positioning, or visual treatment.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `actions/workspace-actions.ts`, `actions/tracey-onboarding.ts`, `docs/agent_change_log.md`
+- What changed: Hardened auth identity fallback in `ensureWorkspaceUserForAuth` so it no longer throws when auth metadata is partial (common in phone sign-up). It now resolves identity using caller-provided `authUserIdOverride`, then auth user id, then a workspace-scoped fallback email. Updated onboarding and workspace creation callsites to pass known user ids explicitly.
+- Why: Activation could fail with “Authenticated user identity not found” for phone-auth users despite valid session and onboarding inputs.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `actions/tracey-onboarding.ts`, `docs/agent_change_log.md`
+- What changed: Removed the hard failure in `saveTraceyOnboarding` when Supabase auth has no `email` (common for phone sign-up). Owner email for the app `User` row now resolves from auth email, else validated onboarding `email`, else `${userId}@phone-auth.local` (aligned with `ensureWorkspaceUserForAuth`).
+- Why: Phone-authenticated users hit “User email not found” on Activate despite filling the onboarding email field.
+
+### 2026-03-21 (AEDT) - Cursor AI Agent
+- Files: `app/setup/layout.tsx`, `components/onboarding/tracey-onboarding.tsx`, `docs/agent_change_log.md`
+- What changed: Added `<Toaster />` to `/setup` so onboarding toast feedback (blocked activation, errors, success) actually appears. Fixed `canActivateTracey` to always allow final activation when number provisioning was not requested in billing (even if a previous run left `failed`/`idle` state). Wait for `getProvisioningIntentForOnboarding` before auto-running provisioning on step 6, and when provisioning is off, explicitly set `not_requested` on that step. Set `type="button"` on Activate; `handleSubmit` now always clears `submitting` in `finally`.
+- Why: Users reported Activate doing “nothing”; the page never mounted a toast host, and gating logic could block activation after a failed provision attempt even when billing said provisioning was off.
+
 ### 2026-03-21 02:05 (AEDT) - Cursor AI Agent
 - Files: `app/pricing/page.tsx`, `app/contact/page.tsx`, `app/page.tsx`, `components/layout/navbar.tsx`, `middleware.ts`, `tailwind.config.ts`, `docs/agent_change_log.md`
 - What changed: Split the accidentally-overwritten `/contact` pricing UI into its own `/pricing` route, restored the original `/contact` page, and fixed navigation links (navbar + Home) so “Pricing” and “Contact” point to the correct URLs. Also wired Tailwind `rounded-*` utilities to the shared `--radius: 18px` tokens so the 18px base radius applies consistently across the UI.
@@ -1268,3 +1553,51 @@ Rule: every agent change commit must include an entry in this file.
   - Leaflet fallback now includes a My Location button and renders your location marker after geolocation.
 - Why:
   - Users reported that opening /dashboard/map always started at the same Melbourne spot, instead of their current location.
+
+## 2026-03-21 13:05 (AEDT) - codex
+
+- Files changed:
+  - `components/dashboard/dashboard-client.tsx`
+  - `components/dashboard/header.tsx`
+  - `components/dashboard/notifications-btn.tsx`
+  - `components/crm/kanban-board.tsx`
+  - `components/crm/deal-card.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Reworked `/dashboard` composition to follow the new Stitch-inspired format: KPI section first, then a dedicated `Deal Pipeline` action row, then the kanban board area.
+  - Moved dashboard-level actions so `/dashboard` now shows `New Deal` and `Filter` controls in the pipeline action row, while keeping existing dynamic KPI/kanban data and interactions.
+  - Added header configurability (`showFilter`, `showPrimaryCta`) so the same header component still behaves as before on other dashboard pages.
+  - Restyled kanban columns/cards to better match the new layout feel without changing stage logic or drag/drop behavior.
+  - Replaced dashboard blue accents with theme primary green (`#00D28B`) in the updated dashboard flow (weather icon, notification accents, unread indicator, call action button).
+- Why:
+  - The dashboard needed to adopt the new formatting/layout while preserving existing content, icon set, and feature behavior, and to align accent color usage with the brand primary green.
+
+## 2026-03-21 13:40 (AEDT) - codex
+
+- Files changed:
+  - `lib/billing-plan.ts`
+  - `components/auth/auth-selector.tsx`
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `actions/workspace-actions.ts`
+  - `actions/tracey-onboarding.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the temporary Stripe legacy price fallback and restored strict monthly/yearly env key requirements in billing plan resolution.
+  - Fixed phone OTP signup metadata so onboarding name is no longer silently populated from the phone number.
+  - Hardened onboarding scraped-address prefill to only auto-fill high-confidence AU street addresses and avoid broad location phrase fallbacks.
+  - Updated workspace user upsert logic to support phone-authenticated users without email by using a deterministic auth-id fallback identity instead of hard-failing.
+  - Added onboarding provisioning-intent lookup and gated step-5 auto provisioning checks/retry UI when number provisioning was not requested, while keeping activation unblocked for `not_requested`.
+  - Reduced misleading red emphasis for lead-capture readiness in the activation checklist so it is informational and distinct from number provisioning blockers.
+- Why:
+  - Onboarding reliability regressed for phone-auth users and service-area websites: names were contaminated by phone values, addresses could be incorrectly auto-filled, and provisioning/no-provisioning states surfaced confusing blockers. These changes make onboarding deterministic and aligned with billing intent.
+
+## 2026-03-21 13:55 (AEDT) - codex
+
+- Files changed:
+  - `public/sw.js`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed service worker fetch fallback paths so they always return a valid `Response` object.
+  - Added explicit offline `503` fallback responses when both network and cache are unavailable, including API/RSC fetch handling.
+- Why:
+  - Browser console showed `TypeError: Failed to convert value to 'Response'` from `sw.js`, which can silently break request flows and made onboarding actions (including Activate Tracey) appear unresponsive.
