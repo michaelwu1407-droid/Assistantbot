@@ -831,15 +831,15 @@ export default function Home() {
                     {/* Value Props — gradient glass cards (no icons) */}
                     <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
                                 <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
                             </div>
-                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Automate customer admin</h3>
                                 <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
                             </div>
-                            <div className="rounded backdrop-blur-sm bg-white/30 border border-white/15 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Provide a more reliable customer experience</h3>
                                 <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
                             </div>

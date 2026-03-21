@@ -495,7 +495,7 @@ export default function FeaturesPage() {
               Product
             </motion.p>
             <motion.h1 {...fadeUp(0.04)} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
-              Tracey does the admin.<br />You do the work.
+              From first call to final invoice —<br />Tracey&apos;s got it.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
               One AI assistant that handles every call, runs your CRM, schedules your jobs, and chases follow-ups — so you don't have to.
