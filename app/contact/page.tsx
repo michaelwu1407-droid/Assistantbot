@@ -91,7 +91,7 @@ export default function ContactPage() {
               Contact us
             </h1>
             <p className="text-slate-body mt-2">
-              Get in touch with the right team at Earlymark. Fill in the form below and we’ll respond as soon as we can.
+              Get in touch with the right team at Earlymark.
             </p>
           </div>
 

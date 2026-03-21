@@ -212,11 +212,11 @@ export default function PricingPage() {
           <div className="max-w-5xl mx-auto">
             {/* Toggle */}
             <motion.div {...fadeUp(0.12)} className="flex justify-center mb-12">
-              <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl">
+              <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-[18px]">
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("monthly")}
-                  className={`py-2.5 px-6 rounded-xl text-sm font-semibold transition-all shadow-sm ${
+                  className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
                     billingPeriod === "monthly"
                       ? "bg-white text-midnight"
                       : "text-slate-500 hover:text-midnight shadow-none bg-transparent"
@@ -228,7 +228,7 @@ export default function PricingPage() {
                   <button
                     type="button"
                     onClick={() => setBillingPeriod("yearly")}
-                    className={`py-2.5 px-6 rounded-xl text-sm font-semibold transition-all shadow-sm ${
+                    className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
                       billingPeriod === "yearly"
                         ? "bg-white text-midnight"
                         : "text-slate-500 hover:text-midnight shadow-none bg-transparent"
@@ -399,7 +399,7 @@ export default function PricingPage() {
                     {...fadeUp(0.1 + i * 0.05)}
                     className="bg-white border border-slate-100 p-5 rounded-[18px] flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-[18px] bg-emerald-100 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
@@ -462,6 +462,10 @@ export default function PricingPage() {
                 </Card>
               ) : (
                 <Card className="rounded-[18px] border border-border shadow-sm bg-white">
+                  <CardHeader className="px-8 pt-8 pb-0">
+                    <CardTitle className="text-midnight">Get in touch</CardTitle>
+                    <CardDescription>Choose the team that best fits your question.</CardDescription>
+                  </CardHeader>
                   <CardContent className="p-8">
                     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                       <div className="space-y-2">
@@ -535,7 +539,7 @@ export default function PricingPage() {
                           name="message"
                           placeholder="Tell us how we can help..."
                           rows={4}
-                          className="rounded-xl border-border bg-slate-50/50 resize-none"
+                          className="rounded-[18px] border-border bg-slate-50/50 resize-none"
                           required
                         />
                       </div>
@@ -563,17 +567,14 @@ export default function PricingPage() {
         {/* ── 7. Final CTA ── */}
         <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
-              Ready to start?
-            </motion.p>
             <motion.h2
-              {...fadeUp(0.04)}
+              {...fadeUp()}
               className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance"
             >
               Give yourself an early mark
             </motion.h2>
-            <motion.p {...fadeUp(0.08)} className="text-lg text-white/65 leading-7 max-w-xl">
-              Start with a plan that actually reflects how your business runs.
+            <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
+              No contracts. No complexity. Try Earlymark free.
             </motion.p>
             <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
               <Link href="/auth">
