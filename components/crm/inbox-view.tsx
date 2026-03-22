@@ -5,7 +5,7 @@ import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, MessageCircle, ArrowLeft, Bot, Send, SlidersHorizontal, ArrowDownAZ, Settings } from "lucide-react"
+import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, MessageCircle, ArrowLeft, Sparkles, Send, SlidersHorizontal, ArrowDownAZ, Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
@@ -81,6 +81,42 @@ type DateFilter = "latest" | "oldest" | "custom"
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
   const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way", "deal created"]
   return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
+}
+
+/** Most recent activity first (for list row + preview). */
+function sortActivitiesByCreatedDesc(activities: ActivityView[]): ActivityView[] {
+  return [...activities].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+function commIconSmall(type: string): ReactNode {
+  const t = type?.toLowerCase() ?? ""
+  if (t === "call" || t === "voice") {
+    return <Phone className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+  }
+  if (t === "email") {
+    return <Mail className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+  }
+  return <MessageSquare className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+}
+
+function getInboxListPreviewRow(latest: ActivityView | undefined): { text: string; icon: ReactNode } {
+  if (!latest) {
+    return {
+      text: "No activity yet",
+      icon: <MessageSquare className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-hidden />,
+    }
+  }
+  const raw = [latest.title, latest.content].filter(Boolean).join(" — ").trim() || "Activity"
+  const truncated = raw.length > 52 ? `${raw.slice(0, 49)}…` : raw
+  const isSystem = isSystemEvent(latest)
+  return {
+    text: truncated,
+    icon: isSystem ? (
+      <Settings className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+    ) : (
+      commIconSmall(latest.type)
+    ),
+  }
 }
 
 export function InboxView({ initialInteractions, contactSegment = {}, workspaceId }: InboxViewProps) {
@@ -318,7 +354,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
             <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Customer type</p>
+                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Contact type</p>
                 <Select value={segmentFilter} onValueChange={(value) => setSegmentFilter(value as ContactSegment | "all")}>
                   <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
                     <div className="flex items-center gap-2">
@@ -328,7 +364,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="lead">New</SelectItem>
+                    <SelectItem value="lead">Prospect</SelectItem>
                     <SelectItem value="existing">Existing</SelectItem>
                   </SelectContent>
                 </Select>
@@ -381,7 +417,8 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       key={c.id}
                       onClick={() => {
                         const contact = contactMap.get(c.id)
-                        if (contact?.interactions[0]) setSelectedId(contact.interactions[0].id)
+                        const sorted = contact ? sortActivitiesByCreatedDesc(contact.interactions) : []
+                        if (sorted[0]) setSelectedId(sorted[0].id)
                         setSearch("")
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-primary/10 transition-colors text-left"
@@ -403,12 +440,14 @@ If the request is to contact the customer, use the appropriate customer-contact 
               </div>
             ) : (
               filteredContacts.map((contact) => {
-                const latest = contact.interactions[0]
+                const sorted = sortActivitiesByCreatedDesc(contact.interactions)
+                const latest = sorted[0]
+                const preview = getInboxListPreviewRow(latest)
                 const isSelected = selectedContactKey === contact.id
                 return (
                   <button
                     key={contact.id}
-                    onClick={() => setSelectedId(latest.id)}
+                    onClick={() => latest && setSelectedId(latest.id)}
                     className={cn(
                       "w-full text-left p-3 border-b border-border/10 transition-all flex gap-3",
                       isSelected
@@ -428,12 +467,15 @@ If the request is to contact the customer, use the appropriate customer-contact 
                           {contact.name}
                         </span>
                         <span className="text-[10px] text-muted-foreground shrink-0">
-                          {latest.time}
+                          {latest?.time ?? ""}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {contact.interactions.length} interaction{contact.interactions.length !== 1 ? "s" : ""}
-                      </p>
+                      <div className="mt-0.5 flex items-start gap-1.5 min-w-0">
+                        <span className="mt-0.5 shrink-0">{preview.icon}</span>
+                        <p className="text-xs text-muted-foreground truncate leading-snug" title={preview.text}>
+                          {preview.text}
+                        </p>
+                      </div>
                     </div>
                   </button>
                 )
@@ -619,7 +661,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Bot className="h-3.5 w-3.5" /> Ask Tracey
+                    <Sparkles className="h-3.5 w-3.5" /> Ask Tracey
                   </button>
                   <button
                     onClick={() => setMessageMode("direct")}
@@ -686,7 +728,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
           <DialogHeader>
             <DialogTitle>Custom time period</DialogTitle>
             <DialogDescription>
-              Filter inbox contacts by interaction dates, then apply the range.
+              Filter inbox contacts by activity dates, then apply the range.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">

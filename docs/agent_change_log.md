@@ -9,6 +9,11 @@
 - Why: User: when moving several selected cards, preview should show the **group** moving together, not a single card + count pill.
 
 ### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/inbox-view.tsx`, `docs/agent_change_log.md`
+- What changed: **Inbox left list** — replaced **"X interaction(s)"** with **last activity preview** (chronologically latest per contact): **truncated title/content** plus **icon** — **`Settings`** for system events (`isSystemEvent`), **call/email/note** icons for communications. Contacts sorted by `createdAt` for preview row. **Contact type** filter label; **Prospect** / **Existing** (was New/Existing). **Ask Tracey** uses **`Sparkles`** instead of **`Bot`**. Custom date dialog copy: **activity** dates.
+- Why: Plan execution — clearer inbox semantics; Prospect wording; AI tab icon.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
 - Files: `components/layout/Shell.tsx`, `docs/agent_change_log.md`
 - What changed: **Assistant resize** — removed extra **`div` wrapper** around **`ResizableHandle`** so the handle is a **direct child** of **`ResizablePanelGroup`** (matches `react-resizable-panels` expectations; avoids an empty flex strip). Moved **`id="assistant-resize-handle"`** onto **`ResizableHandle`** for tutorial spotlight. **`justify-start`**, **`overflow-visible`**, fixed **`w-2 min-w-2 max-w-2`** so the grip sits flush to the main canvas with no dead space to its left.
 - Why: User: blank strip left of the drag handle when RHS chat is open.
