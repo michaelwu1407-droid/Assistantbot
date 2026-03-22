@@ -1,4 +1,9 @@
 ### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/layout/Shell.tsx`, `docs/agent_change_log.md`
+- What changed: **Assistant resize grip** — **`ResizableHandle`** uses **`justify-center`** (replaces **`justify-start`**) so the pill **`w-6`** grip is **centered on the 8px** green strip instead of sitting **right of** the strip’s visual centre.
+- Why: User: expand-chat pill was slightly to the right of the green line.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
 - Files: `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
 - What changed: **Dashboard + RHS chat** — when **`assistantPanelExpanded`**, `<main>` uses **`pl-6 pr-0`** (not **`px-6`**) and KPI / divider / Kanban bleed rows use **`-ml-6 pl-6 pr-0`** instead of **`-mx-6 px-6`**, so pipeline content aligns **flush** to the resize handle with **no** empty **main-canvas** band left of the green line.
 - Why: User: persistent blank strip between Kanban and chat edge despite handle/resizable fixes.

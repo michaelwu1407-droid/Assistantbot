@@ -206,14 +206,14 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
               </ResizablePanel>
 
-              {/* Must be a direct PanelResizeHandle child of PanelGroup — no extra wrapper (avoids blank flex strip). Grip flush to main canvas: justify-start. */}
+              {/* Must be a direct PanelResizeHandle child of PanelGroup — no extra wrapper (avoids blank flex strip). Strip is 8px; pill is wider — center it on the strip so the grip sits on the green line (justify-start skewed it right). */}
               <ResizableHandle
                 id="assistant-resize-handle"
                 withHandle
                 className={cn(
                   "hidden shrink-0 md:flex",
-                  /* Single visible strip; grip overflows slightly into chat — no transparent pseudo strip on the left */
-                  "w-2 min-w-[8px] max-w-[8px] justify-start overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
+                  /* Single visible strip; wider pill straddles the split equally */
+                  "w-2 min-w-[8px] max-w-[8px] justify-center overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
                 )}
                 onPointerDown={(e) => {
                   didDragRef.current = false
