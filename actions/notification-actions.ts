@@ -67,7 +67,7 @@ export async function markAsRead(notificationId: string) {
     where: { id: notificationId },
     data: { read: true },
   });
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return { success: true };
 }
 
@@ -79,7 +79,7 @@ export async function markAllAsRead(userId: string) {
     where: { userId, read: false },
     data: { read: true },
   });
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return { success: true };
 }
 
@@ -194,7 +194,7 @@ export async function sendTestNotification() {
     link: "/crm/settings/notifications",
   })
 
-  revalidatePath("/crm")
+  revalidatePath("/crm", "layout")
   revalidatePath("/crm/settings/notifications")
   return { success: true }
 }
@@ -255,7 +255,7 @@ export async function ensureDailyNotifications(workspaceId: string) {
         title: "☀️ Morning Briefing",
         message: morningMessage,
         type: "INFO",
-        link: "/crm",
+        link: "/crm/dashboard",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });

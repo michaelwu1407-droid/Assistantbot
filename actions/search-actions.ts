@@ -172,7 +172,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "task",
         title: task.title,
         subtitle: task.dueAt ? `Due ${task.dueAt.toLocaleDateString("en-AU")}` : "No due date",
-        url: task.dealId ? `/crm/deals/${task.dealId}` : task.contactId ? `/crm/contacts/${task.contactId}` : "/crm",
+        url: task.dealId ? `/crm/deals/${task.dealId}` : task.contactId ? `/crm/contacts/${task.contactId}` : "/crm/dashboard",
       },
     })
   })
@@ -187,7 +187,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "activity",
         title: activity.title,
         subtitle: summary,
-        url: activity.dealId ? `/crm/deals/${activity.dealId}` : activity.contactId ? `/crm/contacts/${activity.contactId}` : "/crm",
+        url: activity.dealId ? `/crm/deals/${activity.dealId}` : activity.contactId ? `/crm/contacts/${activity.contactId}` : "/crm/dashboard",
       },
     })
   })
@@ -203,7 +203,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "call",
         title: `${caller} (${call.callType})`,
         subtitle: transcriptSnippet || `Started ${call.startedAt.toLocaleString("en-AU")}`,
-        url: call.contactId ? `/crm/contacts/${call.contactId}` : "/crm",
+        url: call.contactId ? `/crm/contacts/${call.contactId}` : "/crm/dashboard",
       },
     })
   })

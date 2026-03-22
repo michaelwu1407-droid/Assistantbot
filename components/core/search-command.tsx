@@ -112,16 +112,16 @@ export function SearchCommand() {
           <CommandSeparator />
 
           <CommandGroup heading="Navigation">
-            <CommandItem onSelect={() => runCommand(() => router.push("/crm"))}>
+            <CommandItem onSelect={() => runCommand(() => router.push("/crm/dashboard"))}>
               <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>Dashboard</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/crm"))}>
+            <CommandItem onSelect={() => runCommand(() => router.push("/crm/dashboard"))}>
               <Briefcase className="mr-2 h-4 w-4" />
               <span>Pipeline</span>
             </CommandItem>
             {/* We don't have a dedicated contacts list page yet, just details, but lets assume */}
-            <CommandItem onSelect={() => runCommand(() => router.push("/crm"))}>
+            <CommandItem onSelect={() => runCommand(() => router.push("/crm/dashboard"))}>
               <Users className="mr-2 h-4 w-4" />
               <span>Contacts</span>
             </CommandItem>

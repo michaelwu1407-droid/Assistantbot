@@ -79,54 +79,54 @@ export function Header({ userName, userId, workspaceId, userRole, onOpenActivity
                     : "glass-panel"
             )}
         >
-            {/* Left: mobile menu + search — capped width so the bar doesn’t feel like one endless field (three-zone pattern: nav rail | search | actions) */}
-            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "md:hidden -ml-2 shrink-0",
-                        isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
-                    )}
-                    onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
-                >
-                    <Menu className="h-5 w-5" />
-                </Button>
-                <div className="hidden min-w-0 flex-1 items-center md:flex">
-                    <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
-                        <GlobalSearch
-                            workspaceId={workspaceId}
-                            variant="bar"
-                            tone={isBrand ? "onDark" : "default"}
-                            className="w-full min-w-0"
-                        />
-                    </div>
+            {/* Mobile menu */}
+            <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                    "md:hidden -ml-2 shrink-0",
+                    isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
+                )}
+                onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
+            >
+                <Menu className="h-5 w-5" />
+            </Button>
+
+            {/* RHS cluster: compact search + New Job / Filter (desktop); pipeline actions + space (mobile) */}
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:gap-2.5">
+                <div className="hidden min-w-0 shrink md:block md:w-[11.5rem] md:max-w-[13rem] lg:w-[12.5rem]">
+                    <GlobalSearch
+                        workspaceId={workspaceId}
+                        variant="bar"
+                        tone={isBrand ? "onDark" : "default"}
+                        className="w-full min-w-0"
+                    />
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "md:hidden",
-                        isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
-                    )}
-                    onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-                >
-                    <Search className="h-5 w-5" />
-                </Button>
+                {headerActions ? (
+                    <div
+                        className={cn(
+                            "flex items-center gap-1 shrink-0",
+                            isBrand &&
+                                /* Moderate emphasis on green bar — not full white pills */
+                                "[&_#new-deal-btn]:border [&_#new-deal-btn]:border-white/25 [&_#new-deal-btn]:bg-emerald-950/45 [&_#new-deal-btn]:text-white [&_#new-deal-btn]:shadow-none [&_#new-deal-btn]:hover:bg-emerald-950/65 [&_#new-deal-btn]:hover:border-white/35 [&_#pipeline-filter-trigger]:!border [&_#pipeline-filter-trigger]:!border-white/25 [&_#pipeline-filter-trigger]:!bg-white/10 [&_#pipeline-filter-trigger]:!text-white [&_#pipeline-filter-trigger]:shadow-none [&_#pipeline-filter-trigger]:hover:!bg-white/18"
+                        )}
+                    >
+                        {headerActions}
+                    </div>
+                ) : null}
             </div>
 
-            {/* Between search and activity: optional pipeline actions (dashboard: New Job + Filter) */}
-            {headerActions ? (
-                <div
-                    className={cn(
-                        "flex items-center gap-1 shrink-0",
-                        isBrand &&
-                            "[&_#new-deal-btn]:bg-white [&_#new-deal-btn]:text-emerald-900 [&_#new-deal-btn]:border-transparent [&_#new-deal-btn]:shadow-sm [&_#new-deal-btn]:hover:bg-emerald-50 [&_#new-deal-btn]:hover:text-emerald-950 [&_#pipeline-filter-trigger]:!bg-white [&_#pipeline-filter-trigger]:!text-emerald-900 [&_#pipeline-filter-trigger]:border [&_#pipeline-filter-trigger]:!border-slate-200/90 [&_#pipeline-filter-trigger]:shadow-sm [&_#pipeline-filter-trigger]:hover:!bg-emerald-50"
-                    )}
-                >
-                    {headerActions}
-                </div>
-            ) : null}
+            <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                    "shrink-0 md:hidden",
+                    isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
+                )}
+                onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+            >
+                <Search className="h-5 w-5" />
+            </Button>
 
             {/* Right: weather + notifications + activity + divider + user identity — h-9 aligns with search + pipeline buttons */}
             <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">

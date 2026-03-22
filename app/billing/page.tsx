@@ -31,7 +31,7 @@ export default async function BillingPaywallPage() {
         if (!workspace.onboardingComplete) {
             redirect("/setup");
         }
-        redirect("/crm");
+        redirect("/crm/dashboard");
     }
 
     return (

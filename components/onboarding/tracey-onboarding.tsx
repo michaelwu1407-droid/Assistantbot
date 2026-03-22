@@ -985,7 +985,7 @@ export function TraceyOnboarding() {
   }
 
   const goToDashboard = () => {
-    router.push("/crm")
+    router.push("/crm/dashboard")
   }
 
   // ─── Render ────────────────────────────────────────────────────

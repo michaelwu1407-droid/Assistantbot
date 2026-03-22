@@ -618,7 +618,7 @@ export async function POST(req: NextRequest) {
           title: "New Inbound Email",
           message: `${contact.name} emailed about: ${subject}${geminiResult ? (geminiResult.isGenuineLead ? " (Genuine Lead)" : " (Tire Kicker)") : ""}`,
           type: geminiResult?.isGenuineLead ? "SUCCESS" : "INFO",
-          link: activeDeal ? `/crm/deals/${activeDeal.id}` : "/crm",
+          link: activeDeal ? `/crm/deals/${activeDeal.id}` : "/crm/dashboard",
         },
       });
     }

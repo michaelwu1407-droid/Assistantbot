@@ -45,7 +45,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
                 id="new-deal-btn"
                 type="button"
                 onClick={() => setNewDealOpen(true)}
-                className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold sunlight-shadow truncate"
+                className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold truncate"
             >
                 <Plus className="h-3.5 w-3.5 mr-0.5 shrink-0" />
                 {newDealLabel}
@@ -58,7 +58,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     return (
         <DashboardHeaderExtraContext.Provider value={setHeaderExtra}>
             {workspaceId && userId ? (
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                     <div className="sticky top-0 z-20 shrink-0">
                         <Header
                             variant="brand"
@@ -70,12 +70,12 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
                             headerActions={headerActions}
                         />
                     </div>
-                    <div className="min-h-0 min-w-0 flex-1">{children}</div>
+                    <div className="min-h-0 min-w-0 flex-1 overflow-hidden flex flex-col">{children}</div>
                     <NewDealModal isOpen={newDealOpen} onClose={() => setNewDealOpen(false)} workspaceId={workspaceId} />
                     <ActivityModal isOpen={activityOpen} onClose={() => setActivityOpen(false)} workspaceId={workspaceId} />
                 </div>
             ) : (
-                <div className="min-h-0 min-w-0 flex-1">{children}</div>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
             )}
         </DashboardHeaderExtraContext.Provider>
     )

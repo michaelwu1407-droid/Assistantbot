@@ -526,7 +526,7 @@ export async function updateDealStage(dealId: string, stage: string) {
             requestedBy: userName,
           },
         });
-        revalidatePath("/crm");
+        revalidatePath("/crm/dashboard");
         revalidatePath("/crm/deals");
         return { success: true };
       }
@@ -668,7 +668,7 @@ export async function persistKanbanColumnOrder(
       })
     );
 
-    revalidatePath("/crm");
+    revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
@@ -765,7 +765,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       console.warn("Review request hook failed on approveCompletion:", reviewErr);
     }
 
-    revalidatePath("/crm");
+    revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
@@ -838,7 +838,7 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
       });
     }
 
-    revalidatePath("/crm");
+    revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
@@ -1115,7 +1115,7 @@ export async function uploadDealPhoto(
       data: { dealId, url: publicUrl, caption: caption || null },
     });
 
-    revalidatePath("/crm");
+    revalidatePath("/crm/dashboard");
     revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (e) {

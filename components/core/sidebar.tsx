@@ -29,7 +29,7 @@ import { useShellStore } from "@/lib/store"
 const SIDEBAR_WIDTH = 45
 
 const allNavItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/crm", id: "dashboard-link", managerOnly: false },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/crm/dashboard", id: "dashboard-link", managerOnly: false },
     { icon: Inbox, label: "Inbox", href: "/crm/inbox", id: "inbox-link", managerOnly: true },
     { icon: CalendarDays, label: "Schedule", href: "/crm/schedule", id: "schedule-link", managerOnly: false },
     { icon: Map, label: "Map", href: "/crm/map", id: "map-link", managerOnly: false },
@@ -63,7 +63,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
     const goToAdvanced = () => {
         const target = lastAdvancedPath && lastAdvancedPath.startsWith("/crm")
             ? lastAdvancedPath
-            : "/crm"
+            : "/crm/dashboard"
         setViewMode("ADVANCED")
         if (pathname !== target) {
             router.push(target)
@@ -75,8 +75,8 @@ export function Sidebar({ className, expanded }: SidebarProps) {
             setLastAdvancedPath(pathname)
         }
         setViewMode("BASIC")
-        if (pathname !== "/crm") {
-            router.push("/crm")
+        if (pathname !== "/crm/dashboard") {
+            router.push("/crm/dashboard")
         }
     }
 
@@ -113,7 +113,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                 />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="text-xs">
+                        <TooltipContent side="right" sideOffset={8} className="z-[200] text-xs">
                             Ask Tracey
                         </TooltipContent>
                     </Tooltip>
@@ -121,7 +121,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
 
                 <nav className="flex flex-1 flex-col gap-1.5 w-full px-1.5 pt-3">
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== "/crm" && pathname.startsWith(item.href))
+                        const isActive = pathname === item.href || (item.href !== "/crm/dashboard" && pathname.startsWith(item.href))
                         return (
                             <Tooltip key={item.label}>
                                 <TooltipTrigger asChild>

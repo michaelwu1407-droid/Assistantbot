@@ -28,8 +28,8 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
     // Steps 1–2 must be shown in chat mode: ensure we're on dashboard root
     useEffect(() => {
-        if (viewMode === "TUTORIAL" && (currentStepIndex === 0 || currentStepIndex === 1) && pathname !== "/crm") {
-            router.push("/crm")
+        if (viewMode === "TUTORIAL" && (currentStepIndex === 0 || currentStepIndex === 1) && pathname !== "/crm/dashboard") {
+            router.push("/crm/dashboard")
         }
     }, [viewMode, currentStepIndex, pathname, router])
 
@@ -106,9 +106,9 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         setIsVisible(false)
         setTutorialComplete()
         setTutorialStepIndex(-1)
-        setLastAdvancedPath("/crm")
+        setLastAdvancedPath("/crm/dashboard")
         setViewMode("BASIC")
-        router.push("/crm")
+        router.push("/crm/dashboard")
         onComplete?.()
     }
 

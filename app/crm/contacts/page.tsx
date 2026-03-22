@@ -12,7 +12,7 @@ export default async function ContactsPage() {
 
     // RBAC: Team members cannot access contacts list
     if (!(await isManagerOrAbove())) {
-        redirect("/crm")
+        redirect("/crm/dashboard")
     }
 
     const workspace = await getOrCreateWorkspace(userId)

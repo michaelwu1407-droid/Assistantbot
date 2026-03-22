@@ -17,7 +17,7 @@ export function SettingsHeader() {
 
     const handleReplayTutorial = () => {
         setViewMode("TUTORIAL")
-        router.push("/crm")
+        router.push("/crm/dashboard")
     }
 
     return (

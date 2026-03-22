@@ -59,7 +59,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
   // Determine if we should show the simplified Chat view
   // Show Chat view when: BASIC mode, or during tutorial steps 1–2 (welcome + two modes) so step 2 is shown in chat mode
-  const isDashboardRoot = pathname === "/crm"
+  const CRM_PIPELINE_HOME = "/crm/dashboard"
+  const isDashboardRoot = pathname === CRM_PIPELINE_HOME
   const isTutorialStep1Or2 = viewMode === "TUTORIAL" && (tutorialStepIndex === 0 || tutorialStepIndex === 1)
   const isBasicView = mounted && isDashboardRoot && (viewMode === "BASIC" || isTutorialStep1Or2)
 
@@ -73,7 +74,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const goToAdvanced = () => {
     const target = lastAdvancedPath && lastAdvancedPath.startsWith("/crm")
       ? lastAdvancedPath
-      : "/crm"
+      : CRM_PIPELINE_HOME
     setViewMode("ADVANCED")
     if (pathname !== target) {
       router.push(target)
@@ -85,8 +86,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       setLastAdvancedPath(pathname)
     }
     setViewMode("BASIC")
-    if (pathname !== "/crm") {
-      router.push("/crm")
+    if (pathname !== CRM_PIPELINE_HOME) {
+      router.push(CRM_PIPELINE_HOME)
     }
   }
 
@@ -120,7 +121,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   // Default chat panel: open on home (desktop only), closed on other pages; on mobile always closed
   useEffect(() => {
     if (!mounted || isBasicView) return
-    const openOnHome = pathname === "/crm" && isDesktop
+    const openOnHome = pathname === CRM_PIPELINE_HOME && isDesktop
     if (openOnHome) {
       const t = setTimeout(() => {
         chatbotPanelRef.current?.expand()
@@ -300,7 +301,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               <div
                 id="main-canvas"
-                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-auto relative bg-[var(--main-canvas)]"
+                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overflow-x-auto relative bg-[var(--main-canvas)]"
               >
                 <DashboardMainChrome>{children}</DashboardMainChrome>
               </div>

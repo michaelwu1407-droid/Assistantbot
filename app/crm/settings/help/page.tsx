@@ -41,7 +41,7 @@ export default function HelpSettingsPage() {
 
   const handleRestartTutorial = () => {
     resetTutorial();
-    router.push("/crm");
+    router.push("/crm/dashboard");
   };
 
   return (

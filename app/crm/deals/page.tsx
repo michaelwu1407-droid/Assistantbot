@@ -35,7 +35,7 @@ export default async function JobsPage() {
                     <h1 className="text-2xl font-bold text-midnight">Pipeline</h1>
                     <p className="text-sm text-slate-body">{jobs.length} jobs worth ${jobs.reduce((s: number, d: any) => s + d.value, 0).toLocaleString("en-AU")}</p>
                 </div>
-                <Link href="/crm">
+                <Link href="/crm/dashboard">
                     <Button variant="outline" size="sm">Back to Dashboard</Button>
                 </Link>
             </div>

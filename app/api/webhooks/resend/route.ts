@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
               title: "Email Read Receipt",
               message: `${contact.name} opened your email`,
               type: "INFO",
-              link: "/crm",
+              link: "/crm/dashboard",
             },
           });
         }

@@ -13,7 +13,7 @@ export default function OfflinePage() {
       <h1 className="mb-2 text-2xl font-bold text-slate-900">You are offline</h1>
       <p className="mt-4 text-slate-600">You&apos;re currently offline. Please check your internet connection. We&apos;ve saved your recent changes locally and will sync them when you&apos;re back online.</p>
       <div className="flex gap-4">
-        <Link href="/crm">
+        <Link href="/crm/dashboard">
           <Button variant="default">Go to Dashboard</Button>
         </Link>
         <Button variant="outline" onClick={() => window.location.reload()}>

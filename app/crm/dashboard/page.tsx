@@ -1,0 +1,83 @@
+import { redirect } from "next/navigation"
+import { getDeals } from "@/actions/deal-actions"
+import { getOrCreateWorkspace, ensureOwnerHasUserRow } from "@/actions/workspace-actions"
+import { getTeamMembers } from "@/actions/invite-actions"
+import { DashboardClient } from "@/components/dashboard/dashboard-client"
+import { getAuthUser } from "@/lib/auth"
+import { resolveHeaderDisplayName } from "@/lib/display-name"
+import { ensureDashboardDemoDeals } from "@/actions/dashboard-demo-seeds"
+import { db } from "@/lib/db"
+
+export const dynamic = 'force-dynamic'
+
+export default async function CrmDashboardPage(props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+    if (props.searchParams) await props.searchParams
+
+    let workspace, deals;
+    let teamMembers: { id: string; name: string | null; email: string; role: string; isCurrentUser?: boolean }[] = []
+    let dbError = false;
+
+    const authUser = await getAuthUser()
+
+    if (!authUser) {
+        redirect("/auth")
+    }
+
+    const userId = authUser.id
+    let userName = authUser.name
+
+    try {
+        workspace = await getOrCreateWorkspace(userId)
+        if (process.env.NODE_ENV === "development") {
+            await ensureDashboardDemoDeals(workspace.id).catch(() => {})
+        }
+        const [, dealsResult, teamResult] = await Promise.all([
+            ensureOwnerHasUserRow(workspace),
+            getDeals(workspace.id),
+            getTeamMembers(),
+        ])
+        deals = dealsResult
+        teamMembers = teamResult
+        const currentMember = teamMembers.find((m) => m.isCurrentUser)
+        const appUserRow = await db.user.findFirst({
+            where: {
+                OR: [{ id: userId }, ...(authUser.email ? [{ email: authUser.email }] : [])],
+            },
+            select: { name: true, email: true },
+        })
+        userName = resolveHeaderDisplayName({
+            authName: authUser.name,
+            dbName: currentMember?.name ?? appUserRow?.name ?? null,
+            email: currentMember?.email ?? appUserRow?.email ?? authUser.email ?? null,
+        })
+    } catch (error) {
+        console.error("CrmDashboardPage failed to load:", error);
+        dbError = true;
+    }
+
+    if (dbError || !workspace || !deals) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-8 gap-4">
+                <div className="max-w-sm w-full rounded-xl border border-amber-200 bg-amber-50 p-5 text-center space-y-2">
+                    <h3 className="text-sm font-semibold text-amber-800">Database connection unavailable</h3>
+                    <p className="text-xs text-amber-600">
+                        CRM features (deals, contacts, kanban) need a database connection.
+                        The chatbot is still available in the sidebar.
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <DashboardClient
+            workspace={workspace}
+            deals={deals}
+            teamMembers={teamMembers}
+            userName={userName}
+            userId={userId}
+        />
+    )
+}

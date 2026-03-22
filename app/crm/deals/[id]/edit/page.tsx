@@ -33,7 +33,7 @@ export default async function DealEditPage({ params }: PageProps) {
   return (
     <div className="flex flex-col max-w-2xl mx-auto p-4 md:p-6 gap-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
-        <Link href="/crm" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
+        <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
           <Home className="h-4 w-4" />
           Dashboard
         </Link>

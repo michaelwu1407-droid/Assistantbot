@@ -126,7 +126,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
             if (result.success) {
                 toast.success("Job created successfully!")
-                router.push("/crm")
+                router.push("/crm/dashboard")
             } else {
                 toast.error("Failed: " + result.error)
             }

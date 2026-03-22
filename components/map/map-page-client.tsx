@@ -35,7 +35,7 @@ export function MapPageClient({ jobs }: { jobs: Job[] }) {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/crm"
+                href="/crm/dashboard"
                 className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
               >
                 Open dashboard

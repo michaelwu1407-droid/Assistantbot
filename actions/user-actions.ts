@@ -94,7 +94,7 @@ export async function updateUserProfile(
     });
 
     revalidatePath("/crm/settings");
-    revalidatePath("/crm");
+    revalidatePath("/crm", "layout");
     return { success: true };
   } catch (error) {
     console.error("Failed to update profile:", error);
@@ -111,7 +111,7 @@ export async function completeUserOnboarding(userId: string) {
       where: { id: userId },
       data: { hasOnboarded: true },
     });
-    revalidatePath("/crm");
+    revalidatePath("/crm", "layout");
     return { success: true };
   } catch (error) {
     console.error("Failed to complete onboarding:", error);

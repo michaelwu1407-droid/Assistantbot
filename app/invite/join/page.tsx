@@ -106,7 +106,7 @@ function JoinByInviteContent() {
     }
 
     toast.success("Welcome to the team!");
-    router.push("/crm");
+    router.push("/crm/dashboard");
     router.refresh();
   };
 

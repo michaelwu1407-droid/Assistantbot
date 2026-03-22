@@ -682,7 +682,7 @@ export async function checkUserRoute(userId: string): Promise<string> {
       if (!workspace.onboardingComplete) {
         return "/setup";
       }
-      return "/crm";
+      return "/crm/dashboard";
     }
     return "/billing";
   } catch {

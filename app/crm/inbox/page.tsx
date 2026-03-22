@@ -16,7 +16,7 @@ export default async function InboxPage() {
 
     // RBAC: Team members cannot access the global inbox
     if (!(await isManagerOrAbove())) {
-        redirect("/crm")
+        redirect("/crm/dashboard")
     }
 
     let interactions

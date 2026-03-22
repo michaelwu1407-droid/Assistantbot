@@ -1,3 +1,18 @@
+### 2026-03-23 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-header-extra-context.tsx`, `docs/agent_change_log.md`
+- What changed: **`DashboardHeaderExtraContext`** — default **`createContext`** value is a **no-op** setter; **`useDashboardHeaderExtraSetter`** no longer **throws** (avoids hard crash if Provider is briefly missing / HMR / stale chunk).
+- Why: Runtime: `useDashboardHeaderExtraSetter must be used inside DashboardMainChrome`.
+
+### 2026-03-23 (AEDT) - Cursor AI Agent
+- Files: `components/ui/tooltip.tsx`, `components/core/sidebar.tsx`, `components/dashboard/header.tsx`, `components/dashboard/dashboard-main-chrome.tsx`, `docs/agent_change_log.md`
+- What changed: **Sidebar logo tooltip** — **`TooltipContent`** **`z-[200]`** so “Ask Tracey” isn’t covered by the **brand header** (`z-20`). **Header** — **compact search** (`~11.5–13rem`) moved **next to** **New Job + Filter** (RHS group, `justify-end`); removed wide left search. **New Job** — **emerald** glass (`bg-emerald-950/45`, border white/25) instead of **white** pill; **Filter** — **`bg-white/10`** + border (moderate emphasis). Removed **`sunlight-shadow`** from **New Job** button.
+- Why: User: tooltip behind green bar; search too wide; CTAs too loud vs bar.
+
+### 2026-03-23 (AEDT) - Cursor AI Agent
+- Files: `app/crm/page.tsx`, `app/crm/dashboard/page.tsx`, `next.config.js`, `components/layout/Shell.tsx`, `components/dashboard/dashboard-main-chrome.tsx`, `app/crm/settings/layout.tsx`, `components/core/sidebar.tsx`, `components/tutorial/tutorial-overlay.tsx`, `actions/deal-actions.ts`, `actions/*` (revalidatePath), onboarding/auth/billing/not-found/offline/deals/contacts/API webhooks, `docs/agent_change_log.md`
+- What changed: **Pipeline URL** is **`/crm/dashboard`** (Kanban home), not **`/crm`**. **`/crm`** **redirects** to **`/crm/dashboard`**. **Frozen Kanban headers** — **`#main-canvas`** uses **`flex flex-col overflow-hidden`** (not **`overflow-y-auto`**) so vertical scroll stays inside **`#kanban-board`**; **`DashboardMainChrome`** + settings root get **`overflow-hidden` / `overflow-y-auto`** so long settings still scroll. **Legacy `/dashboard`** redirect target updated to **`/crm/dashboard`**. **revalidatePath("/crm", "layout")** for broad CRM cache; deal actions also **`/crm/dashboard`**.
+- Why: User: `/crm` alone was wrong product shape; whole-page scroll broke column header lock.
+
 ### 2026-03-23 (AEDT) - Antigravity Agent
 - Files: `app/crm/layout.tsx`, `components/layout/Shell.tsx`, `components/crm/hero-dashboard-reel.tsx`
 - What changed: **Layout & Context Fixes** — Restored **`DashboardMainChrome`** wrapper in **`Shell.tsx`** mounted branch to fix `useDashboardHeaderExtraSetter` runtime crash. Moved **`headerDisplayName`** database-lookup logic into **`app/crm/layout.tsx`** to fix top-right name regression. Added **`suppressHydrationWarning`** and **`mounted`** guard to **`HeroDashboardReel`** to fix SSR mismatch.

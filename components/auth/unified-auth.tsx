@@ -254,7 +254,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
             name: user.user_metadata?.name,
           });
         } else {
-          router.push("/crm");
+          router.push("/crm/dashboard");
         }
         return;
       }

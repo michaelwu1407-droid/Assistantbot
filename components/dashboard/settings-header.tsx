@@ -11,7 +11,7 @@ export function SettingsHeader() {
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
-        <Link href="/crm">
+        <Link href="/crm/dashboard">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

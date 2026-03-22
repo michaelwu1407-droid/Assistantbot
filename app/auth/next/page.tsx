@@ -50,7 +50,7 @@ export default async function AuthNextPage() {
         workspaceId: workspace.id,
         subscribed,
         onboarded,
-        redirectTarget: subscribed ? (onboarded ? "/crm" : "/setup") : "/billing"
+        redirectTarget: subscribed ? (onboarded ? "/crm/dashboard" : "/setup") : "/billing"
     });
 
     if (!subscribed) {
@@ -76,5 +76,5 @@ export default async function AuthNextPage() {
         workspaceId: workspace.id,
         reason: "subscription_active_and_onboarding_complete"
     });
-    redirect("/crm");
+    redirect("/crm/dashboard");
 }

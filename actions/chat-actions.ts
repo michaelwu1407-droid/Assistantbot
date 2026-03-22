@@ -342,7 +342,7 @@ export async function runMoveDeal(
   }
   const ctx = getIndustryContext(industryType);
   const stageLabel = ctx.stageLabels[resolvedStage.toUpperCase() as keyof typeof ctx.stageLabels] ?? resolvedStage;
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return {
     success: true,
@@ -408,7 +408,7 @@ export async function runProposeReschedule(
     dealId: deal.id,
     contactId: contactId ?? undefined,
   });
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return {
     success: true,
@@ -461,7 +461,7 @@ export async function runCreateDeal(
   if (!result.success) {
     return { success: false, message: result.error ?? "Failed to create deal." };
   }
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return {
     success: true,
@@ -656,7 +656,7 @@ export async function recordManualRevenue(
       createdAt: midMonth,
     },
   });
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/analytics");
   return {
     success: true,
@@ -726,7 +726,7 @@ export async function runCreateJobNatural(
   if (!dealResult.success) {
     return { success: false, message: dealResult.error ?? "Failed to create job." };
   }
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   const scheduleSuffix = scheduleDisplay ? ` Scheduled: ${scheduleDisplay}.` : "";
   return {
@@ -1118,7 +1118,7 @@ export async function runCreateDraftInvoice(
       source: "chat-actions.runCreateDraftInvoiceAction",
     },
   });
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
 }
 
@@ -1372,7 +1372,7 @@ export async function runUpdateInvoiceFields(
     },
   });
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return `Updated invoice ${nextNumber} for "${invoice.deal.title}".`;
 }
 
@@ -1430,7 +1430,7 @@ export async function runVoidInvoice(
     },
   });
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return `Voided invoice ${invoice.number} for "${invoice.deal.title}".`;
 }
 
@@ -2042,7 +2042,7 @@ export async function runAssignTeamMember(
       dealId: deal.id,
     });
 
-    revalidatePath("/crm");
+    revalidatePath("/crm", "layout");
     revalidatePath("/crm/deals");
     return {
       success: true,
@@ -2094,7 +2094,7 @@ export async function runBulkMoveDeals(
     results.push({ id: deal.id, title: deal.title, status: "success" });
   }
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return formatBulkOperationSummary(`Bulk move to ${resolvedStage}`, results);
 }
@@ -2137,7 +2137,7 @@ export async function runBulkAssignDeals(
     results.push({ id: deal.id, title: deal.title, status: "success" });
   }
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return formatBulkOperationSummary(`Bulk assignment to ${member.name || member.email}`, results);
 }
@@ -2176,7 +2176,7 @@ export async function runBulkSetDealDisposition(
     results.push({ id: deal.id, title: deal.title, status: "success" });
   }
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return formatBulkOperationSummary(`Bulk mark as ${targetStage}`, results);
 }
@@ -2209,7 +2209,7 @@ export async function runBulkCreateDealReminder(
     results.push({ id: deal.id, title: deal.title, status: "success" });
   }
 
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   revalidatePath("/crm/tasks");
   return formatBulkOperationSummary(`Bulk reminder "${params.title}"`, results);
 }
@@ -2345,7 +2345,7 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
           data: { stage: previousStage as any },
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
-        revalidatePath("/crm");
+        revalidatePath("/crm", "layout");
         return `Undone: "${deal.title}" moved back to "${previousStage}" stage.`;
       }
 
@@ -2359,7 +2359,7 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
 
       await db.activity.deleteMany({ where: { dealId: deal.id } });
       await db.deal.delete({ where: { id: deal.id } });
-      revalidatePath("/crm");
+      revalidatePath("/crm", "layout");
       return `Undone: Deal "${deal.title}" has been deleted.`;
     }
 

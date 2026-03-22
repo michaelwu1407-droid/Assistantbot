@@ -288,7 +288,7 @@ export async function removeMember(memberId: string): Promise<{ success: boolean
   await db.user.delete({ where: { id: memberId } });
 
   revalidatePath("/crm/team");
-  revalidatePath("/crm");
+  revalidatePath("/crm", "layout");
   return { success: true };
 }
 

@@ -21,7 +21,7 @@ export default async function SetupPage() {
     }
 
     if (alreadyOnboarded) {
-        redirect("/crm")
+        redirect("/crm/dashboard")
     }
 
     return <TraceyOnboarding />

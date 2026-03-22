@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
   // RBAC: Team members cannot access reports
   useEffect(() => {
     if (userRole === "TEAM_MEMBER") {
-      router.replace("/crm")
+      router.replace("/crm/dashboard")
     }
   }, [userRole, router])
 
