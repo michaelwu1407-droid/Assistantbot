@@ -1,3 +1,68 @@
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **Bulk drag overlay** — back cards use **negative `translate`** (**up-left**) so they sit **behind** the dragged card (deck), not down-right beside it; **`transform-origin: top left`**, **`z-[60]`** on front; **`overflow-visible`** on wrapper.
+- Why: User: selecting A,B,C and dragging A should show B,C **falling behind** A.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **Multi-select Kanban drag** — `DragOverlay` renders **`BulkDragOverlay`** (stacked **`DealCard`** previews, **`bulkDragIds`** snapshot, cap **8** + **`+N`** badge). Removed **`bulkDragCount`**. (Stack geometry refined in following entry.)
+- Why: User: when moving several selected cards, preview should show the **group** moving together, not a single card + count pill.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/layout/Shell.tsx`, `docs/agent_change_log.md`
+- What changed: **Assistant resize** — removed extra **`div` wrapper** around **`ResizableHandle`** so the handle is a **direct child** of **`ResizablePanelGroup`** (matches `react-resizable-panels` expectations; avoids an empty flex strip). Moved **`id="assistant-resize-handle"`** onto **`ResizableHandle`** for tutorial spotlight. **`justify-start`**, **`overflow-visible`**, fixed **`w-2 min-w-2 max-w-2`** so the grip sits flush to the main canvas with no dead space to its left.
+- Why: User: blank strip left of the drag handle when RHS chat is open.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban column panel** — **`max-md:rounded-lg`** (mobile full rounding); **`md:rounded-none md:rounded-b-lg`** so desktop grey card shell has **square top** (no bevel gaps under fixed headers), **rounded bottom only** (replaces `rounded-lg` + `md:rounded-t-none`). **DealCard** footer rows (banner + default) — **`pt-1.5 pb-2` → `py-2`** so vertical padding matches body **`pt-2`** rhythm.
+- Why: Plan: flush column shell under headers; symmetric deal card footer padding.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **DealCard footer** — removed icon-width spacer so **dollar starts at the same `px-3` inset as the row icons** (User / MapPin / Briefcase), not indented to match text after `gap-2`.
+- Why: User: align dollar with icons above, not the text.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **DealCard footer** — replaced `pl-[22px]` (pixel-based) with a **`<div className="h-3.5 w-3.5 shrink-0">`** spacer inside a React fragment, so footer uses the SAME flex+gap structure as body rows (rem-based `w-3.5` + parent `gap-2`), ensuring dollar aligns pixel-perfectly with address/job text above. **Dashboard divider** — changed `py-5` to **`pt-5 pb-2.5`** so the visual gap above the line (20px) equals the gap below (10px divider padding + 10px column panel top padding). **Kanban headers** — extracted column headers into a **separate non-scrolling `shrink-0` grid** above the scroll container (desktop only); card area scrolls independently beneath locked headers. Column panels use `md:rounded-t-none md:pt-2` to connect visually with the header grid above.
+- Why: User: dollar still misaligned (structural rem/px mismatch); divider gap not equidistant; headers should stay fixed while cards scroll.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI** — replaced absolute pill element with native **`border-l-[5px]`** on the card div; `rounded-lg` on the card curves the border at corners automatically — no inner element needed. **Kanban columns** — switched from `bg-muted/40 rounded-xl` to `bg-black/[0.03] rounded-lg` (near-invisible tint eliminates perceived white outline). **DealCard footer** — replaced empty `h-3.5 w-3.5` spacer `<span>` with `pl-[22px]` on the content div (14px icon + 8px gap = 22px), aligning dollar with body text and trash with date.
+- Why: User: previous fixes still broken; simplest possible approach for each.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **KPI** — accent is **`absolute`** floating pill (`left-1.5 top-1/2 -translate-y-1/2 h-[4.25rem] w-2.5 rounded-full`) so it reads as a **capsule**, not a flex-column strip; content **`pl-6`** with **`px-3`**. **Follow-up** — weeks **`Select`** wrapped in **`w-fit max-w-[4.5rem] shrink-0`**; row uses **`gap-2`** (no `justify-between`). **Kanban** — grid **`gap-3` + `md:gap-2`** (half of former **gap-6 / md:gap-4**); column **`px-2 md:px-1.5`** (tighter horizontal inset). **globals** — **remove** `.kanban-column-panel .ghost-border` override; **deal cards** keep **`ghost-border`**; panel **`box-shadow: none`** only.
+- Why: User “try again”: clearer pill accent; fix follow-up width; sane half-gaps; remove white rim without stripping card outlines.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/dashboard/dashboard-client.tsx`, `components/crm/kanban-board.tsx`, `components/crm/deal-card.tsx`, `app/globals.css`, `docs/agent_change_log.md`
+- What changed: **KPI** — accent is a **fixed-height** centered pill (`h-[4.25rem] w-2.5 rounded-full`) so it is not a full-height “D” strip. **Dashboard** — Kanban wrapper **` -mx-2 px-2` → `-mx-6 px-6`** to **align** with KPI strip. **Kanban** — **`md:gap-2`→`md:gap-1`**, **`gap-3`→`gap-1.5`**; column **`kanban-column-panel`** + **`overflow-hidden`**. **globals.css** — **`.kanban-column-panel`** and **`.kanban-column-panel .ghost-border`** outline removed (fixes white rim). **DealCard** footer — **`pl-[22px]`** replaced with **icon-width spacer + `gap-2`** row (match address line).
+- Why: User: pill accent per reference; column gap/outline; Kanban flush with top cards; dollar left-align with text.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-kpi-cards.tsx`, `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
+- What changed: **KPI** — left accent is a **vertical capsule** (`rounded-full`, inset `py-3`) so both sides curve at top/bottom; content area `py-3 pr-3`. **Follow-up** — `SelectTrigger` **`!w-auto`** + **`max-w-[4.5rem]`** + **`py-0`** (overrides default **`w-full`**); label **`truncate`**. **Kanban** — column grid **`gap-6`→`gap-3`**, **`md:gap-4`→`md:gap-2`**; column panel **`border-0 ring-0 shadow-none outline-none`**.
+- Why: User: pill accent like sample; weeks control must not cover title; tighter columns; remove white outline.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `docs/agent_change_log.md`
+- What changed: **Kanban** — replaced small left pip with **colored top bar** spanning full column width; each column wrapped in **rounded gray panel** (`bg-muted/40`); count badge now **accent-colored** with white text (matches column color); "+" button faded; removed separate frozen header row (header is part of each panel). **KPI cards** — removed outer **border** (`border border-border/50`); thicker accent bar (`w-1` to `w-1.5`); all 4 cards identical format.
+- Why: User: match reference screenshots for both KPI cards and Kanban column layout.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
+- What changed: Kanban **DealCard** footer — removed **green pill** wrapper (`rounded-md bg-primary/10 px-2 py-0.5`) around **dollar amount**; amount stays **bold primary** text only.
+- Why: User: no pill around dollar values.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/deal-card.tsx`, `components/crm/kanban-board.tsx`, `components/dashboard/dashboard-kpi-cards.tsx`, `actions/deal-actions.ts`, `lib/kanban-columns.ts`, `docs/agent_change_log.md`
+- What changed: **Deal card** top-right date = **scheduled date only**; **"-"** when none (no created date). **Kanban** — same-column **vertical reorder**: `handleDragOver` runs `arrayMove` when source/target share a column; `findColumnForItem` uses **`kanbanColumnIdForDealStage`** (fixes **pending_approval** → **completed**); drag end calls **`persistKanbanColumnOrder`** (writes **`metadata.kanbanOrder`**); **`getDeals`** sorts by column then **`kanbanOrder`**. **`closestCorners`** collision for sortable. **KPI cards** — screenshot-style **left accent bar** + pastel panels (sky / emerald / slate / red); **labels + metrics stay black**; same copy and logic. New **`lib/kanban-columns.ts`**.
+- Why: User: scheduled-only corner date; reorder within column; dashboard KPI visual parity without changing content/colours.
+
 ### 2026-03-21 (AEDT) - Cursor AI Agent
 - Files: `components/crm/deal-card.tsx`, `docs/agent_change_log.md`
 - What changed: DealCard footer: replaced fragile empty-span spacer with explicit `pl-[22px]` (= icon 14px + gap 8px) on a single `justify-between` flex row. Dollar pill now at exactly 34px from card edge (matching body text). Bin pushed to right via `justify-between` so icon right aligns with date right. Removed bin wrapper div.

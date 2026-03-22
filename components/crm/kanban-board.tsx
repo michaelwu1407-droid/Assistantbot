@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import {
   DndContext,
   DragOverlay,
-  pointerWithin,
+  closestCorners,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -13,7 +13,7 @@ import {
   useDroppable,
   DragStartEvent,
   DragOverEvent,
-  DragEndEvent
+  DragEndEvent,
 } from "@dnd-kit/core"
 import {
   sortableKeyboardCoordinates,
@@ -48,7 +48,13 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DealView, updateDealStage, updateDealAssignedTo } from "@/actions/deal-actions"
+import {
+  DealView,
+  persistKanbanColumnOrder,
+  updateDealAssignedTo,
+  updateDealStage,
+} from "@/actions/deal-actions"
+import { kanbanColumnIdForDealStage } from "@/lib/kanban-columns"
 import { toast } from "sonner"
 import { publishCrmSelection } from "@/lib/crm-selection"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
@@ -56,14 +62,94 @@ import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 // 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
 
-const COLUMNS: { id: ColumnId; title: string; color: string }[] = [
-  { id: "new_request", title: "New request", color: "bg-status-new" },
-  { id: "quote_sent", title: "Quote sent", color: "bg-status-quote" },
-  { id: "scheduled", title: "Scheduled", color: "bg-status-scheduled" },
-  { id: "ready_to_invoice", title: "Awaiting payment", color: "bg-status-awaiting" },
-  { id: "completed", title: "Completed", color: "bg-status-complete" },
-  { id: "deleted", title: "Deleted", color: "bg-neutral-400" },
+const COLUMNS: { id: ColumnId; title: string; color: string; badgeBg: string; badgeText: string }[] = [
+  { id: "new_request", title: "New request", color: "bg-status-new", badgeBg: "bg-status-new", badgeText: "text-white" },
+  { id: "quote_sent", title: "Quote sent", color: "bg-status-quote", badgeBg: "bg-status-quote", badgeText: "text-white" },
+  { id: "scheduled", title: "Scheduled", color: "bg-status-scheduled", badgeBg: "bg-status-scheduled", badgeText: "text-white" },
+  { id: "ready_to_invoice", title: "Awaiting payment", color: "bg-status-awaiting", badgeBg: "bg-status-awaiting", badgeText: "text-white" },
+  { id: "completed", title: "Completed", color: "bg-status-complete", badgeBg: "bg-status-complete", badgeText: "text-white" },
+  { id: "deleted", title: "Deleted", color: "bg-neutral-400", badgeBg: "bg-neutral-400", badgeText: "text-white" },
 ]
+
+const BULK_STACK_MAX_VISIBLE = 8
+/** Pixels per “step” back — negative translate so cards sit up/left *behind* the dragged card (deck). */
+const STACK_OFFSET_PX = 9
+const STACK_SCALE_STEP = 0.028
+
+/** Stacked drag preview: active card in front at (0,0); other selected cards peek from behind (up-left). */
+function BulkDragOverlay({
+  activeId,
+  activeDeal,
+  bulkDragIds,
+  deals,
+}: {
+  activeId: string
+  activeDeal: DealView
+  bulkDragIds: string[]
+  deals: DealView[]
+}) {
+  if (bulkDragIds.length <= 1) {
+    return (
+      <div className="relative w-72">
+        <DealCard deal={activeDeal} overlay />
+      </div>
+    )
+  }
+
+  // Backs first (same order as selection, minus active), then active last = on top visually.
+  const ordered = bulkDragIds.includes(activeId)
+    ? [...bulkDragIds].filter((id) => id !== activeId).concat(activeId)
+    : [activeId]
+
+  const total = ordered.length
+  const exceeded = total > BULK_STACK_MAX_VISIBLE
+  const idsForStack = exceeded
+    ? [...ordered.filter((id) => id !== activeId).slice(0, BULK_STACK_MAX_VISIBLE - 1), activeId]
+    : ordered
+
+  const hiddenExtra = total - idsForStack.length
+  const n = idsForStack.length
+
+  return (
+    <div className="relative w-72 overflow-visible drop-shadow-xl">
+      {idsForStack.map((id, index) => {
+        const deal = deals.find((d) => d.id === id)
+        if (!deal) return null
+        const isFront = index === n - 1
+        const fromBack = n - 1 - index
+        const visualDepth = Math.min(fromBack, 6)
+        const offset = visualDepth * STACK_OFFSET_PX
+        const scale = Math.max(0.82, 1 - visualDepth * STACK_SCALE_STEP)
+
+        return (
+          <div
+            key={id}
+            className={cn(
+              "w-72 origin-top-left",
+              !isFront && "pointer-events-none absolute left-0 top-0",
+              isFront && "relative z-[60]"
+            )}
+            style={{
+              zIndex: isFront ? 60 : index,
+              transform: isFront
+                ? undefined
+                : `translate(${-offset}px, ${-offset}px) scale(${scale})`,
+              transformOrigin: "top left",
+              opacity: isFront ? 1 : 1 - Math.min(fromBack, 5) * 0.06,
+            }}
+          >
+            <DealCard deal={deal} overlay />
+          </div>
+        )
+      })}
+      {hiddenExtra > 0 && (
+        <div className="pointer-events-none absolute -right-1 top-0 z-[70] rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold tabular-nums text-primary-foreground shadow-md">
+          +{hiddenExtra}
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface TeamMemberOption {
   id: string
@@ -99,43 +185,76 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 
 function KanbanColumnHeader({ col, count }: { col: (typeof COLUMNS)[number]; count: number }) {
   return (
-    <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 px-1">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <div className={cn("h-4 w-1 shrink-0 rounded-full", col.color)} />
-        {col.id === "ready_to_invoice" ? (
-          <h4 className="min-w-0 flex-1 overflow-hidden">
-            <HoverScrollName
-              text="Awaiting payment"
-              className="min-w-0 flex-1"
-              textClassName="text-[10px] font-bold uppercase leading-none tracking-wide sm:text-[11px] sm:tracking-wider"
-            />
-          </h4>
-        ) : (
-          <h4
-            className="min-w-0 flex-1 truncate font-bold text-[11px] uppercase leading-none tracking-wider"
-            title={col.title}
+    <div className="flex flex-col gap-2">
+      <div className={cn("h-[3px] w-full rounded-full", col.color)} />
+      <div className="flex min-w-0 items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {col.id === "ready_to_invoice" ? (
+            <h4 className="min-w-0 flex-1 overflow-hidden">
+              <HoverScrollName
+                text="Awaiting payment"
+                className="min-w-0 flex-1"
+                textClassName="text-[11px] font-bold uppercase leading-none tracking-wide sm:tracking-wider"
+              />
+            </h4>
+          ) : (
+            <h4
+              className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase leading-none tracking-wider"
+              title={col.title}
+            >
+              {col.title}
+            </h4>
+          )}
+          <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums", col.badgeBg, col.badgeText)}>
+            {String(count).padStart(2, "0")}
+          </span>
+        </div>
+        {col.id !== "deleted" && (
+          <button
+            type="button"
+            className="text-muted-foreground/50 transition-colors hover:text-primary"
+            onClick={() => document.getElementById("new-deal-btn")?.click()}
           >
-            {col.title}
-          </h4>
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         )}
-        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-muted-foreground">
-          {String(count).padStart(2, "0")}
-        </span>
       </div>
-      {col.id !== "deleted" && (
-        <button
-          type="button"
-          className="text-base text-muted-foreground transition-colors hover:text-primary"
-          onClick={() => document.getElementById("new-deal-btn")?.click()}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-      )}
     </div>
   )
 }
 
 const FILTER_UNASSIGNED = "__unassigned__"
+
+function reorderDealsInColumn(
+  prev: DealView[],
+  columnId: string,
+  activeId: string,
+  overId: string
+): DealView[] {
+  if (activeId === overId) return prev
+  const inColumn = prev.filter((d) => kanbanColumnIdForDealStage(d.stage) === columnId)
+  const ids = inColumn.map((d) => d.id)
+  const oldIndex = ids.indexOf(activeId)
+  const newIndex = ids.indexOf(overId)
+  if (oldIndex === -1 || newIndex === -1) return prev
+  const newIds = arrayMove(ids, oldIndex, newIndex)
+  const idSet = new Set(newIds)
+  const byId = new Map(prev.map((d) => [d.id, d]))
+  const result: DealView[] = []
+  let colEmitted = false
+  for (const d of prev) {
+    if (!idSet.has(d.id)) {
+      result.push(d)
+    } else if (!colEmitted) {
+      for (const id of newIds) {
+        const deal = byId.get(id)
+        if (deal) result.push(deal)
+      }
+      colEmitted = true
+    }
+  }
+  return result
+}
 
 export function KanbanBoard({
   deals: initialDeals,
@@ -156,11 +275,15 @@ export function KanbanBoard({
   const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
   const dragStartStageRef = useRef<string | null>(null)
+  const dragStartColumnRef = useRef<string | null>(null)
+  const dealsRef = useRef(deals)
+  dealsRef.current = deals
   const dragGroupRef = useRef<string[] | null>(null)
   const dragGroupStagesRef = useRef<Map<string, string>>(new Map())
   const boardRef = useRef<HTMLDivElement | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [bulkDragCount, setBulkDragCount] = useState(0)
+  /** Snapshot of selected ids at bulk drag start (for stacked overlay; refs don’t re-render). */
+  const [bulkDragIds, setBulkDragIds] = useState<string[]>([])
 
   // Filter deals by assignee when filter is set
   const filteredDeals = useMemo(() => {
@@ -257,11 +380,10 @@ export function KanbanBoard({
     [deals, activeId])
 
   function findColumnForItem(itemId: string): string | undefined {
-    // Check if it's a column ID
-    if (COLUMNS.some(c => c.id === itemId)) return itemId
-    // Otherwise find which column the deal belongs to
-    const deal = deals.find(d => d.id === itemId)
-    return deal?.stage ?? undefined
+    if (COLUMNS.some((c) => c.id === itemId)) return itemId
+    const deal = dealsRef.current.find((d) => d.id === itemId)
+    if (!deal) return undefined
+    return kanbanColumnIdForDealStage(deal.stage)
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -283,11 +405,11 @@ export function KanbanBoard({
         if (d) snap.set(gid, d.stage)
       }
       dragGroupStagesRef.current = snap
-      setBulkDragCount(selectedDealIds.length)
+      setBulkDragIds([...selectedDealIds])
     } else {
       dragGroupRef.current = null
       dragGroupStagesRef.current = new Map()
-      setBulkDragCount(0)
+      setBulkDragIds([])
     }
   }
 
@@ -301,7 +423,15 @@ export function KanbanBoard({
     const activeColumn = findColumnForItem(activeId)
     const overColumn = findColumnForItem(overId)
 
-    if (!activeColumn || !overColumn || activeColumn === overColumn) return
+    if (!activeColumn || !overColumn) return
+
+    if (activeColumn === overColumn) {
+      if (activeId === overId) return
+      const groupIds = dragGroupRef.current
+      if (groupIds && groupIds.length > 1) return
+      setDeals((prev) => reorderDealsInColumn(prev, activeColumn, activeId, overId))
+      return
+    }
 
     const groupIds = dragGroupRef.current
     if (groupIds && groupIds.length > 1) {
@@ -351,12 +481,14 @@ export function KanbanBoard({
     const groupIds = dragGroupRef.current
     const groupSnapshot = new Map(dragGroupStagesRef.current)
     const singleOriginalStage = dragStartStageRef.current
+    const startedColumn = dragStartColumnRef.current
 
     const clearDragRefs = () => {
       dragGroupRef.current = null
       dragGroupStagesRef.current = new Map()
       dragStartStageRef.current = null
-      setBulkDragCount(0)
+      dragStartColumnRef.current = null
+      setBulkDragIds([])
     }
 
     const restoreGroup = () => {
@@ -456,7 +588,15 @@ export function KanbanBoard({
 
     clearDragRefs()
 
-    if (singleOriginalStage === targetColumn) {
+    if (startedColumn && targetColumn && startedColumn === targetColumn) {
+      const orderedIds = dealsRef.current
+        .filter((d) => kanbanColumnIdForDealStage(d.stage) === targetColumn)
+        .map((d) => d.id)
+      if (orderedIds.length > 0) {
+        void persistKanbanColumnOrder(targetColumn, orderedIds).then((res) => {
+          if (!res.success) toast.error(res.error ?? "Failed to save card order")
+        })
+      }
       setTimeout(() => {
         hasDragged.current = false
       }, 300)
@@ -569,7 +709,7 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -620,24 +760,35 @@ export function KanbanBoard({
             </div>
           </div>
         )}
-        {/* md+: frozen column titles; single vertical scroll for all card columns */}
+        {/* Kanban columns — headers locked, cards scroll */}
         <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-          <div className="bg-[var(--main-canvas)]/98 hidden shrink-0 border-b border-border/10 pb-2 pt-1 md:grid md:grid-cols-6 md:gap-4">
+          {/* Fixed column headers (desktop only) */}
+          <div className="hidden shrink-0 md:grid md:grid-cols-6 md:gap-2">
             {COLUMNS.map((col) => {
               const colDeals = columns[col.id] || []
-              return <KanbanColumnHeader key={`hdr-${col.id}`} col={col} count={colDeals.length} />
+              return (
+                <div key={col.id} className="rounded-t-lg bg-black/[0.03] px-2 pb-1 pt-2.5 dark:bg-white/[0.03] md:px-1.5">
+                  <KanbanColumnHeader col={col} count={colDeals.length} />
+                </div>
+              )
             })}
           </div>
+
+          {/* Scrollable card area */}
           <div
             id="kanban-board"
             className="kanban-column-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-8 [-webkit-overflow-scrolling:touch]"
           >
-            <div className="flex flex-col gap-6 md:grid md:grid-cols-6 md:gap-4 md:items-start">
+            <div className="flex flex-col gap-3 md:grid md:grid-cols-6 md:gap-2 md:items-start">
               {COLUMNS.map((col) => {
                 const colDeals = columns[col.id] || []
 
                 return (
-                  <div key={col.id} className="flex min-w-0 flex-col gap-3">
+                  <div
+                    key={col.id}
+                    className="kanban-column-panel flex min-w-0 flex-col gap-3 max-md:rounded-lg bg-black/[0.03] px-2 py-2.5 dark:bg-white/[0.03] md:rounded-none md:rounded-b-lg md:px-1.5 md:pt-2"
+                  >
+                    {/* Mobile: header inline; desktop: header is above scroll area */}
                     <div className="md:hidden">
                       <KanbanColumnHeader col={col} count={colDeals.length} />
                     </div>
@@ -728,14 +879,12 @@ export function KanbanBoard({
 
       <DragOverlay>
         {activeId && activeDeal ? (
-          <div className="w-72 relative">
-            {bulkDragCount > 1 && (
-              <div className="absolute -top-2 -right-2 z-10 rounded-full bg-primary text-primary-foreground text-[11px] font-bold min-w-[22px] h-[22px] flex items-center justify-center px-1 shadow-md border border-background">
-                {bulkDragCount}
-              </div>
-            )}
-            <DealCard deal={activeDeal} overlay />
-          </div>
+          <BulkDragOverlay
+            activeId={activeId}
+            activeDeal={activeDeal}
+            bulkDragIds={bulkDragIds}
+            deals={deals}
+          />
         ) : null}
       </DragOverlay>
 

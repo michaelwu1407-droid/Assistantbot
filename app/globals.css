@@ -107,6 +107,13 @@
 .ghost-border {
   outline: 1px solid rgba(175, 173, 172, 0.15);
 }
+
+/* Kanban column shell only — drop rim; keep deal card ghost-border as defined */
+.kanban-column-panel {
+  outline: none;
+  box-shadow: none;
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);

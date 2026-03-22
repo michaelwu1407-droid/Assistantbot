@@ -19,6 +19,10 @@ import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/
 import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { kanbanStageRequiresScheduledDate, prismaStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
+import {
+  KANBAN_COLUMN_SORT_ORDER,
+  kanbanColumnIdForDealStage,
+} from "@/lib/kanban-columns";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -167,6 +171,11 @@ const UpdateStageSchema = z.object({
   stage: z.string(),
 });
 
+const PersistKanbanOrderSchema = z.object({
+  columnId: z.string(),
+  orderedDealIds: z.array(z.string()).min(1),
+});
+
 // ─── Server Actions ─────────────────────────────────────────────────
 
 /**
@@ -226,7 +235,7 @@ export async function getDeals(
       daysUntilRotting: pipelineSettings.urgentDays,
     };
 
-    return filtered.map((deal) => {
+    const views = filtered.map((deal) => {
       const lastActivityDate = deal.activities[0]?.createdAt ?? deal.createdAt;
       const health = getDealHealth(lastActivityDate, healthOptions);
 
@@ -268,6 +277,24 @@ export async function getDeals(
         source: deal.source ?? null,
       };
     });
+
+    views.sort((a, b) => {
+      const colA = kanbanColumnIdForDealStage(a.stage);
+      const colB = kanbanColumnIdForDealStage(b.stage);
+      const ia = KANBAN_COLUMN_SORT_ORDER.indexOf(colA as (typeof KANBAN_COLUMN_SORT_ORDER)[number]);
+      const ib = KANBAN_COLUMN_SORT_ORDER.indexOf(colB as (typeof KANBAN_COLUMN_SORT_ORDER)[number]);
+      const sa = ia === -1 ? 999 : ia;
+      const sb = ib === -1 ? 999 : ib;
+      if (sa !== sb) return sa - sb;
+      const oa = typeof a.metadata?.kanbanOrder === "number" ? (a.metadata.kanbanOrder as number) : null;
+      const ob = typeof b.metadata?.kanbanOrder === "number" ? (b.metadata.kanbanOrder as number) : null;
+      if (oa !== null && ob !== null && oa !== ob) return oa - ob;
+      if (oa !== null && ob === null) return -1;
+      if (oa === null && ob !== null) return 1;
+      return new Date(b.stageChangedAt).getTime() - new Date(a.stageChangedAt).getTime();
+    });
+
+    return views;
   } catch (error) {
     console.error("Database Error in getDeals:", error);
     MonitoringService.logError(error as Error, { action: "getDeals", workspaceId });
@@ -596,6 +623,58 @@ export async function updateDealStage(dealId: string, stage: string) {
     MonitoringService.logError(err as Error, { action: "updateDealStage", dealId });
     const message = err instanceof Error ? err.message : "Failed to update stage";
     return { success: false, error: message };
+  }
+}
+
+/**
+ * Persist vertical order inside one Kanban column (`metadata.kanbanOrder`).
+ */
+export async function persistKanbanColumnOrder(
+  columnId: string,
+  orderedDealIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const parsed = PersistKanbanOrderSchema.safeParse({ columnId, orderedDealIds });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid payload" };
+    }
+
+    const actor = await requireCurrentWorkspaceAccess();
+    const rows = await db.deal.findMany({
+      where: { id: { in: parsed.data.orderedDealIds }, workspaceId: actor.workspaceId },
+      select: { id: true, metadata: true, stage: true },
+    });
+    if (rows.length !== parsed.data.orderedDealIds.length) {
+      return { success: false, error: "One or more deals were not found." };
+    }
+
+    for (const row of rows) {
+      const viewStage = STAGE_MAP[row.stage] ?? "new_request";
+      const col = kanbanColumnIdForDealStage(viewStage);
+      if (col !== parsed.data.columnId) {
+        return { success: false, error: "Deal stage does not match this column." };
+      }
+    }
+
+    const byId = new Map(rows.map((r) => [r.id, r] as const));
+    await db.$transaction(
+      parsed.data.orderedDealIds.map((id, index) => {
+        const row = byId.get(id)!;
+        const meta = { ...((row.metadata as Record<string, unknown>) ?? {}), kanbanOrder: index };
+        return db.deal.update({
+          where: { id },
+          data: { metadata: JSON.parse(JSON.stringify(meta)) },
+        });
+      })
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/deals");
+    return { success: true };
+  } catch (err) {
+    console.error("persistKanbanColumnOrder error:", err);
+    MonitoringService.logError(err as Error, { action: "persistKanbanColumnOrder", columnId });
+    return { success: false, error: err instanceof Error ? err.message : "Failed to save order" };
   }
 }
 

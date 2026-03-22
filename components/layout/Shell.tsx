@@ -206,34 +206,37 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
               </ResizablePanel>
 
-              <div id="assistant-resize-handle" className="hidden md:flex shrink-0">
-                <ResizableHandle
-                  withHandle
-                  className="bg-border/50 hover:bg-primary/50 transition-colors w-2 min-w-2 shrink-0"
-                  onPointerDown={(e) => {
-                    didDragRef.current = false
-                    pointerDownRef.current = { x: e.clientX, y: e.clientY }
-                  }}
-                  onPointerMove={(e) => {
-                    if (pointerDownRef.current && (Math.abs(e.clientX - pointerDownRef.current.x) > 5 || Math.abs(e.clientY - pointerDownRef.current.y) > 5)) {
-                      didDragRef.current = true
-                    }
-                  }}
-                  onPointerUp={() => {
-                    if (!didDragRef.current && !chatbotExpanded) {
-                      chatbotPanelRef.current?.expand()
-                      setChatbotExpanded(true)
-                    }
-                    pointerDownRef.current = null
-                  }}
-                  onClick={() => {
-                    if (!didDragRef.current && !chatbotExpanded) {
-                      chatbotPanelRef.current?.expand()
-                      setChatbotExpanded(true)
-                    }
-                  }}
-                />
-              </div>
+              {/* Must be a direct PanelResizeHandle child of PanelGroup — no extra wrapper (avoids blank flex strip). Grip flush to main canvas: justify-start. */}
+              <ResizableHandle
+                id="assistant-resize-handle"
+                withHandle
+                className={cn(
+                  "hidden shrink-0 md:flex",
+                  "w-2 min-w-2 max-w-2 justify-start overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
+                )}
+                onPointerDown={(e) => {
+                  didDragRef.current = false
+                  pointerDownRef.current = { x: e.clientX, y: e.clientY }
+                }}
+                onPointerMove={(e) => {
+                  if (pointerDownRef.current && (Math.abs(e.clientX - pointerDownRef.current.x) > 5 || Math.abs(e.clientY - pointerDownRef.current.y) > 5)) {
+                    didDragRef.current = true
+                  }
+                }}
+                onPointerUp={() => {
+                  if (!didDragRef.current && !chatbotExpanded) {
+                    chatbotPanelRef.current?.expand()
+                    setChatbotExpanded(true)
+                  }
+                  pointerDownRef.current = null
+                }}
+                onClick={() => {
+                  if (!didDragRef.current && !chatbotExpanded) {
+                    chatbotPanelRef.current?.expand()
+                    setChatbotExpanded(true)
+                  }
+                }}
+              />
 
               {/* Right Chatbot - Collapsed by default; when expanded, takes up more screen space */}
               <ResizablePanel

@@ -37,13 +37,27 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
 const kpiLabelClass =
   "text-[10px] font-bold uppercase tracking-widest text-black dark:text-black"
 
-/** Label↔metric gap −⅓ vs `gap-1` (4px → ~2.67px). Grid: `gap-3` between the four cards. */
-const cardShell =
-  "flex min-h-[5.75rem] flex-col justify-between gap-[0.17rem] rounded-lg border p-2.5 ghost-border sunlight-shadow"
-
-/** ~10% deeper than flat emerald-50 (subtle ring + tint). Black text on top. */
-const kpiSharedTint =
-  "border-emerald-200/75 bg-emerald-50 shadow-sm ring-1 ring-emerald-100/45 dark:border-emerald-800/55 dark:bg-emerald-950/42 dark:ring-emerald-800/35"
+function KpiCardFrame({
+  borderClass,
+  bgClass,
+  children,
+}: {
+  borderClass: string
+  bgClass: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[5.75rem] rounded-lg border-l-[5px] shadow-sm",
+        borderClass,
+        bgClass
+      )}
+    >
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1 p-3">{children}</div>
+    </div>
+  )
+}
 
 export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const [staleWeeks, setStaleWeeks] = useState(2)
@@ -87,42 +101,52 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
 
   return (
     <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <div className={cn(cardShell, kpiSharedTint)}>
+      <KpiCardFrame borderClass="border-l-sky-700" bgClass="bg-sky-50 dark:bg-sky-950/30">
         <p className={kpiLabelClass}>{monthLabel} Revenue</p>
-        <KpiMetric>${revenue.toLocaleString()}</KpiMetric>
-      </div>
-
-      <div className={cn(cardShell, kpiSharedTint)}>
-        <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
-        <KpiMetric>${travisWonRevenue.toLocaleString()}</KpiMetric>
-      </div>
-
-      <div className={cn(cardShell, kpiSharedTint)}>
-        <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
-        <KpiMetric>{upcomingCount}</KpiMetric>
-      </div>
-
-      <div className={cn(cardShell, kpiSharedTint, "relative")}>
-        <p className={cn(kpiLabelClass, "min-w-0 pr-14")}>Follow-up</p>
-        <div className="absolute right-2.5 top-2.5 z-10">
-          <Select value={String(staleWeeks)} onValueChange={(v) => setStaleWeeks(Number(v))}>
-            <SelectTrigger
-              aria-label="Stale follow-up window in weeks"
-              className="h-7 min-w-[3rem] shrink-0 border-black/15 bg-white px-2 text-xs font-semibold text-black dark:text-black"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 2, 3, 4, 6, 8].map((w) => (
-                <SelectItem key={w} value={String(w)} className="text-sm">
-                  {w}w
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex min-w-0 items-end justify-between gap-2">
+          <KpiMetric>${revenue.toLocaleString()}</KpiMetric>
         </div>
-        <KpiMetric>{followUpCount}</KpiMetric>
-      </div>
+      </KpiCardFrame>
+
+      <KpiCardFrame borderClass="border-l-emerald-700" bgClass="bg-emerald-50 dark:bg-emerald-950/35">
+        <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
+        <div className="flex min-w-0 items-end justify-between gap-2">
+          <KpiMetric>${travisWonRevenue.toLocaleString()}</KpiMetric>
+        </div>
+      </KpiCardFrame>
+
+      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-slate-100 dark:bg-slate-900/40">
+        <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
+        <div className="flex min-w-0 items-end justify-between gap-2">
+          <KpiMetric>{upcomingCount}</KpiMetric>
+        </div>
+      </KpiCardFrame>
+
+      <KpiCardFrame borderClass="border-l-red-700" bgClass="bg-red-50 dark:bg-red-950/35">
+        <div className="flex min-w-0 items-start gap-2">
+          <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Follow-up</p>
+          <div className="w-fit max-w-[4.5rem] shrink-0">
+            <Select value={String(staleWeeks)} onValueChange={(v) => setStaleWeeks(Number(v))}>
+              <SelectTrigger
+                aria-label="Stale follow-up window in weeks"
+                className="h-7 !w-auto max-w-[4.5rem] min-w-[3rem] border-black/15 bg-white px-2 py-0 text-xs font-semibold text-black dark:text-black"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 6, 8].map((w) => (
+                  <SelectItem key={w} value={String(w)} className="text-sm">
+                    {w}w
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex min-w-0 items-end justify-between gap-2">
+          <KpiMetric>{followUpCount}</KpiMetric>
+        </div>
+      </KpiCardFrame>
     </section>
   )
 }

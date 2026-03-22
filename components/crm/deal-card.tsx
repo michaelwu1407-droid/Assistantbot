@@ -81,7 +81,7 @@ function statusBannerOverlayClasses(label: string): string {
   }
 }
 
-/** Top-right card date: prefer job schedule, else created date (template always showed a day). */
+/** Top-right: scheduled job date only; "-" when not scheduled. */
 function cornerDateLabel(deal: DealView): { text: string; title: string } {
   if (deal.scheduledAt) {
     return {
@@ -89,13 +89,7 @@ function cornerDateLabel(deal: DealView): { text: string; title: string } {
       title: "Scheduled date",
     }
   }
-  if (deal.createdAt) {
-    return {
-      text: format(new Date(deal.createdAt), "MMM d"),
-      title: "Created date",
-    }
-  }
-  return { text: "", title: "" }
+  return { text: "-", title: "No scheduled date" }
 }
 
 export function DealCard({
@@ -278,11 +272,9 @@ export function DealCard({
   /** Left side only — under the 3C overlay (tint + label may cover this). */
   const footerPriceLeftOnly = (
     <div className="flex min-w-0 items-center gap-2">
-      <div className="inline-flex shrink-0 items-center rounded-md bg-primary/10 px-2 py-0.5">
-        <span className="text-xs font-bold text-primary">
-          $ {deal.invoicedAmount !== undefined ? deal.invoicedAmount.toLocaleString() : deal.value.toLocaleString()}
-        </span>
-      </div>
+      <span className="shrink-0 text-xs font-bold text-primary">
+        $ {deal.invoicedAmount !== undefined ? deal.invoicedAmount.toLocaleString() : deal.value.toLocaleString()}
+      </span>
       {assigneeInitial ? (
         <div
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-primary/10 text-[10px] font-bold text-primary"
@@ -313,8 +305,9 @@ export function DealCard({
       </button>
     ) : null
 
+  /** Left edge lines up with body-row icons (px-3), not the text after icon+gap. */
   const footerBaseRow = (
-    <div className="flex min-w-0 flex-1 items-center justify-between gap-2 pl-[22px]">
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
       {footerPriceLeftOnly}
       {footerTrashButton}
     </div>
@@ -465,7 +458,7 @@ export function DealCard({
           </div>
         </div>
 
-        {/* 3C footer: same horizontal rhythm as address row — px-3 + icon-width spacer + gap-2, then price vs bin */}
+        {/* 3C footer: dollar left-aligned with row icons (same px-3 inset as MapPin/Briefcase/User) */}
         <div
           className={cn(
             "relative mt-1.5 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
@@ -506,7 +499,7 @@ export function DealCard({
 
           {showStatusBanner ? (
             <div className="relative z-0 min-h-[2.5rem]">
-              <div className="relative z-0 flex min-h-[2.5rem] items-center gap-2 px-3 pb-2 pt-1.5">
+              <div className="relative z-0 flex min-h-[2.5rem] items-center gap-2 px-3 py-2">
                 {footerBaseRow}
               </div>
               <div
@@ -527,7 +520,7 @@ export function DealCard({
               </div>
             </div>
           ) : (
-            <div className="relative flex min-h-[2.5rem] items-center gap-2 bg-muted/15 px-3 pb-2 pt-1.5 dark:bg-muted/25">
+            <div className="relative flex min-h-[2.5rem] items-center gap-2 bg-muted/15 px-3 py-2 dark:bg-muted/25">
               {footerBaseRow}
             </div>
           )}
