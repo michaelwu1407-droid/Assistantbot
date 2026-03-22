@@ -5,7 +5,22 @@ import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
-import { Search, Phone, Mail, FileText, ExternalLink, MessageSquare, MessageCircle, ArrowLeft, Sparkles, Send, SlidersHorizontal, ArrowDownAZ, Settings } from "lucide-react"
+import {
+  Search,
+  Phone,
+  Mail,
+  FileText,
+  ExternalLink,
+  MessageSquare,
+  MessageCircle,
+  ArrowLeft,
+  Send,
+  SlidersHorizontal,
+  ArrowDownAZ,
+  Settings,
+} from "lucide-react"
+/** Direct file import avoids Turbopack HMR stale `bot.js` chunk after swapping Bot → Sparkles on the barrel import. */
+import Sparkles from "lucide-react/dist/esm/icons/sparkles"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"

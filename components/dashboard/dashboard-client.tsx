@@ -119,8 +119,9 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
             <main
                 className={cn(
                     /* modest bottom padding — column lists add their own pb; FABs float above content */
-                    "flex min-h-0 flex-1 flex-col overflow-hidden px-6 pb-6 min-w-0",
-                    assistantPanelExpanded ? "overflow-x-hidden" : "overflow-x-auto md:overflow-x-hidden"
+                    "flex min-h-0 flex-1 flex-col overflow-hidden pb-6 min-w-0",
+                    /* When RHS chat is open, drop right padding + symmetric bleed so Kanban sits flush to the resize handle (avoids a grey “blank strip”). */
+                    assistantPanelExpanded ? "pl-6 pr-0 overflow-x-hidden" : "px-6 overflow-x-auto md:overflow-x-hidden"
                 )}
             >
                 <div
@@ -136,18 +137,34 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                         )}
                     >
                         {/* Hero Metrics — pb-0 so the divider below sits in one symmetric gap (no extra grey band below cards) */}
-                        <div className="-mx-6 shrink-0 px-6 pt-5 pb-0 bg-muted/35">
+                        <div
+                            className={cn(
+                                "shrink-0 pt-5 pb-0 bg-muted/35",
+                                assistantPanelExpanded ? "-ml-6 pl-6 pr-0" : "-mx-6 px-6"
+                            )}
+                        >
                             <DashboardKpiCards deals={deals} />
                         </div>
 
                         {/* Equal space above and below the rule between KPI strip and Kanban */}
-                        <div className="-mx-6 shrink-0 px-6 pt-5 pb-2.5 bg-transparent" aria-hidden>
+                        <div
+                            className={cn(
+                                "shrink-0 pt-5 pb-2.5 bg-transparent",
+                                assistantPanelExpanded ? "-ml-6 pl-6 pr-0" : "-mx-6 px-6"
+                            )}
+                            aria-hidden
+                        >
                             <div className="h-px w-full bg-border/80" />
                         </div>
 
                         <section className="flex min-h-0 flex-1 flex-col overflow-hidden pb-1 pt-0">
-                            {/* Match KPI strip horizontal bleed (-mx-6 px-6) so Kanban lines up with the four cards */}
-                            <div className="-mx-6 flex min-h-0 min-w-0 flex-1 overflow-hidden px-6">
+                            {/* Match KPI strip horizontal bleed so Kanban lines up with the four cards */}
+                            <div
+                                className={cn(
+                                    "flex min-h-0 min-w-0 flex-1 overflow-hidden",
+                                    assistantPanelExpanded ? "-ml-6 pl-6 pr-0" : "-mx-6 px-6"
+                                )}
+                            >
                                 <KanbanBoard
                                     className="min-h-0 min-w-0 flex-1"
                                     deals={deals}

@@ -1,4 +1,9 @@
 ### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/dashboard/dashboard-client.tsx`, `docs/agent_change_log.md`
+- What changed: **Dashboard + RHS chat** — when **`assistantPanelExpanded`**, `<main>` uses **`pl-6 pr-0`** (not **`px-6`**) and KPI / divider / Kanban bleed rows use **`-ml-6 pl-6 pr-0`** instead of **`-mx-6 px-6`**, so pipeline content aligns **flush** to the resize handle with **no** empty **main-canvas** band left of the green line.
+- Why: User: persistent blank strip between Kanban and chat edge despite handle/resizable fixes.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
 - Files: `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
 - What changed: **Bulk drag overlay** — back cards use **negative `translate`** (**up-left**) so they sit **behind** the dragged card (deck), not down-right beside it; **`transform-origin: top left`**, **`z-[60]`** on front; **`overflow-visible`** on wrapper.
 - Why: User: selecting A,B,C and dragging A should show B,C **falling behind** A.
@@ -7,6 +12,16 @@
 - Files: `components/crm/kanban-board.tsx`, `docs/agent_change_log.md`
 - What changed: **Multi-select Kanban drag** — `DragOverlay` renders **`BulkDragOverlay`** (stacked **`DealCard`** previews, **`bulkDragIds`** snapshot, cap **8** + **`+N`** badge). Removed **`bulkDragCount`**. (Stack geometry refined in following entry.)
 - Why: User: when moving several selected cards, preview should show the **group** moving together, not a single card + count pill.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/ui/resizable.tsx`, `components/layout/Shell.tsx`, `docs/agent_change_log.md`
+- What changed: **`PanelResizeHandle`** — removed **`::after`** wide invisible hit-expander (was **`after:w-8`** centered on the strip), which extended into the main canvas and read as a **blank strip** left of the drag line. **Shell** resize handle keeps **8px** strip + **`justify-start`** grip.
+- Why: User: blank strip next to RHS chat drag handle.
+
+### 2026-03-22 (AEDT) - Cursor AI Agent
+- Files: `components/crm/inbox-view.tsx`, `types/lucide-sparkles.d.ts`, `tsconfig.json`, `docs/agent_change_log.md`
+- What changed: **Inbox** — import **`Sparkles`** from **`lucide-react/dist/esm/icons/sparkles`** (default export) instead of the **`lucide-react`** barrel so **Turbopack HMR** does not leave a stale **`bot.js`** chunk after replacing **`Bot`**. Added **`types/lucide-sparkles.d.ts`** module declaration; **`tsconfig.json`** **`include`** lists **`types/**/*.d.ts`**.
+- Why: Runtime error: Bot module factory not available after HMR.
 
 ### 2026-03-22 (AEDT) - Cursor AI Agent
 - Files: `components/crm/inbox-view.tsx`, `docs/agent_change_log.md`

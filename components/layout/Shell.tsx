@@ -212,7 +212,8 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 withHandle
                 className={cn(
                   "hidden shrink-0 md:flex",
-                  "w-2 min-w-2 max-w-2 justify-start overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
+                  /* Single visible strip; grip overflows slightly into chat — no transparent pseudo strip on the left */
+                  "w-2 min-w-[8px] max-w-[8px] justify-start overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
                 )}
                 onPointerDown={(e) => {
                   didDragRef.current = false
