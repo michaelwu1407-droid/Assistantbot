@@ -203,7 +203,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                     chatbotExpanded ? "overflow-x-auto" : "overflow-x-hidden max-md:overflow-x-auto"
                   )}
                 >
-                  {children}
+                  <DashboardMainChrome>{children}</DashboardMainChrome>
                 </div>
               </ResizablePanel>
 

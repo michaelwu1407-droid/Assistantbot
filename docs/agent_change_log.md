@@ -1,3 +1,8 @@
+### 2026-03-23 (AEDT) - Antigravity Agent
+- Files: `app/crm/layout.tsx`, `components/layout/Shell.tsx`, `components/crm/hero-dashboard-reel.tsx`
+- What changed: **Layout & Context Fixes** — Restored **`DashboardMainChrome`** wrapper in **`Shell.tsx`** mounted branch to fix `useDashboardHeaderExtraSetter` runtime crash. Moved **`headerDisplayName`** database-lookup logic into **`app/crm/layout.tsx`** to fix top-right name regression. Added **`suppressHydrationWarning`** and **`mounted`** guard to **`HeroDashboardReel`** to fix SSR mismatch.
+- Why: User reported context errors and "User" name regression after manual folder rename/pull; hydration mismatch on home.
+
 ### 2026-03-22 (AEDT) - Cursor AI Agent
 - Files: `Start-local-website.bat`, `docs/run-the-app-on-your-computer.md`, `docs/agent_change_log.md`
 - What changed: **Local dev helper** — Windows **`Start-local-website.bat`** runs **`npm run dev`** from the repo root (double‑click). Plain‑language guide **`docs/run-the-app-on-your-computer.md`** explains using the batch file vs terminal and **http://localhost:3000**.

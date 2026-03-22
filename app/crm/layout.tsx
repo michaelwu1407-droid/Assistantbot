@@ -12,6 +12,8 @@ import { logger } from "@/lib/logging";
 import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
 import { getAuthUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { resolveHeaderDisplayName } from "@/lib/display-name";
 
 export default async function DashboardLayout({
   children,
@@ -91,7 +93,21 @@ export default async function DashboardLayout({
 
   const authUser = await getAuthUser();
   if (authUser) {
-    headerDisplayName = authUser.name ?? authUser.email?.split("@")[0] ?? "User";
+    try {
+      const appUserRow = await db.user.findFirst({
+        where: {
+          OR: [{ id: authUser.id }, ...(authUser.email ? [{ email: authUser.email }] : [])],
+        },
+        select: { name: true, email: true },
+      });
+      headerDisplayName = resolveHeaderDisplayName({
+        authName: authUser.name,
+        dbName: appUserRow?.name ?? null,
+        email: appUserRow?.email ?? authUser.email ?? null,
+      });
+    } catch {
+      headerDisplayName = authUser.name ?? authUser.email?.split("@")[0] ?? "User";
+    }
   }
 
   return (
