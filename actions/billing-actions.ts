@@ -115,7 +115,7 @@ export async function createCustomerPortalSession(workspaceId: string) {
 
     const session = await stripe.billingPortal.sessions.create({
         customer: workspace.stripeCustomerId,
-        return_url: `${baseUrl}/dashboard/settings`,
+        return_url: `${baseUrl}/crm/settings`,
     });
 
     if (!session.url) {

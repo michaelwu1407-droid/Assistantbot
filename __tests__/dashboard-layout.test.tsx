@@ -76,7 +76,7 @@ vi.mock("@/components/layout/shell-initializer", () => ({
   ),
 }));
 
-import DashboardLayout from "@/app/dashboard/layout";
+import DashboardLayout from "@/app/crm/layout";
 
 describe("DashboardLayout", () => {
   beforeEach(() => {

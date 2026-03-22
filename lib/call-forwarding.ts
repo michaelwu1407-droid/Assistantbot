@@ -58,6 +58,6 @@ export function buildCallForwardingSetupSmsBody(params: {
       ? `Turn on 100% AI forwarding with: ${recommendedCode}`
       : `Turn on missed-call backup after about ${params.delaySec} seconds with: ${recommendedCode}`,
     `Turn forwarding off anytime with: ${codes.off}`,
-    `Open setup in Earlymark: ${appUrl}/dashboard/settings`,
+    `Open setup in Earlymark: ${appUrl}/crm/settings`,
   ].join("\n");
 }

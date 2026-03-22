@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
             title: `New ${source} enquiry — ${name}`,
             message: message ? `"${message.substring(0, 100)}${message.length > 100 ? "…" : ""}"` : `${name} submitted an enquiry via your ${source}.`,
             type: "INFO",
-            link: `/dashboard/pipeline`,
+            link: `/crm/pipeline`,
             actionType: "CONFIRM_JOB",
             actionPayload: { dealId: deal.id },
           } as any,

@@ -20,16 +20,16 @@ This document tracks the functional status of each page and feature, explicitly 
 
 | Route / Feature | Status | Unresolved Issues / TODOs |
 |-----------------|--------|---------------------------|
-| **`/dashboard`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) ✅ FIXED<br>- Add highly visible 5-step Onboarding Setup Widget for new users ✅ FIXED |
-| **`/dashboard/agent`** | 📦 Archived | Real estate features sunsetted. |
-| **`/dashboard/tradie`** | ✅ Functional | - FE-8 bottom sheet swipe polished (lower threshold, tighter spring, touch-action: none). |
-| **`/dashboard/contacts`** | ✅ Functional | None |
-| **`/dashboard/pipeline`** | ✅ Functional | None |
-| **`/dashboard/map`** | ✅ Functional | - Route mode: "Start Route" button shows sequenced stops sidebar, dashed route line, per-stop Navigate buttons (opens Google Maps), Navigate Full Route (multi-waypoint), numbered markers, fly-to animation. |
-| **`/dashboard/schedule`** | ✅ Functional | - **NEW**: Add Month/Week/Day view toggle functionality. |
-| **`/dashboard/team`** | ✅ Functional | None |
-| **`/dashboard/reports`** | ✅ Functional | - **NEW**: Verify tracked data accuracy and PDF generation functionality. |
-| **`/dashboard/settings`** | ✅ Functional (Ongoing Polish) | - Automated communication overlap removed from Notifications and consolidated into Automated calling & texting.<br>- Automated AI Attachment library implemented for sharing custom PDF/Doc pricing matrices and knowledge.<br>- Display now supports Light/Dark/System and system-auto behavior is active.<br>- Remaining: deeper payment/integration features and ongoing UX refinement. |
+| **`/crm`** | ✅ Functional | - FE-4 mobile responsive pass completed (stacking KPI row, responsive padding).<br>- Build interactive tutorial overlay (T-1) ✅ FIXED<br>- Add highly visible 5-step Onboarding Setup Widget for new users ✅ FIXED |
+| **`/crm/agent`** | 📦 Archived | Real estate features sunsetted. |
+| **`/crm/tradie`** | ✅ Functional | - FE-8 bottom sheet swipe polished (lower threshold, tighter spring, touch-action: none). |
+| **`/crm/contacts`** | ✅ Functional | None |
+| **`/crm/pipeline`** | ✅ Functional | None |
+| **`/crm/map`** | ✅ Functional | - Route mode: "Start Route" button shows sequenced stops sidebar, dashed route line, per-stop Navigate buttons (opens Google Maps), Navigate Full Route (multi-waypoint), numbered markers, fly-to animation. |
+| **`/crm/schedule`** | ✅ Functional | - **NEW**: Add Month/Week/Day view toggle functionality. |
+| **`/crm/team`** | ✅ Functional | None |
+| **`/crm/reports`** | ✅ Functional | - **NEW**: Verify tracked data accuracy and PDF generation functionality. |
+| **`/crm/settings`** | ✅ Functional (Ongoing Polish) | - Automated communication overlap removed from Notifications and consolidated into Automated calling & texting.<br>- Automated AI Attachment library implemented for sharing custom PDF/Doc pricing matrices and knowledge.<br>- Display now supports Light/Dark/System and system-auto behavior is active.<br>- Remaining: deeper payment/integration features and ongoing UX refinement. |
 | **`/kiosk`** | 📦 Archived | Real estate features sunsetted. |
 | **`/setup`** | ✅ Functional | None |
 | **Chatbot Interface** | ✅ Functional (Active Hardening) | - Sticky support-ticket context shipped: immediate post-ticket details append to the same ticket via `appendTicketNote`.<br>- Continue intent/fallback tuning for ambiguous phrasing and edge cases. |
@@ -157,7 +157,7 @@ This document tracks the functional status of each page and feature, explicitly 
 - **API-01/02/03 (Gmail, Outlook, MYOB):** ✅ FIXED - Replaced stubs with full production-grade fetching, token storage, and matching algorithms.
 
 ### Auth & UI Fixes
-- **AUTH-01/02 (Infinite Redirect loops):** ✅ FIXED - Eliminated demo user hardcoding and centralized auth checks in Middleware to push explicitly to `/dashboard`.
+- **AUTH-01/02 (Infinite Redirect loops):** ✅ FIXED - Eliminated demo user hardcoding and centralized auth checks in Middleware to push explicitly to `/crm`.
 - **UI-12/13/20 (React Crashes):** ✅ FIXED - Wrapped suspense boundaries, downgraded resizable-panels dynamically to `2.1.7`, replaced missing `Images` import with `lucide-react`. 
 - **TRADE-01..10 (Tradie specific bugs):** ✅ FIXED - Repaired Travel workflow calculations, voice-to-text hook, Schedule grid alignment, and Map marker popups.
 - **FE-10 / SET-01 (Settings Refine):** ✅ FIXED - GitHub OAuth button was verified to already be entirely removed from code. Wired up Supabase `updateUser` for the newly built password change interface.

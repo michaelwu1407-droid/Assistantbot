@@ -46,9 +46,9 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
         if (isDragging) return; // Prevent navigation if dragging just finished (though dnd-kit usually handles this via activationConstraint)
 
         if (industry === "TRADES") {
-            router.push(`/dashboard/tradie/jobs/${job.id}`);
+            router.push(`/crm/tradie/jobs/${job.id}`);
         } else {
-            router.push(`/dashboard/deals/${job.id}`);
+            router.push(`/crm/deals/${job.id}`);
         }
     };
 

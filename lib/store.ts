@@ -13,6 +13,10 @@ interface ShellState {
   workspaceId: string | null
   userId: string | null
   userRole: UserRole
+  /** Display name for dashboard top bar (from ShellInitializer) */
+  headerDisplayName: string
+  /** Workspace industry — New Job vs New Listing label */
+  workspaceIndustryType: 'TRADES' | 'REAL_ESTATE' | null
   mobileMenuOpen: boolean
   sidebarMinimized: boolean
   /** RHS chat / assistant panel is expanded (not collapsed to zero width) — dashboard Kanban uses this to allow horizontal scroll only when the panel is open. */
@@ -28,6 +32,8 @@ interface ShellState {
   setWorkspaceId: (id: string) => void
   setUserId: (id: string) => void
   setUserRole: (role: UserRole) => void
+  setHeaderDisplayName: (name: string) => void
+  setWorkspaceIndustryType: (t: 'TRADES' | 'REAL_ESTATE' | null) => void
   setMobileMenuOpen: (open: boolean) => void
   setSidebarMinimized: (minimized: boolean) => void
   toggleSidebarMinimized: () => void
@@ -43,6 +49,8 @@ export const useShellStore = create<ShellState>((set, get) => ({
   workspaceId: null,
   userId: null,
   userRole: 'OWNER' as UserRole,
+  headerDisplayName: '',
+  workspaceIndustryType: null,
   mobileMenuOpen: false,
   sidebarMinimized: false,
   assistantPanelExpanded: false,
@@ -72,6 +80,8 @@ export const useShellStore = create<ShellState>((set, get) => ({
   setWorkspaceId: (id: string) => set({ workspaceId: id }),
   setUserId: (id: string) => set({ userId: id }),
   setUserRole: (role: UserRole) => set({ userRole: role }),
+  setHeaderDisplayName: (name: string) => set({ headerDisplayName: name }),
+  setWorkspaceIndustryType: (t) => set({ workspaceIndustryType: t }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
   setSidebarMinimized: (minimized: boolean) => {
     try { localStorage.setItem('pj_sidebar_minimized', minimized ? 'true' : 'false') } catch { }

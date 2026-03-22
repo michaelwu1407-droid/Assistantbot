@@ -28,57 +28,57 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
     // Steps 1–2 must be shown in chat mode: ensure we're on dashboard root
     useEffect(() => {
-        if (viewMode === "TUTORIAL" && (currentStepIndex === 0 || currentStepIndex === 1) && pathname !== "/dashboard") {
-            router.push("/dashboard")
+        if (viewMode === "TUTORIAL" && (currentStepIndex === 0 || currentStepIndex === 1) && pathname !== "/crm") {
+            router.push("/crm")
         }
     }, [viewMode, currentStepIndex, pathname, router])
 
     // Navigate to inbox page when showing the inbox step (card 7)
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-inbox") {
-            router.push("/dashboard/inbox")
+            router.push("/crm/inbox")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to schedule page when showing the schedule step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-schedule") {
-            router.push("/dashboard/schedule")
+            router.push("/crm/schedule")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to map page when showing the map step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-map") {
-            router.push("/dashboard/map")
+            router.push("/crm/map")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to contacts page when showing the contacts step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-contacts") {
-            router.push("/dashboard/contacts")
+            router.push("/crm/contacts")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to team page when showing the team step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-team") {
-            router.push("/dashboard/team")
+            router.push("/crm/team")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to settings page when showing the settings step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-settings") {
-            router.push("/dashboard/settings")
+            router.push("/crm/settings")
         }
     }, [viewMode, currentStepIndex, router])
 
     // Navigate to Settings → Help when showing the Tracey Handbook step
     useEffect(() => {
         if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "travis-handbook") {
-            router.push("/dashboard/settings/help")
+            router.push("/crm/settings/help")
         }
     }, [viewMode, currentStepIndex, router])
 
@@ -106,9 +106,9 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         setIsVisible(false)
         setTutorialComplete()
         setTutorialStepIndex(-1)
-        setLastAdvancedPath("/dashboard")
+        setLastAdvancedPath("/crm")
         setViewMode("BASIC")
-        router.push("/dashboard")
+        router.push("/crm")
         onComplete?.()
     }
 

@@ -61,7 +61,7 @@ function JoinByInviteContent() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/crm`,
         data: {
           confirmed_at: new Date().toISOString(),
           name: name || email.split("@")[0],
@@ -106,7 +106,7 @@ function JoinByInviteContent() {
     }
 
     toast.success("Welcome to the team!");
-    router.push("/dashboard");
+    router.push("/crm");
     router.refresh();
   };
 

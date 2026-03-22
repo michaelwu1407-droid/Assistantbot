@@ -44,7 +44,7 @@ async function ensurePostJobFollowUp(dealId: string) {
         title: "Post-job follow-up needed",
         message: `Log the final outcome and invoiced amount for "${deal.title}".`,
         type: "INFO",
-        link: `/dashboard/deals/${dealId}`,
+        link: `/crm/deals/${dealId}`,
         actionType: "LOG_COMPLETION_OUTCOME",
         actionPayload: { dealId },
       })
@@ -379,7 +379,7 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
           title: "Job Completed",
           message: `Job "${deal.title}" has been marked as completed.`,
           type: "SUCCESS",
-          link: `/dashboard/jobs/${jobId}`
+          link: `/crm/jobs/${jobId}`
         });
       }
     }
@@ -399,8 +399,8 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
     }
   }
 
-  revalidatePath('/dashboard/tradie');
-  revalidatePath(`/dashboard/jobs/${jobId}`);
+  revalidatePath('/crm/tradie');
+  revalidatePath(`/crm/jobs/${jobId}`);
   return { success: true, status };
 }
 
@@ -440,7 +440,7 @@ export async function completeSafetyCheck(
     }
   });
 
-  revalidatePath(`/dashboard/jobs/${jobId}`);
+  revalidatePath(`/crm/jobs/${jobId}`);
   return { success: true };
 }
 
@@ -462,7 +462,7 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
 
     await syncGoogleCalendarEventForDeal(jobId).catch(() => {});
 
-    revalidatePath('/dashboard/tradie/schedule');
+    revalidatePath('/crm/tradie/schedule');
     return { success: true, scheduledAt: deal.scheduledAt };
   } catch (error) {
     console.error("Failed to update schedule:", error);
@@ -492,7 +492,7 @@ export async function saveJobPhoto(dealId: string, url: string, caption?: string
       }
     });
 
-    revalidatePath(`/dashboard/jobs/${dealId}`);
+    revalidatePath(`/crm/jobs/${dealId}`);
     return { success: true };
   } catch (error) {
     console.error("Failed to save photo:", error);
@@ -1131,7 +1131,7 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
       console.warn("Post-job follow-up hook failed on completeJob:", followUpErr);
     }
 
-    revalidatePath(`/dashboard/tradie/jobs/${dealId}`);
+    revalidatePath(`/crm/tradie/jobs/${dealId}`);
     return { success: true };
   } catch (error) {
     console.error("Error completing job:", error);

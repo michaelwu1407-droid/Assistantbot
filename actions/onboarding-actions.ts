@@ -34,31 +34,31 @@ export async function getOnboardingProgress() {
             id: "profile",
             title: "Add your Business Details",
             isComplete: !!(businessProfile?.businessName && businessProfile?.publicPhone && businessProfile?.baseSuburb),
-            href: "/dashboard/settings/my-business",
+            href: "/crm/settings/my-business",
         },
         {
             id: "services",
             title: "List your Services",
             isComplete: services > 0,
-            href: "/dashboard/settings/my-business", // or services
+            href: "/crm/settings/my-business", // or services
         },
         {
             id: "agent_mode",
             title: "Configure AI Voice Preferences",
             isComplete: true, // Completed in onboarding wizard already
-            href: "/dashboard/settings/agent",
+            href: "/crm/settings/agent",
         },
         {
             id: "templates",
             title: "Set up SMS Templates",
             isComplete: templates > 0,
-            href: "/dashboard/settings/sms-templates",
+            href: "/crm/settings/sms-templates",
         },
         {
             id: "documents",
             title: "Upload Knowledge & Price Guides",
             isComplete: documents > 0,
-            href: "/dashboard/settings/my-business",
+            href: "/crm/settings/my-business",
         },
     ];
 

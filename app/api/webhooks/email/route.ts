@@ -188,7 +188,7 @@ export async function POST(req: Request) {
                 title: "📬 New Inbound Lead",
                 message: `You received a new lead for ${leadInfo.workDescription || "a job"}.`,
                 type: "SUCCESS",
-                link: "/dashboard"
+                link: "/crm"
             }
         })
 

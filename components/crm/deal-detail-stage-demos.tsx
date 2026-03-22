@@ -25,7 +25,7 @@ const PIPELINE_STEPS = [
 
 /**
  * Static previews: **current** header (stage dropdown + Edit) plus older stage-only layout ideas.
- * Open `/dashboard/design/deal-detail-modal` to compare.
+ * Open `/crm/design/deal-detail-modal` to compare.
  */
 export function DealDetailStageDemos() {
   return (

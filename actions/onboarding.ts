@@ -105,7 +105,7 @@ export async function saveOnboardingData(
       }),
     ]);
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm");
     return { success: true };
   } catch (error) {
     console.error("Failed to save onboarding data:", error);

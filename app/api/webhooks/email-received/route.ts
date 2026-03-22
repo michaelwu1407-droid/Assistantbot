@@ -156,7 +156,7 @@ async function processLeadEmail(email: any, integration: any) {
         title: "New Lead Captured",
         message: `${leadData.customerName} from ${leadData.provider}: ${leadData.jobTitle}`,
         type: "SUCCESS",
-        link: `/dashboard/deals/${deal.id}`,
+        link: `/crm/deals/${deal.id}`,
       },
     });
 

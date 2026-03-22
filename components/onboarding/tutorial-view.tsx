@@ -461,14 +461,14 @@ export function TutorialView() {
                                 Next <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         ) : (
-                            <Link href="/dashboard" className="w-full">
+                            <Link href="/crm" className="w-full">
                                 <Button size="lg" className="w-full bg-slate-900 hover:bg-slate-800">
                                     Go to Dashboard <Check className="ml-2 h-4 w-4" />
                                 </Button>
                             </Link>
                         )}
                     </div>
-                    <Link href="/dashboard" className="text-center">
+                    <Link href="/crm" className="text-center">
                         <span className="text-xs text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Skip tutorial</span>
                     </Link>
                 </motion.div>

@@ -224,10 +224,10 @@ Agents should pick up an issue, follow the exact steps, verify the fix, and mark
     - Pass routing contextual strings populating Quick Action prompts. (Smart)
     - Embed "Transferring you to human staff" into bot fallback prompts. (Dumb)
     - Tell wrap-up script "I need to look a bit deeper into this for you. I will follow up via email shortly." (Dumb)
-    - **N1 New Issue**: Route negative chatbot experiences securely into `CustomerFeedback` tables. Construct detailed Customer Card expandable UI surfacing precise transcripts mapped from this DB. Erase the prior `/dashboard/feedback` construct. (Smart)
+    - **N1 New Issue**: Route negative chatbot experiences securely into `CustomerFeedback` tables. Construct detailed Customer Card expandable UI surfacing precise transcripts mapped from this DB. Erase the prior `/crm/feedback` construct. (Smart)
 
 #### G1-G12: Global Fixes (Contrast, Animation, Offline, Aria)
-*   **Fixes:** Check all text colors for AA contrasts, standardizing `text-xs` sizing minimums uniformly, attach Breadcrumb routing uniformly natively over dynamic identifiers, purge `router.back()` references replacing them structurally enforcing standard paths `/dashboard/deals`, attach global timeout-based Undo hooks directly mapping into custom Sonners, append tactile UI audio feedback explicitly linked to fatal failures, intercept `offline` hooks rendering bright visual warnings natively spanning root layout, and strip Framer+Tailwind conflict variants enforcing global static Aria button annotations. 
+*   **Fixes:** Check all text colors for AA contrasts, standardizing `text-xs` sizing minimums uniformly, attach Breadcrumb routing uniformly natively over dynamic identifiers, purge `router.back()` references replacing them structurally enforcing standard paths `/crm/deals`, attach global timeout-based Undo hooks directly mapping into custom Sonners, append tactile UI audio feedback explicitly linked to fatal failures, intercept `offline` hooks rendering bright visual warnings natively spanning root layout, and strip Framer+Tailwind conflict variants enforcing global static Aria button annotations. 
 *   **Agents:** Distributed heavily amongst Dumb and Smart based on complexity.
 
 ---

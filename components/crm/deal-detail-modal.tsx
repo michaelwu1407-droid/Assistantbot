@@ -180,7 +180,7 @@ function DealDetailContent({
 
   const handleEdit = () => {
     onOpenChange(false)
-    router.push(`/dashboard/deals/${deal.id}`)
+    router.push(`/crm/deals/${deal.id}`)
   }
 
   const handleEditContact = () => {
@@ -189,7 +189,7 @@ function DealDetailContent({
       return
     }
     onOpenChange(false)
-    router.push(`/dashboard/contacts/${contact.id}`)
+    router.push(`/crm/contacts/${contact.id}`)
   }
 
   const [isEditingInvoice, setIsEditingInvoice] = useState(false)
@@ -542,7 +542,7 @@ function DealDetailContent({
                 <MessageSquare className="w-4 h-4" />
                 Customer & job history
               </span>
-              <Link href={`/dashboard/inbox?contact=${deal.contactId}`}>
+              <Link href={`/crm/inbox?contact=${deal.contactId}`}>
                 <Button size="sm" variant="outline" className="gap-1 text-xs">
                   <MessageSquare className="w-3 h-3" />
                   Contact them
@@ -574,7 +574,7 @@ function DealDetailContent({
                         key={d.id}
                         onClick={() => {
                           onOpenChange(false)
-                          window.location.href = `/dashboard/deals/${d.id}`
+                          window.location.href = `/crm/deals/${d.id}`
                         }}
                         className="block w-full text-left p-2 rounded-lg border border-slate-100 hover:bg-slate-50 text-sm"
                       >

@@ -38,15 +38,15 @@ export async function isManagerOrAbove(): Promise<boolean> {
  * Routes restricted from TEAM_MEMBER access.
  */
 export const RESTRICTED_ROUTES = [
-  "/dashboard/inbox",
-  "/dashboard/contacts",
-  "/dashboard/analytics",
+  "/crm/inbox",
+  "/crm/contacts",
+  "/crm/analytics",
 ] as const;
 
 /**
  * Settings sections hidden from TEAM_MEMBER.
  */
 export const RESTRICTED_SETTINGS = [
-  "/dashboard/settings/billing",
-  "/dashboard/settings/integrations",
+  "/crm/settings/billing",
+  "/crm/settings/integrations",
 ] as const;

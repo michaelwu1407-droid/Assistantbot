@@ -43,7 +43,7 @@ export function PersonalPhoneCard() {
                 : "No phone number set"}
             </p>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/settings/phone-settings">Change</Link>
+              <Link href="/crm/settings/phone-settings">Change</Link>
             </Button>
           </div>
         )}

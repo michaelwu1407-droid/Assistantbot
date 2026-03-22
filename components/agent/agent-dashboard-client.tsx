@@ -2,12 +2,10 @@
 
 import { DealView } from "@/actions/deal-actions"
 import { AgentLead, MatchedContact } from "@/actions/agent-actions"
-import { Header } from "@/components/dashboard/header"
 import { SpeedToLead } from "@/components/agent/speed-to-lead"
 import { CommissionCalculator } from "@/components/agent/commission-calculator"
 import { MatchmakerFeed } from "@/components/agent/matchmaker-feed"
 import { KanbanBoard } from "@/components/crm/kanban-board"
-import { NewDealModal } from "@/components/modals/new-deal-modal"
 import { PulseWidget } from "@/components/dashboard/pulse-widget"
 import { VendorReportCard, VendorReportData } from "@/components/agent/vendor-report-card"
 import { useState } from "react"
@@ -32,23 +30,13 @@ export function AgentDashboardClient({
   listings,
   leads,
   matches,
-  userName,
-  userId,
+  userName: _userName,
+  userId: _userId,
   financialStats,
   vendorReport
 }: AgentDashboardClientProps) {
-  const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
-
   return (
     <div className="h-full flex flex-col space-y-4 p-6 bg-slate-50/50">
-      <Header
-        userName={userName}
-        userId={userId}
-        workspaceId={workspaceId}
-        onOpenActivity={() => {}}
-        onNewDeal={() => setIsNewDealModalOpen(true)}
-      />
-
       {/* Speed to Lead Widget and Pulse Widget Row */}
       <div className="shrink-0 flex gap-4 overflow-x-auto pb-2">
         <SpeedToLead leads={leads} />
@@ -94,11 +82,6 @@ export function AgentDashboardClient({
         </div>
       </div>
 
-      <NewDealModal
-        isOpen={isNewDealModalOpen}
-        onClose={() => setIsNewDealModalOpen(false)}
-        workspaceId={workspaceId}
-      />
     </div>
   )
 }

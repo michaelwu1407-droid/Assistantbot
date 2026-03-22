@@ -52,7 +52,7 @@ export async function resolveFeedback(feedbackId: string, resolution: string) {
             }
         });
 
-        revalidatePath("/dashboard/feedback");
+        revalidatePath("/crm/feedback");
         return { success: true };
     } catch (error) {
         console.error("Error resolving feedback:", error);
@@ -89,14 +89,14 @@ export async function submitFeedback(dealId: string, contactId: string, score: n
                             title: "⚠️ Low Customer Feedback",
                             message: `${deal.contact.name} gave a score of ${score}/10 for "${deal.title}". Resolve before they post a public review.`,
                             type: "WARNING",
-                            link: "/dashboard/feedback"
+                            link: "/crm/feedback"
                         }
                     });
                 }
             }
         }
 
-        revalidatePath("/dashboard/feedback");
+        revalidatePath("/crm/feedback");
         return { success: true, id: feedback.id };
     } catch (error) {
         console.error("Error submitting feedback:", error);

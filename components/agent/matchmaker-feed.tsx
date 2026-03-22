@@ -64,7 +64,7 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
                         {feed.map((item) => (
                             <Link 
                                 key={item.dealId} 
-                                href={`/dashboard/deals/${item.dealId}`}
+                                href={`/crm/deals/${item.dealId}`}
                                 className="block p-4 hover:bg-slate-50 transition-colors group"
                             >
                                 <div className="flex justify-between items-start mb-1">

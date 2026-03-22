@@ -22,6 +22,13 @@ const nextConfig = {
       },
     ],
   },
+  /** Old /dashboard/* URLs → /crm/* (bookmarks, emails, OAuth redirects). */
+  async redirects() {
+    return [
+      { source: '/dashboard', destination: '/crm', permanent: true },
+      { source: '/dashboard/:path*', destination: '/crm/:path*', permanent: true },
+    ]
+  },
 }
 
 // Injected content via Sentry wizard below

@@ -13,20 +13,20 @@ This document records the step-by-step execution of user journeys after `git pul
 
 ### Use Case 1: Missed Call Rescue
 - **Status**: ✅ **Passed**
-- **Test**: Navigated to `/dashboard/inbox`.
+- **Test**: Navigated to `/crm/inbox`.
 - **Observation**: "Call" button exists in contact header. SMS transcript is visible and functional.
 
 ### Use Case 2: Rainy Day Blast (Chat)
 - **Status**: ⚠️ **Partial**
-- **Test**: Navigated to `/dashboard/hub` (404 Error) -> Used Sidebar Chat.
+- **Test**: Navigated to `/crm/hub` (404 Error) -> Used Sidebar Chat.
 - **Observation**:
-  - `/dashboard/hub` does not exist.
+  - `/crm/hub` does not exist.
   - Sidebar Chat exists but AI failed to handle "Find me indoor work" query.
   - No specific "Marketing Blast" UI found in chat suggestions.
 
 ### Use Case 3: Tire Kicker Filter (Deals)
 - **Status**: ⚠️ **Partial**
-- **Test**: Navigated to `/dashboard/deals`, opened "Kitchen Reno".
+- **Test**: Navigated to `/crm/deals`, opened "Kitchen Reno".
 - **Observation**:
   - "Quick Reply" button found in Activity history.
   - ❌ **Missing**: "Photos" tab is completely absent.
@@ -38,7 +38,7 @@ This document records the step-by-step execution of user journeys after `git pul
 
 ### Use Case 11: After-Hours Gatekeeper
 - **Status**: ❌ **Failed**
-- **Test**: Navigated to `/dashboard/settings`.
+- **Test**: Navigated to `/crm/settings`.
 - **Observation**: Checked Automations, Integrations, Notifications. No "Voice Agent" or "After Hours" settings found.
 
 ---
@@ -47,9 +47,9 @@ This document records the step-by-step execution of user journeys after `git pul
 
 ### Use Case 4: Pre-Arrival Friction Reducer
 - **Status**: ⚠️ **Partial** (Improved)
-- **Test**: Navigated to `/dashboard/tradie`.
+- **Test**: Navigated to `/crm/tradie`.
 - **Observation**:
-  - ✅ **Fixed**: `/dashboard/tradie` now loads (Map/Task View).
+  - ✅ **Fixed**: `/crm/tradie` now loads (Map/Task View).
   - ❌ **Missing**: "Start Travel" button still absent from Job Details.
   - Sidebar "Hammer" icon works now.
 
@@ -105,16 +105,16 @@ This document records the step-by-step execution of user journeys after `git pul
 
 ### Reports & Analytics
 - **Status**: ❌ **Failed**
-- **Test**: `/dashboard/reports` -> 404.
+- **Test**: `/crm/reports` -> 404.
 
 ### Feedback & Reputation
 - **Status**: ❌ **Failed** (Error)
-- **Test**: `/dashboard/feedback` -> Application Error (Crash).
+- **Test**: `/crm/feedback` -> Application Error (Crash).
 - **Observation**: Feature likely partially implemented but broken.
 
 ### Team Management
 - **Status**: ❌ **Failed**
-- **Test**: `/dashboard/team` -> 404.
+- **Test**: `/crm/team` -> 404.
 
 ---
 
@@ -122,22 +122,22 @@ This document records the step-by-step execution of user journeys after `git pul
 
 ### 1. Tradie Workflow (Start Travel / Complete Job)
 - **Status**: ✅ **Passed**
-- **Test**: Navigate to `/dashboard/schedule`, click "Open Job Mode", verify Tradie View opens. "Start Travel" and "Complete Job" accessible in bottom sheet.
+- **Test**: Navigate to `/crm/schedule`, click "Open Job Mode", verify Tradie View opens. "Start Travel" and "Complete Job" accessible in bottom sheet.
 - **Finding**: Critical workflow now accessible via "Open Job Mode" button on job cards. Overdue jobs appear in schedule.
 
 ### 2. Feedback & Reputation
 - **Status**: ✅ **Passed**
-- **Test**: Navigate to `/dashboard/feedback`.
+- **Test**: Navigate to `/crm/feedback`.
 - **Finding**: Page loads successfully. Crash fixed by robust error handling.
 
 ### 3. Reports & Analytics
 - **Status**: ✅ **Passed**
 - **Test**: Click "Reports" in sidebar.
-- **Finding**: Navigates to `/dashboard/analytics`. Page displays mock analytics data.
+- **Finding**: Navigates to `/crm/analytics`. Page displays mock analytics data.
 
 ### 4. Team Management
 - **Status**: ✅ **Passed**
-- **Test**: Navigate to `/dashboard/team`.
+- **Test**: Navigate to `/crm/team`.
 
 ## Round 5: Post-Sync Walkthrough (Partial)
 

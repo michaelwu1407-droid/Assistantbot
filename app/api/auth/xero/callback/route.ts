@@ -8,14 +8,14 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/dashboard/settings/integrations?error=${error}`, req.url)
+      new URL(`/crm/settings/integrations?error=${error}`, req.url)
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
       new URL(
-        "/dashboard/settings/integrations?error=missing_code_or_state",
+        "/crm/settings/integrations?error=missing_code_or_state",
         req.url
       )
     );
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       console.error("[xero-callback] Token exchange failed:", await tokenRes.text());
       return NextResponse.redirect(
         new URL(
-          "/dashboard/settings/integrations?error=token_exchange_failed",
+          "/crm/settings/integrations?error=token_exchange_failed",
           req.url
         )
       );
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     if (!tenantId) {
       return NextResponse.redirect(
         new URL(
-          "/dashboard/settings/integrations?error=no_xero_organisation",
+          "/crm/settings/integrations?error=no_xero_organisation",
           req.url
         )
       );
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(
       new URL(
-        "/dashboard/settings/integrations?success=xero_connected",
+        "/crm/settings/integrations?success=xero_connected",
         req.url
       )
     );
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
     console.error("[xero-callback] OAuth error:", error);
     return NextResponse.redirect(
       new URL(
-        "/dashboard/settings/integrations?error=callback_failed",
+        "/crm/settings/integrations?error=callback_failed",
         req.url
       )
     );

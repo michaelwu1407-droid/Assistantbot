@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { WorkspaceForm } from "@/app/dashboard/settings/workspace/workspace-form"
+import { WorkspaceForm } from "@/app/crm/settings/workspace/workspace-form"
 
 interface MyBusinessDetailsProps {
   workspaceId: string

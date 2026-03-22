@@ -111,7 +111,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                                 className="flex gap-3 items-start group cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-border/50"
                                 onClick={() => {
                                     if (activity.dealId) setSelectedDealId(activity.dealId)
-                                    else if (activity.contactId) router.push(`/dashboard/contacts/${activity.contactId}`)
+                                    else if (activity.contactId) router.push(`/crm/contacts/${activity.contactId}`)
                                 }}
                             >
                                 <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>

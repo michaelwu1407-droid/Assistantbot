@@ -137,7 +137,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "contact",
         title: contact.name,
         subtitle: contact.company || contact.email || contact.phone || "Contact",
-        url: `/dashboard/contacts/${contact.id}`,
+        url: `/crm/contacts/${contact.id}`,
       },
     })
   })
@@ -158,7 +158,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "deal",
         title: deal.title,
         subtitle: `${deal.stage} • $${value.toLocaleString("en-AU")}`,
-        url: `/dashboard/deals/${deal.id}`,
+        url: `/crm/deals/${deal.id}`,
       },
     })
   })
@@ -172,7 +172,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "task",
         title: task.title,
         subtitle: task.dueAt ? `Due ${task.dueAt.toLocaleDateString("en-AU")}` : "No due date",
-        url: task.dealId ? `/dashboard/deals/${task.dealId}` : task.contactId ? `/dashboard/contacts/${task.contactId}` : "/dashboard",
+        url: task.dealId ? `/crm/deals/${task.dealId}` : task.contactId ? `/crm/contacts/${task.contactId}` : "/crm",
       },
     })
   })
@@ -187,7 +187,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "activity",
         title: activity.title,
         subtitle: summary,
-        url: activity.dealId ? `/dashboard/deals/${activity.dealId}` : activity.contactId ? `/dashboard/contacts/${activity.contactId}` : "/dashboard",
+        url: activity.dealId ? `/crm/deals/${activity.dealId}` : activity.contactId ? `/crm/contacts/${activity.contactId}` : "/crm",
       },
     })
   })
@@ -203,7 +203,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         type: "call",
         title: `${caller} (${call.callType})`,
         subtitle: transcriptSnippet || `Started ${call.startedAt.toLocaleString("en-AU")}`,
-        url: call.contactId ? `/dashboard/contacts/${call.contactId}` : "/dashboard",
+        url: call.contactId ? `/crm/contacts/${call.contactId}` : "/crm",
       },
     })
   })

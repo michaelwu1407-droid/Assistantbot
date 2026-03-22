@@ -125,7 +125,7 @@ export function CallForwardingCard() {
               </p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/settings/phone-settings">Update phone</Link>
+              <Link href="/crm/settings/phone-settings">Update phone</Link>
             </Button>
           </div>
         </div>

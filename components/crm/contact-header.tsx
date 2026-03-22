@@ -74,7 +74,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => {
-              window.location.href = `/dashboard/inbox?contact=${contact.id}`
+              window.location.href = `/crm/inbox?contact=${contact.id}`
             }}>
               <Bot className="mr-2 h-4 w-4" />
               Send via Agent (Resend)

@@ -106,7 +106,7 @@ export async function updateAutomatedMessageRule(
     data,
   });
 
-  revalidatePath("/dashboard/settings/notifications");
+  revalidatePath("/crm/settings/notifications");
   return { success: true };
 }
 
@@ -136,7 +136,7 @@ export async function createAutomatedMessageRule(data: {
     },
   });
 
-  revalidatePath("/dashboard/settings/notifications");
+  revalidatePath("/crm/settings/notifications");
   return { success: true };
 }
 
@@ -150,7 +150,7 @@ export async function deleteAutomatedMessageRule(
   if (!authUser?.email) return { success: false, error: "Unauthorized" };
 
   await db.automatedMessageRule.delete({ where: { id: ruleId } });
-  revalidatePath("/dashboard/settings/notifications");
+  revalidatePath("/crm/settings/notifications");
   return { success: true };
 }
 

@@ -6,5 +6,5 @@ interface PageProps {
 
 export default async function ContactPage({ params }: PageProps) {
   const { id } = await params;
-  redirect(`/dashboard/contacts/${id}`);
+  redirect(`/crm/contacts/${id}`);
 }

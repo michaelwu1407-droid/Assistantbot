@@ -86,7 +86,7 @@ export async function addKnowledgeRule(
         workspaceId,
       },
     });
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true, id: rule.id };
   } catch (err) {
     console.error("[Knowledge] Add failed:", err);
@@ -107,7 +107,7 @@ export async function updateKnowledgeRule(
         metadata: metadata ? (metadata as any) : undefined,
       },
     });
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true };
   } catch (err) {
     console.error("[Knowledge] Update failed:", err);
@@ -120,7 +120,7 @@ export async function deleteKnowledgeRule(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await db.businessKnowledge.delete({ where: { id } });
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true };
   } catch (err) {
     console.error("[Knowledge] Delete failed:", err);
@@ -148,7 +148,7 @@ export async function bulkImportKnowledge(
         workspaceId,
       })),
     });
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true, count: result.count };
   } catch (err) {
     console.error("[Knowledge] Bulk import failed:", err);
@@ -172,7 +172,7 @@ export async function updateServiceArea(
         serviceSuburbs: serviceSuburbs.filter((s) => s.trim()),
       },
     });
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true };
   } catch (err) {
     console.error("[Knowledge] Update service area failed:", err);

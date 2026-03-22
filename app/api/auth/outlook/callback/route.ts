@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/integrations?error=${encodeURIComponent(error)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=${encodeURIComponent(error)}`
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/integrations?error=missing_params`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=missing_params`
     );
   }
 
@@ -91,13 +91,13 @@ export async function GET(req: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/integrations?success=${provider}_connected`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?success=${provider}_connected`
     );
 
   } catch (err) {
     console.error("OAuth callback error:", err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/integrations?error=oauth_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=oauth_failed`
     );
   }
 }

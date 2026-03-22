@@ -400,7 +400,7 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                     </div>
                     <div className="min-w-0 flex-1 px-2">
                         <div className="mx-auto w-fit max-w-full rounded-full border border-slate-200/80 bg-white/88 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 shadow-sm">
-                            earlymark.ai/dashboard
+                            earlymark.ai/crm
                         </div>
                     </div>
                     <div className="hidden items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 sm:flex">

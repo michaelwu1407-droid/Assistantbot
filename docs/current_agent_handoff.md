@@ -130,7 +130,7 @@ Start here before reading the longer audit/backlog docs.
 ### Reports / CRM parity
 
 - `actions/analytics-actions.ts`
-- `app/dashboard/analytics/page.tsx`
+- `app/crm/analytics/page.tsx`
 - `actions/tradie-actions.ts`
 - `actions/deal-actions.ts`
 - `actions/chat-actions.ts`

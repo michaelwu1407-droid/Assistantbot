@@ -243,7 +243,7 @@ const effectiveType = isSystemEvent(item) ? "system"
 
 ## Task 13: Analytics — Revenue Trend Line Graph
 **Agent:** Smart
-**File:** `app/dashboard/analytics/page.tsx` (lines 206-226)
+**File:** `app/crm/analytics/page.tsx` (lines 206-226)
 
 ### Current State
 Revenue trend shows horizontal bars per month.

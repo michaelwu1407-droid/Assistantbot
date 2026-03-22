@@ -15,7 +15,7 @@ export function Breadcrumbs({ className }: { className?: string }) {
     return (
         <nav aria-label="Breadcrumb" className={cn("hidden md:flex items-center text-sm text-slate-500", className)}>
             <Link
-                href="/dashboard"
+                href="/crm"
                 className="flex items-center hover:text-slate-900 transition-colors"
             >
                 <Home className="h-4 w-4" />

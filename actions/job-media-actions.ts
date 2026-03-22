@@ -59,8 +59,8 @@ export async function uploadJobPhoto(
       throw error;
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath(`/dashboard/deals/${dealId}`);
+    revalidatePath("/crm");
+    revalidatePath(`/crm/deals/${dealId}`);
 
     return { success: true, url: publicUrl };
   } catch (error) {
@@ -136,8 +136,8 @@ export async function deleteJobPhoto(photoId: string): Promise<{
       console.warn("Failed to delete from storage:", storageError);
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath(`/dashboard/deals/${photo.dealId}`);
+    revalidatePath("/crm");
+    revalidatePath(`/crm/deals/${photo.dealId}`);
 
     return { success: true };
   } catch (error) {
@@ -172,8 +172,8 @@ export async function createJobNote(
       throw error;
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath(`/dashboard/deals/${dealId}`);
+    revalidatePath("/crm");
+    revalidatePath(`/crm/deals/${dealId}`);
 
     return { success: true, note: data };
   } catch (error) {
@@ -233,8 +233,8 @@ export async function updateJobNote(
       throw error;
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath(`/dashboard/deals/${data.dealId}`);
+    revalidatePath("/crm");
+    revalidatePath(`/crm/deals/${data.dealId}`);
 
     return { success: true, note: data };
   } catch (error) {
@@ -267,9 +267,9 @@ export async function deleteJobNote(noteId: string): Promise<{
       throw error;
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm");
     if (note) {
-      revalidatePath(`/dashboard/deals/${note.dealId}`);
+      revalidatePath(`/crm/deals/${note.dealId}`);
     }
 
     return { success: true };

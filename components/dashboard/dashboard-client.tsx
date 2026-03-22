@@ -1,17 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
-import { NewDealModal } from "@/components/modals/new-deal-modal"
-import { ActivityModal } from "@/components/modals/activity-modal"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
 import { ensureDailyNotifications } from "@/actions/notification-actions"
 import { useShellStore } from "@/lib/store"
-import { Header } from "./header"
-import { Button } from "@/components/ui/button"
-import { Plus, Filter } from "lucide-react"
+import { useDashboardHeaderExtraSetter } from "@/components/dashboard/dashboard-header-extra-context"
+import { Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
     Select,
@@ -37,15 +34,14 @@ interface DashboardClientProps {
     userId: string
 }
 
-export function DashboardClient({ workspace, deals, teamMembers, userName, userId }: DashboardClientProps) {
+export function DashboardClient({ workspace, deals, teamMembers }: DashboardClientProps) {
     const FILTER_ALL = "__all__"
     const currentUser = teamMembers.find((m) => (m as { isCurrentUser?: boolean }).isCurrentUser)
     const currentUserRole = currentUser?.role ?? "TEAM_MEMBER"
     const defaultFilter =
         currentUserRole === "TEAM_MEMBER" && currentUser?.id ? currentUser.id : null
-    const [isNewDealModalOpen, setIsNewDealModalOpen] = useState(false)
-    const [isActivityModalOpen, setIsActivityModalOpen] = useState(false)
     const [filterByUserId, setFilterByUserId] = useState<string | null>(defaultFilter)
+    const setHeaderExtra = useDashboardHeaderExtraSetter()
 
     useEffect(() => {
         ensureDailyNotifications(workspace.id).catch(() => {})
@@ -60,29 +56,16 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
 
     const assistantPanelExpanded = useShellStore((s) => s.assistantPanelExpanded)
 
-    const newDealLabel =
-        workspace.industryType === "TRADES"
-            ? "New Job"
-            : workspace.industryType === "REAL_ESTATE"
-              ? "New Listing"
-              : "New Deal"
-
-    const pipelineHeaderActions = (
-        <>
-            <Button
-                id="new-deal-btn"
-                onClick={() => setIsNewDealModalOpen(true)}
-                className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold sunlight-shadow truncate"
-            >
-                <Plus className="h-3.5 w-3.5 mr-0.5 shrink-0" />
-                {newDealLabel}
-            </Button>
+    /* Kanban filter only — “New Job” + rest of bar live in DashboardMainChrome */
+    const pipelineFilterExtra = useMemo(
+        () => (
             <Select
                 disabled={!hasTeamFilter}
                 value={filterSelectValue}
                 onValueChange={(v) => setFilterByUserId(v === FILTER_ALL ? null : v)}
             >
                 <SelectTrigger
+                    id="pipeline-filter-trigger"
                     title={!hasTeamFilter ? "Invite team in Settings to filter by person" : undefined}
                     className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 bg-muted rounded-lg border-none text-xs font-medium hover:bg-muted/80 transition-colors gap-1 disabled:opacity-60"
                 >
@@ -98,29 +81,21 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                     ))}
                 </SelectContent>
             </Select>
-        </>
+        ),
+        [hasTeamFilter, filterSelectValue, teamMembers, filterByUserId]
     )
 
-    return (
-        <div className="dashboard-stitch h-full flex flex-col overflow-hidden bg-transparent text-[15px] leading-snug">
-            {/* Sticky template top bar — stays visible while KPI + board scroll */}
-            <div className="sticky top-0 z-20 shrink-0 border-b border-border/10 bg-[var(--main-canvas)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--main-canvas)]/80">
-                <Header
-                    userName={userName}
-                    userId={userId}
-                    workspaceId={workspace.id}
-                    userRole={currentUserRole}
-                    onOpenActivity={() => setIsActivityModalOpen(true)}
-                    headerActions={pipelineHeaderActions}
-                />
-            </div>
+    useEffect(() => {
+        setHeaderExtra(pipelineFilterExtra)
+        return () => setHeaderExtra(null)
+    }, [pipelineFilterExtra, setHeaderExtra])
 
-            {/* Scrollable main — KPI + pipeline + Kanban */}
+    return (
+        <div className="dashboard-stitch flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-transparent text-[15px] leading-snug">
+            {/* Scrollable main — KPI + pipeline + Kanban (brand header is DashboardMainChrome) */}
             <main
                 className={cn(
-                    /* modest bottom padding — column lists add their own pb; FABs float above content */
                     "flex min-h-0 flex-1 flex-col overflow-hidden pb-6 min-w-0",
-                    /* When RHS chat is open, drop right padding + symmetric bleed so Kanban sits flush to the resize handle (avoids a grey “blank strip”). */
                     assistantPanelExpanded ? "pl-6 pr-0 overflow-x-hidden" : "px-6 overflow-x-auto md:overflow-x-hidden"
                 )}
             >
@@ -136,7 +111,6 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                             assistantPanelExpanded && "min-w-[1200px]"
                         )}
                     >
-                        {/* Hero Metrics — pb-0 so the divider below sits in one symmetric gap (no extra grey band below cards) */}
                         <div
                             className={cn(
                                 "shrink-0 pt-5 pb-0 bg-muted/35",
@@ -146,7 +120,6 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                             <DashboardKpiCards deals={deals} />
                         </div>
 
-                        {/* Equal space above and below the rule between KPI strip and Kanban */}
                         <div
                             className={cn(
                                 "shrink-0 pt-5 pb-2.5 bg-transparent",
@@ -158,7 +131,6 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                         </div>
 
                         <section className="flex min-h-0 flex-1 flex-col overflow-hidden pb-1 pt-0">
-                            {/* Match KPI strip horizontal bleed so Kanban lines up with the four cards */}
                             <div
                                 className={cn(
                                     "flex min-h-0 min-w-0 flex-1 overflow-hidden",
@@ -178,18 +150,6 @@ export function DashboardClient({ workspace, deals, teamMembers, userName, userI
                     </div>
                 </div>
             </main>
-
-            <NewDealModal
-                isOpen={isNewDealModalOpen}
-                onClose={() => setIsNewDealModalOpen(false)}
-                workspaceId={workspace.id}
-                teamMembers={teamMembers}
-            />
-            <ActivityModal
-                isOpen={isActivityModalOpen}
-                onClose={() => setIsActivityModalOpen(false)}
-                workspaceId={workspace.id}
-            />
         </div>
     )
 }

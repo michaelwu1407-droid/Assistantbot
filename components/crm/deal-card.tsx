@@ -56,7 +56,7 @@ interface DealCardProps {
   currentUserRole?: string
 }
 
-/** Overdue bottom strip — 65% colour opacity (design reference: /dashboard/design/deal-cards). */
+/** Overdue bottom strip — 65% colour opacity (design reference: /crm/design/deal-cards). */
 function overdueBannerOverlayClasses(severity: "critical" | "warning" | "mild" | "none"): string {
   if (severity === "critical") return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
   if (severity === "warning") return "bg-orange-500/65 text-white shadow-inner dark:bg-orange-600/65"
@@ -346,15 +346,15 @@ export function DealCard({
             return
           }
           if (onOpenModal) onOpenModal()
-          else if (deal.contactId) router.push(`/dashboard/contacts/${deal.contactId}`)
-          else router.push(`/dashboard/deals/${deal.id}`)
+          else if (deal.contactId) router.push(`/crm/contacts/${deal.contactId}`)
+          else router.push(`/crm/deals/${deal.id}`)
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()
             if (onOpenModal) onOpenModal()
-            else if (deal.contactId) router.push(`/dashboard/contacts/${deal.contactId}`)
-            else router.push(`/dashboard/deals/${deal.id}`)
+            else if (deal.contactId) router.push(`/crm/contacts/${deal.contactId}`)
+            else router.push(`/crm/deals/${deal.id}`)
           }
         }}
         role="button"

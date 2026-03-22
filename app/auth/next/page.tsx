@@ -50,7 +50,7 @@ export default async function AuthNextPage() {
         workspaceId: workspace.id,
         subscribed,
         onboarded,
-        redirectTarget: subscribed ? (onboarded ? "/dashboard" : "/setup") : "/billing"
+        redirectTarget: subscribed ? (onboarded ? "/crm" : "/setup") : "/billing"
     });
 
     if (!subscribed) {
@@ -71,10 +71,10 @@ export default async function AuthNextPage() {
         redirect("/setup");
     }
 
-    logger.authFlow("Redirecting to /dashboard", {
+    logger.authFlow("Redirecting to /crm", {
         userId,
         workspaceId: workspace.id,
         reason: "subscription_active_and_onboarding_complete"
     });
-    redirect("/dashboard");
+    redirect("/crm");
 }

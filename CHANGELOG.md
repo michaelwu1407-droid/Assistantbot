@@ -175,7 +175,7 @@
 
 #### 📞 **Phone Management System**
 - **Dual-Number Architecture**: Complete separation between personal phone numbers and AI agent business numbers
-- **Personal Phone Management**: `/dashboard/settings/phone-settings` with SMS verification
+- **Personal Phone Management**: `/crm/settings/phone-settings` with SMS verification
 - **AI Agent Number Security**: Read-only, support-managed for security
 - **SMS Verification**: 6-digit codes, 10-minute expiry, first-time setup flow
 - **Real-time Status**: Live status display for both phone numbers

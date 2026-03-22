@@ -42,7 +42,7 @@ export async function addDocument(data: { name: string; description: string; pat
         },
     });
 
-    revalidatePath("/dashboard/settings/my-business");
+    revalidatePath("/crm/settings/my-business");
     return { success: true, doc };
 }
 
@@ -56,6 +56,6 @@ export async function deleteDocument(id: string) {
         where: { id, workspaceId: workspace.id },
     });
 
-    revalidatePath("/dashboard/settings/my-business");
+    revalidatePath("/crm/settings/my-business");
     return { success: true };
 }

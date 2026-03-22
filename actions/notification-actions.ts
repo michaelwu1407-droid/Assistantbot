@@ -67,7 +67,7 @@ export async function markAsRead(notificationId: string) {
     where: { id: notificationId },
     data: { read: true },
   });
-  revalidatePath("/dashboard");
+  revalidatePath("/crm");
   return { success: true };
 }
 
@@ -79,7 +79,7 @@ export async function markAllAsRead(userId: string) {
     where: { userId, read: false },
     data: { read: true },
   });
-  revalidatePath("/dashboard");
+  revalidatePath("/crm");
   return { success: true };
 }
 
@@ -169,7 +169,7 @@ export async function saveNotificationPreferences(prefs: NotificationPreferences
     },
   })
 
-  revalidatePath("/dashboard/settings/notifications")
+  revalidatePath("/crm/settings/notifications")
   return { success: true }
 }
 
@@ -191,11 +191,11 @@ export async function sendTestNotification() {
     title: "Test notification",
     message: "Notifications are working. This is a test alert from Settings.",
     type: "INFO",
-    link: "/dashboard/settings/notifications",
+    link: "/crm/settings/notifications",
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/dashboard/settings/notifications")
+  revalidatePath("/crm")
+  revalidatePath("/crm/settings/notifications")
   return { success: true }
 }
 
@@ -255,7 +255,7 @@ export async function ensureDailyNotifications(workspaceId: string) {
         title: "☀️ Morning Briefing",
         message: morningMessage,
         type: "INFO",
-        link: "/dashboard",
+        link: "/crm",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });
@@ -289,11 +289,11 @@ export async function ensureDailyNotifications(workspaceId: string) {
       });
 
       let message = "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.";
-      let link = "/dashboard/inbox";
+      let link = "/crm/inbox";
 
       if (todayDeviations > 0) {
         message += ` Note: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules. Please review these so I can learn your latest preferences!`;
-        link = "/dashboard/settings/my-business"; // Review refusal rules in My business
+        link = "/crm/settings/my-business"; // Review refusal rules in My business
       }
 
       await createNotification({

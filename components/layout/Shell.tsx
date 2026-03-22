@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import { completeTutorial } from "@/actions/workspace-actions"
+import { DashboardMainChrome } from "@/components/dashboard/dashboard-main-chrome"
 
 const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
 
@@ -58,21 +59,21 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
   // Determine if we should show the simplified Chat view
   // Show Chat view when: BASIC mode, or during tutorial steps 1–2 (welcome + two modes) so step 2 is shown in chat mode
-  const isDashboardRoot = pathname === "/dashboard"
+  const isDashboardRoot = pathname === "/crm"
   const isTutorialStep1Or2 = viewMode === "TUTORIAL" && (tutorialStepIndex === 0 || tutorialStepIndex === 1)
   const isBasicView = mounted && isDashboardRoot && (viewMode === "BASIC" || isTutorialStep1Or2)
 
   // Keep track of the last advanced-page route so Chat -> Advanced returns users where they were.
   useEffect(() => {
-    if (!pathname.startsWith("/dashboard")) return
+    if (!pathname.startsWith("/crm")) return
     if (viewMode !== "ADVANCED") return
     setLastAdvancedPath(pathname)
   }, [pathname, viewMode, setLastAdvancedPath])
 
   const goToAdvanced = () => {
-    const target = lastAdvancedPath && lastAdvancedPath.startsWith("/dashboard")
+    const target = lastAdvancedPath && lastAdvancedPath.startsWith("/crm")
       ? lastAdvancedPath
-      : "/dashboard"
+      : "/crm"
     setViewMode("ADVANCED")
     if (pathname !== target) {
       router.push(target)
@@ -80,12 +81,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   }
 
   const goToBasic = () => {
-    if (pathname.startsWith("/dashboard")) {
+    if (pathname.startsWith("/crm")) {
       setLastAdvancedPath(pathname)
     }
     setViewMode("BASIC")
-    if (pathname !== "/dashboard") {
-      router.push("/dashboard")
+    if (pathname !== "/crm") {
+      router.push("/crm")
     }
   }
 
@@ -99,7 +100,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     }
   }, [searchParams, setViewMode, router, pathname])
 
-  // Keep steps 1–2 in chat mode: if we're on those steps, ensure viewMode is TUTORIAL (and user should be on /dashboard via overlay redirect)
+  // Keep steps 1–2 in chat mode: if we're on those steps, ensure viewMode is TUTORIAL (and user should be on /crm via overlay redirect)
   useEffect(() => {
     if ((tutorialStepIndex === 0 || tutorialStepIndex === 1) && viewMode !== "TUTORIAL") {
       setViewMode("TUTORIAL")
@@ -119,7 +120,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   // Default chat panel: open on home (desktop only), closed on other pages; on mobile always closed
   useEffect(() => {
     if (!mounted || isBasicView) return
-    const openOnHome = pathname === "/dashboard" && isDesktop
+    const openOnHome = pathname === "/crm" && isDesktop
     if (openOnHome) {
       const t = setTimeout(() => {
         chatbotPanelRef.current?.expand()
@@ -194,7 +195,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {mounted ? (
             <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full min-w-0 w-full">
               {/* Left canvas + assistant must sum to 100% default so the main pane reliably compresses when chat expands */}
-              <ResizablePanel defaultSize={72} minSize={30} id="main-canvas-panel" className="min-w-0">
+              <ResizablePanel defaultSize={72} minSize={30} id="main-canvas-panel" className="flex min-h-0 min-w-0 flex-col">
                 <div
                   id="main-canvas"
                   className={cn(
@@ -296,9 +297,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               </ResizablePanel>
             </ResizablePanelGroup>
           ) : (
-            <div className="flex-1 h-full min-w-0">
-              <div id="main-canvas" className="h-full w-full min-w-0 overflow-y-auto overflow-x-auto relative bg-[var(--main-canvas)]">
-                {children}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <div
+                id="main-canvas"
+                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-auto relative bg-[var(--main-canvas)]"
+              >
+                <DashboardMainChrome>{children}</DashboardMainChrome>
               </div>
             </div>
           )}

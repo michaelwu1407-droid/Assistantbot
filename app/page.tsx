@@ -157,7 +157,7 @@ function ChatDemo() {
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="bg-neutral-200/60 rounded px-4 py-1 text-[11px] text-neutral-500 font-medium tracking-wide">
-                        earlymark.ai/dashboard — Tracey Chat
+                        earlymark.ai/crm — Tracey Chat
                     </div>
                 </div>
             </div>
@@ -804,7 +804,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex-1 flex justify-center">
                                     <div className="bg-white rounded px-4 py-1 text-[11px] text-slate-400 font-medium">
-                                        earlymark.ai/dashboard
+                                        earlymark.ai/crm
                                     </div>
                                 </div>
                             </div>

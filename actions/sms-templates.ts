@@ -74,7 +74,7 @@ export async function upsertSmsTemplate(
       update: { content: styledContent, isActive },
     });
 
-    revalidatePath("/dashboard/settings/sms-templates");
+    revalidatePath("/crm/settings/sms-templates");
     return { success: true };
   } catch (error) {
     console.error("Failed to upsert SMS template:", error);

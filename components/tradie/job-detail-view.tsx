@@ -45,7 +45,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
             {/* Header */}
             <div className="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-10">
                 <div className="flex items-center gap-3 mb-2">
-                    <Link href="/dashboard/tradie" className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500">
+                    <Link href="/crm/tradie" className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500">
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <Badge variant={job.status === 'COMPLETED' ? 'secondary' : 'default'} className="uppercase">

@@ -56,7 +56,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
         <div className="min-h-screen bg-slate-50 pb-32">
             {/* Header */}
             <header className="bg-white border-b px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-                <Link href="/dashboard/tradie">
+                <Link href="/crm/tradie">
                     <Button variant="ghost" size="icon" className="-ml-2">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>

@@ -9,6 +9,7 @@ import { DashboardClientChrome } from "@/components/providers/dashboard-client-c
 import { Toaster } from "@/components/ui/sonner";
 import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
+import { getAuthUser } from "@/lib/auth";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +21,8 @@ export default async function DashboardLayout({
   let userRole: UserRole = "OWNER";
   let tutorialComplete = false;
   let shouldRedirectToSetup = false;
+  let headerDisplayName = "";
+  let workspaceIndustryType: "TRADES" | "REAL_ESTATE" | null = null;
 
   try {
     const dashboardState = await getDashboardShellState();
@@ -46,9 +49,21 @@ export default async function DashboardLayout({
     redirect("/setup");
   }
 
+  const authUser = await getAuthUser();
+  if (authUser) {
+    headerDisplayName = authUser.name ?? authUser.email?.split("@")[0] ?? "User";
+  }
+
   return (
     <IndustryProvider>
-      <ShellInitializer workspaceId={workspaceId} userId={userId} userRole={userRole} tutorialComplete={tutorialComplete} />
+      <ShellInitializer
+        workspaceId={workspaceId}
+        userId={userId}
+        userRole={userRole}
+        tutorialComplete={tutorialComplete}
+        headerDisplayName={headerDisplayName}
+        workspaceIndustryType={workspaceIndustryType}
+      />
       <Suspense fallback={<div className="h-screen w-full bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
         <Shell chatbot={<DeferredChatInterface workspaceId={workspaceId} />}>
           <OnboardingModal />

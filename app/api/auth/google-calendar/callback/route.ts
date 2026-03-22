@@ -7,11 +7,11 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(new URL(`/dashboard/settings/integrations?error=${encodeURIComponent(error)}`, req.url));
+    return NextResponse.redirect(new URL(`/crm/settings/integrations?error=${encodeURIComponent(error)}`, req.url));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/dashboard/settings/integrations?error=missing_code_or_state", req.url));
+    return NextResponse.redirect(new URL("/crm/settings/integrations?error=missing_code_or_state", req.url));
   }
 
   try {
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!tokenRes.ok) {
-      return NextResponse.redirect(new URL("/dashboard/settings/integrations?error=token_exchange_failed", req.url));
+      return NextResponse.redirect(new URL("/crm/settings/integrations?error=token_exchange_failed", req.url));
     }
 
     const tokens = await tokenRes.json();
@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
       calendarId: "primary",
     });
 
-    return NextResponse.redirect(new URL("/dashboard/settings/integrations?success=google_calendar_connected", req.url));
+    return NextResponse.redirect(new URL("/crm/settings/integrations?success=google_calendar_connected", req.url));
   } catch {
-    return NextResponse.redirect(new URL("/dashboard/settings/integrations?error=callback_failed", req.url));
+    return NextResponse.redirect(new URL("/crm/settings/integrations?error=callback_failed", req.url));
   }
 }

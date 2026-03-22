@@ -408,7 +408,7 @@ export async function POST(req: NextRequest) {
             title: urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up",
             message: `${leadName} from ${platform}. Review details and contact the lead directly.`,
             type: "INFO",
-            link: `/dashboard/inbox?contact=${contact.id}`,
+            link: `/crm/inbox?contact=${contact.id}`,
           },
         }).catch(() => {});
 
@@ -618,7 +618,7 @@ export async function POST(req: NextRequest) {
           title: "New Inbound Email",
           message: `${contact.name} emailed about: ${subject}${geminiResult ? (geminiResult.isGenuineLead ? " (Genuine Lead)" : " (Tire Kicker)") : ""}`,
           type: geminiResult?.isGenuineLead ? "SUCCESS" : "INFO",
-          link: activeDeal ? `/dashboard/deals/${activeDeal.id}` : "/dashboard",
+          link: activeDeal ? `/crm/deals/${activeDeal.id}` : "/crm",
         },
       });
     }

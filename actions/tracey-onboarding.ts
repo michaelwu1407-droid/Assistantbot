@@ -631,7 +631,7 @@ export async function saveTraceyOnboarding(
       data: { hasOnboarded: true },
     });
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm");
 
     return {
       success: true,

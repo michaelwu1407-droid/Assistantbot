@@ -36,7 +36,7 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
     )
 
     const handleContactClick = (contactId: string) => {
-        router.push(`/dashboard/contacts/${contactId}`)
+        router.push(`/crm/contacts/${contactId}`)
     }
 
     const formatAddress = (contact: Contact) => {
@@ -61,7 +61,7 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
                     />
                 </div>
                 <Button asChild>
-                    <a href="/dashboard/contacts/new">
+                    <a href="/crm/contacts/new">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Contact
                     </a>

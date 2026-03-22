@@ -196,7 +196,7 @@ export async function resolveDeviation(
       }
     }
 
-    revalidatePath("/dashboard/settings/knowledge");
+    revalidatePath("/crm/settings/knowledge");
     return { success: true };
   } catch (err) {
     console.error("[Learning] Resolve deviation failed:", err);

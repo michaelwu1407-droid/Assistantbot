@@ -300,7 +300,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
           </PopoverContent>
         </Popover>
         <Button asChild size="sm">
-          <Link href="/dashboard/contacts/new">Add contact</Link>
+          <Link href="/crm/contacts/new">Add contact</Link>
         </Button>
       </div>
 
@@ -362,7 +362,7 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
                     </td>
                     <td className="py-2.5 px-4">
                       <Link
-                        href={`/dashboard/contacts/${contact.id}`}
+                        href={`/crm/contacts/${contact.id}`}
                         className="font-medium text-foreground hover:text-primary hover:underline"
                       >
                         {contact.name}

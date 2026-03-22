@@ -141,32 +141,32 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                     <CommandSeparator />
 
                     <CommandGroup heading="Suggestions">
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm"))}>
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Dashboard</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/tradie/schedule"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/tradie/schedule"))}>
                             <Calendar className="mr-2 h-4 w-4" />
                             <span>Calendar</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/agent"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/agent"))}>
                             <Smile className="mr-2 h-4 w-4" />
                             <span>Agent View</span>
                         </CommandItem>
                     </CommandGroup>
                     <CommandSeparator />
                     <CommandGroup heading="Settings">
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/settings"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings"))}>
                             <User className="mr-2 h-4 w-4" />
                             <span>Profile</span>
                             <CommandShortcut>⌘P</CommandShortcut>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/settings/billing"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings/billing"))}>
                             <CreditCard className="mr-2 h-4 w-4" />
                             <span>Billing</span>
                             <CommandShortcut>⌘B</CommandShortcut>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/settings"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings"))}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Settings</span>
                             <CommandShortcut>⌘S</CommandShortcut>

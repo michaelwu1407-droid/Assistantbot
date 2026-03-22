@@ -102,7 +102,7 @@ async function queueCompletionFollowUp(
       title: "Post-job follow-up needed",
       message: `Log the final outcome and invoiced amount for ${dealTitle ?? "this completed job"}.`,
       type: "INFO",
-      link: `/dashboard/deals/${dealId}`,
+      link: `/crm/deals/${dealId}`,
       actionType: "LOG_COMPLETION_OUTCOME",
       actionPayload: { dealId },
     })
@@ -526,8 +526,8 @@ export async function updateDealStage(dealId: string, stage: string) {
             requestedBy: userName,
           },
         });
-        revalidatePath("/dashboard");
-        revalidatePath("/dashboard/deals");
+        revalidatePath("/crm");
+        revalidatePath("/crm/deals");
         return { success: true };
       }
     }
@@ -668,8 +668,8 @@ export async function persistKanbanColumnOrder(
       })
     );
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/deals");
+    revalidatePath("/crm");
+    revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
     console.error("persistKanbanColumnOrder error:", err);
@@ -739,7 +739,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
         title: "Completion approved",
         message: `Your request to mark a job as completed was approved.`,
         type: "SUCCESS",
-        link: `/dashboard/deals`,
+        link: `/crm/deals`,
       });
     }
 
@@ -765,8 +765,8 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       console.warn("Review request hook failed on approveCompletion:", reviewErr);
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/deals");
+    revalidatePath("/crm");
+    revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
     console.error("approveCompletion error:", err);
@@ -834,12 +834,12 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
         title: "Completion request rejected",
         message: reason?.trim() ? `Your completion was rejected: ${reason}` : "Your request to mark the job as completed was rejected. You can edit the job and try again.",
         type: "WARNING",
-        link: `/dashboard/deals`,
+        link: `/crm/deals`,
       });
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/deals");
+    revalidatePath("/crm");
+    revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
     console.error("rejectCompletion error:", err);
@@ -1115,8 +1115,8 @@ export async function uploadDealPhoto(
       data: { dealId, url: publicUrl, caption: caption || null },
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath(`/dashboard/deals/${dealId}`);
+    revalidatePath("/crm");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (e) {
     console.error("uploadDealPhoto error:", e);

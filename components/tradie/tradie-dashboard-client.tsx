@@ -9,7 +9,6 @@ import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
 import { JobCompletionModal } from './job-completion-modal';
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
-import { Header } from "@/components/dashboard/header"
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search";
 import { Search } from "lucide-react";
@@ -78,7 +77,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
           <h2 className="text-xl font-bold mb-2">All Caught Up!</h2>
           <p className="text-slate-400 mb-4">No scheduled jobs for today.</p>
           <Button variant="outline" asChild className="mt-4">
-            <Link href="/dashboard/map" className="gap-2">
+            <Link href="/crm/map" className="gap-2">
               <Map className="mr-2 h-4 w-4" />
               Return to Map
             </Link>
@@ -91,16 +90,9 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
   return (
     <div className="relative h-full w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
       {/* Header Overlay - Using Local Header Component logic but positioned for Tradie view */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none">
-        <div className="pointer-events-auto">
-          <Header
-            userName={userName}
-            userId={userId}
-            workspaceId={useShellStore.getState().workspaceId || ""}
-            onOpenActivity={() => {}}
-            onNewDeal={() => { }}
-          />
-          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
+      <div className="absolute top-0 right-4 z-20 p-4 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none md:right-6">
+        <div className="pointer-events-auto flex justify-end">
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setSearchOpen(true)}>
             <Search className="h-5 w-5" />
           </Button>
         </div>
@@ -128,7 +120,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
           {todayJobs.length} Jobs Today
         </div>
-        <Link href="/dashboard/tradie/estimator" className="pointer-events-auto">
+        <Link href="/crm/tradie/estimator" className="pointer-events-auto">
           <Button variant="secondary" size="sm" className="h-7 text-xs bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 shadow-sm">
             + Quick Estimate
           </Button>

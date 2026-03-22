@@ -142,7 +142,7 @@ export async function sendJobReminder(dealId: string) {
 
     console.log(`📊 [JOB REMINDER] Activity logged: ${activity.id}`);
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm");
     console.log(`🔄 [JOB REMINDER] Dashboard revalidated`);
     
     return { success: true, message: "Reminder sent successfully" };
@@ -229,7 +229,7 @@ export async function sendTripSms(dealId: string) {
 
     console.log(`📊 [TRIP SMS] Activity logged: ${activity.id}`);
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm");
     console.log(`🔄 [TRIP SMS] Dashboard revalidated`);
     
     return { success: true, message: "Trip SMS sent successfully" };

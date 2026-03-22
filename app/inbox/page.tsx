@@ -49,7 +49,7 @@ export default async function InboxPage() {
     <div className="h-screen flex flex-col bg-white">
       <div className="h-16 border-b border-slate-200 flex items-center px-4 shrink-0">
         <Link
-          href="/dashboard"
+          href="/crm"
           className="mr-4 p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />

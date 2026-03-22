@@ -102,7 +102,7 @@ export async function createInvite(params: {
       // If RESEND_API_KEY is not set, invite link is still created and can be copied
     }
 
-    revalidatePath("/dashboard/team");
+    revalidatePath("/crm/team");
     return { success: true, token: invite.token };
   } catch (error) {
     console.error("Error creating invite:", error);
@@ -193,7 +193,7 @@ export async function acceptInvite(token: string, userId: string): Promise<{ suc
     data: { acceptedAt: new Date() },
   });
 
-  revalidatePath("/dashboard/team");
+  revalidatePath("/crm/team");
   return { success: true };
 }
 
@@ -213,7 +213,7 @@ export async function revokeInvite(inviteId: string): Promise<{ success: boolean
   }
 
   await db.workspaceInvite.delete({ where: { id: inviteId } });
-  revalidatePath("/dashboard/team");
+  revalidatePath("/crm/team");
   return { success: true };
 }
 
@@ -287,8 +287,8 @@ export async function removeMember(memberId: string): Promise<{ success: boolean
   await db.notification.deleteMany({ where: { userId: memberId } });
   await db.user.delete({ where: { id: memberId } });
 
-  revalidatePath("/dashboard/team");
-  revalidatePath("/dashboard");
+  revalidatePath("/crm/team");
+  revalidatePath("/crm");
   return { success: true };
 }
 
@@ -336,6 +336,6 @@ export async function updateMemberRole(
     data: { role: newRole as UserRole },
   });
 
-  revalidatePath("/dashboard/team");
+  revalidatePath("/crm/team");
   return { success: true };
 }

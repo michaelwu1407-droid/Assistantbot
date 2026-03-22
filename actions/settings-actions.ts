@@ -171,7 +171,7 @@ export async function updateWorkspaceSettings(input: {
         }
     })
 
-    revalidatePath("/dashboard/settings/agent")
+    revalidatePath("/crm/settings/agent")
     return { success: true }
 }
 
@@ -286,7 +286,7 @@ export async function updateCallForwardingSettings(input: { enabled: boolean; mo
             },
         },
     })
-    revalidatePath("/dashboard/settings")
+    revalidatePath("/crm/settings")
     return { success: true, mode: nextMode, carrier: nextCarrier }
 }
 
@@ -375,7 +375,7 @@ export async function sendCallForwardingSetupSms(input?: {
         },
     })
 
-    revalidatePath("/dashboard/settings")
+    revalidatePath("/crm/settings")
     return { success: true }
 }
 
@@ -400,7 +400,7 @@ export async function updateBusinessContact(data: { phone?: string; email?: stri
         where: { id: workspaceId },
         data: { settings: { ...current, businessContact } },
     })
-    revalidatePath("/dashboard/settings/my-business")
+    revalidatePath("/crm/settings/my-business")
     return { success: true }
 }
 

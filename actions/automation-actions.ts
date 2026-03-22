@@ -230,7 +230,7 @@ export async function evaluateAutomations(
               title: automation.name,
               message: action.message ?? "Automation triggered",
               type: "SYSTEM",
-              link: event.dealId ? `/dashboard?dealId=${event.dealId}` : undefined
+              link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined
             });
           }
         }

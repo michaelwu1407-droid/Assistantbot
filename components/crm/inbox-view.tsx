@@ -591,7 +591,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   {/* Open button */}
                   {(selectedActivity?.dealId || selectedContact.id) && (
                     <Button variant="outline" size="sm" asChild className="h-8 px-2">
-                      <Link href={selectedActivity?.dealId ? `/dashboard/deals/${selectedActivity.dealId}` : `/dashboard/contacts/${selectedContact.id}`}>
+                      <Link href={selectedActivity?.dealId ? `/crm/deals/${selectedActivity.dealId}` : `/crm/contacts/${selectedContact.id}`}>
                         <ExternalLink className="h-3.5 w-3.5 mr-1" />
                         <span className="text-xs">Open</span>
                       </Link>

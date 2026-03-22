@@ -23,6 +23,8 @@ interface GlobalSearchProps {
     onOpenChange?: (open: boolean) => void
     /** Wider trigger bar (e.g. dashboard header); default keeps compact palette-style widths elsewhere */
     variant?: "default" | "bar"
+    /** `onDark` = white search field on dark green dashboard bar */
+    tone?: "default" | "onDark"
 }
 
 export function GlobalSearch({
@@ -31,6 +33,7 @@ export function GlobalSearch({
     open: externalOpen,
     onOpenChange: externalOnOpenChange,
     variant = "default",
+    tone = "default",
 }: GlobalSearchProps) {
     const [internalOpen, setInternalOpen] = React.useState(false)
     const router = useRouter()
@@ -88,25 +91,38 @@ export function GlobalSearch({
     const activityResults = results.filter(r => r.type === 'activity')
     const callResults = results.filter(r => r.type === 'call')
 
+    const showShortcutHint = !(variant === "bar" && tone === "onDark")
+
     return (
         <>
             {!isControlled && (
                 <Button
                     variant="outline"
                     className={cn(
-                        "relative w-full justify-start font-normal text-muted-foreground shadow-none",
-                        variant === "bar"
-                            ? "h-9 min-h-9 rounded-lg border-border/40 bg-muted/40 text-sm sm:pr-12 md:w-full md:min-w-0"
-                            : "h-9 rounded-[0.5rem] bg-background text-sm sm:pr-12 md:w-40 lg:w-64",
+                        "relative w-full justify-start font-normal shadow-none",
+                        variant === "bar" && tone === "onDark" &&
+                            "h-9 min-h-9 w-full rounded-lg border border-slate-200/90 bg-white text-sm text-slate-600 min-w-0 hover:bg-white hover:text-slate-800 focus-visible:shadow-none",
+                        variant === "bar" && tone === "onDark" && showShortcutHint && "sm:pr-12",
+                        variant === "bar" && tone !== "onDark" &&
+                            "h-9 min-h-9 rounded-lg border-border/40 bg-muted/40 text-sm text-muted-foreground sm:pr-12 md:w-full md:min-w-0",
+                        variant === "default" &&
+                            "h-9 rounded-[0.5rem] bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
                         className
                     )}
                     onClick={() => setOpen(true)}
                 >
                     <span className="hidden lg:inline-flex">Search...</span>
                     <span className="inline-flex lg:hidden">Search...</span>
-                    <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                        <span className="text-xs">⌘</span>K
-                    </kbd>
+                    {showShortcutHint && (
+                        <kbd
+                            className={cn(
+                                "pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex",
+                                "border bg-muted"
+                            )}
+                        >
+                            <span className="text-xs">⌘</span>K
+                        </kbd>
+                    )}
                 </Button>
             )}
             <Dialog open={open} onOpenChange={setOpen}>

@@ -51,7 +51,7 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
 
   const handlePopupClick = (dealId: string) => {
     // Navigate based on industry context or general deal page
-    router.push(`/dashboard/deals/${dealId}`)
+    router.push(`/crm/deals/${dealId}`)
   }
 
   return (

@@ -142,7 +142,7 @@ For Australian (+61) numbers, you must complete:
 
 #### **1. Clerk Dashboard Configuration**
 ```
-Go to: https://dashboard.clerk.com
+Go to: https://crm.clerk.com
 → User & Authentication → Settings
 → Authentication Methods
 → DISABLE "Phone number"

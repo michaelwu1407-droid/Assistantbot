@@ -14,7 +14,7 @@ export function getTraceyHandbookUrl(): string {
   if (configured) return configured;
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://earlymark.ai").replace(/\/$/, "");
-  return `${appUrl}/dashboard/settings/help`;
+  return `${appUrl}/crm/settings/help`;
 }
 
 export function buildTraceyWelcomeSmsBody(businessName: string, phoneNumber: string): string {

@@ -17,9 +17,11 @@ const ACTION_LABELS: Record<string, { label: string; icon: React.ElementType; cl
 
 interface NotificationsBtnProps {
     userId: string
+    /** Light icon on dark green dashboard header */
+    tone?: "default" | "onDark"
 }
 
-export function NotificationsBtn({ userId }: NotificationsBtnProps) {
+export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnProps) {
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [notifications, setNotifications] = useState<NotificationView[]>([])
@@ -71,20 +73,47 @@ export function NotificationsBtn({ userId }: NotificationsBtnProps) {
 
     return (
         <div id="notifications-btn" className="relative">
-            <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-9 w-9 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
-                onClick={() => {
-                    setIsOpen(!isOpen)
-                    if (!isOpen) fetchNotifications()
-                }}
-            >
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-                )}
-            </Button>
+            {tone === "onDark" ? (
+                /* Plain button: avoids ghost `border-primary` + global *:focus-visible green glow on Button */
+                <button
+                    type="button"
+                    aria-label="Notifications"
+                    className={cn(
+                        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors",
+                        "border-0 bg-transparent p-0 shadow-none outline-none",
+                        /* globals: * { outline-ring/50 } and *:focus-visible { box-shadow: green } */
+                        "!outline-none hover:bg-white/10 hover:text-white",
+                        "focus-visible:!outline-none focus-visible:!shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    )}
+                    onClick={() => {
+                        setIsOpen(!isOpen)
+                        if (!isOpen) fetchNotifications()
+                    }}
+                >
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                    )}
+                </button>
+            ) : (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "relative h-9 w-9",
+                        "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    )}
+                    onClick={() => {
+                        setIsOpen(!isOpen)
+                        if (!isOpen) fetchNotifications()
+                    }}
+                >
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                    )}
+                </Button>
+            )}
 
             {isOpen && (
                 <>

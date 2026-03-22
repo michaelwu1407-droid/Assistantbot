@@ -97,7 +97,7 @@ export default async function BillingSuccessPage({
     } catch (error) {
         console.error("Billing success verification failed:", error);
         // Redirect back to /billing so the user can retry — NOT to
-        // /dashboard, which would redirect back to /billing creating a loop.
+        // /crm, which would redirect back to /billing creating a loop.
         redirect("/billing");
     }
 
