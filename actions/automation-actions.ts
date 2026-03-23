@@ -199,30 +199,51 @@ export async function evaluateAutomations(
 
     if (shouldFire) {
       try {
-        triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
-
-        await db.automation.update({
-          where: { id: automation.id },
+        // ─── Atomic guard: claim this firing with optimistic lock ───
+        // Only proceed if lastFiredAt hasn't changed since we read it,
+        // preventing duplicate execution under concurrent webhook calls.
+        const claimed = await db.automation.updateMany({
+          where: {
+            id: automation.id,
+            lastFiredAt: automation.lastFiredAt, // optimistic lock
+          },
           data: { lastFiredAt: new Date() },
         });
+        if (claimed.count === 0) {
+          console.log(`[Automation] Skipped ${automation.name}: concurrent execution detected`);
+          continue;
+        }
+
+        triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
 
         // ─── Execute Actions ───
 
-        // 1. Create Task
+        // 1. Create Task (with dedup: skip if identical pending task exists)
         if (action.type === "create_task" && event.dealId) {
-          const dueAt = new Date();
-          dueAt.setDate(dueAt.getDate() + 2);
-          await createTask({
-            title: action.message ?? "Follow up",
-            dueAt,
-            dealId: event.dealId,
-            contactId: event.contactId
+          const taskTitle = action.message ?? "Follow up";
+          const existingTask = await db.task.findFirst({
+            where: {
+              dealId: event.dealId,
+              title: taskTitle,
+              completedAt: null,
+            },
           });
+          if (!existingTask) {
+            const dueAt = new Date();
+            dueAt.setDate(dueAt.getDate() + 2);
+            await createTask({
+              title: taskTitle,
+              dueAt,
+              dealId: event.dealId,
+              contactId: event.contactId,
+            });
+          } else {
+            console.log(`[Automation] Skipped duplicate task "${taskTitle}" for deal ${event.dealId}`);
+          }
         }
 
         // 2. Notify Users
         if (action.type === "notify") {
-          // Notify all users in workspace (SME team style)
           const users = await db.user.findMany({ where: { workspaceId } });
           for (const user of users) {
             await createNotification({
@@ -230,48 +251,63 @@ export async function evaluateAutomations(
               title: automation.name,
               message: action.message ?? "Automation triggered",
               type: "SYSTEM",
-              link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined
+              link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined,
             });
           }
         }
 
-        // 3. Send Email (Live Implementation)
+        // 3. Send Email (with dedup: skip if same automation already emailed this contact today)
         if (action.type === "email" && action.template && event.contactId) {
           try {
-            // Get workspace and contact information for dynamic agent identity
-            const deal = await db.deal.findUnique({
-              where: { id: event.dealId },
-              include: {
-                contact: true,
-                workspace: {
-                  select: {
-                    id: true,
-                    name: true,
-                    ownerId: true,
-                    inboundEmailAlias: true
-                  }
-                }
-              }
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const alreadySent = await db.activity.findFirst({
+              where: {
+                type: "EMAIL",
+                contactId: event.contactId,
+                title: { startsWith: `Automation: ${automation.name}` },
+                createdAt: { gte: todayStart },
+              },
             });
+            if (alreadySent) {
+              console.log(`[Automation] Skipped duplicate email for ${automation.name} to contact ${event.contactId}`);
+              continue;
+            }
+
+            const deal = event.dealId
+              ? await db.deal.findUnique({
+                  where: { id: event.dealId },
+                  include: {
+                    contact: true,
+                    workspace: {
+                      select: {
+                        id: true,
+                        name: true,
+                        ownerId: true,
+                        inboundEmailAlias: true,
+                      },
+                    },
+                  },
+                })
+              : null;
 
             if (!deal || !deal.contact || !deal.workspace) {
               console.log(`[Automation] Missing deal/contact/workspace data for email automation`);
               continue;
             }
 
-            // Get workspace owner for BCC
-            const owner = await db.user.findUnique({
-              where: { id: deal.workspace.ownerId! },
-              select: { email: true }
-            });
+            const owner = deal.workspace.ownerId
+              ? await db.user.findUnique({
+                  where: { id: deal.workspace.ownerId },
+                  select: { email: true },
+                })
+              : null;
 
-            // Render email template with variables
             const templateData = await renderTemplate(action.template, {
               contactName: deal.contact.name || "there",
               dealTitle: deal.title,
               amount: deal.value?.toString() || "0",
               companyName: deal.workspace.name,
-              // Add more template variables as needed
             });
 
             if (!templateData) {
@@ -279,48 +315,26 @@ export async function evaluateAutomations(
               continue;
             }
 
-            // Send email with dynamic agent identity
-            const emailResult = await runSendEmail(deal.workspace.id, {
+            await runSendEmail(deal.workspace.id, {
               contactName: deal.contact.name || "there",
               subject: templateData.subject || "Automated Message",
               body: templateData.body,
               workspaceAlias: deal.workspace.inboundEmailAlias || undefined,
               workspaceName: deal.workspace.name,
-              ownerEmail: owner?.email
+              ownerEmail: owner?.email,
             });
 
-            // Log the email for verification - FINAL EMAIL METADATA
-            const finalEmailMetadata = {
-              automation: automation.name,
-              template: action.template,
-              to: deal.contact.email,
-              contactName: deal.contact.name,
-              subject: templateData.subject,
-              from: deal.workspace.inboundEmailAlias
-                ? `"${deal.workspace.name} Assistant" <${deal.workspace.inboundEmailAlias}@agent.earlymark.ai>`
-                : process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai",
-              replyTo: deal.workspace.inboundEmailAlias
-                ? `${deal.workspace.inboundEmailAlias}@agent.earlymark.ai`
-                : undefined,
-              bcc: owner?.email,
-              workspaceAlias: deal.workspace.inboundEmailAlias,
-              workspaceName: deal.workspace.name,
-              timestamp: new Date().toISOString()
-            };
+            console.log(`[Automation] Email sent: ${automation.name} → ${deal.contact.email}`);
 
-            console.log(`[Automation] 📧 EMAIL SENT - METADATA VERIFICATION:`);
-            console.log(JSON.stringify(finalEmailMetadata, null, 2));
-
-            // Log activity
             await logActivity({
               type: "EMAIL",
               title: `Automation: ${automation.name} - ${templateData.subject}`,
               content: templateData.body,
               contactId: deal.contact.id,
+              dealId: event.dealId,
             });
-
           } catch (error) {
-            console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
+            console.error(`[Automation] Failed to send email for ${automation.name}:`, error);
           }
         }
 
@@ -333,7 +347,6 @@ export async function evaluateAutomations(
               ready_to_invoice: "INVOICED", pending_approval: "PENDING_COMPLETION",
               completed: "WON", lost: "LOST", deleted: "DELETED",
             };
-            // Accept both kanban column ids (e.g. "quote_sent") and Prisma enums (e.g. "CONTACTED")
             const prismaStage = STAGE_REVERSE[action.targetStage] || action.targetStage;
             await db.deal.update({
               where: { id: event.dealId },
@@ -347,11 +360,11 @@ export async function evaluateAutomations(
             });
             console.log(`[Automation] Moved deal ${event.dealId} to stage ${prismaStage}`);
           } catch (error) {
-            console.error(`[Automation] Failed to move stage for automation ${automation.name}:`, error);
+            console.error(`[Automation] Failed to move stage for ${automation.name}:`, error);
           }
         }
       } catch (err) {
-        console.error(`[Automation] Error executing rules for automation ${automation.name}:`, err);
+        console.error(`[Automation] Error executing automation ${automation.name}:`, err);
       }
     }
   }
