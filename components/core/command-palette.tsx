@@ -3,7 +3,8 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Search, User, DollarSign, CheckCircle2, Loader2, ArrowRight, History, PhoneCall } from "lucide-react"
-import { globalSearch, type SearchResultItem } from "@/actions/search-actions"
+import { globalSearchClient } from "@/lib/search-client"
+import type { SearchResultItem } from "@/lib/search-types"
 import { useShellStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
@@ -50,7 +51,7 @@ export function CommandPalette() {
     setLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const data = await globalSearch(workspaceId, query)
+        const data = await globalSearchClient(workspaceId, query)
         setResults(data)
       } catch (error) {
         console.error(error)

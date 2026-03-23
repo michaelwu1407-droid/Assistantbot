@@ -1,4 +1,4 @@
-import { runStartupEnvironmentValidation } from "@/lib/health-check";
+import { runStartupEnvironmentValidation } from "@/lib/startup-environment-validation";
 
 // Initialize application on startup
 export async function initializeApp(): Promise<void> {

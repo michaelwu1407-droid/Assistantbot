@@ -23,8 +23,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { logout } from "@/actions/auth-actions"
 import { useShellStore } from "@/lib/store"
+import { createClient } from "@/lib/supabase/client"
 
 const SIDEBAR_WIDTH = 45
 
@@ -57,7 +57,9 @@ export function Sidebar({ className, expanded }: SidebarProps) {
     }, [])
 
     const handleSignOut = async () => {
-        await logout()
+        const supabase = createClient()
+        await supabase.auth.signOut()
+        router.push("/login")
     }
 
     const goToAdvanced = () => {

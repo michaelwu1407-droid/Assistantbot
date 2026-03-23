@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { ImperativePanelHandle } from "react-resizable-panels"
-import { completeTutorial } from "@/actions/workspace-actions"
 import { DashboardMainChrome } from "@/components/dashboard/dashboard-main-chrome"
 
 const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
@@ -137,7 +136,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const handleTutorialComplete = async () => {
     const workspaceId = useShellStore.getState().workspaceId;
     if (workspaceId) {
-      await completeTutorial(workspaceId);
+      await fetch("/api/workspace/complete-tutorial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId }),
+      })
     }
   };
 

@@ -1761,3 +1761,87 @@ Rule: every agent change commit must include an entry in this file.
   - Added explicit offline `503` fallback responses when both network and cache are unavailable, including API/RSC fetch handling.
 - Why:
   - Browser console showed `TypeError: Failed to convert value to 'Response'` from `sw.js`, which can silently break request flows and made onboarding actions (including Activate Tracey) appear unresponsive.
+
+## 2026-03-23 18:15 (AEDT) - codex
+
+- Files changed:
+  - `components/providers/sync-provider.tsx`
+  - `app/api/deals/update-stage/route.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced `SyncProvider` direct server-action import for `updateDealStage` with a standard `fetch` call to a new API endpoint.
+  - Added `POST /api/deals/update-stage` route that validates payload, calls `updateDealStage`, and returns structured success/error JSON.
+- Why:
+  - Turbopack HMR repeatedly failed with `module factory is not available` for the client-side provider because it depended on a server-action module graph during hot updates. Moving the sync replay path to an API route avoids this fragile import path and stabilizes local dev reloads.
+
+## 2026-03-23 18:24 (AEDT) - codex
+
+- Files changed:
+  - `components/core/command-palette.tsx`
+  - `components/layout/global-search.tsx`
+  - `components/layout/search-dialog.tsx`
+  - `app/api/search/global/route.ts`
+  - `lib/search-client.ts`
+  - `lib/search-types.ts`
+  - `actions/search-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed direct client imports of `globalSearch` server action from command/search UI components.
+  - Added `POST /api/search/global` and a small browser helper (`globalSearchClient`) so search UI uses HTTP instead of pulling server-action modules into client bundles.
+  - Extracted shared `SearchResultItem` type into `lib/search-types.ts` for both server and client usage.
+- Why:
+  - Turbopack kept throwing `module factory is not available` during HMR whenever client components referenced server-action modules. This change isolates server logic to API routes and makes dashboard hot-reload stable.
+
+## 2026-03-23 18:31 (AEDT) - codex
+
+- Files changed:
+  - `package.json`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Switched local development script from `next dev` (Turbopack) to `next dev --webpack`.
+- Why:
+  - The project currently includes many client components that import server actions directly. Turbopack HMR repeatedly crashes in this setup with `module factory is not available`, while Webpack dev mode is more stable and avoids these runtime reload failures during normal local development.
+
+## 2026-03-23 18:42 (AEDT) - codex
+
+- Files changed:
+  - `components/providers/service-worker-provider.tsx`
+  - `components/core/sidebar.tsx`
+  - `components/layout/Shell.tsx`
+  - `components/core/search-command.tsx`
+  - `app/api/sync/replay/route.ts`
+  - `app/api/workspace/complete-tutorial/route.ts`
+  - `app/api/contacts/search/route.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed direct server-action imports from core shell/provider client components and replaced them with API calls or client auth calls.
+  - Added dedicated API routes for offline sync replay, tutorial completion, and contact search.
+  - Updated sidebar sign-out to use client Supabase sign-out directly instead of importing server logout action.
+- Why:
+  - These components load globally in the dashboard shell, so any client->server-action import path there increases HMR fragility and startup/runtime crashes. Moving those paths to API boundaries is a long-term architecture hardening step.
+
+## 2026-03-23 18:51 (AEDT) - codex
+
+- Files changed:
+  - `lib/startup-environment-validation.ts`
+  - `instrumentation.ts`
+  - `lib/startup.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Extracted startup environment validation into a lightweight standalone module and updated startup/instrumentation imports to use it.
+  - Removed startup validation dependency on the broader `health-check` module chain for runtime boot paths.
+- Why:
+  - Webpack dev mode hit `UnhandledSchemeError` for `node:crypto` through a transitive import chain (`health-check` -> readiness -> livekit-server-sdk). Isolating startup validation from that chain prevents bundling Node-only LiveKit crypto modules in the wrong build path.
+
+## 2026-03-23 19:10 (AEDT) - codex
+
+- Files changed:
+  - `components/layout/global-search.tsx`
+  - `components/ui/tooltip.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a visually hidden `DialogTitle` inside `GlobalSearch`’s `DialogContent` to satisfy Radix accessibility requirements.
+  - Updated the shared `TooltipContent` wrapper to render via `TooltipPrimitive.Portal` so tooltips are not clipped by layout `overflow-hidden` containers.
+- Why:
+  - Fixes the runtime console warning about missing `DialogTitle`.
+  - Restores the “Ask Tracey / Open chat mode” hover bubble on the dashboard when layout overflow rules would otherwise hide tooltip content.

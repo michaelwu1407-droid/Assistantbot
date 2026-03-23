@@ -2,31 +2,35 @@
 
 import { useEffect } from "react"
 import { processQueue } from "@/lib/sync-queue"
-import { updateJobStatus, createQuoteVariation } from "@/actions/tradie-actions"
-import { logActivity } from "@/actions/activity-actions"
-
-type UpdateJobStatusPayload = {
-  jobId: string
-  status: Parameters<typeof updateJobStatus>[1]
-}
-
-type CreateQuoteVariationPayload = {
-  jobId: string
-  items: Parameters<typeof createQuoteVariation>[1]
-}
-
-type ActivityPayload = Parameters<typeof logActivity>[0]
 
 const ACTION_MAP: Record<string, (payload: Record<string, unknown>) => Promise<unknown>> = {
-  updateJobStatus: (payload) => {
-    const typedPayload = payload as UpdateJobStatusPayload
-    return updateJobStatus(typedPayload.jobId, typedPayload.status)
-  },
-  createQuoteVariation: (payload) => {
-    const typedPayload = payload as CreateQuoteVariationPayload
-    return createQuoteVariation(typedPayload.jobId, typedPayload.items)
-  },
-  logActivity: (payload) => logActivity(payload as ActivityPayload),
+  updateJobStatus: (payload) =>
+    fetch("/api/sync/replay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionName: "updateJobStatus", payload }),
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Sync replay failed (${res.status})`)
+      return res.json()
+    }),
+  createQuoteVariation: (payload) =>
+    fetch("/api/sync/replay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionName: "createQuoteVariation", payload }),
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Sync replay failed (${res.status})`)
+      return res.json()
+    }),
+  logActivity: (payload) =>
+    fetch("/api/sync/replay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionName: "logActivity", payload }),
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Sync replay failed (${res.status})`)
+      return res.json()
+    }),
 }
 
 export function ServiceWorkerProvider() {

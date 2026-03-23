@@ -2,15 +2,7 @@
 
 import { db } from "@/lib/db"
 import { fuzzySearch, type SearchableItem } from "@/lib/search"
-
-export interface SearchResultItem {
-  id: string
-  type: "contact" | "deal" | "task" | "activity" | "call"
-  title: string
-  subtitle?: string
-  url: string
-  score: number
-}
+import type { SearchResultItem } from "@/lib/search-types"
 
 type SearchCandidate = SearchableItem & {
   result: Omit<SearchResultItem, "score">

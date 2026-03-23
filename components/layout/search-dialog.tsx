@@ -24,7 +24,8 @@ import {
     CommandShortcut,
 } from "@/components/ui/command"
 
-import { globalSearch, SearchResultItem } from "@/actions/search-actions"
+import { globalSearchClient } from "@/lib/search-client"
+import type { SearchResultItem } from "@/lib/search-types"
 import { useShellStore } from "@/lib/store"
 
 // Debounce hook
@@ -71,7 +72,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         const search = async () => {
             setIsLoading(true)
             try {
-                const items = await globalSearch(workspaceId!, debouncedQuery)
+                const items = await globalSearchClient(workspaceId!, debouncedQuery)
                 setResults(items)
             } catch (error) {
                 console.error("Search failed:", error)

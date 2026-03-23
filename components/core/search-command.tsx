@@ -21,8 +21,13 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 import { useRouter } from "next/navigation"
-import { searchContacts, ContactView } from "@/actions/contact-actions"
 import { useShellStore } from "@/lib/store"
+
+type ContactView = {
+  id: string
+  name: string
+  company?: string | null
+}
 
 export function SearchCommand() {
   const [open, setOpen] = React.useState(false)
@@ -52,8 +57,16 @@ export function SearchCommand() {
     const timer = setTimeout(async () => {
       if (query.length > 0 && workspaceId) {
         try {
-          const results = await searchContacts(workspaceId, query)
-          setContacts(results)
+          const response = await fetch("/api/contacts/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspaceId, query }),
+          })
+          if (!response.ok) {
+            throw new Error(`Search failed (${response.status})`)
+          }
+          const data = await response.json()
+          setContacts(Array.isArray(data?.results) ? data.results : [])
         } catch (error) {
           console.error("Search failed", error)
         }

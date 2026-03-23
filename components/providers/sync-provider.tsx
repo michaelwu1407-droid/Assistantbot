@@ -2,7 +2,6 @@
 
 import { useEffect } from "react"
 import { processQueue } from "@/lib/sync-queue"
-import { updateDealStage } from "@/actions/deal-actions"
 import { toast } from "sonner"
 
 /**
@@ -18,7 +17,18 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       const actionMap = {
         "updateDealStage": async (payload: any) => {
             // payload is expected to be { dealId, stage }
-            await updateDealStage(payload.dealId, payload.stage)
+            const response = await fetch("/api/deals/update-stage", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                dealId: payload?.dealId,
+                stage: payload?.stage,
+              }),
+            })
+
+            if (!response.ok) {
+              throw new Error(`Failed to sync stage update (${response.status})`)
+            }
         },
         // Add other offline-capable actions here
       }
