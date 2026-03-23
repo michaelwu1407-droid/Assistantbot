@@ -287,6 +287,7 @@ model Deal {
   jobPhotos        JobPhoto[]
   jobNotes         JobNote[]
   customerFeedback CustomerFeedback[]
+  voiceCalls       VoiceCall[]
 }
 
 model Contact {
@@ -346,6 +347,8 @@ model VoiceCall {
   workspace           Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   contactId           String?
   contact             Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  dealId              String?
+  deal                Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
   callerPhone         String?
   calledPhone         String?
   callerName          String?
