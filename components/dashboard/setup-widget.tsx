@@ -48,7 +48,7 @@ export function SetupWidget() {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl overflow-hidden mb-6 shadow-sm transition-all duration-300">
+        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg overflow-hidden mb-6 shadow-sm transition-all duration-300">
             <div
                 className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/10 cursor-pointer"
                 onClick={() => setExpanded(!expanded)}

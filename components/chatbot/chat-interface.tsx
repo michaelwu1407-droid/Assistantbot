@@ -587,6 +587,10 @@ function ChatWithHistory({
                           }
                           if (part?.state === "output-available" && part.output?.message) {
                             const isSuccess = part.output.success !== false;
+                            const quickActions = Array.isArray((part.output as { quickActions?: unknown[] }).quickActions)
+                              ? ((part.output as { quickActions?: { label?: string; prompt?: string }[] }).quickActions ?? [])
+                                  .filter((a) => typeof a?.label === "string" && typeof a?.prompt === "string")
+                              : [];
                             rendered.push(
                               <div
                                 key={idx}
@@ -614,6 +618,22 @@ function ChatWithHistory({
                                 )}
                               </div>
                             );
+                            if (quickActions.length > 0) {
+                              rendered.push(
+                                <div key={`${idx}-qa`} className="mt-2 flex flex-wrap gap-1.5">
+                                  {quickActions.map((action, actionIdx) => (
+                                    <button
+                                      key={`${idx}-qa-${actionIdx}`}
+                                      type="button"
+                                      onClick={() => sendMessage({ text: action.prompt! })}
+                                      className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-700 hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                                    >
+                                      {action.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            }
                             return;
                           }
                           if (part?.state === "output-error" && part.errorText) {

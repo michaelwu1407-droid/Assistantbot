@@ -121,7 +121,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         className="fixed inset-0 z-40"
                         onClick={() => setIsOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                    <div className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="font-semibold text-sm text-slate-900">Notifications</h3>
                             {unreadCount > 0 && (

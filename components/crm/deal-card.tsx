@@ -57,10 +57,8 @@ interface DealCardProps {
 }
 
 /** Overdue bottom strip — 65% colour opacity (design reference: /crm/design/deal-cards). */
-function overdueBannerOverlayClasses(severity: "critical" | "warning" | "mild" | "none"): string {
-  if (severity === "critical") return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
-  if (severity === "warning") return "bg-orange-500/65 text-white shadow-inner dark:bg-orange-600/65"
-  return "bg-amber-500/65 text-white shadow-inner dark:bg-amber-600/65"
+function overdueBannerOverlayClasses(_severity: "critical" | "warning" | "mild" | "none"): string {
+  return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
 }
 
 /** Bottom strip for health / draft / pending — 65% opacity to match overdue / design page. */
@@ -272,7 +270,7 @@ export function DealCard({
   /** Left side only — under the 3C overlay (tint + label may cover this). */
   const footerPriceLeftOnly = (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-xs font-bold text-primary">
+      <span className="shrink-0 text-xs font-bold text-primary leading-none">
         $ {deal.invoicedAmount !== undefined ? deal.invoicedAmount.toLocaleString() : deal.value.toLocaleString()}
       </span>
       {assigneeInitial ? (
@@ -283,7 +281,7 @@ export function DealCard({
           {assigneeInitial}
         </div>
       ) : (
-        <span className="min-w-[1.25rem] text-[10px] font-medium text-muted-foreground">-</span>
+        <span className="min-w-[1.25rem] text-[10px] font-medium text-muted-foreground leading-none">-</span>
       )}
     </div>
   )
@@ -461,7 +459,7 @@ export function DealCard({
         {/* 3C footer: dollar left-aligned with row icons (same px-3 inset as MapPin/Briefcase/User) */}
         <div
           className={cn(
-            "relative mt-1.5 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
+            "relative mt-1 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
             showKanbanApproval && "min-h-0"
           )}
         >
@@ -499,7 +497,7 @@ export function DealCard({
 
           {showStatusBanner ? (
             <div className="relative z-0 min-h-[2.5rem]">
-              <div className="relative z-0 flex min-h-[2.5rem] items-center gap-2 px-3 py-2">
+              <div className="relative z-0 flex min-h-[2.25rem] items-center gap-2 px-3 py-1.5">
                 {footerBaseRow}
               </div>
               <div
@@ -520,7 +518,7 @@ export function DealCard({
               </div>
             </div>
           ) : (
-            <div className="relative flex min-h-[2.5rem] items-center gap-2 bg-muted/15 px-3 py-2 dark:bg-muted/25">
+            <div className="relative flex min-h-[2.25rem] items-center gap-2 bg-muted/15 px-3 py-1.5 dark:bg-muted/25">
               {footerBaseRow}
             </div>
           )}

@@ -30,6 +30,7 @@ import {
   normalizeAgentMode,
   requiresCustomerContactApproval,
 } from "@/lib/agent-mode";
+import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -428,6 +429,54 @@ export async function runListDeals(workspaceId: string): Promise<{ deals: { id: 
       stage: d.stage,
       value: d.value,
     })),
+  };
+}
+
+export async function runGetAttentionRequired(workspaceId: string): Promise<{
+  success: boolean;
+  message: string;
+  quickActions: { label: string; prompt: string }[];
+}> {
+  const deals = await getDeals(workspaceId);
+  const flagged = deals
+    .map((deal) => ({
+      deal,
+      signals: getAttentionSignalsForDeal({
+        id: deal.id,
+        title: deal.title,
+        stage: deal.stage,
+        health: deal.health,
+        scheduledAt: deal.scheduledAt ?? null,
+        actualOutcome: deal.actualOutcome ?? null,
+        metadata: deal.metadata ?? null,
+      }),
+    }))
+    .filter((entry) => entry.signals.length > 0)
+    .slice(0, 8);
+
+  if (!flagged.length) {
+    return {
+      success: true,
+      message: "Nothing is flagged right now. No overdue, stale, rotting, rejected, or parked jobs need attention.",
+      quickActions: [
+        { label: "Show today's schedule", prompt: "Show today's schedule and readiness alerts" },
+      ],
+    };
+  }
+
+  const lines = flagged.map(({ deal, signals }) => {
+    const signalText = signals.map((s) => s.label).join(", ");
+    return `- ${deal.title} (${signalText})`;
+  });
+
+  return {
+    success: true,
+    message: `Here is what needs attention:\n${lines.join("\n")}`,
+    quickActions: [
+      { label: "Show overdue only", prompt: "Show only overdue jobs that need reconciliation" },
+      { label: "Show rejected jobs", prompt: "Show jobs that were rejected and need updates" },
+      { label: "Create follow-up tasks", prompt: "Create follow-up tasks for all attention-required jobs" },
+    ],
   };
 }
 

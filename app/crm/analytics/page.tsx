@@ -61,7 +61,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 flex-1 min-h-0 overflow-y-auto">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-secondary rounded-lg w-1/3"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -95,7 +95,8 @@ export default function AnalyticsPage() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{
+      <style
+        dangerouslySetInnerHTML={{
         __html: `
         @media print {
           body * { visibility: hidden; }
@@ -104,7 +105,7 @@ export default function AnalyticsPage() {
           .print-hide { display: none !important; }
         }
       `}} />
-      <div className="print-area p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="print-area p-4 md:p-8 max-w-7xl mx-auto space-y-6 flex-1 min-h-0 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

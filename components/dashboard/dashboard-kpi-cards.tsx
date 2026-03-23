@@ -4,6 +4,7 @@ import { useState, useMemo, type ReactNode } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import { countAttentionRequiredDeals } from "@/lib/deal-attention"
 import {
   Select,
   SelectContent,
@@ -25,7 +26,7 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
   return (
     <h2
       className={cn(
-        "text-xl font-extrabold leading-none tracking-tight tabular-nums text-black dark:text-black",
+        "text-xl font-extrabold leading-none tracking-tight tabular-nums text-black dark:text-white",
         className
       )}
     >
@@ -35,7 +36,7 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
 }
 
 const kpiLabelClass =
-  "text-[10px] font-bold uppercase tracking-widest text-black dark:text-black"
+  "text-[10px] font-bold uppercase tracking-widest text-black dark:text-white/90"
 
 function KpiCardFrame({
   borderClass,
@@ -65,7 +66,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const { revenue, travisWonRevenue, upcomingCount, followUpCount } = useMemo(() => {
+  const { revenue, travisWonRevenue, upcomingCount, attentionRequiredCount } = useMemo(() => {
     const wonThisMonth = deals.filter(
       (d) =>
         d.stage === "completed" &&
@@ -89,42 +90,50 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       )
     }).length
     const staleDays = staleWeeks * 7
-    const followUpCount = deals.filter((d) => {
+    const staleWindowDeals = deals.filter((d) => {
       const days = differenceInDays(now, new Date(d.lastActivityDate))
       return days >= staleDays && d.stage !== "completed" && d.stage !== "lost"
-    }).length
+    })
+    const attentionRequiredCount = countAttentionRequiredDeals(
+      deals.map((deal) => {
+        const staleMatch = staleWindowDeals.some((s) => s.id === deal.id)
+        return staleMatch
+          ? { ...deal, health: { ...deal.health, status: "STALE" as const } }
+          : deal
+      })
+    )
 
-    return { revenue, travisWonRevenue, upcomingCount, followUpCount }
+    return { revenue, travisWonRevenue, upcomingCount, attentionRequiredCount }
   }, [deals, currentMonth, currentYear, staleWeeks])
 
   const monthLabel = MONTHS[currentMonth]
 
   return (
     <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <KpiCardFrame borderClass="border-l-sky-700" bgClass="bg-sky-50 dark:bg-sky-950/30">
+      <KpiCardFrame borderClass="border-l-sky-700" bgClass="bg-sky-100 dark:bg-sky-950/40">
         <p className={kpiLabelClass}>{monthLabel} Revenue</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>${revenue.toLocaleString()}</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-emerald-700" bgClass="bg-emerald-50 dark:bg-emerald-950/35">
+      <KpiCardFrame borderClass="border-l-emerald-700" bgClass="bg-emerald-100 dark:bg-emerald-950/45">
         <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>${travisWonRevenue.toLocaleString()}</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-slate-100 dark:bg-slate-900/40">
+      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-slate-200 dark:bg-slate-900/50">
         <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{upcomingCount}</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-red-700" bgClass="bg-red-50 dark:bg-red-950/35">
+      <KpiCardFrame borderClass="border-l-red-700" bgClass="bg-red-100 dark:bg-red-950/45">
         <div className="flex min-w-0 items-start gap-2">
-          <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Follow-up</p>
+          <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Attention Required</p>
           <div className="w-fit max-w-[4.5rem] shrink-0">
             <Select value={String(staleWeeks)} onValueChange={(v) => setStaleWeeks(Number(v))}>
               <SelectTrigger
@@ -144,7 +153,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
           </div>
         </div>
         <div className="flex min-w-0 items-end justify-between gap-2">
-          <KpiMetric>{followUpCount}</KpiMetric>
+          <KpiMetric>{attentionRequiredCount}</KpiMetric>
         </div>
       </KpiCardFrame>
     </section>

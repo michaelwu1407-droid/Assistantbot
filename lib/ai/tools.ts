@@ -8,6 +8,7 @@ import {
     runBulkSetDealDisposition,
     runBulkCreateDealReminder,
     runListDeals,
+    runGetAttentionRequired,
     runCreateDeal,
     runUpdateDealFields,
     runCreateJobNatural,
@@ -77,6 +78,11 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             description: "List all jobs in the pipeline (id, title, stage, value).",
             inputSchema: z.object({}),
             execute: async () => runListDeals(workspaceId),
+        }),
+        getAttentionRequired: tool({
+            description: "Audit jobs that need attention (overdue, stale, rotting, rejected, parked) and return quick-action prompts.",
+            inputSchema: z.object({}),
+            execute: async () => runGetAttentionRequired(workspaceId),
         }),
         moveDeal: tool({
             description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted).",
@@ -571,7 +577,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
 
 // Tools that are always included regardless of intent classification
 const CORE_TOOLS = [
-    'listDeals', 'searchContacts', 'contactSupport', 'showConfirmationCard',
+    'listDeals', 'getAttentionRequired', 'searchContacts', 'contactSupport', 'showConfirmationCard',
     'showJobDraftForConfirmation', 'updateAiPreferences', 'addAgentFlag',
     'undoLastAction',
 ];
@@ -581,7 +587,7 @@ const INTENT_TOOL_GROUPS: Record<string, string[]> = {
     pricing: ['pricingLookup', 'pricingCalculator', 'createDraftInvoice', 'updateInvoiceAmount'],
     scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary'],
     communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification'],
-    reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue'],
+    reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue', 'getAttentionRequired'],
     contact_lookup: ['getClientContext', 'createContact', 'updateContactFields'],
     invoice: [
         'createDraftInvoice', 'issueInvoice', 'markInvoicePaid', 'voidInvoice',

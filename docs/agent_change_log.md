@@ -1,3 +1,23 @@
+## 2026-03-23 21:05 (AEDT) - codex
+
+- Files changed:
+  - `lib/deal-attention.ts`
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `lib/deal-utils.ts`
+  - `components/crm/deal-card.tsx`
+  - `actions/stale-job-actions.ts`
+  - `components/crm/stale-job-reconciliation-modal.tsx`
+  - `actions/chat-actions.ts`
+  - `lib/ai/tools.ts`
+  - `components/chatbot/chat-interface.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a shared attention-classification utility and switched the 4th dashboard KPI to `Attention Required`, counting overdue/stale/rotting/rejected/parked jobs together.
+  - Standardized overdue banner styling to red only (single severity color) and added a new reconciliation outcome `PARKED` that moves jobs to `New request` with metadata tags for unresolved dates.
+  - Added chatbot audit support for “what needs attention?” plus quick-action buttons rendered in chat tool output.
+- Why:
+  - Keeps attention logic consistent across dashboard metrics, Kanban signals, reconciliation workflow, and chatbot triage, reducing drift and manual triage friction long-term.
+
 ### 2026-03-23 (AEDT) - Antigravity Agent
 - Files: `COMMUNICATION_SYSTEM.md`, `docs/TUTORIAL_HANDBOOK.md`, `docs/team_roles_and_approvals.md`, `docs/BUSINESS_MODEL.md`, `APP_MANUAL.md`, `README.md`
 - What changed: Systematically overhauled non-historical project documentation to match the canonical state defined in `APP_FEATURES.md` and `AGENTS.md`. Fixed outdated mentions of pricing (now Monthly/Yearly), Kanban stages (6 stages with visual pending state), Twilio authentication and workarounds (now unified custom native auth), Voice Tech Stack (now LiveKit + Cartesia + Groq + Deepgram, explicitly removing all Retell AI/Vapi references), and Worker Deployment (explicitly replacing host process mentions with Docker Compose standard). Created `AI_DOCS_DEVIATION_REPORT.md` snapshot.
@@ -1845,3 +1865,41 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Fixes the runtime console warning about missing `DialogTitle`.
   - Restores the “Ask Tracey / Open chat mode” hover bubble on the dashboard when layout overflow rules would otherwise hide tooltip content.
+
+## 2026-03-23 19:28 (AEDT) - codex
+
+- Files changed:
+  - `tailwind.config.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Normalized Tailwind border-radius scale so `rounded-xl` and `rounded-2xl` also resolve to the shared `--radius` token (18px), matching `rounded`/`rounded-lg`.
+- Why:
+  - Dashboard boxes still used mixed radius classes (`rounded-lg`, `rounded-xl`, `rounded-2xl`), which produced inconsistent corner sizes. This makes corners consistently 18px.
+
+## 2026-03-23 20:10 (AEDT) - codex
+
+- Files changed:
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Strengthened the colours for the top 4 dashboard KPI cards (less pale fills) and improved dark-mode label/value contrast for readability.
+- Why:
+  - The previous card palette was too light to scan quickly at a glance.
+
+## 2026-03-23 20:30 (AEDT) - codex
+
+- Files changed:
+  - `components/crm/deal-card.tsx`
+- Summary:
+  - Reduced Kanban deal-card vertical spacing around the dollar value by tightening footer margin/padding and line-height.
+- Why:
+  - Cards were visually taller than needed; reducing the top/bottom gaps around the price improves density while preserving the same overall aesthetic.
+
+## 2026-03-23 20:25 (AEDT) - codex
+
+- Files changed:
+  - `app/crm/analytics/page.tsx`
+- Summary:
+  - Made the CRM analytics page content scrollable inside the dashboard shell by applying `flex-1 min-h-0 overflow-y-auto` to the page container.
+- Why:
+  - `DashboardMainChrome` uses `overflow-hidden` on its child wrapper; without a scrollable container, the analytics content gets clipped and expandable sections (revenue/customer cards) can’t be reached.

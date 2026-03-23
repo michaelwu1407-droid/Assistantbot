@@ -6,7 +6,7 @@ export function DashboardSkeleton() {
             {/* KPI row skeleton */}
             <div className="flex gap-3 overflow-hidden">
                 {[...Array(4)].map((_, i) => (
-                    <Skeleton key={`kpi-${i}`} className="h-[60px] flex-1 rounded-2xl" />
+                    <Skeleton key={`kpi-${i}`} className="h-[60px] flex-1 rounded-lg" />
                 ))}
             </div>
 
@@ -17,7 +17,7 @@ export function DashboardSkeleton() {
                         <Skeleton className="h-6 w-24 rounded-md" />
                         <div className="space-y-2">
                             {[...Array(i === 0 ? 3 : i === 1 ? 2 : 1)].map((_, j) => (
-                                <Skeleton key={`card-${i}-${j}`} className="h-20 w-full rounded-xl" />
+                                <Skeleton key={`card-${i}-${j}`} className="h-20 w-full rounded-lg" />
                             ))}
                         </div>
                     </div>

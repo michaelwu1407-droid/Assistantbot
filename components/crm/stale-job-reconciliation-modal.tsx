@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { X, Calendar, AlertTriangle, CheckCircle, Clock, UserX } from "lucide-react"
+import { X, AlertTriangle, CheckCircle, Clock, UserX, PauseCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -71,6 +71,8 @@ export function StaleJobReconciliationModal({
         return <CheckCircle className="w-4 h-4 text-green-600" />
       case "RESCHEDULED":
         return <Clock className="w-4 h-4 text-blue-600" />
+      case "PARKED":
+        return <PauseCircle className="w-4 h-4 text-violet-600" />
       case "NO_SHOW":
         return <UserX className="w-4 h-4 text-orange-600" />
       case "CANCELLED":

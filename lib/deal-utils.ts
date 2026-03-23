@@ -84,7 +84,13 @@ export function getOverdueStyling(deal: {
   stage: DealStage | string;
   scheduledAt: Date | null;
   actualOutcome: string | null;
-}) {
+}): {
+  borderClass: string;
+  badgeText: string;
+  badgeTitle: string;
+  badgeClass: string;
+  severity: "critical" | "warning" | "mild" | "none";
+} {
   const isOverdue = checkIfDealIsOverdue(deal);
   const overdueDays = getOverdueDays(deal);
 
@@ -100,30 +106,12 @@ export function getOverdueStyling(deal: {
 
   const longTitle = `Scheduled in the past (${overdueDays} day${overdueDays === 1 ? '' : 's'} ago). Click to reconcile or record an outcome.`;
 
-  if (overdueDays >= 7) {
-    return {
-      borderClass: 'border-red-500 dark:border-red-800',
-      badgeText: 'Overdue',
-      badgeTitle: longTitle,
-      badgeClass: 'bg-red-500 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
-      severity: 'critical' as const
-    };
-  }
-  if (overdueDays >= 3) {
-    return {
-      borderClass: 'border-orange-500 dark:border-orange-800',
-      badgeText: 'Overdue',
-      badgeTitle: longTitle,
-      badgeClass: 'bg-orange-500 text-white dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800 border',
-      severity: 'warning' as const
-    };
-  }
   return {
-    borderClass: 'border-amber-500 dark:border-amber-800',
+    borderClass: 'border-red-500 dark:border-red-800',
     badgeText: 'Overdue',
     badgeTitle: longTitle,
-    badgeClass: 'bg-amber-500 text-white dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 border',
-    severity: 'mild' as const
+    badgeClass: 'bg-red-500 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
+    severity: 'critical' as const
   };
 }
 
@@ -133,6 +121,7 @@ export function getOverdueStyling(deal: {
 export const ACTUAL_OUTCOME_OPTIONS = [
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'RESCHEDULED', label: 'Rescheduled' },
+  { value: 'PARKED', label: 'Parked (date unknown)' },
   { value: 'NO_SHOW', label: 'No Show' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ] as const;

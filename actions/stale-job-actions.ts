@@ -11,7 +11,7 @@ import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-lear
 
 const ReconcileStaleJobSchema = z.object({
   dealId: z.string(),
-  actualOutcome: z.enum(["COMPLETED", "RESCHEDULED", "NO_SHOW", "CANCELLED"]),
+  actualOutcome: z.enum(["COMPLETED", "RESCHEDULED", "PARKED", "NO_SHOW", "CANCELLED"]),
   outcomeNotes: z.string().nullable(),
 })
 
@@ -52,6 +52,8 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
     }
 
     // Update the deal with the reconciliation data
+    const existingMeta = (deal.metadata as Record<string, unknown> | null) ?? {}
+
     const updatedDeal = await db.deal.update({
       where: { id: dealId },
       data: {
@@ -64,9 +66,22 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
         ...(actualOutcome === "COMPLETED" && { stage: "WON" }),
         ...(actualOutcome === "CANCELLED" && { stage: "LOST" }),
         ...(actualOutcome === "NO_SHOW" && { stage: "LOST" }),
-        ...(actualOutcome === "RESCHEDULED" && { 
+        ...(actualOutcome === "RESCHEDULED" && {
           scheduledAt: null,
           stage: "CONTACTED" // Move back to contact stage for rescheduling
+        }),
+        ...(actualOutcome === "PARKED" && {
+          scheduledAt: null,
+          stage: "NEW",
+          metadata: JSON.parse(
+            JSON.stringify({
+              ...existingMeta,
+              attentionRequiredTag: true,
+              parkedWithoutDate: true,
+              parkedAt: new Date().toISOString(),
+              parkedReason: outcomeNotes ?? "Date unknown",
+            })
+          ),
         }),
         updatedAt: new Date(),
       },
