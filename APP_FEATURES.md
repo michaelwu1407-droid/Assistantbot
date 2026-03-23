@@ -2,7 +2,7 @@
 
 > **Comprehensive reference for every feature, UI element, user flow, validation rule, and interaction in the Earlymark platform.**
 >
-> Earlymark is an AI-powered CRM and business assistant for Tradies (plumbers, electricians, etc.) and Real Estate Agents. The AI assistant is named **Tracey**. The platform includes a full CRM pipeline, automated calling/texting, quoting/invoicing, scheduling, mapping, analytics, and team management.
+> Earlymark is an AI-powered CRM and business assistant for trades and services businesses. The AI assistant is named **Tracey**. The platform includes a full CRM pipeline, automated calling/texting, quoting/invoicing, scheduling, mapping, analytics, and team management.
 
 ---
 
