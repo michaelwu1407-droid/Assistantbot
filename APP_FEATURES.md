@@ -2296,11 +2296,6 @@ All settings use: individual save buttons per section, toast notifications, load
 
 ---
 
-## Change History Diary
+[//]: # (AGENT RULE: Any AI agent modifying structural components, features, or core app logic in the repository MUST update the relevant section of this document directly to maintain a synchronized single source of truth. Technical history is tracked in docs/agent_change_log.md.)
 
-> **AGENT RULE:** Any AI agent modifying structural components, features, or core app logic in the repository MUST update the relevant section of this document AND add a time-series diary entry below, detailing the specific feature updates to maintain a synchronized single source of truth.
-
-| Date | Agent | Description of Feature Update |
-|------|-------|-------------|
-| 2026-03-23 | Antigravity | **Major Docs Consolidation:** Systematically ported core business logic (RBAC nuances, Morning Briefing logic, Number Isolation, Triage Engine, Job Sign-off Wizard) from legacy docs into this file. Deleted `TUTORIAL_HANDBOOK.md`, `team_roles_and_approvals.md`, `COMMUNICATION_SYSTEM.md`, and `BUSINESS_MODEL.md` to establish this as the single source of truth. Mandatory `pre-commit` hook enabled to enforce future updates here. |
-
+---
