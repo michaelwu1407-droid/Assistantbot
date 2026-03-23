@@ -19,7 +19,7 @@ The Tradies use this software to serve their **Customers** (homeowners, clients)
 
 2. **The Customer Service Agent (The AI for the Customer)**
    - Acts as the digital receptionist for the Tradie's business.
-   - Powered by **Retell AI** (for inbound/outbound Phone Calls) and **Twilio** (for SMS / WhatsApp messaging).
+   - Powered by **LiveKit AI Agents** (for inbound/outbound Phone Calls) and **Twilio** (for SMS / WhatsApp messaging).
    - When a homeowner calls or texts the Tradie's dedicated business number, this AI Agent intercepts it, answers questions, qualifies leads, drafts jobs, and feeds everything directly into the CRM.
 
 3. **The End Customer (The Homeowner)**
@@ -28,6 +28,6 @@ The Tradies use this software to serve their **Customers** (homeowners, clients)
    - Assumes they are talking to the Tradie's actual business.
 
 ## Infrastructure Strategy (e.g., Twilio)
-- **Master Account:** The Platform Provider (Michael) owns the master Twilio and Retell accounts.
-- **Sub-Allocation:** Each new Tradie sign-up gets a unique Phone Number provisioned from the master Twilio/Retell account and linked to their specific `workspaceId` in the database.
-- **Billing:** The Platform Provider pays the raw API costs (pennies) to Twilio/Retell and charges the Tradie a flat monthly SaaS subscription fee (or marks up the usage) to generate profit.
+- **Master Account:** The Platform Provider (Michael) owns the master Twilio and LiveKit accounts.
+- **Sub-Allocation:** Each new Tradie sign-up gets a unique Phone Number provisioned from the master Twilio account and linked to their specific `workspaceId` in the database.
+- **Billing:** The Platform Provider pays the raw API costs (pennies) to Twilio/LiveKit and charges the Tradie a flat monthly SaaS subscription fee (or marks up the usage) to generate profit.

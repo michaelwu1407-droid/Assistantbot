@@ -198,8 +198,7 @@ The intended direction is:
 ## 8. Operational notes
 
 - web app deploys separately from the voice worker
-- Docker is the standardized deployment architecture for the LiveKit core voice infrastructure
-- the Twilio subaccount voice agent worker is not yet standardized on Docker and currently runs as a host process
+- Docker is the standardized deployment architecture for both the LiveKit core voice infrastructure AND the Earlymark voice workers via Docker Compose.
 - Vercel success does not imply voice-worker success
 - `livekit-agent/**` changes deploy through the worker GitHub Action / OCI path
 - worker startup logs deployed git SHA for verification

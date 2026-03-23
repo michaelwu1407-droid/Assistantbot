@@ -20,15 +20,12 @@ So team members cannot change shared data (like revenue) on their own; only mana
 
 ## Where does the team manager approve job/customer card changes?
 
-**Currently there is no single “Approvals” or “Pending approval” screen.**
+There is an active "Approval" flow for job completion:
 
-- **Job cards / customer cards:** Edits (details, stage, etc.) are applied **immediately** by whoever makes the change. There is no “pending” state that waits for manager approval.
-- **Moving a job to “Completed”:** Today, any user who can move deals can move a job to Completed; there is no separate manager-approval step.
+1. When a job is marked for completion, it enters the **`PENDING_COMPLETION`** stage.
+2. On the Kanban board, these jobs appear inside the **Completed** column with an **amber dashed border**.
+3. Managers opening these deal cards will see specific **Approve** (green) and **Reject & send back** (amber) buttons. 
+4. **On approve**, the deal is fully `Completed`.
+5. **On reject**, the manager can provide a rejection reason, which logs to the activity feed and sends the deal back.
 
-So today the team manager does **not** have one place to go to “approve” team member changes to job/customer cards or completion. To add that you would need:
-
-1. A way for team member edits (or “mark as completed”) to create a **pending** item instead of applying immediately.
-2. A dedicated **Approvals** (or “Pending approval”) area—e.g. under **Dashboard** or **Team**—where the manager sees a list of pending changes and can **Approve** or **Reject**.
-3. On approve, the change is applied (e.g. deal stage → Completed, or updated job/contact details).
-
-Until that flow exists, manager “approval” is only for **data corrections** in chat (revenue, etc.), where the manager types **confirm** in the chat after the AI offers the change.
+For data corrections via chat (e.g. "I made $200 in February"), the manager must type **confirm** in the chat when prompted by the AI.

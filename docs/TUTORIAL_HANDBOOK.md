@@ -133,16 +133,14 @@ Drag cards left or right to move them through your pipeline:
 
 | Stage | Meaning |
 |-------|---------|
-| **New** | Fresh lead just came in |
-| **Contacted** | You or Tracey have reached out |
-| **Negotiation** | Discussing price or scope |
+| **New request** | Fresh lead just came in |
+| **Quote sent** | You or Tracey have sent a quote |
 | **Scheduled** | Job is booked in |
-| **Pipeline** | On the backburner, not yet booked |
-| **Invoiced** | Job done, invoice sent |
-| **Pending Completion** | Waiting for final sign-off |
-| **Won** | Paid and closed |
-| **Lost** | Didn't win this one |
-| **Archived** | Moved off the board |
+| **Awaiting payment** | Job done, awaiting payment |
+| **Completed** | Job finished and paid |
+| **Deleted** | Moved off the board |
+
+> **Note:** "Pending Approval" deals don't have their own column — they appear inside the **Completed** column with an amber dashed border for manager review.
 
 ### 4.2 Creating a Job
 
@@ -580,8 +578,8 @@ Things you never do. Be specific:
 
 | Plan | Price | What's included |
 |------|-------|----------------|
-| **Pro** | $150/month | Full CRM, AI assistant, voice, unlimited deals |
-| **Pro (Intro)** | $60/month | Same features, introductory rate for new accounts |
+| **Monthly** | $149/month | Full CRM, AI assistant, voice, unlimited deals |
+| **Yearly** | $1,490/year | Same features, discounted rate for annual commitment |
 
 Billing is handled via Stripe. You can update your card, view past invoices, or cancel from the Billing page.
 

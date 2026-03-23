@@ -69,41 +69,38 @@ When user wants to use their own number:
 
 ---
 
-## **🇦🇺 Australian Auth & Twilio Configuration**
+## **🇦🇺 Australian Auth & Voice Configuration**
 
 ### **Problem Solved ✅**
-Clerk doesn't support Australian phone numbers for SMS authentication. This solution provides multiple workarounds.
+Earlymark integrates a highly customized authentication and voice stack to handle Australian users seamlessly.
 
 ### **Solution Overview**
 
 #### **1. Enhanced Authentication UI ✅**
 - **Tabbed interface**: Email, Social, Phone options
-- **Clear messaging**: Explains Australian phone limitations
-- **Graceful fallbacks**: Directs users to working alternatives
+- **Clear messaging**: Explains Australian phone formats
+- **Custom OTP Flow**: `formatPhoneE164` processes formatting natively.
 
 #### **2. Email-First Authentication ✅**
 - **Primary method**: Email + password
-- **Email verification**: Works globally including Australia
+- **Email verification**: Sent via custom auth routing
 - **No phone required**: Complete signup without phone
 
 #### **3. Social Login Integration ✅**
-- **Google OAuth**: Full Australian support
-- **GitHub OAuth**: Available for developers
-- **More providers**: Easy to add (Apple, Microsoft, etc.)
+- **Google OAuth**: Full Australian support, integrated directly in `components/auth/google-signup.tsx`.
 
 #### **4. Custom SMS Solution ✅**
-- **MessageBird integration**: Australian SMS provider
-- **Phone verification**: Bypasses Clerk limitations
-- **Local validation**: Australian phone number formatting
+- **Native Phone Verification**: `components/auth/phone-verification.tsx` handles Australian formatting without reliance on third-party auth platforms that lack AU SMS support.
 
-### **Twilio Live Credentials Setup**
+### **Twilio & LiveKit Live Credentials Setup**
 
 #### **Environment Variables Required:**
 ```bash
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Live Account SID
 TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Live Auth Token
-RETELL_API_KEY=retell_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Retell API Key
-RETELL_AGENT_ID=agent_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Retell Agent ID
+LIVEKIT_URL=wss://xxxxxxxxxxxxxxxxx                # LiveKit URL
+LIVEKIT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxx      # LiveKit API Key
+LIVEKIT_API_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxx   # LiveKit API Secret
 ```
 
 #### **Regulatory Bundle Requirements (Error 21631)**
@@ -117,68 +114,34 @@ For Australian (+61) numbers, you must complete:
 1. **Authentication Test** → Verify live credentials
 2. **Number Search** → Find AU numbers with SMS + Voice
 3. **Number Purchase** → Handle regulatory bundle requirements
-4. **SIP Trunk Creation** → For Retell AI integration
-5. **Retell Import** → Bind voice agent to number
-6. **Welcome SMS** → Send to tradie's mobile
+4. **SIP Trunk Creation** → LiveKit SIP Trunk points to Twilio
+5. **Welcome SMS** → Send to tradie's mobile
 
 ### **Implementation Details**
 
-#### **Files Created/Modified:**
+#### **Active Components**:
 1. **Enhanced Auth Components**:
-   - `/components/auth/enhanced-signin.tsx`
-   - `/components/auth/enhanced-signup.tsx`
+   - `/components/auth/unified-auth.tsx`
+   - `/components/auth/auth-selector.tsx`
    - `/components/auth/phone-verification.tsx`
+   - `/components/auth/google-signup.tsx`
 
-2. **API Endpoints**:
-   - `/app/api/auth/send-sms/route.ts`
-   - `/app/api/auth/verify-sms/route.ts`
-   - `/app/api/test-simple-provision/route.ts` (Live testing)
-
-3. **Provisioning Logic**:
-   - `/lib/comms-simple.ts` (Live account provisioning)
+2. **Provisioning Logic**:
+   - `/lib/onboarding-provision.ts` (Live account provisioning)
    - `/lib/twilio.ts` (Master client initialization)
 
-### **Setup Instructions**
-
-#### **1. Clerk Dashboard Configuration**
-```
-Go to: https://crm.clerk.com
-→ User & Authentication → Settings
-→ Authentication Methods
-→ DISABLE "Phone number"
-→ KEEP "Email address" ENABLED
-→ Social Connections → Enable Google, GitHub
-```
-
-#### **2. Twilio Live Setup**
-```
-1. Upgrade from Trial to Paid account
-2. Complete Australian Regulatory Bundle (Error 21631)
-3. Add live credentials to Vercel environment
-4. Test with /api/test-simple-provision endpoint
-```
-
-#### **3. MessageBird Setup (Optional)**
-```
-1. Sign up: https://www.messagebird.com
-2. Get API key: Dashboard → Developers → Access
-3. Add to .env.local: MESSAGEBIRD_API_KEY="your-key-here"
-4. Australian numbers work perfectly
-```
-
 ### **Current Status**
-- ✅ **Email authentication**: Working globally
-- ✅ **Social login**: Google, GitHub available
-- ✅ **Phone verification**: MessageBird integration ready
-- ✅ **Live Twilio**: Ready for paid account deployment
+- ✅ **Email authentication**: Working natively globally
+- ✅ **Social login**: Native Google OAuth working
+- ✅ **Phone verification**: Custom Australian OTP working
+- ✅ **Voice Agent Stack**: LiveKit + Deepgram + Groq + Cartesia
 - ✅ **Regulatory compliance**: Error handling implemented
-
+  
 ### **Testing Checklist**
 1. **Test email signup**: Should work immediately
-2. **Test social login**: Configure Google in Clerk dashboard
-3. **Test phone verification**: Add MessageBird API key
-4. **Test Twilio provisioning**: Use /api/test-simple-provision
-5. **Test user flow**: Complete signup → setup process
+2. **Test social login**: Test Google OAuth
+3. **Test phone verification**: Test Custom SMS Verification
+4. **Test Twilio provisioning**: Complete signup -> setup process
 
 ---
 

@@ -1,3 +1,8 @@
+### 2026-03-23 (AEDT) - Antigravity Agent
+- Files: `COMMUNICATION_SYSTEM.md`, `docs/TUTORIAL_HANDBOOK.md`, `docs/team_roles_and_approvals.md`, `docs/BUSINESS_MODEL.md`, `APP_MANUAL.md`, `README.md`
+- What changed: Systematically overhauled non-historical project documentation to match the canonical state defined in `APP_FEATURES.md` and `AGENTS.md`. Fixed outdated mentions of pricing (now Monthly/Yearly), Kanban stages (6 stages with visual pending state), Twilio authentication and workarounds (now unified custom native auth), Voice Tech Stack (now LiveKit + Cartesia + Groq + Deepgram, explicitly removing all Retell AI/Vapi references), and Worker Deployment (explicitly replacing host process mentions with Docker Compose standard). Created `AI_DOCS_DEVIATION_REPORT.md` snapshot.
+- Why: User requested fixing discrepancies to align with app feature md across all live docs so that the AI logic and standard knowledge base is perfectly synchronized and factual.
+
 ### 2026-03-23 (AEDT) - Cursor AI Agent
 - Files: `components/dashboard/dashboard-header-extra-context.tsx`, `docs/agent_change_log.md`
 - What changed: **`DashboardHeaderExtraContext`** — default **`createContext`** value is a **no-op** setter; **`useDashboardHeaderExtraSetter`** no longer **throws** (avoids hard crash if Provider is briefly missing / HMR / stale chunk).
