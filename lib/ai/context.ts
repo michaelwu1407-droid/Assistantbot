@@ -407,7 +407,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
         return cached.value;
     }
 
-    const [workspace, businessProfile, settings, repairItems, negativeRules, serviceRules] = await Promise.all([
+    const [workspace, businessProfile, settings, repairItems, negativeRules, serviceRules, ownerUser] = await Promise.all([
         db.workspace.findUnique({
             where: { id: workspaceId },
             select: {
@@ -416,6 +416,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
                 location: true,
                 twilioPhoneNumber: true,
                 exclusionCriteria: true,
+                ownerId: true,
             },
         }),
         db.businessProfile.findFirst({
@@ -453,6 +454,10 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
             orderBy: { updatedAt: "desc" },
             take: 30,
         }).catch(() => [] as Array<{ ruleContent: string; metadata: unknown }>),
+        db.user.findFirst({
+            where: { workspaceId, role: "OWNER" },
+            select: { phone: true },
+        }).catch(() => null),
     ]);
 
     if (!workspace) {
@@ -512,6 +517,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
             description: item.description || "No approved price notes recorded.",
         })),
         noGoRules,
+        ownerPhone: ownerUser?.phone || null,
     };
 
     if (voiceGroundingCache.size >= 500) {

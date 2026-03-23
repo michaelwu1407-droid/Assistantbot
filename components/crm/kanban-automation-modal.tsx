@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Clock, MessageSquare, Calendar, Target, Zap } from "lucide-react"
 import { toast } from "sonner"
+import { executeKanbanAction } from "@/actions/kanban-automation-actions"
 
 interface KanbanAutomationModalProps {
   open: boolean
@@ -28,6 +29,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
   const [selectedAction, setSelectedAction] = useState("")
   const [customMessage, setCustomMessage] = useState("")
   const [followUpDate, setFollowUpDate] = useState("")
+  const [targetStage, setTargetStage] = useState("")
   const [isExecuting, setIsExecuting] = useState(false)
 
   const daysSinceLastActivity = Math.floor((Date.now() - deal.lastActivity.getTime()) / (1000 * 60 * 60 * 24))
@@ -101,26 +103,28 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
     }
 
     setIsExecuting(true)
-    
+
     try {
-      // Simulate execution
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const actionData = {
+      const result = await executeKanbanAction(selectedAction, {
         dealId: deal.id,
-        action: selectedAction,
         message: customMessage,
-        followUpDate,
-        timestamp: new Date().toISOString()
+        followUpDate: followUpDate || undefined,
+        targetStage: targetStage || undefined,
+      })
+
+      if (!result.success) {
+        toast.error(result.error || "Action failed")
+        return
       }
 
-      onAction(selectedAction, actionData)
+      onAction(selectedAction, { dealId: deal.id, ...result })
       toast.success(`${automationActions.find(a => a.id === selectedAction)?.name} executed successfully`)
       
       // Reset form
       setSelectedAction("")
       setCustomMessage("")
       setFollowUpDate("")
+      setTargetStage("")
       onOpenChange(false)
     } catch (error) {
       toast.error("Failed to execute action")
@@ -239,7 +243,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
               {selectedAction === "move-stage" && (
                 <div className="space-y-2">
                   <Label htmlFor="target-stage">Target Stage</Label>
-                  <Select>
+                  <Select value={targetStage} onValueChange={setTargetStage}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select target stage" />
                     </SelectTrigger>

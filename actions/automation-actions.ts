@@ -323,6 +323,33 @@ export async function evaluateAutomations(
             console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
           }
         }
+
+        // 4. Move Stage
+        if (action.type === "move_stage" && event.dealId && action.targetStage) {
+          try {
+            const STAGE_REVERSE: Record<string, string> = {
+              new: "NEW", new_request: "NEW", quote_sent: "CONTACTED",
+              scheduled: "SCHEDULED", pipeline: "PIPELINE",
+              ready_to_invoice: "INVOICED", pending_approval: "PENDING_COMPLETION",
+              completed: "WON", lost: "LOST", deleted: "DELETED",
+            };
+            // Accept both kanban column ids (e.g. "quote_sent") and Prisma enums (e.g. "CONTACTED")
+            const prismaStage = STAGE_REVERSE[action.targetStage] || action.targetStage;
+            await db.deal.update({
+              where: { id: event.dealId },
+              data: { stage: prismaStage, stageChangedAt: new Date() },
+            });
+            await logActivity({
+              type: "NOTE",
+              title: `Automation: ${automation.name} — moved to ${action.targetStage}`,
+              content: action.message || `Deal automatically moved to ${action.targetStage}`,
+              dealId: event.dealId,
+            });
+            console.log(`[Automation] Moved deal ${event.dealId} to stage ${prismaStage}`);
+          } catch (error) {
+            console.error(`[Automation] Failed to move stage for automation ${automation.name}:`, error);
+          }
+        }
       } catch (err) {
         console.error(`[Automation] Error executing rules for automation ${automation.name}:`, err);
       }

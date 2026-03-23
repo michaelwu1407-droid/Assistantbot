@@ -260,6 +260,10 @@ model Deal {
   // AI Triage Recommendation — the AI's suggestion before human override
   aiTriageRecommendation String? // "ACCEPT", "DECLINE", "QUOTE", "OUT_OF_AREA"
 
+  // Escalation tracking — set when deal is flagged for owner attention
+  escalatedAt     DateTime?
+  escalationReason String?   @db.Text
+
   lastActivityAt DateTime @default(now())
   stageChangedAt DateTime @default(now())
   createdAt      DateTime @default(now())
