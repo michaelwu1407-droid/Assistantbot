@@ -2,7 +2,12 @@
 
 > **Comprehensive reference for every feature, UI element, user flow, validation rule, and interaction in the Earlymark platform.**
 >
-> Earlymark is an AI-powered CRM and business assistant for trades and services businesses. The AI assistant is named **Tracey**. The platform includes a full CRM pipeline, automated calling/texting, quoting/invoicing, scheduling, mapping, analytics, and team management.
+> Earlymark is an AI-powered CRM and business assistant for trades and services businesses. The AI assistant is named **Tracey**.
+>
+> ### Product Personas
+> 1. **The Tradie (User):** Logs into the dashboard to manage jobs. Uses the Internal Chatbot (Gemini) for data mutation and navigation.
+> 2. **Tracey Voice/SMS Agent:** The digital receptionist. Powered by LiveKit & Twilio. QUALIFIES leads and books jobs into the CRM.
+> 3. **The End Customer:** Communicates via Phone/SMS with Tracey. Assumes they are talking to a human staff member.
 
 ---
 
@@ -234,7 +239,15 @@
 - Status with animated pulsing green dot + "Active"
 - "Manage Subscription" button opens Stripe customer portal
 
-**RBAC:** Only OWNER/MANAGER can access. Team members redirected to `/dashboard/settings`.
+**RBAC:** Only OWNER/MANAGER can access Billing. Team members redirected to `/dashboard/settings`.
+
+### Infrastructure & Sub-Allocation Strategy
+
+| Layer | Strategy |
+|-------|----------|
+| **Master Account** | Michael owns the master Twilio and LiveKit accounts. |
+| **Sub-Allocation** | Unique Australian (+61) Mobile Number provisioned per `workspaceId` on subscription. |
+| **Billing** | Flat monthly/yearly fee covers raw API overhead (pennies). |
 
 ---
 
@@ -713,6 +726,37 @@ Sidebar (45px) | Main Canvas (default 72%) | Resize Handle (2px) | Assistant Pan
 
 - Unmet requirements: toast error, card reverts to original position
 - Order within column persisted via `persistKanbanColumnOrder(columnId, orderedIds)`
+
+### Role-Based Board Filtering
+
+- **Team Members:** Default view is "My Jobs" (automatically filtered to deals where `assignedToId === currentUser.id`).
+- **Managers / Owners:** Default view is "All Jobs".
+- **Toggle:** All users can toggle the "My Jobs" filter at the top of the header.
+
+### Bulk Actions & Selection Mode
+
+- **Activation:** Long-press (hold) any card for 500ms or click the "Select" icon in the header.
+- **Selection:** Cards display a checkbox in the top-left corner.
+- **Actions Bar (bottom):**
+  - **Move:** Batch move to specific stage.
+  - **Assign:** Batch assign to a team member.
+  - **Delete:** Batch move to Deleted column.
+  - **Status:** Batch mark as Won/Lost.
+
+### The Triage Engine ("The Bouncer")
+
+- **Function:** Automatically screens incoming leads/messages against "No-go" rules.
+- **Hard No-Go:** AI declines the job immediately and provides a reason (e.g., "We don't do asbestos removal").
+- **Soft Flag:** If a rule is breached but not fatal, the card is created with an **Orange Badge** and a warning note (e.g., "Sub-threshold value: $120").
+
+### Stale Deal Monitoring (CRM Health)
+
+Visual indicators for deal cards based on inactivity:
+
+| Warning Level | Condition | Visual Indicator |
+|---------------|-----------|------------------|
+| **Stale** | No activity for 7+ days | Yellow highlighted glow / "Stale" label |
+| **Rotting** | No activity for 14+ days | Red pulse highlight / "Urgent Follow-up" label |
 
 ### Deal Card (`deal-card.tsx`)
 
@@ -1283,6 +1327,16 @@ Sidebar (45px) | Main Canvas (default 72%) | Resize Handle (2px) | Assistant Pan
 - "Ask Tracey" (active: bg-primary, Sparkles icon): AI handles communication
 - "Direct Message" (active: bg-background, MessageSquare icon): sends direct SMS
 
+### Device vs Platform Number Isolation
+
+- **AI Agent (Tracey):** Strictly uses the **Provisioned Twilio Number**. All logs saved to CRM.
+- **Manual Click-to-Call/Text:**
+  - Buttons (`tel:` or `sms:`) open the **user's native mobile app**.
+  - These use the **User's Personal Number**.
+  - AI NEVER uses the user's personal number.
+
+---
+
 **Input Field:**
 - Ask Tracey: "Tell Tracey what to do with {contactName}..."
 - Direct Message: "Text {contactName} directly..."
@@ -1348,6 +1402,7 @@ Sidebar (45px) | Main Canvas (default 72%) | Resize Handle (2px) | Assistant Pan
 ### Digest Messages (Special Interactive)
 
 **Morning Briefing:** Starts with "☀️ Morning Briefing"
+- **Checklist:** Checks for Missing Address, No Customer Phone, Unassigned Jobs, Unconfirmed Today's Jobs, Missing Deposits.
 - emerald-50/70 bg, emerald-200 border
 - Loading: "Loading…" in emerald-700
 
@@ -1364,9 +1419,9 @@ Sidebar (45px) | Main Canvas (default 72%) | Resize Handle (2px) | Assistant Pan
   - Follow Ups & Today's Tasks (emerald header, amber items)
   - Overdue Tasks (slate header, white items)
   - Next Steps (contextual by agent mode):
-    - EXECUTION: "AI takes action, chases jobs"
-    - DRAFT: "AI prepares drafts, user approves"
-    - INFO_ONLY: "user must take action manually"
+    - **EXECUTION:** AI takes independent action (books/quotes/chases) without prompt.
+    - **REVIEW & APPROVE (DRAFT):** AI prepares drafts for user review (thumbs up/down).
+    - **INFO_ONLY:** AI gathers intelligence but leaves all outbound work to the user.
 
 ### Job Draft Card (Inline in Messages)
 
@@ -1678,6 +1733,23 @@ HTML template includes: invoice number, status, dates, deal title, contact detai
    - Records signature/payment/notes
    - Moves to READY_TO_INVOICE
    - No invoice generated
+
+### Invoice Sign-Off / Completion Wizard
+
+When a job is marked for completion, the following multi-step wizard is triggered:
+
+1. **Labour & Materials Review:**
+   - Adjust labour hours and hourly rates (total updates live).
+   - Material Picker: Add items from the pricing glossary/database.
+2. **Field Notes & Photos:**
+   - Capture final job notes.
+   - Upload \"Before\" and \"After\" photos.
+3. **Payment Status:** Toggle between \"Paid on Site\" or \"Invoice Later\".
+4. **On-Site Sign-Off:** Touch-friendly signature pad for customer confirmation.
+5. **Completion Action:**
+   - **Save for Later:** Moves deal to `PENDING_COMPLETION` (Amber dashed border). No invoice created.
+   - **Confirm & Generate:** Generates PDF, moves deal to `COMPLETED/WON`, pushes draft to Xero.
+6. **Review Prompt:** Optional checkbox to send an automated Review Request SMS.
 
 ### Xero Integration (Stub)
 
@@ -2017,9 +2089,17 @@ All settings use: individual save buttons per section, toast notifications, load
 
 | Role | Description |
 |------|-------------|
-| OWNER | Workspace creator. Full access to all features. |
-| MANAGER | Elevated permissions. Can access billing (if configured), invite others, modify team roles. |
-| TEAM_MEMBER | Basic access. Filtered view of deals (assigned only). |
+| OWNER | Workspace creator. Full access to all features, billing, and team management. |
+| MANAGER | Can invite/remove members (except owner) and **confirm data changes** (revenue/manual corrections). |
+| TEAM_MEMBER | Can manage assigned jobs; blocked from billing/integrations. Kanban defaults to \"My Jobs\". |
+
+### Invitations & Access
+
+- **Expiry:** Invite links (Manager or Team Member) expire strictly after **7 days**.
+- **Data Correction Locks:**
+  - If a user attempts to update shared financial data via chat (e.g., \"Record $500 cash revenue\"), the AI triggers a **Confirmation Flow**.
+  - **Managers/Owners** see a \"Confirm\" prompt.
+  - **Team Members** receive a message: \"Only a manager or owner can confirm this data update.\"
 
 ### Permission Functions
 
@@ -2213,3 +2293,14 @@ All settings use: individual save buttons per section, toast notifications, load
 | Maps | Google Maps API + Leaflet fallback |
 | AI | Google Gemini (gemini-2.0-flash-lite) |
 | Themes | next-themes |
+
+---
+
+## Change History Diary
+
+> **AGENT RULE:** Any AI agent modifying structural components, features, or core app logic in the repository MUST update the relevant section of this document AND add a time-series diary entry below, detailing the specific feature updates to maintain a synchronized single source of truth.
+
+| Date | Agent | Description of Feature Update |
+|------|-------|-------------|
+| 2026-03-23 | Antigravity | **Major Docs Consolidation:** Systematically ported core business logic (RBAC nuances, Morning Briefing logic, Number Isolation, Triage Engine, Job Sign-off Wizard) from legacy docs into this file. Deleted `TUTORIAL_HANDBOOK.md`, `team_roles_and_approvals.md`, `COMMUNICATION_SYSTEM.md`, and `BUSINESS_MODEL.md` to establish this as the single source of truth. Mandatory `pre-commit` hook enabled to enforce future updates here. |
+
