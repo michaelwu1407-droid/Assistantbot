@@ -175,7 +175,7 @@ export async function updateWorkspaceSettings(input: {
     return { success: true }
 }
 
-const MAX_AI_PREFERENCE_RULES = 50;
+const MAX_AI_PREFERENCE_RULES = 20;
 
 export async function updateAiPreferences(workspaceId: string, rule: string) {
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
@@ -194,12 +194,16 @@ export async function updateAiPreferences(workspaceId: string, rule: string) {
         return { success: true, skipped: "duplicate" }
     }
 
-    // Enforce cap — drop the oldest rule if at limit
-    const updatedRules = [...existingRules, rule];
-    if (updatedRules.length > MAX_AI_PREFERENCE_RULES) {
-        updatedRules.splice(0, updatedRules.length - MAX_AI_PREFERENCE_RULES);
+    // Hard cap — reject instead of silently dropping rules
+    if (existingRules.length >= MAX_AI_PREFERENCE_RULES) {
+        return {
+            success: false,
+            error: "rule_limit_reached",
+            message: `You've reached the maximum of ${MAX_AI_PREFERENCE_RULES} behavioural rules. Please delete an existing rule first before adding a new one.`,
+        }
     }
 
+    const updatedRules = [...existingRules, rule];
     const formatted = updatedRules.map(r => `- ${r}`).join("\n");
 
     await db.workspace.update({

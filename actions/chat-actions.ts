@@ -868,7 +868,15 @@ export async function runUpdateInvoiceAmount(
 export async function runUpdateAiPreferences(workspaceId: string, rule: string) {
   try {
     const { updateAiPreferences } = await import("./settings-actions");
-    await updateAiPreferences(workspaceId, rule);
+    const result = await updateAiPreferences(workspaceId, rule);
+
+    if (!result.success && "error" in result && result.error === "rule_limit_reached") {
+      return (result as { message: string }).message;
+    }
+    if ("skipped" in result && result.skipped === "duplicate") {
+      return `This rule already exists — no changes made.`;
+    }
+
     return `Successfully saved the rule: "${rule}". I will remember this for future conversations.`;
   } catch (err) {
     return `Error updating preferences: ${err instanceof Error ? err.message : String(err)}`;
