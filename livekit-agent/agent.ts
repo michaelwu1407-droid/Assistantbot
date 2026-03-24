@@ -28,6 +28,7 @@ import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts 
 import type { STTOptions as DeepgramSTTOptions } from '@livekit/agents-plugin-deepgram';
 import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
+import { SipClient } from 'livekit-server-sdk';
 import { z } from 'zod';
 import {
   assertRequiredVoiceAgentEnv,
@@ -175,6 +176,7 @@ type WorkspaceVoiceGrounding = {
     description: string;
   }>;
   noGoRules: string[];
+  ownerPhone: string | null;
 };
 
 type TranscriptTurn = {
@@ -1516,9 +1518,42 @@ export default defineAgent({
         const currentHour = new Date().getHours();
         const isOnClock = currentHour >= 8 && currentHour < 17;
 
-        if (isOnClock) {
-          console.log(`[agent] Transferring call ${JSON.stringify({ callId, reason })}`);
-          return "Transferring you to human staff. Please hold on the line.";
+        // Resolve the owner's phone number for SIP transfer
+        const ownerPhone = normalVoiceGrounding?.ownerPhone
+          || normalVoiceGrounding?.publicPhone
+          || null;
+
+        if (isOnClock && ownerPhone) {
+          console.log(`[agent] Initiating SIP transfer ${JSON.stringify({ callId, reason, ownerPhone })}`);
+          try {
+            const sipClient = new SipClient(
+              process.env.LIVEKIT_URL || "",
+              process.env.LIVEKIT_API_KEY || "",
+              process.env.LIVEKIT_API_SECRET || "",
+            );
+            const currentRoomName = ctx.room.name || "";
+            const sipParticipantIdentity = participant?.identity || "";
+            if (currentRoomName && sipParticipantIdentity) {
+              await sipClient.transferSipParticipant(
+                currentRoomName,
+                sipParticipantIdentity,
+                `tel:${ownerPhone}`,
+                { playDialtone: true },
+              );
+              console.log(`[agent] SIP transfer initiated successfully to ${ownerPhone}`);
+              return "Transferring you now. Please hold the line.";
+            }
+            console.warn("[agent] Missing room name or participant identity for SIP transfer");
+          } catch (err) {
+            console.error("[agent] SIP transfer failed:", err);
+          }
+          // Fallback if SIP transfer fails
+          return "I'm having trouble connecting you directly. Let me take a message and have them call you back right away.";
+        }
+
+        if (isOnClock && !ownerPhone) {
+          console.warn(`[agent] No owner phone configured for transfer. callId=${callId}`);
+          return "I'm unable to transfer you right now, but I'll make sure the team gets your message immediately. Can I take your details?";
         }
 
         return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";

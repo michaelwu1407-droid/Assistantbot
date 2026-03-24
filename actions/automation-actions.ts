@@ -190,88 +190,157 @@ export async function evaluateAutomations(
         break;
       }
 
-      case "task_overdue":
+      case "task_overdue": {
         if (event.type === "check_tasks") {
-          shouldFire = true;
+          // Query for actually overdue tasks in this workspace
+          const threshold = trigger.threshold_days ?? 2;
+          const cutoff = new Date(Date.now() - threshold * 86400000);
+          const overdueTasks = await db.task.findMany({
+            where: {
+              completed: false,
+              dueAt: { lt: cutoff },
+              deal: { workspaceId },
+            },
+            include: { deal: true },
+          });
+          if (overdueTasks.length > 0) {
+            shouldFire = true;
+            // Stash overdue tasks on the event so the action block can reference them
+            (event as any)._overdueTasks = overdueTasks;
+          }
         }
         break;
+      }
     }
 
     if (shouldFire) {
       try {
-        triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
-
-        await db.automation.update({
-          where: { id: automation.id },
+        // ─── Atomic guard: claim this firing with optimistic lock ───
+        // Only proceed if lastFiredAt hasn't changed since we read it,
+        // preventing duplicate execution under concurrent webhook calls.
+        const claimed = await db.automation.updateMany({
+          where: {
+            id: automation.id,
+            lastFiredAt: automation.lastFiredAt, // optimistic lock
+          },
           data: { lastFiredAt: new Date() },
         });
+        if (claimed.count === 0) {
+          console.log(`[Automation] Skipped ${automation.name}: concurrent execution detected`);
+          continue;
+        }
+
+        triggered.push(`[${automation.name}] → ${action.message ?? action.type}`);
 
         // ─── Execute Actions ───
 
-        // 1. Create Task
+        // 1. Create Task (with dedup: skip if identical pending task exists)
         if (action.type === "create_task" && event.dealId) {
-          const dueAt = new Date();
-          dueAt.setDate(dueAt.getDate() + 2);
-          await createTask({
-            title: action.message ?? "Follow up",
-            dueAt,
-            dealId: event.dealId,
-            contactId: event.contactId
+          const taskTitle = action.message ?? "Follow up";
+          const existingTask = await db.task.findFirst({
+            where: {
+              dealId: event.dealId,
+              title: taskTitle,
+              completedAt: null,
+            },
           });
+          if (!existingTask) {
+            const dueAt = new Date();
+            dueAt.setDate(dueAt.getDate() + 2);
+            await createTask({
+              title: taskTitle,
+              dueAt,
+              dealId: event.dealId,
+              contactId: event.contactId,
+            });
+          } else {
+            console.log(`[Automation] Skipped duplicate task "${taskTitle}" for deal ${event.dealId}`);
+          }
         }
 
         // 2. Notify Users
         if (action.type === "notify") {
-          // Notify all users in workspace (SME team style)
           const users = await db.user.findMany({ where: { workspaceId } });
-          for (const user of users) {
-            await createNotification({
-              userId: user.id,
-              title: automation.name,
-              message: action.message ?? "Automation triggered",
-              type: "SYSTEM",
-              link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined
-            });
+          const overdueTasks = (event as any)._overdueTasks as Array<{ id: string; title: string; deal?: { id: string } | null }> | undefined;
+
+          if (overdueTasks && overdueTasks.length > 0) {
+            // Send one notification per overdue task so each is actionable
+            for (const task of overdueTasks) {
+              for (const user of users) {
+                await createNotification({
+                  userId: user.id,
+                  title: automation.name,
+                  message: `${action.message ?? "Task overdue"}: "${task.title}"`,
+                  type: "SYSTEM",
+                  link: task.deal?.id ? `/crm?dealId=${task.deal.id}` : undefined,
+                });
+              }
+            }
+          } else {
+            for (const user of users) {
+              await createNotification({
+                userId: user.id,
+                title: automation.name,
+                message: action.message ?? "Automation triggered",
+                type: "SYSTEM",
+                link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined,
+              });
+            }
           }
         }
 
-        // 3. Send Email (Live Implementation)
+        // 3. Send Email (transactional: reserve activity first, send, then confirm)
         if (action.type === "email" && action.template && event.contactId) {
           try {
-            // Get workspace and contact information for dynamic agent identity
-            const deal = await db.deal.findUnique({
-              where: { id: event.dealId },
-              include: {
-                contact: true,
-                workspace: {
-                  select: {
-                    id: true,
-                    name: true,
-                    ownerId: true,
-                    inboundEmailAlias: true
-                  }
-                }
-              }
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const alreadySent = await db.activity.findFirst({
+              where: {
+                type: "EMAIL",
+                contactId: event.contactId,
+                title: { startsWith: `Automation: ${automation.name}` },
+                createdAt: { gte: todayStart },
+              },
             });
+            if (alreadySent) {
+              console.log(`[Automation] Skipped duplicate email for ${automation.name} to contact ${event.contactId}`);
+              continue;
+            }
+
+            const deal = event.dealId
+              ? await db.deal.findUnique({
+                  where: { id: event.dealId },
+                  include: {
+                    contact: true,
+                    workspace: {
+                      select: {
+                        id: true,
+                        name: true,
+                        ownerId: true,
+                        inboundEmailAlias: true,
+                      },
+                    },
+                  },
+                })
+              : null;
 
             if (!deal || !deal.contact || !deal.workspace) {
               console.log(`[Automation] Missing deal/contact/workspace data for email automation`);
               continue;
             }
 
-            // Get workspace owner for BCC
-            const owner = await db.user.findUnique({
-              where: { id: deal.workspace.ownerId! },
-              select: { email: true }
-            });
+            const owner = deal.workspace.ownerId
+              ? await db.user.findUnique({
+                  where: { id: deal.workspace.ownerId },
+                  select: { email: true },
+                })
+              : null;
 
-            // Render email template with variables
             const templateData = await renderTemplate(action.template, {
               contactName: deal.contact.name || "there",
               dealTitle: deal.title,
               amount: deal.value?.toString() || "0",
               companyName: deal.workspace.name,
-              // Add more template variables as needed
             });
 
             if (!templateData) {
@@ -279,52 +348,65 @@ export async function evaluateAutomations(
               continue;
             }
 
-            // Send email with dynamic agent identity
-            const emailResult = await runSendEmail(deal.workspace.id, {
+            // ── Transactional: create activity BEFORE send (acts as dedup guard) ──
+            const pendingActivity = await logActivity({
+              type: "EMAIL",
+              title: `Automation: ${automation.name} - ${templateData.subject} [PENDING]`,
+              content: templateData.body,
+              contactId: deal.contact.id,
+              dealId: event.dealId,
+            });
+
+            await runSendEmail(deal.workspace.id, {
               contactName: deal.contact.name || "there",
               subject: templateData.subject || "Automated Message",
               body: templateData.body,
               workspaceAlias: deal.workspace.inboundEmailAlias || undefined,
               workspaceName: deal.workspace.name,
-              ownerEmail: owner?.email
+              ownerEmail: owner?.email,
             });
 
-            // Log the email for verification - FINAL EMAIL METADATA
-            const finalEmailMetadata = {
-              automation: automation.name,
-              template: action.template,
-              to: deal.contact.email,
-              contactName: deal.contact.name,
-              subject: templateData.subject,
-              from: deal.workspace.inboundEmailAlias
-                ? `"${deal.workspace.name} Assistant" <${deal.workspace.inboundEmailAlias}@agent.earlymark.ai>`
-                : process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai",
-              replyTo: deal.workspace.inboundEmailAlias
-                ? `${deal.workspace.inboundEmailAlias}@agent.earlymark.ai`
-                : undefined,
-              bcc: owner?.email,
-              workspaceAlias: deal.workspace.inboundEmailAlias,
-              workspaceName: deal.workspace.name,
-              timestamp: new Date().toISOString()
-            };
+            // ── Confirm: update activity title to remove [PENDING] ──
+            if (pendingActivity?.activityId) {
+              await db.activity.update({
+                where: { id: pendingActivity.activityId },
+                data: { title: `Automation: ${automation.name} - ${templateData.subject}` },
+              }).catch(() => {}); // non-critical
+            }
 
-            console.log(`[Automation] 📧 EMAIL SENT - METADATA VERIFICATION:`);
-            console.log(JSON.stringify(finalEmailMetadata, null, 2));
-
-            // Log activity
-            await logActivity({
-              type: "EMAIL",
-              title: `Automation: ${automation.name} - ${templateData.subject}`,
-              content: templateData.body,
-              contactId: deal.contact.id,
-            });
-
+            console.log(`[Automation] Email sent: ${automation.name} → ${deal.contact.email}`);
           } catch (error) {
-            console.error(`[Automation] Failed to send email for automation ${automation.name}:`, error);
+            console.error(`[Automation] Failed to send email for ${automation.name}:`, error);
+          }
+        }
+
+        // 4. Move Stage
+        if (action.type === "move_stage" && event.dealId && action.targetStage) {
+          try {
+            const STAGE_REVERSE: Record<string, string> = {
+              new: "NEW", new_request: "NEW", quote_sent: "CONTACTED",
+              scheduled: "SCHEDULED", pipeline: "PIPELINE",
+              ready_to_invoice: "INVOICED", pending_approval: "PENDING_COMPLETION",
+              completed: "WON", lost: "LOST", deleted: "DELETED",
+            };
+            const prismaStage = STAGE_REVERSE[action.targetStage] || action.targetStage;
+            await db.deal.update({
+              where: { id: event.dealId },
+              data: { stage: prismaStage, stageChangedAt: new Date() },
+            });
+            await logActivity({
+              type: "NOTE",
+              title: `Automation: ${automation.name} — moved to ${action.targetStage}`,
+              content: action.message || `Deal automatically moved to ${action.targetStage}`,
+              dealId: event.dealId,
+            });
+            console.log(`[Automation] Moved deal ${event.dealId} to stage ${prismaStage}`);
+          } catch (error) {
+            console.error(`[Automation] Failed to move stage for ${automation.name}:`, error);
           }
         }
       } catch (err) {
-        console.error(`[Automation] Error executing rules for automation ${automation.name}:`, err);
+        console.error(`[Automation] Error executing automation ${automation.name}:`, err);
       }
     }
   }

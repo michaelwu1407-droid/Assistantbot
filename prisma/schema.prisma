@@ -124,6 +124,7 @@ model Workspace {
   voiceCalls       VoiceCall[]
   activityLogs     ActivityLog[]
   calendarIntegrations WorkspaceCalendarIntegration[]
+  syncIssues       SyncIssue[]
 
   // Self-Learning & NLP Behavioral State
   aiPreferences      String? @db.Text
@@ -260,10 +261,15 @@ model Deal {
   // AI Triage Recommendation — the AI's suggestion before human override
   aiTriageRecommendation String? // "ACCEPT", "DECLINE", "QUOTE", "OUT_OF_AREA"
 
-  lastActivityAt DateTime @default(now())
-  stageChangedAt DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // Escalation tracking — set when deal is flagged for owner attention
+  escalatedAt     DateTime?
+  escalationReason String?   @db.Text
+
+  lastActivityAt     DateTime @default(now())
+  stageChangedAt     DateTime @default(now())
+  lastReminderSentAt DateTime? // Dedup: prevents duplicate booking reminder SMS
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
@@ -283,6 +289,10 @@ model Deal {
   jobPhotos        JobPhoto[]
   jobNotes         JobNote[]
   customerFeedback CustomerFeedback[]
+  voiceCalls       VoiceCall[]
+  syncIssues       SyncIssue[]
+
+  @@index([workspaceId, stage])
 }
 
 model Contact {
@@ -307,6 +317,7 @@ model Contact {
   feedback         BuyerFeedback[]
   customerFeedback CustomerFeedback[] @relation("CustomerFeedback")
   voiceCalls       VoiceCall[]
+  syncIssues       SyncIssue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -323,10 +334,10 @@ model Activity {
   user   User?   @relation(fields: [userId], references: [id])
 
   dealId String?
-  deal   Deal?   @relation(fields: [dealId], references: [id])
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id])
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 }
@@ -342,6 +353,8 @@ model VoiceCall {
   workspace           Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   contactId           String?
   contact             Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  dealId              String?
+  deal                Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
   callerPhone         String?
   calledPhone         String?
   callerName          String?
@@ -408,10 +421,10 @@ model Task {
   dueAt       DateTime?
 
   dealId String?
-  deal   Deal?   @relation(fields: [dealId], references: [id])
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id])
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -430,7 +443,7 @@ model Invoice {
   paidAt   DateTime?
 
   dealId String
-  deal   Deal   @relation(fields: [dealId], references: [id])
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -946,4 +959,27 @@ model ActivityLog {
 
   @@index([workspaceId, createdAt])
   @@map("activity_logs")
+}
+
+// ─── Sync Issue Tracking ────────────────────────────────────────────
+// Records background failures (calendar sync, chat save, etc.) so the
+// owner sees them on the customer/deal detail page instead of silence.
+
+model SyncIssue {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  dealId      String?
+  deal        Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  surface     String   // "calendar_sync", "calendar_remove", "chat_save", "deal_delete"
+  message     String
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, resolved, createdAt])
+  @@index([dealId])
+  @@index([contactId])
+  @@map("sync_issues")
 }

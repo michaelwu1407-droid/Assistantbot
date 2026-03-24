@@ -24,8 +24,47 @@ function suggestRange(observed: number): { min: number; max: number } {
 }
 
 /**
+ * Check whether observed price falls within an existing glossary/knowledge price range.
+ * Returns true if the price is already covered — no suggestion needed.
+ */
+async function priceWithinGlossary(
+  tx: Parameters<Parameters<typeof db.$transaction>[0]>[0],
+  workspaceId: string,
+  dealTitle: string,
+  observed: number
+): Promise<boolean> {
+  // Check BusinessKnowledge PRICING rules for a matching service
+  const pricingRules = await tx.businessKnowledge.findMany({
+    where: { workspaceId, category: "PRICING" },
+    select: { ruleContent: true, metadata: true },
+  });
+
+  const normTitle = dealTitle.toLowerCase();
+
+  for (const rule of pricingRules) {
+    // Only consider rules whose service name appears in the deal title
+    if (!normTitle.includes(rule.ruleContent.toLowerCase())) continue;
+
+    const meta = (rule.metadata as Record<string, unknown> | null) ?? {};
+    const priceRange = (meta.priceRange as string) ?? "";
+
+    // Parse "$100-$200" or "$150" style ranges
+    const amounts = priceRange.match(/\d+(?:[.,]\d+)?/g)?.map(Number) ?? [];
+    if (amounts.length === 0) continue;
+
+    const lo = Math.min(...amounts);
+    const hi = Math.max(...amounts);
+    // 15% tolerance — don't nag if the observed price is close
+    if (observed >= lo * 0.85 && observed <= hi * 1.15) return true;
+  }
+
+  return false;
+}
+
+/**
  * Creates a pricing-learning follow-up task + activity once per deal.
  * Idempotency is enforced by deal.metadata.pricingSuggestionCreatedAt.
+ * Skips if the observed price already falls within the glossary range.
  */
 export async function maybeCreatePricingSuggestionFromConfirmedJob(
   dealId: string,
@@ -43,6 +82,7 @@ export async function maybeCreatePricingSuggestionFromConfirmedJob(
         invoicedAmount: true,
         metadata: true,
         contactId: true,
+        workspaceId: true,
         workspace: { select: { autoUpdateGlossary: true } },
       },
     });
@@ -58,6 +98,11 @@ export async function maybeCreatePricingSuggestionFromConfirmedJob(
 
     const observed = toAmount(deal.invoicedAmount ?? deal.value);
     if (observed <= 0) return { created: false, reason: "no_amount" };
+
+    // Skip if the observed price already fits within an existing glossary range
+    if (await priceWithinGlossary(tx, deal.workspaceId, deal.title, observed)) {
+      return { created: false, reason: "within_glossary_range" };
+    }
 
     const { min, max } = suggestRange(observed);
     const dueAt = new Date();

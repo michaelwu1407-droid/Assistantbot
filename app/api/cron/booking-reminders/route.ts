@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       sent: result.sent,
       errors: result.errors,
+      skippedAlreadySent: result.skippedAlreadySent,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
+import { syncVoiceCallToCRM } from "@/lib/post-call-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -120,7 +121,31 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (workspaceId && transcriptText) {
+    // ── Post-call CRM sync: create Contact + Deal for normal calls ──
+    let syncResult = null;
+    if (workspaceId && payload.callType === "normal" && transcriptText) {
+      try {
+        syncResult = await syncVoiceCallToCRM(workspaceId, {
+          callId: payload.callId,
+          callType: payload.callType,
+          callerPhone: payload.callerPhone,
+          calledPhone: payload.calledPhone,
+          callerName: payload.callerName,
+          businessName: payload.businessName,
+          transcriptText,
+          transcriptTurns: payload.transcriptTurns,
+          summary,
+          voiceCallId: payload.callId,
+        });
+        console.log(`[voice-call-webhook] CRM sync result:`, syncResult);
+      } catch (err) {
+        // Non-fatal: the VoiceCall is already saved, CRM sync is best-effort
+        console.error("[voice-call-webhook] CRM sync failed (non-fatal):", err);
+      }
+    }
+
+    // For non-normal calls or if sync was skipped, still log activity
+    if (workspaceId && transcriptText && (!syncResult || syncResult.skipped)) {
       await db.activity.create({
         data: {
           type: "CALL",
@@ -132,7 +157,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      crmSync: syncResult ? {
+        contactId: syncResult.contactId,
+        dealId: syncResult.dealId,
+        contactCreated: syncResult.contactCreated,
+        dealCreated: syncResult.dealCreated,
+        skipped: syncResult.skipped,
+      } : null,
+    });
   } catch (error) {
     console.error("[voice-call-webhook] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
