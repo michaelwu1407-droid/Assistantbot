@@ -906,9 +906,12 @@ export async function runAppendTicketNote(params: { ticketId: string; noteConten
   }
 }
 
+const MAX_AGENT_FLAGS_PER_DEAL = 10;
+
 /**
  * AI Tool Action: Add an agent triage flag to a deal.
  * Used by the Bouncer/Advisor engine to mark leads with concerns.
+ * Deduplicates and caps at MAX_AGENT_FLAGS_PER_DEAL flags per deal.
  */
 export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: string; flag: string }) {
   try {
@@ -922,7 +925,19 @@ export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: 
     if (!deal) return `Could not find a deal matching "${params.dealTitle}".`;
 
     const existing = Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : [];
+
+    // Dedup: skip if a substantially similar flag already exists
+    const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normNew = normalise(params.flag);
+    if (existing.some(f => normalise(f) === normNew)) {
+      return `Flag already exists on ${params.dealTitle}: "${params.flag}"`;
+    }
+
+    // Cap: keep the most recent flags, drop oldest if at limit
     const updated = [...existing, params.flag];
+    if (updated.length > MAX_AGENT_FLAGS_PER_DEAL) {
+      updated.splice(0, updated.length - MAX_AGENT_FLAGS_PER_DEAL);
+    }
 
     await db.deal.update({
       where: { id: deal.id },

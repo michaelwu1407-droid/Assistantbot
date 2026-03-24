@@ -175,18 +175,42 @@ export async function updateWorkspaceSettings(input: {
     return { success: true }
 }
 
+const MAX_AI_PREFERENCE_RULES = 50;
+
 export async function updateAiPreferences(workspaceId: string, rule: string) {
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
     if (!workspace) return { success: false }
 
-    const currentRules = workspace.aiPreferences ? workspace.aiPreferences + "\n- " : "- "
+    // Parse existing rules into an array
+    const existingRules = (workspace.aiPreferences ?? "")
+        .split("\n")
+        .map(r => r.replace(/^-\s*/, "").trim())
+        .filter(Boolean);
+
+    // Dedup: skip if a substantially similar rule already exists
+    const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normNew = normalise(rule);
+    if (existingRules.some(r => normalise(r) === normNew)) {
+        return { success: true, skipped: "duplicate" }
+    }
+
+    // Enforce cap — drop the oldest rule if at limit
+    const updatedRules = [...existingRules, rule];
+    if (updatedRules.length > MAX_AI_PREFERENCE_RULES) {
+        updatedRules.splice(0, updatedRules.length - MAX_AI_PREFERENCE_RULES);
+    }
+
+    const formatted = updatedRules.map(r => `- ${r}`).join("\n");
 
     await db.workspace.update({
         where: { id: workspaceId },
-        data: {
-            aiPreferences: currentRules + rule
-        }
+        data: { aiPreferences: formatted }
     })
+
+    // Bust context cache so the new rule takes effect immediately
+    const { invalidateAgentContextCache } = await import("@/lib/ai/context");
+    invalidateAgentContextCache(workspaceId);
+
     return { success: true }
 }
 
