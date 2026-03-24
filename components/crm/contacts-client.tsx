@@ -16,6 +16,13 @@ import { useRouter } from "next/navigation"
 
 interface ContactsClientProps {
   contacts: ContactView[]
+  pagination?: {
+    page: number
+    pageSize: number
+    total: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }
 
 // Same stages as kanban board (see kanban-board.tsx COLUMNS)
@@ -62,7 +69,7 @@ function formatLastInteracted(date: Date | null): string {
   return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
 }
 
-export function ContactsClient({ contacts }: ContactsClientProps) {
+export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((s) => s.id)), [])
@@ -446,6 +453,38 @@ export function ContactsClient({ contacts }: ContactsClientProps) {
           </table>
         </div>
       </div>
+
+      {pagination && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            Showing {contacts.length} of {pagination.total} contacts (page {pagination.page})
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!pagination.hasPrevPage}
+              onClick={() => {
+                if (!pagination.hasPrevPage) return
+                router.push(`/crm/contacts?page=${pagination.page - 1}`)
+              }}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!pagination.hasNextPage}
+              onClick={() => {
+                if (!pagination.hasNextPage) return
+                router.push(`/crm/contacts?page=${pagination.page + 1}`)
+              }}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
 
     </div>

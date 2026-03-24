@@ -35,7 +35,7 @@ export default async function CrmDashboardPage(props: {
         }
         const [, dealsResult, teamResult] = await Promise.all([
             ensureOwnerHasUserRow(workspace),
-            getDeals(workspace.id),
+            getDeals(workspace.id, undefined, { limit: 300 }),
             getTeamMembers(),
         ])
         deals = dealsResult

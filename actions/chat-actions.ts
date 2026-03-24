@@ -110,10 +110,10 @@ async function getCustomerContactGuardResult(
   }
 
   if (requiresCustomerContactApproval(mode)) {
-    return `Tracey for users is currently in ${modeLabel} mode. I prepared this ${action} action but did not send it yet: ${summary}`;
+    return `I couldn't send this ${action} because customer-contact mode is "${modeLabel}". I prepared a draft instead and did not send anything: ${summary}. Next step: ask a manager/owner to approve and send.`;
   }
 
-  return `Tracey for users is currently in ${modeLabel} mode, so customer ${action} actions are disabled. I did not send anything.`;
+  return `I couldn't send this ${action} because customer-contact mode is "${modeLabel}". Customer ${action} actions are disabled in this mode. I did not send anything.`;
 }
 
 // ─── Stage Alias Mapping ─────────────────────────────────────────────
@@ -294,7 +294,7 @@ export async function runMoveDeal(
   stageAlias: string,
   assignedTo?: string
 ): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = deals.find(d => d.title.toLowerCase().trim() === dealTitle.toLowerCase().trim());
   if (!deal) {
     const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
@@ -360,7 +360,7 @@ export async function runProposeReschedule(
   workspaceId: string,
   params: { dealTitle: string; proposedSchedule: string }
 ): Promise<{ success: boolean; message: string }> {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
   if (!deal) {
     const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
@@ -421,7 +421,7 @@ export async function runProposeReschedule(
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
 export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   return {
     deals: deals.map((d) => ({
       id: d.id,
@@ -437,7 +437,7 @@ export async function runGetAttentionRequired(workspaceId: string): Promise<{
   message: string;
   quickActions: { label: string; prompt: string }[];
 }> {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const flagged = deals
     .map((deal) => ({
       deal,
@@ -596,7 +596,7 @@ export async function runUpdateDealFields(
     newStage?: string;
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
   if (!deal) {
     const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
@@ -902,7 +902,7 @@ export async function runUpdateInvoiceAmount(
   params: { dealTitle: string; amount: number }
 ) {
   try {
-    const deals = await getDeals(workspaceId);
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
     const target = findDealByTitle(deals, params.dealTitle);
     if (!target) return `Could not find a job matching "${params.dealTitle}". Try asking for the list of jobs.`;
 
@@ -919,7 +919,11 @@ export async function runUpdateAiPreferences(workspaceId: string, rule: string) 
     const { updateAiPreferences } = await import("./settings-actions");
     const result = await updateAiPreferences(workspaceId, rule);
 
-    if (!result.success && "error" in result && result.error === "rule_limit_reached") {
+    if (
+      !result.success &&
+      "error" in result &&
+      (result.error === "rule_limit_reached" || result.error === "rule_validation_failed")
+    ) {
       return (result as { message: string }).message;
     }
     if ("skipped" in result && result.skipped === "duplicate") {
@@ -1093,7 +1097,7 @@ async function findInvoiceInWorkspace(
   }
 
   if (params.dealTitle?.trim()) {
-    const deals = await getDeals(workspaceId);
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
     const target = findDealByTitle(deals, params.dealTitle.trim());
     if (!target) return null;
     return db.invoice.findFirst({
@@ -1134,7 +1138,7 @@ export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
 ) {
-  const deals = await getDeals(workspaceId);
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
   if (!deal) {
     return `Couldn't find a job matching "${params.dealTitle}".`;
@@ -2075,7 +2079,7 @@ export async function runAssignTeamMember(
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Find the deal
-    const deals = await getDeals(workspaceId);
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
     const deal = findDealByTitle(deals, params.dealTitle.trim());
     if (!deal) {
       const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");

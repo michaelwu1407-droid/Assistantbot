@@ -315,7 +315,7 @@ export async function POST(req: Request) {
         try {
           const [settings, deals] = await Promise.all([
             getWorkspaceSettingsById(workspaceId),
-            getDeals(workspaceId),
+            getDeals(workspaceId, undefined, { unbounded: true }),
           ]);
           if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
             return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 });
@@ -415,7 +415,7 @@ export async function POST(req: Request) {
         if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
           return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 });
         }
-        const deals = await getDeals(workspaceId);
+        const deals = await getDeals(workspaceId, undefined, { unbounded: true });
         await addDraftWarnings(draft, workspaceId, deals);
       } catch {
         // ignore
@@ -462,7 +462,7 @@ export async function POST(req: Request) {
         if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
           return new Response(JSON.stringify({ error: "Agent is currently in Info only mode and cannot schedule jobs." }), { status: 403 })
         }
-        const deals = await getDeals(workspaceId);
+        const deals = await getDeals(workspaceId, undefined, { unbounded: true });
         await addDraftWarnings(draft, workspaceId, deals);
       } catch {
         // ignore

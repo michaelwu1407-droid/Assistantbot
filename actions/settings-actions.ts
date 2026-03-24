@@ -8,7 +8,7 @@ import { AgentMode } from "@prisma/client"
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
-import { normalizeAppAgentMode } from "@/lib/agent-mode"
+import { normalizeAppAgentMode, normalizeAgentMode } from "@/lib/agent-mode"
 import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness"
 import { DEFAULT_WORKSPACE_TIMEZONE, inferTimezoneFromAddress, isValidIanaTimezone } from "@/lib/timezone"
@@ -136,6 +136,21 @@ export async function updateWorkspaceSettings(input: {
     callForwardingCarrier?: CallForwardingCarrier
 }) {
     const workspaceId = await getWorkspaceId()
+    const normalizedMode = normalizeAppAgentMode(input.agentMode) as AgentMode
+
+    let normalizedAiPreferences: string | undefined = undefined
+    if (input.aiPreferences !== undefined) {
+        const workspaceForValidation = await db.workspace.findUnique({
+            where: { id: workspaceId },
+            select: { agentMode: true },
+        })
+        const rules = dedupeAiPreferenceRules(parseAiPreferenceRules(input.aiPreferences))
+        const validation = validateAiPreferenceRules(rules, workspaceForValidation?.agentMode ?? normalizedMode)
+        if (!validation.valid) {
+            throw new Error(validation.message)
+        }
+        normalizedAiPreferences = formatAiPreferenceRules(rules)
+    }
 
     const settingsKeys = [
         "agentScriptStyle", "agentBusinessName", "agentOpeningMessage", "agentClosingMessage",
@@ -162,13 +177,13 @@ export async function updateWorkspaceSettings(input: {
     await db.workspace.update({
         where: { id: workspaceId },
         data: {
-            agentMode: normalizeAppAgentMode(input.agentMode) as AgentMode,
+            agentMode: normalizedMode,
             workingHoursStart: input.workingHoursStart,
             workingHoursEnd: input.workingHoursEnd,
             agendaNotifyTime: input.agendaNotifyTime,
             wrapupNotifyTime: input.wrapupNotifyTime,
             ...(input.workspaceTimezone !== undefined && { workspaceTimezone: input.workspaceTimezone }),
-            ...(input.aiPreferences !== undefined && { aiPreferences: input.aiPreferences }),
+            ...(normalizedAiPreferences !== undefined && { aiPreferences: normalizedAiPreferences }),
             ...(input.autoUpdateGlossary !== undefined && { autoUpdateGlossary: input.autoUpdateGlossary }),
             ...(input.callOutFee !== undefined && { callOutFee: input.callOutFee }),
             ...(input.jobReminderHours !== undefined && { jobReminderHours: input.jobReminderHours }),
@@ -186,15 +201,90 @@ export async function updateWorkspaceSettings(input: {
 
 const MAX_AI_PREFERENCE_RULES = 20;
 
+function parseAiPreferenceRules(raw: string | null | undefined): string[] {
+    return (raw ?? "")
+        .split("\n")
+        .map((rule) => rule.replace(/^\s*-\s*/, "").trim())
+        .filter(Boolean);
+}
+
+function formatAiPreferenceRules(rules: string[]): string {
+    return rules.map((rule) => `- ${rule}`).join("\n");
+}
+
+function dedupeAiPreferenceRules(rules: string[]): string[] {
+    const seen = new Set<string>();
+    const deduped: string[] = [];
+    for (const rule of rules) {
+        const normalized = rule.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        deduped.push(rule);
+    }
+    return deduped;
+}
+
+function validateAiPreferenceRules(
+    rules: string[],
+    rawMode?: string | null
+): { valid: true } | { valid: false; message: string } {
+    if (rules.length > MAX_AI_PREFERENCE_RULES) {
+        return {
+            valid: false,
+            message: `You can save up to ${MAX_AI_PREFERENCE_RULES} behavioural rules. Please remove a few and try again.`,
+        };
+    }
+
+    const mode = normalizeAgentMode(rawMode);
+    const disallowedPatterns: Array<{ pattern: RegExp; reason: string }> = [
+        {
+            pattern: /\b(always|must)\b.*\b(guarantee|promise)\b.*\b(time|arrival|eta|today|tomorrow)\b/i,
+            reason: "Rules cannot force guaranteed timing promises.",
+        },
+        {
+            pattern: /\b(always|must)\b.*\b(quote|price)\b.*\b(without|no)\b.*\b(tool|pricing|check|approval|assessment)\b/i,
+            reason: "Rules cannot bypass pricing verification and approval safeguards.",
+        },
+        {
+            pattern: /\b(always|must)\b.*\b(book|schedule|confirm)\b/i,
+            reason: "Rules cannot force bookings or confirmations in all situations.",
+        },
+        {
+            pattern: /\b(ignore|bypass|skip)\b.*\b(mode|policy|approval|hours|safety)\b/i,
+            reason: "Rules cannot bypass contact mode, hours, or safety policies.",
+        },
+    ];
+
+    for (const rule of rules) {
+        for (const disallowed of disallowedPatterns) {
+            if (disallowed.pattern.test(rule)) {
+                return {
+                    valid: false,
+                    message: `Rule not allowed: "${rule}". ${disallowed.reason}`,
+                };
+            }
+        }
+    }
+
+    if (mode !== "execute") {
+        for (const rule of rules) {
+            if (/\b(always|must)\b.*\b(send|call|text|email)\b.*\b(immediately|straight away|right now)\b/i.test(rule)) {
+                return {
+                    valid: false,
+                    message: `Rule not allowed in ${mode === "review_approve" ? "Review & approve" : "Info only"} mode: "${rule}". Outbound customer contact cannot be forced in this mode.`,
+                };
+            }
+        }
+    }
+
+    return { valid: true };
+}
+
 export async function updateAiPreferences(workspaceId: string, rule: string) {
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
     if (!workspace) return { success: false }
 
-    // Parse existing rules into an array
-    const existingRules = (workspace.aiPreferences ?? "")
-        .split("\n")
-        .map(r => r.replace(/^-\s*/, "").trim())
-        .filter(Boolean);
+    const existingRules = parseAiPreferenceRules(workspace.aiPreferences);
 
     // Dedup: skip if a substantially similar rule already exists
     const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -212,8 +302,16 @@ export async function updateAiPreferences(workspaceId: string, rule: string) {
         }
     }
 
-    const updatedRules = [...existingRules, rule];
-    const formatted = updatedRules.map(r => `- ${r}`).join("\n");
+    const updatedRules = [...existingRules, rule.trim()];
+    const validation = validateAiPreferenceRules(updatedRules, workspace.agentMode);
+    if (!validation.valid) {
+        return {
+            success: false,
+            error: "rule_validation_failed",
+            message: validation.message,
+        };
+    }
+    const formatted = formatAiPreferenceRules(updatedRules);
 
     await db.workspace.update({
         where: { id: workspaceId },

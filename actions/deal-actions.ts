@@ -189,9 +189,15 @@ const DELETED_DAYS_THRESHOLD = 30;
 export async function getDeals(
   workspaceId: string,
   contactId?: string,
-  filters?: { excludeStages?: string[]; requireScheduled?: boolean; limit?: number }
+  filters?: { excludeStages?: string[]; requireScheduled?: boolean; limit?: number; unbounded?: boolean }
 ): Promise<DealView[]> {
   try {
+    const DEFAULT_DEALS_LIMIT = 300;
+    const MAX_DEALS_LIMIT = 1000;
+    const effectiveLimit = filters?.unbounded
+      ? undefined
+      : Math.max(1, Math.min(filters?.limit ?? DEFAULT_DEALS_LIMIT, MAX_DEALS_LIMIT));
+
     const where: Record<string, unknown> = { workspaceId };
     if (contactId) where.contactId = contactId;
     if (filters?.excludeStages?.length) {
@@ -203,7 +209,7 @@ export async function getDeals(
 
     const deals = await db.deal.findMany({
       where,
-      ...(filters?.limit ? { take: filters.limit } : {}),
+      ...(effectiveLimit ? { take: effectiveLimit } : {}),
       include: {
         contact: true,
         assignedTo: { select: { id: true, name: true } },

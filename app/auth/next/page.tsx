@@ -5,7 +5,8 @@ import { logger } from "@/lib/logging";
 
 /**
  * Auth flow after login/signup (from /auth or OAuth callback):
- * - Active subscription → dashboard
+ * - Active subscription + onboarding complete + tutorial complete → dashboard
+ * - Active subscription + onboarding complete + tutorial incomplete → dashboard (tutorial mode)
  * - No active subscription (including former users who stopped paying) → billing
  */
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function AuthNextPage() {
 
     const subscribed = workspace.subscriptionStatus === "active";
     const onboarded = workspace.onboardingComplete;
+    const tutorialComplete = workspace.tutorialComplete;
 
     logger.authFlow("Making redirect decision", {
         action: "redirect_decision",
@@ -50,6 +52,7 @@ export default async function AuthNextPage() {
         workspaceId: workspace.id,
         subscribed,
         onboarded,
+        tutorialComplete,
         redirectTarget: subscribed ? (onboarded ? "/crm/dashboard" : "/setup") : "/billing"
     });
 
@@ -69,6 +72,15 @@ export default async function AuthNextPage() {
             reason: "onboarding_incomplete"
         });
         redirect("/setup");
+    }
+
+    if (!tutorialComplete) {
+        logger.authFlow("Redirecting to /crm/dashboard with tutorial mode", {
+            userId,
+            workspaceId: workspace.id,
+            reason: "tutorial_incomplete"
+        });
+        redirect("/crm/dashboard?tutorial=1");
     }
 
     logger.authFlow("Redirecting to /crm", {

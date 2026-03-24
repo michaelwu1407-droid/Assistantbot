@@ -27,9 +27,12 @@ export default async function BillingPaywallPage() {
     }
 
     if (workspace.subscriptionStatus === "active") {
-        // If already subscribed, go to setup/onboarding or dashboard
+        // If already subscribed, continue through setup/tutorial before normal dashboard use
         if (!workspace.onboardingComplete) {
             redirect("/setup");
+        }
+        if (!workspace.tutorialComplete) {
+            redirect("/crm/dashboard?tutorial=1");
         }
         redirect("/crm/dashboard");
     }

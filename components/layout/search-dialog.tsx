@@ -146,13 +146,13 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Dashboard</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/tradie/schedule"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/schedule"))}>
                             <Calendar className="mr-2 h-4 w-4" />
                             <span>Calendar</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/agent"))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push("/crm/dashboard"))}>
                             <Smile className="mr-2 h-4 w-4" />
-                            <span>Agent View</span>
+                            <span>Pipeline</span>
                         </CommandItem>
                     </CommandGroup>
                     <CommandSeparator />

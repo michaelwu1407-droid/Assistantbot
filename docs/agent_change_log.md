@@ -1999,3 +1999,70 @@ Rule: every agent change commit must include an entry in this file.
   - Made the CRM analytics page content scrollable inside the dashboard shell by applying `flex-1 min-h-0 overflow-y-auto` to the page container.
 - Why:
   - `DashboardMainChrome` uses `overflow-hidden` on its child wrapper; without a scrollable container, the analytics content gets clipped and expandable sections (revenue/customer cards) can’t be reached.
+
+## 2026-03-24 11:45 (AEDT) - codex
+
+- Files changed:
+  - `app/crm/deals/page.tsx`
+  - `app/crm/hub/page.tsx`
+  - `app/crm/agent/page.tsx`
+  - `app/crm/estimator/page.tsx`
+  - `app/crm/deals/new/page.tsx`
+  - `app/crm/tradie/page.tsx`
+  - `app/crm/jobs/[id]/page.tsx`
+  - `app/crm/calendar/page.tsx`
+  - `app/crm/design/deal-cards/page.tsx`
+  - `app/crm/design/deal-detail-modal/page.tsx`
+  - `app/(dashboard)/contacts/page.tsx`
+  - `components/modals/new-deal-modal-standalone.tsx`
+  - `components/layout/search-dialog.tsx`
+  - `components/scheduler/draggable-job-card.tsx`
+  - `app/admin/diagnostics/page.tsx`
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `components/dashboard/setup-widget.tsx`
+  - `actions/settings-actions.ts`
+  - `actions/chat-actions.ts`
+  - `app/crm/settings/agent/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Retired legacy CRM surfaces to canonical routes with safe redirects (dashboard-first), fixed stale navigation links, and secured `/admin/diagnostics` with internal-admin access.
+  - Standardized key dashboard card corners to 18px and upgraded AI behavioural-rule handling with editable per-rule settings UI, visible 20-rule usage count, backend rule validation/rejection, and consistent blocked-action messaging.
+- Why:
+  - Prevents duplicate/hidden route drift and broken navigation while preserving old URLs safely.
+  - Aligns dashboard visual consistency with the desired 18px card style.
+  - Makes preference/rule behavior safer and clearer by enforcing hard limits/policy constraints and giving users better feedback when an action is blocked.
+
+## 2026-03-24 12:10 (AEDT) - codex
+
+- Files changed:
+  - `actions/contact-actions.ts`
+  - `actions/deal-actions.ts`
+  - `app/crm/contacts/page.tsx`
+  - `components/crm/contacts-client.tsx`
+  - `app/crm/dashboard/page.tsx`
+  - `app/api/contacts/route.ts`
+  - `app/api/deals/route.ts`
+  - `actions/chat-actions.ts`
+  - `app/api/chat/route.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added practical pagination/caps for large datasets: contacts now support page/pageSize access with a paginated server helper and UI next/previous controls; deals now use a safe default fetch cap unless explicitly requested as unbounded.
+  - Updated dashboard and public API routes to use bounded fetches by default, while preserving full-data behavior for internal AI/chat workflows via explicit `unbounded` fetches.
+- Why:
+  - Prevents large 5,000+ contact/deal datasets from loading in one request, reducing slow dashboard loads and timeout risk.
+  - Keeps product behavior reliable by limiting user-facing views while not breaking AI operations that depend on full workspace context.
+
+## 2026-03-24 12:40 (AEDT) - codex
+
+- Files changed:
+  - `components/dashboard/dashboard-client.tsx`
+  - `components/crm/kanban-board.tsx`
+  - `app/auth/next/page.tsx`
+  - `app/billing/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced the team-only Kanban filter control with a unified dropdown that supports combined local pipeline filters (quick search, value range, date range, location, team member) plus save/apply/delete filter presets.
+  - Added tutorial progression enforcement in post-auth and post-billing redirects so subscribed + onboarded users with incomplete tutorial are routed into dashboard tutorial mode before normal usage.
+- Why:
+  - High-volume pipelines need practical local filtering to avoid visual scanning across hundreds of cards.
+  - The intended onboarding journey requires users to complete tutorial flow before normal dashboard operation.

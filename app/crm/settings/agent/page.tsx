@@ -12,6 +12,7 @@ import { Bot, Brain, Plus, X, MessageSquare, ExternalLink } from "lucide-react"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 
 export default function AgentSettingsPage() {
+  const MAX_BEHAVIOURAL_RULES = 20
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState({
@@ -58,8 +59,8 @@ export default function AgentSettingsPage() {
       const nextPreferences = learningRules.map((rule) => `- ${rule}`).join("\n")
       await updateWorkspaceSettings({ ...settings, aiPreferences: nextPreferences })
       toast.success("AI Assistant settings saved")
-    } catch {
-      toast.error("Failed to save AI Assistant settings")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save AI Assistant settings")
     } finally {
       setSaving(false)
     }
@@ -70,12 +71,20 @@ export default function AgentSettingsPage() {
   const addRule = () => {
     const next = ruleDraft.trim()
     if (!next) return
+    if (learningRules.length >= MAX_BEHAVIOURAL_RULES) {
+      toast.error(`You can save up to ${MAX_BEHAVIOURAL_RULES} rules. Remove one to add another.`)
+      return
+    }
     setLearningRules((prev) => [...prev, next])
     setRuleDraft("")
   }
 
   const removeRule = (index: number) => {
     setLearningRules((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const updateRule = (index: number, value: string) => {
+    setLearningRules((prev) => prev.map((rule, i) => (i === index ? value : rule)))
   }
 
   return (
@@ -131,12 +140,16 @@ export default function AgentSettingsPage() {
             <Switch checked={settings.autoUpdateGlossary} onCheckedChange={(v) => setSettings((s) => ({ ...s, autoUpdateGlossary: v }))} />
           </div>
           <div className="space-y-3">
-            <Label>Behavioral rules and preferences</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label>Behavioral rules and preferences</Label>
+              <span className="text-xs text-muted-foreground">{learningRules.length}/{MAX_BEHAVIOURAL_RULES} used</span>
+            </div>
             <div className="flex gap-2">
               <Input
                 value={ruleDraft}
                 onChange={(e) => setRuleDraft(e.target.value)}
                 placeholder="e.g. Always leave a 30-minute buffer between jobs."
+                disabled={learningRules.length >= MAX_BEHAVIOURAL_RULES}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault()
@@ -144,7 +157,7 @@ export default function AgentSettingsPage() {
                   }
                 }}
               />
-              <Button type="button" variant="outline" onClick={addRule}>
+              <Button type="button" variant="outline" onClick={addRule} disabled={learningRules.length >= MAX_BEHAVIOURAL_RULES}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add rule
               </Button>
@@ -155,7 +168,18 @@ export default function AgentSettingsPage() {
               ) : (
                 learningRules.map((rule, index) => (
                   <div key={`${rule}-${index}`} className="flex items-center justify-between rounded-md border px-3 py-2">
-                    <span className="text-sm">{rule}</span>
+                    <Input
+                      value={rule}
+                      onChange={(e) => updateRule(index, e.target.value)}
+                      onBlur={() => {
+                        setLearningRules((prev) =>
+                          prev
+                            .map((entry) => entry.trim())
+                            .filter((entry) => entry.length > 0)
+                        )
+                      }}
+                      className="h-8 border-none px-0 text-sm shadow-none focus-visible:ring-0"
+                    />
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeRule(index)} aria-label="Remove rule">
                       <X className="h-4 w-4" />
                     </Button>

@@ -145,7 +145,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
         <Card className="w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-white shadow-xl border-slate-200">
             <CardHeader className="border-b bg-slate-50/50 rounded-t-xl">
                 <div className="flex items-center gap-2 mb-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.push('/crm/deals')} className="h-8 w-8 -ml-2">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/crm/dashboard')} className="h-8 w-8 -ml-2">
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <CardTitle className="text-xl">New Booking</CardTitle>
@@ -321,7 +321,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 </CardContent>
 
                 <CardFooter className="border-t bg-slate-50/50 rounded-b-xl flex justify-between py-4">
-                    <Button type="button" variant="ghost" onClick={() => router.push('/crm/deals')} disabled={isLoading}>Cancel</Button>
+                    <Button type="button" variant="ghost" onClick={() => router.push('/crm/dashboard')} disabled={isLoading}>Cancel</Button>
                     <Button type="submit" size="lg" disabled={isCreateDisabled} className="shadow-lg px-8">
                         {isLoading ? "Saving..." : "Save Job & Close"}
                     </Button>

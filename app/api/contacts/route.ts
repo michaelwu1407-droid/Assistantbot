@@ -12,7 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden workspace access' }, { status: 403 });
     }
 
-    const contacts = await getContacts(actor.workspaceId);
+    const pageParam = Number(searchParams.get('page') ?? '1');
+    const pageSizeParam = Number(searchParams.get('pageSize') ?? '100');
+    const page = Number.isFinite(pageParam) ? Math.max(1, Math.floor(pageParam)) : 1;
+    const pageSize = Number.isFinite(pageSizeParam) ? Math.max(1, Math.min(Math.floor(pageSizeParam), 500)) : 100;
+    const contacts = await getContacts(actor.workspaceId, { page, pageSize });
     return NextResponse.json(contacts);
   } catch (error) {
     console.error('Contacts API error:', error);

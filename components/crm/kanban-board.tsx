@@ -162,7 +162,15 @@ interface TeamMemberOption {
 interface KanbanBoardProps {
   deals: DealView[]
   industryType?: "TRADES" | "REAL_ESTATE" | null
-  filterByUserId?: string | null
+  filters?: {
+    query?: string
+    minValue?: string
+    maxValue?: string
+    startDate?: string
+    endDate?: string
+    location?: string
+    teamMemberId?: string | null
+  }
   teamMembers?: TeamMemberOption[]
   currentUserRole?: string
   className?: string
@@ -260,7 +268,7 @@ function reorderDealsInColumn(
 export function KanbanBoard({
   deals: initialDeals,
   industryType,
-  filterByUserId,
+  filters,
   teamMembers = [],
   currentUserRole = "TEAM_MEMBER",
   className,
@@ -287,12 +295,80 @@ export function KanbanBoard({
   /** Snapshot of selected ids at bulk drag start (for stacked overlay; refs don’t re-render). */
   const [bulkDragIds, setBulkDragIds] = useState<string[]>([])
 
-  // Filter deals by assignee when filter is set
+  // Multi-filter pipeline view: search, value, date, location, and team member.
   const filteredDeals = useMemo(() => {
-    if (!filterByUserId || filterByUserId === "__all__") return deals
-    if (filterByUserId === FILTER_UNASSIGNED) return deals.filter((d) => !d.assignedToId)
-    return deals.filter((d) => d.assignedToId === filterByUserId)
-  }, [deals, filterByUserId])
+    let next = deals
+
+    const teamMemberId = filters?.teamMemberId
+    if (teamMemberId && teamMemberId !== "__all__") {
+      if (teamMemberId === FILTER_UNASSIGNED) {
+        next = next.filter((d) => !d.assignedToId)
+      } else {
+        next = next.filter((d) => d.assignedToId === teamMemberId)
+      }
+    }
+
+    const query = (filters?.query ?? "").trim().toLowerCase()
+    if (query) {
+      next = next.filter((d) => {
+        const title = d.title?.toLowerCase() ?? ""
+        const contact = d.contactName?.toLowerCase() ?? ""
+        const address = d.address?.toLowerCase() ?? ""
+        return title.includes(query) || contact.includes(query) || address.includes(query)
+      })
+    }
+
+    const minValue = Number(filters?.minValue ?? "")
+    const hasMinValue = Number.isFinite(minValue)
+    if (hasMinValue) {
+      next = next.filter((d) => Number(d.value ?? 0) >= minValue)
+    }
+
+    const maxValue = Number(filters?.maxValue ?? "")
+    const hasMaxValue = Number.isFinite(maxValue)
+    if (hasMaxValue) {
+      next = next.filter((d) => Number(d.value ?? 0) <= maxValue)
+    }
+
+    const location = (filters?.location ?? "").trim().toLowerCase()
+    if (location) {
+      next = next.filter((d) => (d.address ?? "").toLowerCase().includes(location))
+    }
+
+    const hasDateFilter = Boolean(filters?.startDate || filters?.endDate)
+    if (hasDateFilter) {
+      const datedDeals = deals
+        .map((d) => (d.scheduledAt ? new Date(d.scheduledAt) : null))
+        .filter((date): date is Date => {
+          if (!date) return false
+          return !Number.isNaN(date.getTime())
+        })
+      if (datedDeals.length === 0) {
+        return []
+      }
+      const minScheduled = new Date(Math.min(...datedDeals.map((date) => date.getTime())))
+      const maxScheduled = new Date(Math.max(...datedDeals.map((date) => date.getTime())))
+
+      const rangeStart = filters?.startDate ? new Date(`${filters.startDate}T00:00:00`) : null
+      const rangeEnd = filters?.endDate ? new Date(`${filters.endDate}T23:59:59`) : null
+
+      // Product requirement: if requested range is outside known kanban scheduled dates, show nothing.
+      if ((rangeStart && rangeStart < minScheduled) || (rangeEnd && rangeEnd > maxScheduled)) {
+        return []
+      }
+
+      next = next.filter((d) => {
+        if (!d.scheduledAt) return false
+        const scheduled = new Date(d.scheduledAt)
+        if (Number.isNaN(scheduled.getTime())) return false
+        if (rangeStart && scheduled < rangeStart) return false
+        if (rangeEnd && scheduled > rangeEnd) return false
+        return true
+      })
+    }
+
+    return next
+  }, [deals, filters])
 
   // Sync state if props change (re-fetch) - but not during or after drag operations
   useEffect(() => {

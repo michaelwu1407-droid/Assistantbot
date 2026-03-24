@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden workspace access' }, { status: 403 });
     }
 
-    const deals = await getDeals(actor.workspaceId);
+    const limitParam = Number(searchParams.get('limit') ?? '300');
+    const safeLimit = Number.isFinite(limitParam) ? Math.max(1, Math.min(limitParam, 1000)) : 300;
+    const deals = await getDeals(actor.workspaceId, undefined, { limit: safeLimit });
     return NextResponse.json(deals);
   } catch (error) {
     console.error('Deals API error:', error);

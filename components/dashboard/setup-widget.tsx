@@ -48,7 +48,7 @@ export function SetupWidget() {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg overflow-hidden mb-6 shadow-sm transition-all duration-300">
+        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-[18px] overflow-hidden mb-6 shadow-sm transition-all duration-300">
             <div
                 className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/10 cursor-pointer"
                 onClick={() => setExpanded(!expanded)}
@@ -82,7 +82,7 @@ export function SetupWidget() {
                 <div className="p-4 bg-white dark:bg-slate-900 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-emerald-100 dark:border-emerald-800/50">
                     {data.steps.map((step: any) => (
                         <Link key={step.id} href={step.href}>
-                            <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors group ${step.isComplete
+                            <div className={`flex items-center gap-3 p-3 rounded-[18px] border transition-colors group ${step.isComplete
                                 ? "border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/5 text-emerald-800 dark:text-emerald-300"
                                 : "border-slate-100 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
                                 }`}>

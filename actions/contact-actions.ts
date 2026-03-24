@@ -29,6 +29,15 @@ export interface ContactView {
   deals?: { title: string; address?: string; stage: string; value: number }[];
 }
 
+export interface ContactsPageResult {
+  contacts: ContactView[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 interface SearchableContact extends SearchableItem {
   contact: ContactView;
 }
@@ -82,9 +91,62 @@ const DEAL_STAGE_LABELS: Record<string, string> = {
   ARCHIVED: "Archived",
 };
 
-export async function getContacts(workspaceId: string): Promise<ContactView[]> {
+const DEFAULT_CONTACTS_PAGE_SIZE = 100;
+const MAX_CONTACTS_PAGE_SIZE = 500;
+
+function toContactView(c: any): ContactView {
+  const contactWithRelations = c as typeof c & {
+    deals: { id: string; stage: string; invoices: { total: any; status: string }[] }[];
+    activities: { createdAt: Date }[];
+  };
+  const deals = contactWithRelations.deals ?? [];
+  const primaryDeal = deals[0];
+  const primaryDealStage = primaryDeal
+    ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
+    : null;
+  const primaryDealStageKey = primaryDeal?.stage ?? null;
+  let owed = 0;
+  for (const d of deals) {
+    for (const inv of d.invoices ?? []) {
+      if (inv.status !== "PAID" && inv.status !== "VOID") {
+        owed += Number(inv.total ?? 0);
+      }
+    }
+  }
+  const balanceLabel =
+    owed > 0 ? `$${owed.toFixed(0)} owed` : deals.length > 0 ? "Paid" : "—";
+
+  return {
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    phone: c.phone,
+    company: c.company,
+    avatarUrl: c.avatarUrl,
+    address: c.address,
+    metadata: (c.metadata as Record<string, unknown>) ?? undefined,
+    dealCount: deals.length,
+    lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
+    primaryDealStage,
+    primaryDealStageKey,
+    balanceLabel,
+  };
+}
+
+export async function getContacts(
+  workspaceId: string,
+  options?: { page?: number; pageSize?: number; unbounded?: boolean }
+): Promise<ContactView[]> {
+  const pageSize = Math.max(
+    1,
+    Math.min(options?.pageSize ?? DEFAULT_CONTACTS_PAGE_SIZE, MAX_CONTACTS_PAGE_SIZE)
+  );
+  const page = Math.max(1, options?.page ?? 1);
+  const skip = (page - 1) * pageSize;
+
   const contacts = await db.contact.findMany({
     where: { workspaceId },
+    ...(options?.unbounded ? {} : { take: pageSize, skip }),
     include: {
       deals: {
         orderBy: { lastActivityAt: "desc" },
@@ -103,44 +165,53 @@ export async function getContacts(workspaceId: string): Promise<ContactView[]> {
     orderBy: { createdAt: "desc" },
   });
 
-  return contacts.map((c: any) => {
-    const contactWithRelations = c as typeof c & {
-      deals: { id: string; stage: string; invoices: { total: any; status: string }[] }[];
-      activities: { createdAt: Date }[];
-    };
-    const deals = contactWithRelations.deals ?? [];
-    const primaryDeal = deals[0];
-    const primaryDealStage = primaryDeal
-      ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
-      : null;
-    const primaryDealStageKey = primaryDeal?.stage ?? null;
-    let owed = 0;
-    for (const d of deals) {
-      for (const inv of d.invoices ?? []) {
-        if (inv.status !== "PAID" && inv.status !== "VOID") {
-          owed += Number(inv.total ?? 0);
-        }
-      }
-    }
-    const balanceLabel =
-      owed > 0 ? `$${owed.toFixed(0)} owed` : deals.length > 0 ? "Paid" : "—";
+  return contacts.map(toContactView);
+}
 
-    return {
-      id: c.id,
-      name: c.name,
-      email: c.email,
-      phone: c.phone,
-      company: c.company,
-      avatarUrl: c.avatarUrl,
-      address: c.address,
-      metadata: (c.metadata as Record<string, unknown>) ?? undefined,
-      dealCount: deals.length,
-      lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
-      primaryDealStage,
-      primaryDealStageKey,
-      balanceLabel,
-    };
-  });
+export async function getContactsPage(
+  workspaceId: string,
+  options?: { page?: number; pageSize?: number }
+): Promise<ContactsPageResult> {
+  const pageSize = Math.max(
+    1,
+    Math.min(options?.pageSize ?? DEFAULT_CONTACTS_PAGE_SIZE, MAX_CONTACTS_PAGE_SIZE)
+  );
+  const page = Math.max(1, options?.page ?? 1);
+  const skip = (page - 1) * pageSize;
+
+  const [total, contacts] = await Promise.all([
+    db.contact.count({ where: { workspaceId } }),
+    db.contact.findMany({
+      where: { workspaceId },
+      take: pageSize,
+      skip,
+      include: {
+        deals: {
+          orderBy: { lastActivityAt: "desc" },
+          select: {
+            id: true,
+            stage: true,
+            invoices: { select: { total: true, status: true } },
+          },
+        },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  return {
+    contacts: contacts.map(toContactView),
+    total,
+    page,
+    pageSize,
+    hasNextPage: skip + contacts.length < total,
+    hasPrevPage: page > 1,
+  };
 }
 
 /**
@@ -391,7 +462,7 @@ export async function searchContacts(
     lastContactedWithin?: number; // days
   }
 ): Promise<ContactView[]> {
-  const contacts = await getContacts(workspaceId);
+  const contacts = await getContacts(workspaceId, { unbounded: true });
 
   // Apply filters first
   let filtered = contacts;

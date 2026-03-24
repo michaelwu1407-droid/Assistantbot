@@ -1,10 +1,12 @@
 import { getWebhookDiagnostics } from "@/actions/webhook-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requireInternalAdminAccess } from "@/lib/internal-admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function DiagnosticsPage() {
+  await requireInternalAdminAccess();
   const diagnostics = await getWebhookDiagnostics();
 
   const formatDate = (iso: string | null) => {
