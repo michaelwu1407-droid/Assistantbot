@@ -190,11 +190,27 @@ export async function evaluateAutomations(
         break;
       }
 
-      case "task_overdue":
+      case "task_overdue": {
         if (event.type === "check_tasks") {
-          shouldFire = true;
+          // Query for actually overdue tasks in this workspace
+          const threshold = trigger.threshold_days ?? 2;
+          const cutoff = new Date(Date.now() - threshold * 86400000);
+          const overdueTasks = await db.task.findMany({
+            where: {
+              completed: false,
+              dueAt: { lt: cutoff },
+              deal: { workspaceId },
+            },
+            include: { deal: true },
+          });
+          if (overdueTasks.length > 0) {
+            shouldFire = true;
+            // Stash overdue tasks on the event so the action block can reference them
+            (event as any)._overdueTasks = overdueTasks;
+          }
         }
         break;
+      }
     }
 
     if (shouldFire) {
@@ -245,14 +261,31 @@ export async function evaluateAutomations(
         // 2. Notify Users
         if (action.type === "notify") {
           const users = await db.user.findMany({ where: { workspaceId } });
-          for (const user of users) {
-            await createNotification({
-              userId: user.id,
-              title: automation.name,
-              message: action.message ?? "Automation triggered",
-              type: "SYSTEM",
-              link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined,
-            });
+          const overdueTasks = (event as any)._overdueTasks as Array<{ id: string; title: string; deal?: { id: string } | null }> | undefined;
+
+          if (overdueTasks && overdueTasks.length > 0) {
+            // Send one notification per overdue task so each is actionable
+            for (const task of overdueTasks) {
+              for (const user of users) {
+                await createNotification({
+                  userId: user.id,
+                  title: automation.name,
+                  message: `${action.message ?? "Task overdue"}: "${task.title}"`,
+                  type: "SYSTEM",
+                  link: task.deal?.id ? `/crm?dealId=${task.deal.id}` : undefined,
+                });
+              }
+            }
+          } else {
+            for (const user of users) {
+              await createNotification({
+                userId: user.id,
+                title: automation.name,
+                message: action.message ?? "Automation triggered",
+                type: "SYSTEM",
+                link: event.dealId ? `/crm?dealId=${event.dealId}` : undefined,
+              });
+            }
           }
         }
 
