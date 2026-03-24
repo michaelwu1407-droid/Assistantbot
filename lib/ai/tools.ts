@@ -69,6 +69,7 @@ import type { WeeklyHours } from "@/lib/working-hours";
 type AgentToolSettings = {
     workingHoursStart?: string | null;
     workingHoursEnd?: string | null;
+    workspaceTimezone?: string | null;
     weeklyHours?: WeeklyHours;
 } & Record<string, unknown>;
 
@@ -545,6 +546,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                     date,
                     workingHoursStart: settings?.workingHoursStart || "08:00",
                     workingHoursEnd: settings?.workingHoursEnd || "17:00",
+                    workspaceTimezone: settings?.workspaceTimezone || "Australia/Sydney",
                     weeklyHours: settings?.weeklyHours,
                 }),
         }),

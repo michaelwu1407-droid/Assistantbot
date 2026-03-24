@@ -269,7 +269,7 @@ export async function getDeals(
         metadata: (deal.metadata as Record<string, unknown>) ?? undefined,
         address: deal.address ?? undefined,
         isDraft: deal.isDraft,
-        invoicedAmount: deal.invoicedAmount ?? undefined,
+        invoicedAmount: deal.invoicedAmount !== null && deal.invoicedAmount !== undefined ? Number(deal.invoicedAmount) : undefined,
         latitude: deal.latitude ?? undefined,
         longitude: deal.longitude ?? undefined,
         scheduledAt: deal.scheduledAt ?? undefined,
@@ -461,6 +461,37 @@ export async function updateDealStage(dealId: string, stage: string) {
       };
     }
 
+    // Use optimistic concurrency on stage writes so concurrent drags don't silently overwrite each other.
+    const applyStageWithOptimisticLock = async (nextStage: PrismaStage, metadata: Record<string, unknown>) => {
+      const now = new Date();
+      const updated = await db.deal.updateMany({
+        where: {
+          id: parsed.data.dealId,
+          updatedAt: currentDeal.updatedAt,
+        },
+        data: {
+          stage: nextStage,
+          stageChangedAt: now,
+          metadata: JSON.parse(JSON.stringify(metadata)),
+        },
+      });
+
+      if (updated.count === 0) {
+        return { conflict: true as const, deal: null };
+      }
+
+      const latestDeal = await db.deal.findUnique({
+        where: { id: parsed.data.dealId },
+        select: { id: true, workspaceId: true, contactId: true, stage: true },
+      });
+
+      if (!latestDeal) {
+        return { conflict: true as const, deal: null };
+      }
+
+      return { conflict: false as const, deal: latestDeal };
+    };
+
     // Team members moving to Completion go to Pending approval; only managers/owners can set WON directly
     if (prismaStage === "WON") {
       let userRole: string = "TEAM_MEMBER";
@@ -495,14 +526,15 @@ export async function updateDealStage(dealId: string, stage: string) {
         } catch {
           // leave completionRequestedBy unset
         }
-        const deal = await db.deal.update({
-          where: { id: parsed.data.dealId },
-          data: {
-            stage: "PENDING_COMPLETION",
-            stageChangedAt: new Date(),
-            metadata: JSON.parse(JSON.stringify(meta)),
-          },
-        });
+        const pendingResult = await applyStageWithOptimisticLock("PENDING_COMPLETION", meta);
+        if (pendingResult.conflict || !pendingResult.deal) {
+          return {
+            success: false,
+            error: "This deal was updated by someone else. Please refresh and try again.",
+            code: "CONFLICT",
+          };
+        }
+        const deal = pendingResult.deal;
         const stageLabel = STAGE_ACTIVITY_LABELS.pending_approval ?? "Pending approval";
         let userName = "Someone";
         let userId: string | undefined;
@@ -549,14 +581,18 @@ export async function updateDealStage(dealId: string, stage: string) {
       }
     }
 
-    const deal = await db.deal.update({
-      where: { id: parsed.data.dealId },
-      data: {
-        stage: prismaStage as PrismaStage,
-        stageChangedAt: new Date(),
-        metadata: JSON.parse(JSON.stringify({ ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" })),
-      },
-    });
+    const stageResult = await applyStageWithOptimisticLock(
+      prismaStage as PrismaStage,
+      { ...currentMeta, previousStage: currentDeal?.stage ?? "NEW" }
+    );
+    if (stageResult.conflict || !stageResult.deal) {
+      return {
+        success: false,
+        error: "This deal was updated by someone else. Please refresh and try again.",
+        code: "CONFLICT",
+      };
+    }
+    const deal = stageResult.deal;
 
     // Activity: who did it + specific change (e.g. "Moved to Deleted jobs")
     const stageLabel = STAGE_ACTIVITY_LABELS[parsed.data.stage] ?? parsed.data.stage;

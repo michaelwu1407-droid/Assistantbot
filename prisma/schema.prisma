@@ -105,6 +105,7 @@ model Workspace {
   workingHoursEnd   String?   @default("17:00")
   agendaNotifyTime  String?   @default("07:30")
   wrapupNotifyTime  String?   @default("17:30")
+  workspaceTimezone String    @default("Australia/Sydney")
 
   // Job Reminder Settings
   jobReminderHours   Int?    @default(24)
@@ -231,7 +232,7 @@ model Deal {
   title          String
   stage          DealStage @default(NEW)
   value          Decimal?
-  invoicedAmount Float?
+  invoicedAmount Decimal?
   isDraft        Boolean   @default(false)
 
   // Polymorphic Metadata: Stores "Job Details" (Tradie) or "Listing Details" (Agent)
@@ -645,7 +646,7 @@ model BusinessProfile {
   serviceSuburbs     Json? // String[] — specific suburbs served
   standardWorkHours  String  @default("Mon-Fri, 07:00-15:30")
   emergencyService   Boolean @default(false)
-  emergencySurcharge Float?
+  emergencySurcharge Decimal?
   emergencyHandling  String? @db.Text // After-hours handling logic description
   specialNotes       String? @db.Text // Free-text unique business rules ("What Else?")
   referralSource     String? // "How did you hear about us?"
@@ -666,9 +667,9 @@ model BusinessProfile {
 model ServiceItem {
   id          String  @id @default(cuid())
   serviceName String
-  callOutFee  Float? // Global or per-service call-out fee
-  priceMin    Float? // Minimum price
-  priceMax    Float? // Maximum price
+  callOutFee  Decimal? // Global or per-service call-out fee
+  priceMin    Decimal? // Minimum price
+  priceMax    Decimal? // Maximum price
   traceyNotes String? @db.Text // "Teach Tracey" column — nuance per service
 
   businessProfileId String
@@ -683,7 +684,7 @@ model ServiceItem {
 model PricingSettings {
   id         String      @id @default(cuid())
   mode       PricingMode @default(STANDARD)
-  callOutFee Float?      @default(89.0)
+  callOutFee Decimal?      @default(89.0)
   waiveFee   Boolean     @default(true)
   menuItems  Json? // Array of { name: string, price: number }
 

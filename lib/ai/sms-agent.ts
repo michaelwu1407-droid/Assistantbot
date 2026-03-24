@@ -62,6 +62,7 @@ export function getSmsCustomerTools(workspaceId: string, settings: any) {
                     date,
                     workingHoursStart: settings?.workingHoursStart || "08:00",
                     workingHoursEnd: settings?.workingHoursEnd || "17:00",
+                    workspaceTimezone: settings?.workspaceTimezone || "Australia/Sydney",
                 }),
         }),
         getSchedule: tool({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { manualSendJobReminder, manualSendTripSms, getReminderStats } from "@/actions/reminder-actions";
 import { getAuthUser } from "@/lib/auth";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,11 +45,15 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const actor = await requireCurrentWorkspaceAccess();
 
     const { searchParams } = new URL(request.url);
-    const workspaceId = searchParams.get("workspaceId");
+    const requestedWorkspaceId = searchParams.get("workspaceId");
+    if (requestedWorkspaceId && requestedWorkspaceId !== actor.workspaceId) {
+      return NextResponse.json({ error: "Forbidden workspace access" }, { status: 403 });
+    }
 
-    const result = await getReminderStats(workspaceId || undefined);
+    const result = await getReminderStats(actor.workspaceId);
 
     return NextResponse.json(result);
   } catch (error) {

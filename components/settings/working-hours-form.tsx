@@ -46,6 +46,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
         workingHoursEnd: end,
         agendaNotifyTime: agendaTime,
         wrapupNotifyTime: wrapupTime,
+        workspaceTimezone: currentSettings.workspaceTimezone || "Australia/Sydney",
         aiPreferences: currentSettings.aiPreferences || undefined,
         autoUpdateGlossary: currentSettings.autoUpdateGlossary,
         callOutFee: currentSettings.callOutFee,

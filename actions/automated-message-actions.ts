@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 
 export interface AutomatedMessageRuleView {
   id: string;
@@ -202,7 +203,7 @@ export async function processBookingReminders(): Promise<{
 
     const workspace = await db.workspace.findUnique({
       where: { id: rule.workspaceId },
-      select: { name: true, twilioPhoneNumber: true, twilioSubaccountId: true, twilioSubaccountAuthToken: true },
+      select: { name: true, workspaceTimezone: true, twilioPhoneNumber: true, twilioSubaccountId: true, twilioSubaccountAuthToken: true },
     });
 
     for (const job of upcomingJobs) {
@@ -222,6 +223,7 @@ export async function processBookingReminders(): Promise<{
             month: "short",
             hour: "numeric",
             minute: "2-digit",
+            timeZone: workspace?.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
           })
         : "your scheduled time";
 

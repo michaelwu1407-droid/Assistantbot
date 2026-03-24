@@ -383,7 +383,7 @@ export async function runGetTodaySummary(
  */
 export async function runGetAvailability(
   workspaceId: string,
-  params: { date: string; workingHoursStart?: string; workingHoursEnd?: string; weeklyHours?: WeeklyHours }
+  params: { date: string; workingHoursStart?: string; workingHoursEnd?: string; weeklyHours?: WeeklyHours; workspaceTimezone?: string }
 ): Promise<{
   date: string;
   scheduledJobs: { title: string; startTime: string; clientName: string }[];
@@ -406,7 +406,7 @@ export async function runGetAvailability(
   });
   const calendarEvents = await listWorkspaceCalendarEventsForRange(workspaceId, dayStart, dayEnd);
 
-  const dayHours = findHoursForDate(params.weeklyHours, targetDate);
+  const dayHours = findHoursForDate(params.weeklyHours, targetDate, params.workspaceTimezone);
   if (dayHours && !dayHours.open) {
     return {
       date: params.date,

@@ -11,6 +11,7 @@ import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
 import { normalizeAppAgentMode } from "@/lib/agent-mode"
 import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness"
+import { DEFAULT_WORKSPACE_TIMEZONE, inferTimezoneFromAddress, isValidIanaTimezone } from "@/lib/timezone"
 
 async function getWorkspaceId(): Promise<string> {
     const userId = await getAuthUserId()
@@ -30,6 +31,7 @@ export async function getWorkspaceSettings() {
             workingHoursEnd: true,
             agendaNotifyTime: true,
             wrapupNotifyTime: true,
+            workspaceTimezone: true,
             aiPreferences: true,
             autoUpdateGlossary: true,
             callOutFee: true,
@@ -39,6 +41,7 @@ export async function getWorkspaceSettings() {
             jobReminderHours: true,
             enableJobReminders: true,
             enableTripSms: true,
+            location: true,
             settings: true,
         }
     })
@@ -46,8 +49,12 @@ export async function getWorkspaceSettings() {
     const base = workspace ? { ...workspace, callOutFee: Number(workspace.callOutFee ?? 0) } : null
     if (!base) return null
     const s = (workspace?.settings as Record<string, unknown>) ?? {}
+    const resolvedWorkspaceTimezone = isValidIanaTimezone(base.workspaceTimezone)
+        ? base.workspaceTimezone
+        : inferTimezoneFromAddress(base.location)
     return {
         ...base,
+        workspaceTimezone: resolvedWorkspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
         agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",
@@ -88,6 +95,7 @@ export async function updateWorkspaceSettings(input: {
     workingHoursEnd: string
     agendaNotifyTime: string
     wrapupNotifyTime: string
+    workspaceTimezone?: string
     aiPreferences?: string
     autoUpdateGlossary?: boolean
     callOutFee?: number
@@ -159,6 +167,7 @@ export async function updateWorkspaceSettings(input: {
             workingHoursEnd: input.workingHoursEnd,
             agendaNotifyTime: input.agendaNotifyTime,
             wrapupNotifyTime: input.wrapupNotifyTime,
+            ...(input.workspaceTimezone !== undefined && { workspaceTimezone: input.workspaceTimezone }),
             ...(input.aiPreferences !== undefined && { aiPreferences: input.aiPreferences }),
             ...(input.autoUpdateGlossary !== undefined && { autoUpdateGlossary: input.autoUpdateGlossary }),
             ...(input.callOutFee !== undefined && { callOutFee: input.callOutFee }),
@@ -231,10 +240,12 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
             workingHoursEnd: true,
             agendaNotifyTime: true,
             wrapupNotifyTime: true,
+            workspaceTimezone: true,
             aiPreferences: true,
             autoUpdateGlossary: true,
             callOutFee: true,
             inboundEmail: true,
+            location: true,
             settings: true,
         }
     })
@@ -242,8 +253,12 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
     if (!workspace) return null
     const base = { ...workspace, callOutFee: Number(workspace.callOutFee ?? 0) }
     const s = (workspace.settings as Record<string, unknown>) ?? {}
+    const resolvedWorkspaceTimezone = isValidIanaTimezone(base.workspaceTimezone)
+        ? base.workspaceTimezone
+        : inferTimezoneFromAddress(base.location)
     return {
         ...base,
+        workspaceTimezone: resolvedWorkspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
         agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
         agentBusinessName: (s.agentBusinessName as string) ?? "",

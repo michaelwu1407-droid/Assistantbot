@@ -99,8 +99,8 @@ export async function runPricingLookup(
         .catch(() => [] as any[]),
     ]);
 
-  const callOutFee = (settings as any)?.callOutFee ?? 0;
-  const emergencySurcharge = businessProfile?.emergencySurcharge ?? null;
+  const callOutFee = Number((settings as { callOutFee?: unknown } | null)?.callOutFee ?? 0);
+  const emergencySurcharge = businessProfile?.emergencySurcharge != null ? Number(businessProfile.emergencySurcharge) : null;
   const hasEmergencyService = Boolean(businessProfile?.emergencyService);
 
   // ── 1. Glossary (approved prices — highest authority) ──

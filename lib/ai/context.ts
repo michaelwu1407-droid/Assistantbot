@@ -501,7 +501,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
                 ? `${settings.workingHoursStart}-${settings.workingHoursEnd}`
                 : null),
         emergencyService: Boolean(businessProfile?.emergencyService),
-        emergencySurcharge: businessProfile?.emergencySurcharge ?? null,
+        emergencySurcharge: businessProfile?.emergencySurcharge != null ? Number(businessProfile.emergencySurcharge) : null,
         aiPreferences,
         customerContactMode: normalizedMode,
         customerContactModeLabel: getCustomerContactModeLabel(normalizedMode),

@@ -125,9 +125,32 @@ export function summarizeWeeklyHours(hours: WeeklyHours): string {
     .join("; ")
 }
 
-export function findHoursForDate(hours: WeeklyHours | null | undefined, date: Date) {
+function getWeekdayForTimezone(date: Date, timezone?: string): DayKey {
+  if (!timezone) return WEEKDAY_ORDER[(date.getDay() + 6) % 7]
+  try {
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+    }).format(date)
+    const normalized = weekday.slice(0, 3).toLowerCase()
+    const map: Record<string, DayKey> = {
+      mon: "Mon",
+      tue: "Tue",
+      wed: "Wed",
+      thu: "Thu",
+      fri: "Fri",
+      sat: "Sat",
+      sun: "Sun",
+    }
+    return map[normalized] ?? WEEKDAY_ORDER[(date.getDay() + 6) % 7]
+  } catch {
+    return WEEKDAY_ORDER[(date.getDay() + 6) % 7]
+  }
+}
+
+export function findHoursForDate(hours: WeeklyHours | null | undefined, date: Date, timezone?: string) {
   if (!hours) return null
-  const day = WEEKDAY_ORDER[(date.getDay() + 6) % 7]
+  const day = getWeekdayForTimezone(date, timezone)
   return hours[day] ?? null
 }
 

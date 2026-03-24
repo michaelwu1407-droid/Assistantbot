@@ -10,6 +10,7 @@ import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "./workspace-ac
 import { ensureWorkspaceProvisioned, type WorkspaceProvisioningStatus } from "@/lib/onboarding-provision";
 import { summarizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours";
 import { Prisma } from "@prisma/client";
+import { inferTimezoneFromAddress } from "@/lib/timezone";
 
 // ─── Australian Phone Validation ────────────────────────────────
 
@@ -179,6 +180,7 @@ export async function saveBusinessProfileForProvisioning(params: {
   }
 
   const baseSuburb = deriveBaseSuburbFromAddress(physicalAddress);
+  const workspaceTimezone = inferTimezoneFromAddress(physicalAddress);
 
   try {
     const workspace = await getOrCreateWorkspace(userId, {
@@ -197,7 +199,7 @@ export async function saveBusinessProfileForProvisioning(params: {
 
     await db.workspace.update({
       where: { id: workspace.id },
-      data: { location: physicalAddress },
+      data: { location: physicalAddress, workspaceTimezone },
     });
 
     await db.businessProfile.upsert({
@@ -291,6 +293,7 @@ export async function saveTraceyOnboarding(
 
   const d = parsed.data;
   const baseSuburb = deriveBaseSuburbFromAddress(d.physicalAddress);
+  const workspaceTimezone = inferTimezoneFromAddress(d.physicalAddress);
   const normalizedWeeklyHours = d.weeklyHours;
   const firstOpenHours = getFirstOpenHours(normalizedWeeklyHours);
 
@@ -361,6 +364,7 @@ export async function saveTraceyOnboarding(
           type: "TRADIE",
           industryType: "TRADES",
           location: d.physicalAddress,
+          workspaceTimezone,
           onboardingComplete: false,
           agentMode: d.agentMode,
           workingHoursStart: firstOpenHours.start,

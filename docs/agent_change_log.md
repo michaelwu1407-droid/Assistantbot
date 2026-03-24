@@ -1,3 +1,99 @@
+## 2026-03-24 12:16 (AEDT) - codex
+
+- Files changed:
+  - `.github/workflows/ci-quality-checks.yml`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a new CI workflow that runs on pull requests and pushes to `main` with the minimum quality gates: install, lint, TypeScript check, tests, and build.
+  - Validated command compatibility against existing package scripts and local environment (`tsc` passes; lint/tests/build surfaced pre-existing project issues unrelated to the workflow file itself).
+- Why:
+  - Establishes a single required pre-merge safety gate so deploy-breaking typos and regressions are caught automatically before reaching production.
+
+## 2026-03-24 11:56 (AEDT) - codex
+
+- Files changed:
+  - `components/crm/deal-detail-modal.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added conflict-aware stage update handling in the deal detail modal to match Kanban board behavior.
+  - When backend responds with `code: "CONFLICT"` on stage change, the UI now shows a clear toast, closes stale modal state, and refreshes CRM data.
+- Why:
+  - Keeps stage-change UX consistent and prevents confusing stale modal views when another teammate moves the same card first.
+
+## 2026-03-24 11:50 (AEDT) - codex
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added frontend conflict handling for Kanban stage updates: when backend returns `code: "CONFLICT"`, the board now shows a clear toast ("This card was moved by someone else. Refreshing board...") and auto-refreshes the board data.
+  - Applied this behavior across single-card drag, bulk drag, delete moves, scheduled-assignment move, and card delete action in the board.
+- Why:
+  - Gives users immediate, understandable feedback when concurrent edits happen and quickly reconciles UI with server truth to prevent confusing stale card positions.
+
+## 2026-03-24 11:41 (AEDT) - codex
+
+- Files changed:
+  - `actions/automation-actions.ts`
+  - `actions/kanban-automation-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed compile-time stage assignment errors by typing automation stage mapping as Prisma `DealStage` values instead of plain strings.
+  - Added strict stage parsing/validation fallback so unknown `targetStage` values are rejected/skipped instead of being passed into `db.deal.update`.
+- Why:
+  - Prevents invalid string assignment to `Deal.stage` and restores type-safe builds for automation and kanban move-stage actions.
+
+## 2026-03-24 11:28 (AEDT) - codex
+
+- Files changed:
+  - `actions/tradie-actions.ts`
+  - `prisma/schema.prisma`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced fragile JS number arithmetic in Tradie quote/variation/invoice calculations with Prisma `Decimal` math and explicit 2-decimal rounding.
+  - Fixed the `createQuoteVariation` update path to avoid `Number(deal.value) + total` precision loss by performing all updates in decimal space.
+  - Standardized money-related schema fields to `Decimal` (`Deal.invoicedAmount`, `BusinessProfile.emergencySurcharge`, `ServiceItem` price fields, `PricingSettings.callOutFee`) to remove mixed `Float`/`Decimal` storage for currency.
+- Why:
+  - Prevents floating-point precision bugs in currency calculations and ensures invoice/deal monetary values remain exact across writes and reads.
+
+## 2026-03-24 11:05 (AEDT) - codex
+
+- Files changed:
+  - `actions/deal-actions.ts`
+  - `app/api/deals/route.ts`
+  - `app/api/contacts/route.ts`
+  - `app/api/reminders/route.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added optimistic concurrency protection for Kanban stage updates in `updateDealStage` using an `updatedAt` guard, returning a conflict response when another user has already changed the same deal.
+  - Hardened multi-tenant API access by resolving workspace from authenticated user context and rejecting mismatched `workspaceId` query parameters on deals, contacts, and reminders endpoints.
+  - Updated reminders stats endpoint to always scope reads to the caller's own workspace to prevent cross-workspace aggregation leaks.
+- Why:
+  - Prevents silent last-write-wins data corruption during simultaneous drag-and-drop actions and closes workspace ID parameter tampering paths that could expose another tenant's data.
+
+## 2026-03-24 10:40 (AEDT) - codex
+
+- Files changed:
+  - `prisma/schema.prisma`
+  - `lib/timezone.ts`
+  - `lib/working-hours.ts`
+  - `actions/settings-actions.ts`
+  - `actions/automated-message-actions.ts`
+  - `actions/tracey-onboarding.ts`
+  - `actions/workspace-actions.ts`
+  - `actions/agent-tools.ts`
+  - `lib/ai/tools.ts`
+  - `lib/ai/sms-agent.ts`
+  - `components/settings/call-settings-client.tsx`
+  - `components/settings/working-hours-form.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a first-class `workspaceTimezone` field on `Workspace` and introduced timezone utilities to validate IANA values and infer a default timezone from onboarding business address/state.
+  - Made reminder formatting and working-hours day resolution timezone-aware so booking reminders and schedule checks align to the workspace local day/time instead of server timezone assumptions.
+  - Exposed timezone in settings so users can adjust it after onboarding, and threaded the selected timezone into AI availability tools.
+- Why:
+  - Prevents delayed/incorrect reminder timing and wrong day-of-week handling for businesses outside east-coast time (for example Perth), while still auto-defaulting from onboarding address with manual override in settings.
+
 ## 2026-03-23 21:05 (AEDT) - codex
 
 - Files changed:

@@ -147,6 +147,15 @@ function DealDetailContent({
 
   const [stageChanging, setStageChanging] = useState(false)
 
+  const handleStageConflict = (result: { success: boolean; error?: string; code?: string }) => {
+    if ((result as { code?: string }).code !== "CONFLICT") return false
+    toast.error("This card was moved by someone else. Refreshing board...")
+    onOpenChange(false)
+    onDealUpdated?.()
+    router.refresh()
+    return true
+  }
+
   const handleStageChange = async (targetKanban: string) => {
     const currentCol = prismaStageToKanbanColumn(deal.stage)
     if (currentCol === targetKanban) return
@@ -162,6 +171,7 @@ function DealDetailContent({
     try {
       const result = await updateDealStage(deal.id, targetKanban)
       if (!result.success) {
+        if (handleStageConflict(result)) return
         toast.error(result.error ?? "Could not update stage")
         return
       }

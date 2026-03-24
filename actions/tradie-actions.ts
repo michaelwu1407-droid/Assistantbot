@@ -11,6 +11,17 @@ import { createTask } from "./task-actions";
 import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
+import { Prisma } from "@prisma/client";
+
+const GST_RATE = new Prisma.Decimal("0.10");
+
+function decimalFromNumber(value: number): Prisma.Decimal {
+  return new Prisma.Decimal(value.toFixed(2));
+}
+
+function roundDecimalMoney(value: Prisma.Decimal): Prisma.Decimal {
+  return value.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+}
 
 async function ensurePostJobFollowUp(dealId: string) {
   const deal = await db.deal.findUnique({
@@ -504,7 +515,9 @@ export async function saveJobPhoto(dealId: string, url: string, caption?: string
  * Create a quote variation (add items to a job).
  */
 export async function createQuoteVariation(jobId: string, items: Array<{ desc: string; price: number }>) {
-  const total = items.reduce((sum, item) => sum + item.price, 0);
+  const total = roundDecimalMoney(
+    items.reduce((sum, item) => sum.plus(decimalFromNumber(item.price)), new Prisma.Decimal(0))
+  );
 
   await requireDealInCurrentWorkspace(jobId);
   const deal = await db.deal.findFirst({ where: { id: jobId } });
@@ -516,7 +529,7 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
   await db.deal.update({
     where: { id: jobId },
     data: {
-      value: Number(deal.value) + total, // Update total value
+      value: (deal.value ?? new Prisma.Decimal(0)).plus(total), // Decimal-safe money update
       lastActivityAt: new Date(),
       metadata: JSON.parse(JSON.stringify({
         ...existingMeta,
@@ -530,7 +543,7 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
     data: {
       type: "NOTE",
       title: "Variation added",
-      content: `Added variation: ${items.map(i => i.desc).join(", ")} ($${total})`,
+      content: `Added variation: ${items.map(i => i.desc).join(", ")} ($${total.toFixed(2)})`,
       dealId: jobId,
       contactId: deal.contactId
     }
@@ -538,7 +551,7 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
 
   return {
     success: true,
-    total,
+    total: total.toNumber(),
     pdfUrl: `/api/quotes/${jobId}/variation`
   };
 }
@@ -566,9 +579,11 @@ export async function generateQuote(
     return { success: false, error: "Deal not found" };
   }
 
-  const subtotal = parsed.data.items.reduce((sum, item) => sum + item.price, 0);
-  const tax = subtotal * 0.1; // 10% GST (Australian)
-  const total = subtotal + tax;
+  const subtotal = roundDecimalMoney(
+    parsed.data.items.reduce((sum, item) => sum.plus(decimalFromNumber(item.price)), new Prisma.Decimal(0))
+  );
+  const tax = roundDecimalMoney(subtotal.mul(GST_RATE)); // 10% GST (Australian)
+  const total = roundDecimalMoney(subtotal.plus(tax));
 
   const existingMetadata = (deal.metadata as Record<string, unknown>) ?? {};
 
@@ -582,8 +597,8 @@ export async function generateQuote(
         ...existingMetadata,
         line_items: parsed.data.items,
         quoted_at: new Date().toISOString(),
-        subtotal,
-        tax,
+        subtotal: subtotal.toNumber(),
+        tax: tax.toNumber(),
       })),
     },
   });
@@ -607,13 +622,13 @@ export async function generateQuote(
     data: {
       type: "TASK",
       title: "Quote generated",
-      content: `Generated quote ${invoiceNumber} for $${total.toLocaleString()} (${parsed.data.items.length} items)`,
+      content: `Generated quote ${invoiceNumber} for $${total.toFixed(2)} (${parsed.data.items.length} items)`,
       dealId: parsed.data.dealId,
       contactId: deal.contactId,
     },
   });
 
-  return { success: true, total, invoiceNumber, dealId: parsed.data.dealId };
+  return { success: true, total: total.toNumber(), invoiceNumber, dealId: parsed.data.dealId };
 }
 
 /**
@@ -861,9 +876,11 @@ export async function updateInvoiceLineItems(
   const validItems = items.filter((i) => i.desc.trim() && i.price >= 0);
   if (!validItems.length) return { success: false, error: "At least one valid line item is required" };
 
-  const subtotal = validItems.reduce((sum, i) => sum + i.price, 0);
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  const subtotal = roundDecimalMoney(
+    validItems.reduce((sum, item) => sum.plus(decimalFromNumber(item.price)), new Prisma.Decimal(0))
+  );
+  const tax = roundDecimalMoney(subtotal.mul(GST_RATE));
+  const total = roundDecimalMoney(subtotal.plus(tax));
 
   await db.invoice.update({
     where: { id: invoiceId },
@@ -883,12 +900,12 @@ export async function updateInvoiceLineItems(
     metadata: {
       invoiceNumber: existing.number,
       itemCount: validItems.length,
-      newTotal: total,
+      newTotal: total.toNumber(),
       source: "tradie-actions.updateInvoiceLineItems",
     },
   });
 
-  return { success: true, subtotal, tax, total };
+  return { success: true, subtotal: subtotal.toNumber(), tax: tax.toNumber(), total: total.toNumber() };
 }
 
 /**
@@ -1202,7 +1219,7 @@ export async function finalizeJobCompletion(jobId: string, payload: { isPaid: bo
 
     // If marked paid on site, update invoiced amount to match value (or simply store the flag)
     if (payload.isPaid) {
-      updates.invoicedAmount = deal.value ? Number(deal.value) : 0;
+      updates.invoicedAmount = deal.value ?? new Prisma.Decimal(0);
       updates.metadata.paymentConfirmedOnSite = true;
     }
 

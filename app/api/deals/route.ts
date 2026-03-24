@@ -1,34 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDeals } from '@/actions/deal-actions';
-import { getAuthUserId } from '@/lib/auth';
+import { requireCurrentWorkspaceAccess } from '@/lib/workspace-access';
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const actor = await requireCurrentWorkspaceAccess();
     const { searchParams } = new URL(request.url);
-    const workspaceId = searchParams.get('workspaceId');
+    const requestedWorkspaceId = searchParams.get('workspaceId');
 
-    if (!workspaceId) {
-      return NextResponse.json({ error: 'Workspace ID required' }, { status: 400 });
+    if (requestedWorkspaceId && requestedWorkspaceId !== actor.workspaceId) {
+      return NextResponse.json({ error: 'Forbidden workspace access' }, { status: 403 });
     }
 
-    const deals = await getDeals(workspaceId);
+    const deals = await getDeals(actor.workspaceId);
     return NextResponse.json(deals);
   } catch (error) {
     console.error('Deals API error:', error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to fetch deals' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await requireCurrentWorkspaceAccess();
     const dealData = await request.json();
 
     // This would typically call a createDeal action
@@ -36,6 +33,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Deal creation not implemented yet' }, { status: 501 });
   } catch (error) {
     console.error('Deal creation API error:', error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to create deal' }, { status: 500 });
   }
 }

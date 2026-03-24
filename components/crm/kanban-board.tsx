@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import {
   DndContext,
   DragOverlay,
@@ -264,6 +265,7 @@ export function KanbanBoard({
   currentUserRole = "TEAM_MEMBER",
   className,
 }: KanbanBoardProps) {
+  const router = useRouter()
   const [deals, setDeals] = useState(initialDeals)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
@@ -378,6 +380,14 @@ export function KanbanBoard({
   const activeDeal = useMemo(() =>
     deals.find(d => d.id === activeId),
     [deals, activeId])
+
+  const handleStageConflict = (result: { success: boolean; error?: string; code?: string }) => {
+    if ((result as { code?: string }).code !== "CONFLICT") return false
+    toast.error("This card was moved by someone else. Refreshing board...")
+    setDeals(initialDeals)
+    router.refresh()
+    return true
+  }
 
   function findColumnForItem(itemId: string): string | undefined {
     if (COLUMNS.some((c) => c.id === itemId)) return itemId
@@ -570,7 +580,10 @@ export function KanbanBoard({
       try {
         for (const gid of groupIds) {
           const result = await updateDealStage(gid, targetColumn)
-          if (!result.success) throw new Error(result.error ?? "Failed to save")
+          if (!result.success) {
+            if (handleStageConflict(result)) return
+            throw new Error(result.error ?? "Failed to save")
+          }
         }
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved ${groupIds.length} jobs to ${colTitle}`)
@@ -631,6 +644,7 @@ export function KanbanBoard({
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved to ${colTitle}`)
       } else {
+        if (handleStageConflict(result)) return
         throw new Error(result.error)
       }
     } catch (err) {
@@ -649,7 +663,10 @@ export function KanbanBoard({
     try {
       for (const id of idsToDelete) {
         const result = await updateDealStage(id, "deleted")
-        if (!result.success) throw new Error(result.error ?? "Failed to move")
+        if (!result.success) {
+          if (handleStageConflict(result)) return
+          throw new Error(result.error ?? "Failed to move")
+        }
       }
       setDeals((prev) =>
         prev.map((d) => (idsToDelete.includes(d.id) ? { ...d, stage: "deleted" } : d))
@@ -697,6 +714,10 @@ export function KanbanBoard({
         toast.success(`Assigned to ${name} and moved to Scheduled`)
         setPendingMoveToScheduled(null)
       } else {
+        if (handleStageConflict(stageRes)) {
+          setPendingMoveToScheduled(null)
+          return
+        }
         toast.error(stageRes.error ?? "Failed to move")
       }
     } catch (err) {
@@ -849,6 +870,7 @@ export function KanbanBoard({
                                     )
                                     toast.success("Moved to Deleted")
                                   } else {
+                                    if (handleStageConflict(result)) return
                                     toast.error(result.error ?? "Failed to move")
                                   }
                                 } catch (err) {

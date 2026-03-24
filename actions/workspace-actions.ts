@@ -5,6 +5,7 @@ import { Prisma, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { getAuthUser, getAuthUserId } from "@/lib/auth";
+import { inferTimezoneFromAddress } from "@/lib/timezone";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -164,6 +165,7 @@ async function getOrCreateWorkspaceImpl(
         type: defaults?.type ?? "TRADIE",
         industryType: defaults?.industryType ?? null,
         location: defaults?.location ?? null,
+        workspaceTimezone: inferTimezoneFromAddress(defaults?.location),
         ownerId: ownerId ?? null,
       },
     });
@@ -480,6 +482,7 @@ export async function completeOnboarding(data: {
       type,
       industryType: data.industryType,
       location: data.location,
+      workspaceTimezone: inferTimezoneFromAddress(data.location),
       onboardingComplete: true,
       ...(data.agentMode && { agentMode: data.agentMode }),
       ...(data.workingHoursStart && { workingHoursStart: data.workingHoursStart }),

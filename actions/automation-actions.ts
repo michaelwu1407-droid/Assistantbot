@@ -7,6 +7,26 @@ import { createTask } from "./task-actions";
 import { runSendEmail } from "./chat-actions";
 import { getTemplates, renderTemplate } from "./template-actions";
 import { logActivity } from "./activity-actions";
+import { DealStage } from "@prisma/client";
+
+const DEAL_STAGE_VALUES = new Set<DealStage>([
+  "NEW",
+  "CONTACTED",
+  "NEGOTIATION",
+  "SCHEDULED",
+  "PIPELINE",
+  "INVOICED",
+  "PENDING_COMPLETION",
+  "WON",
+  "LOST",
+  "DELETED",
+  "ARCHIVED",
+]);
+
+function parseDealStage(value: string): DealStage | null {
+  const normalized = value.trim().toUpperCase();
+  return DEAL_STAGE_VALUES.has(normalized as DealStage) ? (normalized as DealStage) : null;
+}
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -383,13 +403,17 @@ export async function evaluateAutomations(
         // 4. Move Stage
         if (action.type === "move_stage" && event.dealId && action.targetStage) {
           try {
-            const STAGE_REVERSE: Record<string, string> = {
+            const STAGE_REVERSE: Record<string, DealStage> = {
               new: "NEW", new_request: "NEW", quote_sent: "CONTACTED",
               scheduled: "SCHEDULED", pipeline: "PIPELINE",
               ready_to_invoice: "INVOICED", pending_approval: "PENDING_COMPLETION",
               completed: "WON", lost: "LOST", deleted: "DELETED",
             };
-            const prismaStage = STAGE_REVERSE[action.targetStage] || action.targetStage;
+            const prismaStage = STAGE_REVERSE[action.targetStage] ?? parseDealStage(action.targetStage);
+            if (!prismaStage) {
+              console.warn(`[Automation] Skipped invalid target stage: ${action.targetStage}`);
+              continue;
+            }
             await db.deal.update({
               where: { id: event.dealId },
               data: { stage: prismaStage, stageChangedAt: new Date() },

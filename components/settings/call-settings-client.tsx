@@ -20,6 +20,7 @@ import {
   weeklyHoursAreUniform,
   type WeeklyHours,
 } from "@/lib/working-hours"
+import { AU_TIMEZONE_OPTIONS, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone"
 
 type SettingsState = {
   agentMode: string
@@ -27,6 +28,7 @@ type SettingsState = {
   workingHoursEnd: string
   agendaNotifyTime: string
   wrapupNotifyTime: string
+  workspaceTimezone?: string
   aiPreferences?: string
   autoUpdateGlossary?: boolean
   callOutFee?: number
@@ -68,6 +70,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   workingHoursEnd: "17:00",
   agendaNotifyTime: "07:30",
   wrapupNotifyTime: "17:30",
+  workspaceTimezone: DEFAULT_WORKSPACE_TIMEZONE,
   textAllowedStart: "08:00",
   textAllowedEnd: "20:00",
   callAllowedStart: "08:00",
@@ -190,6 +193,7 @@ export function CallSettingsClient() {
             workingHoursEnd: ws.workingHoursEnd || "17:00",
             agendaNotifyTime: ws.agendaNotifyTime || "07:30",
             wrapupNotifyTime: ws.wrapupNotifyTime || "17:30",
+            workspaceTimezone: ws.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
             aiPreferences: ws.aiPreferences ?? undefined,
             autoUpdateGlossary: ws.autoUpdateGlossary,
             callOutFee: ws.callOutFee ?? undefined,
@@ -251,6 +255,7 @@ export function CallSettingsClient() {
         workingHoursEnd: next.workingHoursEnd,
         agendaNotifyTime: next.agendaNotifyTime,
         wrapupNotifyTime: next.wrapupNotifyTime,
+        workspaceTimezone: next.workspaceTimezone,
         aiPreferences: next.aiPreferences,
         autoUpdateGlossary: next.autoUpdateGlossary,
         callOutFee: next.callOutFee,
@@ -382,6 +387,23 @@ export function CallSettingsClient() {
             uniform={uniformWorkingHours}
             onUniformChange={setUniformWorkingHours}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Select
+                value={settings.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE}
+                onValueChange={(v) => setSettings((s) => (s ? { ...s, workspaceTimezone: v } : s))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {AU_TIMEZONE_OPTIONS.map((tz) => (
+                    <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Used for reminders, scheduling windows, and day-of-week logic.</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Texting window start</Label>

@@ -5,6 +5,26 @@ import { createNotification } from "./notification-actions";
 import { createTask } from "./task-actions";
 import { logActivity } from "./activity-actions";
 import { initiateOutboundCall } from "@/lib/outbound-call";
+import { DealStage } from "@prisma/client";
+
+const DEAL_STAGE_VALUES = new Set<DealStage>([
+  "NEW",
+  "CONTACTED",
+  "NEGOTIATION",
+  "SCHEDULED",
+  "PIPELINE",
+  "INVOICED",
+  "PENDING_COMPLETION",
+  "WON",
+  "LOST",
+  "DELETED",
+  "ARCHIVED",
+]);
+
+function parseDealStage(value: string): DealStage | null {
+  const normalized = value.trim().toUpperCase();
+  return DEAL_STAGE_VALUES.has(normalized as DealStage) ? (normalized as DealStage) : null;
+}
 
 /**
  * Execute an action from the Kanban automation modal.
@@ -162,7 +182,7 @@ export async function executeKanbanAction(
         return { success: false, error: "Target stage is required" };
       }
 
-      const STAGE_REVERSE: Record<string, string> = {
+      const STAGE_REVERSE: Record<string, DealStage> = {
         lead: "NEW", new: "NEW", new_request: "NEW",
         qualified: "CONTACTED", quote_sent: "CONTACTED",
         proposal: "NEGOTIATION", negotiation: "NEGOTIATION",
@@ -172,7 +192,10 @@ export async function executeKanbanAction(
         "closed-lost": "LOST", lost: "LOST",
       };
 
-      const prismaStage = STAGE_REVERSE[data.targetStage] || data.targetStage;
+      const prismaStage = STAGE_REVERSE[data.targetStage] ?? parseDealStage(data.targetStage);
+      if (!prismaStage) {
+        return { success: false, error: `Invalid target stage: ${data.targetStage}` };
+      }
 
       await db.deal.update({
         where: { id: data.dealId },
