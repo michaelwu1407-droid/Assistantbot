@@ -157,13 +157,20 @@ export async function deleteAutomatedMessageRule(
 /**
  * Process booking reminders for all workspaces.
  * Called by the cron API endpoint. Sends SMS/email 24h before scheduled jobs.
+ *
+ * Reliability:
+ * - Dedup via `lastReminderSentAt` on Deal (prevents double-sends if cron fires twice)
+ * - Retry with exponential backoff on transient Twilio failures
+ * - Activity logged after successful send only
  */
 export async function processBookingReminders(): Promise<{
   sent: number;
   errors: number;
+  skippedAlreadySent: number;
 }> {
   let sent = 0;
   let errors = 0;
+  let skippedAlreadySent = 0;
 
   // Find all enabled 24h reminder rules
   const rules = await db.automatedMessageRule.findMany({
@@ -201,6 +208,12 @@ export async function processBookingReminders(): Promise<{
     for (const job of upcomingJobs) {
       if (!job.contact?.phone) continue;
 
+      // ── Dedup: skip if reminder already sent for this booking ──
+      if (job.lastReminderSentAt) {
+        skippedAlreadySent++;
+        continue;
+      }
+
       // Build message from template
       const scheduledTime = job.scheduledAt
         ? new Date(job.scheduledAt).toLocaleString("en-AU", {
@@ -230,22 +243,32 @@ export async function processBookingReminders(): Promise<{
           if (!client) {
             throw new Error("No usable Twilio messaging client is available for this workspace");
           }
-          await client.messages.create({
-            to: job.contact.phone,
-            from: workspace.twilioPhoneNumber,
-            body: message,
+          await retryWithBackoff(() =>
+            client.messages.create({
+              to: job.contact!.phone!,
+              from: workspace!.twilioPhoneNumber!,
+              body: message,
+            })
+          );
+
+          // ── Mark as sent (dedup flag) ──
+          await db.deal.update({
+            where: { id: job.id },
+            data: { lastReminderSentAt: new Date() },
           });
+
           sent++;
         } catch (err) {
           console.error(
-            `[BookingReminder] SMS failed for job ${job.id}:`,
+            `[BookingReminder] SMS failed for job ${job.id} after retries:`,
             err
           );
           errors++;
+          continue; // Don't log activity for failed sends
         }
       }
 
-      // Log the reminder as an activity
+      // Log the reminder as an activity (only after successful send)
       try {
         await db.activity.create({
           data: {
@@ -262,5 +285,32 @@ export async function processBookingReminders(): Promise<{
     }
   }
 
-  return { sent, errors };
+  return { sent, errors, skippedAlreadySent };
+}
+
+// ─── Retry Utility ───────────────────────────────────────────────
+
+/**
+ * Retries an async operation with exponential backoff.
+ * Only retries on transient/network errors, not on 4xx client errors.
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  baseDelayMs = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const isLast = attempt === maxAttempts;
+      // Don't retry client errors (4xx) — only transient/server/network errors
+      const status = (err as { status?: number }).status;
+      if (status && status >= 400 && status < 500) throw err;
+      if (isLast) throw err;
+      const delay = baseDelayMs * Math.pow(2, attempt - 1);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("retryWithBackoff: unreachable");
 }

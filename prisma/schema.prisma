@@ -264,10 +264,11 @@ model Deal {
   escalatedAt     DateTime?
   escalationReason String?   @db.Text
 
-  lastActivityAt DateTime @default(now())
-  stageChangedAt DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  lastActivityAt     DateTime @default(now())
+  stageChangedAt     DateTime @default(now())
+  lastReminderSentAt DateTime? // Dedup: prevents duplicate booking reminder SMS
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])

@@ -289,7 +289,7 @@ export async function evaluateAutomations(
           }
         }
 
-        // 3. Send Email (with dedup: skip if same automation already emailed this contact today)
+        // 3. Send Email (transactional: reserve activity first, send, then confirm)
         if (action.type === "email" && action.template && event.contactId) {
           try {
             const todayStart = new Date();
@@ -348,6 +348,15 @@ export async function evaluateAutomations(
               continue;
             }
 
+            // ── Transactional: create activity BEFORE send (acts as dedup guard) ──
+            const pendingActivity = await logActivity({
+              type: "EMAIL",
+              title: `Automation: ${automation.name} - ${templateData.subject} [PENDING]`,
+              content: templateData.body,
+              contactId: deal.contact.id,
+              dealId: event.dealId,
+            });
+
             await runSendEmail(deal.workspace.id, {
               contactName: deal.contact.name || "there",
               subject: templateData.subject || "Automated Message",
@@ -357,15 +366,15 @@ export async function evaluateAutomations(
               ownerEmail: owner?.email,
             });
 
-            console.log(`[Automation] Email sent: ${automation.name} → ${deal.contact.email}`);
+            // ── Confirm: update activity title to remove [PENDING] ──
+            if (pendingActivity?.activityId) {
+              await db.activity.update({
+                where: { id: pendingActivity.activityId },
+                data: { title: `Automation: ${automation.name} - ${templateData.subject}` },
+              }).catch(() => {}); // non-critical
+            }
 
-            await logActivity({
-              type: "EMAIL",
-              title: `Automation: ${automation.name} - ${templateData.subject}`,
-              content: templateData.body,
-              contactId: deal.contact.id,
-              dealId: event.dealId,
-            });
+            console.log(`[Automation] Email sent: ${automation.name} → ${deal.contact.email}`);
           } catch (error) {
             console.error(`[Automation] Failed to send email for ${automation.name}:`, error);
           }
