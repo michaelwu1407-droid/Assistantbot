@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -38,7 +38,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
   const deal = await db.deal.findFirst({
     where: { id, workspaceId: actor.workspaceId },
-    include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } } },
+    include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
   })
 
   if (!deal) notFound()
@@ -177,6 +177,31 @@ export default async function DealDetailPage({ params }: PageProps) {
               </div>
             </div>
           </div>
+
+          {/* Sync issues */}
+          {deal.syncIssues && deal.syncIssues.length > 0 && (
+            <div className="p-4 border border-amber-200 dark:border-amber-900/50 rounded-lg bg-amber-50 dark:bg-amber-950/20 shadow-sm shrink-0">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Sync issues ({deal.syncIssues.length})
+              </h3>
+              <div className="space-y-2">
+                {deal.syncIssues.map((issue) => (
+                  <div key={issue.id} className="p-2.5 border border-amber-200 dark:border-amber-900/50 rounded-md bg-white/60 dark:bg-black/20 text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 dark:text-amber-300 h-5 px-1.5 py-0 font-mono">
+                        {issue.surface.replace(/_/g, " ")}
+                      </Badge>
+                      <span className="text-xs text-amber-600 dark:text-amber-400">
+                        {format(new Date(issue.createdAt), "MMM d, h:mm a")}
+                      </span>
+                    </div>
+                    <p className="text-amber-800 dark:text-amber-300 text-xs leading-relaxed">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: History + Notes */}

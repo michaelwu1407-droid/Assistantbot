@@ -18,6 +18,7 @@ import { createTask } from "./task-actions";
 import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
+import { recordSyncIssue } from "@/lib/sync-issues";
 import { kanbanStageRequiresScheduledDate, prismaStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
 import {
   KANBAN_COLUMN_SORT_ORDER,
@@ -221,7 +222,15 @@ export async function getDeals(
       (d) => d.stage === "DELETED" && new Date(d.stageChangedAt) < cutoff
     );
     for (const d of toDelete) {
-      await db.deal.delete({ where: { id: d.id } }).catch(() => { });
+      await db.deal.delete({ where: { id: d.id } }).catch((err) => {
+        recordSyncIssue({
+          workspaceId,
+          dealId: d.id,
+          contactId: d.contactId,
+          surface: "deal_delete",
+          message: `Failed to auto-delete expired deal "${d.title}": ${err instanceof Error ? err.message : String(err)}`,
+        });
+      });
     }
     const filtered = deals.filter((d) => !toDelete.find((t) => t.id === d.id));
 
@@ -405,7 +414,15 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
   });
 
   if (scheduledAt) {
-    await syncGoogleCalendarEventForDeal(deal.id).catch(() => {});
+    await syncGoogleCalendarEventForDeal(deal.id).catch((err) => {
+      recordSyncIssue({
+        workspaceId,
+        dealId: deal.id,
+        contactId,
+        surface: "calendar_sync",
+        message: `Calendar sync failed for new deal "${title}": ${err instanceof Error ? err.message : String(err)}`,
+      });
+    });
   }
 
   return { success: true, dealId: deal.id };
@@ -961,9 +978,25 @@ export async function updateDeal(
 
   if (data.scheduledAt !== undefined) {
     if (update.scheduledAt) {
-      await syncGoogleCalendarEventForDeal(dealId).catch(() => {});
+      await syncGoogleCalendarEventForDeal(dealId).catch((err) => {
+        recordSyncIssue({
+          workspaceId: deal.workspaceId,
+          dealId,
+          contactId: deal.contactId,
+          surface: "calendar_sync",
+          message: `Calendar sync failed after updating "${deal.title}": ${err instanceof Error ? err.message : String(err)}`,
+        });
+      });
     } else {
-      await removeGoogleCalendarEventForDeal(dealId).catch(() => {});
+      await removeGoogleCalendarEventForDeal(dealId).catch((err) => {
+        recordSyncIssue({
+          workspaceId: deal.workspaceId,
+          dealId,
+          contactId: deal.contactId,
+          surface: "calendar_remove",
+          message: `Calendar event removal failed for "${deal.title}": ${err instanceof Error ? err.message : String(err)}`,
+        });
+      });
     }
   }
 

@@ -13,6 +13,7 @@ import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -216,6 +217,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Rate limit: 30 requests per minute per workspace
+    const rl = rateLimit(`chat:${workspaceId}`, 30, 60_000);
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please wait a moment." }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
+      );
+    }
+
     const apiKey =
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
@@ -267,7 +277,9 @@ export async function POST(req: Request) {
       }
     }
 
-    if (content) saveUserMessage(workspaceId, content).catch(() => { });
+    if (content) saveUserMessage(workspaceId, content).catch((err) => {
+      console.error("[chat] Failed to save user message:", err);
+    });
 
     // "Next" in multi-job flow: use persisted multi-job state from previous tool outputs.
     const isNextMessage = /^\s*next\s*(job)?\s*(please)?\s*$/i.test(content.trim()) || content.trim().toLowerCase() === "next";

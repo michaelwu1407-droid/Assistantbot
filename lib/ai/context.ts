@@ -269,9 +269,11 @@ async function buildAgentContextFresh(
         }
     }
 
+    // Glossary: only include a summary count + directive to use pricingLookup tool.
+    // Full glossary items are fetched on-demand via the pricingLookup tool to keep prompt size small.
     let glossaryStr = "\n\nGLOSSARY OF APPROVED PRICES:\n";
     if (repairItems.length > 0) {
-        glossaryStr += repairItems.map((item: any) => `- ${item.title}: ${item.description || 'No pricing specified'}`).join("\n");
+        glossaryStr += `(${repairItems.length} approved price${repairItems.length === 1 ? "" : "s"} on file. ALWAYS call pricingLookup before quoting any price.)`;
     } else {
         glossaryStr += "(Empty - No approved standard prices exist. Do not quote specific prices for any task.)";
     }
@@ -323,7 +325,7 @@ async function buildAgentContextFresh(
             ? `For custom work that is not in the glossary, plan for an on-site assessment before providing a firm quote. The call-out fee is $${callOutFee} for the assessment, and does not apply if the issue is fixed on the first visit.`
             : `For custom work that is not in the glossary, say: "Our call-out fee is $${callOutFee} for the assessment, and if we successfully fix it on the spot that fee does not apply. Otherwise we use the assessment to give you a firm quote."`;
     const pricingRulesStr = `\nPRICING RULES:
-1. Only quote a final price for tasks with an EXACT match in the GLOSSARY below. Never invent prices.
+1. ALWAYS call pricingLookup before quoting any price. Never quote from memory or invent prices.
 2. ${unlistedTasksRule.replace(/^Unlisted tasks:\s*/i, "")}
 3. Only mention the call-out fee when it is useful customer-facing pricing context. Do NOT remind the business owner about their own fee rules.
 4. Universal call-out fee rule: if the technician attends and successfully fixes the issue, the call-out fee does NOT apply.

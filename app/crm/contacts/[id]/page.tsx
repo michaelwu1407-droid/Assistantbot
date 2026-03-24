@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { ContactNotes } from "@/components/crm/contact-notes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase, AlertCircle, Home } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase, AlertCircle, AlertTriangle, Home } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
@@ -38,6 +38,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
     include: {
       deals: { orderBy: { createdAt: "desc" } },
       customerFeedback: { orderBy: { createdAt: "desc" } },
+      syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 20 },
     },
   })
 
@@ -238,6 +239,30 @@ export default async function ContactDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   </details>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {contact.syncIssues && contact.syncIssues.length > 0 && (
+            <div className="p-4 border border-amber-200 dark:border-amber-900/50 rounded-lg bg-amber-50 dark:bg-amber-950/20 shadow-sm shrink-0">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Sync issues ({contact.syncIssues.length})
+              </h3>
+              <div className="space-y-2">
+                {contact.syncIssues.map((issue) => (
+                  <div key={issue.id} className="p-2.5 border border-amber-200 dark:border-amber-900/50 rounded-md bg-white/60 dark:bg-black/20 text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 dark:text-amber-300 h-5 px-1.5 py-0 font-mono">
+                        {issue.surface.replace(/_/g, " ")}
+                      </Badge>
+                      <span className="text-xs text-amber-600 dark:text-amber-400">
+                        {format(new Date(issue.createdAt), "MMM d, h:mm a")}
+                      </span>
+                    </div>
+                    <p className="text-amber-800 dark:text-amber-300 text-xs leading-relaxed">{issue.message}</p>
+                  </div>
                 ))}
               </div>
             </div>
