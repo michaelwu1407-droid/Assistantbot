@@ -11,22 +11,27 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const supabase = createClient();
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
 
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage("Check your email for the password reset link!");
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage("Check your email for the password reset link!");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to reset password right now.");
     }
+
     setLoading(false);
   };
 

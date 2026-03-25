@@ -3,15 +3,45 @@ import { logger } from "@/lib/logging";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 
-const getSessionUser = cache(async (): Promise<User | null> => {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+function hasSupabaseAuthEnv() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
-  if (error || !user) {
+function isExpectedServerAuthBootstrapError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message === "Supabase server configuration is incomplete" ||
+    error.message === "Supabase server client initialization failed"
+  );
+}
+
+const getSessionUser = cache(async (): Promise<User | null> => {
+  if (!hasSupabaseAuthEnv()) {
     return null;
   }
 
-  return user;
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    if (isExpectedServerAuthBootstrapError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
 });
 
 /**
@@ -19,14 +49,12 @@ const getSessionUser = cache(async (): Promise<User | null> => {
  */
 export async function getAuthUserId(): Promise<string | null> {
   try {
-    logger.authFlow("Attempting to get user ID", { action: "getAuthUserId" });
     const user = await getSessionUser();
 
     if (!user) {
       return null;
     }
 
-    logger.authFlow("Successfully retrieved user ID", { userId: user.id });
     return user.id;
   } catch (error) {
     logger.authError("Unexpected error in getAuthUserId", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));
@@ -39,7 +67,6 @@ export async function getAuthUserId(): Promise<string | null> {
  */
 export async function getAuthUser(): Promise<{ id: string; name: string; email?: string; bio?: string; image?: string } | null> {
   try {
-    logger.authFlow("Attempting to get user metadata", { action: "getAuthUser" });
     const user = await getSessionUser();
 
     if (!user) {
@@ -66,12 +93,6 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
       image: user.user_metadata?.avatar_url || user.user_metadata?.picture,
     };
 
-    logger.authFlow("Successfully retrieved user metadata", {
-      userId: userData.id,
-      email: userData.email,
-      name: userData.name
-    });
-
     return userData;
   } catch (error) {
     logger.authError("Unexpected error in getAuthUser", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));
@@ -84,7 +105,6 @@ export async function getAuthUser(): Promise<{ id: string; name: string; email?:
  */
 export async function getWorkspaceId(): Promise<string | null> {
   try {
-    logger.authFlow("Attempting to get workspace ID", { action: "getWorkspaceId" });
     const user = await getSessionUser();
 
     if (!user) {
@@ -98,7 +118,6 @@ export async function getWorkspaceId(): Promise<string | null> {
       return null;
     }
 
-    logger.authFlow("Successfully retrieved workspace ID", { userId: user.id, workspaceId });
     return workspaceId;
   } catch (error) {
     logger.authError("Unexpected error in getWorkspaceId", { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : new Error('Unknown error'));

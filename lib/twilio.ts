@@ -4,8 +4,8 @@ import { buildManagedSubaccountFriendlyName } from "@/lib/voice-number-metadata"
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-// Keep credential diagnostics out of test output.
-if (process.env.NODE_ENV !== "test") {
+// Keep credential diagnostics out of production builds unless explicitly requested.
+if (process.env.NODE_ENV === "development" || process.env.TWILIO_DEBUG === "1") {
   console.log("[TWILIO] Credential check:", {
     hasAccountSid: !!accountSid,
     hasAuthToken: !!authToken,

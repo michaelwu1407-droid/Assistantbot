@@ -99,6 +99,10 @@ class Logger {
   }
 
   authFlow(message: string, context?: LogContext) {
+    if (process.env.NODE_ENV === "production" && process.env.AUTH_FLOW_DEBUG !== "1") {
+      return;
+    }
+
     this.info(`AUTH FLOW: ${message}`, { ...context, category: "auth_flow" });
   }
 

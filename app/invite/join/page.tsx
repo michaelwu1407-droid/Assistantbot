@@ -2,15 +2,15 @@
 
 export const dynamic = "force-dynamic";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Users, Shield } from "lucide-react";
-import { validateInviteToken, acceptInvite } from "@/actions/invite-actions";
+import { Loader2, Shield, Users } from "lucide-react";
+import { acceptInvite, validateInviteToken } from "@/actions/invite-actions";
 import { toast } from "sonner";
 
 function JoinByInviteContent() {
@@ -27,16 +27,14 @@ function JoinByInviteContent() {
     role?: string;
   } | null>(null);
 
-  // Sign-up form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  const supabase = createClient();
-
   useEffect(() => {
     if (!token) return;
+
     validateInviteToken(token).then((result) => {
       if (!result.valid) {
         setError(result.error || "Invalid invite");
@@ -60,58 +58,59 @@ function JoinByInviteContent() {
     setSubmitting(true);
     setMessage("");
 
-    // Sign up with Supabase
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/crm`,
-        data: {
-          confirmed_at: new Date().toISOString(),
-          name: name || email.split("@")[0],
+    try {
+      const supabase = createClient();
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/crm`,
+          data: {
+            confirmed_at: new Date().toISOString(),
+            name: name || email.split("@")[0],
+          },
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      setMessage(signUpError.message);
+      if (signUpError) {
+        setMessage(signUpError.message);
+        return;
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setMessage("Account created! Please sign in manually.");
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setMessage("Failed to get user after sign-up");
+        return;
+      }
+
+      const result = await acceptInvite(token, user.id);
+      if (!result.success) {
+        setMessage(result.error || "Failed to accept invite");
+        return;
+      }
+
+      toast.success("Welcome to the team!");
+      router.push("/crm/dashboard");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to join workspace");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    // Auto sign-in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
-      setMessage("Account created! Please sign in manually.");
-      setSubmitting(false);
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setMessage("Failed to get user after sign-up");
-      setSubmitting(false);
-      return;
-    }
-
-    // Accept the invite — this links the user to the workspace with the correct role
-    const result = await acceptInvite(token, user.id);
-    if (!result.success) {
-      setMessage(result.error || "Failed to accept invite");
-      setSubmitting(false);
-      return;
-    }
-
-    toast.success("Welcome to the team!");
-    router.push("/crm/dashboard");
-    router.refresh();
   };
 
   if (loading) {
@@ -149,7 +148,6 @@ function JoinByInviteContent() {
       <div className="absolute inset-0 ott-glow -z-10" />
 
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
         <div className="text-center space-y-3">
           <div className="h-12 w-12 mx-auto rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
             <span className="text-white font-extrabold italic text-lg tracking-tighter">

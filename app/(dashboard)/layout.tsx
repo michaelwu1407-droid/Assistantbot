@@ -24,11 +24,12 @@ export default async function DashboardLayout({
   let headerDisplayName = "";
   const workspaceIndustryType: "TRADES" | "REAL_ESTATE" | null = null;
 
+  const dashboardState = await getDashboardShellState();
+  if (!dashboardState) {
+    redirect("/auth");
+  }
+
   try {
-    const dashboardState = await getDashboardShellState();
-    if (!dashboardState) {
-      throw new Error("User not authenticated");
-    }
     userId = dashboardState.userId;
     const workspace = dashboardState.workspace;
     workspaceId = workspace.id;

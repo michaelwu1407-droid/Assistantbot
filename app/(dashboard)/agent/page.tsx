@@ -8,6 +8,7 @@ import { SpeedToLeadWidget } from "@/components/agent/speed-to-lead"
 import { CommissionCalculator } from "@/components/agent/commission-calculator"
 import { VendorReportCard } from "@/components/agent/vendor-report-card"
 import { PulseWidget } from "@/components/dashboard/pulse-widget"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +16,7 @@ export default async function AgentPage() {
     const userId = await getAuthUserId()
     
     if (!userId) {
-        throw new Error("User not authenticated");
+        redirect("/auth")
     }
     
     const workspace = await getOrCreateWorkspace(userId)

@@ -5,15 +5,16 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function EstimatorPage() {
+    const userId = await getAuthUserId();
+
+    if (!userId) {
+        redirect("/auth");
+    }
+
     try {
-        const userId = await getAuthUserId();
-        
-        if (!userId) {
-            throw new Error("User not authenticated");
-        }
-        
         const workspace = await getOrCreateWorkspace(userId);
 
         return (

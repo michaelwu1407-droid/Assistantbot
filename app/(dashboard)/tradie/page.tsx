@@ -4,6 +4,7 @@ import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-clie
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -11,7 +12,7 @@ export default async function TradiePage() {
     const userId = await getAuthUserId()
     
     if (!userId) {
-        throw new Error("User not authenticated");
+        redirect("/auth")
     }
     
     const workspace = await getOrCreateWorkspace(userId)

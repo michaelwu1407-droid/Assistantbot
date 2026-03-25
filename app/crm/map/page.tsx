@@ -3,6 +3,7 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"
 import { Calendar } from "lucide-react"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -23,10 +24,12 @@ function dealToMapJob(deal: { id: string; title: string; contactName: string; ad
 }
 
 export default async function DashboardMapPage() {
-    try {
-        const userId = (await getAuthUserId()) as string;
-        if (!userId) throw new Error("User not authenticated")
+    const userId = await getAuthUserId()
+    if (!userId) {
+        redirect("/auth")
+    }
 
+    try {
         const workspace = await getOrCreateWorkspace(userId)
         // Server-side filtering: only fetch scheduled, non-deleted deals
         const scheduledDeals = await getDeals(workspace.id, undefined, {
