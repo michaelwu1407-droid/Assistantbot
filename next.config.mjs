@@ -1,3 +1,9 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { withSentryConfig } from "@sentry/nextjs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // TypeScript build errors are no longer ignored
@@ -30,9 +36,6 @@ const nextConfig = {
     ]
   },
 }
-
-// Injected content via Sentry wizard below
-import { withSentryConfig } from "@sentry/nextjs";
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:

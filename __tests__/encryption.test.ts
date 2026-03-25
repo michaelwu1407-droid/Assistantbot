@@ -12,11 +12,12 @@ describe("encryption", () => {
     expect(mod.decrypt(ciphertext)).toBe(plaintext);
   });
 
-  it("fails fast when ENCRYPTION_KEY is missing", async () => {
+  it("fails when encryption is used without ENCRYPTION_KEY", async () => {
     vi.resetModules();
     delete process.env.ENCRYPTION_KEY;
 
-    await expect(import("@/lib/encryption")).rejects.toThrow(/Missing ENCRYPTION_KEY/);
+    const mod = await import("@/lib/encryption");
+    expect(() => mod.encrypt("secret-token-payload")).toThrow(/Missing ENCRYPTION_KEY/);
   });
 });
 
