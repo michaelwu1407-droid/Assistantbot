@@ -64,13 +64,17 @@ export async function POST(req: NextRequest) {
             return new NextResponse("OK", { status: 200 })
         }
 
-        console.log(`[SMS Webhook] Received message from ${From} to ${To}: ${Body}`)
+        if (process.env.NODE_ENV !== "test") {
+            console.log(`[SMS Webhook] Received message from ${From} to ${To}: ${Body}`)
+        }
 
         // 1. Identify Workspace via the Twilio Number (Multi-Tenant Routing)
         const workspace = await findWorkspaceByTwilioNumber(To)
 
         if (!workspace) {
-            console.error(`[SMS Webhook] Received SMS to ${To} but no matching Workspace was found.`)
+            if (process.env.NODE_ENV !== "test") {
+                console.error(`[SMS Webhook] Received SMS to ${To} but no matching Workspace was found.`)
+            }
             await recordSmsWebhookEvent({
                 eventType: "sms.received",
                 status: "error",
@@ -166,7 +170,9 @@ export async function POST(req: NextRequest) {
                 const spamResult = await classifyMessage(workspaceId, Body, From);
 
                 if (spamResult.classification === "spam") {
-                    console.log(`[SMS Webhook] Spam filtered: ${spamResult.reason}`);
+                    if (process.env.NODE_ENV !== "test") {
+                        console.log(`[SMS Webhook] Spam filtered: ${spamResult.reason}`);
+                    }
                     await prisma.activity.create({
                         data: {
                             type: "NOTE",

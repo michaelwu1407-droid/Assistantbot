@@ -262,7 +262,9 @@ export async function POST(req: NextRequest) {
 
     const failValues = ["TN-Validation-Failed-C", "TN-Validation-Failed-B", "No-TN-Validation", "no-validation"];
     if (!spokenProbeCaller && stirVerstat && failValues.some((value) => stirVerstat.toLowerCase().includes(value.toLowerCase()))) {
-      console.log(`[voice-gateway] Rejected call from ${callerNumber} due to STIR/SHAKEN failure: ${stirVerstat}`);
+      if (process.env.NODE_ENV !== "test") {
+        console.log(`[voice-gateway] Rejected call from ${callerNumber} due to STIR/SHAKEN failure: ${stirVerstat}`);
+      }
       const surface = resolveSurface({
         isEarlymarkInboundCall,
         workspaceMatched: false,
@@ -282,7 +284,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (!syntheticProbe && !spokenProbeCaller && callerNumber && checkRateLimit(callerNumber)) {
-      console.log(`[voice-gateway] Rate limited ${callerNumber}; requiring DTMF challenge.`);
+      if (process.env.NODE_ENV !== "test") {
+        console.log(`[voice-gateway] Rate limited ${callerNumber}; requiring DTMF challenge.`);
+      }
       const workspace = calledNumber ? await findWorkspaceByTwilioNumber(calledNumber) : null;
       const surface = resolveSurface({
         isEarlymarkInboundCall,
@@ -343,7 +347,9 @@ export async function POST(req: NextRequest) {
     lastSurface = surface;
 
     if (workspace?.voiceEnabled === false) {
-      console.log("[voice-gateway] Voice disabled for workspace; routing to voicemail fallback.");
+      if (process.env.NODE_ENV !== "test") {
+        console.log("[voice-gateway] Voice disabled for workspace; routing to voicemail fallback.");
+      }
       if (syntheticProbe) {
         return twimlResponse(syntheticProbeTwiml("disabled"));
       }
@@ -398,14 +404,16 @@ export async function POST(req: NextRequest) {
       return twimlResponse(voicemailFallbackTwiml({ calledNumber, callerNumber, surface }));
     }
 
-    console.log("[voice-gateway] Forwarding inbound call", {
-      callerNumber,
-      calledNumber,
-      routeTarget: workspace ? "workspace" : isEarlymarkInboundCall ? "earlymark_inbound" : "fallback_master",
-      workspaceMatched: Boolean(workspace),
-      knownInboundConfigured: knownInboundNumbers.length > 0,
-      surface,
-    });
+    if (process.env.NODE_ENV !== "test") {
+      console.log("[voice-gateway] Forwarding inbound call", {
+        callerNumber,
+        calledNumber,
+        routeTarget: workspace ? "workspace" : isEarlymarkInboundCall ? "earlymark_inbound" : "fallback_master",
+        workspaceMatched: Boolean(workspace),
+        knownInboundConfigured: knownInboundNumbers.length > 0,
+        surface,
+      });
+    }
 
     return twimlResponse(forwardToLiveKitTwiml(sipTarget));
   } catch (error) {

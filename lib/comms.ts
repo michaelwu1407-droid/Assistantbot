@@ -133,7 +133,9 @@ export async function initializeTradieComms(
 
     stageReached = "address-resolve";
     const addressSid = await findSourceBundleAddressSid();
-    console.log(`[provisioning] bundle=${bundleSid}, address=${addressSid}`);
+    if (process.env.NODE_ENV !== "test") {
+      console.log(`[provisioning] bundle=${bundleSid}, address=${addressSid}`);
+    }
 
     stageReached = "number-search";
     const mobileNumbers = await twilioMasterClient.availablePhoneNumbers("AU")
@@ -162,7 +164,9 @@ export async function initializeTradieComms(
       bundleSid,
     };
     if (addressSid) purchaseParams.addressSid = addressSid;
-    console.log(`[number-purchase] params:`, JSON.stringify(purchaseParams));
+    if (process.env.NODE_ENV !== "test") {
+      console.log(`[number-purchase] params:`, JSON.stringify(purchaseParams));
+    }
 
     const purchasedNumber = await twilioMasterClient.incomingPhoneNumbers.create(purchaseParams);
     purchasedNumberSid = purchasedNumber.sid;

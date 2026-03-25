@@ -4,15 +4,17 @@ import { buildManagedSubaccountFriendlyName } from "@/lib/voice-number-metadata"
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-// Debug logging for Twilio credentials
-console.log("[TWILIO] Credential check:", {
-  hasAccountSid: !!accountSid,
-  hasAuthToken: !!authToken,
-  accountSidPrefix: accountSid ? accountSid.substring(0, 8) + "..." : "missing",
-  accountSidLength: accountSid ? accountSid.length : 0,
-  authTokenLength: authToken ? authToken.length : 0,
-  isTestAccount: accountSid?.startsWith("AC") ? "✅ Valid format" : "❌ Invalid format"
-});
+// Keep credential diagnostics out of test output.
+if (process.env.NODE_ENV !== "test") {
+  console.log("[TWILIO] Credential check:", {
+    hasAccountSid: !!accountSid,
+    hasAuthToken: !!authToken,
+    accountSidPrefix: accountSid ? accountSid.substring(0, 8) + "..." : "missing",
+    accountSidLength: accountSid ? accountSid.length : 0,
+    authTokenLength: authToken ? authToken.length : 0,
+    isTestAccount: accountSid?.startsWith("AC") ? "valid format" : "invalid format",
+  });
+}
 
 // Initialize the master Twilio client (the Platform Provider's account)
 export const twilioMasterClient =
@@ -26,7 +28,7 @@ type WorkspaceTwilioConfig = {
 /**
  * Creates a unique Twilio Subaccount for a Tradie (Workspace).
  * This ensures their usage is billed separately and their data is isolated.
- * 
+ *
  * @param friendlyName - Usually the Tradie's Business Name (e.g., "Bob's Plumbing")
  */
 export async function createTwilioSubaccount(

@@ -8,6 +8,7 @@ const {
   saveTraceyOnboarding,
   saveBusinessProfileForProvisioning,
   getProvisioningIntentForOnboarding,
+  getLeadCaptureEmailReadiness,
   getAuthUser,
   createInvite,
   toastSuccess,
@@ -17,6 +18,7 @@ const {
   saveTraceyOnboarding: vi.fn(),
   saveBusinessProfileForProvisioning: vi.fn(),
   getProvisioningIntentForOnboarding: vi.fn(),
+  getLeadCaptureEmailReadiness: vi.fn(),
   getAuthUser: vi.fn(),
   createInvite: vi.fn(),
   toastSuccess: vi.fn(),
@@ -54,6 +56,10 @@ vi.mock("@/actions/tracey-onboarding", () => ({
   saveTraceyOnboarding,
   saveBusinessProfileForProvisioning,
   getProvisioningIntentForOnboarding,
+}));
+
+vi.mock("@/actions/settings-actions", () => ({
+  getLeadCaptureEmailReadiness,
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -127,6 +133,12 @@ describe("Tracey onboarding lead email preview", () => {
       leadsEmail: "alexandria-automotive-services-verified@inbound.earlymark.ai",
     });
     saveBusinessProfileForProvisioning.mockResolvedValue({ success: true });
+    getLeadCaptureEmailReadiness.mockResolvedValue({
+      ready: true,
+      receivingConfirmed: false,
+      domain: "inbound.earlymark.ai",
+      lastInboundEmailSuccessAt: null,
+    });
     getProvisioningIntentForOnboarding.mockResolvedValue({
       success: true,
       provisionPhoneNumberRequested: true,
@@ -180,13 +192,14 @@ describe("Tracey onboarding lead email preview", () => {
     await user.click(screen.getByRole("button", { name: /^Next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Leads email/i)).toBeInTheDocument();
+      expect(screen.getByText("Your activation checklist")).toBeInTheDocument();
       expect(screen.getAllByText(previewEmail).length).toBeGreaterThan(0);
-    });
+    }, { timeout: 5000 });
 
     await waitFor(() => {
+      expect(screen.getByText("+61485010634")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Activate Tracey/i })).toBeEnabled();
-    });
+    }, { timeout: 5000 });
 
     await user.click(screen.getByRole("button", { name: /Activate Tracey/i }));
 
