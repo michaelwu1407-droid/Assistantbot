@@ -89,9 +89,6 @@ export function Navbar() {
                     </div>
                 </div>
 
-                <Link href="/tutorial" className="text-[15px] font-medium text-slate-body transition-colors hover:text-midnight">
-                    Tutorial
-                </Link>
                 <Link href="/pricing" className="text-[15px] font-medium text-slate-body transition-colors hover:text-midnight">
                     Pricing
                 </Link>
@@ -142,7 +139,6 @@ export function Navbar() {
                             ))}
                         </div>
                     </div>
-                    <Link href="/tutorial" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Tutorial</Link>
                     <Link href="/pricing" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Pricing</Link>
                     <hr className="border-slate-100" />
                     <Link href="/contact" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Contact us</Link>

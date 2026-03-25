@@ -32,7 +32,7 @@ const INTERNAL_ONLY_PREFIXES = [
 function shouldSkipSessionRefresh(pathname: string) {
   if (pathname === "/") return true
 
-  return ["/auth", "/privacy", "/terms", "/contact", "/pricing", "/features", "/solutions", "/tutorial", "/offline"].some(
+  return ["/auth", "/privacy", "/terms", "/contact", "/pricing", "/features", "/solutions", "/offline"].some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   )
 }
