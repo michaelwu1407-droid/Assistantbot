@@ -106,6 +106,7 @@ model Workspace {
   agendaNotifyTime  String?   @default("07:30")
   wrapupNotifyTime  String?   @default("17:30")
   workspaceTimezone String    @default("Australia/Sydney")
+  nextInvoiceSequence Int     @default(1)
 
   // Job Reminder Settings
   jobReminderHours   Int?    @default(24)
@@ -162,6 +163,7 @@ model User {
   workspace         Workspace          @relation(fields: [workspaceId], references: [id])
   activities        Activity[]
   notifications     Notification[]
+  pushSubscriptions PushSubscription[]
   emailIntegrations EmailIntegration[]
 
   // View preference
@@ -177,6 +179,20 @@ model User {
 
   // Referral System
   referrals Referral[]
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 // ─── Email Integration Model ─────────────────────────────────────────────
@@ -322,6 +338,9 @@ model Contact {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, email])
+  @@unique([workspaceId, phone])
 }
 
 model Activity {
@@ -478,6 +497,25 @@ model Automation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ActionExecutionStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ActionExecution {
+  id              String                 @id @default(cuid())
+  idempotencyKey String                 @unique
+  actionType     String
+  status         ActionExecutionStatus @default(IN_PROGRESS)
+  result         Json?
+  error          String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([actionType, createdAt])
 }
 
 model ChatMessage {

@@ -14,13 +14,13 @@ if (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_SENTRY_DSN)
       integrations: [Sentry.replayIntegration()],
 
       // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-      tracesSampleRate: 0.1, // Reduced sampling rate
+      tracesSampleRate: 0.5,
 
       // Enable logs to be sent to Sentry
       enableLogs: true,
 
       // Define how likely Replay events are sampled.
-      replaysSessionSampleRate: 0.1,
+      replaysSessionSampleRate: 0.5,
 
       // Define how likely Replay events are sampled when an error occurs.
       replaysOnErrorSampleRate: 1.0,

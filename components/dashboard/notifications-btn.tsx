@@ -78,6 +78,9 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                 <button
                     type="button"
                     aria-label="Notifications"
+                    aria-haspopup="dialog"
+                    aria-expanded={isOpen}
+                    aria-controls="notifications-panel"
                     className={cn(
                         "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors",
                         "border-0 bg-transparent p-0 shadow-none outline-none",
@@ -107,6 +110,9 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         setIsOpen(!isOpen)
                         if (!isOpen) fetchNotifications()
                     }}
+                    aria-haspopup="dialog"
+                    aria-expanded={isOpen}
+                    aria-controls="notifications-panel"
                 >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
@@ -121,7 +127,12 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         className="fixed inset-0 z-40"
                         onClick={() => setIsOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                    <div
+                        id="notifications-panel"
+                        role="dialog"
+                        aria-label="Notifications"
+                        className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right"
+                    >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="font-semibold text-sm text-slate-900">Notifications</h3>
                             {unreadCount > 0 && (
@@ -219,6 +230,9 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                     </div>
                 </>
             )}
+            <span className="sr-only" role="status" aria-live="polite">
+                {unreadCount > 0 ? `${unreadCount} unread notifications` : "No unread notifications"}
+            </span>
         </div>
     )
 }

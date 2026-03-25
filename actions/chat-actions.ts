@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
+import { runIdempotent } from "@/lib/idempotency";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { appendTicketNote, logActivity } from "./activity-actions";
@@ -15,6 +16,7 @@ import { findDuplicateContacts } from "./dedup-actions";
 import { generateQuote } from "./tradie-actions";
 import { fuzzyScore } from "@/lib/search";
 import { recordWorkspaceAuditEventForCurrentActor } from "@/lib/workspace-audit";
+import { allocateWorkspaceInvoiceNumber } from "@/lib/invoice-number";
 import {
   titleCase,
   categoriseWork,
@@ -31,6 +33,7 @@ import {
   requiresCustomerContactApproval,
 } from "@/lib/agent-mode";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
+import { logger } from "@/lib/logging";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -833,7 +836,7 @@ export async function saveUserMessage(workspaceId: string, content: string) {
       data: { role: "user", content, workspaceId },
     });
   } catch (e) {
-    console.error("saveUserMessage:", e);
+    logger.error("saveUserMessage failed", { component: "chat-actions", action: "saveUserMessage", workspaceId }, e as Error);
   }
 }
 
@@ -846,7 +849,7 @@ export async function saveAssistantMessage(workspaceId: string, content: string)
       data: { role: "assistant", content, workspaceId },
     });
   } catch (e) {
-    console.error("saveAssistantMessage:", e);
+    logger.error("saveAssistantMessage failed", { component: "chat-actions", action: "saveAssistantMessage", workspaceId }, e as Error);
   }
 }
 
@@ -889,7 +892,7 @@ export async function clearChatHistoryAction(workspaceId: string) {
     });
     return { success: true };
   } catch (error) {
-    console.error("Failed to clear chat history:", error);
+    logger.error("clearChatHistoryAction failed", { component: "chat-actions", action: "clearChatHistoryAction", workspaceId }, error as Error);
     return { success: false };
   }
 }
@@ -916,23 +919,89 @@ export async function runUpdateInvoiceAmount(
 
 export async function runUpdateAiPreferences(workspaceId: string, rule: string) {
   try {
+    const raw = (rule || "").trim();
+    if (!raw) return "I can't add that rule.";
+
+    const normalized = raw.replace(/\s+/g, " ").trim();
+
+    // 1) Strongest enforceable: real setting update (call-out fee).
+    // Examples: "Always quote $0 call-out fee", "Call out fee is 0"
+    if (/\bcall[-\s]?out\b/i.test(normalized) && /\bfee\b/i.test(normalized)) {
+      const match = normalized.match(/(?:\$|aud\s*)?(\d+(?:\.\d{1,2})?)/i);
+      if (!match) {
+        return `I can't add that rule.`;
+      }
+      const fee = Number(match[1]);
+      if (!Number.isFinite(fee)) return `I can't add that rule.`;
+
+      const { setWorkspaceCallOutFee } = await import("./settings-actions");
+      const setRes = await setWorkspaceCallOutFee(workspaceId, fee);
+      if (!setRes.success) return "I can't add that rule.";
+
+      const enforced = `Call-out fee is $${setRes.callOutFee}.`;
+      return `Done. I will enforce this rule exactly: "${enforced}"`;
+    }
+
+    // 2) Strongest enforceable: No-go knowledge (negative scope).
+    // Heuristic: user is saying "we don't do X" / "don't do X" / "no X" etc.
+    const looksLikeNoGo =
+      /^\s*(?:we\s+)?(?:don'?t|do\s+not)\b/i.test(normalized) ||
+      /^\s*no\b/i.test(normalized) ||
+      /\bwe\s+don'?t\s+do\b/i.test(normalized);
+
+    if (looksLikeNoGo) {
+      const safeRule = normalized.endsWith(".") ? normalized : `${normalized}.`;
+
+      // Conservative conflict check: if an existing SERVICE rule mentions the same core keyword,
+      // refuse instead of creating contradictory rules.
+      const keywords = safeRule
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((t) => t.length >= 3 && !["dont", "don", "not", "do", "we", "no", "work", "works", "handle"].includes(t))
+        .slice(0, 6);
+
+      if (keywords.length) {
+        const serviceHits = await db.businessKnowledge.findMany({
+          where: {
+            workspaceId,
+            category: "SERVICE",
+            OR: keywords.map((k) => ({ ruleContent: { contains: k, mode: "insensitive" as const } })),
+          },
+          select: { ruleContent: true },
+          take: 3,
+        }).catch(() => []);
+
+        if (serviceHits.length) {
+          return `I can't add that rule.`;
+        }
+      }
+
+      const { addKnowledgeRule } = await import("./knowledge-actions");
+      const addRes = await addKnowledgeRule("NEGATIVE_SCOPE", safeRule, undefined, "ai_preference");
+      if (!addRes.success) return "I can't add that rule.";
+
+      return `Done. I will enforce this rule exactly: "${safeRule}"`;
+    }
+
+    // 3) Fallback: save as a standard preference (not a hard no-go).
     const { updateAiPreferences } = await import("./settings-actions");
-    const result = await updateAiPreferences(workspaceId, rule);
+    const result = await updateAiPreferences(workspaceId, normalized);
 
     if (
       !result.success &&
       "error" in result &&
       (result.error === "rule_limit_reached" || result.error === "rule_validation_failed")
     ) {
-      return (result as { message: string }).message;
+      return `I can't add that rule.`;
     }
     if ("skipped" in result && result.skipped === "duplicate") {
-      return `This rule already exists — no changes made.`;
+      return `Done. I will enforce this rule exactly: "${normalized}"`;
     }
 
-    return `Successfully saved the rule: "${rule}". I will remember this for future conversations.`;
+    return `Done. I will enforce this rule exactly: "${normalized}"`;
   } catch (err) {
-    return `Error updating preferences: ${err instanceof Error ? err.message : String(err)}`;
+    return `I can't add that rule.`;
   }
 }
 
@@ -1158,7 +1227,7 @@ export async function runCreateDraftInvoice(
   });
   if (!fullDeal) return "Deal not found.";
 
-  const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+  const invoiceNumber = await allocateWorkspaceInvoiceNumber(workspaceId);
   const total = Number(fullDeal.value || 0);
   const subtotal = Number((total / 1.1).toFixed(2));
   const tax = Number((total - subtotal).toFixed(2));
@@ -1756,76 +1825,101 @@ export async function runSendEmail(
 
     const contact = contacts[0];
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
+    const contactEmail = contact.email;
 
-    // Rest of the email sending logic...
-    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
-    const senderName = workspace?.name ?? "Earlymark";
+    const crypto = require("crypto") as typeof import("crypto");
+    const bodyHash = crypto.createHash("sha256").update(params.body).digest("hex");
 
-    let delivered = false;
-    const resendKey = process.env.RESEND_API_KEY;
-    const fromDomain = process.env.RESEND_FROM_DOMAIN;
-    
-    // LOGIC START
-    let fromAddress = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai";
-    let replyToAddress = undefined;
-    let bccAddress = undefined;
-
-    // If this is an Agent conversation (alias is provided)
-    if (params.workspaceAlias && params.workspaceName) {
-      // 1. Construct the dynamic address
-      // Use the hardcoded subdomain: @agent.earlymark.ai
-      const agentEmail = `${params.workspaceAlias}@agent.earlymark.ai`;
-
-      // 2. Set the 'From' header with a friendly name
-      fromAddress = `"${params.workspaceName} Assistant" <${agentEmail}>`;
-
-      // 3. Set 'Reply-To' to the SAME address so replies hit our webhook
-      replyToAddress = agentEmail;
-
-      // 4. Set BCC to the owner so they have visibility
-      if (params.ownerEmail) {
-        bccAddress = params.ownerEmail;
-      }
-    }
-    // LOGIC END
-    
-    if (resendKey && fromDomain) {
-      const { Resend } = await import("resend");
-      const resend = new Resend(resendKey);
-      const { error } = await resend.emails.send({
-        from: fromAddress,
-        to: [contact.email],
-        subject: params.subject,
-        text: params.body,
-        replyTo: replyToAddress,
-        bcc: bccAddress,
-      });
-      if (error) {
-        console.error("[sendEmail] Resend error:", error);
-        return `Failed to send email to ${contact.name}: ${error.message}`;
-      }
-      delivered = true;
-    }
-
-    await logActivity({
-      type: "EMAIL",
-      title: `Email to ${contact.name}: ${params.subject}`,
-      content: params.body,
-      contactId: contact.id,
-    });
-    await db.chatMessage.create({
-      data: {
-        role: "assistant",
-        content: `Subject: ${params.subject}\n\n${params.body}`,
+    const idem = await runIdempotent<{ returnMessage: string }>({
+      actionType: "EMAIL_SEND",
+      bucketAt: new Date(),
+      parts: [
         workspaceId,
-        metadata: { contactId: contact.id, channel: "email", direction: "outbound" },
+        contact.id,
+        params.subject.trim().toLowerCase(),
+        bodyHash,
+        params.workspaceAlias ?? "",
+        params.ownerEmail ?? "",
+      ],
+      resultFactory: async () => {
+        // Rest of the email sending logic...
+        const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
+        const _senderName = workspace?.name ?? "Earlymark";
+
+        let delivered = false;
+        const resendKey = process.env.RESEND_API_KEY;
+        const fromDomain = process.env.RESEND_FROM_DOMAIN;
+
+        // LOGIC START
+        let fromAddress = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai";
+        let replyToAddress = undefined;
+        let bccAddress = undefined;
+
+        // If this is an Agent conversation (alias is provided)
+        if (params.workspaceAlias && params.workspaceName) {
+          // 1. Construct the dynamic address
+          // Use the hardcoded subdomain: @agent.earlymark.ai
+          const agentEmail = `${params.workspaceAlias}@agent.earlymark.ai`;
+
+          // 2. Set the 'From' header with a friendly name
+          fromAddress = `"${params.workspaceName} Assistant" <${agentEmail}>`;
+
+          // 3. Set 'Reply-To' to the SAME address so replies hit our webhook
+          replyToAddress = agentEmail;
+
+          // 4. Set BCC to the owner so they have visibility
+          if (params.ownerEmail) {
+            bccAddress = params.ownerEmail;
+          }
+        }
+        // LOGIC END
+
+        if (resendKey && fromDomain) {
+          const { Resend } = await import("resend");
+          const resend = new Resend(resendKey);
+          const { error } = await resend.emails.send({
+            from: fromAddress,
+            to: [contactEmail],
+            subject: params.subject,
+            text: params.body,
+            replyTo: replyToAddress,
+            bcc: bccAddress,
+          });
+          if (error) {
+            logger.error("Resend send email failed", { component: "chat-actions", action: "runSendEmailAction", workspaceId, contactId: contact.id }, error as Error);
+            return { returnMessage: `Failed to send email to ${contact.name}: ${error.message}` };
+          }
+          delivered = true;
+        }
+
+        await logActivity({
+          type: "EMAIL",
+          title: `Email to ${contact.name}: ${params.subject}`,
+          content: params.body,
+          contactId: contact.id,
+        });
+        await db.chatMessage.create({
+          data: {
+            role: "assistant",
+            content: `Subject: ${params.subject}\n\n${params.body}`,
+            workspaceId,
+            metadata: { contactId: contact.id, channel: "email", direction: "outbound" },
+          },
+        });
+
+        if (delivered) {
+          return { returnMessage: `Email sent to ${contact.name} (${contactEmail}). Subject: "${params.subject}".` };
+        }
+        return {
+          returnMessage: `Email logged to ${contact.name} (${contactEmail}) but not delivered (Resend not configured). Subject: "${params.subject}".`,
+        };
       },
     });
 
-    if (delivered) {
-      return `Email sent to ${contact.name} (${contact.email}). Subject: "${params.subject}".`;
+    if (!idem.result?.returnMessage) {
+      return `Error sending email: Idempotency result missing`;
     }
-    return `Email logged to ${contact.name} (${contact.email}) but not delivered (Resend not configured). Subject: "${params.subject}".`;
+    return idem.result.returnMessage;
   } catch (err) {
     return `Error sending email: ${err instanceof Error ? err.message : String(err)}`;
   }

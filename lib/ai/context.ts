@@ -9,6 +9,7 @@ import {
     type CanonicalCustomerContactMode,
 } from "@/lib/agent-mode";
 import { summarizeWeeklyHours } from "@/lib/working-hours";
+import { sharedDelete, sharedGet, sharedSet } from "@/lib/shared-store";
 
 type BuildAgentContextOptions = {
     includeHistoricalPricing?: boolean;
@@ -64,20 +65,150 @@ export type WorkspaceVoiceGrounding = {
         description: string;
     }>;
     noGoRules: string[];
+  flagOnlyRules: string[];
 };
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 120_000;
-const agentContextCache = new Map<string, { expiresAt: number; value: AgentContextPayload }>();
 
 /** Bust the agent context cache for a workspace (call when settings change). */
 export function invalidateAgentContextCache(workspaceId: string) {
-    for (const key of agentContextCache.keys()) {
-        if (key.startsWith(`${workspaceId}:`)) agentContextCache.delete(key);
+    void sharedDelete(`agent-ctx:${workspaceId}:anonymous:pricing`);
+    void sharedDelete(`agent-ctx:${workspaceId}:anonymous:no-pricing`);
+}
+
+function parseTaggedAiPreferences(raw: string | null | undefined): {
+    hardConstraints: string[];
+    flagOnlyRules: string[];
+    otherPreferences: string[];
+} {
+    const lines = (raw ?? "")
+        .split("\n")
+        .map((line) => line.replace(/^\s*-\s*/, "").trim())
+        .filter(Boolean);
+
+    const hardConstraints: string[] = [];
+    const flagOnlyRules: string[] = [];
+    const otherPreferences: string[] = [];
+
+    for (const line of lines) {
+        // Tags can appear anywhere in the line; we strip them if present.
+        if (/\[\s*HARD_CONSTRAINT\s*\]/i.test(line)) {
+            hardConstraints.push(line.replace(/\[\s*HARD_CONSTRAINT\s*\]/ig, "").trim());
+            continue;
+        }
+        if (/\[\s*FLAG_ONLY\s*\]/i.test(line)) {
+            flagOnlyRules.push(line.replace(/\[\s*FLAG_ONLY\s*\]/ig, "").trim());
+            continue;
+        }
+        otherPreferences.push(line);
     }
+
+    return {
+        hardConstraints: hardConstraints.filter(Boolean),
+        flagOnlyRules: flagOnlyRules.filter(Boolean),
+        otherPreferences: otherPreferences.filter(Boolean),
+    };
+}
+
+const RULE_DEDUP_STOPWORDS = new Set([
+    // Negation / conversational fillers
+    "no",
+    "not",
+    "dont",
+    "do",
+    "does",
+    "did",
+    "we",
+    "you",
+    "your",
+    "our",
+    "their",
+    "they",
+    "this",
+    "that",
+    "these",
+    "those",
+    "currently",
+    "handle",
+    "decline",
+    "triage",
+    "end",
+    "only",
+    "match",
+    // Common business phrasing that doesn't change the service identity
+    "work",
+    "fitting",
+    "fittings",
+    "service",
+    "services",
+    "type",
+    "job",
+    "jobs",
+]);
+
+function normalizeRuleForDedup(rule: string): string {
+    return rule
+        .toLowerCase()
+        .replace(/[\u2019']/g, "") // apostrophes
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function tokeniseRule(rule: string): string[] {
+    const normalized = normalizeRuleForDedup(rule);
+    if (!normalized) return [];
+    return normalized
+        .split(" ")
+        .map((t) => t.trim())
+        .filter((t) => t.length >= 3 && !RULE_DEDUP_STOPWORDS.has(t));
+}
+
+function wordOverlapScore(a: string[], b: string[]): number {
+    if (!a.length || !b.length) return 0;
+    const setA = new Set(a);
+    const setB = new Set(b);
+    const intersectionSize = [...setA].filter((t) => setB.has(t)).length;
+    if (!intersectionSize) return 0;
+    return intersectionSize / Math.max(setA.size, setB.size);
+}
+
+function dedupeNearDuplicateRules(rules: string[], threshold: number = 0.5, limit: number = 50): string[] {
+    const out: string[] = [];
+    const seenExact = new Set<string>();
+    const tokenCache: string[][] = [];
+
+    for (const rule of rules) {
+        const trimmed = rule.trim();
+        if (!trimmed) continue;
+
+        const normalizedExact = normalizeRuleForDedup(trimmed);
+        if (seenExact.has(normalizedExact)) continue;
+
+        const tokens = tokeniseRule(trimmed);
+        if (!tokens.length) continue;
+
+        let isDup = false;
+        for (let i = 0; i < out.length; i++) {
+            const score = wordOverlapScore(tokens, tokenCache[i]);
+            if (score >= threshold) {
+                isDup = true;
+                break;
+            }
+        }
+        if (isDup) continue;
+
+        seenExact.add(normalizedExact);
+        out.push(trimmed);
+        tokenCache.push(tokens);
+
+        if (out.length >= limit) break;
+    }
+
+    return out;
 }
 
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60_000;
-const voiceGroundingCache = new Map<string, { expiresAt: number; value: WorkspaceVoiceGrounding | null }>();
 
 /**
  * Builds the comprehensive prompt context for the AI agent given a workspace and user.
@@ -90,15 +221,14 @@ export async function buildAgentContext(
 ): Promise<AgentContextPayload> {
     const includeHistoricalPricing = options?.includeHistoricalPricing ?? true;
     const pricingAudience = options?.pricingAudience ?? "customer";
-    const cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
-    const cached = agentContextCache.get(cacheKey);
+    const cacheKey = `agent-ctx:${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
+    const cached = await sharedGet(cacheKey);
     if (cached) {
-        if (cached.expiresAt > Date.now()) {
-            return cached.value; // Fresh cache hit
+        try {
+            return JSON.parse(cached) as AgentContextPayload;
+        } catch {
+            // fall through and rebuild
         }
-        // Stale — return immediately, refresh in background
-        buildAgentContextFresh(workspaceId, providedUserId, options, cacheKey).catch(() => {});
-        return cached.value;
     }
 
     // No cache at all — block and fetch
@@ -114,7 +244,7 @@ async function buildAgentContextFresh(
     const includeHistoricalPricing = options?.includeHistoricalPricing ?? true;
     const pricingAudience = options?.pricingAudience ?? "customer";
     if (!cacheKey) {
-        cacheKey = `${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
+        cacheKey = `agent-ctx:${workspaceId}:${providedUserId ?? "anonymous"}:${includeHistoricalPricing ? "pricing" : "no-pricing"}`;
     }
 
     // ── Parallel batch 1: all independent DB/auth queries ────────────────
@@ -311,8 +441,10 @@ async function buildAgentContextFresh(
     const callEnd = (settings as { callAllowedEnd?: string })?.callAllowedEnd ?? "20:00";
     const allowedTimesStr = `\nALLOWED TIMES: Only send texts between ${textStart} and ${textEnd} (local time). Only place outbound calls between ${callStart} and ${callEnd}. If the user asks to message or call outside these windows, say you're outside contact hours and will do it during the allowed window.`;
 
-    const preferencesStr = settings?.aiPreferences
-        ? `\nUSER PREFERENCES (Follow these strictly):\n${settings.aiPreferences}`
+    const { hardConstraints, flagOnlyRules, otherPreferences } = parseTaggedAiPreferences(settings?.aiPreferences);
+
+    const preferencesStr = otherPreferences.length > 0
+        ? `\nUSER PREFERENCES (Follow these strictly):\n${otherPreferences.map((r) => `- ${r}`).join("\n")}`
         : "";
 
     const callOutFee = settings?.callOutFee || 0;
@@ -347,24 +479,44 @@ ${glossaryStr}`;
     }
 
     // ── Bouncer & Advisor Logic ──────────────────────────────────────
-    // Merge exclusionCriteria (legacy) with BusinessKnowledge negative scope rules
+    // Merge exclusionCriteria (legacy) + BusinessKnowledge negative scope rules + aiPreferences [HARD_CONSTRAINT]
     const exclusionCriteria = workspaceInfo?.exclusionCriteria?.trim() || "";
-    const allNegativeRules = [
-        ...exclusionCriteria.split("\n").filter(Boolean),
-        ...knowledgeNegativeRules,
-    ].filter(Boolean);
-    const mergedExclusionStr = allNegativeRules.length > 0
-        ? allNegativeRules.map(r => `- ${r}`).join("\n")
-        : "";
+    const legacyNoGoRules = exclusionCriteria.split("\n").map((line) => line.trim()).filter(Boolean);
+
+    const hardNoGoRules = dedupeNearDuplicateRules(
+        [...legacyNoGoRules, ...knowledgeNegativeRules, ...hardConstraints],
+        0.5,
+        20
+    );
+    const hardNoGoStr = hardNoGoRules.length > 0 ? hardNoGoRules.map((r) => `- ${r}`).join("\n") : "";
+
+    // [FLAG_ONLY] rules should never cause a decline — they should trigger owner-facing flags.
+    const dedupedFlagOnlyRules = dedupeNearDuplicateRules(flagOnlyRules, 0.5, 20);
+    const flagOnlyStr =
+        dedupedFlagOnlyRules.length > 0 ? dedupedFlagOnlyRules.map((r) => `- ${r}`).join("\n") : "";
 
     let bouncerStr = "";
-    if (mergedExclusionStr) {
+    const flagOnlySection = flagOnlyStr
+        ? `\nFLAG ONLY rules (do NOT decline; instead flag and continue triage):\n${flagOnlyStr}\nOn match: proceed with full triage, capture all details, and use addAgentFlag for concerns. You have ZERO authority to decline leads on the Flag-Only list.\n`
+        : "";
+
+    if (hardNoGoRules.length > 0) {
         bouncerStr = `\nLEAD QUALIFICATION:
 NO-GO rules (decline ONLY on exact match):
-${mergedExclusionStr}
-On match: politely decline ("We don't currently handle [type]") and end triage.
-
+${hardNoGoStr}
+On match: politely decline ("We don't currently handle [type]") and end triage.${flagOnlySection}
 All other leads: MUST proceed with full triage regardless of value/distance/difficulty. Capture all details. Use addAgentFlag for concerns — you have ZERO authority to decline leads not on the No-Go list.
+
+If owner says "stop taking X": clarify "Strictly decline or just flag?" → use updateAiPreferences with [HARD_CONSTRAINT] or [FLAG_ONLY].`;
+    } else if (flagOnlyStr) {
+        bouncerStr = `\nLEAD QUALIFICATION:
+No strict NO-GO rules. NEVER decline any lead. Proceed with full triage.
+
+FLAG ONLY rules (do NOT decline; instead flag and continue triage):
+${flagOnlyStr}
+On match: proceed with full triage, capture all details, and use addAgentFlag for concerns.
+
+All other leads: MUST proceed with full triage regardless of value/distance/difficulty. Capture all details. Use addAgentFlag for concerns.
 
 If owner says "stop taking X": clarify "Strictly decline or just flag?" → use updateAiPreferences with [HARD_CONSTRAINT] or [FLAG_ONLY].`;
     } else {
@@ -389,24 +541,20 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
             : "",
     };
 
-    if (agentContextCache.size >= 200) {
-        const now = Date.now();
-        for (const [key, value] of agentContextCache.entries()) {
-            if (value.expiresAt <= now) agentContextCache.delete(key);
-        }
-    }
-    agentContextCache.set(cacheKey, {
-        expiresAt: Date.now() + AGENT_CONTEXT_CACHE_TTL_MS,
-        value: contextValue,
-    });
+    await sharedSet(cacheKey, JSON.stringify(contextValue), Math.ceil(AGENT_CONTEXT_CACHE_TTL_MS / 1000));
 
     return contextValue;
 }
 
 export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<WorkspaceVoiceGrounding | null> {
-    const cached = voiceGroundingCache.get(workspaceId);
-    if (cached && cached.expiresAt > Date.now()) {
-        return cached.value;
+    const voiceCacheKey = `voice-grounding:${workspaceId}`;
+    const cached = await sharedGet(voiceCacheKey);
+    if (cached) {
+        try {
+            return JSON.parse(cached) as WorkspaceVoiceGrounding | null;
+        } catch {
+            // fall through
+        }
     }
 
     const [workspace, businessProfile, settings, repairItems, negativeRules, serviceRules, ownerUser] = await Promise.all([
@@ -463,25 +611,28 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
     ]);
 
     if (!workspace) {
-        voiceGroundingCache.set(workspaceId, {
-            expiresAt: Date.now() + VOICE_GROUNDING_CACHE_TTL_MS,
-            value: null,
-        });
+        await sharedSet(voiceCacheKey, JSON.stringify(null), Math.ceil(VOICE_GROUNDING_CACHE_TTL_MS / 1000));
         return null;
     }
 
-    const aiPreferences = (settings?.aiPreferences || "")
-        .split("\n")
-        .map((line) => line.replace(/^\s*-\s*/, "").trim())
-        .filter(Boolean)
-        .slice(0, 12);
+    const { hardConstraints, flagOnlyRules, otherPreferences } = parseTaggedAiPreferences(settings?.aiPreferences);
+
+    // Voice prompt: include only non-tagged preferences as general guidance.
+    // Hard constraints are represented via `noGoRules`.
+    // Flag-only rules are represented via `flagOnlyRules`.
+    const aiPreferences = otherPreferences.slice(0, 12);
 
     const exclusionCriteria = workspace.exclusionCriteria
         ? workspace.exclusionCriteria.split("\n").map((line) => line.trim()).filter(Boolean)
         : [];
-    const noGoRules = [...exclusionCriteria, ...negativeRules.map((item) => item.ruleContent.trim()).filter(Boolean)]
-        .filter((value, index, all) => all.indexOf(value) === index)
-        .slice(0, 20);
+
+    const hardNoGoRules = dedupeNearDuplicateRules(
+        [...exclusionCriteria, ...negativeRules.map((item) => item.ruleContent.trim()).filter(Boolean), ...hardConstraints],
+        0.5,
+        20
+    );
+
+    const dedupedFlagOnlyRules = dedupeNearDuplicateRules(flagOnlyRules, 0.5, 20);
 
     const normalizedMode = normalizeAgentMode(settings?.agentMode);
 
@@ -518,21 +669,12 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
             title: item.title,
             description: item.description || "No approved price notes recorded.",
         })),
-        noGoRules,
+        noGoRules: hardNoGoRules,
+        flagOnlyRules: dedupedFlagOnlyRules,
         ownerPhone: ownerUser?.phone || null,
     };
 
-    if (voiceGroundingCache.size >= 500) {
-        const now = Date.now();
-        for (const [key, value] of voiceGroundingCache.entries()) {
-            if (value.expiresAt <= now) voiceGroundingCache.delete(key);
-        }
-    }
-
-    voiceGroundingCache.set(workspaceId, {
-        expiresAt: Date.now() + VOICE_GROUNDING_CACHE_TTL_MS,
-        value: grounding,
-    });
+    await sharedSet(voiceCacheKey, JSON.stringify(grounding), Math.ceil(VOICE_GROUNDING_CACHE_TTL_MS / 1000));
 
     return grounding;
 }
@@ -540,7 +682,6 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
 // Lazy initialization of Mem0 Memory Client
 let memoryClient: MemoryClient | null = null;
 const MEMORY_CACHE_TTL_MS = 60_000;
-const memorySearchCache = new Map<string, { expiresAt: number; value: string }>();
 
 export function getMemoryClient(): MemoryClient | null {
     if (!memoryClient && process.env.MEM0_API_KEY) {
@@ -567,10 +708,10 @@ export async function fetchMemoryContext(userId: string, query: string): Promise
     const normalizedQuery = query.trim();
     if (!memClient || !normalizedQuery) return "";
 
-    const cacheKey = `${userId}:${normalizedQuery.toLowerCase()}`;
-    const cached = memorySearchCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-        return cached.value;
+    const cacheKey = `mem-search:${userId}:${normalizedQuery.toLowerCase()}`;
+    const cached = await sharedGet(cacheKey);
+    if (cached) {
+        return cached;
     }
 
     let memoryContextStr = "";
@@ -591,16 +732,7 @@ export async function fetchMemoryContext(userId: string, query: string): Promise
         memoryContextStr = "";
     }
 
-    if (memorySearchCache.size >= 400) {
-        const now = Date.now();
-        for (const [key, value] of memorySearchCache.entries()) {
-            if (value.expiresAt <= now) memorySearchCache.delete(key);
-        }
-    }
-    memorySearchCache.set(cacheKey, {
-        expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
-        value: memoryContextStr,
-    });
+    await sharedSet(cacheKey, memoryContextStr, Math.ceil(MEMORY_CACHE_TTL_MS / 1000));
 
     return memoryContextStr;
 }

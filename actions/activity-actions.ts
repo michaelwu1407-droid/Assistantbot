@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { runIdempotent } from "@/lib/idempotency";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -310,18 +311,37 @@ export async function logActivity(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const activity = await db.activity.create({
-    data: {
-      type: parsed.data.type,
-      title: parsed.data.title,
-      content: parsed.data.content,
-      description: parsed.data.description,
-      dealId: parsed.data.dealId,
-      contactId: parsed.data.contactId,
+  const res = await runIdempotent<{ activityId: string }>({
+    actionType: "ACTIVITY_LOG",
+    bucketAt: new Date(),
+    parts: [
+      parsed.data.type,
+      parsed.data.title.trim().toLowerCase(),
+      parsed.data.content ?? "",
+      parsed.data.description ?? "",
+      parsed.data.dealId ?? "",
+      parsed.data.contactId ?? "",
+    ],
+    resultFactory: async () => {
+      const activity = await db.activity.create({
+        data: {
+          type: parsed.data.type,
+          title: parsed.data.title,
+          content: parsed.data.content,
+          description: parsed.data.description,
+          dealId: parsed.data.dealId,
+          contactId: parsed.data.contactId,
+        },
+      });
+      return { activityId: activity.id };
     },
   });
 
-  return { success: true, activityId: activity.id };
+  if (!res.result?.activityId) {
+    return { success: false, error: "Idempotent activity logging returned no result" };
+  }
+
+  return { success: true, activityId: res.result.activityId };
 }
 
 /**

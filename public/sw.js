@@ -65,3 +65,37 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "Earlymark", body: "You have a new update.", url: "/crm/dashboard" };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch (_) {
+    // ignore invalid payload
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      data: { url: payload.url },
+      icon: "/icon-192x192.png",
+      badge: "/icon-192x192.png",
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || "/crm/dashboard";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return undefined;
+    }),
+  );
+});

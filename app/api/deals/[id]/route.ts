@@ -1,5 +1,7 @@
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
+import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
+import { logger } from "@/lib/logging"
 
 export const dynamic = "force-dynamic"
 
@@ -9,6 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    await requireDealInCurrentWorkspace(id)
 
     const deal = await db.deal.findUnique({
       where: { id },
@@ -41,7 +44,13 @@ export async function GET(
     const contactDealsJson = JSON.parse(JSON.stringify(contactDeals, replacer))
     return NextResponse.json({ deal: dealJson, contactDeals: contactDealsJson })
   } catch (error) {
-    console.error("Error fetching deal:", error)
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (error instanceof Error && error.message === "Deal not found") {
+      return NextResponse.json({ error: "Deal not found" }, { status: 404 })
+    }
+    logger.error("Error fetching deal", { component: "api/deals/[id]", action: "GET" }, error as Error)
     return NextResponse.json({ error: "Failed to fetch deal" }, { status: 500 })
   }
 }

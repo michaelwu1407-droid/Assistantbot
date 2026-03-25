@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { runIdempotent } from "@/lib/idempotency";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -80,17 +81,36 @@ export async function createTask(input: z.infer<typeof CreateTaskSchema>) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const task = await db.task.create({
-    data: {
-      title: parsed.data.title,
-      description: parsed.data.description,
-      dueAt: parsed.data.dueAt,
-      dealId: parsed.data.dealId,
-      contactId: parsed.data.contactId,
+  const dueAtBucket = parsed.data.dueAt.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+
+  const res = await runIdempotent<{ taskId: string }>({
+    actionType: "TASK_CREATE",
+    parts: [
+      parsed.data.dealId ?? "",
+      parsed.data.contactId ?? "",
+      parsed.data.title.trim().toLowerCase(),
+      dueAtBucket,
+    ],
+    bucketAt: parsed.data.dueAt,
+    resultFactory: async () => {
+      const task = await db.task.create({
+        data: {
+          title: parsed.data.title,
+          description: parsed.data.description,
+          dueAt: parsed.data.dueAt,
+          dealId: parsed.data.dealId,
+          contactId: parsed.data.contactId,
+        },
+      });
+      return { taskId: task.id };
     },
   });
 
-  return { success: true, taskId: task.id };
+  if (!res.result?.taskId) {
+    return { success: false, error: "Idempotent task creation returned no result" };
+  }
+
+  return { success: true, taskId: res.result.taskId };
 }
 
 /**

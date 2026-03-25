@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Pj Buddy CRM",
+  "name": "ARCHIVED (Paused) — Pj Buddy CRM",
   "version": "0.1.0",
-  "description": "Capture contacts and leads from LinkedIn, REA, and Domain directly into Pj Buddy CRM",
+  "description": "ARCHIVED/PAUSED: Real-estate import extension. Not used by the tradie CRM (Earlymark).",
   "permissions": ["activeTab", "storage"],
   "host_permissions": [
     "https://www.linkedin.com/*",

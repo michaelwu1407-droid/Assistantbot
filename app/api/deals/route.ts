@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDeals } from '@/actions/deal-actions';
 import { requireCurrentWorkspaceAccess } from '@/lib/workspace-access';
+import { logger } from '@/lib/logging';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     const deals = await getDeals(actor.workspaceId, undefined, { limit: safeLimit });
     return NextResponse.json(deals);
   } catch (error) {
-    console.error('Deals API error:', error);
+    logger.error('Deals API error', { component: 'api/deals', action: 'GET' }, error as Error);
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     // For now, return a placeholder response
     return NextResponse.json({ message: 'Deal creation not implemented yet' }, { status: 501 });
   } catch (error) {
-    console.error('Deal creation API error:', error);
+    logger.error('Deal creation API error', { component: 'api/deals', action: 'POST' }, error as Error);
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

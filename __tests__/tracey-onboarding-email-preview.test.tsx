@@ -7,6 +7,7 @@ const {
   scrapeWebsite,
   saveTraceyOnboarding,
   saveBusinessProfileForProvisioning,
+  getProvisioningIntentForOnboarding,
   getAuthUser,
   createInvite,
   toastSuccess,
@@ -15,6 +16,7 @@ const {
   scrapeWebsite: vi.fn(),
   saveTraceyOnboarding: vi.fn(),
   saveBusinessProfileForProvisioning: vi.fn(),
+  getProvisioningIntentForOnboarding: vi.fn(),
   getAuthUser: vi.fn(),
   createInvite: vi.fn(),
   toastSuccess: vi.fn(),
@@ -51,6 +53,7 @@ vi.mock("@/actions/scraper-actions", () => ({
 vi.mock("@/actions/tracey-onboarding", () => ({
   saveTraceyOnboarding,
   saveBusinessProfileForProvisioning,
+  getProvisioningIntentForOnboarding,
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -124,6 +127,11 @@ describe("Tracey onboarding lead email preview", () => {
       leadsEmail: "alexandria-automotive-services-verified@inbound.earlymark.ai",
     });
     saveBusinessProfileForProvisioning.mockResolvedValue({ success: true });
+    getProvisioningIntentForOnboarding.mockResolvedValue({
+      success: true,
+      provisionPhoneNumberRequested: true,
+      provisioningStatus: "provisioned",
+    });
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({

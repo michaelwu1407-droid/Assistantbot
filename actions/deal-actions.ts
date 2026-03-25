@@ -20,6 +20,7 @@ import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { recordSyncIssue } from "@/lib/sync-issues";
 import { kanbanStageRequiresScheduledDate, prismaStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
+import { logger } from "@/lib/logging";
 import {
   KANBAN_COLUMN_SORT_ORDER,
   kanbanColumnIdForDealStage,
@@ -311,7 +312,7 @@ export async function getDeals(
 
     return views;
   } catch (error) {
-    console.error("Database Error in getDeals:", error);
+    logger.error("Database error in getDeals", { component: "deal-actions", action: "getDeals", workspaceId }, error as Error);
     MonitoringService.logError(error as Error, { action: "getDeals", workspaceId });
     throw error;
   }
@@ -678,7 +679,7 @@ export async function updateDealStage(dealId: string, stage: string) {
 
     return { success: true };
   } catch (err) {
-    console.error("updateDealStage error:", err);
+    logger.error("updateDealStage failed", { component: "deal-actions", action: "updateDealStage", dealId }, err as Error);
     MonitoringService.logError(err as Error, { action: "updateDealStage", dealId });
     const message = err instanceof Error ? err.message : "Failed to update stage";
     return { success: false, error: message };
@@ -731,7 +732,7 @@ export async function persistKanbanColumnOrder(
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
-    console.error("persistKanbanColumnOrder error:", err);
+    logger.error("persistKanbanColumnOrder failed", { component: "deal-actions", action: "persistKanbanColumnOrder", columnId }, err as Error);
     MonitoringService.logError(err as Error, { action: "persistKanbanColumnOrder", columnId });
     return { success: false, error: err instanceof Error ? err.message : "Failed to save order" };
   }
@@ -828,7 +829,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
-    console.error("approveCompletion error:", err);
+    logger.error("approveCompletion failed", { component: "deal-actions", action: "approveCompletion", dealId }, err as Error);
     return { success: false, error: err instanceof Error ? err.message : "Failed to approve." };
   }
 }
@@ -901,7 +902,7 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
     revalidatePath("/crm/deals");
     return { success: true };
   } catch (err) {
-    console.error("rejectCompletion error:", err);
+    logger.error("rejectCompletion failed", { component: "deal-actions", action: "rejectCompletion", dealId }, err as Error);
     return { success: false, error: err instanceof Error ? err.message : "Failed to reject." };
   }
 }
@@ -1174,13 +1175,29 @@ export async function uploadDealPhoto(
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowed.includes(file.type)) return { success: false, error: "File must be an image (JPEG, PNG, WebP, or GIF)" };
 
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    const isPng = bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const isGif = bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46;
+    const isWebp =
+      bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    const sniffedMime = isJpeg ? "image/jpeg" : isPng ? "image/png" : isGif ? "image/gif" : isWebp ? "image/webp" : null;
+    if (!sniffedMime || sniffedMime !== file.type) {
+      return { success: false, error: "Uploaded file content does not match the image type." };
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !supabaseKey) return { success: false, error: "Photo storage is not configured" };
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const fileName = `${dealId}/${nanoid()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const { error: uploadError } = await supabase.storage.from("job-photos").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage.from("job-photos").upload(fileName, file, {
+      contentType: sniffedMime,
+      upsert: false,
+    });
     if (uploadError) throw uploadError;
 
     const publicUrl = supabase.storage.from("job-photos").getPublicUrl(fileName).data.publicUrl;
@@ -1194,7 +1211,7 @@ export async function uploadDealPhoto(
     revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (e) {
-    console.error("uploadDealPhoto error:", e);
+    logger.error("uploadDealPhoto failed", { component: "deal-actions", action: "uploadDealPhoto", dealId }, e as Error);
     return { success: false, error: e instanceof Error ? e.message : "Failed to upload photo" };
   }
 }

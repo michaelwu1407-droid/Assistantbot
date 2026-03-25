@@ -2066,3 +2066,138 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - High-volume pipelines need practical local filtering to avoid visual scanning across hundreds of cards.
   - The intended onboarding journey requires users to complete tutorial flow before normal dashboard operation.
+
+## 2026-03-24 13:20 (AEDT) - codex
+
+- Files changed:
+  - `lib/db.ts`
+  - `sentry.server.config.ts`
+  - `sentry.edge.config.ts`
+  - `instrumentation-client.ts`
+  - `prisma/schema.prisma`
+  - `actions/contact-actions.ts`
+  - `lib/invoice-number.ts`
+  - `actions/tradie-actions.ts`
+  - `actions/chat-actions.ts`
+  - `actions/deal-actions.ts`
+  - `app/api/chat/route.ts`
+  - `.env.example`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Hardened backend reliability and safety: added DB connection-limit wiring for Prisma, increased Sentry sampling for better production visibility, added DB-level workspace contact uniqueness plus graceful race handling, and replaced timestamp invoice IDs with atomic workspace-scoped sequence allocation.
+  - Added server-side image signature checks for deal-photo uploads (magic-byte validation + content-type enforcement), and added a hard prompt-size guard in chat to prevent oversized LLM requests.
+  - Documented previously missing environment variables required for Sentry, Mem0, Deepgram, Gmail Pub/Sub, and DB pool tuning.
+- Why:
+  - Prevents duplicate contacts/invoice collisions and reduces concurrency-related failures in production.
+  - Improves observability and reduces silent failures/cost spikes by enforcing practical runtime limits.
+  - Makes first-time deployments and team handoffs safer by documenting required environment setup.
+
+## 2026-03-24 14:05 (AEDT) - codex
+
+- Files changed:
+  - `package.json`
+  - `package-lock.json`
+  - `lib/shared-store.ts`
+  - `lib/rate-limit.ts`
+  - `lib/ai/context.ts`
+  - `prisma/schema.prisma`
+  - `lib/push-notifications.ts`
+  - `app/api/push/subscribe/route.ts`
+  - `app/api/push/unsubscribe/route.ts`
+  - `actions/notification-actions.ts`
+  - `app/crm/settings/notifications/page.tsx`
+  - `public/sw.js`
+  - `components/dashboard/notifications-btn.tsx`
+  - `.env.example`
+  - `__tests__/rate-limit.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added shared runtime state support using Upstash Redis (with safe local fallback) and moved rate limiting + AI context/memory caches off single-instance in-memory maps to support multi-instance deployments.
+  - Implemented browser push notification plumbing end-to-end: VAPID/web-push backend sender, push subscription persistence/API routes, settings toggle for opt-in/out, and service worker handlers for push display/click navigation.
+  - Improved notification accessibility by adding dialog semantics and live status announcements to the notifications dropdown trigger/panel.
+- Why:
+  - Fixes production consistency issues where rate limits/caches diverge across instances and reduces duplicate concurrent work.
+  - Enables immediate laptop/phone browser alerts for tradies without relying only on email/in-app polling.
+  - Improves screen-reader support and interaction clarity for key notification UI.
+
+## 2026-03-24 14:25 (AEDT) - codex
+
+- Files changed:
+  - `actions/deal-actions.ts`
+  - `actions/tradie-actions.ts`
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced remaining high-impact server-side `console.error` calls in core deal/tradie action paths with structured `logger.error` calls including component/action context and key IDs.
+  - Added Kanban accessibility announcements via an `aria-live` status region and clearer board labeling so assistive technologies can track stage move outcomes/conflict refresh events.
+- Why:
+  - Structured logs are easier to query/correlate in production and improve incident debugging quality.
+  - Live region updates improve WCAG behavior for non-visual users when drag/drop and bulk actions complete or fail.
+
+## 2026-03-24 14:40 (AEDT) - codex
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `app/api/deals/route.ts`
+  - `app/api/contacts/route.ts`
+  - `components/crm/deal-detail-modal.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced additional `console.error` paths in chat actions and core contacts/deals API routes with structured logger calls and contextual metadata.
+  - Improved deal detail modal accessibility by adding screen-reader live announcements for async outcomes and proper tablist/tab/tabpanel semantics for the internal detail tabs.
+- Why:
+  - Continues the production logging hardening so backend failures are easier to diagnose by action and scope.
+  - Improves keyboard/screen-reader navigation and status feedback in one of the most-used CRM modals.
+
+## 2026-03-25 10:15 (AEDT) - codex
+
+- Files changed:
+  - `app/api/deals/[id]/route.ts`
+  - `app/api/activity/route.ts`
+  - `app/api/extension/import/route.ts`
+  - `app/api/stale-jobs/sync/route.ts`
+  - `lib/encryption.ts`
+  - `actions/user-actions.ts`
+  - `actions/referral-actions.ts`
+  - `__tests__/encryption.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Security remediation: added authenticated workspace-scoped access to deal/activity endpoints, removed open access from extension import + stale-jobs sync, made `ENCRYPTION_KEY` deterministic and required, refactored account deletion into a single DB transaction, and fixed the referral conversion double-award race by atomically claiming a per-workspace lock in `settings`.
+- Why:
+  - Prevents data leaks from unauthenticated or cross-workspace API access.
+  - Stops silent OAuth-token decryption failures after redeploys.
+  - Ensures deletes are all-or-nothing and avoids orphaned records.
+  - Prevents concurrent referral redemptions from awarding rewards twice.
+
+## 2026-03-25 18:30 (AEDT) – Cursor AI Agent
+
+- Files changed:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260325_add_action_execution_idempotency/migration.sql`
+  - `lib/idempotency.ts`
+  - `actions/task-actions.ts`, `actions/notification-actions.ts`, `actions/activity-actions.ts`
+  - `actions/chat-actions.ts`, `actions/automated-message-actions.ts`, `actions/reminder-actions.ts`
+  - `lib/ai/context.ts`, `livekit-agent/voice-prompts.ts`, `livekit-agent/agent.ts`
+  - `__tests__/idempotency.test.ts`, `__tests__/voice-prompts.test.ts`, `__tests__/dashboard-layout.test.tsx`, `__tests__/tracey-onboarding-email-preview.test.tsx`
+- Summary:
+  - Added DB-backed cross-system idempotency via a new Prisma `ActionExecution` model and `lib/idempotency.ts` so tasks, notifications, activity rows, email sends, and booking/job/trip SMS reminders don’t duplicate when multiple automation layers race.
+  - Improved negative-scope/no-go knowledge handling by deduping near-identical rules using word-overlap and enforcing `[HARD_CONSTRAINT]` as strict no-go while treating `[FLAG_ONLY]` as advisory for owner flags.
+- Why:
+  - Removes duplicate side-effects caused by uncoordinated automation subsystems.
+  - Prevents “near-miss” knowledge no-go duplicates and makes hard constraints consistently dominate prompt behaviour in both chat and voice grounding.
+
+## 2026-03-25 19:35 (AEDT) - codex
+
+- Files changed:
+  - `app/api/stale-jobs/sync/route.ts`
+  - `app/api/extension/import/route.ts`
+  - `extension/manifest.json`
+  - `extension/ARCHIVED.md`
+  - `.env.example`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Changed stale-jobs sync to be an **automatic/cron** endpoint protected by `CRON_SECRET` (`Authorization: Bearer ...`), instead of requiring a logged-in user session.
+  - Archived the paused real-estate browser extension and hard-disabled `/api/extension/import` by default (returns `410`) unless explicitly re-enabled via `ENABLE_ARCHIVED_REAL_ESTATE_EXTENSION=true`.
+- Why:
+  - Automatic background jobs cannot safely depend on a browser login session; they need a server-to-server secret.
+  - Prevents accidentally exposing or relying on a paused, unrelated real-estate feature inside the tradie CRM.

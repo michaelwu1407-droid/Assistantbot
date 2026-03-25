@@ -64,6 +64,7 @@ describe("voice prompt regression guards", () => {
         serviceRules: [],
         pricingItems: [],
         noGoRules: [],
+        flagOnlyRules: [],
       },
     );
 

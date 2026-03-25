@@ -14,6 +14,7 @@ import { preClassify } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logging";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -40,6 +41,21 @@ function looksLikeFollowUpDetail(text: string): boolean {
 
 /** Cost-effective Gemini model for chat + tools */
 const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
+
+function estimateTokens(text: string): number {
+  // Fast, conservative estimate: ~4 chars per token for English-like text.
+  return Math.ceil(text.length / 4);
+}
+
+function toText(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value ?? "");
+  }
+}
 
 type ParsedJob = {
   clientName: string;
@@ -218,7 +234,7 @@ export async function POST(req: Request) {
     }
 
     // Rate limit: 30 requests per minute per workspace
-    const rl = rateLimit(`chat:${workspaceId}`, 30, 60_000);
+    const rl = await rateLimit(`chat:${workspaceId}`, 30, 60_000);
     if (!rl.allowed) {
       return new Response(
         JSON.stringify({ error: "Too many requests. Please wait a moment." }),
@@ -278,7 +294,7 @@ export async function POST(req: Request) {
     }
 
     if (content) saveUserMessage(workspaceId, content).catch((err) => {
-      console.error("[chat] Failed to save user message:", err);
+      logger.error("Failed to save user message", { component: "chat-api", workspaceId }, err as Error);
     });
 
     // "Next" in multi-job flow: use persisted multi-job state from previous tool outputs.
@@ -599,21 +615,22 @@ export async function POST(req: Request) {
         recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
       },
     );
-    const systemPrompt = buildCrmChatSystemPrompt({
+    const workspaceContextBlocks = [
+      knowledgeBaseStr,
+      workingHoursStr,
+      agentScriptStr,
+      preferencesStr,
+      pricingRulesStr,
+      bouncerStr,
+      attachmentsStr,
+      memoryContextStr,
+      selectionContextStr,
+      intentHintsStr,
+    ];
+    let systemPrompt = buildCrmChatSystemPrompt({
       userRole,
       customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
-      workspaceContextBlocks: [
-        knowledgeBaseStr,
-        workingHoursStr,
-        agentScriptStr,
-        preferencesStr,
-        pricingRulesStr,
-        bouncerStr,
-        attachmentsStr,
-        memoryContextStr,
-        selectionContextStr,
-        intentHintsStr,
-      ],
+      workspaceContextBlocks,
       pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
 - For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
@@ -625,6 +642,35 @@ export async function POST(req: Request) {
       multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
       jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
     });
+
+    // Hard cap prompt growth to prevent over-limit requests/cost spikes.
+    const messagesTokenEstimate = estimateTokens(toText(modelMessages));
+    let totalInputTokenEstimate = estimateTokens(systemPrompt) + messagesTokenEstimate;
+    if (totalInputTokenEstimate > MAX_INPUT_TOKENS_ESTIMATE && memoryContextStr) {
+      const reducedPrompt = buildCrmChatSystemPrompt({
+        userRole,
+        customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
+        workspaceContextBlocks: workspaceContextBlocks.filter((b) => b !== memoryContextStr),
+        pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
+- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
+- Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
+- If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
+- When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
+        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+        roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
+        multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+        jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
+      });
+      systemPrompt = reducedPrompt;
+      totalInputTokenEstimate = estimateTokens(systemPrompt) + messagesTokenEstimate;
+    }
+    if (totalInputTokenEstimate > MAX_INPUT_TOKENS_ESTIMATE) {
+      return new Response(
+        JSON.stringify({ error: "This request is too large right now. Please send a shorter message or split it into steps." }),
+        { status: 413, headers: { "Content-Type": "application/json" } },
+      );
+    }
     const llmStartedAt = nowMs();
     let ttftRecorded = false;
     let ttftMs = 0;
@@ -701,12 +747,12 @@ export async function POST(req: Request) {
           }).then(() => {
             console.log(`[Mem0] Successfully saved interaction`);
           }).catch((error) => {
-            console.error("[Mem0] Error saving interaction:", error);
+          logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
           });
 
           // Note: Not awaiting to avoid blocking the response
         } catch (error) {
-          console.error("[Mem0] Error in memory storage:", error);
+          logger.error("Mem0 storage pipeline failed", { component: "chat-api", workspaceId, userId }, error as Error);
         }
       },
     });
@@ -716,7 +762,7 @@ export async function POST(req: Request) {
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
-    console.error("Chat API error:", error);
+    logger.error("Chat API error", { component: "chat-api" }, error as Error);
     return new Response(
       JSON.stringify({
         error: message.includes("GEMINI") || message.includes("API") ? "AI service error. Please try again." : message,

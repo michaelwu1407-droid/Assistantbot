@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { enrichFromEmail, type EnrichedCompany } from "@/lib/enrichment";
 import { fuzzySearch, type SearchableItem } from "@/lib/search";
@@ -345,18 +346,42 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
   const metadata: Record<string, unknown> = { ...(enriched ? { enriched: true, domain: enriched.domain, industry: enriched.industry, size: enriched.size, linkedinUrl: enriched.linkedinUrl } : {}) };
   if (parsed.data.contactType) metadata.contactType = parsed.data.contactType;
 
-  const contact = await db.contact.create({
-    data: {
-      name: parsed.data.name,
-      email: emailVal || null,
-      phone: parsed.data.phone || null,
-      address: parsed.data.address || null,
-      company: parsed.data.company ?? enriched?.name ?? null,
-      avatarUrl: enriched?.logoUrl ?? null,
-      workspaceId: parsed.data.workspaceId,
-      metadata: Object.keys(metadata).length > 0 ? (metadata as any) : undefined,
-    },
-  });
+  let contact;
+  try {
+    contact = await db.contact.create({
+      data: {
+        name: parsed.data.name,
+        email: emailVal || null,
+        phone: parsed.data.phone || null,
+        address: parsed.data.address || null,
+        company: parsed.data.company ?? enriched?.name ?? null,
+        avatarUrl: enriched?.logoUrl ?? null,
+        workspaceId: parsed.data.workspaceId,
+        metadata: Object.keys(metadata).length > 0 ? (metadata as any) : undefined,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const collided = await db.contact.findFirst({
+        where: {
+          workspaceId: parsed.data.workspaceId,
+          OR: [
+            emailVal ? { email: emailVal } : {},
+            parsed.data.phone ? { phone: parsed.data.phone } : {},
+          ],
+        },
+        select: { id: true },
+      });
+      if (collided) {
+        return { success: true as const, contactId: collided.id, enriched: null, merged: true };
+      }
+      return { success: false as const, error: "This contact already exists." };
+    }
+    throw error;
+  }
 
   // Trigger Automation (New Lead)
   await evaluateAutomations(parsed.data.workspaceId, {

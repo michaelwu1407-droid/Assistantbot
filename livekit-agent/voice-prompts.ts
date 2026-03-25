@@ -41,6 +41,7 @@ export type PromptWorkspaceVoiceGrounding = {
     description: string;
   }>;
   noGoRules: string[];
+  flagOnlyRules: string[];
 };
 
 function getRepresentedBusinessName(callType: PromptCallType, caller: PromptCallerContext): string {
@@ -85,6 +86,7 @@ function buildGroundingSnapshot(grounding?: PromptWorkspaceVoiceGrounding | null
     4,
   );
   const noGoHighlights = compactLines(grounding.noGoRules, 4);
+  const flagOnlyHighlights = compactLines(grounding.flagOnlyRules ?? [], 4);
 
   const sections: string[] = [];
   if (facts.length) sections.push(`Business facts:\n- ${facts.join("\n- ")}`);
@@ -92,6 +94,7 @@ function buildGroundingSnapshot(grounding?: PromptWorkspaceVoiceGrounding | null
   if (serviceHighlights.length) sections.push(`Known services snapshot:\n- ${serviceHighlights.join("\n- ")}`);
   if (pricingHighlights.length) sections.push(`Approved pricing snapshot:\n- ${pricingHighlights.join("\n- ")}`);
   if (noGoHighlights.length) sections.push(`No-go rules snapshot:\n- ${noGoHighlights.join("\n- ")}`);
+  if (flagOnlyHighlights.length) sections.push(`Flag-only rules snapshot (do NOT decline; instead flag and continue triage):\n- ${flagOnlyHighlights.join("\n- ")}`);
   return sections.join("\n\n");
 }
 

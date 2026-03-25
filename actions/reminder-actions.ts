@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getWorkspaceTwilioClient, twilioMasterClient } from "@/lib/twilio";
+import { runIdempotent } from "@/lib/idempotency";
 
 // Simple phone formatting function
 function formatPhoneE164(phone: string): string {
@@ -102,6 +103,9 @@ export async function sendJobReminder(dealId: string) {
       return { success: false, error: "Not time to send reminder yet" };
     }
 
+    // Used to dedupe concurrent cron/manual runs for the same booking window.
+    const sendTargetAt = new Date(scheduledTime.getTime() - reminderHours * 60 * 60 * 1000);
+
     // Send reminder SMS
     const customerName = deal.contact.name || "there";
     const jobDescription = deal.title || "your job";
@@ -121,26 +125,38 @@ export async function sendJobReminder(dealId: string) {
     const formattedPhone = formatPhoneE164(deal.contact.phone);
     console.log(`🔢 [JOB REMINDER] Formatted phone: ${formattedPhone}`);
 
-    await sendSms(
-      formattedPhone, 
-      message, 
-      workspace.twilioPhoneNumber,
-      workspace
-    );
+    const idem = await runIdempotent<{ activityId: string }>({
+      actionType: "JOB_REMINDER_SMS",
+      bucketAt: sendTargetAt,
+      parts: [dealId, formattedPhone, message],
+      resultFactory: async () => {
+        await sendSms(
+          formattedPhone,
+          message,
+          workspace.twilioPhoneNumber!,
+          workspace
+        );
 
-    console.log(`✅ [JOB REMINDER] SMS sent successfully to ${customerName}`);
+        console.log(`✅ [JOB REMINDER] SMS sent successfully to ${customerName}`);
 
-    // Log the reminder as an activity
-    const activity = await db.activity.create({
-      data: {
-        type: "NOTE",
-        title: "Job Reminder Sent",
-        content: `Automated reminder sent to ${customerName}: ${message}`,
-        dealId,
+        // Log the reminder as an activity
+        const activity = await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Job Reminder Sent",
+            content: `Automated reminder sent to ${customerName}: ${message}`,
+            dealId,
+          },
+        });
+
+        console.log(`📊 [JOB REMINDER] Activity logged: ${activity.id}`);
+        return { activityId: activity.id };
       },
     });
 
-    console.log(`📊 [JOB REMINDER] Activity logged: ${activity.id}`);
+    if (!idem.created) {
+      console.log(`ℹ️ [JOB REMINDER] Skipped duplicate reminder send for deal: ${dealId}`);
+    }
 
     revalidatePath("/crm", "layout");
     console.log(`🔄 [JOB REMINDER] Dashboard revalidated`);
@@ -208,26 +224,38 @@ export async function sendTripSms(dealId: string) {
     const formattedPhone = formatPhoneE164(deal.contact.phone);
     console.log(`🔢 [TRIP SMS] Formatted phone: ${formattedPhone}`);
 
-    await sendSms(
-      formattedPhone,
-      message,
-      workspace.twilioPhoneNumber,
-      workspace
-    );
+    const idem = await runIdempotent<{ activityId: string }>({
+      actionType: "TRIP_SMS",
+      bucketAt: new Date(),
+      parts: [dealId, formattedPhone, message],
+      resultFactory: async () => {
+        await sendSms(
+          formattedPhone,
+          message,
+          workspace.twilioPhoneNumber!,
+          workspace
+        );
 
-    console.log(`✅ [TRIP SMS] SMS sent successfully to ${customerName}`);
+        console.log(`✅ [TRIP SMS] SMS sent successfully to ${customerName}`);
 
-    // Log the trip SMS as an activity
-    const activity = await db.activity.create({
-      data: {
-        type: "NOTE",
-        title: "Trip SMS Sent",
-        content: `Automated trip SMS sent to ${customerName}: ${message}`,
-        dealId,
+        // Log the trip SMS as an activity
+        const activity = await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Trip SMS Sent",
+            content: `Automated trip SMS sent to ${customerName}: ${message}`,
+            dealId,
+          },
+        });
+
+        console.log(`📊 [TRIP SMS] Activity logged: ${activity.id}`);
+        return { activityId: activity.id };
       },
     });
 
-    console.log(`📊 [TRIP SMS] Activity logged: ${activity.id}`);
+    if (!idem.created) {
+      console.log(`ℹ️ [TRIP SMS] Skipped duplicate trip SMS for deal: ${dealId}`);
+    }
 
     revalidatePath("/crm", "layout");
     console.log(`🔄 [TRIP SMS] Dashboard revalidated`);

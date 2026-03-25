@@ -292,6 +292,7 @@ export function KanbanBoard({
   const dragGroupStagesRef = useRef<Map<string, string>>(new Map())
   const boardRef = useRef<HTMLDivElement | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [liveMessage, setLiveMessage] = useState("")
   /** Snapshot of selected ids at bulk drag start (for stacked overlay; refs don’t re-render). */
   const [bulkDragIds, setBulkDragIds] = useState<string[]>([])
 
@@ -460,6 +461,7 @@ export function KanbanBoard({
   const handleStageConflict = (result: { success: boolean; error?: string; code?: string }) => {
     if ((result as { code?: string }).code !== "CONFLICT") return false
     toast.error("This card was moved by someone else. Refreshing board...")
+    setLiveMessage("This card changed in another session. Board refreshed.")
     setDeals(initialDeals)
     router.refresh()
     return true
@@ -663,9 +665,11 @@ export function KanbanBoard({
         }
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved ${groupIds.length} jobs to ${colTitle}`)
+        setLiveMessage(`Moved ${groupIds.length} jobs to ${colTitle}.`)
       } catch (err) {
         console.error("Failed to update stage:", err)
         toast.error(err instanceof Error ? err.message : "Failed to save changes")
+        setLiveMessage("Could not move selected jobs.")
         restoreGroup()
       }
       clearDragRefs()
@@ -719,6 +723,7 @@ export function KanbanBoard({
       if (result.success) {
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved to ${colTitle}`)
+        setLiveMessage(`Moved to ${colTitle}.`)
       } else {
         if (handleStageConflict(result)) return
         throw new Error(result.error)
@@ -726,6 +731,7 @@ export function KanbanBoard({
     } catch (err) {
       console.error("Failed to update stage:", err)
       toast.error(err instanceof Error ? err.message : "Failed to save changes")
+      setLiveMessage("Could not update stage.")
       setDeals(initialDeals)
     }
     setTimeout(() => {
@@ -749,6 +755,7 @@ export function KanbanBoard({
       )
       const n = idsToDelete.length
       toast.success(`Moved ${n} job${n === 1 ? "" : "s"} to Deleted`)
+      setLiveMessage(`Moved ${n} jobs to Deleted.`)
       setSelectedDealIds([])
       setSelectionMode(false)
       setBulkDeleteOpen(false)
@@ -811,6 +818,9 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
+      <p className="sr-only" role="status" aria-live="polite">
+        {liveMessage}
+      </p>
       <div className={cn("flex min-h-0 flex-1 flex-col", className)} ref={boardRef}>
         <style jsx global>{`
           @keyframes kanban-card-wiggle {
@@ -874,6 +884,7 @@ export function KanbanBoard({
           {/* Scrollable card area */}
           <div
             id="kanban-board"
+            aria-label="Pipeline board"
             className="kanban-column-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-8 [-webkit-overflow-scrolling:touch]"
           >
             <div className="flex flex-col gap-3 md:grid md:grid-cols-6 md:gap-2 md:items-start">

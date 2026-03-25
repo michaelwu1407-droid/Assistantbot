@@ -10,6 +10,16 @@ const isEdge = process.env.NEXT_RUNTIME === 'edge';
 
 let prisma: PrismaClient | null = null;
 
+function withConnectionLimit(url: string): string {
+  const rawLimit = process.env.DB_CONNECTION_LIMIT ?? process.env.PRISMA_CONNECTION_LIMIT ?? "5";
+  const parsedLimit = Number.parseInt(rawLimit, 10);
+  const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5;
+  const hasParam = /([?&])connection_limit=/.test(url);
+  if (hasParam) return url;
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}connection_limit=${safeLimit}`;
+}
+
 if (isEdge) {
   // In Edge runtime, we can't use Prisma. 
   // This file should NOT be imported in middleware.
@@ -18,7 +28,9 @@ if (isEdge) {
   prisma = null;
 } else {
   if (!globalThis.prisma) {
+    const datasourceUrl = withConnectionLimit(process.env.DATABASE_URL);
     globalThis.prisma = new PrismaClient({
+      datasources: { db: { url: datasourceUrl } },
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     });
   }

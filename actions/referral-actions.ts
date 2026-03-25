@@ -290,17 +290,6 @@ export async function processReferralConversionForCheckout(referralCode: string,
   const normalizedCode = referralCode.trim().toUpperCase();
   if (!normalizedCode) return { success: false, error: "Missing referral code" };
 
-  const referredWorkspace = await db.workspace.findUnique({
-    where: { id: referredWorkspaceId },
-    select: { settings: true },
-  });
-  if (!referredWorkspace) return { success: false, error: "Referred workspace not found" };
-
-  const currentSettings = (referredWorkspace.settings as Record<string, unknown>) ?? {};
-  if ((currentSettings.referralConversionProcessed as boolean) === true) {
-    return { success: true, alreadyProcessed: true };
-  }
-
   const referral = await db.referral.findUnique({
     where: { referralCode: normalizedCode },
     include: { program: true },
@@ -308,6 +297,42 @@ export async function processReferralConversionForCheckout(referralCode: string,
   if (!referral) return { success: false, error: "Invalid referral code" };
   if (referral.userId === referredUserId) return { success: false, error: "Self-referral is not allowed" };
 
+  // Atomic lock claim: only one concurrent redemption can flip
+  // `settings.referralConversionProcessed` from false -> true.
+  const convertedAt = new Date().toISOString();
+  const lockUpdatedCount = await db.$executeRawUnsafe(
+    `
+      UPDATE "Workspace"
+      SET "settings" =
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              COALESCE("settings"::jsonb, '{}'::jsonb),
+              '{referralConversionProcessed}',
+              'true'::jsonb,
+              true
+            ),
+            '{referralCodeUsed}',
+            to_jsonb($2::text),
+            true
+          ),
+          '{referralConvertedAt}',
+          to_jsonb($3::text),
+          true
+        )
+      WHERE "id" = $1
+        AND COALESCE((COALESCE("settings"::jsonb,'{}'::jsonb)->>'referralConversionProcessed')::boolean, false) = false
+    `,
+    referredWorkspaceId,
+    normalizedCode,
+    convertedAt
+  );
+
+  if (lockUpdatedCount === 0) {
+    return { success: true, alreadyProcessed: true };
+  }
+
+  // Update referral counters (only the locked caller runs).
   await db.referral.update({
     where: { id: referral.id },
     data: {
@@ -316,18 +341,6 @@ export async function processReferralConversionForCheckout(referralCode: string,
       conversionsCount: { increment: 1 },
       referrerRewardEarned: { increment: referral.program.rewardValue },
       referredRewardEarned: { increment: referral.program.referredRewardValue },
-    },
-  });
-
-  await db.workspace.update({
-    where: { id: referredWorkspaceId },
-    data: {
-      settings: {
-        ...currentSettings,
-        referralConversionProcessed: true,
-        referralCodeUsed: normalizedCode,
-        referralConvertedAt: new Date().toISOString(),
-      },
     },
   });
 

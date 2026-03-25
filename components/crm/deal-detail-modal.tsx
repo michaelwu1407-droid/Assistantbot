@@ -146,6 +146,7 @@ function DealDetailContent({
   })
 
   const [stageChanging, setStageChanging] = useState(false)
+  const [liveMessage, setLiveMessage] = useState("")
 
   const handleStageConflict = (result: { success: boolean; error?: string; code?: string }) => {
     if ((result as { code?: string }).code !== "CONFLICT") return false
@@ -173,9 +174,11 @@ function DealDetailContent({
       if (!result.success) {
         if (handleStageConflict(result)) return
         toast.error(result.error ?? "Could not update stage")
+        setLiveMessage("Could not update stage.")
         return
       }
       toast.success("Stage updated")
+      setLiveMessage("Stage updated.")
       const res = await fetch(`/api/deals/${deal.id}`)
       if (res.ok) {
         const data = await res.json()
@@ -243,15 +246,18 @@ function DealDetailContent({
       const result = await approveCompletion(deal.id)
       if (result.success) {
         toast.success("Job approved and marked completed")
+        setLiveMessage("Job approved and marked completed.")
         setDeal((d: any) => ({ ...d, stage: "WON" }))
         onOpenChange(false)
         onDealUpdated?.()
         router.refresh()
       } else {
         toast.error(result.error ?? "Failed to approve")
+        setLiveMessage("Could not approve completion.")
       }
     } catch {
       toast.error("Failed to approve")
+      setLiveMessage("Could not approve completion.")
     }
   }
 
@@ -260,19 +266,23 @@ function DealDetailContent({
       const result = await rejectCompletion(deal.id, rejectReason ?? undefined)
       if (result.success) {
         toast.success("Completion rejected. You can edit the job and move it back to Completed when ready.")
+        setLiveMessage("Completion rejected.")
         onOpenChange(false)
         onDealUpdated?.()
         router.refresh()
       } else {
         toast.error(result.error ?? "Failed to reject")
+        setLiveMessage("Could not reject completion.")
       }
     } catch {
       toast.error("Failed to reject")
+      setLiveMessage("Could not reject completion.")
     }
   }
 
   return (
     <>
+      <p className="sr-only" role="status" aria-live="polite">{liveMessage}</p>
       {overdueStyling.badgeText && !overdueDismissed && (
         <div
           className={cn(
@@ -559,11 +569,15 @@ function DealDetailContent({
                 </Button>
               </Link>
             </div>
-            <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0">
+            <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
               {["activities", "jobs", "notes"].map((t) => (
                 <button
                   key={t}
                   onClick={() => setActiveDetailTab(t as any)}
+                  role="tab"
+                  aria-selected={activeDetailTab === t}
+                  aria-controls={`deal-tab-${t}`}
+                  id={`deal-tab-btn-${t}`}
                   className={cn(
                     "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
                     activeDetailTab === t ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -575,7 +589,7 @@ function DealDetailContent({
             </div>
             <div className="flex-1 overflow-hidden min-h-0">
               {activeDetailTab === "jobs" && (
-                <div className="h-full overflow-y-auto p-3 space-y-2">
+                <div id="deal-tab-jobs" role="tabpanel" aria-labelledby="deal-tab-btn-jobs" className="h-full overflow-y-auto p-3 space-y-2">
                   {contactDeals.length === 0 ? (
                     <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
                   ) : (
@@ -597,12 +611,12 @@ function DealDetailContent({
                 </div>
               )}
               {activeDetailTab === "notes" && (
-                <div className="h-full overflow-y-auto p-3">
+                <div id="deal-tab-notes" role="tabpanel" aria-labelledby="deal-tab-btn-notes" className="h-full overflow-y-auto p-3">
                   <DealNotes dealId={deal.id} initialNotes={notes} />
                 </div>
               )}
               {activeDetailTab === "activities" && (
-                <div className="h-full overflow-hidden flex flex-col min-h-0">
+                <div id="deal-tab-activities" role="tabpanel" aria-labelledby="deal-tab-btn-activities" className="h-full overflow-hidden flex flex-col min-h-0">
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
                   <div className="p-3 border-t bg-slate-50/50 shrink-0">

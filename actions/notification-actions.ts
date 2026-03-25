@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { sendPushToUser } from "@/lib/push-notifications";
+import { runIdempotent } from "@/lib/idempotency";
 
 export interface NotificationView {
   id: string;
@@ -31,6 +33,17 @@ function normalizeNotificationType(type?: string): NotificationSeverity {
     return normalized;
   }
   return "INFO";
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(",")}]`;
+
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  const entries = keys.map((k) => `${k}:${stableStringify(obj[k])}`);
+  return `{${entries.join(",")}}`;
 }
 
 /**
@@ -97,17 +110,66 @@ export async function createNotification(data: {
   actionType?: string;
   actionPayload?: Record<string, unknown>;
 }) {
-  await db.notification.create({
-    data: {
-      userId: data.userId,
-      title: data.title,
-      message: data.message,
-      type: normalizeNotificationType(data.type),
-      link: data.link,
-      ...(data.actionType ? { actionType: data.actionType } : {}),
-      ...(data.actionPayload ? { actionPayload: data.actionPayload as Prisma.InputJsonValue } : {}),
+  const normalizedType = normalizeNotificationType(data.type);
+
+  const bucketAt = new Date();
+  const res = await runIdempotent<{ notificationId: string }>({
+    actionType: "NOTIFICATION_CREATE",
+    bucketAt,
+    parts: [
+      data.userId,
+      data.title.trim().toLowerCase(),
+      data.message,
+      normalizedType,
+      data.link ?? "",
+      data.actionType ?? "",
+      stableStringify(data.actionPayload),
+    ],
+    resultFactory: async () => {
+      const user = await db.user.findUnique({
+        where: { id: data.userId },
+        select: { workspaceId: true },
+      });
+      const workspace = user
+        ? await db.workspace.findUnique({
+            where: { id: user.workspaceId },
+            select: { settings: true },
+          })
+        : null;
+      const prefs = ((workspace?.settings as Record<string, unknown> | null)?.notificationPreferences ??
+        {}) as Partial<NotificationPreferences>;
+
+      const notification = await db.notification.create({
+        data: {
+          userId: data.userId,
+          title: data.title,
+          message: data.message,
+          type: normalizedType,
+          link: data.link,
+          ...(data.actionType ? { actionType: data.actionType } : {}),
+          ...(data.actionPayload
+            ? { actionPayload: data.actionPayload as Prisma.InputJsonValue }
+            : {}),
+        },
+      });
+
+      if (prefs.webPushEnabled) {
+        await sendPushToUser(data.userId, {
+          title: data.title,
+          body: data.message,
+          url: data.link ?? "/crm/dashboard",
+        }).catch(() => {});
+      }
+
+      return { notificationId: notification.id };
     },
   });
+
+  if (!res.result?.notificationId) {
+    // If idempotency still hasn't materialised a result (rare), keep behaviour safe.
+    return { success: true };
+  }
+
   return { success: true };
 }
 
@@ -118,6 +180,7 @@ export interface NotificationPreferences {
   emailWeeklySummary: boolean
   inAppTaskReminders: boolean
   inAppStaleDealAlerts: boolean
+  webPushEnabled: boolean
 }
 
 const DEFAULT_PREFS: NotificationPreferences = {
@@ -126,6 +189,7 @@ const DEFAULT_PREFS: NotificationPreferences = {
   emailWeeklySummary: true,
   inAppTaskReminders: true,
   inAppStaleDealAlerts: true,
+  webPushEnabled: false,
 }
 
 /**

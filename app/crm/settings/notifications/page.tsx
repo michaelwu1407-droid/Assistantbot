@@ -15,10 +15,20 @@ import {
 } from "@/actions/notification-actions"
 import { toast } from "sonner"
 
+function base64UrlToUint8Array(base64Url: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4)
+  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
 export default function NotificationsSettingsPage() {
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null)
   const [saving, setSaving] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
 
   useEffect(() => {
     getNotificationPreferences()
@@ -30,6 +40,7 @@ export default function NotificationsSettingsPage() {
           emailWeeklySummary: true,
           inAppTaskReminders: true,
           inAppStaleDealAlerts: true,
+          webPushEnabled: false,
         })
       })
   }, [])
@@ -60,6 +71,62 @@ export default function NotificationsSettingsPage() {
       toast.error("Failed to send test notification")
     } finally {
       setSendingTest(false)
+    }
+  }
+
+  const setWebPush = async (enabled: boolean) => {
+    if (!prefs) return
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidPublicKey) {
+      toast.error("Push is not configured yet (missing VAPID key).")
+      return
+    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      toast.error("This browser does not support push notifications.")
+      return
+    }
+    setPushBusy(true)
+    try {
+      const registration = await navigator.serviceWorker.ready
+      if (!enabled) {
+        const existing = await registration.pushManager.getSubscription()
+        if (existing) {
+          await fetch("/api/push/unsubscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: existing.endpoint }),
+          })
+          await existing.unsubscribe()
+        }
+        await updatePref("webPushEnabled", false)
+        toast.success("Push notifications turned off")
+        return
+      }
+
+      const permission = await Notification.requestPermission()
+      if (permission !== "granted") {
+        toast.error("Please allow browser notifications to enable push.")
+        return
+      }
+      const existing = await registration.pushManager.getSubscription()
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(vapidPublicKey) as unknown as BufferSource,
+        }))
+      const payload = subscription.toJSON()
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      await updatePref("webPushEnabled", true)
+      toast.success("Push notifications enabled")
+    } catch {
+      toast.error("Could not update push notifications")
+    } finally {
+      setPushBusy(false)
     }
   }
 
@@ -145,6 +212,19 @@ export default function NotificationsSettingsPage() {
               <p className="text-sm text-muted-foreground">Alert when deals need attention.</p>
             </div>
             <Switch checked={prefs.inAppStaleDealAlerts} onCheckedChange={(v) => updatePref("inAppStaleDealAlerts", v)} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Browser push notifications</Label>
+              <p className="text-sm text-muted-foreground">Get instant phone/laptop browser alerts for new app notifications.</p>
+            </div>
+            <Switch
+              checked={prefs.webPushEnabled}
+              disabled={pushBusy}
+              onCheckedChange={(v) => {
+                void setWebPush(v)
+              }}
+            />
           </div>
           <Button variant="outline" onClick={handleSendTest} disabled={sendingTest}>
             {sendingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

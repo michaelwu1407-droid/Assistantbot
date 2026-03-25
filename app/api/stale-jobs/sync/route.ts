@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { scanAndUpdateStaleJobs } from "@/actions/stale-job-actions"
+import { logger } from "@/lib/logging"
+
+function isAuthorizedCron(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  const authHeader = req.headers.get("authorization")
+  return authHeader === `Bearer ${cronSecret}`
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { workspaceId } = body
+    if (!isAuthorizedCron(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({} as any))
+    const workspaceId = typeof body?.workspaceId === "string" ? body.workspaceId : undefined
 
     const result = await scanAndUpdateStaleJobs(workspaceId)
 
@@ -22,7 +34,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error in stale jobs sync API:", error)
+    logger.error("Error in stale jobs sync API", { component: "api/stale-jobs/sync", action: "POST" }, error as Error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -31,8 +43,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Also support GET for easier testing
   try {
+    if (!isAuthorizedCron(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get("workspaceId") || undefined
 
@@ -52,7 +67,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error in stale jobs sync API:", error)
+    logger.error("Error in stale jobs sync API", { component: "api/stale-jobs/sync", action: "GET" }, error as Error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

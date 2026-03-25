@@ -157,3 +157,5 @@ Updated: 2026-03-21 AEDT
 - Audit history is useful, but agents need a short curated voice handoff doc to avoid re-learning the same lessons from a bloated changelog.
 - Container health plus launch-readiness plus spoken-canary truth is a better worker release gate than heartbeat-only verification.
 - The spoken canary should correlate on persisted call start time plus caller/called numbers, not row creation time alone, because call rows can be written after the live call has already finished.
+
+- Knowledge no-go matching is now deduped using word-overlap and strict `[HARD_CONSTRAINT]` dominance (with `[FLAG_ONLY]` treated as advisory flags) so both chat and voice grounding avoid near-duplicate exclusions and apply consistent precedence.

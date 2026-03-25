@@ -288,9 +288,9 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runGetInvoiceStatusAction(workspaceId, params),
         }),
         updateAiPreferences: tool({
-            description: "Save a permanent behavioral rule. Prefix [HARD_CONSTRAINT] to strictly decline or [FLAG_ONLY] to just flag.",
+            description: "Add a permanent rule/preference. The assistant will save it in the strongest enforceable way available and repeat the exact rule it will enforce. If it conflicts, it will refuse.",
             inputSchema: z.object({
-                rule: z.string().describe("The rule to save. Prefix with [HARD_CONSTRAINT] or [FLAG_ONLY]."),
+                rule: z.string().describe("The exact rule text to save (e.g. \"Don't do gas work\", \"Call-out fee is $0\")."),
             }),
             execute: async ({ rule }) => runUpdateAiPreferences(workspaceId, rule),
         }),

@@ -176,6 +176,7 @@ type WorkspaceVoiceGrounding = {
     description: string;
   }>;
   noGoRules: string[];
+  flagOnlyRules: string[];
   ownerPhone: string | null;
 };
 

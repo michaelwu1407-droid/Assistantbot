@@ -11,6 +11,8 @@ import { createTask } from "./task-actions";
 import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
+import { allocateWorkspaceInvoiceNumber } from "@/lib/invoice-number";
+import { logger } from "@/lib/logging";
 import { Prisma } from "@prisma/client";
 
 const GST_RATE = new Prisma.Decimal("0.10");
@@ -365,7 +367,7 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
       }
     });
   } catch (e) {
-    console.error("Error updating job status", e);
+    logger.error("Error updating job status", { component: "tradie-actions", action: "updateJobStatus", jobId }, e as Error);
     MonitoringService.logError(e as Error, { action: "updateJobStatus", jobId, targetStatus: status });
     return { success: false, error: "Failed to update status" };
   }
@@ -476,7 +478,7 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
     revalidatePath('/crm/tradie/schedule');
     return { success: true, scheduledAt: deal.scheduledAt };
   } catch (error) {
-    console.error("Failed to update schedule:", error);
+    logger.error("Failed to update schedule", { component: "tradie-actions", action: "updateJobSchedule", jobId }, error as Error);
     MonitoringService.logError(error as Error, { action: "updateJobSchedule", jobId });
     return { success: false, error: "Failed to update schedule" };
   }
@@ -506,7 +508,7 @@ export async function saveJobPhoto(dealId: string, url: string, caption?: string
     revalidatePath(`/crm/jobs/${dealId}`);
     return { success: true };
   } catch (error) {
-    console.error("Failed to save photo:", error);
+    logger.error("Failed to save photo", { component: "tradie-actions", action: "saveJobPhoto", dealId }, error as Error);
     return { success: false, error: "Failed to save photo record" };
   }
 }
@@ -604,7 +606,7 @@ export async function generateQuote(
   });
 
   // Create an Invoice record
-  const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+  const invoiceNumber = await allocateWorkspaceInvoiceNumber(deal.workspaceId);
   await db.invoice.create({
     data: {
       number: invoiceNumber,
@@ -944,7 +946,7 @@ export async function emailInvoice(invoiceId: string) {
   });
 
   if (resendError) {
-    console.error("[emailInvoice] Resend error:", resendError);
+    logger.error("Resend error while emailing invoice", { component: "tradie-actions", action: "emailInvoice", invoiceId }, resendError as Error);
     return { success: false, error: `Failed to send: ${resendError.message}` };
   }
 
@@ -1151,7 +1153,7 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
     revalidatePath(`/crm/tradie/jobs/${dealId}`);
     return { success: true };
   } catch (error) {
-    console.error("Error completing job:", error);
+    logger.error("Error completing job", { component: "tradie-actions", action: "completeJob", dealId }, error as Error);
     return { success: false, error: "Failed to complete job" };
   }
 }
@@ -1248,7 +1250,7 @@ export async function finalizeJobCompletion(jobId: string, payload: { isPaid: bo
     return result;
 
   } catch (error) {
-    console.error("Failed to finalize job completion:", error);
+    logger.error("Failed to finalize job completion", { component: "tradie-actions", action: "finalizeJobCompletion", jobId }, error as Error);
     MonitoringService.logError(error as Error, { action: "finalizeJobCompletion", jobId });
     return { success: false, error: "Encountered a server error." };
   }

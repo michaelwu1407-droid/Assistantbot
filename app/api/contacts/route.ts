@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContacts } from '@/actions/contact-actions';
 import { requireCurrentWorkspaceAccess } from '@/lib/workspace-access';
+import { logger } from '@/lib/logging';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     const contacts = await getContacts(actor.workspaceId, { page, pageSize });
     return NextResponse.json(contacts);
   } catch (error) {
-    console.error('Contacts API error:', error);
+    logger.error('Contacts API error', { component: 'api/contacts', action: 'GET' }, error as Error);
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     // For now, return a placeholder response
     return NextResponse.json({ message: 'Contact creation not implemented yet' }, { status: 501 });
   } catch (error) {
-    console.error('Contact creation API error:', error);
+    logger.error('Contact creation API error', { component: 'api/contacts', action: 'POST' }, error as Error);
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

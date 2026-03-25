@@ -70,6 +70,10 @@ vi.mock("@/components/ui/sonner", () => ({
   Toaster: () => <div data-testid="toaster" />,
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getAuthUser: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("@/components/layout/shell-initializer", () => ({
   ShellInitializer: ({ workspaceId }: { workspaceId: string }) => (
     <div data-testid="shell-initializer">{workspaceId}</div>

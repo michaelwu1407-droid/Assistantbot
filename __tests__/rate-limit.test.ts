@@ -8,20 +8,20 @@ describe("rateLimit", () => {
     return `test:${++keyCounter}:${Date.now()}`;
   }
 
-  it("allows requests under the limit", () => {
+  it("allows requests under the limit", async () => {
     const key = uniqueKey();
     for (let i = 0; i < 5; i++) {
-      const result = rateLimit(key, 5, 60_000);
+      const result = await rateLimit(key, 5, 60_000);
       expect(result.allowed).toBe(true);
     }
   });
 
-  it("blocks requests over the limit", () => {
+  it("blocks requests over the limit", async () => {
     const key = uniqueKey();
     for (let i = 0; i < 3; i++) {
-      rateLimit(key, 3, 60_000);
+      await rateLimit(key, 3, 60_000);
     }
-    const result = rateLimit(key, 3, 60_000);
+    const result = await rateLimit(key, 3, 60_000);
     expect(result.allowed).toBe(false);
     if (!result.allowed) {
       expect(result.retryAfterMs).toBeGreaterThan(0);
@@ -32,22 +32,22 @@ describe("rateLimit", () => {
   it("resets after window expires", async () => {
     const key = uniqueKey();
     // Use a very short window
-    rateLimit(key, 1, 50);
-    const blocked = rateLimit(key, 1, 50);
+    await rateLimit(key, 1, 50);
+    const blocked = await rateLimit(key, 1, 50);
     expect(blocked.allowed).toBe(false);
 
     // Wait for window to expire
     await new Promise((resolve) => setTimeout(resolve, 60));
-    const result = rateLimit(key, 1, 50);
+    const result = await rateLimit(key, 1, 50);
     expect(result.allowed).toBe(true);
   });
 
-  it("tracks different keys independently", () => {
+  it("tracks different keys independently", async () => {
     const keyA = uniqueKey();
     const keyB = uniqueKey();
-    rateLimit(keyA, 1, 60_000);
-    const blockedA = rateLimit(keyA, 1, 60_000);
-    const allowedB = rateLimit(keyB, 1, 60_000);
+    await rateLimit(keyA, 1, 60_000);
+    const blockedA = await rateLimit(keyA, 1, 60_000);
+    const allowedB = await rateLimit(keyB, 1, 60_000);
     expect(blockedA.allowed).toBe(false);
     expect(allowedB.allowed).toBe(true);
   });

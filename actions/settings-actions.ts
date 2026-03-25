@@ -325,6 +325,27 @@ export async function updateAiPreferences(workspaceId: string, rule: string) {
     return { success: true }
 }
 
+export async function setWorkspaceCallOutFee(workspaceId: string, callOutFee: number) {
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
+    if (!workspace) return { success: false, error: "workspace_not_found" as const }
+
+    const nextFee = Number.isFinite(callOutFee) ? Math.max(0, Number(callOutFee)) : 0
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: { callOutFee: nextFee },
+    })
+
+    // Bust context cache so the new fee takes effect immediately
+    const { invalidateAgentContextCache } = await import("@/lib/ai/context");
+    invalidateAgentContextCache(workspaceId);
+
+    revalidatePath("/crm/settings")
+    revalidatePath("/crm/settings/agent")
+    revalidatePath("/crm/settings/pricing")
+
+    return { success: true, callOutFee: nextFee }
+}
+
 /**
  * Fetch workspace settings by workspaceId directly (no session auth needed).
  * Used by API routes where cookies may not be available.

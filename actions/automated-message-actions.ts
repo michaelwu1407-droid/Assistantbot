@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
+import { runIdempotent } from "@/lib/idempotency";
 
 export interface AutomatedMessageRuleView {
   id: string;
@@ -233,6 +234,11 @@ export async function processBookingReminders(): Promise<{
         .replace(/\{\{scheduledTime\}\}/g, scheduledTime)
         .replace(/\{\{businessName\}\}/g, workspace?.name || "Our team");
 
+      const scheduledAt = job.scheduledAt ? new Date(job.scheduledAt) : new Date();
+      const sendTargetAt = new Date(
+        scheduledAt.getTime() + (rule.hoursOffset ?? -24) * 60 * 60 * 1000
+      );
+
       // Send SMS if workspace has Twilio configured
       if (
         rule.channel !== "email" &&
@@ -240,26 +246,37 @@ export async function processBookingReminders(): Promise<{
         workspace?.twilioSubaccountId
       ) {
         try {
-          const { getWorkspaceTwilioClient } = await import("@/lib/twilio");
-          const client = getWorkspaceTwilioClient(workspace);
-          if (!client) {
-            throw new Error("No usable Twilio messaging client is available for this workspace");
-          }
-          await retryWithBackoff(() =>
-            client.messages.create({
-              to: job.contact!.phone!,
-              from: workspace!.twilioPhoneNumber!,
-              body: message,
-            })
-          );
+          const smsRes = await runIdempotent<{ sentAt: string }>({
+            actionType: "BOOKING_REMINDER_SMS",
+            bucketAt: sendTargetAt,
+            parts: [job.id, job.contactId ?? "", job.contact?.phone ?? "", message],
+            resultFactory: async () => {
+              const { getWorkspaceTwilioClient } = await import("@/lib/twilio");
+              const client = getWorkspaceTwilioClient(workspace);
+              if (!client) {
+                throw new Error("No usable Twilio messaging client is available for this workspace");
+              }
 
-          // ── Mark as sent (dedup flag) ──
-          await db.deal.update({
-            where: { id: job.id },
-            data: { lastReminderSentAt: new Date() },
+              await retryWithBackoff(() =>
+                client.messages.create({
+                  to: job.contact!.phone!,
+                  from: workspace!.twilioPhoneNumber!,
+                  body: message,
+                })
+              );
+
+              // ── Mark as sent (dedup flag) ──
+              const sentAt = new Date();
+              await db.deal.update({
+                where: { id: job.id },
+                data: { lastReminderSentAt: sentAt },
+              });
+
+              return { sentAt: sentAt.toISOString() };
+            },
           });
 
-          sent++;
+          if (smsRes.created) sent++;
         } catch (err) {
           console.error(
             `[BookingReminder] SMS failed for job ${job.id} after retries:`,
@@ -270,15 +287,23 @@ export async function processBookingReminders(): Promise<{
         }
       }
 
-      // Log the reminder as an activity (only after successful send)
+      // Log the reminder as an activity (idempotent: no duplicates on race)
       try {
-        await db.activity.create({
-          data: {
-            type: "NOTE",
-            title: "Automated 24h Booking Reminder Sent",
-            content: message,
-            dealId: job.id,
-            contactId: job.contactId,
+        await runIdempotent<{ activityLogged: boolean }>({
+          actionType: "BOOKING_REMINDER_ACTIVITY",
+          bucketAt: sendTargetAt,
+          parts: [job.id, job.contactId ?? "", message],
+          resultFactory: async () => {
+            await db.activity.create({
+              data: {
+                type: "NOTE",
+                title: "Automated 24h Booking Reminder Sent",
+                content: message,
+                dealId: job.id,
+                contactId: job.contactId,
+              },
+            });
+            return { activityLogged: true };
           },
         });
       } catch {
