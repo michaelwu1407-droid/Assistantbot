@@ -62,22 +62,22 @@ export function Navbar() {
                     <div
                         className={`absolute left-1/2 top-full z-50 pt-3 transition-all duration-200 ${isSolutionsOpen ? "pointer-events-auto visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-1 opacity-0"}`}
                     >
-                        <div className="w-[540px] -translate-x-1/2 rounded-[28px] border border-slate-200 bg-white/96 p-5 shadow-2xl backdrop-blur-xl">
-                            <div className="grid grid-cols-[180px_1fr] gap-5">
+                        <div className="w-[480px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl backdrop-blur-xl">
+                            <div className="flex gap-4">
                                 <Link
                                     href="/solutions"
-                                    className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-4 text-[15px] font-bold text-midnight underline decoration-2 underline-offset-4 transition-colors hover:bg-emerald-50"
+                                    className="self-start rounded-xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-[14px] font-bold text-midnight underline decoration-2 underline-offset-4 transition-colors hover:bg-emerald-50"
                                     onClick={() => setIsSolutionsOpen(false)}
                                 >
                                     Trade services
                                 </Link>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid flex-1 grid-cols-2 gap-x-1 gap-y-0.5">
                                     {TRADE_SERVICES.map((service) => (
                                         <Link
                                             key={service.slug}
                                             href={`/solutions/${service.slug}`}
-                                            className="rounded-2xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-midnight"
+                                            className="rounded-lg px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-midnight"
                                             onClick={() => setIsSolutionsOpen(false)}
                                         >
                                             {service.navLabel}
