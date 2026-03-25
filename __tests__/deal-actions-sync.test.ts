@@ -35,6 +35,13 @@ vi.mock("@/lib/workspace-access", () => ({
   requireCurrentWorkspaceAccess: vi.fn().mockResolvedValue({ id: "user_1", workspaceId: "ws_1", email: "test@test.com", name: "Test" }),
   requireDealInCurrentWorkspace: vi.fn().mockResolvedValue(true),
 }));
+vi.mock("@/lib/auth", () => ({
+  getAuthUser: vi.fn().mockResolvedValue({
+    id: "user_1",
+    name: "Test User",
+    email: "test@test.com",
+  }),
+}));
 vi.mock("@/lib/workspace-audit", () => ({
   recordWorkspaceAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));

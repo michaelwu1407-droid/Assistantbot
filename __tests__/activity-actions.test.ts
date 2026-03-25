@@ -7,6 +7,15 @@ const dbMocks = vi.hoisted(() => ({
   voiceCall: {
     findMany: vi.fn(),
   },
+  workspace: {
+    findUnique: vi.fn(),
+  },
+  webhookEvent: {
+    findMany: vi.fn(),
+  },
+  contact: {
+    findFirst: vi.fn(),
+  },
   deal: {
     findUnique: vi.fn(),
   },
@@ -23,6 +32,9 @@ describe("getActivities", () => {
     vi.clearAllMocks();
     dbMocks.activity.findMany.mockResolvedValue([]);
     dbMocks.voiceCall.findMany.mockResolvedValue([]);
+    dbMocks.workspace.findUnique.mockResolvedValue(null);
+    dbMocks.webhookEvent.findMany.mockResolvedValue([]);
+    dbMocks.contact.findFirst.mockResolvedValue(null);
     dbMocks.deal.findUnique.mockResolvedValue(null);
   });
 
