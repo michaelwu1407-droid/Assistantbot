@@ -183,7 +183,8 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
 }
 
 // Process successful referral (called when referred user completes key action)
-export async function processReferralConversion(referralCode: string, referredUserId: string) {
+export async function processReferralConversion(referralCode: string, _referredUserId: string) {
+  void _referredUserId;
   try {
     const referral = await db.referral.findUnique({
       where: { referralCode },

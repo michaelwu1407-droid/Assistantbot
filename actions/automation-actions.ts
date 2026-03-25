@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { createNotification } from "./notification-actions";
 import { createTask } from "./task-actions";
 import { runSendEmail } from "./chat-actions";
-import { getTemplates, renderTemplate } from "./template-actions";
+import { renderTemplate } from "./template-actions";
 import { logActivity } from "./activity-actions";
 import { DealStage } from "@prisma/client";
 
@@ -74,7 +74,7 @@ const CreateAutomationSchema = z.object({
 
 // ─── Pre-built Recipes ──────────────────────────────────────────────
 
-const PRESET_AUTOMATIONS = [
+export const PRESET_AUTOMATIONS = [
   {
     name: "Stale deal alert (5 days in Negotiation)",
     trigger: { event: "deal_stale" as const, threshold_days: 5, stage: "NEGOTIATION" },

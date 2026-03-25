@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useRef, ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -88,8 +89,8 @@ export function DealPhotosUpload({ dealId, initialPhotos }: DealPhotosUploadProp
       {initialPhotos.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {initialPhotos.map((photo) => (
-            <div key={photo.id} className="w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-              <img src={photo.url} alt={photo.caption || "Job"} className="w-full h-full object-cover" />
+            <div key={photo.id} className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+              <Image src={photo.url} alt={photo.caption || "Job"} fill unoptimized className="object-cover" />
             </div>
           ))}
         </div>

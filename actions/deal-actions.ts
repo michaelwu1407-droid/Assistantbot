@@ -19,7 +19,7 @@ import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/
 import { removeGoogleCalendarEventForDeal, syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { recordSyncIssue } from "@/lib/sync-issues";
-import { kanbanStageRequiresScheduledDate, prismaStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
+import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
 import { logger } from "@/lib/logging";
 import {
   KANBAN_COLUMN_SORT_ORDER,

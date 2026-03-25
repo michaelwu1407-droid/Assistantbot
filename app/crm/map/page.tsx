@@ -29,6 +29,10 @@ export default async function DashboardMapPage() {
         redirect("/auth")
     }
 
+    let displayJobs = null
+    let todayCount = 0
+    let errorMessage: string | null = null
+
     try {
         const workspace = await getOrCreateWorkspace(userId)
         // Server-side filtering: only fetch scheduled, non-deleted deals
@@ -36,7 +40,7 @@ export default async function DashboardMapPage() {
             excludeStages: ["DELETED"],
             requireScheduled: true,
         })
-        const displayJobs = scheduledDeals.map(dealToMapJob)
+        displayJobs = scheduledDeals.map(dealToMapJob)
 
         const todayStart = new Date()
         todayStart.setHours(0, 0, 0, 0)
@@ -46,31 +50,18 @@ export default async function DashboardMapPage() {
             const d = j.scheduledAt ? new Date(j.scheduledAt) : null
             return d && d >= todayStart && d <= todayEnd
         }
-        const todayCount = displayJobs.filter(isToday).length
-
-        return (
-            <div className="h-full flex flex-col">
-                {/* Today's Jobs strip */}
-                <div className="shrink-0 flex items-center gap-4 p-3 border-b border-slate-200 bg-white/80">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-primary" />
-                        <span className="font-semibold text-slate-900">
-                            {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
-                        </span>
-                    </div>
-                </div>
-                <div className="flex-1 min-h-0">
-                    <MapPageClient jobs={displayJobs} />
-                </div>
-            </div>
-        )
+        todayCount = displayJobs.filter(isToday).length
     } catch (error) {
         console.error("Map page error:", error)
+        errorMessage = error instanceof Error ? error.message : "Unknown error"
+    }
+
+    if (errorMessage || !displayJobs) {
         return (
             <div className="h-[calc(100vh-4rem)] w-full flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Map</h2>
-                    <p className="text-slate-600">{(error as Error).message}</p>
+                    <p className="text-slate-600">{errorMessage || "Unknown error"}</p>
                     <div className="mt-6">
                         <a
                             href="/crm/map"
@@ -83,5 +74,21 @@ export default async function DashboardMapPage() {
             </div>
         )
     }
+
+    return (
+        <div className="h-full flex flex-col">
+            <div className="shrink-0 flex items-center gap-4 p-3 border-b border-slate-200 bg-white/80">
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <span className="font-semibold text-slate-900">
+                        {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
+                    </span>
+                </div>
+            </div>
+            <div className="flex-1 min-h-0">
+                <MapPageClient jobs={displayJobs} />
+            </div>
+        </div>
+    )
 }
 

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getOrCreateWorkspace } from '@/actions/workspace-actions';
 import { getAuthUserId } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const userId = await getAuthUserId();
 
@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const userId = await getAuthUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const workspaceData = await request.json();
+    await request.json();
 
     // This would typically call an updateWorkspace action
     // For now, return a placeholder response

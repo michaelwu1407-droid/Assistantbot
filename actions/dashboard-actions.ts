@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { startOfWeek, endOfWeek, subDays } from "date-fns";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { z } from "zod";
 import { runDashboardTask } from "@/lib/ai-service";
 

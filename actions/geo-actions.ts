@@ -110,10 +110,6 @@ export async function getDealsWithLocation(
   });
 
   return deals.map((d) => {
-    const dealWithContact = d as typeof d & {
-      contact: { company: string | null };
-    };
-
     return {
       id: d.id,
       title: d.title,

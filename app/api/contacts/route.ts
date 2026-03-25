@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await requireCurrentWorkspaceAccess();
-    const contactData = await request.json();
+    await request.json();
 
     // This would typically call a createContact action
     // For now, return a placeholder response

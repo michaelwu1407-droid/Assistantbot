@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +12,8 @@ import {
   X, 
   Download, 
   Trash2, 
-  Eye, 
   Plus,
   Image as ImageIcon,
-  FileText,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
@@ -43,12 +42,12 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
   const [caption, setCaption] = useState("");
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
 
-  const loadPhotos = async () => {
+  const loadPhotos = useCallback(async () => {
     const result = await getJobPhotos(dealId);
     if (result.success && result.photos) {
       setPhotos(result.photos);
     }
-  };
+  }, [dealId]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +65,7 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to upload photo");
     } finally {
       setUploading(false);
@@ -82,14 +81,14 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete photo");
     }
   };
 
   useEffect(() => {
     loadPhotos();
-  }, [dealId]);
+  }, [loadPhotos]);
 
   // For past jobs, only show first 2 photos by default
   const displayPhotos = isPastJob && !isExpanded 
@@ -154,11 +153,15 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <div className="aspect-square rounded-lg overflow-hidden border border-border">
-                  <img
-                    src={photo.url}
-                    alt={photo.caption || "Job photo"}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={photo.url}
+                      alt={photo.caption || "Job photo"}
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
                   {photo.caption && (
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-2 text-xs">
                       <p className="truncate">{photo.caption}</p>
@@ -270,11 +273,15 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
             <CardContent>
               <div className="space-y-4">
                 <div className="relative">
-                  <img
-                    src={selectedPhoto.url}
-                    alt={selectedPhoto.caption || "Job photo"}
-                    className="w-full rounded-lg max-h-96 object-contain"
-                  />
+                  <div className="relative h-96 w-full">
+                    <Image
+                      src={selectedPhoto.url}
+                      alt={selectedPhoto.caption || "Job photo"}
+                      fill
+                      unoptimized
+                      className="rounded-lg object-contain"
+                    />
+                  </div>
                   <Button
                     size="sm"
                     variant="secondary"

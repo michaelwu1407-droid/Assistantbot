@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { getAuthUserId, getAuthUser } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { AuthError } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';

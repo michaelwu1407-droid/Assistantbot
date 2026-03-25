@@ -1,6 +1,4 @@
 "use client";
-
-import { useState, useEffect } from "react";
 import { X, ZoomIn } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import Image from "next/image";
@@ -18,8 +16,6 @@ interface PhotoGalleryProps {
 }
 
 export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
-    const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-
     if (photos.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
@@ -39,12 +35,12 @@ export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
                     <DialogTrigger asChild>
                         <div className="relative aspect-square bg-slate-100 rounded-lg overflow-hidden cursor-pointer group border shadow-sm">
                             <div className="relative w-full h-full">
-                                {/* Using standard img tag for blob URLs to avoid Next.js Image host config issues in demo */}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
+                                <Image
                                     src={photo.url}
                                     alt={photo.caption || "Job photo"}
-                                    className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                                    fill
+                                    unoptimized
+                                    className="object-cover transition-transform group-hover:scale-105"
                                 />
                             </div>
 
@@ -66,11 +62,12 @@ export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl p-0 overflow-hidden bg-black border-none">
                         <div className="relative w-full h-[80vh] flex items-center justify-center">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                                 src={photo.url}
                                 alt={photo.caption || "Preview"}
-                                className="object-contain max-w-full max-h-full"
+                                fill
+                                unoptimized
+                                className="object-contain"
                             />
                         </div>
                     </DialogContent>

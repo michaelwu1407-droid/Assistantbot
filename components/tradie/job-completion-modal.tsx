@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import {
     Dialog,
@@ -370,7 +371,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     {signature ? (
                                         <div className="space-y-2">
                                             <div className="border-2 border-green-300 bg-green-50 rounded-lg p-2 flex items-center justify-center">
-                                                <img src={signature} alt="Customer signature" className="max-h-[100px]" />
+                                                <Image src={signature} alt="Customer signature" width={320} height={100} unoptimized className="max-h-[100px] w-auto" />
                                             </div>
                                             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setSignature(null)}>
                                                 Clear & Re-sign

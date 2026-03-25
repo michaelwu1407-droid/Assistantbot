@@ -1,17 +1,16 @@
 "use client"
 
+import Image from "next/image"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { useTheme } from "next-themes"
 import { useShellStore } from "@/lib/store"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 // Switch import removed — using segmented control buttons instead
-import { Layers, MessageSquare, Menu, X } from "lucide-react"
+import { Layers, MessageSquare, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import { DashboardMainChrome } from "@/components/dashboard/dashboard-main-chrome"
@@ -20,7 +19,6 @@ const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, setAssistantPanelExpanded } = useShellStore()
-  const { theme } = useTheme()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -157,7 +155,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-transparent border-b border-border/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden bg-primary">
-                  <img src="/latest-logo.png?v=20250305" alt="Earlymark" className="h-8 w-8 object-contain" />
+                  <Image src="/latest-logo.png?v=20250305" alt="Earlymark" width={32} height={32} className="h-8 w-8 object-contain" />
                 </div>
                 <span className="font-semibold text-slate-900 dark:text-foreground">Ask Tracey</span>
               </div>

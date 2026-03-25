@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -29,7 +30,7 @@ import {
   Loader2, Globe, User, Phone, Mail, Building2,
   Zap, FileEdit, Eye, ChevronRight, ChevronLeft,
   Plus, Trash2, CheckCircle2, MapPin, Clock, Shield,
-  MessageSquare, Play, Square, Volume2, Sparkles, Info, Send,
+  MessageSquare, Sparkles, Info, Send,
   File as FileIcon,
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
@@ -391,7 +392,7 @@ export function TraceyOnboarding() {
   const [websiteUrl, setWebsiteUrl] = useState("")
 
   // Background scrape state
-  const [scraping, setScraping] = useState(false)
+  const [, setScraping] = useState(false)
   const [scrapeData, setScrapeData] = useState<ScrapeResult | null>(null)
   const scrapeTriggered = useRef(false)
 
@@ -649,7 +650,6 @@ export function TraceyOnboarding() {
                         get("sublocality_level_1")?.long_name
                       const region = get("administrative_area_level_1")?.short_name
                       const postalCode = get("postal_code")?.long_name
-                      const country = get("country")?.short_name
                       const streetLine =
                         streetNumber && route
                           ? `${streetNumber} ${route}`
@@ -930,10 +930,6 @@ export function TraceyOnboarding() {
 
   const handleSubmit = async () => {
     const resolvedWeeklyHours = normalizeWeeklyHours(weeklyHours, createDefaultWeeklyHours())
-    const firstOpenDay = Object.values(resolvedWeeklyHours).find((day) => day.open)
-    const resolvedWorkStartTime = firstOpenDay?.start || "08:00"
-    const resolvedWorkEndTime = firstOpenDay?.end || "17:00"
-
     setSubmitting(true)
     try {
       const data: TraceyOnboardingData = {
@@ -1003,7 +999,7 @@ export function TraceyOnboarding() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="mx-auto h-14 w-14 rounded-xl flex items-center justify-center shadow-md overflow-hidden mb-3">
-            <img src="/latest-logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
+            <Image src="/latest-logo.png" alt="Earlymark" width={56} height={56} className="h-14 w-14 object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Meet Tracey

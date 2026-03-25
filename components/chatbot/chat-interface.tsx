@@ -472,7 +472,6 @@ function ChatWithHistory({
   };
 
   const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const formatDate = (date: Date) => date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   const isOnlyWelcomeMessage = messages.length <= 1;
 
   return (

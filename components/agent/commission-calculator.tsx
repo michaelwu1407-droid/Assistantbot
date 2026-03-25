@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calculator, DollarSign, Percent, TrendingUp } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Calculator, DollarSign, TrendingUp } from "lucide-react";
 
 export function CommissionCalculator() {
     const [salePrice, setSalePrice] = useState(1500000);

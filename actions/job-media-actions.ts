@@ -35,7 +35,7 @@ export async function uploadJobPhoto(
   try {
     // Upload to Supabase Storage
     const fileName = `${dealId}/${nanoid()}-${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("job-photos")
       .upload(fileName, file);
 

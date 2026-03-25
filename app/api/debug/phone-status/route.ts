@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getPhoneNumberStatus } from "@/actions/phone-settings";
 
 export async function GET() {

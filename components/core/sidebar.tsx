@@ -45,7 +45,7 @@ interface SidebarProps {
 export function Sidebar({ className, expanded }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
-    const { setViewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
+    const { setViewMode, setLastAdvancedPath, userRole } = useShellStore()
 
     const isManager = userRole === "OWNER" || userRole === "MANAGER"
     const navItems = allNavItems.filter((item) => !item.managerOnly || isManager)
@@ -54,16 +54,6 @@ export function Sidebar({ className, expanded }: SidebarProps) {
         const supabase = createClient()
         await supabase.auth.signOut()
         router.push("/login")
-    }
-
-    const goToAdvanced = () => {
-        const target = lastAdvancedPath && lastAdvancedPath.startsWith("/crm")
-            ? lastAdvancedPath
-            : "/crm/dashboard"
-        setViewMode("ADVANCED")
-        if (pathname !== target) {
-            router.push(target)
-        }
     }
 
     const goToBasic = () => {

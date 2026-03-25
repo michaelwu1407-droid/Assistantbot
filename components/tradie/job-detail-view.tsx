@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send, MessageSquare, Mail, PhoneCall } from "lucide-react"
@@ -175,8 +176,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             <div className="grid grid-cols-2 gap-3">
                                 {job.photos.map((photo) => (
                                     <div key={photo.id} className="aspect-square rounded-lg bg-slate-200 overflow-hidden relative">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={photo.url} alt="Job photo" className="w-full h-full object-cover" />
+                                        <Image src={photo.url} alt="Job photo" fill unoptimized className="object-cover" />
                                     </div>
                                 ))}
                                 {job.photos.length === 0 && (

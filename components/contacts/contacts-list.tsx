@@ -26,6 +26,7 @@ interface ContactsListProps {
 }
 
 export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
+    void workspaceId
     const [search, setSearch] = useState("")
     const router = useRouter()
     

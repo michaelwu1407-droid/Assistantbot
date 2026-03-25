@@ -11,7 +11,7 @@ import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
 import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify } from "@/lib/ai/pre-classifier";
-import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/ai/response-validator";
+import { validatePricingInResponse } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";

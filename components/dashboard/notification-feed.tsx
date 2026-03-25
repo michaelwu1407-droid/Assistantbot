@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Bell, X, Sparkles } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -21,18 +21,7 @@ export function NotificationFeed() {
 
     const userId = useShellStore(s => s.userId) ?? "anonymous"
 
-    useEffect(() => {
-        if (isOpen) {
-            loadNotifications()
-        }
-    }, [isOpen])
-
-    // Initial load on mount to show badge count
-    useEffect(() => {
-        loadNotifications()
-    }, [])
-
-    const loadNotifications = async () => {
+    const loadNotifications = useCallback(async () => {
         try {
             const data = await getNotifications(userId)
             setNotifications(data)
@@ -41,7 +30,17 @@ export function NotificationFeed() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [userId])
+
+    useEffect(() => {
+        if (isOpen) {
+            loadNotifications()
+        }
+    }, [isOpen, loadNotifications])
+
+    useEffect(() => {
+        loadNotifications()
+    }, [loadNotifications])
 
     const unreadCount = notifications.filter(n => !n.read).length
 

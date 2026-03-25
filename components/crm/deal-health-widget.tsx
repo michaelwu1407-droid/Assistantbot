@@ -1,8 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, TrendingUp, Clock, AlertTriangle, DollarSign, Activity } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TrendingUp, Clock, AlertTriangle, Activity } from "lucide-react"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 

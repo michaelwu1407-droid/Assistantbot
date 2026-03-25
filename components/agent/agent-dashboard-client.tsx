@@ -8,7 +8,6 @@ import { MatchmakerFeed } from "@/components/agent/matchmaker-feed"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { PulseWidget } from "@/components/dashboard/pulse-widget"
 import { VendorReportCard, VendorReportData } from "@/components/agent/vendor-report-card"
-import { useState } from "react"
 
 interface AgentDashboardClientProps {
   workspaceId: string
@@ -29,12 +28,15 @@ export function AgentDashboardClient({
   workspaceId,
   listings,
   leads,
-  matches,
+  matches: _matches,
   userName: _userName,
   userId: _userId,
   financialStats,
   vendorReport
 }: AgentDashboardClientProps) {
+  void _matches
+  void _userName
+  void _userId
   return (
     <div className="h-full flex flex-col space-y-4 p-6 bg-slate-50/50">
       {/* Speed to Lead Widget and Pulse Widget Row */}

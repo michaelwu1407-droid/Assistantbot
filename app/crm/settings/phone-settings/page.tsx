@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Phone, CheckCircle, AlertCircle, RefreshCw, Headphones } from "lucide-react";
+import { Loader2, Phone, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { sendPhoneVerificationCode, updatePhoneNumber, getPhoneNumberStatus } from "@/actions/phone-settings";
 import { AIReceptionistSettings } from "@/components/settings/ai-receptionist-settings";
 import { useForm } from "react-hook-form";
@@ -63,7 +63,7 @@ export default function PhoneSettingsPage() {
       try {
         const status = await getPhoneNumberStatus();
         setPhoneStatus(status);
-      } catch (err) {
+      } catch {
         setError("Failed to load phone settings");
       } finally {
         setLoading(false);

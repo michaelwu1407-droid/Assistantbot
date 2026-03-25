@@ -2218,3 +2218,16 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - The repo has strict ESLint + TypeScript rules; older “prototype” patterns (`any`, loose JSON, `require()`, effect-driven state) had accumulated and started failing quality gates.
   - This brings the codebase back to a clean, enforceable baseline so future changes don’t regress silently.
+
+## 2026-03-26 14:45 (AEDT) - Codex
+
+- Files changed:
+  - `app/**`, `actions/**`, `components/**`, `__tests__/**`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Continued the lint cleanup pass and removed a broad batch of dead imports, dead state, unused variables, and test/mock noise across dashboard, CRM, onboarding, auth, API route, and test files.
+  - Fixed several real hook dependency issues with `useCallback` and dependency updates instead of suppressing lint rules.
+  - Kept the repo type-safe while materially reducing the current lint warning count, though lint is not yet fully clean.
+- Why:
+  - This reduces the remaining warning surface so the next cleanup pass can focus on the smaller set of higher-signal files still failing the zero-warning target.
+  - Structural hook fixes are preferable to lint suppression because they prevent unstable effect behavior from recurring.

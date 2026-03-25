@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Star, Clock, DollarSign, MessageSquare, Camera, FileText } from "lucide-react"
+import { CheckCircle, Star, DollarSign, Camera } from "lucide-react"
 import { toast } from "sonner"
 
 interface JobCompletionModalProps {
@@ -101,7 +99,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
         photos: [],
         issues: []
       })
-    } catch (error) {
+    } catch {
       toast.error("Failed to submit review")
     } finally {
       setIsSubmitting(false)

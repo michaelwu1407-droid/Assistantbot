@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, Mail, MapPin, Calendar, CheckCircle2, Circle, Camera, Plus } from "lucide-react"
+import { Phone, MapPin, CheckCircle2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -55,7 +54,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                 toast.success(`Job updated to ${newStatus}`)
                 router.refresh()
             }
-        } catch (e) {
+        } catch {
             toast.error("Failed to update status")
         } finally {
             setIsUpdating(false)

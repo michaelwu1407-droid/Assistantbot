@@ -8,7 +8,7 @@ export default async function MinimalAuthTest() {
 
   try {
     const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.getSession();
+    const { error: authError } = await supabase.auth.getSession();
     supabaseTest = authError ? `ERROR: ${authError.message}` : "SUCCESS";
   } catch (e) {
     error = e instanceof Error ? e.message : 'Unknown error';

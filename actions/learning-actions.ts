@@ -28,8 +28,9 @@ export interface DeviationEventData {
 export async function checkForDeviation(
   dealId: string,
   newStage: string,
-  userId: string
+  _userId: string
 ): Promise<void> {
+  void _userId;
   try {
     const deal = await db.deal.findUnique({
       where: { id: dealId },

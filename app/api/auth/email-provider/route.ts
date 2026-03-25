@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
-import { encrypt, decrypt } from "@/lib/encryption";
 
 // ─── OAuth Configuration ───────────────────────────────────────────────
 

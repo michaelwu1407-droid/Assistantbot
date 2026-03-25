@@ -1,11 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Phone, MessageSquare, Clock } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { AgentLead } from "@/actions/agent-actions"
 
 interface SpeedToLeadProps {

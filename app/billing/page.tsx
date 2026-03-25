@@ -3,6 +3,7 @@ import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { UpgradeButton } from "@/components/billing/upgrade-button";
 import { CheckCircle2, Sparkles } from "lucide-react";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function BillingPaywallPage() {
         if (!result) redirect("/auth");
         userId = result; // Assign to userId
         workspace = await getOrCreateWorkspace(userId);
-    } catch (error) {
+    } catch {
         redirect("/auth");
     }
 
@@ -45,7 +46,7 @@ export default async function BillingPaywallPage() {
                 {/* Logo */}
                 <div className="flex justify-center mb-6">
                     <div className="h-14 w-14 rounded-xl flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden">
-                        <img src="/latest-logo.png" alt="Earlymark" className="h-14 w-14 object-contain" />
+                        <Image src="/latest-logo.png" alt="Earlymark" width={56} height={56} className="h-14 w-14 object-contain" />
                     </div>
                 </div>
 

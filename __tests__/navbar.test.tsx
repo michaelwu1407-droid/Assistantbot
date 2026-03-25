@@ -3,8 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/image", () => ({
-  default: ({ unoptimized: _unoptimized, alt, ...props }: React.ComponentProps<"img"> & { unoptimized?: boolean }) => (
-    <img {...props} alt={alt || ""} />
+  default: ({ alt }: React.ComponentProps<"img"> & { unoptimized?: boolean }) => (
+    <span data-next-image-alt={alt || ""} />
   ),
 }));
 

@@ -13,13 +13,12 @@ interface VerificationCode {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var verificationCodes: VerificationCode[] | undefined;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { phoneNumber, countryCode } = await request.json();
+    const { phoneNumber } = await request.json();
 
     if (!MESSAGEBIRD_API_KEY) {
       return NextResponse.json(

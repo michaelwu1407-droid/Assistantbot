@@ -266,7 +266,7 @@ export default function IntegrationsPage() {
                     <CardContent>
                         <div className="flex items-center gap-4">
                             <div className="bg-slate-100 p-4 rounded-full">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="h-8 w-8" />
+                                <Calendar className="h-8 w-8 text-blue-500" />
                             </div>
                             <div className="space-y-1">
                                 <h4 className="font-medium">Calendar Sync</h4>

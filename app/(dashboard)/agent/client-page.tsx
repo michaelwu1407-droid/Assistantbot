@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useShellStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Bell, Key, DollarSign, Home, User, Settings, QrCode, Search } from "lucide-react"

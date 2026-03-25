@@ -1,7 +1,5 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { revalidatePath } from "next/cache";
 import { sendSupportAlert } from "./reminder-actions";
 import { appendTicketNote } from "./activity-actions";
 
@@ -22,7 +20,7 @@ export async function handleChatFallback(message: string, metadata?: Record<stri
     console.error("Chatbot could not fulfill request:", message);
     
     // Send support alert to Michael Wu
-    const alertResult = await sendSupportAlert(
+    await sendSupportAlert(
       `Chatbot couldn't fulfill request: "${message}"`,
       {
         timestamp: new Date().toISOString(),

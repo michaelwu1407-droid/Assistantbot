@@ -63,7 +63,7 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
       } else {
         throw new Error("Failed to send verification code");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to send SMS. Please try again or use email authentication.");
     } finally {
       setIsSending(false);
@@ -89,7 +89,7 @@ export function PhoneVerification({ onVerified, onCancel }: PhoneVerificationPro
       } else {
         throw new Error("Invalid verification code");
       }
-    } catch (err) {
+    } catch {
       setError("Invalid verification code. Please try again.");
     } finally {
       setIsVerifying(false);

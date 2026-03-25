@@ -71,7 +71,7 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                 description: "Your workspace settings have been saved."
             })
             router.refresh()
-        } catch (error) {
+        } catch {
             toast.error("Something went wrong", {
                 description: "Failed to update workspace. Please try again."
             })

@@ -56,7 +56,7 @@ export function PipelineHealthForm({ workspaceId, initialSettings }: PipelineHea
         description: "Deal cards will use these thresholds for Follow up and Urgent.",
       })
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("Failed to save", {
         description: "Please try again.",
       })

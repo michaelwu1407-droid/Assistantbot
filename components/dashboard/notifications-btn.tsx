@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Check, Sparkles, Phone, FileText, CheckCircle2, ClipboardCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -36,7 +36,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
         setIsOpen(false)
     }
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         setLoading(true)
         try {
             const data = await getNotifications(userId)
@@ -47,14 +47,14 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
         } finally {
             setLoading(false)
         }
-    }
+    }, [userId])
 
     // Poll for notifications every 60s
     useEffect(() => {
         fetchNotifications()
         const interval = setInterval(fetchNotifications, 60000)
         return () => clearInterval(interval)
-    }, [userId])
+    }, [fetchNotifications])
 
     const handleMarkRead = async (id: string) => {
         // Optimistic update

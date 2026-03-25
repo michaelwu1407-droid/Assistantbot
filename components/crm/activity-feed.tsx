@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, Calendar, CheckCircle2, MessageSquare, FileText } from "lucide-react"
 import { getActivities, ActivityView } from "@/actions/activity-actions"
 import { cn } from "@/lib/utils"
@@ -69,7 +68,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
 
         fetchActivities()
         return () => { mounted = false }
-    }, [contactId, dealId, limit, workspaceId, initialData])
+    }, [contactId, dealId, limit, workspaceId, initialData, loading])
 
     useEffect(() => {
         const selection = selectedDealId

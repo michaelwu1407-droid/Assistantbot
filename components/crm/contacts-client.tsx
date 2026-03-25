@@ -2,10 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { ContactView } from "@/actions/contact-actions"
-import { sendBulkSMS } from "@/actions/messaging-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Send, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
+import { Search, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -76,8 +75,6 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   const [selectedStageIds, setSelectedStageIds] = useState<Set<string>>(new Set(allStageIds))
   const [filterOpen, setFilterOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkMessage, setBulkMessage] = useState("")
-  const [showBulkModal, setShowBulkModal] = useState(false)
   const [sending, setSending] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("last_interacted")
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")

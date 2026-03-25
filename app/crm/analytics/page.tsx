@@ -10,7 +10,6 @@ import {
   Users,
   Star,
   CheckCircle,
-  Calendar,
   LayoutList,
   Printer
 } from "lucide-react"
@@ -57,7 +56,7 @@ export default function AnalyticsPage() {
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [workspaceId, timeRange])
+  }, [workspaceId, timeRange, userRole])
 
   if (loading) {
     return (

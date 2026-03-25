@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await requireCurrentWorkspaceAccess();
-    const dealData = await request.json();
+    await request.json();
 
     // This would typically call a createDeal action
     // For now, return a placeholder response

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { twilioMasterClient } from "@/lib/twilio";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const results = {
     timestamp: new Date().toISOString(),
     twilioClient: !!twilioMasterClient,

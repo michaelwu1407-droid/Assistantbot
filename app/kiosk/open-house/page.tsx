@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import Image from "next/image"
 import { KioskForm } from "@/components/agent/kiosk-form"
 import { getDeals } from "@/actions/deal-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
@@ -75,8 +76,7 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
 
                     <div className="pt-4">
                         <div className="bg-white p-4 rounded-xl inline-block shadow-2xl">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={qrDataUrl} alt="Scan to check in" className="w-32 h-32" />
+                            <Image src={qrDataUrl} alt="Scan to check in" width={128} height={128} unoptimized className="w-32 h-32" />
                             <p className="text-slate-900 text-center text-xs font-bold mt-2 uppercase tracking-wider">Scan to Check In</p>
                         </div>
                     </div>

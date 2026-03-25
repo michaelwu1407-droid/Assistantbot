@@ -13,7 +13,7 @@ export default async function DebugEnvPage() {
 
   let supabaseTest = "FAILED";
   try {
-    const supabase = createClient();
+    createClient();
     supabaseTest = "SUCCESS";
   } catch (error) {
     supabaseTest = `ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`;
