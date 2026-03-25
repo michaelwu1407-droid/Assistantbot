@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { differenceInCalendarDays, startOfDay, subDays } from "date-fns";
 
 const dbMocks = vi.hoisted(() => ({
   deal: { findMany: vi.fn() },
@@ -106,14 +107,18 @@ describe("getReportsData", () => {
 
   it("uses the selected day range and compares revenue to the previous equal-length window", async () => {
     const result = await getReportsData("ws_123", "30d");
+    const now = new Date("2026-03-17T10:00:00.000Z");
+    const rangeStart = startOfDay(subDays(now, 29));
+    const comparisonDays = differenceInCalendarDays(now, rangeStart) + 1;
+    const previousRangeStart = startOfDay(subDays(rangeStart, comparisonDays));
 
     expect(dbMocks.deal.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           workspaceId: "ws_123",
           OR: [
-            { createdAt: { gte: new Date("2026-01-16T13:00:00.000Z") } },
-            { stageChangedAt: { gte: new Date("2026-01-16T13:00:00.000Z") } },
+            { createdAt: { gte: previousRangeStart } },
+            { stageChangedAt: { gte: previousRangeStart } },
           ],
         }),
       }),
