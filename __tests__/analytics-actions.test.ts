@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { differenceInCalendarDays, startOfDay, subDays } from "date-fns";
 
 const dbMocks = vi.hoisted(() => ({
@@ -103,6 +103,10 @@ describe("getReportsData", () => {
         assignedTo: null,
       },
     ]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("uses the selected day range and compares revenue to the previous equal-length window", async () => {
