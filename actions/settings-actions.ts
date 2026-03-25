@@ -5,6 +5,7 @@ import { getAuthUser, getAuthUserId } from "@/lib/auth"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
@@ -162,7 +163,7 @@ export async function updateWorkspaceSettings(input: {
         "voiceEnabled", "voiceLanguage", "voiceType", "voiceSpeed",
         "voiceGreeting", "voiceAfterHoursMessage", "transcribeVoicemails", "autoRespondToMessages", "weeklyHours",
     ] as const
-    let settingsUpdate: any = undefined
+    let settingsUpdate: Record<string, unknown> | undefined = undefined
     const s = input as Record<string, unknown>
     for (const key of settingsKeys) {
         if (s[key] !== undefined) {
@@ -189,7 +190,7 @@ export async function updateWorkspaceSettings(input: {
             ...(input.jobReminderHours !== undefined && { jobReminderHours: input.jobReminderHours }),
             ...(input.enableJobReminders !== undefined && { enableJobReminders: input.enableJobReminders }),
             ...(input.enableTripSms !== undefined && { enableTripSms: input.enableTripSms }),
-            ...(settingsUpdate && { settings: settingsUpdate }),
+            ...(settingsUpdate && { settings: settingsUpdate as Prisma.InputJsonValue }),
             ...(input.inboundEmailAlias !== undefined && { inboundEmailAlias: input.inboundEmailAlias }),
             ...(input.autoCallLeads !== undefined && { autoCallLeads: input.autoCallLeads }),
         }

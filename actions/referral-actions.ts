@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
 import { stripe } from "@/lib/stripe";

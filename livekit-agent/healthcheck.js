@@ -1,9 +1,10 @@
-const fs = require("node:fs");
+(async () => {
+  const fsMod = await import("node:fs");
+  const fs = fsMod.default ?? fsMod;
 
-const healthPath = (process.env.VOICE_WORKER_HEALTH_PATH || "/tmp/voice-worker-health.json").trim();
-const staleMs = Number.parseInt(process.env.VOICE_WORKER_HEALTH_STALE_MS || "180000", 10);
+  const healthPath = (process.env.VOICE_WORKER_HEALTH_PATH || "/tmp/voice-worker-health.json").trim();
+  const staleMs = Number.parseInt(process.env.VOICE_WORKER_HEALTH_STALE_MS || "180000", 10);
 
-try {
   const raw = fs.readFileSync(healthPath, "utf8");
   const snapshot = JSON.parse(raw);
   const lastHeartbeatSuccessAt = Date.parse(snapshot.lastHeartbeatSuccessAt || snapshot.updatedAt || "");
@@ -12,7 +13,8 @@ try {
     throw new Error("missing lastHeartbeatSuccessAt");
   }
 
-  if (Date.now() - lastHeartbeatSuccessAt > (Number.isFinite(staleMs) && staleMs > 0 ? staleMs : 180000)) {
+  const safeStaleMs = Number.isFinite(staleMs) && staleMs > 0 ? staleMs : 180000;
+  if (Date.now() - lastHeartbeatSuccessAt > safeStaleMs) {
     throw new Error("worker heartbeat snapshot is stale");
   }
 
@@ -21,8 +23,8 @@ try {
   }
 
   process.exit(0);
-} catch (error) {
+})().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`[voice-worker-healthcheck] ${message}`);
   process.exit(1);
-}
+});

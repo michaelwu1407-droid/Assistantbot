@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 
 export default function TestAuthPage() {
   const [authStatus, setAuthStatus] = useState<string>("Checking...");
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<{
+    id: string;
+    email: string | null;
+    name?: unknown;
+    created_at: string;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,7 +26,7 @@ export default function TestAuthPage() {
           setAuthStatus("Authenticated ✅");
           setUserInfo({
             id: user.id,
-            email: user.email,
+            email: user.email ?? null,
             name: user.user_metadata?.name,
             created_at: user.created_at
           });

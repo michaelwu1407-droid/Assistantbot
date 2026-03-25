@@ -140,7 +140,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                             </CardHeader>
                             <CardContent>
                                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                                    {(deal.metadata as any)?.description || "No description provided."}
+                                    {(deal.metadata as Record<string, unknown> | null)?.description as string || "No description provided."}
                                 </p>
                             </CardContent>
                         </Card>
@@ -157,7 +157,7 @@ export default async function JobDetailPage({ params }: JobDetailProps) {
                                     activities={
                                         deal.activities.map(a => ({
                                             id: a.id,
-                                            type: a.type as any,
+                                            type: a.type,
                                             title: a.title,
                                             description: a.description || "",
                                             time: format(a.createdAt, "h:mm a"), // Use actual formatted time

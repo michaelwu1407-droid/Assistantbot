@@ -109,7 +109,7 @@ export async function getDealsWithLocation(
     include: { contact: true },
   });
 
-  return deals.map((d: any) => {
+  return deals.map((d) => {
     const dealWithContact = d as typeof d & {
       contact: { company: string | null };
     };

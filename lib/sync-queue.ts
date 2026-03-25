@@ -6,8 +6,7 @@ interface SyncQueueSchema extends DBSchema {
     value: {
       id?: number;
       actionName: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      payload: any;
+      payload: unknown;
       createdAt: number;
     };
   };
@@ -31,8 +30,7 @@ async function getDB() {
  * @param actionName The name of the server action (e.g., 'updateJobStatus')
  * @param payload The arguments to pass to the action
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function queueMutation(actionName: string, payload: any) {
+export async function queueMutation(actionName: string, payload: unknown) {
   const db = await getDB();
   await db.add(STORE_NAME, {
     actionName,
@@ -50,8 +48,7 @@ export async function queueMutation(actionName: string, payload: any) {
  * For this implementation, we'll emit an event that the provider can listen to,
  * or we can pass a map of executors.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function processQueue(actionMap: Record<string, (payload: any) => Promise<any>>) {
+export async function processQueue(actionMap: Record<string, (payload: unknown) => Promise<unknown>>) {
   const db = await getDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);

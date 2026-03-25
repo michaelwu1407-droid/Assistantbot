@@ -278,8 +278,8 @@ async function buildAgentContextFresh(
                 select: { title: true, invoices: { select: { total: true }, take: 1 } },
                 orderBy: { updatedAt: "desc" },
                 take: 50,
-            }).catch(() => [] as { title: string; invoices: { total: any }[] }[])
-            : Promise.resolve([] as { title: string; invoices: { total: any }[] }[]),
+            }).catch(() => [] as { title: string; invoices: { total: unknown }[] }[])
+            : Promise.resolve([] as { title: string; invoices: { total: unknown }[] }[]),
         db.businessKnowledge.findMany({
             where: { workspaceId, category: "NEGATIVE_SCOPE" },
             select: { ruleContent: true },
@@ -293,7 +293,7 @@ async function buildAgentContextFresh(
             select: { name: true, description: true, fileUrl: true },
         }).catch(() => [] as { name: string; description: string; fileUrl: string }[]),
         (async () => {
-            let role = "TEAM_MEMBER";
+            const role = "TEAM_MEMBER";
             const [authUser, providedUser] = await Promise.all([
                 getAuthUser().catch(() => null),
                 providedUserId ? db.user.findUnique({ where: { id: providedUserId }, select: { role: true } }).catch(() => null) : null
@@ -465,11 +465,11 @@ async function buildAgentContextFresh(
 ${glossaryStr}`;
 
     // ── Business Knowledge (already fetched in parallel batch above) ──
-    const knowledgeNegativeRules = negativeRules.map((r: any) => r.ruleContent);
+    const knowledgeNegativeRules = negativeRules.map((r) => r.ruleContent);
     let knowledgeServicesStr = "";
     if (serviceRules.length > 0) {
         knowledgeServicesStr = "\n\nSERVICES OFFERED (from Knowledge Base):\n" +
-            serviceRules.map((s: any) => {
+            serviceRules.map((s) => {
                 const meta = (s.metadata as Record<string, string>) || {};
                 let line = `- ${s.ruleContent}`;
                 if (meta.priceRange) line += ` (${meta.priceRange})`;
@@ -537,7 +537,11 @@ If owner says "stop taking X": clarify "Strictly decline or just flag?" → use 
         pricingRulesStr,
         bouncerStr,
         attachmentsStr: businessDocuments.length > 0
-            ? `\n\nBUSINESS ATTACHMENTS (Available to send to customers via URL):\n` + businessDocuments.map((d: any) => `- ${d.name}: ${d.description} -> URL: ${d.fileUrl}`).join("\n") + `\nIf a customer requests this info, provide them the URL.`
+            ? `\n\nBUSINESS ATTACHMENTS (Available to send to customers via URL):\n` +
+                businessDocuments
+                    .map((d) => `- ${d.name}: ${d.description} -> URL: ${d.fileUrl}`)
+                    .join("\n") +
+                `\nIf a customer requests this info, provide them the URL.`
             : "",
     };
 
@@ -683,28 +687,41 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
 let memoryClient: MemoryClient | null = null;
 const MEMORY_CACHE_TTL_MS = 60_000;
 
-export function getMemoryClient(): MemoryClient | null {
-    if (!memoryClient && process.env.MEM0_API_KEY) {
-        try {
-            // Dynamic import to avoid SSR issues
-            const { MemoryClient } = require("mem0ai");
-            memoryClient = new MemoryClient({
-                apiKey: process.env.MEM0_API_KEY,
-            });
-            console.log("[Mem0] Memory client initialized successfully");
-        } catch (error) {
-            console.error("[Mem0] Failed to initialize memory client:", error);
-            return null;
-        }
+async function getMemoryClient(): Promise<MemoryClient | null> {
+    if (memoryClient) return memoryClient;
+    if (!process.env.MEM0_API_KEY) return null;
+
+    try {
+        const mod = await import("mem0ai");
+        const Ctor = (mod as unknown as { MemoryClient?: new (args: { apiKey: string }) => MemoryClient }).MemoryClient;
+        if (!Ctor) return null;
+        memoryClient = new Ctor({ apiKey: process.env.MEM0_API_KEY });
+        console.log("[Mem0] Memory client initialized successfully");
+        return memoryClient;
+    } catch (error) {
+        console.error("[Mem0] Failed to initialize memory client:", error);
+        return null;
     }
-    return memoryClient;
+}
+
+export async function addMem0Memory(params: {
+    userId: string;
+    messages: Array<{ role: "user" | "assistant"; content: string }>;
+    metadata?: Record<string, unknown>;
+}): Promise<void> {
+    const memClient = await getMemoryClient();
+    if (!memClient) return;
+    await memClient.add(params.messages, {
+        user_id: params.userId,
+        ...(params.metadata ? { metadata: params.metadata } : {}),
+    });
 }
 
 /**
  * Searches MEM0 for injected context for a specific user ID and generic recent query
  */
 export async function fetchMemoryContext(userId: string, query: string): Promise<string> {
-    const memClient = getMemoryClient();
+    const memClient = await getMemoryClient();
     const normalizedQuery = query.trim();
     if (!memClient || !normalizedQuery) return "";
 
@@ -723,7 +740,7 @@ export async function fetchMemoryContext(userId: string, query: string): Promise
 
         if (searchResults && searchResults.length > 0) {
             const facts = searchResults
-                .map((memory: any) => `- ${memory.memory}`)
+                .map((memory: { memory?: string }) => `- ${memory.memory ?? ""}`)
                 .join("\n");
             memoryContextStr = `\n\n[[RELEVANT MEMORY CONTEXT]]\nThe following facts are retrieved from previous conversations with this user:\n${facts}\n[[END MEMORY CONTEXT]]\n\nUse these facts to personalize your response.`;
         }

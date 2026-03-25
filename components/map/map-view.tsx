@@ -172,9 +172,9 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     let cancelled = false
     const maybeAutoLocate = async () => {
       try {
-        const permissions = (navigator as any).permissions
+        const permissions = (navigator as Navigator & { permissions?: Permissions }).permissions
         if (!permissions?.query) return
-        const status = await permissions.query({ name: "geolocation" })
+        const status = await permissions.query({ name: "geolocation" as PermissionName })
         if (cancelled) return
         if (status?.state === "granted") {
           locateMe()

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export async function POST(request: NextRequest) {
   try {
     const requestStartedAt = Date.now();

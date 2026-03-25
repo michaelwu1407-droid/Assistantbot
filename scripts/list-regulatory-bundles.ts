@@ -56,7 +56,8 @@ async function main() {
     console.log(`  Friendly Name:  ${bundle.friendlyName}`);
     console.log(`  Status:         ${bundle.status}`);
     console.log(`  Regulation SID: ${bundle.regulationSid}`);
-    console.log(`  ISO Country:    ${(bundle as any).isoCountry ?? "N/A"}`);
+    const isoCountry = (bundle as unknown as { isoCountry?: string }).isoCountry ?? "N/A";
+    console.log(`  ISO Country:    ${isoCountry}`);
     console.log(`  Valid Until:    ${bundle.validUntil ?? "N/A"}`);
     console.log(`  Created:        ${bundle.dateCreated}`);
     console.log(`  Updated:        ${bundle.dateUpdated}`);

@@ -92,7 +92,15 @@ export default async function MyBusinessSettingsPage() {
         <p className="text-sm text-slate-500 mb-4">
           Upload PDF guides, price lists, or insurance forms. The AI agent will automatically email these to callers when requested.
         </p>
-        <AttachmentLibrarySection documents={documents as any[]} />
+        <AttachmentLibrarySection
+          documents={(documents ?? []).map((d) => ({
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            fileUrl: d.fileUrl,
+            fileType: d.fileType ?? null,
+          }))}
+        />
       </section>
     </div>
   )

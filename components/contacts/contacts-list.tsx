@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, Phone, Mail, Building2, MapPin, User } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface Contact {
     id: string
@@ -61,10 +62,10 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
                     />
                 </div>
                 <Button asChild>
-                    <a href="/crm/contacts/new">
+                    <Link href="/crm/contacts/new">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Contact
-                    </a>
+                    </Link>
                 </Button>
             </div>
 

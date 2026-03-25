@@ -81,7 +81,7 @@ export function resolveSchedule(raw: string): { display: string; iso: string } {
   }
 
   const now = new Date();
-  let targetDate = new Date(now);
+  const targetDate = new Date(now);
 
   if (dayPart === "today") {
     // already today

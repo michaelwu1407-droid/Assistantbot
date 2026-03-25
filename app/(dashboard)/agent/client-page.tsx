@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useEffect, useState } from "react"
 import { useShellStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"

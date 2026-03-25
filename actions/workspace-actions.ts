@@ -508,23 +508,23 @@ export async function completeOnboarding(data: {
           source: "onboarding",
         }
       });
-      const { getMemoryClient } = await import("@/lib/ai/context");
-      const memClient = getMemoryClient();
-      if (memClient) {
-        await memClient.add(
-          [{ role: "user" as const, content: `The following are STRICT NO-GO rules. You MUST decline any lead matching these exactly: ${data.exclusionCriteria}` }],
+      const { addMem0Memory } = await import("@/lib/ai/context");
+      await addMem0Memory({
+        userId: workspace.id,
+        messages: [
           {
-            user_id: workspace.id,
-            metadata: {
-              type: "hard_constraint",
-              action: "decline",
-              source: "onboarding",
-              timestamp: new Date().toISOString(),
-            },
-          }
-        );
-        console.log("[Mem0] Exclusion criteria synced as hard_constraint");
-      }
+            role: "user",
+            content: `The following are STRICT NO-GO rules. You MUST decline any lead matching these exactly: ${data.exclusionCriteria}`,
+          },
+        ],
+        metadata: {
+          type: "hard_constraint",
+          action: "decline",
+          source: "onboarding",
+          timestamp: new Date().toISOString(),
+        },
+      });
+      console.log("[Mem0] Exclusion criteria synced as hard_constraint");
     } catch (error) {
       console.error("[Mem0] Failed to sync exclusion criteria:", error);
     }

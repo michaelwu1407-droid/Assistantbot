@@ -205,7 +205,9 @@ export async function createOutlookRule(userId: string, integrationId: string) {
 
 // ─── Token Refresh Helpers ───────────────────────────────────────────────
 
-async function refreshGmailToken(integration: any): Promise<string> {
+type RefreshableIntegration = { id: string; refreshToken: string | null };
+
+async function refreshGmailToken(integration: RefreshableIntegration): Promise<string> {
   if (!integration.refreshToken) {
     throw new Error("No refresh token available for Gmail");
   }
@@ -223,26 +225,33 @@ async function refreshGmailToken(integration: any): Promise<string> {
     }),
   });
 
-  const tokenData = await response.json();
+  const tokenData: unknown = await response.json();
+  if (!tokenData || typeof tokenData !== "object") {
+    throw new Error("Failed to refresh Gmail token: invalid response");
+  }
+  const td = tokenData as Record<string, unknown>;
 
-  if (tokenData.error) {
-    throw new Error(`Failed to refresh Gmail token: ${tokenData.error}`);
+  if (typeof td.error === "string") {
+    throw new Error(`Failed to refresh Gmail token: ${td.error}`);
+  }
+  if (typeof td.access_token !== "string" || typeof td.expires_in !== "number") {
+    throw new Error("Failed to refresh Gmail token: missing fields");
   }
 
   // Update stored tokens
-  const tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000));
+  const tokenExpiry = new Date(Date.now() + (td.expires_in * 1000));
   await db.emailIntegration.update({
     where: { id: integration.id },
     data: {
-      accessToken: encrypt(tokenData.access_token),
+      accessToken: encrypt(td.access_token),
       tokenExpiry,
     },
   });
 
-  return tokenData.access_token;
+  return td.access_token;
 }
 
-async function refreshOutlookToken(integration: any): Promise<string> {
+async function refreshOutlookToken(integration: RefreshableIntegration): Promise<string> {
   if (!integration.refreshToken) {
     throw new Error("No refresh token available for Outlook");
   }
@@ -260,23 +269,30 @@ async function refreshOutlookToken(integration: any): Promise<string> {
     }),
   });
 
-  const tokenData = await response.json();
+  const tokenData: unknown = await response.json();
+  if (!tokenData || typeof tokenData !== "object") {
+    throw new Error("Failed to refresh Outlook token: invalid response");
+  }
+  const td = tokenData as Record<string, unknown>;
 
-  if (tokenData.error) {
-    throw new Error(`Failed to refresh Outlook token: ${tokenData.error}`);
+  if (typeof td.error === "string") {
+    throw new Error(`Failed to refresh Outlook token: ${td.error}`);
+  }
+  if (typeof td.access_token !== "string" || typeof td.expires_in !== "number") {
+    throw new Error("Failed to refresh Outlook token: missing fields");
   }
 
   // Update stored tokens
-  const tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000));
+  const tokenExpiry = new Date(Date.now() + (td.expires_in * 1000));
   await db.emailIntegration.update({
     where: { id: integration.id },
     data: {
-      accessToken: encrypt(tokenData.access_token),
+      accessToken: encrypt(td.access_token),
       tokenExpiry,
     },
   });
 
-  return tokenData.access_token;
+  return td.access_token;
 }
 
 // ─── Helper Functions ─────────────────────────────────────────────────────

@@ -95,9 +95,19 @@ const DEAL_STAGE_LABELS: Record<string, string> = {
 const DEFAULT_CONTACTS_PAGE_SIZE = 100;
 const MAX_CONTACTS_PAGE_SIZE = 500;
 
-function toContactView(c: any): ContactView {
+function toContactView(c: unknown): ContactView {
+  const base = c as {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    company: string | null;
+    avatarUrl: string | null;
+    address: string | null;
+    metadata: unknown;
+  };
   const contactWithRelations = c as typeof c & {
-    deals: { id: string; stage: string; invoices: { total: any; status: string }[] }[];
+    deals: { id: string; stage: string; invoices: { total: unknown; status: string }[] }[];
     activities: { createdAt: Date }[];
   };
   const deals = contactWithRelations.deals ?? [];
@@ -118,14 +128,14 @@ function toContactView(c: any): ContactView {
     owed > 0 ? `$${owed.toFixed(0)} owed` : deals.length > 0 ? "Paid" : "—";
 
   return {
-    id: c.id,
-    name: c.name,
-    email: c.email,
-    phone: c.phone,
-    company: c.company,
-    avatarUrl: c.avatarUrl,
-    address: c.address,
-    metadata: (c.metadata as Record<string, unknown>) ?? undefined,
+    id: base.id,
+    name: base.name,
+    email: base.email,
+    phone: base.phone,
+    company: base.company,
+    avatarUrl: base.avatarUrl,
+    address: base.address,
+    metadata: (base.metadata as Record<string, unknown>) ?? undefined,
     dealCount: deals.length,
     lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
     primaryDealStage,
@@ -234,7 +244,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   if (!contact) return null;
 
   const contactWithRelations = contact as typeof contact & {
-    deals: { stage: string; invoices: { total: any; status: string }[] }[];
+    deals: { stage: string; invoices: { total: unknown; status: string }[] }[];
     activities: { createdAt: Date }[];
   };
   const deals = contactWithRelations.deals ?? [];
@@ -357,7 +367,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
         company: parsed.data.company ?? enriched?.name ?? null,
         avatarUrl: enriched?.logoUrl ?? null,
         workspaceId: parsed.data.workspaceId,
-        metadata: Object.keys(metadata).length > 0 ? (metadata as any) : undefined,
+        metadata: Object.keys(metadata).length > 0 ? (metadata as Prisma.InputJsonValue) : undefined,
       },
     });
   } catch (error) {
@@ -437,7 +447,7 @@ export async function updateContactMetadata(
   const existing = (contact.metadata as Record<string, unknown>) ?? {};
   await db.contact.update({
     where: { id: contactId },
-    data: { metadata: { ...existing, ...metadata } as any },
+    data: { metadata: { ...existing, ...metadata } as Prisma.InputJsonValue },
   });
   return { success: true as const };
 }

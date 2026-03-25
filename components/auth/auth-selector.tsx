@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { MonitoringService } from "@/lib/monitoring";
 import { Phone, Mail } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 
 export function AuthSelector() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export function AuthSelector() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [signUpMethod, setSignUpMethod] = useState<"email" | "phone">("email");
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [signInMethod, setSignInMethod] = useState<"email" | "phone">("email");

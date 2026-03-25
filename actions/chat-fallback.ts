@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { sendSupportAlert } from "./reminder-actions";
 import { appendTicketNote } from "./activity-actions";
 
-export async function handleChatFallback(message: string, metadata?: Record<string, any>) {
+export async function handleChatFallback(message: string, metadata?: Record<string, unknown>) {
   try {
-    const stickyTicketId = typeof metadata?.stickyTicketId === "string" ? metadata.stickyTicketId : null;
+    const metaObj = (metadata ?? {}) as Record<string, unknown>;
+    const stickyTicketId = typeof metaObj.stickyTicketId === "string" ? metaObj.stickyTicketId : null;
     if (stickyTicketId && typeof message === "string" && message.trim()) {
       try {
         const result = await appendTicketNote(stickyTicketId, message.trim());
@@ -28,7 +29,7 @@ export async function handleChatFallback(message: string, metadata?: Record<stri
         message,
         metadata,
         userAgent: "chatbot-fallback",
-        workspace: metadata?.workspaceId || "unknown",
+        workspace: typeof metaObj.workspaceId === "string" ? metaObj.workspaceId : "unknown",
       }
     );
 

@@ -4,6 +4,14 @@ import { useEffect } from "react"
 import { processQueue } from "@/lib/sync-queue"
 import { toast } from "sonner"
 
+type DealStageUpdatePayload = { dealId: string; stage: string }
+
+function isDealStageUpdatePayload(value: unknown): value is DealStageUpdatePayload {
+  if (!value || typeof value !== "object") return false
+  const v = value as Record<string, unknown>
+  return typeof v.dealId === "string" && typeof v.stage === "string"
+}
+
 /**
  * SyncProvider listens for the browser's 'online' event.
  * When online, it triggers the processing of the offline mutation queue.
@@ -15,14 +23,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       
       // Map action names to actual server action functions
       const actionMap = {
-        "updateDealStage": async (payload: any) => {
-            // payload is expected to be { dealId, stage }
+        "updateDealStage": async (payload: unknown) => {
+            if (!isDealStageUpdatePayload(payload)) {
+              throw new Error("Invalid updateDealStage payload")
+            }
             const response = await fetch("/api/deals/update-stage", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                dealId: payload?.dealId,
-                stage: payload?.stage,
+                dealId: payload.dealId,
+                stage: payload.stage,
               }),
             })
 

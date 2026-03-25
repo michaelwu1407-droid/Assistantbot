@@ -9,9 +9,21 @@ const store = new Map<
   }
 >();
 
+type ActionExecutionRow = {
+  idempotencyKey: string;
+  status: "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  result: unknown | null;
+  error: string | null;
+};
+
+type CreateArgs = { data: { idempotencyKey: string; status: ActionExecutionRow["status"] } };
+type FindUniqueArgs = { where: { idempotencyKey: string } };
+type UpdateArgs = { where: { idempotencyKey: string }; data: Partial<ActionExecutionRow> & { status?: ActionExecutionRow["status"] } };
+type UpdateManyArgs = { where: { idempotencyKey: string; status: ActionExecutionRow["status"] }; data: Partial<ActionExecutionRow> & { status?: ActionExecutionRow["status"] } };
+
 const dbMocks = vi.hoisted(() => ({
   actionExecution: {
-    create: vi.fn(async ({ data }: any) => {
+    create: vi.fn(async ({ data }: CreateArgs) => {
       const key = data.idempotencyKey as string;
       if (store.has(key)) {
         throw { code: "P2002" }; // unique constraint violation
@@ -19,7 +31,7 @@ const dbMocks = vi.hoisted(() => ({
       store.set(key, { status: data.status, result: null, error: null });
       return { id: "row_1", idempotencyKey: key };
     }),
-    findUnique: vi.fn(async ({ where }: any) => {
+    findUnique: vi.fn(async ({ where }: FindUniqueArgs) => {
       const key = where.idempotencyKey as string;
       const row = store.get(key);
       if (!row) return null;
@@ -29,25 +41,25 @@ const dbMocks = vi.hoisted(() => ({
         result: row.result,
       };
     }),
-    update: vi.fn(async ({ where, data }: any) => {
+    update: vi.fn(async ({ where, data }: UpdateArgs) => {
       const key = where.idempotencyKey as string;
       const existing = store.get(key);
       if (!existing) throw new Error("Missing idempotencyKey in mock store");
       const next = {
         ...existing,
-        status: data.status,
+        status: data.status ?? existing.status,
         result: data.result ?? existing.result,
         error: data.error ?? existing.error,
       };
       store.set(key, next);
       return { idempotencyKey: key, status: next.status };
     }),
-    updateMany: vi.fn(async ({ where, data }: any) => {
+    updateMany: vi.fn(async ({ where, data }: UpdateManyArgs) => {
       const key = where.idempotencyKey as string;
       const existing = store.get(key);
       if (!existing) return { count: 0 };
       if (existing.status !== where.status) return { count: 0 };
-      store.set(key, { ...existing, status: data.status, error: data.error ?? null });
+      store.set(key, { ...existing, status: data.status ?? existing.status, error: (data.error ?? null) as string | null });
       return { count: 1 };
     }),
   },

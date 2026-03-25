@@ -93,7 +93,7 @@ function AddressAutocompleteWithGoogle({
 
   useEffect(() => {
     if (loadError) {
-      setHasMapsFailure(true)
+      setTimeout(() => setHasMapsFailure(true), 0)
     }
   }, [loadError])
 

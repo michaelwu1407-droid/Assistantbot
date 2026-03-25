@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
+import crypto from "crypto";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Reuses the same Svix-based verification as the inbound-email webhook.
@@ -21,7 +22,6 @@ function verifyResendWebhook(payload: string, headers: Headers): boolean {
   if (Math.abs(ageMs) > 5 * 60 * 1000) return false;
 
   try {
-    const crypto = require("crypto") as typeof import("crypto");
     const secretBytes = Buffer.from(
       webhookSecret.startsWith("whsec_")
         ? webhookSecret.slice(6)

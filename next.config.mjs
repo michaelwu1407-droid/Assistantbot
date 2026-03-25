@@ -32,10 +32,9 @@ const nextConfig = {
 }
 
 // Injected content via Sentry wizard below
+import { withSentryConfig } from "@sentry/nextjs";
 
-const { withSentryConfig } = require("@sentry/nextjs");
-
-module.exports = withSentryConfig(nextConfig, {
+export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
@@ -90,3 +89,4 @@ module.exports = withSentryConfig(nextConfig, {
     },
   },
 });
+

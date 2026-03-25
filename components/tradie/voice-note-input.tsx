@@ -20,7 +20,10 @@ export function VoiceNoteInput({ dealId }: VoiceNoteInputProps) {
 
     useEffect(() => {
         if (transcript) {
-            setNote((prev) => prev ? `${prev} ${transcript}` : transcript)
+            const t = transcript
+            setTimeout(() => {
+                setNote((prev) => (prev ? `${prev} ${t}` : t))
+            }, 0)
         }
     }, [transcript])
 

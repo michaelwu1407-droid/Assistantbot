@@ -63,7 +63,17 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
     const defaultFilter =
         currentUserRole === "TEAM_MEMBER" && currentUser?.id ? currentUser.id : null
     const [filterOpen, setFilterOpen] = useState(false)
-    const [presets, setPresets] = useState<KanbanFilterPreset[]>([])
+    const [presets, setPresets] = useState<KanbanFilterPreset[]>(() => {
+        if (typeof window === "undefined") return []
+        try {
+            const raw = localStorage.getItem(`kanban-filter-presets:${workspace.id}`)
+            if (!raw) return []
+            const parsed = JSON.parse(raw)
+            return Array.isArray(parsed) ? (parsed as KanbanFilterPreset[]) : []
+        } catch {
+            return []
+        }
+    })
     const [filters, setFilters] = useState<KanbanFilters>({
         query: "",
         minValue: "",
@@ -91,17 +101,6 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
     }, [filters])
 
     const assistantPanelExpanded = useShellStore((s) => s.assistantPanelExpanded)
-
-    useEffect(() => {
-        try {
-            const raw = localStorage.getItem(PRESETS_KEY)
-            if (!raw) return
-            const parsed = JSON.parse(raw) as KanbanFilterPreset[]
-            if (Array.isArray(parsed)) setPresets(parsed)
-        } catch {
-            // ignore malformed local data
-        }
-    }, [PRESETS_KEY])
 
     const persistPresets = (next: KanbanFilterPreset[]) => {
         setPresets(next)
@@ -137,9 +136,8 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
     }
 
     /* Kanban filter only — “New Job” + rest of bar live in DashboardMainChrome */
-    const pipelineFilterExtra = useMemo(
-        () => (
-            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+    const pipelineFilterExtra = (
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                 <PopoverTrigger asChild>
                     <Button
                         id="pipeline-filter-trigger"
@@ -278,8 +276,6 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
                     </div>
                 </PopoverContent>
             </Popover>
-        ),
-        [filterOpen, activeFilterCount, filters, hasTeamFilter, teamMembers, presets]
     )
 
     useEffect(() => {

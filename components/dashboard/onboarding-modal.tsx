@@ -40,7 +40,7 @@ export function OnboardingModal() {
                     <DialogTitle className="text-center text-xl">Welcome to Earlymark!</DialogTitle>
                     <DialogDescription className="text-center pt-2">
                         Your all-in-one assistant for Tradies and Real Estate Agents.
-                        We're here to help you automate the boring stuff.
+                        We&apos;re here to help you automate the boring stuff.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -55,7 +55,7 @@ export function OnboardingModal() {
                 </div>
                 <DialogFooter className="sm:justify-center">
                     <Button type="button" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleComplete}>
-                        Let's Go!
+                        Let&apos;s Go!
                     </Button>
                 </DialogFooter>
             </DialogContent>

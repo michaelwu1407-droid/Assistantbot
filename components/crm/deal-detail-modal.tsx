@@ -40,41 +40,68 @@ interface DealDetailModalProps {
   initialTab?: "activities" | "jobs" | "notes"
 }
 
+type DealDetail = DealView & {
+  contact: { id: string; name: string; company?: string | null; email?: string | null; phone?: string | null }
+  assignedTo?: { id: string; name: string | null } | null
+  jobPhotos: Array<{ id: string; url?: string; fileUrl?: string; caption?: string | null }>
+  // API route stringifies dates; keep flexible in UI.
+  scheduledAt?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
+  stageChangedAt?: unknown
+  lastActivityDate?: unknown
+}
+
+type ContactDeal = DealView & { updatedAt?: unknown }
+
 export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = "TEAM_MEMBER", onDealUpdated, initialTab }: DealDetailModalProps) {
-  const [deal, setDeal] = useState<any>(null)
-  const [contactDeals, setContactDeals] = useState<any[]>([])
+  const [deal, setDeal] = useState<DealDetail | null>(null)
+  const [contactDeals, setContactDeals] = useState<ContactDeal[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!dealId || !open) {
-      setDeal(null)
-      setContactDeals([])
-      setError(null)
-      return
-    }
-    setDeal(null)
-    setContactDeals([])
-    setError(null)
-    setLoading(true)
+    if (!dealId || !open) return
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setLoading(true)
+    })
     fetch(`/api/deals/${dealId}`)
       .then((res) => {
         if (!res.ok) throw new Error(res.status === 404 ? "Deal not found" : "Failed to load")
         return res.json()
       })
-      .then((data) => {
-        setDeal(data.deal)
-        setContactDeals(data.contactDeals || [])
+      .then((data: unknown) => {
+        const parsed = data as { deal?: DealDetail; contactDeals?: DealView[] }
+        setDeal(parsed.deal ?? null)
+        setContactDeals(Array.isArray(parsed.contactDeals) ? (parsed.contactDeals as ContactDeal[]) : [])
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Failed to load")
         setDeal(null)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        queueMicrotask(() => {
+          if (!cancelled) setLoading(false)
+        })
+      })
+    return () => {
+      cancelled = true
+    }
   }, [dealId, open])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          setDeal(null)
+          setContactDeals([])
+          setError(null)
+        }
+        onOpenChange(nextOpen)
+      }}
+    >
       <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
@@ -90,6 +117,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         )}
         {!loading && !error && deal && (
           <DealDetailContent
+            key={deal.id}
             deal={deal}
             contactDeals={contactDeals}
             onOpenChange={onOpenChange}
@@ -111,18 +139,15 @@ function DealDetailContent({
   onDealUpdated,
   initialTab,
 }: {
-  deal: any
-  contactDeals: any[]
+  deal: DealDetail
+  contactDeals: DealView[]
   onOpenChange: (open: boolean) => void
   currentUserRole: string
   onDealUpdated?: () => void
   initialTab?: "activities" | "jobs" | "notes"
 }) {
   const router = useRouter()
-  const [deal, setDeal] = useState(initialDeal)
-  useEffect(() => {
-    setDeal(initialDeal)
-  }, [initialDeal])
+  const [deal, setDeal] = useState<DealDetail>(initialDeal)
 
   const [activeDetailTab, setActiveDetailTab] = useState<"activities" | "jobs" | "notes">(initialTab || "activities")
   const metadata = (deal.metadata || {}) as Record<string, unknown>
@@ -134,10 +159,6 @@ function DealDetailContent({
 
   const [overdueDismissed, setOverdueDismissed] = useState(false)
   const [showReconcile, setShowReconcile] = useState(false)
-
-  useEffect(() => {
-    setOverdueDismissed(false)
-  }, [deal.id])
 
   const overdueStyling = getOverdueStyling({
     stage: deal.stage,
@@ -221,7 +242,7 @@ function DealDetailContent({
       await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
       toast.success("Invoice amount updated")
       setIsEditingInvoice(false)
-      setDeal((d: any) => ({ ...d, invoicedAmount: isNaN(val) ? null : val }))
+      setDeal((d) => ({ ...d, invoicedAmount: isNaN(val) ? undefined : val }))
     } catch {
       toast.error("Failed to update invoice amount")
     } finally {
@@ -233,7 +254,7 @@ function DealDetailContent({
     try {
       await updateDeal(deal.id, { isDraft: false })
       toast.success("Job confirmed")
-      setDeal((d: any) => ({ ...d, isDraft: false }))
+      setDeal((d) => ({ ...d, isDraft: false }))
       onOpenChange(false)
       onDealUpdated?.()
     } catch {
@@ -247,7 +268,7 @@ function DealDetailContent({
       if (result.success) {
         toast.success("Job approved and marked completed")
         setLiveMessage("Job approved and marked completed.")
-        setDeal((d: any) => ({ ...d, stage: "WON" }))
+        setDeal((d) => ({ ...d, stage: "WON" }))
         onOpenChange(false)
         onDealUpdated?.()
         router.refresh()
@@ -570,10 +591,10 @@ function DealDetailContent({
               </Link>
             </div>
             <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
-              {["activities", "jobs", "notes"].map((t) => (
+              {(["activities", "jobs", "notes"] as const).map((t) => (
                 <button
                   key={t}
-                  onClick={() => setActiveDetailTab(t as any)}
+                  onClick={() => setActiveDetailTab(t)}
                   role="tab"
                   aria-selected={activeDetailTab === t}
                   aria-controls={`deal-tab-${t}`}
@@ -593,7 +614,7 @@ function DealDetailContent({
                   {contactDeals.length === 0 ? (
                     <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
                   ) : (
-                    contactDeals.map((d) => (
+                    contactDeals.map((d: ContactDeal) => (
                       <button
                         key={d.id}
                         onClick={() => {
@@ -604,7 +625,10 @@ function DealDetailContent({
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
                         {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
-                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
+                        <span className="text-slate-400 text-xs block mt-0.5">
+                          {PRISMA_STAGE_LABELS[d.stage] ?? d.stage} •{" "}
+                          {d.updatedAt ? format(new Date(d.updatedAt as string), "MMM d") : "—"}
+                        </span>
                       </button>
                     ))
                   )}
@@ -628,6 +652,10 @@ function DealDetailContent({
                           if (e.key === 'Enter') {
                             const val = e.currentTarget.value.trim();
                             if (!val) return;
+                            if (!deal.contactId) {
+                              toast.error("No contact to message")
+                              return
+                            }
                             e.currentTarget.value = '';
                             const { sendSMS } = await import("@/actions/messaging-actions");
                             const res = await sendSMS(deal.contactId, val, deal.id);
@@ -652,9 +680,13 @@ function DealDetailContent({
       {deal.jobPhotos && deal.jobPhotos.length > 0 && (
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {deal.jobPhotos.map((photo: any) => (
+            {deal.jobPhotos.map((photo) => (
               <div key={photo.id} className="w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                <img src={photo.url} alt={photo.caption || "Job"} className="w-full h-full object-cover" />
+                <img
+                  src={photo.url ?? photo.fileUrl ?? ""}
+                  alt={photo.caption || "Job"}
+                  className="w-full h-full object-cover"
+                />
               </div>
             ))}
           </div>

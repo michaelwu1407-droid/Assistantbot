@@ -9,9 +9,9 @@ import { toast } from "sonner"
 import { createReferralLink, getReferralStats, getActiveReferralProgram } from "@/actions/referral-actions"
 
 export function ReferralSettings({ userId }: { userId: string }) {
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<Awaited<ReturnType<typeof getReferralStats>> | null>(null)
   const [referralLink, setReferralLink] = useState("")
-  const [program, setProgram] = useState<any>(null)
+  const [program, setProgram] = useState<Awaited<ReturnType<typeof getActiveReferralProgram>> | null>(null)
   const [isCopied, setIsCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 

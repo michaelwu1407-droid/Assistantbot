@@ -25,17 +25,16 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const router = useRouter()
   const pathname = usePathname()
   const tutorialTriggered = useRef(false)
-  const [mounted, setMounted] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(true) // md and up; assume desktop for SSR
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") return true
+    return window.matchMedia("(min-width: 768px)").matches
+  })
   const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
   const [chatbotExpanded, setChatbotExpanded] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const didDragRef = useRef(false)
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [mounted] = useState(() => typeof window !== "undefined")
 
   // Keep global flag in sync so dashboard Kanban can use min board width only when RHS chat is open (no forced horizontal scroll when chat is collapsed).
   useEffect(() => {
@@ -50,7 +49,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   // Track desktop vs mobile (md = 768px) so we can default chat panel by viewport
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)")
-    setIsDesktop(mq.matches)
     const fn = () => setIsDesktop(mq.matches)
     mq.addEventListener("change", fn)
     return () => mq.removeEventListener("change", fn)
@@ -61,7 +59,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const CRM_PIPELINE_HOME = "/crm/dashboard"
   const isDashboardRoot = pathname === CRM_PIPELINE_HOME
   const isTutorialStep1Or2 = viewMode === "TUTORIAL" && (tutorialStepIndex === 0 || tutorialStepIndex === 1)
-  const isBasicView = mounted && isDashboardRoot && (viewMode === "BASIC" || isTutorialStep1Or2)
+  const isBasicView = isDashboardRoot && (viewMode === "BASIC" || isTutorialStep1Or2)
 
   // Keep track of the last advanced-page route so Chat -> Advanced returns users where they were.
   useEffect(() => {
@@ -112,26 +110,23 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     if (viewMode !== "TUTORIAL" || tutorialStepIndex !== CHAT_STEP_INDEX) return
     const t = setTimeout(() => {
       chatbotPanelRef.current?.expand()
-      setChatbotExpanded(true)
     }, 100)
     return () => clearTimeout(t)
   }, [viewMode, tutorialStepIndex])
 
   // Default chat panel: open on home (desktop only), closed on other pages; on mobile always closed
   useEffect(() => {
-    if (!mounted || isBasicView) return
+    if (isBasicView) return
     const openOnHome = pathname === CRM_PIPELINE_HOME && isDesktop
     if (openOnHome) {
       const t = setTimeout(() => {
         chatbotPanelRef.current?.expand()
-        setChatbotExpanded(true)
       }, 50)
       return () => clearTimeout(t)
     } else {
       chatbotPanelRef.current?.collapse()
-      setChatbotExpanded(false)
     }
-  }, [pathname, isDesktop, mounted, isBasicView])
+  }, [pathname, isDesktop, isBasicView])
 
   const handleTutorialComplete = async () => {
     const workspaceId = useShellStore.getState().workspaceId;

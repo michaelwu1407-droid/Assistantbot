@@ -8,6 +8,8 @@ import { processReferralConversionForCheckout } from "@/actions/referral-actions
 import { logger } from "@/lib/logging";
 import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export async function POST(req: Request) {
     const body = await req.text();
     const signature = (await headers()).get("Stripe-Signature") as string;

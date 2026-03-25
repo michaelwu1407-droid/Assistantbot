@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export async function addKnowledgeRule(
       data: {
         category,
         ruleContent: ruleContent.trim(),
-        metadata: metadata ? (metadata as any) : undefined,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
         source,
         workspaceId,
       },
@@ -104,7 +105,7 @@ export async function updateKnowledgeRule(
       where: { id },
       data: {
         ruleContent: ruleContent.trim(),
-        metadata: metadata ? (metadata as any) : undefined,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
     });
     revalidatePath("/crm/settings/knowledge");
@@ -143,7 +144,7 @@ export async function bulkImportKnowledge(
       data: rules.map((r) => ({
         category: r.category,
         ruleContent: r.ruleContent.trim(),
-        metadata: r.metadata ? (r.metadata as any) : undefined,
+        metadata: r.metadata ? (r.metadata as Prisma.InputJsonValue) : undefined,
         source: "scrape",
         workspaceId,
       })),

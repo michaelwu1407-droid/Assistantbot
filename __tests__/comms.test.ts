@@ -82,7 +82,7 @@ describe("initializeTradieComms", () => {
   const originationCreate = vi.fn();
   const trunkRemove = vi.fn();
   const trunkCreate = vi.fn();
-  const trunks = Object.assign(
+  Object.assign(
     vi.fn(() => ({
       originationUrls: {
         create: originationCreate,

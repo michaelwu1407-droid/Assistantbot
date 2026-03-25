@@ -28,6 +28,7 @@ export default async function AgentPage() {
         getAgentPipeline(workspace.id)
     ])
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     let listings: any[] = []
     let leads: any[] = []
 

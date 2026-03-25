@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 // ─── Constants ───────────────────────────────────────────────────────
 
@@ -13,12 +14,10 @@ const XERO_API_BASE = "https://api.xero.com/api.xro/2.0";
 function getEncryptionKey(): Buffer {
   // Derive a 32-byte key from XERO_CLIENT_SECRET (or a dedicated TOKEN_ENCRYPTION_KEY)
   const secret = process.env.TOKEN_ENCRYPTION_KEY ?? process.env.XERO_CLIENT_SECRET ?? "";
-  const crypto = require("crypto") as typeof import("crypto");
   return crypto.createHash("sha256").update(secret).digest();
 }
 
 export function encryptToken(plaintext: string): string {
-  const crypto = require("crypto") as typeof import("crypto");
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv("aes-256-cbc", getEncryptionKey(), iv);
   let encrypted = cipher.update(plaintext, "utf8", "hex");
@@ -27,7 +26,6 @@ export function encryptToken(plaintext: string): string {
 }
 
 export function decryptToken(encrypted: string): string {
-  const crypto = require("crypto") as typeof import("crypto");
   const [ivHex, data] = encrypted.split(":");
   if (!ivHex || !data) throw new Error("Invalid encrypted token format");
   const iv = Buffer.from(ivHex, "hex");

@@ -123,7 +123,7 @@ export function ReminderSettings() {
               <div className="space-y-1">
                 <Label htmlFor="enableTripSms">Enable Trip SMS</Label>
                 <p className="text-sm text-muted-foreground">
-                  Send "On my way" SMS when driver starts trip in maps view
+                  Send &quot;On my way&quot; SMS when driver starts trip in maps view
                 </p>
               </div>
               <Switch
@@ -148,7 +148,7 @@ export function ReminderSettings() {
               </div>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Job reminders are sent automatically {settings.jobReminderHours} hours before scheduled time</li>
-                <li>• Trip SMS is sent when driver clicks "Start Trip" in maps view</li>
+                <li>• Trip SMS is sent when driver clicks &quot;Start Trip&quot; in maps view</li>
                 <li>• All messages are logged as activities for tracking</li>
                 <li>• Requires Twilio phone number to be configured</li>
               </ul>

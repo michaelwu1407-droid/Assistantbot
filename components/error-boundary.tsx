@@ -11,6 +11,12 @@ interface ErrorBoundaryState {
   errorInfo?: React.ErrorInfo;
 }
 
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, params?: Record<string, unknown>) => void;
+  }
+}
+
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error?: Error; reset: () => void }>;
@@ -30,8 +36,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     // Log error to monitoring service in production
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'exception', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
         description: error.message,
         fatal: false,
       });

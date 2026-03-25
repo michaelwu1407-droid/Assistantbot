@@ -66,45 +66,41 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const { revenue, travisWonRevenue, upcomingCount, attentionRequiredCount } = useMemo(() => {
-    const wonThisMonth = deals.filter(
-      (d) =>
-        d.stage === "completed" &&
-        new Date(d.stageChangedAt).getMonth() === currentMonth &&
-        new Date(d.stageChangedAt).getFullYear() === currentYear
+  const wonThisMonth = deals.filter(
+    (d) =>
+      d.stage === "completed" &&
+      new Date(d.stageChangedAt).getMonth() === currentMonth &&
+      new Date(d.stageChangedAt).getFullYear() === currentYear
+  )
+  const revenue = wonThisMonth.reduce((sum, d) => sum + d.value, 0)
+  const travisWon = wonThisMonth.filter(
+    (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
+  )
+  const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const upcomingCount = deals.filter((d) => {
+    if (d.stage !== "scheduled") return false
+    if (!d.scheduledAt) return false
+    const scheduled = new Date(d.scheduledAt)
+    return (
+      scheduled.getMonth() === currentMonth &&
+      scheduled.getFullYear() === currentYear &&
+      scheduled >= startOfToday
     )
-    const revenue = wonThisMonth.reduce((sum, d) => sum + d.value, 0)
-    const travisWon = wonThisMonth.filter(
-      (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
-    )
-    const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const upcomingCount = deals.filter((d) => {
-      if (d.stage !== "scheduled") return false
-      if (!d.scheduledAt) return false
-      const scheduled = new Date(d.scheduledAt)
-      return (
-        scheduled.getMonth() === currentMonth &&
-        scheduled.getFullYear() === currentYear &&
-        scheduled >= startOfToday
-      )
-    }).length
-    const staleDays = staleWeeks * 7
-    const staleWindowDeals = deals.filter((d) => {
-      const days = differenceInDays(now, new Date(d.lastActivityDate))
-      return days >= staleDays && d.stage !== "completed" && d.stage !== "lost"
+  }).length
+  const staleDays = staleWeeks * 7
+  const staleWindowDeals = deals.filter((d) => {
+    const days = differenceInDays(now, new Date(d.lastActivityDate))
+    return days >= staleDays && d.stage !== "completed" && d.stage !== "lost"
+  })
+  const attentionRequiredCount = countAttentionRequiredDeals(
+    deals.map((deal) => {
+      const staleMatch = staleWindowDeals.some((s) => s.id === deal.id)
+      return staleMatch
+        ? { ...deal, health: { ...deal.health, status: "STALE" as const } }
+        : deal
     })
-    const attentionRequiredCount = countAttentionRequiredDeals(
-      deals.map((deal) => {
-        const staleMatch = staleWindowDeals.some((s) => s.id === deal.id)
-        return staleMatch
-          ? { ...deal, health: { ...deal.health, status: "STALE" as const } }
-          : deal
-      })
-    )
-
-    return { revenue, travisWonRevenue, upcomingCount, attentionRequiredCount }
-  }, [deals, currentMonth, currentYear, staleWeeks])
+  )
 
   const monthLabel = MONTHS[currentMonth]
 

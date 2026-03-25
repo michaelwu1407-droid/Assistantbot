@@ -115,7 +115,7 @@ export default function SupportPage() {
         <CardHeader>
           <CardTitle>Send Support Request</CardTitle>
           <CardDescription>
-            Describe your issue and we'll help you resolve it
+            Describe your issue and we&apos;ll help you resolve it
           </CardDescription>
         </CardHeader>
         <CardContent>

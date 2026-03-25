@@ -1348,7 +1348,7 @@ async function postVoiceAgentStatus() {
   }
 }
 
-function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding): livekitLlm.ToolContext<any> {
+function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding): livekitLlm.ToolContext<unknown> {
   const findMatches = (query: string, values: string[]) => {
     const normalized = normalizeTranscript(query);
     if (!normalized) return values.slice(0, 3);
@@ -1748,7 +1748,7 @@ export default defineAgent({
     }
 
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
-    const tools: livekitLlm.ToolContext<any> = isEarlymarkCall
+    const tools: livekitLlm.ToolContext<unknown> = isEarlymarkCall
       ? {
         log_lead: logLeadTool,
         transfer_call: transferCallTool,

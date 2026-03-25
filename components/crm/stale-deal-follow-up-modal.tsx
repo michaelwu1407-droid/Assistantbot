@@ -113,7 +113,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal }: StaleDealFo
             <DialogTitle>Stale Deal Follow-up</DialogTitle>
           </div>
           <DialogDescription>
-            This deal hasn't had activity for {daysSinceLastActivity} days. Send a follow-up to re-engage the contact.
+            This deal hasn&apos;t had activity for {daysSinceLastActivity} days. Send a follow-up to re-engage the contact.
           </DialogDescription>
         </DialogHeader>
 

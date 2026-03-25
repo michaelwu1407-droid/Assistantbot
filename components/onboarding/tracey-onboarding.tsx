@@ -597,25 +597,29 @@ export function TraceyOnboarding() {
           setPhysicalAddress(scrapedPhysicalAddress)
           // Try to resolve structured components from the scraped text using Google Places,
           // so scraped addresses behave like typed+selected ones for provisioning.
-          if (typeof window !== "undefined" && (window as any).google?.maps?.places) {
+          const googleWindow = window as typeof window & { google?: typeof google }
+          if (typeof window !== "undefined" && googleWindow.google?.maps?.places) {
             try {
-              const service = new (window as any).google.maps.places.AutocompleteService()
+              const service = new googleWindow.google.maps.places.AutocompleteService()
               service.getPlacePredictions(
                 {
                   input: scrapedPhysicalAddress,
                   componentRestrictions: { country: "au" },
                   types: ["address"],
                 },
-                (predictions: any[], status: any) => {
+                (
+                  predictions: google.maps.places.AutocompletePrediction[] | null,
+                  status: google.maps.places.PlacesServiceStatus,
+                ) => {
                   if (
-                    status !== (window as any).google.maps.places.PlacesServiceStatus.OK ||
+                    status !== googleWindow.google.maps.places.PlacesServiceStatus.OK ||
                     !predictions?.length
                   ) {
                     return
                   }
                   const top = predictions[0]
                   if (!top?.place_id) return
-                  const placesService = new (window as any).google.maps.places.PlacesService(
+                  const placesService = new googleWindow.google.maps.places.PlacesService(
                     document.createElement("div"),
                   )
                   placesService.getDetails(
@@ -623,16 +627,19 @@ export function TraceyOnboarding() {
                       placeId: top.place_id,
                       fields: ["address_components", "formatted_address", "name", "geometry", "place_id"],
                     },
-                    (details: any, detailStatus: any) => {
+                    (
+                      details: google.maps.places.PlaceResult | null,
+                      detailStatus: google.maps.places.PlacesServiceStatus,
+                    ) => {
                       if (
-                        detailStatus !== (window as any).google.maps.places.PlacesServiceStatus.OK ||
+                        detailStatus !== googleWindow.google.maps.places.PlacesServiceStatus.OK ||
                         !details
                       ) {
                         return
                       }
                       const components = details.address_components ?? []
                       const get = (type: string) =>
-                        components.find((c: any) => c.types?.includes(type))
+                        components.find((c: google.maps.GeocoderAddressComponent) => c.types?.includes(type))
                       const streetNumber = get("street_number")?.long_name
                       const route = get("route")?.long_name
                       const locality =

@@ -18,7 +18,7 @@ export async function parseLeadFromEmail(email: {
   customerPhone?: string;
   customerAddress?: string;
   jobTitle?: string;
-  jobDetails?: any;
+  jobDetails?: Record<string, unknown>;
   estimatedValue?: string;
   provider: string;
 } | null> {
@@ -92,11 +92,21 @@ Return JSON only:
     const text = result.text?.trim();
     if (!text) return null;
 
-    // Parse JSON response
-    const parsedData = JSON.parse(text);
+    const parsedData: unknown = JSON.parse(text);
+
+    if (!parsedData || typeof parsedData !== "object") return null;
+    const obj = parsedData as Record<string, unknown>;
+    if (typeof obj.isGenuineLead !== "boolean") return null;
     
     return {
-      ...parsedData,
+      isGenuineLead: obj.isGenuineLead,
+      customerName: typeof obj.customerName === "string" ? obj.customerName : undefined,
+      customerEmail: typeof obj.customerEmail === "string" ? obj.customerEmail : undefined,
+      customerPhone: typeof obj.customerPhone === "string" ? obj.customerPhone : undefined,
+      customerAddress: typeof obj.customerAddress === "string" ? obj.customerAddress : undefined,
+      jobTitle: typeof obj.jobTitle === "string" ? obj.jobTitle : undefined,
+      jobDetails: obj.jobDetails && typeof obj.jobDetails === "object" ? (obj.jobDetails as Record<string, unknown>) : undefined,
+      estimatedValue: typeof obj.estimatedValue === "string" ? obj.estimatedValue : undefined,
       provider: email.provider,
     };
 

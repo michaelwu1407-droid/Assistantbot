@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { processQueue } from "@/lib/sync-queue"
 
-const ACTION_MAP: Record<string, (payload: Record<string, unknown>) => Promise<unknown>> = {
+const ACTION_MAP: Record<string, (payload: unknown) => Promise<unknown>> = {
   updateJobStatus: (payload) =>
     fetch("/api/sync/replay", {
       method: "POST",

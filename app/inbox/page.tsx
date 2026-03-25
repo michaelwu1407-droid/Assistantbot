@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
 const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const;
 
 export default async function InboxPage() {
-  let workspace, interactions, contactSegment: Record<string, "lead" | "existing"> = {};
+  let workspace, interactions;
+  const contactSegment: Record<string, "lead" | "existing"> = {};
   let dbError = false;
   try {
     const result = await getAuthUserId();

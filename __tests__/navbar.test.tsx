@@ -3,12 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/image", () => ({
-  default: ({
-    unoptimized: _unoptimized,
-    ...props
-  }: React.ImgHTMLAttributes<HTMLImageElement> & { unoptimized?: boolean }) => (
-    <img {...props} alt={props.alt || ""} />
-  ),
+  default: (props: React.ComponentProps<"img">) => <img {...props} alt={props.alt || ""} />,
 }));
 
 import { Navbar } from "@/components/layout/navbar";

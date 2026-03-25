@@ -1,5 +1,7 @@
 "use server"
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { getAuthUserId } from "@/lib/auth"

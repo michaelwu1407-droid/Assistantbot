@@ -22,7 +22,7 @@ interface KanbanAutomationModalProps {
     lastActivity: Date
     value: number
   }
-  onAction: (action: string, data: any) => void
+  onAction: (action: string, data: unknown) => void
 }
 
 export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: KanbanAutomationModalProps) {

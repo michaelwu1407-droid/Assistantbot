@@ -35,7 +35,11 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 }
 
 export function PlacesAutocomplete({ value, onChange, placeholder = "Enter address...", disabled }: PlacesAutocompleteProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(() => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!key) return false
+    return !window.google?.maps?.places
+  })
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -49,7 +53,6 @@ export function PlacesAutocomplete({ value, onChange, placeholder = "Enter addre
       return
     }
 
-    setIsLoading(true)
     console.log("PlacesAutocomplete: Loading Google Maps with API key")
     loadGoogleMaps(apiKey)
       .then(() => {

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 
 interface SpotlightProps {
@@ -25,11 +25,10 @@ const STRIP_MARGIN_PCT = 0.05
 export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', spotlightExpandBottom = 0, className, children, onBackgroundClick }: SpotlightProps) {
     const [position, setPosition] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
     const [resizeHandlePosition, setResizeHandlePosition] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
-    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, width: CARD_DEFAULT_WIDTH, height: CARD_DEFAULT_HEIGHT })
 
     useEffect(() => {
         if (!targetId) {
-            setPosition(null)
+            setTimeout(() => setPosition(null), 0)
             return
         }
 
@@ -46,7 +45,7 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
             }
         }
 
-        updatePosition()
+        requestAnimationFrame(updatePosition)
         window.addEventListener("resize", updatePosition)
         window.addEventListener("scroll", updatePosition, true)
 
@@ -58,7 +57,7 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
 
     useEffect(() => {
         if (!resizeHandleId) {
-            setResizeHandlePosition(null)
+            setTimeout(() => setResizeHandlePosition(null), 0)
             return
         }
         const update = () => {
@@ -68,7 +67,7 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
                 setResizeHandlePosition({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
             }
         }
-        update()
+        requestAnimationFrame(update)
         window.addEventListener("resize", update)
         window.addEventListener("scroll", update, true)
         return () => {
@@ -77,8 +76,10 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
         }
     }, [resizeHandleId])
 
-    useEffect(() => {
-        if (!position) return
+    const tooltipPosition = useMemo(() => {
+        if (!position || typeof window === "undefined") {
+            return { top: 0, left: 0, width: CARD_DEFAULT_WIDTH, height: CARD_DEFAULT_HEIGHT }
+        }
 
         const minMargin = 20
         const viewportHeight = window.innerHeight
@@ -90,27 +91,21 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
         let height = CARD_DEFAULT_HEIGHT
 
         if (cardPlacement === 'topLeft') {
-            // Compact card in top-left corner so center (e.g. chat window) stays visible
             left = minMargin
             top = minMargin
-            width = CARD_DEFAULT_WIDTH
-            height = CARD_DEFAULT_HEIGHT
         } else if (cardPlacement === 'topStrip') {
-            // Wide strip at top so the target stays visible below
             const stripWidth = Math.round(viewportWidth * (1 - 2 * STRIP_MARGIN_PCT))
             left = viewportWidth * STRIP_MARGIN_PCT
             top = minMargin
             width = stripWidth
             height = STRIP_HEIGHT
         } else if (cardPlacement === 'bottomStrip') {
-            // Wide strip at bottom when top is inappropriate (e.g. target is at top)
             const stripWidth = Math.round(viewportWidth * (1 - 2 * STRIP_MARGIN_PCT))
             left = viewportWidth * STRIP_MARGIN_PCT
             top = viewportHeight - STRIP_HEIGHT - minMargin
             width = stripWidth
             height = STRIP_HEIGHT
         } else if (cardPlacement === 'bottomCenter') {
-            // Wider card at bottom centre, height tuned to fit content without cramping
             width = Math.min(560, Math.round(viewportWidth * 0.92))
             height = 260
             left = (viewportWidth - width) / 2
@@ -120,9 +115,7 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
             const tooltipHeight = CARD_DEFAULT_HEIGHT
             const tooltipWidth = CARD_DEFAULT_WIDTH
 
-            // When target is on the right (e.g. chat panel), place card to the LEFT so it doesn't cover the chatbox
             const targetInRightHalf = position.left + position.width / 2 > viewportWidth / 2
-            // When target is large and centered (e.g. full chat area), use top strip so chat + toggle are visible
             const targetLargeAndCentered = position.width > viewportWidth * 0.45
 
             if (targetInRightHalf) {
@@ -134,7 +127,6 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
                 width = Math.round(viewportWidth * (1 - 2 * STRIP_MARGIN_PCT))
                 height = STRIP_HEIGHT
             } else {
-                // Prefer card above target; fall back to below if no room
                 const wouldFitAbove = position.top - tooltipHeight - gap >= minMargin
                 if (wouldFitAbove) {
                     top = position.top - tooltipHeight - gap
@@ -148,20 +140,16 @@ export function Spotlight({ targetId, resizeHandleId, cardPlacement = 'auto', sp
                 }
             }
 
-            // Vertical clamp (only when not using strip dimensions)
             if (height === CARD_DEFAULT_HEIGHT) {
                 if (top < minMargin) top = minMargin
-                if (top + height > viewportHeight - minMargin) {
-                    top = viewportHeight - height - minMargin
-                }
+                if (top + height > viewportHeight - minMargin) top = viewportHeight - height - minMargin
             }
 
-            // Horizontal clamp
             if (left < minMargin) left = minMargin
             if (left + width > viewportWidth - minMargin) width = viewportWidth - left - minMargin
         }
 
-        setTooltipPosition({ top, left, width, height })
+        return { top, left, width, height }
     }, [position, cardPlacement])
 
     // When targetId is set but position not yet measured (e.g. right after step change), show card in fallback position so tutorial doesn't disappear

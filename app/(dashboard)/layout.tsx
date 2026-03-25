@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   let tutorialComplete = false;
   let shouldRedirectToSetup = false;
   let headerDisplayName = "";
-  let workspaceIndustryType: "TRADES" | "REAL_ESTATE" | null = null;
+  const workspaceIndustryType: "TRADES" | "REAL_ESTATE" | null = null;
 
   try {
     const dashboardState = await getDashboardShellState();

@@ -53,8 +53,8 @@ export function AccountForm({ userId, email }: AccountFormProps) {
 
       toast.success("Password updated successfully!");
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update password.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to update password.");
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +97,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
             await supabase.auth.signOut();
             toast.success("Account deleted successfully.");
             router.push("/login");
-          } catch (supabaseDeleteError: any) {
+          } catch (supabaseDeleteError: unknown) {
             console.error(`[ACCOUNT DELETION] Complete deletion failed:`, supabaseDeleteError);
             toast.error("Account deletion failed. Please contact support for assistance.");
           }
@@ -193,8 +193,8 @@ export function AccountForm({ userId, email }: AccountFormProps) {
               if (error) throw error;
               toast.success("Confirmation email sent to your new address. Please check your inbox.");
               setNewEmail("");
-            } catch (err: any) {
-              toast.error(err.message || "Failed to update email.");
+            } catch (err: unknown) {
+              toast.error(err instanceof Error ? err.message : "Failed to update email.");
             } finally {
               setIsEmailLoading(false);
             }

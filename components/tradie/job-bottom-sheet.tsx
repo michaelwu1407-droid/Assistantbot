@@ -285,7 +285,15 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                         <div className="pointer-events-auto">
                             <JobStatusBar
                                 dealId={job.id}
-                                currentStatus={job.status as any}
+                currentStatus={
+                    job.status === "SCHEDULED" ||
+                    job.status === "TRAVELING" ||
+                    job.status === "ON_SITE" ||
+                    job.status === "COMPLETED" ||
+                    job.status === "CANCELLED"
+                        ? job.status
+                        : "SCHEDULED"
+                }
                                 contactName={job.clientName || "Client"}
                                 safetyCheckCompleted={safetyCheckCompleted}
                             />

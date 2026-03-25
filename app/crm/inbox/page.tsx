@@ -20,7 +20,7 @@ export default async function InboxPage() {
     }
 
     let interactions
-    let contactSegment: Record<string, "lead" | "existing"> = {}
+    const contactSegment: Record<string, "lead" | "existing"> = {}
     let workspaceId: string | undefined
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)

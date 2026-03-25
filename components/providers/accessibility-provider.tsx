@@ -25,15 +25,11 @@ interface AccessibilityProviderProps {
 }
 
 export function AccessibilityProvider({ children }: AccessibilityProviderProps) {
-  const [prefersReduced, setPrefersReduced] = useState(false);
-  const [prefersHigh, setPrefersHigh] = useState(false);
+  const [prefersReduced] = useState(() => (typeof window !== "undefined" ? prefersReducedMotion() : false));
+  const [prefersHigh] = useState(() => (typeof window !== "undefined" ? prefersHighContrast() : false));
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
 
   useEffect(() => {
-    // Check user preferences
-    setPrefersReduced(prefersReducedMotion());
-    setPrefersHigh(prefersHighContrast());
-
     // Detect screen reader
     const handleScreenReaderChange = () => {
       setScreenReaderEnabled(window.speechSynthesis?.speaking || false);

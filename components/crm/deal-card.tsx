@@ -189,7 +189,8 @@ export function DealCard({
     ? overdueBannerOverlayClasses(overdueStyling.severity)
     : statusBannerOverlayClasses(statusLabel)
 
-  const isUnread = (deal as any).hasUnreadMessages || (deal.metadata && (deal.metadata as any).unread === true);
+  const dealMetadata = (deal.metadata ?? undefined) as Record<string, unknown> | undefined
+  const isUnread = dealMetadata?.unread === true
 
   const corner = cornerDateLabel(deal)
 

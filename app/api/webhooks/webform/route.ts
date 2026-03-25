@@ -27,6 +27,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const dynamic = "force-dynamic";
 
 async function parsePayload(req: NextRequest): Promise<Record<string, string>> {

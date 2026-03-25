@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
 import { runIdempotent } from "@/lib/idempotency";
+import crypto from "crypto";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { appendTicketNote, logActivity } from "./activity-actions";
@@ -1011,7 +1012,7 @@ export async function runUpdateAiPreferences(workspaceId: string, rule: string) 
 export async function runLogActivity(params: { type: string, content: string, dealId?: string, contactId?: string }) {
   try {
     const result = await logActivity({
-      type: params.type.toUpperCase() as any,
+      type: params.type.toUpperCase() as "CALL" | "EMAIL" | "NOTE" | "MEETING" | "TASK",
       title: `${params.type} logged via Assistant`,
       content: params.content,
       dealId: params.dealId,
@@ -1827,7 +1828,6 @@ export async function runSendEmail(
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
     const contactEmail = contact.email;
 
-    const crypto = require("crypto") as typeof import("crypto");
     const bodyHash = crypto.createHash("sha256").update(params.body).digest("hex");
 
     const idem = await runIdempotent<{ returnMessage: string }>({
@@ -2044,7 +2044,8 @@ export async function runGetConversationHistory(
 
     for (const m of chatMessages) {
       const dateStr = m.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-      const direction = (m.metadata as any)?.direction === "outbound" ? "You" : contact.name;
+      const direction =
+        (m.metadata as Record<string, unknown> | null)?.direction === "outbound" ? "You" : contact.name;
       items.push({
         date: m.createdAt,
         text: `[${dateStr}] SMS ${direction}: ${m.content.substring(0, 200)}`,
@@ -2512,7 +2513,7 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       if (previousStage && validStages.includes(previousStage as DealStage)) {
         await db.deal.update({
           where: { id: deal.id },
-          data: { stage: previousStage as any },
+          data: { stage: previousStage as DealStage },
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
         revalidatePath("/crm", "layout");

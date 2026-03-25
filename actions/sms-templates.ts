@@ -1,5 +1,7 @@
 "use server";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";

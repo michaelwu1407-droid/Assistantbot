@@ -1,6 +1,6 @@
 # Current Agent Handoff
 
-Updated: 2026-03-17 AEDT
+Updated: 2026-03-25 AEDT
 
 This is the shortest required-read handoff for any AI agent resuming active work in this repo.
 Start here before reading the longer audit/backlog docs.
@@ -69,6 +69,9 @@ Start here before reading the longer audit/backlog docs.
 - Primary OCI worker host is manually aligned to the same voice-worker SHA and both worker containers are healthy.
 - No managed Earlymark production SMS number is required; launch readiness now treats that as healthy.
 - Reporting/KPI/PDF correctness and CRM audit/correspondence/search parity were materially improved.
+- Repo-wide TypeScript + ESLint hardening work:
+  - `npx tsc --noEmit` passes (no TypeScript errors).
+  - `npm run lint` passes with **0 lint errors** (but there are still lint warnings to clean up).
 
 ## Exact Outstanding Work
 
@@ -81,6 +84,10 @@ Start here before reading the longer audit/backlog docs.
    - Docker install can remove stuck old containers
 2. Confirm the spoken canary reaches `healthy`.
 3. Refresh launch/ops monitors after that canary run so stale monitor warnings stop dominating readiness output.
+4. Clean up remaining ESLint warnings to reach “0 warnings” standard:
+   - `@typescript-eslint/no-unused-vars` (lots of dead imports/vars across `actions/*`, tests, pages, components)
+   - `@next/next/no-img-element` (replace `<img>` with `next/image` where appropriate; update test mocks)
+   - `react-hooks/exhaustive-deps` warnings (fix dependencies properly; don’t silence)
 
 ### Still-open operational/platform items
 

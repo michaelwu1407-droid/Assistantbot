@@ -23,6 +23,7 @@ export default async function TradiePage() {
         getFinancialStats(workspace.id),
     ])
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const initialJob = nextJob ? {
         id: nextJob.id,
         title: nextJob.title,

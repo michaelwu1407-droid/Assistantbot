@@ -3,7 +3,6 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
     LayoutDashboard,
@@ -46,15 +45,10 @@ interface SidebarProps {
 export function Sidebar({ className, expanded }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
-    const [mounted, setMounted] = useState(false)
-    const { setViewMode, viewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
+    const { setViewMode, lastAdvancedPath, setLastAdvancedPath, userRole } = useShellStore()
 
     const isManager = userRole === "OWNER" || userRole === "MANAGER"
     const navItems = allNavItems.filter((item) => !item.managerOnly || isManager)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     const handleSignOut = async () => {
         const supabase = createClient()

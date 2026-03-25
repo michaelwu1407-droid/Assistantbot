@@ -41,7 +41,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
   const [newNoteContent, setNewNoteContent] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Awaited<ReturnType<typeof getAuthUser>>>(null);
 
   const loadNotes = async () => {
     const result = await getJobNotes(dealId);

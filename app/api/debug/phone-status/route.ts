@@ -14,10 +14,11 @@ export async function GET() {
         hasLivekitKey: !!process.env.LIVEKIT_API_KEY,
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: message 
     }, { status: 500 });
   }
 }

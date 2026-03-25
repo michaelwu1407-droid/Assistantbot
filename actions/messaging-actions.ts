@@ -371,7 +371,7 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
         where: { id: dealId },
         data: {
           metadata: JSON.parse(JSON.stringify({
-            ...(deal.metadata as Record<string, any> || {}),
+            ...(deal.metadata as Record<string, unknown> | null || {}),
             confirmationSent: new Date().toISOString(),
             confirmationStatus: "pending"
           }))
@@ -420,7 +420,7 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
         where: { id: dealId },
         data: {
           metadata: JSON.parse(JSON.stringify({
-            ...(deal.metadata as Record<string, any> || {}),
+            ...(deal.metadata as Record<string, unknown> | null || {}),
             lastNudgeSent: new Date().toISOString()
           }))
         }

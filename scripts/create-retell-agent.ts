@@ -73,7 +73,7 @@ async function main() {
   const client = new Retell({ apiKey });
 
   // Create the voice agent.
-  const agent = await client.agent.create({
+  const agentRequest = {
     agent_name: "Earlymark Voice Agent",
     version_description: "Gemini 2.5 Flash + MiniMax TTS for Earlymark CRM.",
     response_engine: {
@@ -96,7 +96,9 @@ async function main() {
     //
     // The actual shape depends on the Retell API; see:
     // https://docs.retellai.com/api-references/create-agent
-  } as any);
+  } as unknown as Parameters<typeof client.agent.create>[0];
+
+  const agent = await client.agent.create(agentRequest);
 
   console.log("Created Earlymark Retell agent:");
   console.log(JSON.stringify(agent, null, 2));

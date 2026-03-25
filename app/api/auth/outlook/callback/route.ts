@@ -24,9 +24,6 @@ export async function GET(req: NextRequest) {
     // Parse state to get user info
     const { userId, provider } = JSON.parse(state);
 
-    // Exchange authorization code for tokens
-    let tokenData;
-    
     // Exchange code for Outlook tokens
     const tokenResponse = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
       method: "POST",
@@ -42,7 +39,7 @@ export async function GET(req: NextRequest) {
       }),
     });
 
-    tokenData = await tokenResponse.json();
+    const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
       throw new Error(tokenData.error_description || tokenData.error);

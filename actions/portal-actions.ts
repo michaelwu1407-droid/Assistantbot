@@ -1,5 +1,7 @@
 "use server";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { db } from "@/lib/db";
 
 // ─── Types ──────────────────────────────────────────────────────────

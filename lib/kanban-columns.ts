@@ -2,7 +2,7 @@
  * Maps a DealView.stage string to the Kanban column id (same rules as `kanban-board.tsx` grouping).
  */
 export function kanbanColumnIdForDealStage(stage: string): string {
-  let s = stage === "pipeline" ? "quote_sent" : stage
+  const s = stage === "pipeline" ? "quote_sent" : stage
   if (s === "pending_approval") return "completed"
   return s
 }

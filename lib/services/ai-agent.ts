@@ -135,7 +135,7 @@ export async function processAgentCommand(userId: string, message: string): Prom
       system: systemPrompt,
       prompt: message,
       tools,
-      // @ts-ignore - Some versions of AI SDK declare this outside CallSettings
+      // @ts-expect-error Some AI SDK versions type this outside CallSettings
       maxSteps: getAdaptiveMaxSteps(message),
     });
     const llmPhaseMs = nowMs() - llmStartedAt;

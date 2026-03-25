@@ -3,12 +3,14 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react"
 import { ReferralSuccessModal } from "@/components/referral/referral-success-modal"
 
+type ReferralTrigger = "onboarding" | "purchase" | "keyAction"
+
 interface ReferralContextType {
   isOpen: boolean
-  trigger: string | null
+  trigger: ReferralTrigger | null
   userId: string | null
-  metadata: any
-  openModal: (trigger: string, userId: string, metadata?: any) => void
+  metadata: Record<string, unknown> | null
+  openModal: (trigger: ReferralTrigger, userId: string, metadata?: Record<string, unknown>) => void
   closeModal: () => void
 }
 
@@ -24,14 +26,14 @@ export function useReferral() {
 
 export function ReferralProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [trigger, setTrigger] = useState<string | null>(null)
+  const [trigger, setTrigger] = useState<ReferralTrigger | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-  const [metadata, setMetadata] = useState<any>(null)
+  const [metadata, setMetadata] = useState<Record<string, unknown> | null>(null)
 
-  const openModal = (newTrigger: string, newUserId: string, newMetadata?: any) => {
+  const openModal = (newTrigger: ReferralTrigger, newUserId: string, newMetadata?: Record<string, unknown>) => {
     setTrigger(newTrigger)
     setUserId(newUserId)
-    setMetadata(newMetadata)
+    setMetadata(newMetadata ?? null)
     setIsOpen(true)
   }
 
@@ -44,7 +46,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
 
   // Listen for custom events
   useEffect(() => {
-    const handleShowModal = (event: CustomEvent) => {
+    const handleShowModal = (event: CustomEvent<{ trigger: ReferralTrigger; userId: string; metadata?: Record<string, unknown> }>) => {
       const { trigger: eventTrigger, userId: eventUserId, metadata: eventMetadata } = event.detail
       openModal(eventTrigger, eventUserId, eventMetadata)
     }
@@ -63,7 +65,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
         <ReferralSuccessModal
           isOpen={isOpen}
           onClose={closeModal}
-          trigger={trigger as any}
+          trigger={trigger ?? "keyAction"}
           userId={userId}
         />
       )}

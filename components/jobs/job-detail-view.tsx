@@ -25,10 +25,16 @@ interface JobDetail {
         address: string | null
     }
     status: string
-    value: any
+    value: unknown
     description: string
-    activities: any[]
-    invoices: any[]
+    activities: unknown[]
+    invoices: Array<{
+        id: string
+        number: string
+        status: string
+        total: number
+        createdAt: string | Date
+    }>
 }
 
 interface JobDetailViewProps {

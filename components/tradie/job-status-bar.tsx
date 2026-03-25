@@ -85,7 +85,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
                             className="w-full h-16 text-xl font-black uppercase tracking-widest bg-[#ccff00] hover:bg-[#b3e600] text-black shadow-[0_0_20px_rgba(204,255,0,0.4)] transition-all active:scale-95"
                         >
                             {loading ? <Loader2 className="animate-spin mr-3 h-6 w-6" /> : <MapPin className="mr-3 h-6 w-6" />}
-                            I'VE ARRIVED
+                            I&apos;VE ARRIVED
                         </Button>
                     )}
 

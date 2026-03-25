@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
+import type { UIMessage } from "ai";
 import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2 } from 'lucide-react';
 import { TraceyAvatar } from '@/components/ui/tracey-avatar';
 import { cn } from '@/lib/utils';
@@ -32,13 +33,25 @@ const QUICK_ACTIONS = [
 /** Convert DB chat history to UIMessage[] (chronological). */
 function historyToInitialMessages(
   history: { id: string; role: string; content: string }[]
-): { id: string; role: 'user' | 'assistant'; parts: { type: 'text'; text: string }[] }[] {
+): UIMessage[] {
   const chronological = [...history].reverse();
   return chronological.map((msg) => ({
     id: msg.id,
     role: msg.role as 'user' | 'assistant',
     parts: [{ type: 'text' as const, text: msg.content || '' }],
   }));
+}
+
+type PersistedChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+function isUserOrAssistantMessage(
+  message: UIMessage
+): message is UIMessage & { role: "user" | "assistant" } {
+  return message.role === "user" || message.role === "assistant";
 }
 
 /** Extract plain text from message parts (for persistence and display fallback). */
@@ -109,7 +122,13 @@ function JobDraftCard({
     getTeamMembers()
       .then((members) => {
         if (cancelled) return;
-        setTeamMembers(members as any);
+        setTeamMembers(
+          members.map((m) => ({
+            id: m.id,
+            name: m.name ?? "Team member",
+            role: String(m.role),
+          }))
+        );
       })
       .catch(() => {
         // If team list can't load, we'll still render the rest of the draft card.
@@ -280,8 +299,7 @@ function ChatWithHistory({
   initialMessages,
 }: {
   workspaceId: string;
-  // Parts can include tool-call structures; we keep it flexible so remounts can restore full UI state.
-  initialMessages: { id: string; role: 'user' | 'assistant'; parts: any[] }[];
+  initialMessages: UIMessage[];
 }) {
   const [input, setInput] = useState('');
   const [selectedDeals, setSelectedDeals] = useState<CrmSelectionItem[]>([]);
@@ -352,7 +370,7 @@ function ChatWithHistory({
     onFinish: ({ message }) => {
       let content = getMessageTextFromParts(message.parts);
       if (!content.trim() && typeof (message as { content?: string }).content === 'string')
-        content = (message as any).content;
+        content = (message as { content?: string }).content ?? "";
       if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => { });
     },
     onError: async (err) => {
@@ -379,11 +397,13 @@ function ChatWithHistory({
   useEffect(() => {
     try {
       const storageKey = `chatMessages:${workspaceId}`;
-      const serializable = messages.map((m: any) => ({
-        id: m.id,
-        role: m.role,
-        parts: m.parts ?? [],
-      }));
+      const serializable: PersistedChatMessage[] = messages
+        .filter(isUserOrAssistantMessage)
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: getMessageTextFromParts(m.parts as { type?: string; text?: string }[] | undefined),
+        }));
       sessionStorage.setItem(storageKey, JSON.stringify(serializable));
     } catch {
       // Non-fatal: sessionStorage can be blocked.
@@ -494,9 +514,11 @@ function ChatWithHistory({
                       const parts = message.parts ?? [];
                       const rendered: React.ReactNode[] = [];
                       let draftCardRenderedForMessage = false;
-                      parts.forEach((part: { type?: string; text?: string; state?: string; output?: { success?: boolean; message?: string; draft?: JobDraftData; showConfirmButton?: boolean; summary?: string }; errorText?: string }, idx: number) => {
+                      (parts as unknown[]).forEach((part, idx) => {
                         if (!part || typeof part !== "object") return;
-                        const partText = part.type === "text" && part.text ? part.text : (part as { text?: string }).text;
+                        const p = part as Record<string, unknown>;
+                        const partType = typeof p.type === "string" ? p.type : undefined;
+                        const partText = partType === "text" && typeof p.text === "string" ? p.text : (typeof p.text === "string" ? p.text : undefined);
                         if (partText && typeof partText === "string") {
                           rendered.push(
                             <p key={idx} className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
@@ -505,9 +527,12 @@ function ChatWithHistory({
                           );
                           return;
                         }
-                        const isTool = part.type?.startsWith("tool-") || part.type === "dynamic-tool";
+                        const isTool = !!partType && (partType.startsWith("tool-") || partType === "dynamic-tool");
                         if (isTool) {
-                          if (part?.state === "output-available" && part.output?.draft) {
+                          const state = typeof p.state === "string" ? p.state : undefined;
+                          const output = p.output as Record<string, unknown> | undefined;
+                          const errorText = typeof p.errorText === "string" ? p.errorText : undefined;
+                          if (state === "output-available" && output && typeof output === "object" && output.draft && typeof output.draft === "object") {
                             if (draftCardRenderedForMessage) return;
                             draftCardRenderedForMessage = true;
                             const confirmation = confirmedDrafts[message.id];
@@ -533,7 +558,7 @@ function ChatWithHistory({
                                 </div>
                               );
                             } else {
-                              const isMultiJob = !!(part.output as { multiJobRemaining?: boolean })?.multiJobRemaining;
+                              const isMultiJob = output.multiJobRemaining === true;
                               const sendNextOnce = () => {
                                 if (nextSendBlockedRef.current) return;
                                 nextSendBlockedRef.current = true;
@@ -545,7 +570,7 @@ function ChatWithHistory({
                               rendered.push(
                                 <JobDraftCard
                                   key={idx}
-                                  data={part.output.draft}
+                                  data={output.draft as JobDraftData}
                                   workspaceId={workspaceId}
                                   onCancel={() => {
                                     setCancelledDrafts((prev) => ({ ...prev, [message.id]: true }));
@@ -560,10 +585,10 @@ function ChatWithHistory({
                             }
                             return;
                           }
-                          if (part?.state === "output-available" && part.output?.showConfirmButton && part.output?.summary) {
+                          if (state === "output-available" && output?.showConfirmButton && typeof output.summary === "string") {
                             rendered.push(
                               <div key={idx} className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                                <p className="text-[10px] text-slate-600 dark:text-slate-400">{part.output.summary}</p>
+                                <p className="text-[10px] text-slate-600 dark:text-slate-400">{output.summary}</p>
                                 <div className="flex gap-2">
                                   <Button
                                     size="sm"
@@ -585,10 +610,10 @@ function ChatWithHistory({
                             );
                             return;
                           }
-                          if (part?.state === "output-available" && part.output?.message) {
-                            const isSuccess = part.output.success !== false;
-                            const quickActions = Array.isArray((part.output as { quickActions?: unknown[] }).quickActions)
-                              ? ((part.output as { quickActions?: { label?: string; prompt?: string }[] }).quickActions ?? [])
+                          if (state === "output-available" && typeof output?.message === "string") {
+                            const isSuccess = output.success !== false;
+                            const quickActions = Array.isArray((output as { quickActions?: unknown[] }).quickActions)
+                              ? (((output as { quickActions?: { label?: string; prompt?: string }[] }).quickActions) ?? [])
                                   .filter((a) => typeof a?.label === "string" && typeof a?.prompt === "string")
                               : [];
                             rendered.push(
@@ -602,7 +627,7 @@ function ChatWithHistory({
                                 )}
                               >
                                 <Check className="w-4 h-4 shrink-0" />
-                                <span className="flex-1">{part.output.message}</span>
+                                <span className="flex-1">{output.message}</span>
                                 {isSuccess && workspaceId && (
                                   <button
                                     type="button"
@@ -636,10 +661,10 @@ function ChatWithHistory({
                             }
                             return;
                           }
-                          if (part?.state === "output-error" && part.errorText) {
+                          if (state === "output-error" && errorText) {
                             rendered.push(
                               <div key={idx} className="mt-2 text-[10px] text-red-600">
-                                {part.errorText}
+                                {errorText}
                               </div>
                             );
                           }
@@ -647,12 +672,15 @@ function ChatWithHistory({
                       });
                       if (rendered.length > 0) return rendered;
                       let content = typeof (message as { content?: string }).content === 'string'
-                        ? (message as any).content
+                        ? (message as { content?: string }).content ?? ''
                         : '';
                       if (!content.trim() && parts.length > 0) {
                         const fromParts = parts
                           .filter((p) => p != null && typeof p === "object")
-                          .map((p: { text?: string; content?: string }) => (p as { text?: string }).text ?? (p as { content?: string }).content)
+                          .map((p) => {
+                            const obj = p as Record<string, unknown>;
+                            return (typeof obj.text === "string" ? obj.text : undefined) ?? (typeof obj.content === "string" ? obj.content : undefined);
+                          })
                           .filter((t): t is string => typeof t === "string" && t.length > 0);
                         if (fromParts.length) content = fromParts.join('\n');
                       }
@@ -924,14 +952,30 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   // Read sessionStorage synchronously during init so the very first render
   // passes restored messages to useChat. useChat only reads `messages` on
   // mount — a deferred setInitialMessages via useEffect arrives too late.
-  const [initialMessages, setInitialMessages] = useState<{ id: string; role: 'user' | 'assistant'; parts: any[] }[] | null>(() => {
+  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(() => {
     if (!workspaceId) return [];
     try {
       const storageKey = `chatMessages:${workspaceId}`;
       const raw = sessionStorage.getItem(storageKey);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const messages: PersistedChatMessage[] = parsed
+            .map((m) => {
+              if (!m || typeof m !== "object") return null;
+              const obj = m as Record<string, unknown>;
+              const id = typeof obj.id === "string" ? obj.id : null;
+              const role = obj.role === "user" || obj.role === "assistant" ? obj.role : null;
+              const content = typeof obj.content === "string" ? obj.content : "";
+              return id && role ? { id, role, content } : null;
+            })
+            .filter((m): m is PersistedChatMessage => m !== null);
+          if (messages.length > 0) {
+            return historyToInitialMessages(
+              messages.map((m) => ({ id: m.id, role: m.role, content: m.content }))
+            );
+          }
+        }
       }
     } catch {
       // sessionStorage may be blocked; fall through to DB fetch.
@@ -942,10 +986,7 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
   useEffect(() => {
     // If sessionStorage already provided messages, skip the DB fetch.
     if (initialMessages !== null) return;
-    if (!workspaceId) {
-      setInitialMessages([]);
-      return;
-    }
+    if (!workspaceId) return;
 
     let cancelled = false;
     // Load only last 20 messages for faster initial render

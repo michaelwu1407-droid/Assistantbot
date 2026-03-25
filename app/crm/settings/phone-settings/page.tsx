@@ -23,7 +23,19 @@ const verificationSchema = z.object({
 });
 
 export default function PhoneSettingsPage() {
-  const [phoneStatus, setPhoneStatus] = useState<any>(null);
+  type PhoneStatus = {
+    personalPhone: string | null;
+    hasPersonalPhone: boolean;
+    id: string;
+    name: string;
+    hasPhoneNumber: boolean;
+    phoneNumber: string | null;
+    hasSubaccount: boolean;
+    hasVoiceAgent: boolean;
+    setupComplete: boolean;
+  };
+
+  const [phoneStatus, setPhoneStatus] = useState<PhoneStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingCode, setSendingCode] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -31,14 +43,14 @@ export default function PhoneSettingsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const phoneForm = useForm({
+  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
     defaultValues: {
       newPhoneNumber: "",
     },
   });
 
-  const verificationForm = useForm({
+  const verificationForm = useForm<z.infer<typeof verificationSchema>>({
     resolver: zodResolver(verificationSchema),
     defaultValues: {
       verificationCode: "",
@@ -60,7 +72,7 @@ export default function PhoneSettingsPage() {
     loadStatus();
   }, []);
 
-  const handleSendVerification = async (data: any) => {
+  const handleSendVerification = async (data: z.infer<typeof phoneSchema>) => {
     setSendingCode(true);
     setError("");
     setSuccess("");
@@ -96,14 +108,14 @@ export default function PhoneSettingsPage() {
         setVerificationSent(true);
         setSuccess(`Verification code sent to ${data.newPhoneNumber}`);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to send verification code");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send verification code");
     } finally {
       setSendingCode(false);
     }
   };
 
-  const handleUpdatePhone = async (data: any) => {
+  const handleUpdatePhone = async (data: z.infer<typeof verificationSchema>) => {
     setUpdating(true);
     setError("");
     setSuccess("");
@@ -122,8 +134,8 @@ export default function PhoneSettingsPage() {
       // Reload status
       const status = await getPhoneNumberStatus();
       setPhoneStatus(status);
-    } catch (err: any) {
-      setError(err.message || "Failed to update phone number");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update phone number");
     } finally {
       setUpdating(false);
     }

@@ -8,6 +8,7 @@ import { Map, CheckCircle2 } from "lucide-react";
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
 import { JobCompletionModal } from './job-completion-modal';
+import type { Job } from "@/components/map/map-view";
 import { PulseWidget } from '@/components/dashboard/pulse-widget';
 import { useShellStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/global-search";
@@ -158,15 +159,19 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         open={completionModalOpen}
         onOpenChange={setCompletionModalOpen}
         dealId={initialJob.id}
-        job={{
-          id: initialJob.id,
-          title: initialJob.title,
-          clientName: initialJob.clientName,
-          address: initialJob.address,
-          value: initialJob.value,
-          lat: initialJob.lat,
-          lng: initialJob.lng,
-        } as any}
+        job={
+          {
+            id: initialJob.id,
+            title: initialJob.title,
+            clientName: initialJob.clientName,
+            address: initialJob.address,
+            value: initialJob.value,
+            lat: initialJob.lat,
+            lng: initialJob.lng,
+            status: initialJob.status,
+            scheduledAt: initialJob.scheduledAt,
+          } satisfies Job
+        }
         onSuccess={() => {
           setCompletionModalOpen(false);
           router.refresh();

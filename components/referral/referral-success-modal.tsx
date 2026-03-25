@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,9 +16,45 @@ interface ReferralSuccessModalProps {
 }
 
 export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: ReferralSuccessModalProps) {
-  const [referralLink, setReferralLink] = useState("")
-  const [referralStats, setReferralStats] = useState<any>(null)
-  const [isCopied, setIsCopied] = useState(false)
+  type ReferralStats = Awaited<ReturnType<typeof getReferralStats>>
+  type Snapshot = {
+    referralLink: string
+    referralStats: ReferralStats | null
+    isCopied: boolean
+  }
+
+  const store = useMemo(() => {
+    const listeners = new Set<() => void>()
+    const snapshotRef: { current: Snapshot } = { current: { referralLink: "", referralStats: null, isCopied: false } }
+    return {
+      getSnapshot: () => snapshotRef.current,
+      subscribe: (listener: () => void) => {
+        listeners.add(listener)
+        return () => listeners.delete(listener)
+      },
+      set: (partial: Partial<Snapshot>) => {
+        snapshotRef.current = { ...snapshotRef.current, ...partial }
+        for (const l of listeners) l()
+      },
+    }
+  }, [])
+
+  const { referralLink, referralStats, isCopied } = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot
+  )
+
+  const loadReferralData = async () => {
+    try {
+      const { referralLink: link } = await createReferralLink({ userId })
+      const stats = await getReferralStats(userId)
+      
+      store.set({ referralLink: link, referralStats: stats })
+    } catch (error) {
+      console.error("Error loading referral data:", error)
+    }
+  }
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -26,25 +62,13 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
     }
   }, [isOpen, userId])
 
-  const loadReferralData = async () => {
-    try {
-      const { referralLink: link } = await createReferralLink({ userId })
-      const stats = await getReferralStats(userId)
-      
-      setReferralLink(link)
-      setReferralStats(stats)
-    } catch (error) {
-      console.error("Error loading referral data:", error)
-    }
-  }
-
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(referralLink)
-      setIsCopied(true)
+      store.set({ isCopied: true })
       toast.success("Referral link copied to clipboard!")
       
-      setTimeout(() => setIsCopied(false), 2000)
+      setTimeout(() => store.set({ isCopied: false }), 2000)
     } catch (error) {
       toast.error("Failed to copy link")
     }
@@ -85,8 +109,9 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
   }
 
   const getRewardText = () => {
-    if ((referralStats?.totalConversions ?? 0) > 0) {
-      return `You've unlocked ${referralStats.totalConversions} month${referralStats.totalConversions === 1 ? "" : "s"} at 50% off so far.`
+    const totalConversions = referralStats?.totalConversions ?? 0
+    if (totalConversions > 0) {
+      return `You've unlocked ${totalConversions} month${totalConversions === 1 ? "" : "s"} at 50% off so far.`
     }
     return "Get one extra month at 50% off for every successful referral."
   }

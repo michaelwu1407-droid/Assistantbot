@@ -11,6 +11,27 @@ import { JobStatusBar } from "./job-status-bar"
 import { CameraFAB } from "./camera-fab"
 import { VoiceNoteInput } from "./voice-note-input"
 
+type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED"
+
+interface JobActivity {
+    id: string
+    type: string
+    title: string
+    content: string | null
+    createdAt: string
+}
+
+interface JobInvoice {
+    id: string
+    total?: number | null
+    createdAt?: string
+}
+
+interface JobPhoto {
+    id: string
+    url: string
+}
+
 // Define the type locally based on what getJobDetails returns
 interface JobDetail {
     id: string
@@ -21,16 +42,13 @@ interface JobDetail {
         email: string | null
         address: string | null
     }
-    status: string
+    status: JobStatus
     value: number
     description: string
     safetyCheckCompleted: boolean
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    activities: any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    invoices: any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    photos: any[]
+    activities: JobActivity[]
+    invoices: JobInvoice[]
+    photos: JobPhoto[]
 }
 
 interface JobDetailViewProps {
@@ -107,8 +125,8 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                         <TabsContent value="chat" className="mt-4 space-y-3">
                             {(() => {
                                 const chatActivities = [...job.activities]
-                                    .filter((a: any) => ["CALL", "EMAIL", "NOTE"].includes(a.type))
-                                    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                                    .filter((a) => ["CALL", "EMAIL", "NOTE"].includes(a.type))
+                                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
                                 if (chatActivities.length === 0) {
                                     return (
@@ -119,7 +137,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                     )
                                 }
 
-                                return chatActivities.map((activity: any) => {
+                                return chatActivities.map((activity) => {
                                     const Icon = activity.type === "CALL" ? PhoneCall
                                         : activity.type === "EMAIL" ? Mail
                                         : MessageSquare
@@ -155,8 +173,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             <VoiceNoteInput dealId={job.id} />
                             {/* Photos Grid */}
                             <div className="grid grid-cols-2 gap-3">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {job.photos.map((photo: any) => (
+                                {job.photos.map((photo) => (
                                     <div key={photo.id} className="aspect-square rounded-lg bg-slate-200 overflow-hidden relative">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={photo.url} alt="Job photo" className="w-full h-full object-cover" />
@@ -216,10 +233,9 @@ export function JobDetailView({ job }: JobDetailViewProps) {
             </div>
 
             {/* Job Status Bar - Fixed Footer */}
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <JobStatusBar
                 dealId={job.id}
-                currentStatus={job.status as any}
+                currentStatus={job.status}
                 contactName={job.client.name}
                 safetyCheckCompleted={job.safetyCheckCompleted}
             />

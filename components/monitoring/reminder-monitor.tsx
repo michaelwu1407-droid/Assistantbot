@@ -36,18 +36,38 @@ interface RecentActivity {
   };
 }
 
+interface UpcomingJob {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  contact: { name: string };
+  workspace: { enableJobReminders: boolean };
+}
+
+type ReminderStatsResponse =
+  | {
+      success: true;
+      stats: ReminderStats;
+      details: {
+        recentReminders: RecentActivity[];
+        recentTripSms: RecentActivity[];
+        upcomingJobs: UpcomingJob[];
+      };
+    }
+  | { success: false; error: string };
+
 export function ReminderMonitor() {
   const [stats, setStats] = useState<ReminderStats | null>(null);
   const [recentReminders, setRecentReminders] = useState<RecentActivity[]>([]);
   const [recentTripSms, setRecentTripSms] = useState<RecentActivity[]>([]);
-  const [upcomingJobs, setUpcomingJobs] = useState<any[]>([]);
+  const [upcomingJobs, setUpcomingJobs] = useState<UpcomingJob[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadStats = async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/reminders");
-      const result = await response.json();
+      const result = (await response.json()) as ReminderStatsResponse;
       
       if (result.success) {
         setStats(result.stats);

@@ -10,13 +10,14 @@ import { Sun, Globe, Accessibility, Smartphone } from "lucide-react"
 
 export function DisplaySettingsClient() {
   const { theme, setTheme } = useTheme()
-  const [fontScale, setFontScale] = useState("100")
+  const [fontScale, setFontScale] = useState(() => {
+    if (typeof window === "undefined") return "100"
+    return window.localStorage.getItem("ui-font-scale") || "100"
+  })
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("ui-font-scale") || "100"
-    setFontScale(stored)
-    document.documentElement.style.fontSize = `${stored}%`
-  }, [])
+    document.documentElement.style.fontSize = `${fontScale}%`
+  }, [fontScale])
 
   const handleFontScaleChange = (value: string) => {
     setFontScale(value)

@@ -12,6 +12,11 @@ interface VerificationCode {
   expires: number;
 }
 
+declare global {
+  // eslint-disable-next-line no-var
+  var verificationCodes: VerificationCode[] | undefined;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber, countryCode } = await request.json();
@@ -35,11 +40,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Store in global storage
-    (globalThis as any).verificationCodes = (globalThis as any).verificationCodes || [];
-    (globalThis as any).verificationCodes = (globalThis as any).verificationCodes.filter(
+    globalThis.verificationCodes = globalThis.verificationCodes || [];
+    globalThis.verificationCodes = globalThis.verificationCodes.filter(
       (code: VerificationCode) => code.expires > Date.now()
     );
-    (globalThis as any).verificationCodes.push(codeData);
+    globalThis.verificationCodes.push(codeData);
 
     // Send SMS via MessageBird
     const messagePayload = {

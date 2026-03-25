@@ -6,7 +6,7 @@ import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { buildJobDraftFromParams } from "@/lib/chat-utils";
 import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
-import { buildAgentContext, fetchMemoryContext, getMemoryClient } from "@/lib/ai/context";
+import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
 import { getAgentToolsForIntent } from "@/lib/ai/tools";
@@ -15,6 +15,8 @@ import { validatePricingInResponse, extractAmountsFromToolOutputs } from "@/lib/
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -723,32 +725,25 @@ export async function POST(req: Request) {
         // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
         console.log(`[Mem0] Starting memory storage...`);
 
-        const memClientForStorage = getMemoryClient();
-        if (!memClientForStorage) {
-          console.log(`[Mem0] Memory client not available for storage`);
-          return;
-        }
-
         try {
-          // Create the message pair for Mem0
-          const messagesForMem0 = [
-            { role: "user" as const, content: lastMessageContent },
-            { role: "assistant" as const, content: text },
-          ];
-
-          // Store in Mem0 asynchronously (non-blocking)
-          memClientForStorage.add(messagesForMem0, {
-            user_id: userId,
+          addMem0Memory({
+            userId,
+            messages: [
+              { role: "user", content: lastMessageContent },
+              { role: "assistant", content: text },
+            ],
             metadata: {
               timestamp: new Date().toISOString(),
               source: "chat",
-              workspaceId: workspaceId,
+              workspaceId,
             },
-          }).then(() => {
-            console.log(`[Mem0] Successfully saved interaction`);
-          }).catch((error) => {
-          logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
-          });
+          })
+            .then(() => {
+              console.log(`[Mem0] Successfully saved interaction`);
+            })
+            .catch((error: unknown) => {
+              logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
+            });
 
           // Note: Not awaiting to avoid blocking the response
         } catch (error) {

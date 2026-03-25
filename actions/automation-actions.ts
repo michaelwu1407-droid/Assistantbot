@@ -163,6 +163,10 @@ export async function evaluateAutomations(
   workspaceId: string,
   event: { type: string; dealId?: string; stage?: string; contactId?: string }
 ): Promise<{ triggered: string[] }> {
+  type OverdueTaskRef = { id: string; title: string; deal?: { id: string } | null };
+  type EventWithOverdue = typeof event & { _overdueTasks?: OverdueTaskRef[] };
+  const eventWithOverdue = event as EventWithOverdue;
+
   const automations = await db.automation.findMany({
     where: { workspaceId, enabled: true },
   });
@@ -226,7 +230,7 @@ export async function evaluateAutomations(
           if (overdueTasks.length > 0) {
             shouldFire = true;
             // Stash overdue tasks on the event so the action block can reference them
-            (event as any)._overdueTasks = overdueTasks;
+            eventWithOverdue._overdueTasks = overdueTasks as unknown as OverdueTaskRef[];
           }
         }
         break;
@@ -281,7 +285,7 @@ export async function evaluateAutomations(
         // 2. Notify Users
         if (action.type === "notify") {
           const users = await db.user.findMany({ where: { workspaceId } });
-          const overdueTasks = (event as any)._overdueTasks as Array<{ id: string; title: string; deal?: { id: string } | null }> | undefined;
+          const overdueTasks = eventWithOverdue._overdueTasks;
 
           if (overdueTasks && overdueTasks.length > 0) {
             // Send one notification per overdue task so each is actionable

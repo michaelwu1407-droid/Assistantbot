@@ -70,9 +70,9 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
             } else {
                 throw new Error("Failed to save to database");
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error("Upload failed: " + err.message);
+            toast.error("Upload failed: " + (err instanceof Error ? err.message : String(err)));
         } finally {
             setIsUploading(false);
         }
@@ -129,7 +129,7 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
                             rows={2}
                         />
                         <p className="text-[11px] text-slate-400">
-                            Example: "Send this file whenever a customer asks about our Standard Pricing or Call-out fees."
+                            Example: &quot;Send this file whenever a customer asks about our Standard Pricing or Call-out fees.&quot;
                         </p>
                     </div>
                 </div>

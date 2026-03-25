@@ -15,8 +15,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json().catch(() => ({} as any))
-    const workspaceId = typeof body?.workspaceId === "string" ? body.workspaceId : undefined
+    const body = (await request.json().catch(() => ({}))) as unknown
+    const workspaceId =
+      typeof (body as { workspaceId?: unknown } | null)?.workspaceId === "string"
+        ? (body as { workspaceId: string }).workspaceId
+        : undefined
 
     const result = await scanAndUpdateStaleJobs(workspaceId)
 

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isToday, isValid } from "date-fns";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
+import type { Job } from "@/components/map/map-view";
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -200,15 +201,21 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
             }
           }}
           dealId={completionDealId}
-          job={completionDeal ? {
-            id: completionDeal.id,
-            title: completionDeal.title,
-            clientName: completionDeal.contactName,
-            address: completionDeal.address,
-            value: 0,
-            lat: completionDeal.latitude,
-            lng: completionDeal.longitude,
-          } as any : undefined}
+          job={
+            completionDeal
+              ? ({
+                  id: completionDeal.id,
+                  title: completionDeal.title,
+                  clientName: completionDeal.contactName,
+                  address: completionDeal.address ?? "",
+                  status: completionDeal.stage ?? "SCHEDULED",
+                  value: completionDeal.value ?? 0,
+                  scheduledAt: completionDeal.scheduledAt ? new Date(completionDeal.scheduledAt) : new Date(),
+                  lat: completionDeal.latitude,
+                  lng: completionDeal.longitude,
+                } satisfies Job)
+              : undefined
+          }
           onSuccess={() => {
             setCompletionDealId(null);
             setCompletionDeal(null);

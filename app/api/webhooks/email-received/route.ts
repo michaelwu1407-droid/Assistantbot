@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { parseLeadFromEmail } from "@/lib/ai/lead-parser";
 import { sendIntroSms } from "@/lib/sms";
+import type { Prisma } from "@prisma/client";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ─── Gmail Webhook Handler ─────────────────────────────────────────────────
 
@@ -118,8 +121,8 @@ async function processLeadEmail(email: any, integration: any) {
           source: "email",
           provider: leadData.provider,
           originalEmail: email.body,
-          jobDetails: leadData.jobDetails,
-        },
+          jobDetails: leadData.jobDetails ?? null,
+        } as Prisma.InputJsonValue,
       },
     });
 

@@ -28,6 +28,22 @@ export type GeneratedSmsResponse = {
     policyOutcome: CustomerFacingResponsePolicyOutcome;
 };
 
+type SmsAgentSettings = {
+    workingHoursStart?: string | null;
+    workingHoursEnd?: string | null;
+    workspaceTimezone?: string | null;
+};
+
+function asSmsAgentSettings(value: unknown): SmsAgentSettings {
+    if (!value || typeof value !== "object") return {};
+    const v = value as Record<string, unknown>;
+    return {
+        workingHoursStart: typeof v.workingHoursStart === "string" ? v.workingHoursStart : null,
+        workingHoursEnd: typeof v.workingHoursEnd === "string" ? v.workingHoursEnd : null,
+        workspaceTimezone: typeof v.workspaceTimezone === "string" ? v.workspaceTimezone : null,
+    };
+}
+
 function shouldFetchMemory(text: string): boolean {
     const trimmed = text.trim();
     if (!trimmed) return false;
@@ -50,7 +66,8 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
  * Returns customer-facing tools for inbound SMS conversations.
  * This is a safe subset — no outbound comms, no CRM management, no invoicing.
  */
-export function getSmsCustomerTools(workspaceId: string, settings: any) {
+export function getSmsCustomerTools(workspaceId: string, settings: unknown) {
+    const resolvedSettings = asSmsAgentSettings(settings);
     return {
         getAvailability: tool({
             description: "Check available time slots on a specific date.",
@@ -60,9 +77,9 @@ export function getSmsCustomerTools(workspaceId: string, settings: any) {
             execute: async ({ date }) =>
                 runGetAvailability(workspaceId, {
                     date,
-                    workingHoursStart: settings?.workingHoursStart || "08:00",
-                    workingHoursEnd: settings?.workingHoursEnd || "17:00",
-                    workspaceTimezone: settings?.workspaceTimezone || "Australia/Sydney",
+                    workingHoursStart: resolvedSettings.workingHoursStart || "08:00",
+                    workingHoursEnd: resolvedSettings.workingHoursEnd || "17:00",
+                    workspaceTimezone: resolvedSettings.workspaceTimezone || "Australia/Sydney",
                 }),
         }),
         getSchedule: tool({
@@ -245,7 +262,7 @@ export async function generateSMSResponse(
                 ? [...conversationHistory, { role: "user" as const, content: userMessage }]
                 : [{ role: "user" as const, content: userMessage }],
             tools,
-            // @ts-ignore - Some versions of AI SDK declare this outside CallSettings
+            // @ts-expect-error Some AI SDK versions type this outside CallSettings
             maxSteps: 3,
         });
 

@@ -498,7 +498,7 @@ export default function FeaturesPage() {
               From first call to final invoice —<br />Tracey&apos;s got it.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
-              One AI assistant that handles every call, runs your CRM, schedules your jobs, and chases follow-ups — so you don't have to.
+              One AI assistant that handles every call, runs your CRM, schedules your jobs, and chases follow-ups — so you don&apos;t have to.
             </motion.p>
             <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
               <Link href="/auth">

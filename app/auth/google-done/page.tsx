@@ -14,9 +14,9 @@ export default function GoogleDonePage() {
     const next = params.get("next") || "/auth/next"
 
     if (!idToken) {
-      setStatus("error")
+      const t = setTimeout(() => setStatus("error"), 0)
       window.location.href = "/auth?error=missing_token"
-      return
+      return () => clearTimeout(t)
     }
 
     const supabase = createClient()
@@ -32,14 +32,14 @@ export default function GoogleDonePage() {
           window.history.replaceState(null, "", window.location.pathname + window.location.search)
         }
         if (error) {
-          setStatus("error")
+          setTimeout(() => setStatus("error"), 0)
           window.location.href = `/auth?error=${encodeURIComponent(error.message)}`
           return
         }
         window.location.href = next
       })
       .catch(() => {
-        setStatus("error")
+        setTimeout(() => setStatus("error"), 0)
         window.location.href = "/auth?error=signin_failed"
       })
   }, [])

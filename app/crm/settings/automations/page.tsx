@@ -16,7 +16,7 @@ export default async function AutomationsPage() {
             <div>
                 <h3 className="text-lg font-medium">Automations</h3>
                 <p className="text-sm text-muted-foreground">
-                    Configure "If This Then That" rules to automate your workflow.
+                    Configure &quot;If This Then That&quot; rules to automate your workflow.
                 </p>
             </div>
             <Separator />

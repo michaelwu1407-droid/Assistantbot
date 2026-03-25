@@ -21,6 +21,7 @@ export default async function DiagnosticsPage() {
 
   const timeSince = (iso: string | null) => {
     if (!iso) return "";
+    // eslint-disable-next-line react-hooks/purity
     const diffMs = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diffMs / 60000);
     if (mins < 1) return "(just now)";

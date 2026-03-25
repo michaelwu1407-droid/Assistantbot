@@ -197,7 +197,7 @@ export function nowMs(): number {
   return Date.now();
 }
 
-export function instrumentToolsWithLatency<T extends Record<string, any>>(
+export function instrumentToolsWithLatency<T extends Record<string, unknown>>(
   tools: T,
   onToolTiming: (toolName: string, durationMs: number) => void,
 ): T {
@@ -205,10 +205,10 @@ export function instrumentToolsWithLatency<T extends Record<string, any>>(
     if (!toolDef || typeof toolDef !== "object" || typeof (toolDef as { execute?: unknown }).execute !== "function") {
       return [toolName, toolDef] as const;
     }
-    const originalExecute = (toolDef as { execute: (...args: any[]) => Promise<any> }).execute;
+    const originalExecute = (toolDef as { execute: (...args: unknown[]) => Promise<unknown> }).execute;
     const wrappedTool = {
       ...toolDef,
-      execute: async (...args: any[]) => {
+      execute: async (...args: unknown[]) => {
         const startedAt = nowMs();
         try {
           return await originalExecute(...args);

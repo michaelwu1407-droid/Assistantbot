@@ -7,12 +7,17 @@ interface VerificationCode {
   expires: number;
 }
 
+declare global {
+  // eslint-disable-next-line no-var
+  var verificationCodes: VerificationCode[] | undefined;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber, code } = await request.json();
 
     // Get stored verification codes
-    const verificationCodes: VerificationCode[] = (globalThis as any).verificationCodes || [];
+    const verificationCodes: VerificationCode[] = globalThis.verificationCodes || [];
     
     // Find matching code
     const matchingCode = verificationCodes.find(
@@ -30,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove used code
-    (globalThis as any).verificationCodes = verificationCodes.filter(
+    globalThis.verificationCodes = verificationCodes.filter(
       (vc: VerificationCode) => vc !== matchingCode
     );
 

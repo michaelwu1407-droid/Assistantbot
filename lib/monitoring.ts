@@ -1,17 +1,36 @@
 import * as Sentry from '@sentry/nextjs';
 
-// Safe PostHog import with fallback
-let posthog: any;
-try {
-  posthog = require('posthog-js');
-} catch (error) {
-  console.warn('PostHog not available:', error);
-  posthog = {
-    __loaded: false,
-    capture: () => {},
-    identify: () => {},
-    reset: () => {}
-  };
+type PostHogLike = {
+  __loaded?: boolean
+  capture: (eventName: string, properties?: Record<string, unknown>) => void
+  identify: (distinctId: string, properties?: Record<string, unknown>) => void
+  reset: () => void
+}
+
+const posthogFallback: PostHogLike = {
+  __loaded: false,
+  capture: () => {},
+  identify: () => {},
+  reset: () => {},
+}
+
+// Safe PostHog import with fallback (client-only)
+let posthog: PostHogLike = posthogFallback
+if (typeof window !== "undefined") {
+  import("posthog-js")
+    .then((mod) => {
+      const candidate = (mod as unknown as { default?: unknown }).default ?? mod
+      if (candidate && typeof candidate === "object") {
+        const c = candidate as Partial<PostHogLike>
+        if (typeof c.capture === "function" && typeof c.identify === "function" && typeof c.reset === "function") {
+          posthog = c as PostHogLike
+        }
+      }
+    })
+    .catch((error: unknown) => {
+      console.warn("PostHog not available:", error)
+      posthog = posthogFallback
+    })
 }
 
 export const MonitoringService = {
@@ -20,7 +39,7 @@ export const MonitoringService = {
      * @param error The Error object or string to log.
      * @param context Additional metadata/context (e.g. tag context or extra data).
      */
-    logError: (error: Error | string, context?: Record<string, any>) => {
+    logError: (error: Error | string, context?: Record<string, unknown>) => {
         try {
             console.error("MonitoringService Caught Error:", error, context);
 
@@ -31,9 +50,9 @@ export const MonitoringService = {
                         scope.setExtras(context);
 
                         // Optionally map specific context keys to Sentry tags for easier filtering
-                        if (context.component) scope.setTag('component', context.component);
-                        if (context.action) scope.setTag('action', context.action);
-                        if (context.userId) scope.setTag('userId', context.userId);
+                        if (context.component) scope.setTag('component', String(context.component));
+                        if (context.action) scope.setTag('action', String(context.action));
+                        if (context.userId) scope.setTag('userId', String(context.userId));
                     }
 
                     const errorObj = typeof error === 'string' ? new Error(error) : error;
@@ -53,7 +72,7 @@ export const MonitoringService = {
      * @param eventName The specific action being tracked (e.g., 'deal_created').
      * @param properties Associated metadata for the event.
      */
-    trackEvent: (eventName: string, properties?: Record<string, any>) => {
+    trackEvent: (eventName: string, properties?: Record<string, unknown>) => {
         try {
             // Basic PII scrubbing definition
             const scrubbedProperties = { ...properties };

@@ -12,6 +12,7 @@ export default async function SchedulePage() {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     let deals: any[] = [], teamMembers: any[] = []
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)

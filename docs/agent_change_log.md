@@ -2201,3 +2201,20 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Automatic background jobs cannot safely depend on a browser login session; they need a server-to-server secret.
   - Prevents accidentally exposing or relying on a paused, unrelated real-estate feature inside the tradie CRM.
+
+## 2026-03-25 23:55 (AEDT) – Cursor AI Agent
+
+- Files changed:
+  - **Typing + hooks + lint fixes across many files**, including:
+    - `components/**`, `actions/**`, `lib/**`, `hooks/**`, `app/**`, `__tests__/**`
+  - `next.config.mjs` (replaced `next.config.js` to remove `require()` style imports)
+  - `livekit-agent/healthcheck.js`, `scripts/fix-env.js` (remove `require()` usage)
+  - `docs/current_agent_handoff.md`
+- Summary:
+  - Removed remaining `any` usage and tightened types (especially around Prisma JSON fields, chat message shapes, and Google Places types).
+  - Fixed hook patterns that ESLint flagged (state-setting-in-effect and related patterns) without downgrading rules.
+  - Replaced forbidden `require()` imports with safe ESM/dynamic imports where needed.
+  - Ensured CI-quality checks now pass: `npm run lint` exits **0 errors** and `npx tsc --noEmit` exits **0**.
+- Why:
+  - The repo has strict ESLint + TypeScript rules; older “prototype” patterns (`any`, loose JSON, `require()`, effect-driven state) had accumulated and started failing quality gates.
+  - This brings the codebase back to a clean, enforceable baseline so future changes don’t regress silently.

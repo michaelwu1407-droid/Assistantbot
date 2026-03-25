@@ -8,14 +8,12 @@ import { getOnboardingProgress } from "@/actions/onboarding-actions";
 const SETUP_WIDGET_DISMISS_KEY = "earlymark:setup-widget-dismissed-at";
 
 export function SetupWidget() {
-    const [data, setData] = useState<any>(null);
-    const [expanded, setExpanded] = useState(true);
+    type OnboardingProgress = Awaited<ReturnType<typeof getOnboardingProgress>>;
+    const [data, setData] = useState<OnboardingProgress | null>(null);
+    const [expanded, setExpanded] = useState(() => (typeof window !== "undefined" ? window.innerWidth >= 768 : true));
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== "undefined" && window.innerWidth < 768) {
-            setExpanded(false);
-        }
         getOnboardingProgress().then((res) => {
             if (!res || !res.shouldShow || res.total <= 0) return;
 
@@ -80,7 +78,7 @@ export function SetupWidget() {
 
             {expanded && (
                 <div className="p-4 bg-white dark:bg-slate-900 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-emerald-100 dark:border-emerald-800/50">
-                    {data.steps.map((step: any) => (
+                    {data.steps.map((step) => (
                         <Link key={step.id} href={step.href}>
                             <div className={`flex items-center gap-3 p-3 rounded-[18px] border transition-colors group ${step.isComplete
                                 ? "border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/5 text-emerald-800 dark:text-emerald-300"

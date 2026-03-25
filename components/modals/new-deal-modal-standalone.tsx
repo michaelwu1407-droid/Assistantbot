@@ -61,7 +61,14 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 getTeamMembers()
             ]).then(([c, tm]) => {
                 setContacts(c)
-                setTeamMembers(tm as any)
+                setTeamMembers(
+                    tm.map((m) => ({
+                        id: m.id,
+                        name: m.name ?? null,
+                        email: m.email,
+                        role: m.role,
+                    }))
+                )
             }).catch(console.error)
                 .finally(() => setIsFetchingContacts(false))
         }
@@ -246,7 +253,16 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                     <div className="border-t border-slate-100 pt-6">
                         <div className="flex items-center justify-between mb-4">
                             <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Client *</Label>
-                            <Tabs value={mode} onValueChange={(v) => { setMode(v as any); setContactError("") }} className="w-[180px]">
+                            <Tabs
+                                value={mode}
+                                onValueChange={(v) => {
+                                    if (v === "select" || v === "create") {
+                                        setMode(v)
+                                        setContactError("")
+                                    }
+                                }}
+                                className="w-[180px]"
+                            >
                                 <TabsList className="grid w-full grid-cols-2 h-8">
                                     <TabsTrigger value="select" className="text-[10px] font-bold">SELECT</TabsTrigger>
                                     <TabsTrigger value="create" className="text-[10px] font-bold">NEW</TabsTrigger>

@@ -29,21 +29,26 @@ import { updateJobSchedule } from "@/actions/tradie-actions";
 import { toast } from "sonner";
 
 export interface SchedulerViewProps {
-    initialJobs?: any[];
+    initialJobs?: SchedulerSourceJob[];
+}
+
+interface SchedulerSourceJob {
+    id: string;
+    title: string;
+    scheduledAt: string | Date | null;
+    stage?: string;
+    status: string | null;
+    clientName?: string | null;
+    contact?: { name?: string | null } | null;
 }
 
 export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) {
-    const [mounted, setMounted] = useState(false);
+    const [mounted] = useState(() => typeof window !== "undefined");
 
     // State for navigation
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
     const [activeJob, setActiveJob] = useState<SchedulerJob | null>(null);
-
-    // Hydration fix
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     // Calculate visible dates based on view mode
     const visibleDates = useMemo(() => {
@@ -62,7 +67,7 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
         const sMap: Record<string, SchedulerJob[]> = {};
         const uList: SchedulerJob[] = [];
 
-        initialJobs.forEach((job: any) => {
+        initialJobs.forEach((job) => {
             const scheduledDate = job.scheduledAt ? new Date(job.scheduledAt) : null;
             const isScheduled = scheduledDate && isValid(scheduledDate);
 
@@ -72,8 +77,8 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
                 clientName: job.contact?.name || job.clientName || "Unknown Client",
                 duration: 2, // Default duration, ideally from DB
                 color: job.stage === 'WON' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 'bg-blue-100 border-blue-200 text-blue-800',
-                stage: job.stage,
-                status: job.status,
+                stage: job.stage ?? "",
+                status: job.status ?? undefined,
                 scheduledAt: isScheduled && scheduledDate ? scheduledDate.toISOString() : null
             };
 

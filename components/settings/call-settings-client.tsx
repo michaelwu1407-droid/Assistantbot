@@ -590,7 +590,7 @@ export function CallSettingsClient() {
           <div className="space-y-2">
             <Label>Business-hours greeting</Label>
             <Textarea value={settings.voiceGreeting || ""} onChange={(e) => setSettings((s) => (s ? { ...s, voiceGreeting: e.target.value } : s))} placeholder={`Hi, I'm Tracey, AI assistant for ${businessName}.`} />
-            <p className="text-xs text-slate-500">All calls always start with: Hi, I'm Tracey, AI assistant for {businessName}.</p>
+            <p className="text-xs text-slate-500">All calls always start with: Hi, I&apos;m Tracey, AI assistant for {businessName}.</p>
           </div>
           <div className="space-y-2">
             <Label>Opening message</Label>

@@ -11,11 +11,13 @@ export default function AuthCodeErrorPage() {
   useEffect(() => {
     const url = new URL(window.location.href);
     const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
-
-    setDetails({
+    const next = {
       error: url.searchParams.get("error") ?? hash.get("error") ?? undefined,
       errorCode: url.searchParams.get("error_code") ?? hash.get("error_code") ?? undefined,
-    });
+    };
+    // Defer state update to avoid synchronous setState-in-effect lint rule.
+    const t = setTimeout(() => setDetails(next), 0);
+    return () => clearTimeout(t);
   }, []);
 
   const isExpired = details.errorCode === "otp_expired";

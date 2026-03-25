@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getDealHealth } from "@/lib/pipeline";
+import type { Prisma } from "@prisma/client";
 
 /**
  * "Morning Coffee" Digest
@@ -47,37 +48,36 @@ export async function generateMorningDigest(
         take: 1,
       },
     },
-  } as any);
+  } satisfies Prisma.DealFindManyArgs);
 
   let totalPipelineValue = 0;
 
   for (const dealRaw of activeDeals) {
-    const deal = dealRaw as any;
-    totalPipelineValue += Number(deal.value ?? 0);
-    const lastActivity = deal.activities?.[0]?.createdAt ?? deal.createdAt;
+    totalPipelineValue += Number(dealRaw.value ?? 0);
+    const lastActivity = dealRaw.activities?.[0]?.createdAt ?? dealRaw.createdAt;
     const health = getDealHealth(lastActivity);
-    const contactName = deal.contact?.name ?? 'Unknown';
-    const contactId = deal.contact?.id;
+    const contactName = dealRaw.contact?.name ?? 'Unknown';
+    const contactId = dealRaw.contact?.id;
 
     if (health.status === "ROTTING") {
       items.push({
         type: "rotting_deal",
         priority: 1,
-        title: `${deal.title} is rotting (${health.daysSinceActivity}d)`,
-        description: `$${deal.value?.toLocaleString() ?? 0} deal with ${contactName} — no activity in ${health.daysSinceActivity} days.`,
-        dealId: deal.id,
+        title: `${dealRaw.title} is rotting (${health.daysSinceActivity}d)`,
+        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} — no activity in ${health.daysSinceActivity} days.`,
+        dealId: dealRaw.id,
         contactId: contactId,
-        value: Number(deal.value),
+        value: Number(dealRaw.value),
       });
     } else if (health.status === "STALE") {
       items.push({
         type: "stale_deal",
         priority: 2,
-        title: `${deal.title} is going stale (${health.daysSinceActivity}d)`,
-        description: `$${deal.value?.toLocaleString() ?? 0} deal with ${contactName} needs attention.`,
-        dealId: deal.id,
+        title: `${dealRaw.title} is going stale (${health.daysSinceActivity}d)`,
+        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} needs attention.`,
+        dealId: dealRaw.id,
         contactId: contactId,
-        value: Number(deal.value),
+        value: Number(dealRaw.value),
       });
     }
   }

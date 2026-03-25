@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home, MessageSquare, Bot } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import type { SVGProps } from "react"
 
 interface ContactProfileProps {
     contact: ContactView
@@ -173,7 +174,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                 Properties ({properties.length})
                             </h3>
                             <div className="space-y-3">
-                                {properties.map((prop: any, i: number) => (
+                                {properties.map((prop, i) => (
                                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/10 hover:bg-muted/30 transition-colors">
                                         <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
@@ -208,7 +209,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
     )
 }
 
-function UserCircle(props: any) {
+function UserCircle(props: SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

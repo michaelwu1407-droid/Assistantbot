@@ -36,11 +36,7 @@ function JoinByInviteContent() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (!token) {
-      setError("No invite token provided.");
-      setLoading(false);
-      return;
-    }
+    if (!token) return;
     validateInviteToken(token).then((result) => {
       if (!result.valid) {
         setError(result.error || "Invalid invite");
@@ -50,6 +46,14 @@ function JoinByInviteContent() {
       setLoading(false);
     });
   }, [token]);
+
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">No invite token provided.</p>
+      </div>
+    );
+  }
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();

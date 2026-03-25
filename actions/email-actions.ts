@@ -57,8 +57,10 @@ export async function syncGmail(
       };
     }
 
-    const listData = await listRes.json();
-    const messageIds: string[] = (listData.messages || []).map((m: any) => m.id);
+    const listData = (await listRes.json()) as { messages?: Array<{ id?: string }> };
+    const messageIds: string[] = (listData.messages || [])
+      .map((m) => m.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
 
     let synced = 0;
     let activitiesCreated = 0;
@@ -72,10 +74,13 @@ export async function syncGmail(
 
       if (!msgRes.ok) continue;
 
-      const msgData = await msgRes.json();
+      const msgData = (await msgRes.json()) as {
+        payload?: { headers?: Array<{ name?: string; value?: string }> };
+        snippet?: string;
+      };
       const headers = msgData.payload?.headers || [];
-      const fromHeader = headers.find((h: any) => h.name === "From")?.value || "";
-      const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
+      const fromHeader = headers.find((h) => h.name === "From")?.value || "";
+      const subject = headers.find((h) => h.name === "Subject")?.value || "No Subject";
       const snippet = msgData.snippet || "";
 
       // Extract email from "Name <email>" format

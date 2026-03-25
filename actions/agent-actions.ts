@@ -88,7 +88,9 @@ export async function getFreshLeads(workspaceId: string): Promise<AgentLead[]> {
     createdAt: d.createdAt,
     phone: d.contact.phone,
     email: d.contact.email,
-    interestedLevel: (d.metadata as any)?.interestedLevel || 3
+    interestedLevel: (d.metadata as Record<string, unknown> | null)?.interestedLevel
+      ? Number((d.metadata as Record<string, unknown>).interestedLevel) || 3
+      : 3,
   }));
 }
 
@@ -125,7 +127,7 @@ export async function findMatches(dealId: string): Promise<MatchResult> {
 
   if (!deal) return { success: false, matches: [], error: "Deal not found" };
 
-  const meta = (deal.metadata as Record<string, any>) || {};
+  const meta = (deal.metadata as Record<string, unknown> | null) || {};
   const price = Number(deal.value) || Number(meta.price) || 0;
   const bedrooms = Number(meta.bedrooms) || 0;
 
@@ -139,7 +141,7 @@ export async function findMatches(dealId: string): Promise<MatchResult> {
   const matches: MatchedContact[] = [];
 
   for (const contact of contacts) {
-    const prefs = (contact.preferences as Record<string, any>) || {};
+    const prefs = (contact.preferences as Record<string, unknown> | null) || {};
     const budget = Number(prefs.budget) || 0;
     const minBedrooms = Number(prefs.bedrooms) || 0;
 
@@ -168,7 +170,7 @@ export async function findMatches(dealId: string): Promise<MatchResult> {
     }
 
     // Location match (mock)
-    if (prefs.location && meta.address && String(meta.address).includes(prefs.location)) {
+    if (typeof prefs.location === "string" && meta.address && String(meta.address).includes(prefs.location)) {
       score += 10;
       reasons.push("Location match");
     }

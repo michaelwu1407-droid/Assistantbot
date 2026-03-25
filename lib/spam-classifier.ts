@@ -15,6 +15,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { KnowledgeCategory } from "@prisma/client";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export async function classifyMessage(
     const learnedPatterns = await db.businessKnowledge.findMany({
         where: {
             workspaceId,
-            category: "TRUSTED_LEAD_PATTERN" as any,
+            category: KnowledgeCategory.TRUSTED_LEAD_PATTERN,
         },
         select: { ruleContent: true },
         take: 20,
@@ -113,7 +114,7 @@ Do NOT just say "from sender X" — extract the content-based pattern.`,
     await db.businessKnowledge.create({
         data: {
             workspaceId,
-            category: "TRUSTED_LEAD_PATTERN" as any,
+            category: KnowledgeCategory.TRUSTED_LEAD_PATTERN,
             ruleContent: result.object.pattern,
             source: "learned",
             metadata: {

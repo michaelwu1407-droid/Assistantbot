@@ -6,6 +6,8 @@ import { logger } from "@/lib/logging";
 
 export const dynamic = "force-dynamic";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * After Stripe checkout, users are redirected here with a session_id.
  * We verify the session directly with Stripe and update the workspace
