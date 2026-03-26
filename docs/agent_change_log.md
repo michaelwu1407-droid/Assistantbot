@@ -2260,3 +2260,22 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - This reduces the remaining warning surface so the next cleanup pass can focus on the smaller set of higher-signal files still failing the zero-warning target.
   - Structural hook fixes are preferable to lint suppression because they prevent unstable effect behavior from recurring.
+
+## 2026-03-27 08:40 (AEDT) - Codex
+
+- Files changed:
+  - `components/ui/dialog.tsx`
+  - `components/ui/alert-dialog.tsx`
+  - `components/modals/activity-modal.tsx`
+  - `components/modals/new-deal-modal.tsx`
+  - `lib/deal-utils.ts`
+  - `next.config.mjs`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Restyled the shared dialog and alert-dialog primitives so dashboard overlays use the same softer green-tinted surface, spacing, rounded corners, and typography as the CRM/dashboard revamp instead of the older generic modal look.
+  - Updated the dashboard activity modal and the main new-job modal to match that visual system and increased the modal/form typography hierarchy so labels and content are easier to scan.
+  - Fixed the new-job modal to actually pass `assignedToId` into `createDeal`, and aligned the `ready_to_invoice` / `INVOICED` stage label to the board-facing name `Awaiting payment`.
+  - Removed the restrictive `images.localPatterns` override from `next.config.mjs` so local `next/image` assets like `/latest-logo.png` stop failing SSR with an unconfigured local pattern error.
+- Why:
+  - Dashboard popups had drifted visually from the refreshed CRM shell, which made the experience feel inconsistent and cramped.
+  - The stage-name alignment and assigned-user fix address real workflow confusion in the job creation flow, while the image-config fix removes the recoverable SSR fallback on local logo assets.

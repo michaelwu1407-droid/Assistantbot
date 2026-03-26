@@ -131,6 +131,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                 latitude: latitude ?? undefined,
                 longitude: longitude ?? undefined,
                 scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+                assignedToId: assignedToId || undefined,
             })
 
             if (result.success) {
@@ -174,16 +175,26 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[500px] max-h-[88vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Create New Job</DialogTitle>
+            <DialogContent className="w-[min(calc(100vw-1.5rem),54rem)] max-h-[88vh] overflow-y-auto p-0">
+                <DialogHeader className="border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80">
+                        Dashboard
+                    </p>
+                    <DialogTitle className="mt-1">Create new job</DialogTitle>
+                    <p className="text-[13px] leading-6 text-slate-500 dark:text-slate-400">
+                        Add the customer, stage, timing, and job details in one place.
+                    </p>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="grid gap-6 py-4">
+                <form onSubmit={handleSubmit} className="grid gap-5 bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] px-6 py-6 dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
                     {/* Job Details */}
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 rounded-[20px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
+                        <div className="space-y-1">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Job details</p>
+                            <p className="text-sm text-slate-500">Describe the work, its value, timing, and pipeline stage.</p>
+                        </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="title" className="text-right">
+                            <Label htmlFor="title" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Job description <span className="text-red-500">*</span>
                             </Label>
                             <Input
@@ -191,12 +202,12 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                 placeholder="e.g. Kitchen Renovation"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className={`col-span-3 ${attemptedSubmit && !title.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                className={`col-span-3 h-11 rounded-xl border-slate-200 bg-white/90 ${attemptedSubmit && !title.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                 required
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="value" className="text-right">
+                            <Label htmlFor="value" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Value ($)
                             </Label>
                             <Input
@@ -205,11 +216,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                 placeholder="0.00"
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
-                                className="col-span-3"
+                                className="col-span-3 h-11 rounded-xl border-slate-200 bg-white/90"
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">
+                            <Label htmlFor="address" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Address
                             </Label>
                             <div className="col-span-3">
@@ -227,7 +238,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="scheduledAt" className="text-right">
+                            <Label htmlFor="scheduledAt" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Schedule
                             </Label>
                             <div className="col-span-3 relative">
@@ -237,16 +248,16 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                     type="datetime-local"
                                     value={scheduledAt}
                                     onChange={(e) => setScheduledAt(e.target.value)}
-                                    className="pl-9"
+                                    className="h-11 rounded-xl border-slate-200 bg-white/90 pl-9"
                                 />
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="stage" className="text-right">
+                            <Label htmlFor="stage" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Stage
                             </Label>
                             <Select value={stage} onValueChange={setStage}>
-                                <SelectTrigger id="stage" className="col-span-3">
+                                <SelectTrigger id="stage" className="col-span-3 h-11 rounded-xl border-slate-200 bg-white/90">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -258,11 +269,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                         </div>
                         {teamMembers.length > 0 && (
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="assignedTo" className="text-right">
+                                <Label htmlFor="assignedTo" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                     Assigned to {stage === "scheduled" ? <span className="text-red-500">*</span> : ""}
                                 </Label>
                                 <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
-                                    <SelectTrigger id="assignedTo" className="col-span-3">
+                                    <SelectTrigger id="assignedTo" className="col-span-3 h-11 rounded-xl border-slate-200 bg-white/90">
                                         <SelectValue placeholder={stage === "scheduled" ? "Select team member (required)" : "Optional"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -278,12 +289,13 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                         )}
                     </div>
 
-                    <div className="border-t border-slate-100 my-1" />
-
                     {/* Contact Selection / Creation */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 rounded-[20px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
                         <div className="flex items-center justify-between">
-                            <Label>Client <span className="text-red-500">*</span></Label>
+                            <div className="space-y-1">
+                                <Label className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Client <span className="text-red-500">*</span></Label>
+                                <p className="text-sm text-slate-500">Select an existing contact or create a new one inline.</p>
+                            </div>
                             <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[200px]">
                                 <TabsList className="grid w-full grid-cols-2 h-8">
                                     <TabsTrigger value="select" className="text-xs">Select</TabsTrigger>
@@ -294,11 +306,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
 
                         {mode === "select" ? (
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="contact" className="text-right text-slate-500">
+                                <Label htmlFor="contact" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                     Existing
                                 </Label>
                                 <Select value={contactId} onValueChange={setContactId}>
-                                    <SelectTrigger className={`col-span-3 ${attemptedSubmit && mode === "select" && !contactId ? "border-red-500 focus-visible:ring-red-500" : ""}`}>
+                                    <SelectTrigger className={`col-span-3 h-11 rounded-xl border-slate-200 bg-white/90 ${attemptedSubmit && mode === "select" && !contactId ? "border-red-500 focus-visible:ring-red-500" : ""}`}>
                                         <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a contact"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -314,15 +326,15 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                 </Select>
                             </div>
                         ) : (
-                            <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <div className="space-y-3 rounded-2xl border border-emerald-100/80 bg-emerald-50/60 p-4 dark:border-white/10 dark:bg-white/5">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-name" className="text-right text-xs">First name <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="new-name" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">First name <span className="text-red-500">*</span></Label>
                                     <div className="col-span-3 relative">
                                         <User className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
                                             id="new-name"
                                             placeholder="John Doe"
-                                            className={`pl-9 ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            className={`h-11 rounded-xl border-slate-200 bg-white/90 pl-9 ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactName}
                                             onChange={e => setNewContactName(e.target.value)}
                                             required
@@ -330,7 +342,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-email" className="text-right text-xs">
+                                    <Label htmlFor="new-email" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                         Email <span className="text-red-500">*</span>
                                     </Label>
                                     <div className="col-span-3 relative">
@@ -339,21 +351,21 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                             id="new-email"
                                             type="email"
                                             placeholder="john@example.com"
-                                            className={`pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            className={`h-11 rounded-xl border-slate-200 bg-white/90 pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactEmail}
                                             onChange={e => setNewContactEmail(e.target.value)}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-phone" className="text-right text-xs">Phone <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="new-phone" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Phone <span className="text-red-500">*</span></Label>
                                     <div className="col-span-3 relative">
                                         <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
                                             id="new-phone"
                                             type="tel"
                                             placeholder="0400 000 000"
-                                            className={`pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            className={`h-11 rounded-xl border-slate-200 bg-white/90 pl-9 ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactPhone}
                                             onChange={e => setNewContactPhone(e.target.value)}
                                         />
@@ -361,20 +373,20 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                                 </div>
                                 {newContactType === "BUSINESS" && (
                                     <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="new-company" className="text-right text-xs">Business name <span className="text-red-500">*</span></Label>
+                                        <Label htmlFor="new-company" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Business name <span className="text-red-500">*</span></Label>
                                         <div className="col-span-3">
                                             <Input
                                                 id="new-company"
                                                 placeholder="e.g. Acme Plumbing"
                                                 value={newContactCompany}
                                                 onChange={e => setNewContactCompany(e.target.value)}
-                                                className={shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}
+                                                className={`h-11 rounded-xl border-slate-200 bg-white/90 ${shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             />
                                         </div>
                                     </div>
                                 )}
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-right text-xs">Client type <span className="text-red-500">*</span></Label>
+                                    <Label className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Client type <span className="text-red-500">*</span></Label>
                                     <Tabs
                                         value={newContactType}
                                         onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")}
@@ -397,11 +409,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="border-t border-white/70 pt-1 dark:border-white/10">
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isCreateDisabled}>
+                        <Button type="submit" disabled={isCreateDisabled} className="shadow-sm">
                             {isLoading ? "Creating..." : "Create Job"}
                         </Button>
                     </DialogFooter>

@@ -319,14 +319,16 @@ export function KanbanBoard({
       })
     }
 
-    const minValue = Number(filters?.minValue ?? "")
-    const hasMinValue = Number.isFinite(minValue)
+    const rawMinValue = filters?.minValue?.trim() ?? ""
+    const minValue = rawMinValue ? Number(rawMinValue) : null
+    const hasMinValue = minValue !== null && Number.isFinite(minValue)
     if (hasMinValue) {
       next = next.filter((d) => Number(d.value ?? 0) >= minValue)
     }
 
-    const maxValue = Number(filters?.maxValue ?? "")
-    const hasMaxValue = Number.isFinite(maxValue)
+    const rawMaxValue = filters?.maxValue?.trim() ?? ""
+    const maxValue = rawMaxValue ? Number(rawMaxValue) : null
+    const hasMaxValue = maxValue !== null && Number.isFinite(maxValue)
     if (hasMaxValue) {
       next = next.filter((d) => Number(d.value ?? 0) <= maxValue)
     }
