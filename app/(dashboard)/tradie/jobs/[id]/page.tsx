@@ -7,7 +7,7 @@ import { JobStatusBar } from "@/components/tradie/job-status-bar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Phone, MapPin, Mail, Calendar } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, Mail } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 // JobStatus enum not in schema yet - using string literal

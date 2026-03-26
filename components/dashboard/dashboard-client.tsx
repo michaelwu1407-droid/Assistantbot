@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
 import { DealView } from "@/actions/deal-actions"
@@ -102,16 +102,16 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
 
     const assistantPanelExpanded = useShellStore((s) => s.assistantPanelExpanded)
 
-    const persistPresets = (next: KanbanFilterPreset[]) => {
+    const persistPresets = useCallback((next: KanbanFilterPreset[]) => {
         setPresets(next)
         try {
             localStorage.setItem(PRESETS_KEY, JSON.stringify(next))
         } catch {
             // ignore storage errors
         }
-    }
+    }, [PRESETS_KEY])
 
-    const clearFilters = () => {
+    const clearFilters = useCallback(() => {
         setFilters({
             query: "",
             minValue: "",
@@ -121,9 +121,9 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
             location: "",
             teamMemberId: null,
         })
-    }
+    }, [])
 
-    const saveCurrentPreset = () => {
+    const saveCurrentPreset = useCallback(() => {
         const name = window.prompt("Name this filter preset:")
         const trimmed = name?.trim()
         if (!trimmed) return
@@ -133,10 +133,10 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
             filters,
         }
         persistPresets([nextPreset, ...presets].slice(0, 20))
-    }
+    }, [filters, persistPresets, presets])
 
     /* Kanban filter only — “New Job” + rest of bar live in DashboardMainChrome */
-    const pipelineFilterExtra = (
+    const pipelineFilterExtra = useMemo(() => (
         <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -276,7 +276,17 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
                     </div>
                 </PopoverContent>
             </Popover>
-    )
+    ), [
+        activeFilterCount,
+        clearFilters,
+        filterOpen,
+        filters,
+        hasTeamFilter,
+        persistPresets,
+        presets,
+        saveCurrentPreset,
+        teamMembers,
+    ])
 
     useEffect(() => {
         setHeaderExtra(pipelineFilterExtra)

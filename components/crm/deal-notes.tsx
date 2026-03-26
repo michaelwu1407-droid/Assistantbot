@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { updateDealMetadata } from "@/actions/deal-actions"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Edit2, Save, X, Send } from "lucide-react"
+import { Edit2, X, Send } from "lucide-react"
 
 interface DealNotesProps {
   dealId: string

@@ -9,9 +9,8 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
-import { Printer, Mail, Share2, FileText } from "lucide-react"
+import { Printer, Mail, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { generateQuotePDF } from "@/actions/tradie-actions"
 
@@ -36,7 +35,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                 toast.error("Failed to load invoice preview")
                 setIsOpen(false)
             }
-        } catch (e) {
+        } catch {
             toast.error("Error generating invoice")
             setIsOpen(false)
         } finally {

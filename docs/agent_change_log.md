@@ -1,3 +1,32 @@
+## 2026-03-26 15:35 (AEDT) - Codex
+
+- Files changed:
+  - `actions/automation-actions.ts`
+  - `app/(dashboard)/tradie/jobs/[id]/page.tsx`
+  - `app/api/test-comprehensive/route.ts`
+  - `components/crm/deal-notes.tsx`
+  - `components/crm/kanban-automation-modal.tsx`
+  - `components/dashboard/dashboard-client.tsx`
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `components/dashboard/onboarding-modal.tsx`
+  - `components/dashboard/profile-form.tsx`
+  - `components/invoicing/invoice-generator.tsx`
+  - `components/jobs/job-notes.tsx`
+  - `components/map/map-view.tsx`
+  - `components/modals/new-deal-modal.tsx`
+  - `components/monitoring/reminder-monitor.tsx`
+  - `components/referral/referral-success-modal.tsx`
+  - `components/settings/referral-settings.tsx`
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed the Next.js build regression caused by exporting a non-async object from a `"use server"` file.
+  - Reduced lint further by resolving several hook-dependency issues and removing another batch of unused imports, variables, and catches.
+  - Corrected the job notes editing flow so note edits use dedicated edit state and save the intended content.
+- Why:
+  - Restores a working production build while continuing the lint cleanup without papering over framework constraints.
+  - Keeps the remaining lint debt narrower and lower-risk, with build and typecheck both green again.
+
 ## 2026-03-24 12:16 (AEDT) - codex
 
 - Files changed:

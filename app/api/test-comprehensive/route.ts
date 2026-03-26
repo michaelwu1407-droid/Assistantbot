@@ -16,7 +16,7 @@ export async function GET() {
   try {
     // Test middleware function
     const request = new NextRequest('http://localhost:3000/test');
-    const response = await updateSession(request);
+    await updateSession(request);
     results.middleware = 'success';
   } catch (error) {
     results.middleware = 'failed';
@@ -26,7 +26,7 @@ export async function GET() {
   try {
     // Test server client
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
+    const { error } = await supabase.auth.getUser();
     results.serverClient = error ? `error: ${error.message}` : 'success';
   } catch (error) {
     results.serverClient = 'failed';
@@ -36,7 +36,7 @@ export async function GET() {
   try {
     // Test client client (this should work in API routes)
     const supabase = createBrowserClient();
-    const { data, error } = await supabase.auth.getUser();
+    const { error } = await supabase.auth.getUser();
     results.clientClient = error ? `error: ${error.message}` : 'success';
   } catch (error) {
     results.clientClient = 'failed';

@@ -15,7 +15,7 @@ import { useShellStore } from "@/lib/store"
 
 export function OnboardingModal() {
     const [open, setOpen] = React.useState(false) // Default to closed, trigger via effect
-    const { viewMode } = useShellStore()
+    useShellStore()
 
     React.useEffect(() => {
         // In a real app, check localStorage or DB 'hasOnboarded' flag

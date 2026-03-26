@@ -144,11 +144,6 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
     setStartedJobId(null)
   }, [])
 
-  const visiblePositions: [number, number][] = [
-    ...(showToday ? jobsToday.map(getJobPosition) : []),
-    ...(showUpcoming && !isRouteMode ? jobsUpcoming.map(getJobPosition) : []),
-  ]
-
   const visibleTodayJobs = isRouteMode ? (activeTargetJob ? [activeTargetJob] : []) : jobsToday
   const effectiveSelectedJobId = isRouteMode && activeTargetJob ? activeTargetJob.id : selectedJobId
   const effectiveFlyTarget = isRouteMode && activeTargetJob ? getJobPosition(activeTargetJob) : flyTarget
@@ -190,10 +185,13 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
   }, [locateMe])
 
   const fitPositions: [number, number][] = useMemo(() => {
-    const positions: [number, number][] = [...visiblePositions]
+    const positions: [number, number][] = [
+      ...(showToday ? jobsToday.map(getJobPosition) : []),
+      ...(showUpcoming && !isRouteMode ? jobsUpcoming.map(getJobPosition) : []),
+    ]
     if (userPosition) positions.push(userPosition)
     return positions
-  }, [visiblePositions, userPosition])
+  }, [isRouteMode, jobsToday, jobsUpcoming, showToday, showUpcoming, userPosition])
 
   return (
     <div className="relative flex h-full w-full min-h-0">

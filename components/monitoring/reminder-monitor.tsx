@@ -8,10 +8,8 @@ import {
   MessageSquare, 
   Car, 
   Clock, 
-  TrendingUp,
   RefreshCw,
   Send,
-  Settings,
   BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
@@ -77,7 +75,7 @@ export function ReminderMonitor() {
       } else {
         toast.error("Failed to load stats");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error loading stats");
     } finally {
       setLoading(false);
@@ -99,7 +97,7 @@ export function ReminderMonitor() {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to send reminder");
     }
   };
@@ -119,7 +117,7 @@ export function ReminderMonitor() {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to send trip SMS");
     }
   };

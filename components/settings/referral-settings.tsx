@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,11 +15,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
   const [isCopied, setIsCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    loadReferralData()
-  }, [userId])
-
-  const loadReferralData = async () => {
+  const loadReferralData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [statsData, linkData, programData] = await Promise.all([
@@ -31,12 +27,16 @@ export function ReferralSettings({ userId }: { userId: string }) {
       setStats(statsData)
       setReferralLink(linkData.referralLink)
       setProgram(programData)
-    } catch (error) {
-      console.error("Error loading referral data:", error)
+    } catch {
+      console.error("Error loading referral data")
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    loadReferralData()
+  }, [loadReferralData])
 
   const copyToClipboard = async () => {
     try {

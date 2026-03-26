@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useSyncExternalStore, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Copy, Share2, X, Twitter, Linkedin, MessageCircle } from "lucide-react"
+import { Copy, X, Twitter, Linkedin, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
 import { createReferralLink, getReferralStats } from "@/actions/referral-actions"
 
@@ -45,22 +45,22 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
     store.getSnapshot
   )
 
-  const loadReferralData = async () => {
+  const loadReferralData = useCallback(async () => {
     try {
       const { referralLink: link } = await createReferralLink({ userId })
       const stats = await getReferralStats(userId)
       
       store.set({ referralLink: link, referralStats: stats })
-    } catch (error) {
-      console.error("Error loading referral data:", error)
+    } catch {
+      console.error("Error loading referral data")
     }
-  }
+  }, [store, userId])
 
   useEffect(() => {
     if (isOpen && userId) {
       loadReferralData()
     }
-  }, [isOpen, userId])
+  }, [isOpen, userId, loadReferralData])
 
   const copyToClipboard = async () => {
     try {
@@ -69,7 +69,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
       toast.success("Referral link copied to clipboard!")
       
       setTimeout(() => store.set({ isCopied: false }), 2000)
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy link")
     }
   }

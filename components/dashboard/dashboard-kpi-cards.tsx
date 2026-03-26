@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"

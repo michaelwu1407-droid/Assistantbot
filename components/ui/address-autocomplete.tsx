@@ -184,7 +184,7 @@ function AddressAutocompleteWithGoogle({
         : undefined,
     })
     if (address) setIsResolved(true)
-  }, [onChange, onPlaceSelect, pickPlaceParts])
+  }, [onChange, onPlaceSelect])
 
   const resolvePlaceById = useCallback((placeId: string, fallbackText: string) => {
     try {

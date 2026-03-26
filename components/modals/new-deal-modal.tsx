@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,9 +11,9 @@ import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
 import { STAGE_OPTIONS } from "@/lib/deal-utils"
-import { Plus, User, Mail, Phone, MapPin, AlertCircle, CalendarClock } from "lucide-react"
+import { User, Mail, Phone, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AddressAutocomplete, type PlaceResult } from "@/components/ui/address-autocomplete"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 
 interface TeamMemberOption {
     id: string
@@ -55,24 +55,24 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
     const [contactError, setContactError] = useState("")
     const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
-    useEffect(() => {
-        if (isOpen && workspaceId) {
-            fetchContacts()
-        }
-    }, [isOpen, workspaceId])
-
-    // Reset error when contact fields change
-    useEffect(() => {
-        if (newContactEmail || newContactPhone) setContactError("")
-    }, [newContactEmail, newContactPhone])
-
-    const fetchContacts = () => {
+    const fetchContacts = useCallback(() => {
         setIsFetchingContacts(true)
         getContacts(workspaceId)
             .then(setContacts)
             .catch(console.error)
             .finally(() => setIsFetchingContacts(false))
-    }
+    }, [workspaceId])
+
+    useEffect(() => {
+        if (isOpen && workspaceId) {
+            fetchContacts()
+        }
+    }, [isOpen, workspaceId, fetchContacts])
+
+    // Reset error when contact fields change
+    useEffect(() => {
+        if (newContactEmail || newContactPhone) setContactError("")
+    }, [newContactEmail, newContactPhone])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

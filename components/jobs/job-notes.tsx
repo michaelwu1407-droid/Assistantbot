@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,13 +42,14 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<Awaited<ReturnType<typeof getAuthUser>>>(null);
+  const [editContent, setEditContent] = useState("");
 
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     const result = await getJobNotes(dealId);
     if (result.success && result.notes) {
       setNotes(result.notes);
     }
-  };
+  }, [dealId]);
 
   const handleAddNote = async () => {
     if (!newNoteContent.trim() || !user) return;
@@ -64,7 +65,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add note");
     } finally {
       setSaving(false);
@@ -82,7 +83,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update note");
     } finally {
       setSaving(false);
@@ -98,7 +99,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete note");
     }
   };
@@ -106,7 +107,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
   useEffect(() => {
     loadNotes();
     getAuthUser().then(setUser).catch(() => setUser(null));
-  }, [dealId]);
+  }, [loadNotes]);
 
   // For past jobs, only show first 3 notes by default
   const displayNotes = isPastJob && !isExpanded 
@@ -184,7 +185,10 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setEditingNote(note.id)}
+                      onClick={() => {
+                        setEditingNote(note.id)
+                        setEditContent(note.content)
+                      }}
                       className="h-8 w-8 p-0"
                     >
                       <Edit3 className="h-4 w-4" />
@@ -203,8 +207,8 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
                 {editingNote === note.id ? (
                   <div className="mt-3 space-y-2">
                     <Textarea
-                      value={note.content}
-                      onChange={(e) => setEditingNote(note.id)}
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
                       className="min-h-[80px]"
                       placeholder="Update your note..."
                     />
@@ -212,13 +216,16 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setEditingNote(null)}
+                        onClick={() => {
+                          setEditingNote(null)
+                          setEditContent("")
+                        }}
                       >
                         Cancel
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleUpdateNote(note.id, note.content)}
+                        onClick={() => handleUpdateNote(note.id, editContent)}
                         disabled={saving}
                       >
                         <Save className="h-4 w-4 mr-1" />
