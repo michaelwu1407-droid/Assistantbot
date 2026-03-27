@@ -70,6 +70,52 @@ type EnsureWorkspaceUserParams = {
   authUserIdOverride?: string | null;
 };
 
+async function findExistingWorkspaceForAuth(ownerId?: string) {
+  const authUser = await getAuthUser();
+
+  if (!authUser?.email) {
+    if (!ownerId) {
+      return null;
+    }
+
+    return db.workspace.findFirst({
+      where: { ownerId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  const existingUser = await db.user.findUnique({
+    where: { email: authUser.email },
+    select: {
+      id: true,
+      role: true,
+      workspaceId: true,
+    },
+  });
+
+  if (!existingUser?.workspaceId) {
+    return null;
+  }
+
+  const existingWorkspace = await db.workspace.findUnique({
+    where: { id: existingUser.workspaceId },
+  });
+
+  if (!existingWorkspace) {
+    return null;
+  }
+
+  logger.authFlow("Resolved workspace via existing app user email", {
+    ownerId: ownerId ?? "missing",
+    authEmail: authUser.email,
+    appUserId: existingUser.id,
+    workspaceId: existingWorkspace.id,
+    subscriptionStatus: existingWorkspace.subscriptionStatus,
+  });
+
+  return existingWorkspace;
+}
+
 export async function ensureWorkspaceUserForAuth(
   params: EnsureWorkspaceUserParams
 ): Promise<{ id: string; email: string; workspaceId: string }> {
@@ -142,10 +188,7 @@ async function getOrCreateWorkspaceImpl(
     if (ownerId) {
       logger.debug("Looking for existing workspace", { ownerId });
 
-      const existing = await db.workspace.findFirst({
-        where: { ownerId },
-        orderBy: { createdAt: "desc" },
-      });
+      const existing = await findExistingWorkspaceForAuth(ownerId);
 
       if (existing) {
         logger.authFlow("Found existing workspace", {

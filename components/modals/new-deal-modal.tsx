@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { toast } from "sonner"
-import { STAGE_OPTIONS } from "@/lib/deal-utils"
+import { NEW_JOB_STAGE_OPTIONS, isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
 import { User, Mail, Phone, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
@@ -27,9 +27,10 @@ interface NewDealModalProps {
     onClose: () => void
     workspaceId: string
     teamMembers?: TeamMemberOption[]
+    initialStage?: NewJobStage
 }
 
-export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }: NewDealModalProps) {
+export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], initialStage = "new_request" }: NewDealModalProps) {
     const router = useRouter()
     const [title, setTitle] = useState("")
     const [value, setValue] = useState("")
@@ -37,7 +38,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
     const [latitude, setLatitude] = useState<number | null>(null)
     const [longitude, setLongitude] = useState<number | null>(null)
     const [scheduledAt, setScheduledAt] = useState("")
-    const [stage, setStage] = useState("new_request")
+    const [stage, setStage] = useState<NewJobStage>(initialStage)
     const [assignedToId, setAssignedToId] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
@@ -68,6 +69,12 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
             fetchContacts()
         }
     }, [isOpen, workspaceId, fetchContacts])
+
+    useEffect(() => {
+        if (isOpen) {
+            setStage(initialStage)
+        }
+    }, [isOpen, initialStage])
 
     // Reset error when contact fields change
     useEffect(() => {
@@ -142,7 +149,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                 setLatitude(null)
                 setLongitude(null)
                 setScheduledAt("")
-                setStage("new_request")
+                setStage(initialStage)
                 setContactId("")
                 setNewContactName("")
                 setNewContactEmail("")
@@ -256,12 +263,16 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [] }:
                             <Label htmlFor="stage" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 Stage
                             </Label>
-                            <Select value={stage} onValueChange={setStage}>
+                            <Select value={stage} onValueChange={(value) => {
+                                if (isNewJobStage(value)) {
+                                    setStage(value)
+                                }
+                            }}>
                                 <SelectTrigger id="stage" className="col-span-3 h-11 rounded-xl border-slate-200 bg-white/90">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {STAGE_OPTIONS.filter(s => s.value !== 'deleted').map((opt) => (
+                                    {NEW_JOB_STAGE_OPTIONS.map((opt) => (
                                         <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                     ))}
                                 </SelectContent>

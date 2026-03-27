@@ -248,14 +248,14 @@ function MapScreen() {
                     backgroundSize: "48px 48px",
                 }} />
                 {/* Roads */}
-                <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.35 }}>
-                    <path d="M 0 55% Q 40% 50% 55% 52%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-                    <path d="M 55% 52% Q 65% 40% 72% 28%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-                    <path d="M 22% 35% Q 38% 43% 55% 52%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-                    <path d="M 30% 0% Q 28% 30% 22% 35%" stroke="#cbd5e1" strokeWidth="2" fill="none" />
-                    <path d="M 60% 0% Q 65% 15% 72% 28%" stroke="#cbd5e1" strokeWidth="2" fill="none" />
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: 0.35 }}>
+                    <path d="M 0 55 Q 40 50 55 52" stroke="#94a3b8" strokeWidth="3" fill="none" />
+                    <path d="M 55 52 Q 65 40 72 28" stroke="#94a3b8" strokeWidth="3" fill="none" />
+                    <path d="M 22 35 Q 38 43 55 52" stroke="#94a3b8" strokeWidth="3" fill="none" />
+                    <path d="M 30 0 Q 28 30 22 35" stroke="#cbd5e1" strokeWidth="2" fill="none" />
+                    <path d="M 60 0 Q 65 15 72 28" stroke="#cbd5e1" strokeWidth="2" fill="none" />
                     {/* Route line */}
-                    <path d="M 22% 35% Q 38% 43% 55% 52% Q 65% 40% 72% 28%" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
+                    <path d="M 22 35 Q 38 43 55 52 Q 65 40 72 28" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
                 </svg>
                 {/* Pins */}
                 {MAP_PINS.map((pin) => (

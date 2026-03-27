@@ -1,3 +1,90 @@
+## 2026-03-27 19:22 (AEDT) - Codex
+
+- Files changed:
+  - `actions/invite-actions.ts`
+  - `app/crm/team/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the extra team-page helper copy under the title and simplified the members card header copy.
+  - Fixed team-member resolution to use the shared current-workspace access fallback and mark the current user by app-user id as well as email.
+- Why:
+  - Prevents the signed-in user from disappearing from the team page when auth identity/email drift exists and keeps page typography more consistent with the cleaner analytics treatment.
+
+## 2026-03-27 19:12 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/analytics/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Reworked the analytics print/export document into a page-safe report layout with stable print timing, narrower tables, and 2-column summary metrics.
+- Why:
+  - Prevents the print view from behaving like a broken browser snapshot and makes the exported report fit normal paper/PDF output more reliably.
+
+## 2026-03-27 19:04 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/analytics/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Restored the customer ratings graph on the analytics page using the existing `ratingDistribution` data after it was accidentally removed during the page simplification pass.
+- Why:
+  - Preserves the useful ratings visualization while still keeping the analytics page stripped back from unnecessary helper copy.
+
+## 2026-03-27 18:58 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/analytics-actions.test.ts`
+  - `actions/analytics-actions.ts`
+  - `app/crm/analytics/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Made analytics period labels and comparisons range-aware, including `LTM` in the time selector and matching prior-period comparison copy on the revenue card.
+  - Changed the customer KPI to count unique customers in the selected range instead of only newly created contacts, and updated the page/test payload from `customers.new` to `customers.inRange`.
+  - Fixed duplicate React keys on repeated month labels by switching chart and trend rendering to stable period-based keys.
+- Why:
+  - Prevents misleading KPI wording on the analytics page and removes React key collisions when the selected range spans multiple years.
+
+## 2026-03-27 10:18 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/analytics/page.tsx`
+  - `app/globals.css`
+  - `components/ui/dialog.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Simplified the analytics page copy, renamed the top KPI to `Revenue`, removed nonessential grey helper text, and dropped the ratings bell-curve section.
+  - Replaced the old screen-style print flow with a dedicated printable report document built from analytics data.
+  - Tightened the shared radius system to 18px across the main Tailwind radius tokens, common rounded utility classes, and the base dialog shell.
+- Why:
+  - Keeps analytics focused on the signal users actually need, produces a print result that reads like a report instead of a viewport capture, and makes surface styling more consistent across the app.
+
+## 2026-03-27 09:58 (AEDT) - Codex
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `components/dashboard/dashboard-main-chrome.tsx`
+  - `components/modals/new-deal-modal.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/deal-utils.ts`
+- Summary:
+  - Fixed kanban "Add Card" so the new-job modal opens with the clicked column's stage instead of always defaulting to `New request`.
+  - Routed the selected stage through the shared dashboard shell and reset the modal to that requested stage on open.
+- Why:
+  - Matches user intent when adding a card from later pipeline columns and keeps the create flow aligned with the board.
+
+## 2026-03-27 09:48 (AEDT) - Codex
+
+- Files changed:
+  - `components/modals/new-deal-modal.tsx`
+  - `components/modals/new-deal-modal-standalone.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/deal-utils.ts`
+- Summary:
+  - Unified the dashboard "new job" stage picker behind a shared stage list that matches the active kanban columns.
+  - Removed drift between the main modal and standalone create-job flow, including outdated labels and missing `Awaiting payment`.
+- Why:
+  - Keeps job creation aligned with the board users actually manage, instead of exposing older internal stage variants.
+
 ## 2026-03-26 15:35 (AEDT) - Codex
 
 - Files changed:
@@ -2279,3 +2366,31 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - Dashboard popups had drifted visually from the refreshed CRM shell, which made the experience feel inconsistent and cramped.
   - The stage-name alignment and assigned-user fix address real workflow confusion in the job creation flow, while the image-config fix removes the recoverable SSR fallback on local logo assets.
+
+## 2026-03-27 09:20 (AEDT) - Codex
+
+- Files changed:
+  - `actions/workspace-actions.ts`
+  - `lib/workspace-access.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed workspace resolution for accounts whose Supabase auth user id changed but whose app user/workspace is still keyed by the same email.
+  - `getOrCreateWorkspace()` now prefers the existing email-linked app user workspace before creating or selecting an owner-id-only workspace.
+  - `requireCurrentWorkspaceAccess()` now falls back from auth user id to auth email when no matching app user row exists for the current auth id.
+- Why:
+  - A stale inactive workspace had been created under a newer auth id, while the real paid workspace still existed under the email-linked app user row.
+  - That mismatch caused `/crm/*` layout gating to read the wrong workspace and redirect active users to `/billing`.
+
+## 2026-03-27 20:05 (AEDT) - Codex
+
+- Files changed:
+  - `actions/contact-actions.ts`
+  - `components/crm/contacts-client.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a `Last job` column to the contacts table by exposing each contact's primary deal title in the shared contacts view model and query layer.
+  - Fixed the contacts page layout to use the same inner scroll container pattern as the CRM shell, restoring page scrolling inside the dashboard frame.
+  - Standardized the contacts page heading and table labels to better match the simplified typography direction already applied on analytics and team pages.
+- Why:
+  - The contacts page had the same shell-layout regression that previously broke analytics scrolling, and operators lacked enough context to tell which job each contact was tied to at a glance.
+  - Typography had started drifting page-to-page, so contacts now follows the same tighter header hierarchy instead of keeping an older oversized/mismatched treatment.

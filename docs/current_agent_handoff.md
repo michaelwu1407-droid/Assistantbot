@@ -155,3 +155,26 @@ Start here before reading the longer audit/backlog docs.
   - update `docs/voice_operating_brief.md`
 - For any code/config/process change:
   - update `docs/agent_change_log.md`
+
+## Deferred Features
+
+1. Workspace-configurable kanban stage renaming
+   - Requested behavior:
+     - double-click a kanban column name
+     - edit the label
+     - show a confirm dialog before saving
+     - propagate the renamed label everywhere the stage is shown
+   - Status:
+     - explicitly deferred
+   - Reason:
+     - current code still duplicates stage labels across board UI, deal detail screens, edit forms, contacts, analytics, and assistant/tooling paths
+     - the correct fix is a shared workspace-backed stage-label system, not one-off string edits
+   - Likely resume points:
+     - `components/crm/kanban-board.tsx`
+     - `lib/deal-utils.ts`
+     - `actions/workspace-actions.ts`
+     - `actions/settings-actions.ts`
+     - `components/crm/deal-detail-modal.tsx`
+     - `components/modals/new-deal-modal.tsx`
+     - `app/crm/deals/[id]/page.tsx`
+     - `app/crm/deals/[id]/edit/page.tsx`

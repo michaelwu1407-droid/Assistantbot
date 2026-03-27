@@ -410,10 +410,10 @@ function MockupMap() {
         style={{ background: "linear-gradient(135deg,#e8ede4 0%,#dce6d8 40%,#e0e8dc 100%)" }}>
         <div className="absolute inset-0 opacity-20"
           style={{ backgroundImage: "linear-gradient(#94a3b8 1px,transparent 1px),linear-gradient(90deg,#94a3b8 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-        <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.35 }}>
-          <path d="M 28% 38% Q 43% 47% 58% 55%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-          <path d="M 58% 55% Q 68% 42% 76% 30%" stroke="#94a3b8" strokeWidth="3" fill="none" />
-          <path d="M 28% 38% Q 43% 47% 58% 55% Q 68% 42% 76% 30%" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: 0.35 }}>
+          <path d="M 28 38 Q 43 47 58 55" stroke="#94a3b8" strokeWidth="3" fill="none" />
+          <path d="M 58 55 Q 68 42 76 30" stroke="#94a3b8" strokeWidth="3" fill="none" />
+          <path d="M 28 38 Q 43 47 58 55 Q 68 42 76 30" stroke="#3B82F6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
         </svg>
         {pins.map(p => (
           <div key={p.num} className="absolute" style={{ left: p.x, top: p.y, transform: "translate(-50%,-50%)" }}>

@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@/lib/auth";
+import { getAuthUser, getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export async function requireCurrentWorkspaceAccess() {
@@ -7,7 +7,7 @@ export async function requireCurrentWorkspaceAccess() {
     throw new Error("Unauthorized");
   }
 
-  const user = await db.user.findUnique({
+  let user = await db.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -15,6 +15,20 @@ export async function requireCurrentWorkspaceAccess() {
       role: true,
     },
   });
+
+  if (!user) {
+    const authUser = await getAuthUser();
+    if (authUser?.email) {
+      user = await db.user.findUnique({
+        where: { email: authUser.email },
+        select: {
+          id: true,
+          workspaceId: true,
+          role: true,
+        },
+      });
+    }
+  }
 
   if (!user?.workspaceId) {
     throw new Error("Workspace access not found");

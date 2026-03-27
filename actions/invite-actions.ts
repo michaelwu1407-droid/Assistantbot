@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { Resend } from "resend";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 function getResendClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -222,16 +223,11 @@ export async function revokeInvite(inviteId: string): Promise<{ success: boolean
  */
 export async function getTeamMembers() {
   const authUser = await getAuthUser();
-  if (!authUser?.email) return [];
-
-  const user = await db.user.findFirst({
-    where: { email: authUser.email },
-    select: { workspaceId: true },
-  });
-  if (!user) return [];
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
+  if (!actor?.workspaceId) return [];
 
   const members = await db.user.findMany({
-    where: { workspaceId: user.workspaceId },
+    where: { workspaceId: actor.workspaceId },
     select: {
       id: true,
       name: true,
@@ -242,8 +238,8 @@ export async function getTeamMembers() {
   });
   return members.map((m) => ({
     ...m,
-    name: m.name || (m.email === authUser.email ? authUser.name : m.name),
-    isCurrentUser: m.email === authUser.email,
+    name: m.name ?? ((m.id === actor.id || (authUser?.email && m.email === authUser.email)) ? (authUser?.name ?? null) : null),
+    isCurrentUser: m.id === actor.id || (authUser?.email ? m.email === authUser.email : false),
   }));
 }
 

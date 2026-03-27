@@ -62,7 +62,7 @@ export interface ReportsData {
   }
   customers: {
     total: number
-    new: number
+    inRange: number
     satisfaction: number
     ratingCount: number
     ratingDistribution: Array<{ score: number; count: number }>
@@ -164,6 +164,7 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
     select: {
       id: true,
       stage: true,
+      contactId: true,
       value: true,
       invoicedAmount: true,
       stageChangedAt: true,
@@ -174,11 +175,12 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
   })
 
   const contacts = await db.contact.count({ where: { workspaceId } })
-  const newContactsThisMonth = await db.contact.count({
+  const contactsCreatedInRange = await db.contact.findMany({
     where: {
       workspaceId,
       createdAt: { gte: rangeStart },
     },
+    select: { id: true },
   })
 
   const wonDeals = deals.filter((d) => d.stage === "WON")
@@ -261,6 +263,7 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
         createdAt: { gte: rangeStart },
       },
       select: {
+        contactId: true,
         score: true,
         createdAt: true,
       },
@@ -280,6 +283,16 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
   ])
 
   const ratingCount = feedbackScores.length
+  const customersInRange = new Set<string>()
+  for (const contact of contactsCreatedInRange) {
+    customersInRange.add(contact.id)
+  }
+  for (const deal of dealsInRange) {
+    if (deal.contactId) customersInRange.add(deal.contactId)
+  }
+  for (const feedbackScore of feedbackScores) {
+    if (feedbackScore.contactId) customersInRange.add(feedbackScore.contactId)
+  }
 
   const distributionCounts: Record<number, number> = {}
   for (const fb of feedbackScores) {
@@ -339,7 +352,7 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
     },
     customers: {
       total: contacts,
-      new: newContactsThisMonth,
+      inRange: customersInRange.size,
       satisfaction: feedback._avg.score ? Number(feedback._avg.score.toFixed(1)) : 0,
       ratingCount,
       ratingDistribution,

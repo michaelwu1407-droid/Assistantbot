@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -200,7 +200,6 @@ export default function TeamPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Team Management</h1>
-                    <p className="text-neutral-500">Manage access and permissions for your workspace.</p>
                 </div>
 
                 <Dialog open={inviteOpen} onOpenChange={(open) => {
@@ -342,9 +341,6 @@ export default function TeamPage() {
                         <Users className="w-5 h-5 text-slate-500" />
                         Members ({displayMembers.length})
                     </CardTitle>
-                    <CardDescription>
-                        People with access to your workspace.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">

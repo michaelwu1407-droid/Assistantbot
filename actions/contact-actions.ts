@@ -25,6 +25,7 @@ export interface ContactView {
   primaryDealStage: string | null;
   /** Raw deal stage for filtering (e.g. "NEW", "SCHEDULED"). */
   primaryDealStageKey: string | null;
+  primaryDealTitle: string | null;
   /** Balance summary for table (e.g. "$120 owed", "Paid", "—"). */
   balanceLabel: string;
   deals?: { title: string; address?: string; stage: string; value: number }[];
@@ -107,7 +108,7 @@ function toContactView(c: unknown): ContactView {
     metadata: unknown;
   };
   const contactWithRelations = c as typeof c & {
-    deals: { id: string; stage: string; invoices: { total: unknown; status: string }[] }[];
+    deals: { id: string; title?: string | null; stage: string; invoices: { total: unknown; status: string }[] }[];
     activities: { createdAt: Date }[];
   };
   const deals = contactWithRelations.deals ?? [];
@@ -116,6 +117,7 @@ function toContactView(c: unknown): ContactView {
     ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
     : null;
   const primaryDealStageKey = primaryDeal?.stage ?? null;
+  const primaryDealTitle = primaryDeal?.title ?? null;
   let owed = 0;
   for (const d of deals) {
     for (const inv of d.invoices ?? []) {
@@ -140,6 +142,7 @@ function toContactView(c: unknown): ContactView {
     lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
     primaryDealStage,
     primaryDealStageKey,
+    primaryDealTitle,
     balanceLabel,
   };
 }
@@ -163,6 +166,7 @@ export async function getContacts(
         orderBy: { lastActivityAt: "desc" },
         select: {
           id: true,
+          title: true,
           stage: true,
           invoices: { select: { total: true, status: true } },
         },
@@ -201,6 +205,7 @@ export async function getContactsPage(
           orderBy: { lastActivityAt: "desc" },
           select: {
             id: true,
+            title: true,
             stage: true,
             invoices: { select: { total: true, status: true } },
           },
@@ -244,7 +249,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   if (!contact) return null;
 
   const contactWithRelations = contact as typeof contact & {
-    deals: { stage: string; invoices: { total: unknown; status: string }[] }[];
+    deals: { title?: string | null; stage: string; invoices: { total: unknown; status: string }[] }[];
     activities: { createdAt: Date }[];
   };
   const deals = contactWithRelations.deals ?? [];
@@ -253,6 +258,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
     ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
     : null;
   const primaryDealStageKey = primaryDeal?.stage ?? null;
+  const primaryDealTitle = primaryDeal?.title ?? null;
   let owed = 0;
   for (const d of deals) {
     for (const inv of d.invoices ?? []) {
@@ -277,6 +283,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
     lastActivityDate: contactWithRelations.activities[0]?.createdAt ?? null,
     primaryDealStage,
     primaryDealStageKey,
+    primaryDealTitle,
     balanceLabel,
     deals: deals.map((d) => {
       const deal = d as { title?: string; address?: string; metadata?: { address?: string }; value?: unknown };

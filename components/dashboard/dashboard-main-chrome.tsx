@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import { useShellStore } from "@/lib/store"
 import { Header } from "@/components/dashboard/header"
@@ -9,6 +9,7 @@ import { NewDealModal } from "@/components/modals/new-deal-modal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { DashboardHeaderExtraContext } from "@/components/dashboard/dashboard-header-extra-context"
+import { isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
 
 /**
  * Brand top bar (search, New Job, notifications, profile) on all dashboard routes
@@ -20,6 +21,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
     const [activityOpen, setActivityOpen] = useState(false)
     const [newDealOpen, setNewDealOpen] = useState(false)
+    const [newDealInitialStage, setNewDealInitialStage] = useState<NewJobStage>("new_request")
 
     const workspaceId = useShellStore((s) => s.workspaceId)
     const userId = useShellStore((s) => s.userId)
@@ -35,6 +37,17 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
 
     const userNameForHeader = headerDisplayName?.trim() || (userId ? userId.slice(0, 8) : "User")
 
+    useEffect(() => {
+        const handleOpenNewDeal = (event: Event) => {
+            const requestedStage = (event as CustomEvent<{ initialStage?: string }>).detail?.initialStage
+            setNewDealInitialStage(requestedStage && isNewJobStage(requestedStage) ? requestedStage : "new_request")
+            setNewDealOpen(true)
+        }
+
+        window.addEventListener("open-new-deal-modal", handleOpenNewDeal as EventListener)
+        return () => window.removeEventListener("open-new-deal-modal", handleOpenNewDeal as EventListener)
+    }, [])
+
     if (isSettings) {
         return <>{children}</>
     }
@@ -44,7 +57,10 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
             <Button
                 id="new-deal-btn"
                 type="button"
-                onClick={() => setNewDealOpen(true)}
+                onClick={() => {
+                    setNewDealInitialStage("new_request")
+                    setNewDealOpen(true)
+                }}
                 className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold truncate"
             >
                 <Plus className="h-3.5 w-3.5 mr-0.5 shrink-0" />
@@ -71,7 +87,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
                         />
                     </div>
                     <div className="min-h-0 min-w-0 flex-1 overflow-hidden flex flex-col">{children}</div>
-                    <NewDealModal isOpen={newDealOpen} onClose={() => setNewDealOpen(false)} workspaceId={workspaceId} />
+                    <NewDealModal isOpen={newDealOpen} onClose={() => setNewDealOpen(false)} workspaceId={workspaceId} initialStage={newDealInitialStage} />
                     <ActivityModal isOpen={activityOpen} onClose={() => setActivityOpen(false)} workspaceId={workspaceId} />
                 </div>
             ) : (

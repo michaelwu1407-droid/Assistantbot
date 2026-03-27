@@ -7,11 +7,11 @@
 @theme {
   --font-sans: var(--font-sans);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
+  --radius-sm: 18px;
+  --radius-md: 18px;
+  --radius-lg: 18px;
+  --radius-xl: 18px;
+  --radius-2xl: 18px;
   --radius-full: 9999px;
 
   /* Ottorize custom design tokens */
@@ -320,11 +320,16 @@
    * `rounded-lg`, `rounded-xl`). Force them to align with the shared `--radius`
    * token so the "standard base radius = 18px" is visually consistent everywhere.
    */
+  .rounded-sm,
   .rounded,
   .rounded-md,
   .rounded-lg,
   .rounded-xl,
-  .rounded-2xl {
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-\[18px\],
+  .rounded-\[20px\],
+  .rounded-\[24px\] {
     border-radius: var(--radius) !important;
   }
 

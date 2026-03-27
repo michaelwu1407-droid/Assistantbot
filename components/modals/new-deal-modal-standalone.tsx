@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { getTeamMembers } from "@/actions/invite-actions"
+import { NEW_JOB_STAGE_OPTIONS } from "@/lib/deal-utils"
 import { toast } from "sonner"
 import { User, Mail, Phone, CalendarClock, AlertCircle, ChevronLeft } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -194,10 +195,11 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="new_request">New lead</SelectItem>
-                                        <SelectItem value="quote_sent">Quoting</SelectItem>
-                                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                                        <SelectItem value="completed">Completed</SelectItem>
+                                        {NEW_JOB_STAGE_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

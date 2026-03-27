@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { ContactView } from "@/actions/contact-actions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, X, Phone, Mail, MessageSquare, Filter, ChevronDown } from "lucide-react"
-import { toast } from "sonner"
+import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/lib/utils"
-import { deleteContacts } from "@/actions/contact-actions"
 import { useRouter } from "next/navigation"
+import { ChevronDown, Filter, Mail, MessageSquare, Phone, Search, X } from "lucide-react"
+import { toast } from "sonner"
+
+import { ContactView, deleteContacts } from "@/actions/contact-actions"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 interface ContactsClientProps {
   contacts: ContactView[]
@@ -24,7 +24,6 @@ interface ContactsClientProps {
   }
 }
 
-// Same stages as kanban board (see kanban-board.tsx COLUMNS)
 const KANBAN_STAGES: { id: string; title: string }[] = [
   { id: "new_request", title: "New request" },
   { id: "quote_sent", title: "Quote sent" },
@@ -37,9 +36,9 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
 type SortMode = "alpha" | "last_interacted"
 type TypeFilter = "all" | "individual" | "business"
 
-// Prisma DealStage -> kanban column id (matches deal-actions STAGE_MAP)
 function prismaStageToColumnId(prismaStage: string | null): string | null {
   if (!prismaStage) return null
+
   const map: Record<string, string> = {
     NEW: "new_request",
     CONTACTED: "quote_sent",
@@ -52,26 +51,32 @@ function prismaStageToColumnId(prismaStage: string | null): string | null {
     DELETED: "deleted",
     ARCHIVED: "archived",
   }
+
   return map[prismaStage] ?? null
 }
 
-function formatLastInteracted(date: Date | null): string {
-  if (!date) return "—"
-  const d = new Date(date)
+function formatLastContact(date: Date | null): string {
+  if (!date) return "-"
+
+  const contactDate = new Date(date)
   const now = new Date()
-  const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+  const days = Math.floor((now.getTime() - contactDate.getTime()) / (1000 * 60 * 60 * 24))
+
   if (days === 0) return "Today"
   if (days === 1) return "Yesterday"
   if (days < 7) return `${days}d ago`
   if (days < 30) return `${Math.floor(days / 7)}w ago`
-  if (days < 365) return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-  return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
+  if (days < 365) {
+    return contactDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  }
+
+  return contactDate.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
 }
 
 export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
-  const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((s) => s.id)), [])
+  const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((stage) => stage.id)), [])
   const [selectedStageIds, setSelectedStageIds] = useState<Set<string>>(new Set(allStageIds))
   const [filterOpen, setFilterOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -81,38 +86,42 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
 
   const filtered = useMemo(() => {
     let result = contacts
+
     if (search) {
-      const q = search.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.email?.toLowerCase().includes(q) ||
-          c.phone?.includes(q) ||
-          c.company?.toLowerCase().includes(q)
+      const query = search.toLowerCase()
+      result = result.filter((contact) =>
+        contact.name.toLowerCase().includes(query) ||
+        contact.email?.toLowerCase().includes(query) ||
+        contact.phone?.includes(query) ||
+        contact.company?.toLowerCase().includes(query) ||
+        contact.primaryDealTitle?.toLowerCase().includes(query)
       )
     }
-    if (selectedStageIds.size === 0) return []
-    result = result.filter((c) => {
-      const columnId = prismaStageToColumnId(c.primaryDealStageKey ?? null)
+
+    if (selectedStageIds.size === 0) {
+      return []
+    }
+
+    result = result.filter((contact) => {
+      const columnId = prismaStageToColumnId(contact.primaryDealStageKey)
       return columnId != null && selectedStageIds.has(columnId)
     })
-    // Type filter: individual (no company) vs business (has company)
+
     if (typeFilter === "individual") {
-      result = result.filter((c) => !c.company || c.company.trim() === "")
+      result = result.filter((contact) => !contact.company || contact.company.trim() === "")
     } else if (typeFilter === "business") {
-      result = result.filter((c) => c.company && c.company.trim() !== "")
+      result = result.filter((contact) => Boolean(contact.company && contact.company.trim() !== ""))
     }
-    // Sort
+
     if (sortMode === "alpha") {
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name))
-    } else {
-      result = [...result].sort((a, b) => {
-        const aDate = a.lastActivityDate ? new Date(a.lastActivityDate).getTime() : 0
-        const bDate = b.lastActivityDate ? new Date(b.lastActivityDate).getTime() : 0
-        return bDate - aDate
-      })
+      return [...result].sort((a, b) => a.name.localeCompare(b.name))
     }
-    return result
+
+    return [...result].sort((a, b) => {
+      const aDate = a.lastActivityDate ? new Date(a.lastActivityDate).getTime() : 0
+      const bDate = b.lastActivityDate ? new Date(b.lastActivityDate).getTime() : 0
+      return bDate - aDate
+    })
   }, [contacts, search, selectedStageIds, sortMode, typeFilter])
 
   const toggleStage = (stageId: string) => {
@@ -125,19 +134,27 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   }
 
   const toggleSelect = (id: string) => {
-    const next = new Set(selected)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setSelected(next)
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const selectAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set())
-    else setSelected(new Set(filtered.map((c) => c.id)))
+    if (selected.size === filtered.length) {
+      setSelected(new Set())
+      return
+    }
+
+    setSelected(new Set(filtered.map((contact) => contact.id)))
   }
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selected.size} contacts? This cannot be undone.`)) return
+    if (!confirm(`Are you sure you want to delete ${selected.size} contacts? This cannot be undone.`)) {
+      return
+    }
 
     setSending(true)
     try {
@@ -153,337 +170,322 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   }
 
   const handleExport = () => {
-    const selectedContacts = filtered.filter(c => selected.has(c.id))
+    const selectedContacts = filtered.filter((contact) => selected.has(contact.id))
     const headers = ["Name", "Email", "Phone", "Company", "Address", "Deals", "Balance", "Tags"]
     const csvContent = [
       headers.join(","),
-      ...selectedContacts.map(c => {
-        const tags = Array.isArray(c.metadata?.tags) ? c.metadata.tags.join(";") : ""
+      ...selectedContacts.map((contact) => {
+        const tags = Array.isArray(contact.metadata?.tags) ? contact.metadata.tags.join(";") : ""
         return [
-          `"${c.name.replace(/"/g, '""')}"`,
-          `"${(c.email || "").replace(/"/g, '""')}"`,
-          `"${(c.phone || "").replace(/"/g, '""')}"`,
-          `"${(c.company || "").replace(/"/g, '""')}"`,
-          `"${(c.address || "").replace(/"/g, '""')}"`,
-          c.dealCount,
-          `"${c.balanceLabel.replace(/"/g, '""')}"`,
+          `"${contact.name.replace(/"/g, '""')}"`,
+          `"${(contact.email || "").replace(/"/g, '""')}"`,
+          `"${(contact.phone || "").replace(/"/g, '""')}"`,
+          `"${(contact.company || "").replace(/"/g, '""')}"`,
+          `"${(contact.address || "").replace(/"/g, '""')}"`,
+          contact.dealCount,
+          `"${contact.balanceLabel.replace(/"/g, '""')}"`,
           `"${tags.replace(/"/g, '""')}"`
         ].join(",")
       })
     ].join("\n")
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.setAttribute("download", `contacts_export_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute("download", `contacts_export_${new Date().toISOString().split("T")[0]}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Contacts</h1>
-        {selected.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground mr-1">{selected.size} selected</span>
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
-              Export CSV
-            </Button>
-            <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={handleDelete} disabled={sending}>
-              Delete
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setSelected(new Set())}>
-              <X className="w-4 h-4" />
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Contacts</h1>
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="mr-1 text-sm text-muted-foreground">{selected.size} selected</span>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
+                  Export CSV
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={handleDelete} disabled={sending}>
+                  Delete
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setSelected(new Set())}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search contacts..."
+                className="pl-9"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "min-w-[120px] justify-between gap-1.5 text-xs",
+                    selectedStageIds.size < allStageIds.size && "border-primary/50 bg-primary/5"
+                  )}
+                >
+                  <Filter className="h-3.5 w-3.5 shrink-0" />
+                  Stages
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <div className="border-b border-border p-2">
+                  <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Show contacts in:</p>
+                </div>
+                <div className="max-h-[280px] overflow-y-auto py-1">
+                  {KANBAN_STAGES.map((column) => (
+                    <label
+                      key={column.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={selectedStageIds.has(column.id)}
+                        onCheckedChange={() => toggleStage(column.id)}
+                      />
+                      <span className="text-sm">{column.title}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-1 border-t border-border p-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setSelectedStageIds(new Set(allStageIds))}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setSelectedStageIds(new Set())}
+                  >
+                    None
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="min-w-[100px] justify-between gap-1.5 text-xs">
+                  <span className="truncate">
+                    {typeFilter === "all" ? "Type: All" : typeFilter === "individual" ? "Individual" : "Business"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-1" align="start">
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter("all")}
+                  className={cn("w-full rounded-sm px-3 py-2 text-left text-sm", typeFilter === "all" && "bg-muted font-medium")}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter("individual")}
+                  className={cn("w-full rounded-sm px-3 py-2 text-left text-sm", typeFilter === "individual" && "bg-muted font-medium")}
+                >
+                  Individual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter("business")}
+                  className={cn("w-full rounded-sm px-3 py-2 text-left text-sm", typeFilter === "business" && "bg-muted font-medium")}
+                >
+                  Business
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            <Button asChild size="sm">
+              <Link href="/crm/contacts/new">Add contact</Link>
             </Button>
           </div>
-        )}
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search contacts..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "gap-1.5 text-xs min-w-[120px] justify-between",
-                selectedStageIds.size < allStageIds.size && "border-primary/50 bg-primary/5"
-              )}
-            >
-              <Filter className="h-3.5 w-3.5 shrink-0" />
-              Stages
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
-            <div className="p-2 border-b border-border">
-              <p className="text-xs font-medium text-muted-foreground px-2 py-1">Show contacts in:</p>
-            </div>
-            <div className="max-h-[280px] overflow-y-auto py-1">
-              {KANBAN_STAGES.map((col) => (
-                <label
-                  key={col.id}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50 cursor-pointer rounded-sm"
-                >
-                  <Checkbox
-                    checked={selectedStageIds.has(col.id)}
-                    onCheckedChange={() => toggleStage(col.id)}
-                  />
-                  <span className="text-sm">{col.title}</span>
-                </label>
-              ))}
-            </div>
-            <div className="p-2 border-t border-border flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-7"
-                onClick={() => setSelectedStageIds(new Set(allStageIds))}
-              >
-                All
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-7"
-                onClick={() => setSelectedStageIds(new Set())}
-              >
-                None
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-        {/* Type filter: Individual / Business */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs min-w-[100px] justify-between"
-            >
-              <span className="truncate">
-                {typeFilter === "all" ? "Type: All" : typeFilter === "individual" ? "Individual" : "Business"}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-1" align="start">
-            <button
-              type="button"
-              onClick={() => { setTypeFilter("all"); }}
-              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "all" && "bg-muted font-medium")}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => { setTypeFilter("individual"); }}
-              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "individual" && "bg-muted font-medium")}
-            >
-              Individual
-            </button>
-            <button
-              type="button"
-              onClick={() => { setTypeFilter("business"); }}
-              className={cn("w-full text-left px-3 py-2 rounded-sm text-sm", typeFilter === "business" && "bg-muted font-medium")}
-            >
-              Business
-            </button>
-          </PopoverContent>
-        </Popover>
-        <Button asChild size="sm">
-          <Link href="/crm/contacts/new">Add contact</Link>
-        </Button>
-      </div>
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
+          </p>
 
-      <p className="text-xs text-muted-foreground">
-        {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
-      </p>
-
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-neutral-200 bg-muted/50">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground w-10">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && selected.size === filtered.length}
-                    onChange={selectAll}
-                    className="rounded border-input"
-                  />
-                </th>
-                <th
-                  className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none whitespace-nowrap"
-                  onClick={() => setSortMode("alpha")}
-                >
-                  Name {sortMode === "alpha" && <span className="text-primary text-xs ml-0.5">↓</span>}
-                </th>
-                <th
-                  className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground select-none"
-                  onClick={() => setSortMode("last_interacted")}
-                >
-                  Last interacted {sortMode === "last_interacted" && <span className="text-primary text-xs ml-0.5">↓</span>}
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Job status</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Balance</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    No contacts found. Add your first contact or try a different search.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((contact) => (
-                  <tr
-                    key={contact.id}
-                    className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="py-2.5 px-4">
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-neutral-200 bg-muted/50">
+                    <th className="w-10 px-4 py-3 text-left font-medium text-muted-foreground">
                       <input
                         type="checkbox"
-                        checked={selected.has(contact.id)}
-                        onChange={() => toggleSelect(contact.id)}
+                        checked={filtered.length > 0 && selected.size === filtered.length}
+                        onChange={selectAll}
                         className="rounded border-input"
-                        onClick={(e) => e.stopPropagation()}
                       />
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <Link
-                        href={`/crm/contacts/${contact.id}`}
-                        className="font-medium text-foreground hover:text-primary hover:underline"
-                      >
-                        {contact.name}
-                      </Link>
-                      {contact.company && (
-                        <span className="block text-xs text-muted-foreground truncate max-w-[180px]">
-                          {contact.company}
-                        </span>
-                      )}
-                      {contact.metadata?.tags && Array.isArray(contact.metadata.tags) && contact.metadata.tags.length > 0 && (
-                        <div className="flex gap-1 mt-1.5 flex-wrap">
-                          {contact.metadata.tags.map(tag => (
-                            <span key={String(tag)} className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[9px] uppercase tracking-wider font-semibold text-primary">
-                              {String(tag)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">
-                      {formatLastInteracted(contact.lastActivityDate)}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <span className="text-foreground">
-                        {contact.primaryDealStage ?? "—"}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 text-muted-foreground">
-                      {contact.balanceLabel}
-                    </td>
-                    <td className="py-2.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-0.5">
-                        {contact.phone && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 shrink-0"
-                              asChild
-                              title="Call"
-                            >
-                              <a href={`tel:${contact.phone}`}>
-                                <Phone className="h-4 w-4" />
-                              </a>
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 shrink-0"
-                              asChild
-                              title="Text"
-                            >
-                              <a href={`sms:${contact.phone}`}>
-                                <MessageSquare className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          </>
-                        )}
-                        {contact.email && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 shrink-0"
-                            asChild
-                            title="Email"
-                          >
-                            <a href={`mailto:${contact.email}`}>
-                              <Mail className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        {!contact.phone && !contact.email && (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-                    </td>
+                    </th>
+                    <th
+                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground hover:text-foreground"
+                      onClick={() => setSortMode("alpha")}
+                    >
+                      Name {sortMode === "alpha" && <span className="ml-0.5 text-xs text-primary">↓</span>}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground hover:text-foreground"
+                      onClick={() => setSortMode("last_interacted")}
+                    >
+                      Last contact {sortMode === "last_interacted" && <span className="ml-0.5 text-xs text-primary">↓</span>}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Last job</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Job status</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Balance</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                        No contacts found. Add your first contact or try a different search.
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((contact) => (
+                      <tr
+                        key={contact.id}
+                        className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                      >
+                        <td className="px-4 py-2.5">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(contact.id)}
+                            onChange={() => toggleSelect(contact.id)}
+                            className="rounded border-input"
+                            onClick={(event) => event.stopPropagation()}
+                          />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Link
+                            href={`/crm/contacts/${contact.id}`}
+                            className="font-medium text-foreground hover:text-primary hover:underline"
+                          >
+                            {contact.name}
+                          </Link>
+                          {contact.company && (
+                            <span className="block max-w-[180px] truncate text-xs text-muted-foreground">
+                              {contact.company}
+                            </span>
+                          )}
+                          {contact.metadata?.tags && Array.isArray(contact.metadata.tags) && contact.metadata.tags.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {contact.metadata.tags.map((tag) => (
+                                <span
+                                  key={String(tag)}
+                                  className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary"
+                                >
+                                  {String(tag)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
+                          {formatLastContact(contact.lastActivityDate)}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          <span className="block max-w-[220px] truncate">{contact.primaryDealTitle ?? "-"}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-foreground">{contact.primaryDealStage ?? "-"}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-0.5">
+                            {contact.phone && (
+                              <>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Call">
+                                  <a href={`tel:${contact.phone}`}>
+                                    <Phone className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Text">
+                                  <a href={`sms:${contact.phone}`}>
+                                    <MessageSquare className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              </>
+                            )}
+                            {contact.email && (
+                              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Email">
+                                <a href={`mailto:${contact.email}`}>
+                                  <Mail className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                            {!contact.phone && !contact.email && (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {pagination && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Showing {contacts.length} of {pagination.total} contacts (page {pagination.page})
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!pagination.hasPrevPage}
+                  onClick={() => {
+                    if (!pagination.hasPrevPage) return
+                    router.push(`/crm/contacts?page=${pagination.page - 1}`)
+                  }}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!pagination.hasNextPage}
+                  onClick={() => {
+                    if (!pagination.hasNextPage) return
+                    router.push(`/crm/contacts?page=${pagination.page + 1}`)
+                  }}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {pagination && (
-        <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Showing {contacts.length} of {pagination.total} contacts (page {pagination.page})
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!pagination.hasPrevPage}
-              onClick={() => {
-                if (!pagination.hasPrevPage) return
-                router.push(`/crm/contacts?page=${pagination.page - 1}`)
-              }}
-            >
-              Previous
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!pagination.hasNextPage}
-              onClick={() => {
-                if (!pagination.hasNextPage) return
-                router.push(`/crm/contacts?page=${pagination.page + 1}`)
-              }}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-
     </div>
   )
 }

@@ -59,6 +59,7 @@ import { kanbanColumnIdForDealStage } from "@/lib/kanban-columns"
 import { toast } from "sonner"
 import { publishCrmSelection } from "@/lib/crm-selection"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
+import { isNewJobStage } from "@/lib/deal-utils"
 
 // 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
@@ -222,13 +223,23 @@ function KanbanColumnHeader({ col, count }: { col: (typeof COLUMNS)[number]; cou
           <button
             type="button"
             className="text-muted-foreground/50 transition-colors hover:text-primary"
-            onClick={() => document.getElementById("new-deal-btn")?.click()}
+            onClick={() => openNewDealModalForColumn(col.id)}
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
     </div>
+  )
+}
+
+function openNewDealModalForColumn(columnId: string) {
+  window.dispatchEvent(
+    new CustomEvent("open-new-deal-modal", {
+      detail: {
+        initialStage: isNewJobStage(columnId) ? columnId : "new_request",
+      },
+    })
   )
 }
 
@@ -972,7 +983,7 @@ export function KanbanBoard({
                           <button
                             type="button"
                             className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/30 py-2 text-[11px] font-bold text-muted-foreground/50 transition-all hover:border-primary/50 hover:text-primary"
-                            onClick={() => document.getElementById("new-deal-btn")?.click()}
+                            onClick={() => openNewDealModalForColumn(col.id)}
                           >
                             <Plus className="h-3.5 w-3.5" />
                             {col.id === "new_request" ? "Add your first deal" : "Add Card"}

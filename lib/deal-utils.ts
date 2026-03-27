@@ -174,6 +174,21 @@ export const KANBAN_STAGE_PICKER_OPTIONS = [
   { id: "deleted", label: "Deleted" },
 ] as const
 
+/** Stages available when creating a new job from the dashboard. */
+export const NEW_JOB_STAGE_OPTIONS = [
+  { value: "new_request", label: "New request" },
+  { value: "quote_sent", label: "Quote sent" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "ready_to_invoice", label: "Awaiting payment" },
+  { value: "completed", label: "Completed" },
+] as const
+
+export type NewJobStage = (typeof NEW_JOB_STAGE_OPTIONS)[number]["value"]
+
+export function isNewJobStage(value: string): value is NewJobStage {
+  return NEW_JOB_STAGE_OPTIONS.some((option) => option.value === value)
+}
+
 /**
  * Maps Prisma `deal.stage` to the Kanban column id passed to `updateDealStage` / board grouping.
  * Pending approval and completed both map to `completed` for column equality.

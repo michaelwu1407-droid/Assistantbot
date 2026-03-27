@@ -3,7 +3,7 @@ import { differenceInCalendarDays, startOfDay, subDays } from "date-fns";
 
 const dbMocks = vi.hoisted(() => ({
   deal: { findMany: vi.fn() },
-  contact: { count: vi.fn() },
+  contact: { count: vi.fn(), findMany: vi.fn() },
   customerFeedback: { aggregate: vi.fn(), findMany: vi.fn() },
   user: { count: vi.fn() },
 }));
@@ -21,16 +21,20 @@ describe("getReportsData", () => {
     vi.clearAllMocks();
 
     dbMocks.contact.count
-      .mockResolvedValueOnce(14)
-      .mockResolvedValueOnce(3);
+      .mockResolvedValueOnce(14);
+    dbMocks.contact.findMany.mockResolvedValue([
+      { id: "contact-1" },
+      { id: "contact-2" },
+      { id: "contact-3" },
+    ]);
     dbMocks.customerFeedback.aggregate.mockResolvedValue({
       _avg: { score: 4.25 },
     });
     dbMocks.customerFeedback.findMany
       .mockResolvedValueOnce([
-        { score: 4, createdAt: new Date("2026-02-20T10:00:00.000Z") },
-        { score: 5, createdAt: new Date("2026-03-05T10:00:00.000Z") },
-        { score: 4, createdAt: new Date("2026-03-10T10:00:00.000Z") },
+        { contactId: "contact-1", score: 4, createdAt: new Date("2026-02-20T10:00:00.000Z") },
+        { contactId: "contact-2", score: 5, createdAt: new Date("2026-03-05T10:00:00.000Z") },
+        { contactId: "contact-3", score: 4, createdAt: new Date("2026-03-10T10:00:00.000Z") },
       ])
       .mockResolvedValueOnce([
         {
@@ -56,6 +60,7 @@ describe("getReportsData", () => {
         id: "deal-current-1",
         stage: "WON",
         value: 400,
+        contactId: "contact-1",
         invoicedAmount: 450,
         stageChangedAt: new Date("2026-03-10T10:00:00.000Z"),
         createdAt: new Date("2026-03-01T09:00:00.000Z"),
@@ -66,6 +71,7 @@ describe("getReportsData", () => {
         id: "deal-current-2",
         stage: "WON",
         value: 550,
+        contactId: "contact-2",
         invoicedAmount: null,
         stageChangedAt: new Date("2026-03-05T10:00:00.000Z"),
         createdAt: new Date("2026-02-26T09:00:00.000Z"),
@@ -76,6 +82,7 @@ describe("getReportsData", () => {
         id: "deal-previous",
         stage: "WON",
         value: 300,
+        contactId: "contact-4",
         invoicedAmount: 300,
         stageChangedAt: new Date("2026-02-02T10:00:00.000Z"),
         createdAt: new Date("2026-01-25T09:00:00.000Z"),
@@ -86,6 +93,7 @@ describe("getReportsData", () => {
         id: "deal-pipeline",
         stage: "CONTACTED",
         value: 100,
+        contactId: "contact-5",
         invoicedAmount: null,
         stageChangedAt: new Date("2026-03-12T10:00:00.000Z"),
         createdAt: new Date("2026-03-12T09:00:00.000Z"),
@@ -96,6 +104,7 @@ describe("getReportsData", () => {
         id: "deal-manual-scheduled",
         stage: "SCHEDULED",
         value: 200,
+        contactId: "contact-6",
         invoicedAmount: null,
         stageChangedAt: new Date("2026-03-11T10:00:20.000Z"),
         createdAt: new Date("2026-03-11T10:00:00.000Z"),
@@ -131,7 +140,7 @@ describe("getReportsData", () => {
     expect(result.revenue.growth).toBeCloseTo(((1000 - 300) / 300) * 100, 5);
     expect(result.deals.total).toBe(4);
     expect(result.jobs.completed).toBe(2);
-    expect(result.customers.new).toBe(3);
+    expect(result.customers.inRange).toBe(5);
     expect(result.customers.satisfaction).toBe(4.3);
     expect(result.customers.ratingCount).toBe(3);
   });
