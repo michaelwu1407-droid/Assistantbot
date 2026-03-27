@@ -46,7 +46,7 @@ export interface TriggerConfig {
 }
 
 export interface ActionConfig {
-  type: "notify" | "email" | "create_task" | "move_stage";
+  type: "notify" | "email" | "create_task" | "move_stage" | "send_sms";
   channel?: string;
   template?: string;
   message?: string;
@@ -64,7 +64,7 @@ const CreateAutomationSchema = z.object({
     stage: z.string().optional(),
   }),
   action: z.object({
-    type: z.enum(["notify", "email", "create_task", "move_stage"]),
+    type: z.enum(["notify", "email", "create_task", "move_stage", "send_sms"]),
     channel: z.string().optional(),
     template: z.string().optional(),
     message: z.string().optional(),
@@ -433,6 +433,45 @@ export async function evaluateAutomations(
             console.log(`[Automation] Moved deal ${event.dealId} to stage ${prismaStage}`);
           } catch (error) {
             console.error(`[Automation] Failed to move stage for ${automation.name}:`, error);
+          }
+        }
+        // 5. Send SMS
+        if (action.type === "send_sms") {
+          try {
+            const contact = event.contactId
+              ? await db.contact.findUnique({ where: { id: event.contactId }, select: { phone: true } })
+              : event.dealId
+              ? await db.deal.findUnique({ where: { id: event.dealId }, include: { contact: { select: { phone: true } } } }).then((d) => d?.contact)
+              : null;
+
+            const phone = contact?.phone;
+            if (!phone) {
+              console.log(`[Automation] Skipped SMS for ${automation.name}: no phone number on contact`);
+              continue;
+            }
+
+            const workspace = await db.workspace.findUnique({
+              where: { id: workspaceId },
+              select: { twilioPhoneNumber: true, name: true },
+            });
+            if (!workspace?.twilioPhoneNumber) {
+              console.log(`[Automation] Skipped SMS for ${automation.name}: workspace has no Twilio number`);
+              continue;
+            }
+
+            const { Twilio } = await import("twilio");
+            const twilioClient = new Twilio(
+              process.env.TWILIO_ACCOUNT_SID!,
+              process.env.TWILIO_AUTH_TOKEN!
+            );
+            await twilioClient.messages.create({
+              body: action.message || `Hi from ${workspace.name}`,
+              from: workspace.twilioPhoneNumber,
+              to: phone,
+            });
+            console.log(`[Automation] SMS sent: ${automation.name} → ${phone}`);
+          } catch (error) {
+            console.error(`[Automation] Failed to send SMS for ${automation.name}:`, error);
           }
         }
       } catch (err) {

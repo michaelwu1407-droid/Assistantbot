@@ -1451,6 +1451,105 @@ function buildWorkspaceLookupTools(grounding: WorkspaceVoiceGrounding): livekitL
   };
 }
 
+function buildSchedulingTools(grounding: WorkspaceVoiceGrounding): livekitLlm.ToolContext<unknown> {
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  const workspaceId = grounding.workspaceId;
+  const mode = grounding.customerContactMode;
+
+  const callSchedulingApi = async (body: Record<string, unknown>) => {
+    if (!appUrl || !secret) throw new Error("Missing APP URL or webhook secret");
+    const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-scheduling`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-voice-agent-secret": secret },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`voice-scheduling API ${response.status}: ${text}`);
+    }
+    return response.json();
+  };
+
+  const tools: livekitLlm.ToolContext<unknown> = {
+    check_availability: livekitLlm.tool({
+      description:
+        "Check when the business has availability to book a job. Call this when a caller asks about scheduling or wants to book a time.",
+      parameters: z.object({
+        date_hint: z
+          .string()
+          .optional()
+          .describe("Optional preferred date or week the caller mentioned, e.g. 'this week' or 'Monday'"),
+      }),
+      execute: async ({ date_hint }) => {
+        try {
+          const result = await callSchedulingApi({ action: "check_availability", workspaceId, date: date_hint });
+          return (result as { summary?: string }).summary ?? "Availability information retrieved.";
+        } catch (e) {
+          console.error("[scheduling] check_availability failed:", e);
+          return "Could not retrieve availability right now. Let the caller know the team will follow up to confirm a time.";
+        }
+      },
+    }),
+
+    find_nearby_jobs: livekitLlm.tool({
+      description:
+        "Check if there are other jobs booked nearby on the same day. Call this after the caller gives an address and a preferred date, before confirming a booking, to flag efficient clustering.",
+      parameters: z.object({
+        address: z.string().describe("The job address provided by the caller"),
+        date: z.string().describe("The proposed booking date, e.g. 'Monday' or '2024-03-18'"),
+      }),
+      execute: async ({ address, date }) => {
+        try {
+          const result = await callSchedulingApi({ action: "find_nearby", workspaceId, address, date });
+          return (result as { summary?: string }).summary ?? "No nearby jobs found on that day.";
+        } catch (e) {
+          console.error("[scheduling] find_nearby_jobs failed:", e);
+          return "Could not check nearby jobs.";
+        }
+      },
+    }),
+  };
+
+  if (mode === "execute") {
+    (tools as Record<string, livekitLlm.ToolContext<unknown>[string]>).create_and_schedule_job = livekitLlm.tool({
+      description:
+        "Book and schedule a job for the caller. Only call this when you have all required details (name, address, work description) AND the caller has verbally confirmed the booking. This creates the job immediately in the system.",
+      parameters: z.object({
+        clientName: z.string().describe("Caller's full name"),
+        address: z.string().describe("Job site address"),
+        workDescription: z.string().describe("Description of the work requested"),
+        schedule: z
+          .string()
+          .optional()
+          .describe("Agreed date and time, e.g. 'Monday 9am' or '2024-03-18 09:00'"),
+        phone: z.string().optional().describe("Caller's phone number"),
+        email: z.string().optional().describe("Caller's email address"),
+        price: z.number().optional().describe("Agreed price in dollars if discussed"),
+      }),
+      execute: async (params) => {
+        try {
+          const result = await callSchedulingApi({ action: "create_job", workspaceId, ...params }) as {
+            success?: boolean;
+            dealId?: string;
+            contactId?: string;
+            error?: string;
+          };
+          if (result.success) {
+            return `Job booked successfully. Confirm the booking with the caller and let them know the team will be in touch to confirm the exact time.`;
+          }
+          return `Could not book the job: ${result.error ?? "unknown error"}. Let the caller know the team will follow up within the hour to confirm.`;
+        } catch (e) {
+          console.error("[scheduling] create_and_schedule_job failed:", e);
+          return "Booking system unavailable right now. Let the caller know the team will call them back within 30 minutes to confirm.";
+        }
+      },
+    });
+  }
+
+  return tools;
+}
+
 export default defineAgent({
   prewarm: async () => {
     await prewarmVoiceProcess();
@@ -1748,6 +1847,7 @@ export default defineAgent({
     }
 
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
+    const normalSchedulingTools = normalVoiceGrounding ? buildSchedulingTools(normalVoiceGrounding) : {};
     const tools: livekitLlm.ToolContext<unknown> = isEarlymarkCall
       ? {
         log_lead: logLeadTool,
@@ -1756,6 +1856,7 @@ export default defineAgent({
       : {
         transfer_call: transferCallTool,
         ...normalLookupTools,
+        ...normalSchedulingTools,
       };
 
     class TraceyVoiceAgent extends voice.Agent {

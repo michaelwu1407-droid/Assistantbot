@@ -25,6 +25,11 @@ const sidebarNavSections: { label?: string; items: { title: string; href: string
     },
     {
         items: [
+            { title: "Teach Tracey", href: "/crm/settings/training" },
+        ],
+    },
+    {
+        items: [
             { title: "My business", href: "/crm/settings/my-business" },
         ],
     },
