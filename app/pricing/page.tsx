@@ -45,11 +45,11 @@ const fadeUp = (delay = 0) => ({
 })
 
 const FEATURES = [
-  { icon: Phone, title: "AI Receptionist", description: "Answers calls 24/7. Multilingual." },
-  { icon: MessageSquare, title: "SMS & Email", description: "Replies and follows up natively." },
-  { icon: FileText, title: "Quotes & Invoices", description: "Drafts and chases instantly." },
-  { icon: Calendar, title: "Smart Scheduling", description: "Books jobs without double-ups." },
-  { icon: MapPin, title: "Job Map", description: "Smarter routes, less driving." },
+  { icon: Phone, title: "AI Receptionist", description: "Answers calls 24/7. Books jobs on the spot." },
+  { icon: MessageSquare, title: "SMS & Email", description: "Replies, confirms, and follows up automatically." },
+  { icon: FileText, title: "Invoicing", description: "Generate invoices and sync to Xero instantly." },
+  { icon: Calendar, title: "Smart Scheduling", description: "Books jobs and clusters nearby work on the same day." },
+  { icon: MapPin, title: "Job Map", description: "See all your jobs on a live map at a glance." },
   { icon: BarChart3, title: "Analytics", description: "Revenue and pipeline at a glance." },
   { icon: Users, title: "Team Management", description: "Assign jobs and set permissions." },
   { icon: ShieldCheck, title: "Full Control", description: "Custom rules and oversight." },
@@ -323,7 +323,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    Relentless quote follow-up
+                    Automated quote follow-up sequences
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />

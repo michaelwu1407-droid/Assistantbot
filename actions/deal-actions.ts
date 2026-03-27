@@ -29,12 +29,13 @@ import {
 // ─── Types ──────────────────────────────────────────────────────────
 
 // Maps Prisma DealStage enum to frontend column ids (6-column CRM)
+// NEGOTIATION and PIPELINE are legacy enum values — both map to their clean equivalents.
 const STAGE_MAP: Record<string, string> = {
   NEW: "new_request",
   CONTACTED: "quote_sent",
-  NEGOTIATION: "scheduled",
+  NEGOTIATION: "scheduled",   // legacy alias → scheduled
   SCHEDULED: "scheduled",
-  PIPELINE: "pipeline",
+  PIPELINE: "quote_sent",     // legacy alias → quote_sent (was silently remapped via kanban-columns anyway)
   INVOICED: "ready_to_invoice",
   PENDING_COMPLETION: "pending_approval",
   WON: "completed",
@@ -47,7 +48,7 @@ const STAGE_REVERSE: Record<string, string> = {
   new_request: "NEW",
   quote_sent: "CONTACTED",
   scheduled: "SCHEDULED",
-  pipeline: "PIPELINE",
+  // "pipeline" removed — no longer a valid frontend column; falls back to CONTACTED via quote_sent
   ready_to_invoice: "INVOICED",
   pending_approval: "PENDING_COMPLETION",
   completed: "WON",
@@ -61,7 +62,6 @@ const STAGE_ACTIVITY_LABELS: Record<string, string> = {
   new_request: "New request",
   quote_sent: "Quote sent",
   scheduled: "Scheduled",
-  pipeline: "Pipeline",
   ready_to_invoice: "Ready to invoice",
   pending_approval: "Pending approval",
   completed: "Completed",

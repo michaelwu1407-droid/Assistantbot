@@ -1,10 +1,10 @@
 /**
  * Maps a DealView.stage string to the Kanban column id (same rules as `kanban-board.tsx` grouping).
+ * Note: "pipeline" is a legacy stage — deal-actions.ts now maps PIPELINE → "quote_sent" upstream.
  */
 export function kanbanColumnIdForDealStage(stage: string): string {
-  const s = stage === "pipeline" ? "quote_sent" : stage
-  if (s === "pending_approval") return "completed"
-  return s
+  if (stage === "pending_approval") return "completed"
+  return stage
 }
 
 /** Left-to-right column order for sorting fetched deals. */

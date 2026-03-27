@@ -50,17 +50,17 @@ const OLD_WAY = [
 
 const TRACEY_WAY = [
     { icon: "📞", label: "Customer calls" },
-    { icon: "🤖", label: "Tracey picks up 24/7, secures and logs the job" },
+    { icon: "🤖", label: "Tracey picks up 24/7, qualifies the lead, and books the job" },
     { icon: "🔧", label: "Get on the tools" },
-    { icon: "💰", label: "Get paid: collect instantly or Tracey follows up + asks for a kind review" },
+    { icon: "💰", label: "Tracey sends the invoice, follows up, and asks for a review" },
 ];
 
 const HIRE_FEATURES = [
     {
         title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
-        desc: EARLYMARK_SALES_PILLARS[0]?.description || "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
+        desc: EARLYMARK_SALES_PILLARS[0]?.description || "Tracey answers every call 24/7, qualifies the lead, and books the job straight into your calendar — so you never lose work while you're on the tools.",
         eyebrow: "Lead capture",
-        bullets: ["Answers every call, day or night", "Logs the job straight to your CRM", "Sends quotes automatically"],
+        bullets: ["Answers every call, day or night", "Books jobs and syncs to your calendar", "Logs every lead straight to your CRM"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
@@ -69,44 +69,44 @@ const HIRE_FEATURES = [
         bullets: ["Chat to update any job in seconds", "Query revenue, pipeline, or schedule", "No forms, no manual data entry"],
     },
     {
-        title: EARLYMARK_SALES_PILLARS[2]?.title || "AI that actually works",
-        desc: EARLYMARK_SALES_PILLARS[2]?.description || "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
+        title: EARLYMARK_SALES_PILLARS[2]?.title || "Follow-up that actually happens",
+        desc: EARLYMARK_SALES_PILLARS[2]?.description || "Tracey automatically follows up on unconfirmed quotes, sends booking reminders, and asks for a review after every completed job.",
         eyebrow: "Customer experience",
-        bullets: ["Replies to texts and emails instantly", "Follows up on unpaid quotes", "Handles objections and rebooking"],
+        bullets: ["Automated quote follow-up sequences", "Booking reminders via SMS", "Post-job review requests"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
         desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
         eyebrow: "Oversight",
-        bullets: ["Set approval rules for quotes", "Review every conversation", "Adjust Tracey&apos;s behaviour anytime"],
+        bullets: ["Choose Execution, Draft, or Info-only mode", "Review every conversation", "Adjust Tracey's behaviour anytime"],
     },
 ];
 
 const FEATURE_CARDS = [
     {
         icon: Phone,
-        title: "AI Customer Communication",
+        title: "AI Receptionist",
         desc: "Calls, texts, and emails — Tracey handles conversations across every channel, 24/7.",
     },
     {
         icon: MessageSquare,
-        title: "Automated CRM Management",
+        title: "Automated CRM",
         desc: "Tell Tracey what you need. She logs jobs, moves deals, and keeps your pipeline moving — no manual entry.",
     },
     {
         icon: Calendar,
         title: "Smart Scheduling",
-        desc: "Tracey checks your calendar and books jobs into the right slots, avoiding double-ups and dead time.",
+        desc: "Tracey checks your calendar, books jobs into open slots, and clusters nearby jobs on the same day.",
     },
     {
         icon: MapPin,
-        title: "Job Map & Route Optimisation",
-        desc: "See all your jobs on a live map and get smarter routes so you spend less time driving between sites.",
+        title: "Job Map",
+        desc: "See all your scheduled jobs on a live map — know where your crew is and what's coming up.",
     },
     {
         icon: Users,
         title: "Team Management",
-        desc: "Assign jobs, track your crew, and keep everyone aligned — all through simple chat commands.",
+        desc: "Assign jobs, set permissions, and keep everyone aligned — all through simple chat commands.",
     },
     {
         icon: BarChart3,
@@ -121,8 +121,8 @@ const CHAT_DEMO = [
         agent: "✅ Done — Henderson Plumbing is now Completed.",
     },
     {
-        user: "Call Sarah Johnson and get the quote approved",
-        agent: "📞 Calling Sarah Johnson... She confirmed the $1,850 quote. Booked for Thursday 9am! 🎉",
+        user: "Book Sarah Johnson in for a hot water system replacement next Tuesday",
+        agent: "📅 Done — Sarah Johnson booked for Tuesday 10am. Confirmation SMS sent. 🎉",
     },
     {
         user: "What's my revenue this month?",
