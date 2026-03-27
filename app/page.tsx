@@ -1163,7 +1163,6 @@ export default function Home() {
                                 { label: "Home", href: "/" },
                                 { label: "Product", href: "/features" },
                                 { label: "Solutions", href: "/solutions" },
-                                { label: "Tutorial", href: "/tutorial" },
                                 { label: "Pricing", href: "/pricing" },
                                 { label: "Contact", href: "/contact" },
                             ].map((l) => (
