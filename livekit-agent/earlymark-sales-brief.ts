@@ -10,9 +10,9 @@ export const EARLYMARK_SALES_PILLARS: EarlymarkSalesPillar[] = [
     id: "lead_capture",
     title: "Never miss a job again",
     description:
-      "With 24/7 availability, Tracey will contact the lead for you instantaneously. Oh.... and did we mention she's multilingual?",
+      "Tracey answers every call 24/7, qualifies the lead, and books the job straight into your calendar — so you never lose work while you're on the tools.",
     salesLine:
-      "Earlymark helps you stop missing jobs by handling calls, texts, and lead follow-up around the clock, including multilingual enquiries.",
+      "Earlymark answers every call, qualifies the lead, and books the job — so tradies never miss work while they're on-site.",
   },
   {
     id: "ops",
@@ -20,15 +20,15 @@ export const EARLYMARK_SALES_PILLARS: EarlymarkSalesPillar[] = [
     description:
       "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
     salesLine:
-      "Earlymark cuts admin by letting you run follow-up, scheduling, CRM updates, and customer comms through one AI workflow instead of manual admin.",
+      "Earlymark cuts admin by letting you run scheduling, CRM updates, follow-up, and customer comms through one AI assistant instead of manual work.",
   },
   {
     id: "natural_ai",
-    title: "AI that actually works",
+    title: "Follow-up that actually happens",
     description:
-      "AI that handles convos like a human. Tracey learns your preferences and delivers a better and simpler experience.",
+      "Tracey automatically follows up on unconfirmed quotes, sends booking reminders, and requests a review after every completed job.",
     salesLine:
-      "Tracey is designed to sound natural, keep conversations moving, and stay aligned with the way your business actually operates.",
+      "Tracey follows up on quotes, confirms bookings, and asks for reviews automatically — so nothing falls through the cracks.",
   },
   {
     id: "control",
@@ -36,15 +36,15 @@ export const EARLYMARK_SALES_PILLARS: EarlymarkSalesPillar[] = [
     description:
       "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
     salesLine:
-      "You keep control with approval rules, oversight, and guardrails over what Tracey can confirm, quote, or escalate.",
+      "You keep control with approval rules, oversight, and guardrails over what Tracey can confirm, book, or escalate.",
   },
 ];
 
 export const EARLYMARK_PLATFORM_CAPABILITIES = [
   "calls, texts, and emails handled in one system",
-  "CRM updates and follow-up without manual data entry",
-  "smart scheduling and routing support",
-  "visibility into jobs, response flow, and revenue",
+  "CRM updates and scheduling without manual data entry",
+  "automated follow-up sequences for quotes and completed jobs",
+  "visibility into jobs, bookings, and revenue at a glance",
 ] as const;
 
 export function buildEarlymarkSalesBrief() {

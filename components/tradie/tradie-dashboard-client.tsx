@@ -121,11 +121,6 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
           {todayJobs.length} Jobs Today
         </div>
-        <Link href="/crm/tradie/estimator" className="pointer-events-auto">
-          <Button variant="secondary" size="sm" className="h-7 text-xs bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 shadow-sm">
-            + Quick Estimate
-          </Button>
-        </Link>
       </div>
 
       {/* Finish Job Button — most prominent action on active job card */}
