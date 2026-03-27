@@ -4,10 +4,11 @@ import { notFound } from "next/navigation"
 import { ContactNotes } from "@/components/crm/contact-notes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase, AlertCircle, AlertTriangle, Home } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, Mail, Phone, Building, MapPin, MessageSquare, FileText, Briefcase, AlertCircle, AlertTriangle, Home, PhoneCall, AtSign, StickyNote, Briefcase as BriefcaseIcon } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import { getActivities } from "@/actions/activity-actions"
 
 export const dynamic = "force-dynamic"
 
@@ -48,6 +49,8 @@ export default async function ContactDetailPage({ params }: PageProps) {
   const contactType = (metadata.contactType as string) === "BUSINESS" ? "BUSINESS" : "PERSON"
   const notes = (metadata.notes as string) ?? ""
   const [currentDeal, ...pastDeals] = contact.deals
+
+  const activities = await getActivities({ contactId: id, limit: 40 })
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 overflow-hidden">
@@ -269,13 +272,13 @@ export default async function ContactDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Right: Past jobs + Notes */}
+        {/* Right: Activity timeline + Notes */}
         <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
           <div className="flex-1 min-h-0 border border-slate-200 dark:border-border rounded-lg bg-white dark:bg-card flex flex-col overflow-hidden shadow-sm">
             <div className="p-3 border-b border-slate-100 dark:border-border font-semibold text-slate-900 dark:text-foreground bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                Past jobs & notes
+                Activity & history
               </span>
               <div className="flex items-center gap-1.5">
                 {contact.phone && (
@@ -302,28 +305,55 @@ export default async function ContactDetailPage({ params }: PageProps) {
               </div>
             </div>
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0 min-h-0">
+              {/* Left: unified chronological timeline */}
               <div className="border-b md:border-b-0 md:border-r border-slate-100 dark:border-border flex flex-col min-h-0">
-                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100 dark:border-border">Past jobs</p>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {(pastDeals.length === 0 && !currentDeal) ? (
-                    <p className="text-slate-500 text-sm">No jobs yet.</p>
-                  ) : pastDeals.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No other jobs.</p>
+                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100 dark:border-border">Timeline</p>
+                <div className="flex-1 overflow-y-auto p-3">
+                  {activities.length === 0 && pastDeals.length === 0 ? (
+                    <p className="text-slate-500 text-sm py-4 text-center">No activity yet.</p>
                   ) : (
-                    pastDeals.map((d) => (
-                      <Link
-                        key={d.id}
-                        href={`/crm/deals/${d.id}`}
-                        className="block p-2 rounded-lg border border-slate-100 dark:border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm"
-                      >
-                        <span className="font-medium text-slate-900 dark:text-foreground">{d.title}</span>
-                        <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString("en-AU")}</span>
-                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
-                      </Link>
-                    ))
+                    <div className="space-y-3">
+                      {/* Past jobs at the top */}
+                      {pastDeals.map((d) => (
+                        <Link
+                          key={d.id}
+                          href={`/crm/deals/${d.id}`}
+                          className="flex items-start gap-2.5 p-2 rounded-lg border border-slate-100 dark:border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm"
+                        >
+                          <div className="mt-0.5 h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                            <BriefcaseIcon className="w-3 h-3 text-slate-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900 dark:text-foreground truncate">{d.title}</p>
+                            <p className="text-xs text-slate-400">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • ${Number(d.value).toLocaleString("en-AU")} • {format(new Date(d.updatedAt), "MMM d")}</p>
+                          </div>
+                        </Link>
+                      ))}
+                      {/* Activity feed */}
+                      {activities.map((a) => {
+                        const icon = a.type === "call"
+                          ? <PhoneCall className="w-3 h-3 text-blue-500" />
+                          : a.type === "email"
+                          ? <AtSign className="w-3 h-3 text-purple-500" />
+                          : <StickyNote className="w-3 h-3 text-amber-500" />
+                        return (
+                          <div key={a.id} className="flex items-start gap-2.5 text-sm">
+                            <div className="mt-0.5 h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-foreground leading-snug truncate">{a.title}</p>
+                              {a.description && <p className="text-xs text-slate-500 truncate">{a.description}</p>}
+                              <p className="text-xs text-slate-400 mt-0.5">{a.time}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
+              {/* Right: notes */}
               <div className="flex flex-col min-h-0">
                 <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100 dark:border-border">Notes</p>
                 <div className="flex-1 overflow-y-auto p-3">

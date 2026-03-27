@@ -1278,3 +1278,50 @@ export async function searchDeals(workspaceId: string, query: string): Promise<D
   const results = fuzzySearch(searchable, query);
   return results.map((r) => r.item.deal);
 }
+
+// ─── Recurring Jobs ──────────────────────────────────────────────────────────
+
+export interface RecurrenceRule {
+  unit: "day" | "week" | "fortnight" | "month"
+  interval: number
+  endDate?: string // ISO date string, optional
+}
+
+/**
+ * Set or clear a recurrence rule on a deal.
+ * Stored in deal.metadata.recurrence.
+ */
+export async function setDealRecurrence(
+  dealId: string,
+  rule: RecurrenceRule | null
+): Promise<{ success: boolean; error?: string }> {
+  const { deal } = await requireDealInCurrentWorkspace(dealId)
+  if (!deal) return { success: false, error: "Deal not found" }
+
+  const existing = (deal.metadata as Record<string, unknown>) ?? {}
+  const updated = { ...existing }
+
+  if (rule === null) {
+    delete updated.recurrence
+  } else {
+    updated.recurrence = rule
+  }
+
+  await db.deal.update({
+    where: { id: dealId },
+    data: { metadata: JSON.parse(JSON.stringify(updated)) },
+  })
+
+  return { success: true }
+}
+
+/**
+ * Get the recurrence rule for a deal, if any.
+ */
+export async function getDealRecurrence(dealId: string): Promise<RecurrenceRule | null> {
+  const deal = await db.deal.findUnique({ where: { id: dealId }, select: { metadata: true } })
+  if (!deal) return null
+  const meta = (deal.metadata as Record<string, unknown>) ?? {}
+  const rule = meta.recurrence as RecurrenceRule | undefined
+  return rule ?? null
+}

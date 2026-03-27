@@ -87,6 +87,7 @@ export async function getWorkspaceSettings() {
         transcribeVoicemails: (s.transcribeVoicemails as boolean) ?? true,
         autoRespondToMessages: (s.autoRespondToMessages as boolean) ?? true,
         weeklyHours: s.weeklyHours ? normalizeWeeklyHours(s.weeklyHours) : undefined,
+        googleReviewUrl: (s.googleReviewUrl as string) ?? "",
     }
 }
 
@@ -135,6 +136,7 @@ export async function updateWorkspaceSettings(input: {
     callForwardingMode?: "full" | "backup" | "off"
     callForwardingDelaySec?: number
     callForwardingCarrier?: CallForwardingCarrier
+    googleReviewUrl?: string
 }) {
     const workspaceId = await getWorkspaceId()
     const normalizedMode = normalizeAppAgentMode(input.agentMode) as AgentMode
@@ -162,6 +164,7 @@ export async function updateWorkspaceSettings(input: {
         "recordCalls", "transcriptionQuality", "agentPersonality", "agentResponseLength",
         "voiceEnabled", "voiceLanguage", "voiceType", "voiceSpeed",
         "voiceGreeting", "voiceAfterHoursMessage", "transcribeVoicemails", "autoRespondToMessages", "weeklyHours",
+        "googleReviewUrl",
     ] as const
     let settingsUpdate: Record<string, unknown> | undefined = undefined
     const s = input as Record<string, unknown>
