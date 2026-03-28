@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Plus, X, Bot } from "lucide-react"
 import { toast } from "sonner"
-import { updateWorkspaceSettings } from "@/actions/settings-actions"
+import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 
 interface BusinessDocument {
   id: string
@@ -149,8 +149,21 @@ function RulesTab({ initialAiPreferences }: { initialAiPreferences: string }) {
   const save = async () => {
     setSaving(true)
     try {
+      const currentSettings = await getWorkspaceSettings()
+      if (!currentSettings) {
+        toast.error("Failed to load current settings")
+        return
+      }
       const aiPreferences = rules.map((r) => `- ${r}`).join("\n")
-      await updateWorkspaceSettings({ aiPreferences })
+      await updateWorkspaceSettings({
+        agentMode: currentSettings.agentMode || "DRAFT",
+        workingHoursStart: currentSettings.workingHoursStart || "08:00",
+        workingHoursEnd: currentSettings.workingHoursEnd || "17:00",
+        agendaNotifyTime: currentSettings.agendaNotifyTime || "07:30",
+        wrapupNotifyTime: currentSettings.wrapupNotifyTime || "17:30",
+        workspaceTimezone: currentSettings.workspaceTimezone || "Australia/Sydney",
+        aiPreferences,
+      })
       toast.success("Rules saved")
     } catch {
       toast.error("Failed to save rules")
@@ -233,7 +246,20 @@ function PreferencesTab({
   const saveMode = async () => {
     setSaving(true)
     try {
-      await updateWorkspaceSettings({ agentMode })
+      const currentSettings = await getWorkspaceSettings()
+      if (!currentSettings) {
+        toast.error("Failed to load current settings")
+        return
+      }
+      await updateWorkspaceSettings({
+        agentMode,
+        workingHoursStart: currentSettings.workingHoursStart || "08:00",
+        workingHoursEnd: currentSettings.workingHoursEnd || "17:00",
+        agendaNotifyTime: currentSettings.agendaNotifyTime || "07:30",
+        wrapupNotifyTime: currentSettings.wrapupNotifyTime || "17:30",
+        workspaceTimezone: currentSettings.workspaceTimezone || "Australia/Sydney",
+        aiPreferences: currentSettings.aiPreferences || undefined,
+      })
       toast.success("Autonomy mode saved")
     } catch {
       toast.error("Failed to save")

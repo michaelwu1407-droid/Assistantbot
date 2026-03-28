@@ -32,7 +32,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const didDragRef = useRef(false)
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
-  const [mounted] = useState(() => typeof window !== "undefined")
 
   // Keep global flag in sync so dashboard Kanban can use min board width only when RHS chat is open (no forced horizontal scroll when chat is collapsed).
   useEffect(() => {
@@ -189,8 +188,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {/* Mobile Sidebar - Drawer */}
           <MobileSidebar />
 
-          {mounted ? (
-            <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full min-w-0 w-full">
+          <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full min-w-0 w-full">
               {/* Left canvas + assistant must sum to 100% default so the main pane reliably compresses when chat expands */}
               <ResizablePanel defaultSize={72} minSize={30} id="main-canvas-panel" className="flex min-h-0 min-w-0 flex-col">
                 <div
@@ -293,16 +291,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
-          ) : (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <div
-                id="main-canvas"
-                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overflow-x-auto relative bg-[var(--main-canvas)]"
-              >
-                <DashboardMainChrome>{children}</DashboardMainChrome>
-              </div>
-            </div>
-          )}
 
           {/* Mobile: floating nav + chat buttons */}
           <div className="md:hidden fixed bottom-5 right-5 z-[10000] flex flex-col gap-2 items-end">

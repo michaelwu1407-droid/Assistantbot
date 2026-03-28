@@ -2447,3 +2447,20 @@ Rule: every agent change commit must include an entry in this file.
   - Fixed a hydration mismatch in the CRM shell by making `DashboardMainChrome` keep a stable wrapper structure on both server and client, then only mount the header/modals after hydration when the shell store is ready.
 - Why:
   - The previous implementation branched the whole layout tree on client-populated store values (`workspaceId`, `userId`), which meant server HTML and first client render diverged and React regenerated the tree on the client.
+
+## 2026-03-28 13:18 (AEDT) - Codex
+
+- Files changed:
+  - `app/api/internal/voice-scheduling/route.ts`
+  - `app/crm/settings/training/training-tabs.tsx`
+  - `components/settings/google-review-url-section.tsx`
+  - `components/layout/Shell.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Normalized omitted voice-scheduling job prices to `0` before handing off to the shared natural-language job creator.
+  - Fixed settings save flows that were submitting partial workspace payloads to `updateWorkspaceSettings` by reloading the current settings first and then writing a complete, type-safe payload.
+  - Fixed a CRM shell hydration mismatch by removing the alternate pre-hydration shell branch and rendering the same `ResizablePanelGroup` tree on both server and client.
+- Why:
+  - The internal voice-scheduling API accepts `price` as optional, but the downstream job-creation action requires a concrete number. Passing `undefined` broke production builds under TypeScript.
+  - The training and Google Review settings panels had drifted from the full-payload contract used by the shared settings action, which surfaced as TypeScript build failures once the first route error was fixed.
+  - The shell still had two separate layout trees around hydration; removing that split eliminates the remaining server/client markup drift in the dashboard frame.

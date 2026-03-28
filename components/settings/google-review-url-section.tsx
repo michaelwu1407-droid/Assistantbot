@@ -23,12 +23,13 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
       const current = await getWorkspaceSettings()
       if (!current) throw new Error("Could not load settings")
       await updateWorkspaceSettings({
-        ...current,
         agentMode: current.agentMode ?? "DRAFT",
         workingHoursStart: current.workingHoursStart ?? "08:00",
         workingHoursEnd: current.workingHoursEnd ?? "17:00",
         agendaNotifyTime: current.agendaNotifyTime ?? "07:30",
         wrapupNotifyTime: current.wrapupNotifyTime ?? "17:30",
+        workspaceTimezone: current.workspaceTimezone ?? "Australia/Sydney",
+        aiPreferences: current.aiPreferences ?? undefined,
         googleReviewUrl: url.trim(),
       })
       toast.success("Google Review URL saved")

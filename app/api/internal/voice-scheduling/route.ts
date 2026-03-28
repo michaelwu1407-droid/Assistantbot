@@ -179,7 +179,7 @@ async function handleCreateJob(
     schedule: params.schedule,
     phone: params.phone,
     email: params.email,
-    price: params.price,
+    price: params.price ?? 0,
   });
 
   return result;
