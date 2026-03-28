@@ -1,19 +1,35 @@
 # Missing Features & Gap Analysis
 
-This document collates all discrepancies between the `APP_MANUAL.md` and the actual codebase found during stress testing.
+This document tracks discrepancies between documented intent and the actual codebase.
 
-## High Priority (Core Flows Broken)
+Last audited: 2026-03-28
 
-- **Job Workflow Broken**: "Start Travel", "Complete Job" buttons missing. (FIXED in Round 3)
-- **AI Voice Agent**: Random caller -> AI answers, asks profile Qs, books time -> Logs to CRM. (MISSING - Priority High)
-- **AI SMS Agent**: Random SMS -> AI replies, asks profile Qs, books time -> Logs to CRM. (MISSING - Priority High)
-- **Global Search Hidden**: Logic exists but search index verified broken.
-- **AI Logic Gaps**: Chat Assistant for internal queries missing.
+---
 
-## Medium Priority (UX/UI Gaps)
-- **Deal Photos Tab**: Missing from Deal Details view.
-- **Kanban Automation**: Missing modals for Stale Deal drag-and-drop.
-- **Asset/Handover UI**: Missing sections for Asset DNA and Digital Handover.
-- **Settings Missing**: No UI for "AI Voice Agent" or "After Hours Mode".
+## Open Items
 
-## Low Priority (Polish/Edge Cases)
+### Low Priority (Polish/Edge Cases)
+
+- **Asset DNA**: Key/asset management page exists (`/crm/assets`), but the "Asset DNA" concept (deep equipment identity / service history tagging) is not explicitly built out as a distinct feature.
+
+---
+
+## Resolved (No Longer Missing)
+
+All previously reported high and medium priority gaps have been addressed:
+
+| Feature | Resolution |
+|---|---|
+| AI Voice Agent (inbound call → CRM) | Implemented — Twilio gateway + LiveKit + `VoiceCall` logging |
+| AI SMS Agent (inbound SMS → AI reply) | Implemented — `/api/twilio/webhook` + `sms-agent.ts` |
+| CRM Chat Assistant (internal queries) | Implemented — Gemini 2.0 Flash Lite via `/api/chat` |
+| Global Search | Fixed — no `useIndustry` hook dependency in search path |
+| Deal Photos | Implemented — gallery section in deal detail modal |
+| Kanban Stale Deal modals | Implemented — `kanban-automation-modal.tsx`, `stale-deal-follow-up-modal.tsx` |
+| AI Voice Agent settings UI | Implemented — `call-settings-client.tsx`, `ai-receptionist-settings.tsx` |
+| After Hours Mode settings | Implemented — voice after-hours message textarea in call settings |
+| Digital Handover UI | Implemented — key checkout/checkin at `/crm/assets` |
+| Job Workflow (Start Travel / Complete Job) | Fixed in Round 3 |
+| AI Parsing / Pricing accuracy | Fixed — rebuilt to tool-use architecture (Sprint 21) |
+| Kanban drag to Lost column | Fixed — `updateDealStage` persists correctly |
+| Tradie deep-link "All Caught Up" bug | Fixed |
