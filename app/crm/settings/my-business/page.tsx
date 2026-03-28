@@ -8,7 +8,9 @@ import { BusinessContactForm } from "@/components/settings/business-contact-form
 import { ServiceAreasSection } from "@/components/settings/service-areas-section"
 import { PricingForAgentSection } from "@/components/settings/pricing-for-agent-section"
 import { AttachmentLibrarySection } from "@/components/settings/attachment-library-section"
+import { GoogleReviewUrlSection } from "@/components/settings/google-review-url-section"
 import { db } from "@/lib/db"
+import { getWorkspaceSettings } from "@/actions/settings-actions"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +28,9 @@ export default async function MyBusinessSettingsPage() {
     where: { workspaceId: workspace.id },
     orderBy: { createdAt: 'desc' }
   })
+
+  const wsSettings = await getWorkspaceSettings()
+  const googleReviewUrl = wsSettings?.googleReviewUrl ?? ""
 
   return (
     <div className="space-y-8">
@@ -101,6 +106,12 @@ export default async function MyBusinessSettingsPage() {
             fileType: d.fileType ?? null,
           }))}
         />
+      </section>
+      <Separator />
+
+      <section>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Reviews</h4>
+        <GoogleReviewUrlSection initialUrl={googleReviewUrl} />
       </section>
     </div>
   )

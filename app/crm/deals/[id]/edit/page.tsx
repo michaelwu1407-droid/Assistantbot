@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Home } from "lucide-react"
 import { getTeamMembers } from "@/actions/invite-actions"
 import { DealEditForm } from "./deal-edit-form"
 import { PRISMA_STAGE_TO_UI_STAGE, STAGE_OPTIONS } from "@/lib/deal-utils"
+import { getDealRecurrence } from "@/actions/deal-actions"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -15,12 +16,13 @@ export default async function DealEditPage({ params }: PageProps) {
   const { id } = await params
   const actor = await requireCurrentWorkspaceAccess()
 
-  const [deal, teamMembers] = await Promise.all([
+  const [deal, teamMembers, recurrence] = await Promise.all([
     db.deal.findFirst({
       where: { id, workspaceId: actor.workspaceId },
       include: { contact: true, assignedTo: { select: { id: true, name: true } } },
     }),
     getTeamMembers(),
+    getDealRecurrence(id),
   ])
 
   if (!deal) notFound()
@@ -67,6 +69,7 @@ export default async function DealEditPage({ params }: PageProps) {
         initialAssignedToId={deal.assignedToId ?? ""}
         teamMembers={teamMembers}
         stageOptions={STAGE_OPTIONS}
+        initialRecurrence={recurrence}
       />
     </div>
   )

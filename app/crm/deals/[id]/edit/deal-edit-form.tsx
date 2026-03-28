@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { updateDeal, updateDealMetadata, updateDealAssignedTo } from "@/actions/deal-actions"
+import { updateDeal, updateDealMetadata, updateDealAssignedTo, setDealRecurrence, type RecurrenceRule } from "@/actions/deal-actions"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 
 interface TeamMemberOption {
   id: string
@@ -28,6 +29,7 @@ interface DealEditFormProps {
   initialAssignedToId: string
   teamMembers: TeamMemberOption[]
   stageOptions: { value: string; label: string }[]
+  initialRecurrence?: RecurrenceRule | null
 }
 
 export function DealEditForm({
@@ -41,6 +43,7 @@ export function DealEditForm({
   initialAssignedToId,
   teamMembers,
   stageOptions,
+  initialRecurrence,
 }: DealEditFormProps) {
   const router = useRouter()
   const [title, setTitle] = useState(initialTitle)
@@ -51,6 +54,10 @@ export function DealEditForm({
   const [scheduledAt, setScheduledAt] = useState(initialScheduledAt)
   const [assignedToId, setAssignedToId] = useState(initialAssignedToId)
   const [saving, setSaving] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(!!initialRecurrence)
+  const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceRule["unit"]>(initialRecurrence?.unit ?? "week")
+  const [recurrenceInterval, setRecurrenceInterval] = useState(String(initialRecurrence?.interval ?? 1))
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(initialRecurrence?.endDate ?? "")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +93,12 @@ export function DealEditForm({
       if (notes !== initialNotes) {
         await updateDealMetadata(dealId, { notes })
       }
+      // Save recurrence rule
+      const interval = parseInt(recurrenceInterval, 10)
+      const recurrenceRule: RecurrenceRule | null = isRecurring
+        ? { unit: recurrenceUnit, interval: isNaN(interval) || interval < 1 ? 1 : interval, endDate: recurrenceEndDate || undefined }
+        : null
+      await setDealRecurrence(dealId, recurrenceRule)
       toast.success("Deal updated")
       router.push(`/crm/deals/${dealId}`)
       router.refresh()
@@ -141,6 +154,54 @@ export function DealEditForm({
           className="max-w-md"
         />
       </div>
+
+      {/* Recurrence */}
+      <div className="space-y-3 rounded-lg border border-slate-200 dark:border-slate-700 p-4 max-w-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="font-medium">Repeat this job</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">Tracey will automatically clone this job on the next cycle.</p>
+          </div>
+          <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+        </div>
+        {isRecurring && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600 dark:text-slate-400 shrink-0">Every</span>
+              <Input
+                type="number"
+                min={1}
+                max={52}
+                value={recurrenceInterval}
+                onChange={(e) => setRecurrenceInterval(e.target.value)}
+                className="w-16 h-8 text-sm"
+              />
+              <Select value={recurrenceUnit} onValueChange={(v) => setRecurrenceUnit(v as RecurrenceRule["unit"])}>
+                <SelectTrigger className="w-32 h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">day(s)</SelectItem>
+                  <SelectItem value="week">week(s)</SelectItem>
+                  <SelectItem value="fortnight">fortnight</SelectItem>
+                  <SelectItem value="month">month(s)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="recurrence-end" className="text-xs text-slate-600 dark:text-slate-400">End date (optional)</Label>
+              <Input
+                id="recurrence-end"
+                type="date"
+                value={recurrenceEndDate}
+                onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                className="max-w-[160px] h-8 text-sm"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label>Stage</Label>
         <Select value={stage} onValueChange={setStage}>

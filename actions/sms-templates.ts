@@ -96,7 +96,10 @@ export async function getMessagePreview(
   const [deal, template] = await Promise.all([
     db.deal.findUnique({
       where: { id: dealId },
-      include: { contact: true },
+      include: {
+        contact: true,
+        workspace: { select: { settings: true } },
+      },
     }),
     db.smsTemplate.findFirst({
       where: { userId, triggerEvent },
@@ -106,8 +109,12 @@ export async function getMessagePreview(
   if (!deal) return null;
 
   const contact = deal.contact;
+  const workspaceSettings = (deal.workspace?.settings as Record<string, unknown>) ?? {};
+  const googleReviewUrl = (workspaceSettings.googleReviewUrl as string) ?? "";
   const rawContent = template?.content ?? DEFAULT_TEMPLATES[triggerEvent];
-  const messageBody = rawContent.replace(/\[Name\]/g, contact.name);
+  const messageBody = rawContent
+    .replace(/\[Name\]/g, contact.name)
+    .replace(/\[Link\]/g, googleReviewUrl || "your review link");
 
   // Determine channel based on what the contact has
   const channel: "sms" | "email" =
