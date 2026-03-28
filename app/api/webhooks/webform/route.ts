@@ -22,14 +22,28 @@
  *   address       — job site address
  *   source        — override source label (default: "website")
  *   secret        — optional shared secret for verification
+ *   redirect_url  — URL to redirect to after submission (for HTML form POST)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { evaluateAutomations } from "@/actions/automation-actions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const dynamic = "force-dynamic";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-workspace-id",
+  };
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders() });
+}
 
 async function parsePayload(req: NextRequest): Promise<Record<string, string>> {
   const contentType = req.headers.get("content-type") || "";
@@ -62,19 +76,19 @@ export async function POST(req: NextRequest) {
     // Resolve workspace — prefer explicit workspace_id, fall back to subdomain header
     const workspaceId = body.workspace_id || req.headers.get("x-workspace-id") || "";
     if (!workspaceId) {
-      return NextResponse.json({ error: "workspace_id is required" }, { status: 400 });
+      return NextResponse.json({ error: "workspace_id is required" }, { status: 400, headers: corsHeaders() });
     }
 
     // Optional shared-secret verification
     const webhookSecret = process.env.WEBFORM_WEBHOOK_SECRET;
     if (webhookSecret && body.secret !== webhookSecret) {
-      return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid secret" }, { status: 401, headers: corsHeaders() });
     }
 
     // Validate workspace exists
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true } });
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
     }
 
     const name = (body.name || body.full_name || body.customer_name || "Website Enquiry").trim();
@@ -84,6 +98,7 @@ export async function POST(req: NextRequest) {
     const jobType = (body.job_type || body.service_type || body.work_type || "").trim();
     const address = (body.address || body.location || body.site_address || "").trim();
     const source = (body.source || "website").trim();
+    const redirectUrl = (body.redirect_url || "").trim();
 
     // Find or create contact
     let contact = email
@@ -137,6 +152,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Trigger new_lead automations (fire-and-forget)
+    evaluateAutomations(workspaceId, {
+      type: "new_lead",
+      contactId: contact.id,
+      dealId: deal.id,
+    }).catch(() => {});
+
     // Optionally notify workspace owner
     try {
       const owner = await db.user.findFirst({ where: { workspaceId, role: "OWNER" }, select: { id: true } });
@@ -157,10 +179,15 @@ export async function POST(req: NextRequest) {
       // Notification failure is non-blocking
     }
 
-    return NextResponse.json({ success: true, dealId: deal.id, contactId: contact.id });
+    // If redirect_url provided, redirect (for traditional HTML form POST)
+    if (redirectUrl) {
+      return NextResponse.redirect(redirectUrl, { status: 303, headers: corsHeaders() });
+    }
+
+    return NextResponse.json({ success: true, dealId: deal.id, contactId: contact.id }, { headers: corsHeaders() });
   } catch (error) {
     console.error("[Webform webhook] Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });
   }
 }
 
@@ -169,6 +196,6 @@ export async function GET() {
   return NextResponse.json({
     endpoint: "POST /api/webhooks/webform",
     description: "Accepts website contact form submissions and creates CRM leads",
-    fields: ["workspace_id (required)", "name", "email", "phone", "message", "job_type", "address", "source", "secret"],
-  });
+    fields: ["workspace_id (required)", "name", "email", "phone", "message", "job_type", "address", "source", "secret", "redirect_url"],
+  }, { headers: corsHeaders() });
 }
