@@ -2394,3 +2394,56 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - The contacts page had the same shell-layout regression that previously broke analytics scrolling, and operators lacked enough context to tell which job each contact was tied to at a glance.
   - Typography had started drifting page-to-page, so contacts now follows the same tighter header hierarchy instead of keeping an older oversized/mismatched treatment.
+
+## 2026-03-27 20:32 (AEDT) - Codex
+
+- Files changed:
+  - `docs/crm_typography_spec.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Wrote a CRM typography spec anchored to the dashboard's visual tone, with explicit rules for page titles, section titles, body text, helper copy, and how dark versus muted text should be used across operational pages and settings.
+  - Added specific table guidance so primary columns, secondary columns, and status columns stop feeling arbitrary from page to page.
+- Why:
+  - CRM page typography had started drifting, especially in headers, table emphasis, and helper-copy usage.
+  - The spec creates a shared design rationale before further cleanup work, so future changes can be judged against consistent rules instead of isolated taste decisions.
+
+## 2026-03-27 20:54 (AEDT) - Codex
+
+- Files changed:
+  - `components/crm/contacts-client.tsx`
+  - `app/crm/analytics/page.tsx`
+  - `app/crm/team/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Applied the new CRM typography rules to the first operational pages in the sweep: contacts, analytics, and team.
+  - Made `Last job` the second primary contact-table column, converted job status into a badge treatment, and kept only supporting columns muted.
+  - Standardized the touched analytics/team surfaces and cards to `18px` corners and stronger section-title hierarchy so they sit closer to the dashboard's visual tone.
+- Why:
+  - The first goal of the spec is to remove arbitrary emphasis, especially in tables and card-heavy operational pages.
+  - Radius drift had crept back into custom page-level surfaces, so these pages now explicitly follow the `18px` box-corner rule rather than relying on inconsistent local classes.
+
+## 2026-03-27 21:08 (AEDT) - Codex
+
+- Files changed:
+  - `components/layout/global-search.tsx`
+  - `components/crm/deal-card.tsx`
+  - `components/crm/kanban-board.tsx`
+  - `components/crm/deal-detail-modal.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the "Type at least 2 characters to search" helper copy from the shared global search palette so the search surface feels cleaner and less instructional.
+  - Continued the CRM typography/radius sweep into the core jobs pipeline surfaces: kanban columns, deal cards, bulk-action dialogs, scheduled-assignment dialog, and the deal detail modal.
+  - Normalized the touched custom boxes and panel shells to `18px` corners.
+- Why:
+  - The search helper message added visual clutter without helping experienced users.
+  - Kanban and deal detail are the highest-frequency operational surfaces after dashboard, so they need to match the same typographic hierarchy and corner system instead of keeping older mixed radii.
+
+## 2026-03-27 21:20 (AEDT) - Codex
+
+- Files changed:
+  - `components/dashboard/dashboard-main-chrome.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed a hydration mismatch in the CRM shell by making `DashboardMainChrome` keep a stable wrapper structure on both server and client, then only mount the header/modals after hydration when the shell store is ready.
+- Why:
+  - The previous implementation branched the whole layout tree on client-populated store values (`workspaceId`, `userId`), which meant server HTML and first client render diverged and React regenerated the tree on the client.

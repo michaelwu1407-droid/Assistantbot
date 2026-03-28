@@ -9,6 +9,7 @@ declare global {
 const isEdge = process.env.NEXT_RUNTIME === 'edge';
 
 let prisma: PrismaClient | null = null;
+export const isDatabaseConfigured = !isEdge && Boolean(process.env.DATABASE_URL);
 
 function withConnectionLimit(url: string): string {
   const rawLimit = process.env.DB_CONNECTION_LIMIT ?? process.env.PRISMA_CONNECTION_LIMIT ?? "5";

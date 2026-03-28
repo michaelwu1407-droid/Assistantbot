@@ -187,6 +187,8 @@ export default function TeamPage() {
         }
     }
 
+    const pendingInviteCount = invites.length
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -196,10 +198,14 @@ export default function TeamPage() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
+        <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div className="space-y-2">
                     <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Team Management</h1>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{displayMembers.length} member{displayMembers.length === 1 ? "" : "s"}</span>
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{pendingInviteCount} pending invite{pendingInviteCount === 1 ? "" : "s"}</span>
+                    </div>
                 </div>
 
                 <Dialog open={inviteOpen} onOpenChange={(open) => {
@@ -214,21 +220,21 @@ export default function TeamPage() {
                     }
                 }}>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button className="h-11 rounded-[18px] px-5 text-sm font-semibold shadow-sm">
                             <Plus className="w-4 h-4 mr-2" />
                             Invite Member
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="rounded-[18px]">
                         <DialogHeader>
                             <DialogTitle>Invite a Team Member</DialogTitle>
                             <DialogDescription>
                                 Send an invitation email or generate a shareable link. They&apos;ll sign up and join your workspace with the role you choose below.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-2 ott-card rounded-lg bg-white/80 backdrop-blur border border-slate-200/60 shadow-lg">
+                        <div className="space-y-4 rounded-[18px] border border-slate-200/60 bg-white/80 py-2 shadow-lg backdrop-blur">
                             <div className="space-y-2">
-                                <Label className="text-slate-800">They&apos;ll join as</Label>
+                                <Label className="text-sm font-medium text-neutral-900">They&apos;ll join as</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
                                     <SelectTrigger className="border-slate-300">
                                         <SelectValue />
@@ -245,7 +251,7 @@ export default function TeamPage() {
                                 </p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Email *</Label>
+                                <Label className="text-sm font-medium text-neutral-900">Email *</Label>
                                 <Input
                                     placeholder="team@example.com"
                                     value={inviteEmail}
@@ -258,7 +264,7 @@ export default function TeamPage() {
                             </div>
 
                             {inviteError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="rounded-[18px] border border-red-200 bg-red-50 p-3">
                                     <p className="text-sm text-red-600">{inviteError}</p>
                                 </div>
                             )}
@@ -334,131 +340,138 @@ export default function TeamPage() {
                 </Dialog>
             </div>
 
-            {/* Active Members */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-slate-500" />
-                        Members ({displayMembers.length})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        {displayMembers.map((member) => (
-                            <div key={member.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-lg border border-border/50">
-                                <div className="flex items-center gap-4">
-                                    <Avatar>
-                                        <AvatarFallback>{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-medium text-neutral-900">{member.name || "Unnamed"}</p>
-                                        <p className="text-sm text-neutral-500">{member.email}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    {(member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
-                                        <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
-                                            {member.role === "OWNER" && <Shield className="w-3 h-3 mr-1" />}
-                                            {getRoleLabel(member.role)}
-                                        </Badge>
-                                    ) : (
-                                        <Select
-                                            value={member.role}
-                                            onValueChange={(val) => handleRoleUpdate(member.id, val as "MANAGER" | "TEAM_MEMBER")}
-                                        >
-                                            <SelectTrigger className="h-7 w-[130px] text-xs">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
-                                                <SelectItem value="MANAGER">Manager</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-
-                                    {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                                    title="Remove from team"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Remove {member.name || member.email}?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        They will lose access to this workspace. This action cannot be undone.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <div className="flex justify-end gap-2 mt-4">
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => handleRemoveMember(member.id)}
-                                                        className="bg-red-600 hover:bg-red-700"
-                                                    >
-                                                        Remove
-                                                    </AlertDialogAction>
-                                                </div>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Pending Invites */}
-            {invites.length > 0 && (
-                <Card>
+            <div className={pendingInviteCount > 0 ? "grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]" : "mx-auto w-full max-w-4xl"}>
+                <Card className="rounded-[18px]">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Link2 className="w-5 h-5 text-slate-500" />
-                            Pending Invites ({invites.length})
+                        <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                            <Users className="w-5 h-5 text-slate-500" />
+                            Members ({displayMembers.length})
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
-                            {invites.map((invite) => (
-                                <div key={invite.id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-lg border border-amber-200/50">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                                            <Link2 className="h-5 w-5 text-amber-600" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-neutral-900">
-                                                {invite.email || "Open invite link"}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Expires {new Date(invite.expiresAt).toLocaleDateString("en-AU")}
-                                            </p>
+                            {displayMembers.map((member) => (
+                                <div key={member.id} className="grid gap-4 rounded-[18px] border border-border/50 bg-[#F8FAFC] p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(160px,0.8fr)_auto] md:items-center">
+                                    <div className="flex min-w-0 items-center gap-4">
+                                        <Avatar className="h-12 w-12 border border-slate-200 bg-slate-50">
+                                            <AvatarFallback className="text-base text-slate-600">{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-base font-semibold text-neutral-900">{member.name || "Unnamed"}</p>
+                                            <p className="truncate text-sm text-neutral-500">{member.email}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge variant="outline" className={getRoleBadgeClass(invite.role)}>
-                                            {getRoleLabel(invite.role)}
-                                        </Badge>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-red-400 hover:text-red-600"
-                                            onClick={() => handleRevoke(invite.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+
+                                    <div className="space-y-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
+                                        {(member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
+                                            <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
+                                                {member.role === "OWNER" && <Shield className="mr-1 h-3 w-3" />}
+                                                {getRoleLabel(member.role)}
+                                            </Badge>
+                                        ) : (
+                                            <Select
+                                                value={member.role}
+                                                onValueChange={(val) => handleRoleUpdate(member.id, val as "MANAGER" | "TEAM_MEMBER")}
+                                            >
+                                                <SelectTrigger className="h-9 w-full rounded-[18px] bg-white text-sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+                                                    <SelectItem value="MANAGER">Manager</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-2">
+                                        {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                        title="Remove from team"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent className="rounded-[18px]">
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Remove {member.name || member.email}?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            They will lose access to this workspace. This action cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <div className="mt-4 flex justify-end gap-2">
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => handleRemoveMember(member.id)}
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                            Remove
+                                                        </AlertDialogAction>
+                                                    </div>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </CardContent>
                 </Card>
-            )}
+
+                {pendingInviteCount > 0 && (
+                    <Card className="rounded-[18px]">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                                <Link2 className="w-5 h-5 text-slate-500" />
+                                Pending Invites ({pendingInviteCount})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {invites.map((invite) => (
+                                    <div key={invite.id} className="space-y-3 rounded-[18px] border border-amber-200/50 bg-amber-50/50 p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                                                <Link2 className="h-5 w-5 text-amber-600" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-semibold text-neutral-900">
+                                                    {invite.email || "Open invite link"}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    Expires {new Date(invite.expiresAt).toLocaleDateString("en-AU")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
+                                                <Badge variant="outline" className={getRoleBadgeClass(invite.role)}>
+                                                    {getRoleLabel(invite.role)}
+                                                </Badge>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                onClick={() => handleRevoke(invite.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     )
 }

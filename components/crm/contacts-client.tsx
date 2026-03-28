@@ -7,6 +7,7 @@ import { ChevronDown, Filter, Mail, MessageSquare, Phone, Search, X } from "luci
 import { toast } from "sonner"
 
 import { ContactView, deleteContacts } from "@/actions/contact-actions"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -199,6 +200,23 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     document.body.removeChild(link)
   }
 
+  const getStatusBadgeClass = (stage: string | null) => {
+    switch (stage) {
+      case "Completed":
+        return "border-emerald-200 bg-emerald-50 text-emerald-700"
+      case "Awaiting payment":
+        return "border-amber-200 bg-amber-50 text-amber-700"
+      case "Scheduled":
+        return "border-sky-200 bg-sky-50 text-sky-700"
+      case "Quote sent":
+        return "border-violet-200 bg-violet-50 text-violet-700"
+      case "New request":
+        return "border-slate-200 bg-slate-100 text-slate-700"
+      default:
+        return "border-slate-200 bg-slate-100 text-slate-600"
+    }
+  }
+
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -329,12 +347,12 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
           </p>
 
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="overflow-hidden rounded-[18px] border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-neutral-200 bg-muted/50">
-                    <th className="w-10 px-4 py-3 text-left font-medium text-muted-foreground">
+                    <th className="w-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                       <input
                         type="checkbox"
                         checked={filtered.length > 0 && selected.size === filtered.length}
@@ -343,21 +361,21 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                       />
                     </th>
                     <th
-                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
                       onClick={() => setSortMode("alpha")}
                     >
                       Name {sortMode === "alpha" && <span className="ml-0.5 text-xs text-primary">↓</span>}
                     </th>
                     <th
-                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
                       onClick={() => setSortMode("last_interacted")}
                     >
                       Last contact {sortMode === "last_interacted" && <span className="ml-0.5 text-xs text-primary">↓</span>}
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Last job</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Job status</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Balance</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Job status</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Balance</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -410,11 +428,17 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                         <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                           {formatLastContact(contact.lastActivityDate)}
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
-                          <span className="block max-w-[220px] truncate">{contact.primaryDealTitle ?? "-"}</span>
+                        <td className="px-4 py-2.5">
+                          <span className="block max-w-[220px] truncate text-sm font-medium text-neutral-900">{contact.primaryDealTitle ?? "-"}</span>
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className="text-foreground">{contact.primaryDealStage ?? "-"}</span>
+                          {contact.primaryDealStage ? (
+                            <Badge variant="outline" className={cn("rounded-full text-xs font-medium", getStatusBadgeClass(contact.primaryDealStage))}>
+                              {contact.primaryDealStage}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
                         <td className="px-4 py-2.5 text-right">

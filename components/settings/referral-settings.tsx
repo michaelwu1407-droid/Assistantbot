@@ -14,6 +14,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
   const [program, setProgram] = useState<Awaited<ReturnType<typeof getActiveReferralProgram>> | null>(null)
   const [isCopied, setIsCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const isReferralUnavailable = !program && !stats?.referralLink
 
   const loadReferralData = useCallback(async () => {
     setIsLoading(true)
@@ -28,8 +29,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
       setReferralLink(linkData.referralLink)
       setProgram(programData)
     } catch {
-      console.error("Error loading referral data")
-    } finally {
+      } finally {
       setIsLoading(false)
     }
   }, [userId])
@@ -96,7 +96,9 @@ export function ReferralSettings({ userId }: { userId: string }) {
               </div>
             </div>
           ) : (
-            <div className="text-center text-gray-500 py-4">No active referral program</div>
+            <div className="py-4 text-center text-gray-500">
+              {isReferralUnavailable ? "Referral program unavailable in this environment" : "No active referral program"}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -157,6 +159,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
                 variant={isCopied ? "default" : "outline"}
                 size="sm"
                 className="shrink-0"
+                disabled={!referralLink}
               >
                 {isCopied ? (
                   <>
@@ -174,7 +177,9 @@ export function ReferralSettings({ userId }: { userId: string }) {
           </div>
 
           <div className="text-xs text-gray-500">
-            Share this link with friends. Each successful referral adds one more month at 50% off your subscription.
+            {referralLink
+              ? "Share this link with friends. Each successful referral adds one more month at 50% off your subscription."
+              : "Referral links are unavailable until the database-backed referral program is configured."}
           </div>
         </CardContent>
       </Card>

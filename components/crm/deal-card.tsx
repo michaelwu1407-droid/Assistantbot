@@ -144,7 +144,7 @@ export function DealCard({
   }
 
   // Add an explicitly handled class toggle for simple interaction scaling
-  let cardClasses = "group relative w-full bg-card rounded-lg ghost-border sunlight-shadow transition-all duration-200 cursor-pointer select-none"
+  let cardClasses = "group relative w-full rounded-[18px] bg-card ghost-border sunlight-shadow transition-all duration-200 cursor-pointer select-none"
   let statusLabel = ""
 
   /** When overdue, that is the only top-right status (no Urgent/Follow up/Draft/etc.). */
@@ -158,12 +158,12 @@ export function DealCard({
     }
 
     if (deal.isDraft) {
-      cardClasses = "group relative w-full rounded-lg bg-indigo-50/60 border-2 border-dashed border-indigo-400 dark:bg-indigo-950/20 dark:border-indigo-500/60"
+      cardClasses = "group relative w-full rounded-[18px] bg-indigo-50/60 border-2 border-dashed border-indigo-400 dark:bg-indigo-950/20 dark:border-indigo-500/60"
       statusLabel = "Draft"
     }
 
     if (deal.stage === "pending_approval") {
-      cardClasses = "group relative w-full rounded-lg bg-amber-50/80 border-2 border-dashed border-amber-400 dark:bg-amber-950/30 dark:border-amber-500/60"
+      cardClasses = "group relative w-full rounded-[18px] bg-amber-50/80 border-2 border-dashed border-amber-400 dark:bg-amber-950/30 dark:border-amber-500/60"
       statusLabel = "Pending approval"
     }
 

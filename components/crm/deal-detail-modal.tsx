@@ -103,7 +103,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
@@ -451,7 +451,7 @@ function DealDetailContent({
         {/* Left: Contact + Current job */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Contact details — name is in header; edit opens contact */}
-          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="flex items-center gap-2 font-semibold text-slate-900">
                 <FileText className="h-4 w-4" />
@@ -509,7 +509,7 @@ function DealDetailContent({
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="flex items-center gap-2 font-semibold text-slate-900">
                 <Briefcase className="h-4 w-4" />
@@ -544,7 +544,7 @@ function DealDetailContent({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                  <div className="flex items-center justify-between rounded-[18px] border border-emerald-100 bg-emerald-50 p-2">
                     <span className="font-semibold text-emerald-700 text-lg">
                       {deal.invoicedAmount !== undefined && deal.invoicedAmount !== null
                         ? `$${deal.invoicedAmount.toLocaleString()}`
@@ -578,7 +578,7 @@ function DealDetailContent({
         {/* Right: History + Notes */}
         <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex-1 min-h-0 border border-slate-200 rounded-xl bg-white flex flex-col overflow-hidden shadow-sm">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm">
             <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
@@ -622,7 +622,7 @@ function DealDetailContent({
                           onOpenChange(false)
                           window.location.href = `/crm/deals/${d.id}`
                         }}
-                        className="block w-full text-left p-2 rounded-lg border border-slate-100 hover:bg-slate-50 text-sm"
+                        className="block w-full rounded-[18px] border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
                         {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
@@ -682,7 +682,7 @@ function DealDetailContent({
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {deal.jobPhotos.map((photo) => (
-              <div key={photo.id} className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-slate-200 bg-slate-100">
                 <Image
                   src={photo.url ?? photo.fileUrl ?? ""}
                   alt={photo.caption || "Job"}

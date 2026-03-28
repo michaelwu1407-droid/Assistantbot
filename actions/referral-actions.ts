@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { db } from "@/lib/db";
+import { isDatabaseConfigured } from "@/lib/db";
 import { nanoid } from "nanoid";
 import { stripe } from "@/lib/stripe";
 
@@ -29,6 +30,18 @@ export interface ReferralStats {
   referralLink: string;
 }
 
+function emptyReferralStats(): ReferralStats {
+  return {
+    totalReferrals: 0,
+    totalClicks: 0,
+    totalSignups: 0,
+    totalConversions: 0,
+    totalEarned: 0,
+    referralCode: "",
+    referralLink: "",
+  };
+}
+
 // Generate a unique referral code
 export function generateReferralCode(): string {
   return nanoid(8).toUpperCase();
@@ -36,6 +49,12 @@ export function generateReferralCode(): string {
 
 // Create or get user's referral link
 export async function createReferralLink({ userId, programId }: CreateReferralLinkParams) {
+  if (!isDatabaseConfigured) {
+    return {
+      referral: null,
+      referralLink: "",
+    };
+  }
   try {
     // Get or create default referral program
     let program;
@@ -152,6 +171,9 @@ export async function trackReferralClick(params: TrackReferralClickParams) {
 
 // Get user's referral stats
 export async function getReferralStats(userId: string): Promise<ReferralStats> {
+  if (!isDatabaseConfigured) {
+    return emptyReferralStats();
+  }
   try {
     const referral = await db.referral.findFirst({
       where: { userId },
@@ -178,7 +200,7 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
     };
   } catch (error) {
     console.error("Error getting referral stats:", error);
-    throw new Error("Failed to get referral stats");
+    return emptyReferralStats();
   }
 }
 
@@ -355,6 +377,9 @@ export async function processReferralConversionForCheckout(referralCode: string,
 
 // Get active referral program
 export async function getActiveReferralProgram() {
+  if (!isDatabaseConfigured) {
+    return null;
+  }
   try {
     return await db.referralProgram.findFirst({
       where: { isActive: true },

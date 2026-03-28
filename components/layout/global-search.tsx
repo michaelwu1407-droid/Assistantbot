@@ -102,10 +102,10 @@ export function GlobalSearch({
                     className={cn(
                         "relative w-full justify-start font-normal shadow-none",
                         variant === "bar" && tone === "onDark" &&
-                            "h-9 min-h-9 w-full rounded-lg border border-slate-200/90 bg-white text-sm text-slate-600 min-w-0 hover:bg-white hover:text-slate-800 focus-visible:shadow-none",
+                            "h-9 min-h-9 w-full rounded-[18px] border border-slate-200/90 bg-white text-sm text-slate-600 min-w-0 hover:bg-white hover:text-slate-800 focus-visible:shadow-none",
                         variant === "bar" && tone === "onDark" && showShortcutHint && "sm:pr-12",
                         variant === "bar" && tone !== "onDark" &&
-                            "h-9 min-h-9 rounded-lg border-border/40 bg-muted/40 text-sm text-muted-foreground sm:pr-12 md:w-full md:min-w-0",
+                            "h-9 min-h-9 rounded-[18px] border-border/40 bg-muted/40 text-sm text-muted-foreground sm:pr-12 md:w-full md:min-w-0",
                         variant === "default" &&
                             "h-9 rounded-[0.5rem] bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
                         className
@@ -141,9 +141,7 @@ export function GlobalSearch({
                                     Searching...
                                 </div>
                             ) : query.length < 2 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground">
-                                    Type at least 2 characters to search
-                                </div>
+                                <div className="p-3" />
                             ) : results.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
                                     No results found for &ldquo;{query}&rdquo;

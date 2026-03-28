@@ -18,6 +18,7 @@ import { isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
 export function DashboardMainChrome({ children }: { children: ReactNode }) {
     const pathname = usePathname()
     const isSettings = pathname.startsWith("/crm/settings")
+    const [isHydrated, setIsHydrated] = useState(false)
     const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
     const [activityOpen, setActivityOpen] = useState(false)
     const [newDealOpen, setNewDealOpen] = useState(false)
@@ -38,6 +39,10 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     const userNameForHeader = headerDisplayName?.trim() || (userId ? userId.slice(0, 8) : "User")
 
     useEffect(() => {
+        setIsHydrated(true)
+    }, [])
+
+    useEffect(() => {
         const handleOpenNewDeal = (event: Event) => {
             const requestedStage = (event as CustomEvent<{ initialStage?: string }>).detail?.initialStage
             setNewDealInitialStage(requestedStage && isNewJobStage(requestedStage) ? requestedStage : "new_request")
@@ -51,6 +56,10 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     if (isSettings) {
         return <>{children}</>
     }
+
+    const canRenderHeader = isHydrated && Boolean(workspaceId && userId)
+    const hydratedWorkspaceId = workspaceId ?? ""
+    const hydratedUserId = userId ?? ""
 
     const headerActions = (
         <>
@@ -73,26 +82,28 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     /* Always provide header-extra context when not on Settings so DashboardClient (and similar) never mounts without the provider — store can be briefly empty before ShellInitializer runs. */
     return (
         <DashboardHeaderExtraContext.Provider value={setHeaderExtra}>
-            {workspaceId && userId ? (
-                <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                {canRenderHeader && (
                     <div className="sticky top-0 z-20 shrink-0">
                         <Header
                             variant="brand"
-                        userName={userNameForHeader}
-                        userId={userId}
-                        workspaceId={workspaceId}
+                            userName={userNameForHeader}
+                            userId={hydratedUserId}
+                            workspaceId={hydratedWorkspaceId}
                             userRole={userRole}
                             onOpenActivity={() => setActivityOpen(true)}
                             headerActions={headerActions}
                         />
                     </div>
-                    <div className="min-h-0 min-w-0 flex-1 overflow-hidden flex flex-col">{children}</div>
-                    <NewDealModal isOpen={newDealOpen} onClose={() => setNewDealOpen(false)} workspaceId={workspaceId} initialStage={newDealInitialStage} />
-                    <ActivityModal isOpen={activityOpen} onClose={() => setActivityOpen(false)} workspaceId={workspaceId} />
-                </div>
-            ) : (
+                )}
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
-            )}
+                {canRenderHeader && (
+                    <>
+                    <NewDealModal isOpen={newDealOpen} onClose={() => setNewDealOpen(false)} workspaceId={hydratedWorkspaceId} initialStage={newDealInitialStage} />
+                    <ActivityModal isOpen={activityOpen} onClose={() => setActivityOpen(false)} workspaceId={hydratedWorkspaceId} />
+                    </>
+                )}
+            </div>
         </DashboardHeaderExtraContext.Provider>
     )
 }
