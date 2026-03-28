@@ -9,6 +9,7 @@ import { ServiceAreasSection } from "@/components/settings/service-areas-section
 import { PricingForAgentSection } from "@/components/settings/pricing-for-agent-section"
 import { AttachmentLibrarySection } from "@/components/settings/attachment-library-section"
 import { GoogleReviewUrlSection } from "@/components/settings/google-review-url-section"
+import { WebformEmbedSection } from "@/components/settings/webform-embed-section"
 import { db } from "@/lib/db"
 import { getWorkspaceSettings } from "@/actions/settings-actions"
 
@@ -87,6 +88,15 @@ export default async function MyBusinessSettingsPage() {
         <PricingForAgentSection
           initialCallOutFee={(workspaceWithSettings as { callOutFee?: number })?.callOutFee ?? 0}
         />
+      </section>
+      <Separator />
+
+      <section>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Website lead form</h4>
+        <p className="text-sm text-slate-500 mb-4">
+          Embed a contact form on your website to automatically capture leads into your CRM pipeline.
+        </p>
+        <WebformEmbedSection workspaceId={workspace.id} />
       </section>
       <Separator />
 

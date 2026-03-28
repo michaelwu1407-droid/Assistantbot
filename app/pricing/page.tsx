@@ -245,41 +245,42 @@ export default function PricingPage() {
 
             {/* Comparison Grid */}
             <motion.div {...fadeUp(0.16)} className="grid md:grid-cols-2 gap-6 items-end">
-              {/* Left Column: Regular Assistant */}
+              {/* Left Column: Job Management Software */}
               <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-8 opacity-80 flex flex-col items-center text-center">
-                <h3 className="text-xl font-bold text-slate-500 mb-2">Regular Assistant</h3>
-                <div className="text-4xl font-extrabold text-slate-400 mb-1">$4,500+</div>
+                <h3 className="text-xl font-bold text-slate-500 mb-1">Job Management Software</h3>
+                <div className="text-xs text-slate-400 mb-3">ServiceM8 / Tradify / Jobber</div>
+                <div className="text-4xl font-extrabold text-slate-400 mb-1">$39–69</div>
                 <div className="text-sm font-semibold text-slate-400 mb-2">/month</div>
-                <div className="text-xs text-slate-500 mb-8 max-w-[200px]">Plus super, leave, and workers comp</div>
+                <div className="text-xs text-slate-500 mb-8 max-w-[220px]">Plus you still answer every call yourself</div>
 
                 <ul className="text-left w-full space-y-4 mb-10">
                   <li className="flex items-start gap-3 text-sm text-slate-500">
-                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    Works 9-5 (usually)
+                    <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    No AI receptionist — you answer every call
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-500">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                    Takes sick days & long breaks
+                    No after-hours call handling
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-500">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                    Forgets quote follow-ups
+                    No automated SMS follow-ups
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-500">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                    Puts callers on hold
+                    No voice agent that knows your business
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-500">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                    Needs constant retraining
-                  </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
-                    <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                    Misses after-hours leads
+                    CRM only — no lead capture from calls
                   </li>
                   <li className="flex items-start gap-3 text-sm text-slate-500">
                     <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    Updates CRM... sometimes
+                    Still need a separate phone system
+                  </li>
+                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    Manual data entry for every job
                   </li>
                 </ul>
 
@@ -288,7 +289,7 @@ export default function PricingPage() {
                   variant="outline"
                   className="w-full text-slate-400 border-slate-200 cursor-not-allowed hover:bg-transparent hover:text-slate-400 pointer-events-none"
                 >
-                  Good luck with that
+                  Just a job tracker
                 </Button>
               </div>
 
