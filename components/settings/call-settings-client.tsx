@@ -8,18 +8,15 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Phone, Copy, AlertTriangle, Mic, MessageSquare, Volume2, Loader2, Save, ChevronDown } from "lucide-react"
+import { AlertTriangle, Loader2, MessageSquare, Save } from "lucide-react"
 import { getPhoneNumberStatus } from "@/actions/phone-settings"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
-import { getAutomatedMessageRules, updateAutomatedMessageRule, type AutomatedMessageRuleView } from "@/actions/automated-message-actions"
-import { toast } from "sonner"
-import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
 import {
-  createDefaultWeeklyHours,
-  normalizeWeeklyHours,
-  weeklyHoursAreUniform,
-  type WeeklyHours,
-} from "@/lib/working-hours"
+  getAutomatedMessageRules,
+  updateAutomatedMessageRule,
+  type AutomatedMessageRuleView,
+} from "@/actions/automated-message-actions"
+import { toast } from "sonner"
 import { AU_TIMEZONE_OPTIONS, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone"
 
 type SettingsState = {
@@ -29,39 +26,17 @@ type SettingsState = {
   agendaNotifyTime: string
   wrapupNotifyTime: string
   workspaceTimezone?: string
-  aiPreferences?: string
-  autoUpdateGlossary?: boolean
-  callOutFee?: number
-  jobReminderHours?: number
-  enableJobReminders?: boolean
-  enableTripSms?: boolean
-  agentScriptStyle?: "opening" | "closing"
   agentBusinessName?: string
-  agentOpeningMessage?: string
-  agentClosingMessage?: string
   textAllowedStart?: string
   textAllowedEnd?: string
   callAllowedStart?: string
   callAllowedEnd?: string
-  softChase?: { message?: string; triggerDays?: number; channel?: string }
-  invoiceFollowUp?: { message?: string; triggerDays?: number; channel?: string }
-  inboundEmailAlias?: string | null
-  autoCallLeads?: boolean
   emergencyBypass?: boolean
-  emergencyHoursStart?: string
-  emergencyHoursEnd?: string
-  recordCalls?: boolean
-  agentPersonality?: "Professional" | "Friendly"
-  agentResponseLength?: number
-  voiceEnabled?: boolean
-  voiceLanguage?: string
-  voiceType?: "female" | "male" | "neutral"
-  voiceSpeed?: "0.8" | "1.0" | "1.2"
-  voiceGreeting?: string
-  voiceAfterHoursMessage?: string
-  transcribeVoicemails?: boolean
-  autoRespondToMessages?: boolean
-  weeklyHours?: WeeklyHours
+}
+
+type PhoneStatus = {
+  hasPhoneNumber: boolean
+  hasSubaccount: boolean
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -75,65 +50,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   textAllowedEnd: "20:00",
   callAllowedStart: "08:00",
   callAllowedEnd: "20:00",
-  softChase: { message: "", triggerDays: 3, channel: "sms" },
-  invoiceFollowUp: { message: "", triggerDays: 7, channel: "email" },
-  autoCallLeads: false,
   emergencyBypass: false,
-  emergencyHoursStart: "",
-  emergencyHoursEnd: "",
-  recordCalls: true,
-  agentPersonality: "Professional",
-  agentResponseLength: 50,
-  voiceEnabled: false,
-  voiceLanguage: "en-AU",
-  voiceType: "female",
-  voiceSpeed: "1.0",
-  voiceGreeting: "Hi, I'm Tracey, AI assistant for your business.",
-  agentOpeningMessage: "Hi, I'm Tracey, AI assistant for your business.",
-  agentClosingMessage: "Kind regards, Tracey (AI assistant for your business)",
-  voiceAfterHoursMessage: "",
-  transcribeVoicemails: true,
-  autoRespondToMessages: true,
-  weeklyHours: createDefaultWeeklyHours(),
-}
-
-function ensureSmsSignature(message: string, businessName: string) {
-  const trimmed = message.trim()
-  const signature = `Kind regards, Tracey (AI assistant for ${businessName})`
-  if (!trimmed) return signature
-  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Tracey\s*\(AI assistant for .*?\)\s*$/i, "").trim()
-  return `${withoutSignature}\n\n${signature}`
-}
-
-function ensureCallIntro(message: string, businessName: string) {
-  const prefix = `Hi, I'm Tracey, AI assistant for ${businessName}.`
-  const trimmed = message.trim()
-  if (!trimmed) return prefix
-  if (/^hi,\s*i'm travis,\s*ai assistant for /i.test(trimmed)) return trimmed
-  return `${prefix} ${trimmed}`
-}
-
-function ensureCallSignoff(message: string, businessName: string) {
-  const signature = `Kind regards, Tracey (AI assistant for ${businessName})`
-  const trimmed = message.trim()
-  if (!trimmed) return signature
-  const withoutSignature = trimmed.replace(/\n*\s*Kind regards,\s*Tracey\s*\(AI assistant for .*?\)\s*$/i, "").trim()
-  return `${withoutSignature}\n\n${signature}`
-}
-
-function getRuleType(triggerType: string): "booking-reminder" | "booking-confirmation" | "follow-up" | "other" {
-  if (triggerType.includes("booking_confirmation")) return "booking-confirmation"
-  if (triggerType.includes("follow_up")) return "follow-up"
-  if (triggerType.includes("booking_reminder")) return "booking-reminder"
-  return "other"
-}
-
-function getRuleDisplayName(rule: AutomatedMessageRuleView) {
-  const type = getRuleType(rule.triggerType)
-  if (type === "booking-reminder") return "Booking reminder"
-  if (type === "booking-confirmation") return "Booking confirmation"
-  if (type === "follow-up") return "Follow up"
-  return rule.name
 }
 
 const BOOKING_REMINDER_TIMINGS = [
@@ -152,11 +69,47 @@ const FOLLOW_UP_TIMINGS = [
   { value: "24", label: "24h after" },
 ]
 
+function ensureSmsSignature(message: string, businessName: string) {
+  const trimmed = message.trim()
+  const signature = `Kind regards, Tracey (AI assistant for ${businessName})`
+  if (!trimmed) return signature
+  const withoutSignature = trimmed.replace(
+    /\n*\s*Kind regards,\s*Tracey\s*\(AI assistant for .*?\)\s*$/i,
+    "",
+  ).trim()
+  return `${withoutSignature}\n\n${signature}`
+}
+
+function getRuleType(triggerType: string): "booking-reminder" | "booking-confirmation" | "follow-up" | "other" {
+  if (triggerType.includes("booking_confirmation")) return "booking-confirmation"
+  if (triggerType.includes("follow_up")) return "follow-up"
+  if (triggerType.includes("booking_reminder")) return "booking-reminder"
+  return "other"
+}
+
+function getRuleDisplayName(rule: AutomatedMessageRuleView) {
+  const type = getRuleType(rule.triggerType)
+  if (type === "booking-reminder") return "Booking reminder"
+  if (type === "booking-confirmation") return "Booking confirmation"
+  if (type === "follow-up") return "Post-job follow-up"
+  return rule.name
+}
+
+function getRuleDescription(rule: AutomatedMessageRuleView) {
+  const type = getRuleType(rule.triggerType)
+  if (type === "booking-reminder") return "Reminder sent before the booked time."
+  if (type === "booking-confirmation") return "Confirmation sent when the booking is locked in."
+  if (type === "follow-up") return "Follow-up sent after the job is completed."
+  return rule.triggerType
+}
+
 function getRuleTimingOptions(rule: AutomatedMessageRuleView) {
   const type = getRuleType(rule.triggerType)
   if (type === "booking-reminder") return BOOKING_REMINDER_TIMINGS
   if (type === "follow-up") return FOLLOW_UP_TIMINGS
-  if (type === "booking-confirmation") return [{ value: "0", label: "Instant (on accepted booking)" }]
+  if (type === "booking-confirmation") {
+    return [{ value: "0", label: "Instant (on accepted booking)" }]
+  }
   return [
     { value: "-1", label: "1h before" },
     { value: "0", label: "At event" },
@@ -165,16 +118,15 @@ function getRuleTimingOptions(rule: AutomatedMessageRuleView) {
 }
 
 export function CallSettingsClient() {
-  const [status, setStatus] = useState<{ phoneNumber?: string | null; name?: string | null; hasSubaccount?: boolean } | null>(null)
+  const [phoneStatus, setPhoneStatus] = useState<PhoneStatus>({ hasPhoneNumber: false, hasSubaccount: false })
   const [settings, setSettings] = useState<SettingsState | null>(null)
   const [rules, setRules] = useState<AutomatedMessageRuleView[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
-  const [templateLoadWarning, setTemplateLoadWarning] = useState<string | null>(null)
-  const [uniformWorkingHours, setUniformWorkingHours] = useState(true)
+  const [rulesError, setRulesError] = useState<string | null>(null)
 
-  const businessName = useMemo(() => status?.name || settings?.agentBusinessName || "your business", [status?.name, settings?.agentBusinessName])
+  const businessName = useMemo(() => settings?.agentBusinessName?.trim() || "your business", [settings?.agentBusinessName])
 
   useEffect(() => {
     Promise.allSettled([getPhoneNumberStatus(), getWorkspaceSettings(), getAutomatedMessageRules()])
@@ -182,7 +134,10 @@ export function CallSettingsClient() {
         const [phoneResult, settingsResult, rulesResult] = results
 
         if (phoneResult.status === "fulfilled") {
-          setStatus({ phoneNumber: phoneResult.value.phoneNumber, name: phoneResult.value.name, hasSubaccount: phoneResult.value.hasSubaccount })
+          setPhoneStatus({
+            hasPhoneNumber: Boolean(phoneResult.value.hasPhoneNumber),
+            hasSubaccount: Boolean(phoneResult.value.hasSubaccount),
+          })
         }
 
         if (settingsResult.status === "fulfilled" && settingsResult.value) {
@@ -194,53 +149,25 @@ export function CallSettingsClient() {
             agendaNotifyTime: ws.agendaNotifyTime || "07:30",
             wrapupNotifyTime: ws.wrapupNotifyTime || "17:30",
             workspaceTimezone: ws.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
-            aiPreferences: ws.aiPreferences ?? undefined,
-            autoUpdateGlossary: ws.autoUpdateGlossary,
-            callOutFee: ws.callOutFee ?? undefined,
-            jobReminderHours: ws.jobReminderHours ?? undefined,
-            enableJobReminders: ws.enableJobReminders,
-            enableTripSms: ws.enableTripSms,
-            agentScriptStyle: ws.agentScriptStyle as "opening" | "closing" | undefined,
-            agentBusinessName: ws.agentBusinessName,
-            agentOpeningMessage: ws.agentOpeningMessage || `Hi, I'm Tracey, AI assistant for ${ws.agentBusinessName || "your business"}.`,
-            agentClosingMessage: ws.agentClosingMessage || `Kind regards, Tracey (AI assistant for ${ws.agentBusinessName || "your business"})`,
-            textAllowedStart: ws.textAllowedStart,
-            textAllowedEnd: ws.textAllowedEnd,
-            callAllowedStart: ws.callAllowedStart,
-            callAllowedEnd: ws.callAllowedEnd,
-            softChase: ws.softChase,
-            invoiceFollowUp: ws.invoiceFollowUp,
-            inboundEmailAlias: ws.inboundEmailAlias ?? undefined,
-            autoCallLeads: ws.autoCallLeads,
-            emergencyBypass: ws.emergencyBypass,
-            emergencyHoursStart: ws.emergencyHoursStart,
-            emergencyHoursEnd: ws.emergencyHoursEnd,
-            recordCalls: ws.recordCalls,
-            agentPersonality: ws.agentPersonality,
-            agentResponseLength: ws.agentResponseLength,
-            voiceEnabled: ws.voiceEnabled,
-            voiceLanguage: ws.voiceLanguage,
-            voiceType: ws.voiceType,
-            voiceSpeed: ws.voiceSpeed,
-            voiceGreeting: ws.voiceGreeting || `Hi, I'm Tracey, AI assistant for ${ws.agentBusinessName || "your business"}.`,
-            voiceAfterHoursMessage: ws.voiceAfterHoursMessage,
-            transcribeVoicemails: ws.transcribeVoicemails,
-            autoRespondToMessages: ws.autoRespondToMessages,
-            weeklyHours: ws.weeklyHours ? normalizeWeeklyHours(ws.weeklyHours) : createDefaultWeeklyHours(),
+            agentBusinessName: ws.agentBusinessName || "",
+            textAllowedStart: ws.textAllowedStart || "08:00",
+            textAllowedEnd: ws.textAllowedEnd || "20:00",
+            callAllowedStart: ws.callAllowedStart || "08:00",
+            callAllowedEnd: ws.callAllowedEnd || "20:00",
+            emergencyBypass: ws.emergencyBypass ?? false,
           })
-          setUniformWorkingHours(weeklyHoursAreUniform(ws.weeklyHours ? normalizeWeeklyHours(ws.weeklyHours) : createDefaultWeeklyHours()))
         } else {
           setSettings(DEFAULT_SETTINGS)
-          setUniformWorkingHours(true)
-          toast.error("Loaded defaults because workspace call/text settings were unavailable")
+          toast.error("Loaded default customer contact settings because the workspace settings were unavailable.")
         }
 
         if (rulesResult.status === "fulfilled") {
           setRules(rulesResult.value)
+          setRulesError(null)
         } else {
           setRules([])
-          setTemplateLoadWarning("SMS templates are temporarily unavailable. You can still update all other call and texting settings.")
-          toast.error("Failed to load message templates")
+          setRulesError("Automated text messages are unavailable right now. Try again once the workspace loads properly.")
+          toast.error("Failed to load automated text messages")
         }
       })
       .finally(() => setLoading(false))
@@ -256,39 +183,11 @@ export function CallSettingsClient() {
         agendaNotifyTime: next.agendaNotifyTime,
         wrapupNotifyTime: next.wrapupNotifyTime,
         workspaceTimezone: next.workspaceTimezone,
-        aiPreferences: next.aiPreferences,
-        autoUpdateGlossary: next.autoUpdateGlossary,
-        callOutFee: next.callOutFee,
-        jobReminderHours: next.jobReminderHours,
-        enableJobReminders: next.enableJobReminders,
-        enableTripSms: next.enableTripSms,
-        agentScriptStyle: next.agentScriptStyle,
-        agentBusinessName: next.agentBusinessName,
-        agentOpeningMessage: ensureCallIntro(next.agentOpeningMessage || "", businessName),
-        agentClosingMessage: ensureCallSignoff(next.agentClosingMessage || "", businessName),
         textAllowedStart: next.textAllowedStart,
         textAllowedEnd: next.textAllowedEnd,
         callAllowedStart: next.callAllowedStart,
         callAllowedEnd: next.callAllowedEnd,
-        softChase: next.softChase,
-        invoiceFollowUp: next.invoiceFollowUp,
-        inboundEmailAlias: next.inboundEmailAlias,
-        autoCallLeads: next.autoCallLeads,
         emergencyBypass: next.emergencyBypass,
-        emergencyHoursStart: next.emergencyHoursStart,
-        emergencyHoursEnd: next.emergencyHoursEnd,
-        recordCalls: next.recordCalls,
-        agentPersonality: next.agentPersonality,
-        agentResponseLength: next.agentResponseLength,
-        voiceEnabled: next.voiceEnabled,
-        voiceLanguage: next.voiceLanguage,
-        voiceType: next.voiceType,
-        voiceSpeed: next.voiceSpeed,
-        voiceGreeting: ensureCallIntro(next.voiceGreeting || "", businessName),
-        voiceAfterHoursMessage: next.voiceAfterHoursMessage,
-        transcribeVoicemails: next.transcribeVoicemails,
-        autoRespondToMessages: next.autoRespondToMessages,
-        weeklyHours: next.weeklyHours,
       })
       setSettings(next)
       toast.success("Settings saved")
@@ -304,24 +203,28 @@ export function CallSettingsClient() {
     try {
       const normalizedHoursOffset = getRuleType(rule.triggerType) === "booking-confirmation" ? 0 : rule.hoursOffset
       const normalizedTemplate = ensureSmsSignature(rule.messageTemplate, businessName)
-      await updateAutomatedMessageRule(rule.id, {
+
+      const result = await updateAutomatedMessageRule(rule.id, {
         enabled: rule.enabled,
         messageTemplate: normalizedTemplate,
         hoursOffset: normalizedHoursOffset,
       })
-      setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...rule, hoursOffset: normalizedHoursOffset, messageTemplate: normalizedTemplate } : r)))
-      toast.success("Template updated")
-    } catch {
-      toast.error("Failed to update template")
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update template")
+      }
+
+      setRules((prev) =>
+        prev.map((currentRule) =>
+          currentRule.id === rule.id
+            ? { ...rule, hoursOffset: normalizedHoursOffset, messageTemplate: normalizedTemplate }
+            : currentRule,
+        ),
+      )
+      toast.success("Automated text message saved")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update template")
     } finally {
       setSavingRuleId(null)
-    }
-  }
-
-  const copyNumber = () => {
-    if (status?.phoneNumber) {
-      navigator.clipboard.writeText(status.phoneNumber)
-      toast.success("Number copied")
     }
   }
 
@@ -336,293 +239,221 @@ export function CallSettingsClient() {
 
   return (
     <div className="space-y-6">
-      {templateLoadWarning && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {templateLoadWarning}
-        </div>
-      )}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
-            AI agent business number
-          </CardTitle>
-          <CardDescription>Customer-facing number for calls and SMS.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {status?.phoneNumber ? (
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-lg font-medium">{status.phoneNumber}</span>
-              <Button variant="outline" size="icon" onClick={copyNumber}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">No business number provisioned yet. Complete onboarding or contact support.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
-        <CardHeader>
-          <CardTitle>Handling hours</CardTitle>
-          <CardDescription>When Tracey is allowed to schedule, text, and call.</CardDescription>
+          <CardTitle>Customer contact hours</CardTitle>
+          <CardDescription>
+            Choose when Tracey is allowed to call or text customers. This is separate from your business opening hours in My business.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <WeeklyHoursEditor
-            value={settings.weeklyHours || createDefaultWeeklyHours(settings.workingHoursStart, settings.workingHoursEnd)}
-            onChange={(nextHours) => {
-              const firstOpenDay = Object.values(nextHours).find((day) => day.open)
-              setSettings((s) =>
-                s
-                  ? {
-                      ...s,
-                      weeklyHours: nextHours,
-                      workingHoursStart: firstOpenDay?.start || s.workingHoursStart,
-                      workingHoursEnd: firstOpenDay?.end || s.workingHoursEnd,
-                    }
-                  : s
-              )
-            }}
-            uniform={uniformWorkingHours}
-            onUniformChange={setUniformWorkingHours}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Timezone</Label>
               <Select
                 value={settings.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE}
-                onValueChange={(v) => setSettings((s) => (s ? { ...s, workspaceTimezone: v } : s))}
+                onValueChange={(value) => setSettings((current) => (current ? { ...current, workspaceTimezone: value } : current))}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {AU_TIMEZONE_OPTIONS.map((tz) => (
-                    <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                  {AU_TIMEZONE_OPTIONS.map((timezone) => (
+                    <SelectItem key={timezone} value={timezone}>
+                      {timezone}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">Used for reminders, scheduling windows, and day-of-week logic.</p>
+              <p className="text-xs text-slate-500">All times below use this timezone.</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Texting window start</Label>
-              <Input type="time" value={settings.textAllowedStart || "08:00"} onChange={(e) => setSettings((s) => (s ? { ...s, textAllowedStart: e.target.value } : s))} />
+              <Label>Text customers between</Label>
+              <Input
+                type="time"
+                value={settings.textAllowedStart || "08:00"}
+                onChange={(event) =>
+                  setSettings((current) => (current ? { ...current, textAllowedStart: event.target.value } : current))
+                }
+              />
             </div>
             <div className="space-y-2">
-              <Label>Texting window end</Label>
-              <Input type="time" value={settings.textAllowedEnd || "20:00"} onChange={(e) => setSettings((s) => (s ? { ...s, textAllowedEnd: e.target.value } : s))} />
+              <Label>and</Label>
+              <Input
+                type="time"
+                value={settings.textAllowedEnd || "20:00"}
+                onChange={(event) =>
+                  setSettings((current) => (current ? { ...current, textAllowedEnd: event.target.value } : current))
+                }
+              />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Calling window start</Label>
-              <Input type="time" value={settings.callAllowedStart || "08:00"} onChange={(e) => setSettings((s) => (s ? { ...s, callAllowedStart: e.target.value } : s))} />
+              <Label>Call customers between</Label>
+              <Input
+                type="time"
+                value={settings.callAllowedStart || "08:00"}
+                onChange={(event) =>
+                  setSettings((current) => (current ? { ...current, callAllowedStart: event.target.value } : current))
+                }
+              />
             </div>
             <div className="space-y-2">
-              <Label>Calling window end</Label>
-              <Input type="time" value={settings.callAllowedEnd || "20:00"} onChange={(e) => setSettings((s) => (s ? { ...s, callAllowedEnd: e.target.value } : s))} />
+              <Label>and</Label>
+              <Input
+                type="time"
+                value={settings.callAllowedEnd || "20:00"}
+                onChange={(event) =>
+                  setSettings((current) => (current ? { ...current, callAllowedEnd: event.target.value } : current))
+                }
+              />
             </div>
           </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>{saving ? "Saving..." : "Save handling hours"}</Button>
+
+          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>
+            {saving ? "Saving..." : "Save contact hours"}
+          </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Emergency routing
+            Emergency calls
           </CardTitle>
+          <CardDescription>
+            If a caller sounds urgent, Tracey can send the call straight to you instead of continuing through the AI.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Allow urgent calls to bypass AI</Label>
+          <div className="flex items-center justify-between gap-4">
+            <Label>Urgent calls bypass Tracey</Label>
             <Switch
               checked={Boolean(settings.emergencyBypass)}
-              onCheckedChange={(checked) => setSettings((s) => (s ? { ...s, emergencyBypass: checked } : s))}
+              onCheckedChange={(checked) =>
+                setSettings((current) => (current ? { ...current, emergencyBypass: checked } : current))
+              }
             />
           </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>{saving ? "Saving..." : "Save emergency routing"}</Button>
+          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>
+            {saving ? "Saving..." : "Save emergency call settings"}
+          </Button>
         </CardContent>
       </Card>
 
-      <details className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
-          <span className="flex items-center gap-2 font-medium"><Mic className="h-4 w-4" /> Transcription settings</span>
-          <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="px-4 pb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Record calls</Label>
-            <Switch checked={Boolean(settings.recordCalls)} onCheckedChange={(checked) => setSettings((s) => (s ? { ...s, recordCalls: checked } : s))} />
-          </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>{saving ? "Saving..." : "Save transcription settings"}</Button>
-        </div>
-      </details>
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Automated text messages
+          </CardTitle>
+          <CardDescription>
+            These are the automatic text messages Tracey sends for bookings and follow-up.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!phoneStatus.hasPhoneNumber || !phoneStatus.hasSubaccount ? (
+            <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+              Automated text messages start sending after your Tracey number is provisioned in Account.
+            </div>
+          ) : null}
 
-      <details className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
-          <span className="font-medium">Agent behaviour</span>
-          <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="px-4 pb-4 space-y-4">
-          <div className="space-y-2">
-            <Label>Personality</Label>
-            <Select value={settings.agentPersonality || "Professional"} onValueChange={(v) => setSettings((s) => (s ? { ...s, agentPersonality: v as "Professional" | "Friendly" } : s))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Professional">Professional</SelectItem>
-                <SelectItem value="Friendly">Friendly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Response length (%)</Label>
-            <Input type="number" min={10} max={100} value={settings.agentResponseLength ?? 50} onChange={(e) => setSettings((s) => (s ? { ...s, agentResponseLength: Number(e.target.value) || 50 } : s))} />
-          </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>{saving ? "Saving..." : "Save behaviour"}</Button>
-        </div>
-      </details>
-
-      <details className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
-          <span className="flex items-center gap-2 font-medium"><MessageSquare className="h-4 w-4" /> SMS templates</span>
-          <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="px-4 pb-4 space-y-4">
-          {rules.map((rule) => (
-            <div key={rule.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{getRuleDisplayName(rule)}</p>
-                  <p className="text-xs text-slate-500">{rule.triggerType}</p>
+          {rulesError ? (
+            <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200">
+              {rulesError}
+            </div>
+          ) : rules.length === 0 ? (
+            <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+              No automated text messages are configured for this workspace yet.
+            </div>
+          ) : (
+            rules.map((rule) => (
+              <div key={rule.id} className="space-y-3 rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{getRuleDisplayName(rule)}</p>
+                    <p className="text-xs text-slate-500">{getRuleDescription(rule)}</p>
+                  </div>
+                  <Switch
+                    checked={rule.enabled}
+                    onCheckedChange={(checked) =>
+                      setRules((prev) => prev.map((currentRule) => (
+                        currentRule.id === rule.id ? { ...currentRule, enabled: checked } : currentRule
+                      )))
+                    }
+                  />
                 </div>
-                <Switch
-                  checked={rule.enabled}
-                  onCheckedChange={(checked) =>
-                    setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, enabled: checked } : r)))
-                  }
-                  disabled={!status?.phoneNumber || !status?.hasSubaccount}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Send timing</Label>
-                {getRuleType(rule.triggerType) === "booking-confirmation" ? (
-                  <Input value="Instant (on accepted booking)" disabled />
-                ) : (
-                  <Select
-                    value={String(rule.hoursOffset)}
-                    onValueChange={(v) => setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, hoursOffset: Number(v) } : r)))}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {getRuleTimingOptions(rule).map((option) => (
-                        <SelectItem key={`${rule.id}-${option.value}`} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Template</Label>
-                <Textarea
-                  value={rule.messageTemplate}
-                  onChange={(e) => setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, messageTemplate: e.target.value } : r)))}
-                  rows={3}
-                />
-                <p className="text-xs text-slate-500">Sign-off is fixed and auto-appended: Kind regards, Tracey (AI assistant for {businessName}).</p>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => saveRule(rule)} disabled={savingRuleId === rule.id}>
-                {savingRuleId === rule.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                Save template
-              </Button>
-            </div>
-          ))}
-        </div>
-      </details>
 
-      <details className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
-          <span className="flex items-center gap-2 font-medium"><Volume2 className="h-4 w-4" /> Voice settings</span>
-          <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="px-4 pb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Enable voice agent</Label>
-            <Switch checked={Boolean(settings.voiceEnabled)} onCheckedChange={(checked) => setSettings((s) => (s ? { ...s, voiceEnabled: checked } : s))} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Language</Label>
-              <Select value={settings.voiceLanguage || "en-AU"} onValueChange={(v) => setSettings((s) => (s ? { ...s, voiceLanguage: v } : s))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en-AU">English (AU)</SelectItem>
-                  <SelectItem value="en-US">English (US)</SelectItem>
-                  <SelectItem value="en-GB">English (UK)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Voice</Label>
-              <Select value={settings.voiceType || "female"} onValueChange={(v) => setSettings((s) => (s ? { ...s, voiceType: v as "female" | "male" | "neutral" } : s))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="neutral">Neutral</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Speed</Label>
-              <Select value={settings.voiceSpeed || "1.0"} onValueChange={(v) => setSettings((s) => (s ? { ...s, voiceSpeed: v as "0.8" | "1.0" | "1.2" } : s))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0.8">Slow</SelectItem>
-                  <SelectItem value="1.0">Normal</SelectItem>
-                  <SelectItem value="1.2">Fast</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Business-hours greeting</Label>
-            <Textarea value={settings.voiceGreeting || ""} onChange={(e) => setSettings((s) => (s ? { ...s, voiceGreeting: e.target.value } : s))} placeholder={`Hi, I'm Tracey, AI assistant for ${businessName}.`} />
-            <p className="text-xs text-slate-500">All calls always start with: Hi, I&apos;m Tracey, AI assistant for {businessName}.</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Opening message</Label>
-            <Textarea
-              value={settings.agentOpeningMessage || ""}
-              onChange={(e) => setSettings((s) => (s ? { ...s, agentOpeningMessage: e.target.value } : s))}
-              placeholder={`Hi, I'm Tracey, AI assistant for ${businessName}.`}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Closing message</Label>
-            <Textarea
-              value={settings.agentClosingMessage || ""}
-              onChange={(e) => setSettings((s) => (s ? { ...s, agentClosingMessage: e.target.value } : s))}
-              placeholder={`Kind regards, Tracey (AI assistant for ${businessName})`}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>After-hours message</Label>
-            <Textarea value={settings.voiceAfterHoursMessage || ""} onChange={(e) => setSettings((s) => (s ? { ...s, voiceAfterHoursMessage: e.target.value } : s))} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label>Transcribe voicemails</Label>
-            <Switch checked={Boolean(settings.transcribeVoicemails)} onCheckedChange={(checked) => setSettings((s) => (s ? { ...s, transcribeVoicemails: checked } : s))} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label>Auto-respond to messages</Label>
-            <Switch checked={Boolean(settings.autoRespondToMessages)} onCheckedChange={(checked) => setSettings((s) => (s ? { ...s, autoRespondToMessages: checked } : s))} />
-          </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>{saving ? "Saving..." : "Save voice settings"}</Button>
-        </div>
-      </details>
+                <div className="space-y-2">
+                  <Label>Send timing</Label>
+                  {getRuleType(rule.triggerType) === "booking-confirmation" ? (
+                    <Input value="Instant (on accepted booking)" disabled />
+                  ) : (
+                    <Select
+                      value={String(rule.hoursOffset)}
+                      onValueChange={(value) =>
+                        setRules((prev) =>
+                          prev.map((currentRule) => (
+                            currentRule.id === rule.id
+                              ? { ...currentRule, hoursOffset: Number(value) }
+                              : currentRule
+                          )),
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getRuleTimingOptions(rule).map((option) => (
+                          <SelectItem key={`${rule.id}-${option.value}`} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Message</Label>
+                  <Textarea
+                    value={rule.messageTemplate}
+                    onChange={(event) =>
+                      setRules((prev) =>
+                        prev.map((currentRule) => (
+                          currentRule.id === rule.id
+                            ? { ...currentRule, messageTemplate: event.target.value }
+                            : currentRule
+                        )),
+                      )
+                    }
+                    rows={3}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Sign-off is fixed and automatically appended: Kind regards, Tracey (AI assistant for {businessName}).
+                  </p>
+                </div>
+
+                <Button size="sm" variant="outline" onClick={() => saveRule(rule)} disabled={savingRuleId === rule.id}>
+                  {savingRuleId === rule.id ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Save automated message
+                </Button>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

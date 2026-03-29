@@ -9,13 +9,16 @@ import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 // Switch import removed — using segmented control buttons instead
-import { Layers, MessageSquare, Menu } from "lucide-react"
+import { GripVertical, Layers, MessageSquare, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import type { ImperativePanelHandle } from "react-resizable-panels"
+import type { ImperativePanelGroupHandle, ImperativePanelHandle } from "react-resizable-panels"
 import { DashboardMainChrome } from "@/components/dashboard/dashboard-main-chrome"
 
 const CHAT_STEP_INDEX = 3 // Step 4 in 1-based: "Chat mode" pane
+const ASSISTANT_COLLAPSE_THRESHOLD = 10
+const ASSISTANT_MAX_SIZE = 65
+const ASSISTANT_MIN_SIZE = 27
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, setAssistantPanelExpanded } = useShellStore()
@@ -27,11 +30,24 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     if (typeof window === "undefined") return true
     return window.matchMedia("(min-width: 768px)").matches
   })
+  const shellFrameRef = useRef<HTMLDivElement>(null)
+  const panelGroupRef = useRef<ImperativePanelGroupHandle>(null)
   const chatbotPanelRef = useRef<ImperativePanelHandle>(null)
+  const assistantPanelSizeRef = useRef(28)
+  const assistantResizeFrameRef = useRef<number | null>(null)
+  const pendingAssistantSizeRef = useRef<number | null>(null)
   const [chatbotExpanded, setChatbotExpanded] = useState(false)
+  const [assistantHandleDragging, setAssistantHandleDragging] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
-  const didDragRef = useRef(false)
-  const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
+  const recentAssistantDragRef = useRef(false)
+  const recentAssistantDragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const assistantPillDragRef = useRef<{
+    pointerId: number
+    startX: number
+    startAssistantSize: number
+    currentAssistantSize: number
+    dragged: boolean
+  } | null>(null)
 
   // Keep global flag in sync so dashboard Kanban can use min board width only when RHS chat is open (no forced horizontal scroll when chat is collapsed).
   useEffect(() => {
@@ -84,6 +100,84 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       router.push(CRM_PIPELINE_HOME)
     }
   }
+
+  const toggleAssistantPanel = () => {
+    if (chatbotExpanded) {
+      chatbotPanelRef.current?.collapse()
+      setChatbotExpanded(false)
+      syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+      return
+    }
+
+    chatbotPanelRef.current?.expand()
+    setChatbotExpanded(true)
+    syncAssistantEdgeOffset(Math.max(assistantPanelSizeRef.current, ASSISTANT_MIN_SIZE), true)
+  }
+
+  const syncAssistantEdgeOffset = (assistantSize: number, expanded: boolean) => {
+    assistantPanelSizeRef.current = assistantSize
+    if (!shellFrameRef.current) return
+
+    shellFrameRef.current.style.setProperty(
+      "--assistant-edge-offset",
+      expanded ? `calc(${assistantSize}% - 0.75rem)` : "0.375rem"
+    )
+  }
+
+  const applyAssistantPanelSize = (nextAssistantSize: number) => {
+    const clampedSize = Math.max(0, Math.min(ASSISTANT_MAX_SIZE, nextAssistantSize))
+    if (clampedSize <= ASSISTANT_COLLAPSE_THRESHOLD) {
+      if (assistantResizeFrameRef.current !== null) {
+        cancelAnimationFrame(assistantResizeFrameRef.current)
+        assistantResizeFrameRef.current = null
+      }
+      pendingAssistantSizeRef.current = null
+      chatbotPanelRef.current?.collapse()
+      setChatbotExpanded(false)
+      syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+      return
+    }
+
+    syncAssistantEdgeOffset(clampedSize, true)
+    if (!chatbotExpanded) {
+      setChatbotExpanded(true)
+    }
+
+    pendingAssistantSizeRef.current = clampedSize
+    if (assistantResizeFrameRef.current !== null) return
+
+    assistantResizeFrameRef.current = window.requestAnimationFrame(() => {
+      const pendingSize = pendingAssistantSizeRef.current
+      assistantResizeFrameRef.current = null
+      if (pendingSize == null) return
+      pendingAssistantSizeRef.current = null
+      panelGroupRef.current?.setLayout([100 - pendingSize, pendingSize])
+    })
+  }
+
+  const handlePanelLayout = (layout: number[]) => {
+    const assistantSize = layout[1]
+    if (typeof assistantSize !== "number") return
+    syncAssistantEdgeOffset(assistantSize, assistantSize > 0 && !(chatbotPanelRef.current?.isCollapsed()))
+    if (!assistantHandleDragging) return
+    if (assistantSize > ASSISTANT_COLLAPSE_THRESHOLD) return
+    if (chatbotPanelRef.current?.isCollapsed()) return
+
+    chatbotPanelRef.current?.collapse()
+    setChatbotExpanded(false)
+    syncAssistantEdgeOffset(assistantSize, false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recentAssistantDragTimeoutRef.current) {
+        clearTimeout(recentAssistantDragTimeoutRef.current)
+      }
+      if (assistantResizeFrameRef.current !== null) {
+        cancelAnimationFrame(assistantResizeFrameRef.current)
+      }
+    }
+  }, [])
 
   // Verify tutorial trigger
   useEffect(() => {
@@ -188,7 +282,16 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           {/* Mobile Sidebar - Drawer */}
           <MobileSidebar />
 
-          <ResizablePanelGroup id="dashboard-panel-group" direction="horizontal" className="flex-1 h-full min-w-0 w-full">
+          <div ref={shellFrameRef} className="relative flex-1 h-full min-w-0 w-full">
+          <ResizablePanelGroup
+            ref={panelGroupRef}
+            id="dashboard-panel-group"
+            direction="horizontal"
+            className="flex-1 h-full min-w-0 w-full"
+            onLayout={(layout) => {
+              handlePanelLayout(layout)
+            }}
+          >
               {/* Left canvas + assistant must sum to 100% default so the main pane reliably compresses when chat expands */}
               <ResizablePanel defaultSize={72} minSize={30} id="main-canvas-panel" className="flex min-h-0 min-w-0 flex-col">
                 <div
@@ -205,32 +308,24 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               {/* Must be a direct PanelResizeHandle child of PanelGroup — no extra wrapper (avoids blank flex strip). Strip is 8px; pill is wider — center it on the strip so the grip sits on the green line (justify-start skewed it right). */}
               <ResizableHandle
                 id="assistant-resize-handle"
-                withHandle
+                withHandle={false}
                 className={cn(
                   "hidden shrink-0 md:flex",
-                  /* Single visible strip; wider pill straddles the split equally */
-                  "w-2 min-w-[8px] max-w-[8px] justify-center overflow-visible bg-border/50 transition-colors hover:bg-primary/50"
+                  "w-px min-w-px max-w-px justify-center overflow-visible bg-border/40 transition-colors hover:bg-primary/40"
                 )}
-                onPointerDown={(e) => {
-                  didDragRef.current = false
-                  pointerDownRef.current = { x: e.clientX, y: e.clientY }
-                }}
-                onPointerMove={(e) => {
-                  if (pointerDownRef.current && (Math.abs(e.clientX - pointerDownRef.current.x) > 5 || Math.abs(e.clientY - pointerDownRef.current.y) > 5)) {
-                    didDragRef.current = true
-                  }
-                }}
-                onPointerUp={() => {
-                  if (!didDragRef.current && !chatbotExpanded) {
-                    chatbotPanelRef.current?.expand()
-                    setChatbotExpanded(true)
-                  }
-                  pointerDownRef.current = null
-                }}
-                onClick={() => {
-                  if (!didDragRef.current && !chatbotExpanded) {
-                    chatbotPanelRef.current?.expand()
-                    setChatbotExpanded(true)
+                onDragging={(isDragging) => {
+                  setAssistantHandleDragging(isDragging)
+                  if (isDragging) {
+                    recentAssistantDragRef.current = true
+                    if (recentAssistantDragTimeoutRef.current) {
+                      clearTimeout(recentAssistantDragTimeoutRef.current)
+                      recentAssistantDragTimeoutRef.current = null
+                    }
+                  } else {
+                    recentAssistantDragTimeoutRef.current = setTimeout(() => {
+                      recentAssistantDragRef.current = false
+                      recentAssistantDragTimeoutRef.current = null
+                    }, 120)
                   }
                 }}
               />
@@ -239,7 +334,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               <ResizablePanel
                 ref={chatbotPanelRef}
                 defaultSize={28}
-                minSize={28}
+                minSize={27}
                 maxSize={65}
                 collapsible={true}
                 collapsedSize={0}
@@ -291,6 +386,81 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
+
+            <div
+              className="pointer-events-none absolute inset-y-0 hidden md:flex items-center"
+              style={{
+                right: chatbotExpanded ? "var(--assistant-edge-offset, calc(28% - 0.75rem))" : "0.375rem",
+              }}
+            >
+              <button
+                type="button"
+                aria-label={chatbotExpanded ? "Collapse assistant panel" : "Expand assistant panel"}
+                className="pointer-events-auto z-20 flex h-10 w-6 items-center justify-center rounded-md border border-border bg-background shadow-sm transition-colors hover:bg-accent hover:border-primary/40"
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                  assistantPillDragRef.current = {
+                    pointerId: event.pointerId,
+                    startX: event.clientX,
+                    startAssistantSize: chatbotExpanded ? assistantPanelSizeRef.current : 0,
+                    currentAssistantSize: chatbotExpanded ? assistantPanelSizeRef.current : 0,
+                    dragged: false,
+                  }
+                  event.currentTarget.setPointerCapture(event.pointerId)
+                }}
+                onPointerMove={(event) => {
+                  const drag = assistantPillDragRef.current
+                  if (!drag || drag.pointerId !== event.pointerId) return
+                  const groupElement = shellFrameRef.current
+                  if (!groupElement) return
+
+                  const deltaX = event.clientX - drag.startX
+                  if (Math.abs(deltaX) > 4) {
+                    drag.dragged = true
+                  }
+
+                  const groupWidth = groupElement.getBoundingClientRect().width
+                  if (groupWidth <= 0) return
+
+                  const nextAssistantSize = drag.startAssistantSize - (deltaX / groupWidth) * 100
+                  drag.currentAssistantSize = nextAssistantSize
+                  applyAssistantPanelSize(nextAssistantSize)
+                }}
+                onPointerUp={(event) => {
+                  const drag = assistantPillDragRef.current
+                  if (!drag || drag.pointerId !== event.pointerId) return
+                  event.stopPropagation()
+                  event.currentTarget.releasePointerCapture(event.pointerId)
+                  const wasDragged = drag.dragged
+                  assistantPillDragRef.current = null
+
+                  if (!wasDragged) {
+                    toggleAssistantPanel()
+                    return
+                  }
+
+                  if (drag.currentAssistantSize <= ASSISTANT_COLLAPSE_THRESHOLD || chatbotPanelRef.current?.isCollapsed()) {
+                    chatbotPanelRef.current?.collapse()
+                    setChatbotExpanded(false)
+                    syncAssistantEdgeOffset(drag.currentAssistantSize, false)
+                  } else if (drag.currentAssistantSize < ASSISTANT_MIN_SIZE) {
+                    applyAssistantPanelSize(ASSISTANT_MIN_SIZE)
+                  }
+                }}
+                onPointerCancel={(event) => {
+                  const drag = assistantPillDragRef.current
+                  if (!drag || drag.pointerId !== event.pointerId) return
+                  event.stopPropagation()
+                  assistantPillDragRef.current = null
+                }}
+                onClick={(event) => {
+                  event.stopPropagation()
+                }}
+              >
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
 
           {/* Mobile: floating nav + chat buttons */}
           <div className="md:hidden fixed bottom-5 right-5 z-[10000] flex flex-col gap-2 items-end">

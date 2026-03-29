@@ -142,10 +142,10 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
                     <Button
                         id="pipeline-filter-trigger"
                         variant="outline"
-                        size="sm"
-                        className="h-9 min-h-9 gap-1.5 rounded-lg border-none bg-muted px-2.5 text-xs font-medium hover:bg-muted/80"
+                        size="toolbar"
+                        className="w-auto gap-1 border-none bg-muted px-3.5 text-sm font-semibold hover:bg-muted/80"
                     >
-                        <Filter className="h-3 w-3" />
+                        <Filter className="h-3.5 w-3.5" />
                         Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                     </Button>
                 </PopoverTrigger>

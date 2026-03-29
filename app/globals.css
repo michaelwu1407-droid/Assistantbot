@@ -315,6 +315,34 @@
     color: var(--color-neutral-500);
   }
 
+  .app-page-title {
+    @apply text-2xl font-bold tracking-tight text-neutral-900;
+  }
+
+  .app-section-title {
+    @apply text-base font-semibold text-neutral-900;
+  }
+
+  .app-body-primary {
+    @apply text-sm text-neutral-900;
+  }
+
+  .app-body-secondary {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .app-micro-label {
+    @apply text-xs font-medium uppercase tracking-wide text-neutral-500;
+  }
+
+  .app-kpi-value {
+    @apply text-xl font-extrabold leading-none tracking-tight text-neutral-900;
+  }
+
+  .toolbar-pill {
+    @apply h-10 rounded-full px-4 text-sm font-semibold;
+  }
+
   /* Corner radius harmonization
    * Some pages/components use Tailwind's `rounded*` classes directly (e.g. `rounded`,
    * `rounded-lg`, `rounded-xl`). Force them to align with the shared `--radius`

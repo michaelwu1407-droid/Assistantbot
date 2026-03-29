@@ -70,9 +70,9 @@ const HIRE_FEATURES = [
     },
     {
         title: EARLYMARK_SALES_PILLARS[2]?.title || "Follow-up that actually happens",
-        desc: EARLYMARK_SALES_PILLARS[2]?.description || "Tracey automatically follows up on unconfirmed quotes, sends booking reminders, and asks for a review after every completed job.",
+        desc: EARLYMARK_SALES_PILLARS[2]?.description || "Tracey automatically follows up on unconfirmed quotes, sends booking reminders, and asks for feedback after every completed job.",
         eyebrow: "Customer experience",
-        bullets: ["Automated quote follow-up sequences", "Booking reminders via SMS", "Post-job review requests"],
+        bullets: ["Automated quote follow-up sequences", "Booking reminders via SMS", "Post-job feedback requests"],
     },
     {
         title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",

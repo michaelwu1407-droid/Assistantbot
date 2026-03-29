@@ -23,7 +23,7 @@ import {
   arrayMove
 } from "@dnd-kit/sortable"
 
-import { DealCard } from "./deal-card"
+import { DealCard, type DealCardDecision } from "./deal-card"
 import { HoverScrollName } from "@/components/ui/hover-scroll-name"
 import { DealDetailModal } from "./deal-detail-modal"
 import { Plus, Trash2, UserPlus } from "lucide-react"
@@ -55,11 +55,11 @@ import {
   updateDealAssignedTo,
   updateDealStage,
 } from "@/actions/deal-actions"
-import { kanbanColumnIdForDealStage } from "@/lib/kanban-columns"
 import { toast } from "sonner"
 import { publishCrmSelection } from "@/lib/crm-selection"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 import { isNewJobStage } from "@/lib/deal-utils"
+import { KANBAN_COLUMN_SORT_ORDER, kanbanColumnIdForDealStage } from "@/lib/kanban-columns"
 
 // 6 pipeline columns + Deleted jobs. Pending-approval deals appear IN the Completed column with distinct styling.
 type ColumnId = "new_request" | "quote_sent" | "scheduled" | "ready_to_invoice" | "completed" | "deleted"
@@ -276,6 +276,67 @@ function reorderDealsInColumn(
   return result
 }
 
+function mapPersistedStageToClientStage(stage: unknown): string {
+  switch (stage) {
+    case "NEW":
+      return "new_request"
+    case "CONTACTED":
+    case "PIPELINE":
+      return "quote_sent"
+    case "NEGOTIATION":
+    case "SCHEDULED":
+      return "scheduled"
+    case "INVOICED":
+      return "ready_to_invoice"
+    case "PENDING_COMPLETION":
+      return "pending_approval"
+    case "WON":
+      return "completed"
+    case "DELETED":
+      return "deleted"
+    case "LOST":
+      return "lost"
+    default:
+      return typeof stage === "string" ? stage : "new_request"
+  }
+}
+
+function insertDealAtTopOfColumn(prev: DealView[], updatedDeal: DealView, targetColumnId: string): DealView[] {
+  const withoutDeal = prev.filter((deal) => deal.id !== updatedDeal.id)
+  const targetIndex = withoutDeal.findIndex(
+    (deal) => kanbanColumnIdForDealStage(deal.stage) === targetColumnId
+  )
+
+  if (targetIndex !== -1) {
+    return [
+      ...withoutDeal.slice(0, targetIndex),
+      updatedDeal,
+      ...withoutDeal.slice(targetIndex),
+    ]
+  }
+
+  const targetOrder = KANBAN_COLUMN_SORT_ORDER.indexOf(targetColumnId as (typeof KANBAN_COLUMN_SORT_ORDER)[number])
+  if (targetOrder === -1) {
+    return [...withoutDeal, updatedDeal]
+  }
+
+  const insertBeforeIndex = withoutDeal.findIndex((deal) => {
+    const existingColumn = kanbanColumnIdForDealStage(deal.stage)
+    const existingOrder = KANBAN_COLUMN_SORT_ORDER.indexOf(existingColumn as (typeof KANBAN_COLUMN_SORT_ORDER)[number])
+    return existingOrder > targetOrder
+  })
+
+  if (insertBeforeIndex === -1) {
+    return [...withoutDeal, updatedDeal]
+  }
+
+  return [
+    ...withoutDeal.slice(0, insertBeforeIndex),
+    updatedDeal,
+    ...withoutDeal.slice(insertBeforeIndex),
+  ]
+}
+
 export function KanbanBoard({
   deals: initialDeals,
   industryType,
@@ -470,6 +531,78 @@ export function KanbanBoard({
   const activeDeal = useMemo(() =>
     deals.find(d => d.id === activeId),
     [deals, activeId])
+
+  const applyDecisionToBoard = (deal: DealView, decision: DealCardDecision) => {
+    const now = new Date()
+
+    setDeals((prev) => {
+      const current = prev.find((row) => row.id === deal.id)
+      if (!current) return prev
+
+      const currentMetadata = { ...(current.metadata ?? {}) } as Record<string, unknown>
+      let nextDeal: DealView = current
+      let targetColumnId = kanbanColumnIdForDealStage(current.stage)
+
+      switch (decision.type) {
+        case "approve_completion": {
+          const nextMetadata = Object.fromEntries(
+            Object.entries(currentMetadata).filter(
+              ([key]) => !["completionRequestedBy", "completionRequestedAt", "previousStage"].includes(key)
+            )
+          )
+          nextDeal = {
+            ...current,
+            stage: "completed",
+            stageChangedAt: now,
+            metadata: nextMetadata,
+          }
+          targetColumnId = "completed"
+          break
+        }
+        case "reject_completion": {
+          const previousStage = mapPersistedStageToClientStage(currentMetadata.previousStage)
+          nextDeal = {
+            ...current,
+            stage: previousStage,
+            stageChangedAt: now,
+            metadata: {
+              ...currentMetadata,
+              completionRejectedAt: now.toISOString(),
+              completionRejectionReason: decision.reason ?? null,
+            },
+          }
+          targetColumnId = kanbanColumnIdForDealStage(previousStage)
+          break
+        }
+        case "approve_draft": {
+          nextDeal = {
+            ...current,
+            isDraft: false,
+            stageChangedAt: now,
+          }
+          targetColumnId = kanbanColumnIdForDealStage(current.stage)
+          break
+        }
+        case "reject_draft": {
+          nextDeal = {
+            ...current,
+            isDraft: false,
+            stage: "deleted",
+            stageChangedAt: now,
+            metadata: {
+              ...currentMetadata,
+              draftRejectedAt: now.toISOString(),
+              draftRejectionReason: decision.reason ?? null,
+            },
+          }
+          targetColumnId = "deleted"
+          break
+        }
+      }
+
+      return insertDealAtTopOfColumn(prev, nextDeal, targetColumnId)
+    })
+  }
 
   const handleStageConflict = (result: { success: boolean; error?: string; code?: string }) => {
     if ((result as { code?: string }).code !== "CONFLICT") return false
@@ -931,6 +1064,7 @@ export function KanbanBoard({
                               selectionMode={selectionMode}
                               onToggleSelected={toggleSelectedDeal}
                               onEnterSelectionMode={enterSelectionMode}
+                              onDecisionApplied={(decision) => applyDecisionToBoard(deal, decision)}
                               onAssign={
                                 teamMembers.length > 0
                                   ? async (userId) => {

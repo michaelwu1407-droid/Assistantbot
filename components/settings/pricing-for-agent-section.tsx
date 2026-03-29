@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { DollarSign, Plus, Trash2 } from "lucide-react"
 import { updateWorkspaceSettings, getWorkspaceSettings } from "@/actions/settings-actions"
 import {
@@ -42,6 +43,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   const [services, setServices] = useState<KnowledgeRule[]>([])
   const [refusalRules, setRefusalRules] = useState<KnowledgeRule[]>([])
   const [newService, setNewService] = useState<ServiceDraft>({ name: "", minFee: "", maxFee: "", comment: "" })
+  const [isAddingService, setIsAddingService] = useState(false)
   const [newRefusalRule, setNewRefusalRule] = useState("")
   const [savingCallOutFee, setSavingCallOutFee] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -71,24 +73,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
         workingHoursEnd: currentSettings.workingHoursEnd || "17:00",
         agendaNotifyTime: currentSettings.agendaNotifyTime || "09:00",
         wrapupNotifyTime: currentSettings.wrapupNotifyTime || "17:00",
-        aiPreferences: currentSettings.aiPreferences || undefined,
-        autoUpdateGlossary: currentSettings.autoUpdateGlossary,
         callOutFee: parseFloat(callOutFee) || 0,
-        jobReminderHours: currentSettings.jobReminderHours || undefined,
-        enableJobReminders: currentSettings.enableJobReminders,
-        enableTripSms: currentSettings.enableTripSms,
-        agentScriptStyle: currentSettings.agentScriptStyle as "opening" | "closing" | undefined,
-        agentBusinessName: currentSettings.agentBusinessName || undefined,
-        agentOpeningMessage: currentSettings.agentOpeningMessage || undefined,
-        agentClosingMessage: currentSettings.agentClosingMessage || undefined,
-        textAllowedStart: currentSettings.textAllowedStart || undefined,
-        textAllowedEnd: currentSettings.textAllowedEnd || undefined,
-        callAllowedStart: currentSettings.callAllowedStart || undefined,
-        callAllowedEnd: currentSettings.callAllowedEnd || undefined,
-        softChase: currentSettings.softChase || undefined,
-        invoiceFollowUp: currentSettings.invoiceFollowUp || undefined,
-        inboundEmailAlias: currentSettings.inboundEmailAlias,
-        autoCallLeads: currentSettings.autoCallLeads,
       })
 
       toast.success("Call-out fee saved")
@@ -101,7 +86,10 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
 
   const addService = async () => {
     const name = newService.name.trim()
-    if (!name) return
+    if (!name) {
+      toast.error("Add a service name first")
+      return
+    }
 
     const metadata: Record<string, unknown> = {}
     if (newService.minFee.trim()) metadata.minFee = Number(newService.minFee)
@@ -117,6 +105,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
     const updated = await getKnowledgeRules("SERVICE")
     setServices(updated)
     setNewService({ name: "", minFee: "", maxFee: "", comment: "" })
+    setIsAddingService(false)
     toast.success("Service pricing row added")
   }
 
@@ -210,77 +199,117 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           <p className="text-xs text-slate-500">
             Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Service</th>
-                  <th className="px-3 py-2 text-left font-medium">Min fee</th>
-                  <th className="px-3 py-2 text-left font-medium">Max fee</th>
-                  <th className="px-3 py-2 text-left font-medium">Comment</th>
-                  <th className="px-3 py-2 w-36" />
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t">
-                  <td className="px-3 py-2">
-                    <Input
-                      value={newService.name}
-                      onChange={(event) => setNewService((prev) => ({ ...prev, name: event.target.value }))}
-                      placeholder="e.g. Drain unblocking"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      value={newService.minFee}
-                      onChange={(event) => setNewService((prev) => ({ ...prev, minFee: event.target.value }))}
-                      placeholder="150"
-                      type="number"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      value={newService.maxFee}
-                      onChange={(event) => setNewService((prev) => ({ ...prev, maxFee: event.target.value }))}
-                      placeholder="320"
-                      type="number"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      value={newService.comment}
-                      onChange={(event) => setNewService((prev) => ({ ...prev, comment: event.target.value }))}
-                      placeholder="Includes standard parts only"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Button variant="outline" size="sm" onClick={addService}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add row
-                    </Button>
-                  </td>
-                </tr>
+          <div className="rounded-[18px] border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="hidden md:grid md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px] md:gap-3 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <span>Service</span>
+              <span>Min fee</span>
+              <span>Max fee</span>
+              <span>Comment</span>
+              <span />
+            </div>
 
-                {services.map((service) => {
-                  const row = toServiceDraft(service)
-                  return (
-                    <ServiceRow
-                      key={service.id}
-                      service={service}
-                      initialDraft={row}
-                      onSave={saveService}
-                      onDelete={removeService}
-                    />
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {services.map((service) => {
+                const row = toServiceDraft(service)
+                return (
+                  <ServiceRow
+                    key={service.id}
+                    service={service}
+                    initialDraft={row}
+                    onSave={saveService}
+                    onDelete={removeService}
+                  />
+                )
+              })}
+
+              {isAddingService ? (
+                <div className="bg-slate-50/60 p-3 dark:bg-slate-900/40">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px]">
+                    <FieldShell label="Service">
+                      <Input
+                        value={newService.name}
+                        onChange={(event) => setNewService((prev) => ({ ...prev, name: event.target.value }))}
+                        placeholder="e.g. Drain unblocking"
+                        className="min-w-0"
+                      />
+                    </FieldShell>
+                    <FieldShell label="Min fee">
+                      <Input
+                        value={newService.minFee}
+                        onChange={(event) => setNewService((prev) => ({ ...prev, minFee: event.target.value }))}
+                        placeholder="150"
+                        type="number"
+                        className="min-w-0"
+                      />
+                    </FieldShell>
+                    <FieldShell label="Max fee">
+                      <Input
+                        value={newService.maxFee}
+                        onChange={(event) => setNewService((prev) => ({ ...prev, maxFee: event.target.value }))}
+                        placeholder="320"
+                        type="number"
+                        className="min-w-0"
+                      />
+                    </FieldShell>
+                    <FieldShell label="Comment">
+                      <Textarea
+                        value={newService.comment}
+                        onChange={(event) => setNewService((prev) => ({ ...prev, comment: event.target.value }))}
+                        placeholder="Includes standard parts only"
+                        rows={2}
+                        className="min-h-[60px] resize-none"
+                      />
+                    </FieldShell>
+                    <div className="flex items-start gap-2 md:justify-end md:pt-[22px]">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addService}
+                        className="justify-center"
+                        disabled={!newService.name.trim()}
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsAddingService(false)
+                          setNewService({ name: "", minFee: "", maxFee: "", comment: "" })
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {!loading && services.length === 0 && !isAddingService ? (
+                <div className="px-4 py-6 text-sm text-slate-500">
+                  No services added yet. Add your first service so Tracey can quote consistently.
+                </div>
+              ) : null}
+            </div>
           </div>
-          {!loading && services.length === 0 && (
-            <p className="text-sm text-slate-500">
-              No services added yet. If onboarding scraped your website/docs, imported items will appear here.
-            </p>
-          )}
+          <div className="flex justify-start">
+            {!isAddingService ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddingService(true)}
+                className="gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add service
+              </Button>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Add the service details above, then press `Add`.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
@@ -339,29 +368,40 @@ function ServiceRow({
   const [saving, setSaving] = useState(false)
 
   return (
-    <tr className="border-t">
-      <td className="px-3 py-2">
-        <Input value={draft.name} onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))} />
-      </td>
-      <td className="px-3 py-2">
+    <div className="p-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px]">
+        <FieldShell label="Service">
+        <Input
+          value={draft.name}
+          onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
+          className="min-w-0"
+        />
+        </FieldShell>
+        <FieldShell label="Min fee">
         <Input
           type="number"
           value={draft.minFee}
           onChange={(event) => setDraft((prev) => ({ ...prev, minFee: event.target.value }))}
+          className="min-w-0"
         />
-      </td>
-      <td className="px-3 py-2">
+        </FieldShell>
+        <FieldShell label="Max fee">
         <Input
           type="number"
           value={draft.maxFee}
           onChange={(event) => setDraft((prev) => ({ ...prev, maxFee: event.target.value }))}
+          className="min-w-0"
         />
-      </td>
-      <td className="px-3 py-2">
-        <Input value={draft.comment} onChange={(event) => setDraft((prev) => ({ ...prev, comment: event.target.value }))} />
-      </td>
-      <td className="px-3 py-2">
-        <div className="flex items-center gap-2">
+        </FieldShell>
+        <FieldShell label="Comment">
+        <Textarea
+          value={draft.comment}
+          onChange={(event) => setDraft((prev) => ({ ...prev, comment: event.target.value }))}
+          rows={2}
+          className="min-h-[60px] resize-none"
+        />
+        </FieldShell>
+        <div className="flex items-start gap-2 md:justify-end md:pt-[22px]">
           <Button
             variant="outline"
             size="sm"
@@ -378,7 +418,24 @@ function ServiceRow({
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
+  )
+}
+
+function FieldShell({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 md:hidden">
+        {label}
+      </Label>
+      {children}
+    </div>
   )
 }

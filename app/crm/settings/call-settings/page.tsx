@@ -1,6 +1,5 @@
 import { Separator } from "@/components/ui/separator"
 import { CallSettingsClient } from "@/components/settings/call-settings-client"
-import { RecentVoiceCalls } from "@/components/settings/recent-voice-calls"
 
 export const dynamic = "force-dynamic"
 
@@ -9,15 +8,14 @@ export default function CallSettingsPage() {
     <div className="space-y-8">
       <div>
         <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-          Automated calling and texting
+          Calls & texting
         </h3>
         <p className="text-sm text-slate-500">
-          AI agent number, emergency routing, transcription, behavior, and message templates.
+          Set when Tracey may contact customers, how urgent calls are handled, and the text messages she sends.
         </p>
       </div>
       <Separator />
       <CallSettingsClient />
-      <RecentVoiceCalls />
     </div>
   )
 }

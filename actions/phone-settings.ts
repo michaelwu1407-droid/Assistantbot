@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendVerificationSms, verifySmsCode } from "@/lib/sms-verification";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 const UpdatePhoneSchema = z.object({
   newPhoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
@@ -20,17 +21,10 @@ export async function sendPhoneVerificationCode(data: {
   newPhoneNumber: string;
 }) {
   const validated = SendVerificationSchema.parse(data);
-  
-  // Get current workspace
-  const { getAuthUserId } = await import("@/lib/auth");
-  const userId = await getAuthUserId();
-  
-  if (!userId) {
-    throw new Error("Not authenticated");
-  }
+  const actor = await requireCurrentWorkspaceAccess();
 
   const user = await db.user.findUnique({
-    where: { id: userId },
+    where: { id: actor.id },
     select: { phone: true }
   });
 
@@ -42,7 +36,7 @@ export async function sendPhoneVerificationCode(data: {
   if (!user.phone) {
     // Update user phone directly
     await db.user.update({
-      where: { id: userId },
+      where: { id: actor.id },
       data: { phone: validated.newPhoneNumber }
     });
 
@@ -60,7 +54,7 @@ export async function sendPhoneVerificationCode(data: {
   await db.verificationCode.upsert({
     where: { 
       userId_phoneNumber: {
-        userId,
+        userId: actor.id,
         phoneNumber: validated.newPhoneNumber,
       }
     },
@@ -69,7 +63,7 @@ export async function sendPhoneVerificationCode(data: {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     },
     create: {
-      userId,
+      userId: actor.id,
       phoneNumber: validated.newPhoneNumber,
       code,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -94,18 +88,11 @@ export async function updatePhoneNumber(data: {
   verificationCode: string;
 }) {
   const validated = UpdatePhoneSchema.parse(data);
-  
-  // Get current user
-  const { getAuthUserId } = await import("@/lib/auth");
-  const userId = await getAuthUserId();
-  
-  if (!userId) {
-    throw new Error("Not authenticated");
-  }
+  const actor = await requireCurrentWorkspaceAccess();
 
   // Verify code
   const verification = await verifySmsCode(
-    userId,
+    actor.id,
     validated.newPhoneNumber,
     validated.verificationCode
   );
@@ -116,7 +103,7 @@ export async function updatePhoneNumber(data: {
 
   // Update user phone number
   await db.user.update({
-    where: { id: userId },
+    where: { id: actor.id },
     data: { phone: validated.newPhoneNumber }
   });
 
@@ -131,20 +118,15 @@ export async function updatePhoneNumber(data: {
  * Get current phone number status
  */
 export async function getPhoneNumberStatus() {
-  const { getAuthUserId } = await import("@/lib/auth");
-  const userId = await getAuthUserId();
-  
-  if (!userId) {
-    throw new Error("Not authenticated");
-  }
+  const actor = await requireCurrentWorkspaceAccess();
 
   const [user, workspace] = await Promise.all([
     db.user.findUnique({
-      where: { id: userId },
+      where: { id: actor.id },
       select: { phone: true }
     }),
-    db.workspace.findFirst({
-      where: { ownerId: userId },
+    db.workspace.findUnique({
+      where: { id: actor.workspaceId },
       select: {
         id: true,
         name: true,

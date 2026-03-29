@@ -121,7 +121,7 @@ describe("POST /api/twilio/webhook", () => {
     expect(prisma.chatMessage.create).not.toHaveBeenCalled();
   });
 
-  it("records inbound SMS success and preserves SMS metadata on the user message", async () => {
+  it("records inbound SMS success and still processes replies through the shared Tracey mode policy", async () => {
     findWorkspaceByTwilioNumber.mockResolvedValue({
       id: "ws_1",
       name: "Alpha Plumbing",
@@ -161,6 +161,6 @@ describe("POST /api/twilio/webhook", () => {
         }),
       }),
     });
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 });

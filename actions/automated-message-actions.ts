@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 import { runIdempotent } from "@/lib/idempotency";
 
@@ -48,17 +48,10 @@ const DEFAULT_RULES = [
  * Seeds defaults if none exist.
  */
 export async function getAutomatedMessageRules(): Promise<AutomatedMessageRuleView[]> {
-  const authUser = await getAuthUser();
-  if (!authUser?.email) return [];
-
-  const user = await db.user.findFirst({
-    where: { email: authUser.email },
-    select: { workspaceId: true },
-  });
-  if (!user) return [];
+  const actor = await requireCurrentWorkspaceAccess();
 
   let rules = await db.automatedMessageRule.findMany({
-    where: { workspaceId: user.workspaceId },
+    where: { workspaceId: actor.workspaceId },
     orderBy: { createdAt: "asc" },
   });
 
@@ -67,11 +60,11 @@ export async function getAutomatedMessageRules(): Promise<AutomatedMessageRuleVi
     await db.automatedMessageRule.createMany({
       data: DEFAULT_RULES.map((r) => ({
         ...r,
-        workspaceId: user.workspaceId,
+        workspaceId: actor.workspaceId,
       })),
     });
     rules = await db.automatedMessageRule.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: actor.workspaceId },
       orderBy: { createdAt: "asc" },
     });
   }
@@ -100,14 +93,22 @@ export async function updateAutomatedMessageRule(
     hoursOffset: number;
   }>
 ): Promise<{ success: boolean; error?: string }> {
-  const authUser = await getAuthUser();
-  if (!authUser?.email) return { success: false, error: "Unauthorized" };
+  const actor = await requireCurrentWorkspaceAccess();
+  const existingRule = await db.automatedMessageRule.findFirst({
+    where: {
+      id: ruleId,
+      workspaceId: actor.workspaceId,
+    },
+    select: { id: true },
+  });
+  if (!existingRule) return { success: false, error: "Rule not found" };
 
   await db.automatedMessageRule.update({
     where: { id: ruleId },
     data,
   });
 
+  revalidatePath("/crm/settings/call-settings");
   revalidatePath("/crm/settings/notifications");
   return { success: true };
 }
@@ -122,22 +123,16 @@ export async function createAutomatedMessageRule(data: {
   messageTemplate: string;
   hoursOffset: number;
 }): Promise<{ success: boolean; error?: string }> {
-  const authUser = await getAuthUser();
-  if (!authUser?.email) return { success: false, error: "Unauthorized" };
-
-  const user = await db.user.findFirst({
-    where: { email: authUser.email },
-    select: { workspaceId: true },
-  });
-  if (!user) return { success: false, error: "User not found" };
+  const actor = await requireCurrentWorkspaceAccess();
 
   await db.automatedMessageRule.create({
     data: {
       ...data,
-      workspaceId: user.workspaceId,
+      workspaceId: actor.workspaceId,
     },
   });
 
+  revalidatePath("/crm/settings/call-settings");
   revalidatePath("/crm/settings/notifications");
   return { success: true };
 }
@@ -148,10 +143,18 @@ export async function createAutomatedMessageRule(data: {
 export async function deleteAutomatedMessageRule(
   ruleId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const authUser = await getAuthUser();
-  if (!authUser?.email) return { success: false, error: "Unauthorized" };
+  const actor = await requireCurrentWorkspaceAccess();
+  const existingRule = await db.automatedMessageRule.findFirst({
+    where: {
+      id: ruleId,
+      workspaceId: actor.workspaceId,
+    },
+    select: { id: true },
+  });
+  if (!existingRule) return { success: false, error: "Rule not found" };
 
   await db.automatedMessageRule.delete({ where: { id: ruleId } });
+  revalidatePath("/crm/settings/call-settings");
   revalidatePath("/crm/settings/notifications");
   return { success: true };
 }

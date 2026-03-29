@@ -24,6 +24,7 @@ const buttonVariants = cva(
                 sm: "h-8 px-3 text-xs rounded-md",
                 lg: "h-11 px-6 text-base font-semibold rounded-md",
                 icon: "h-10 w-10 rounded-md",
+                toolbar: "toolbar-pill",
             },
         },
         defaultVariants: {

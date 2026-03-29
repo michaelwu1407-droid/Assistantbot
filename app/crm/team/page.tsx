@@ -201,7 +201,7 @@ export default function TeamPage() {
         <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-2">
-                    <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Team Management</h1>
+                    <h1 className="app-page-title">Team Management</h1>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
                         <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{displayMembers.length} member{displayMembers.length === 1 ? "" : "s"}</span>
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{pendingInviteCount} pending invite{pendingInviteCount === 1 ? "" : "s"}</span>
@@ -220,7 +220,7 @@ export default function TeamPage() {
                     }
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="h-11 rounded-[18px] px-5 text-sm font-semibold shadow-sm">
+                        <Button size="toolbar" className="px-5 shadow-sm">
                             <Plus className="w-4 h-4 mr-2" />
                             Invite Member
                         </Button>

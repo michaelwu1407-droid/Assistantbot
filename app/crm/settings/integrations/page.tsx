@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Calendar, Check, Loader2, Zap, X, FileText, CreditCard } from "lucide-react"
+import { Mail, Calendar, Check, Loader2, Zap, X, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationStatus } from "@/actions/integration-actions"
@@ -165,9 +165,9 @@ export default function IntegrationsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Integrations</h3>
-                <p className="text-sm text-muted-foreground">
-                    Connect Earlymark to your external tools.
+                <h3 className="app-section-title">Integrations</h3>
+                <p className="app-body-secondary">
+                    Connect the tools Tracey actually uses to capture leads, sync your calendar, and draft invoices.
                 </p>
             </div>
             <Separator />
@@ -181,14 +181,14 @@ export default function IntegrationsPage() {
                             <CardTitle>Instant Lead Capture</CardTitle>
                         </div>
                         <CardDescription>
-                            This is usually connected during onboarding. If it was skipped, connect Gmail or Outlook here to capture leads automatically from Hipages, Airtasker, ServiceSeeking and more.
+                            Connect Gmail or Outlook so Earlymark can capture lead emails automatically. This is usually done during onboarding, but you can finish it here if it was skipped.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>How it works:</strong> Connect your email account once and we&apos;ll automatically create filters to watch for lead notifications from all major platforms. No manual setup required - we handle everything!
+                                <strong>How it works:</strong> Connect once and Earlymark creates the lead-email filters for the major platforms automatically.
                             </p>
                         </div>
 
@@ -347,55 +347,14 @@ export default function IntegrationsPage() {
                                 Connecting...
                             </Button>
                         )}
-                        {xeroStatus === "connected" && (
-                            <Button variant="outline" disabled>
+                        {xeroStatus === "connected" ? (
+                            <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
                                 Connected
-                            </Button>
-                        )}
+                            </Badge>
+                        ) : null}
                     </CardFooter>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CreditCard className="h-5 w-5 text-indigo-500" />
-                            Payment Processors
-                        </CardTitle>
-                        <CardDescription>
-                            Connect payment gateways to securely receive payments from clients online.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-slate-50 border rounded-lg">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white rounded-md shadow-sm border text-indigo-600 font-bold">
-                                    Stripe
-                                </div>
-                                <div>
-                                    <h4 className="font-medium text-sm">Stripe</h4>
-                                    <p className="text-xs text-muted-foreground">Accept credit cards and Apple/Google Pay</p>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" disabled>
-                                Coming soon
-                            </Button>
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-slate-50 border rounded-lg">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white rounded-md shadow-sm border text-purple-600 font-bold">
-                                    MYOB
-                                </div>
-                                <div>
-                                    <h4 className="font-medium text-sm">MYOB PayBy</h4>
-                                    <p className="text-xs text-muted-foreground">Receive payments directly to your MYOB account</p>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" disabled>
-                                Coming soon
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     )

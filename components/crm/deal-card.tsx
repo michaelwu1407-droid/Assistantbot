@@ -6,7 +6,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { approveCompletion, DealView, rejectCompletion } from "@/actions/deal-actions"
+import { approveCompletion, approveDraft, DealView, rejectCompletion, rejectDraft } from "@/actions/deal-actions"
 import { format } from "date-fns"
 import { getOverdueStyling } from "@/lib/deal-utils"
 import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
@@ -38,6 +38,11 @@ interface TeamMemberOption {
   role: string
 }
 
+export type DealCardDecision =
+  | { type: "approve_completion" }
+  | { type: "reject_completion"; reason?: string }
+  | { type: "approve_draft" }
+  | { type: "reject_draft"; reason?: string }
 
 interface DealCardProps {
   deal: DealView
@@ -52,6 +57,7 @@ interface DealCardProps {
   selectionMode?: boolean
   onToggleSelected?: (dealId: string, checked: boolean) => void
   onEnterSelectionMode?: (dealId: string) => void
+  onDecisionApplied?: (decision: DealCardDecision) => void
   /** Used for Kanban inline completion approval; optional elsewhere. */
   currentUserRole?: string
 }
@@ -103,17 +109,21 @@ export function DealCard({
   selectionMode = false,
   onToggleSelected,
   onEnterSelectionMode,
+  onDecisionApplied,
   currentUserRole = "TEAM_MEMBER",
 }: DealCardProps) {
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [approvalBusy, setApprovalBusy] = useState(false)
+  const [pendingApprovalActionsOpen, setPendingApprovalActionsOpen] = useState(false)
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const showKanbanApproval =
     !overlay && isManager && deal.stage === "pending_approval"
+  const showDraftApproval = !overlay && deal.isDraft
+  const showBannerActions = showKanbanApproval || showDraftApproval
 
   // Check if deal is overdue
   const overdueStyling = getOverdueStyling({
@@ -230,6 +240,8 @@ export function DealCard({
       const result = await approveCompletion(deal.id)
       if (result.success) {
         toast.success("Job approved and marked completed")
+        setPendingApprovalActionsOpen(false)
+        onDecisionApplied?.({ type: "approve_completion" })
         router.refresh()
       } else {
         toast.error(result.error ?? "Failed to approve")
@@ -241,14 +253,43 @@ export function DealCard({
     }
   }
 
+  const handleApproveDraft = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setApprovalBusy(true)
+    try {
+      const result = await approveDraft(deal.id)
+      if (result.success) {
+        toast.success("Draft approved")
+        setPendingApprovalActionsOpen(false)
+        onDecisionApplied?.({ type: "approve_draft" })
+        router.refresh()
+      } else {
+        toast.error(result.error ?? "Failed to approve draft")
+      }
+    } catch {
+      toast.error("Failed to approve draft")
+    } finally {
+      setApprovalBusy(false)
+    }
+  }
+
   const submitRejectKanban = async () => {
     setApprovalBusy(true)
     try {
-      const result = await rejectCompletion(deal.id, rejectReason.trim() || undefined)
+      const result = showDraftApproval
+        ? await rejectDraft(deal.id, rejectReason.trim() || undefined)
+        : await rejectCompletion(deal.id, rejectReason.trim() || undefined)
       if (result.success) {
-        toast.success("Completion rejected. The job was sent back for editing.")
+        toast.success(showDraftApproval ? "Draft rejected and moved to Deleted." : "Completion rejected. The job was sent back for editing.")
         setRejectDialogOpen(false)
         setRejectReason("")
+        setPendingApprovalActionsOpen(false)
+        onDecisionApplied?.(
+          showDraftApproval
+            ? { type: "reject_draft", reason: rejectReason.trim() || undefined }
+            : { type: "reject_completion", reason: rejectReason.trim() || undefined }
+        )
         router.refresh()
       } else {
         toast.error(result.error ?? "Failed to reject")
@@ -387,17 +428,15 @@ export function DealCard({
                 </span>
               </div>
             </div>
-            {deal.address && (
-              <div className="flex min-h-0 items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span
-                  className="min-w-0 truncate text-[10.5px] leading-tight text-muted-foreground"
-                  title={deal.address}
-                >
-                  {deal.address}
-                </span>
-              </div>
-            )}
+            <div className="flex min-h-0 items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span
+                className="min-w-0 truncate text-[10.5px] leading-tight text-muted-foreground"
+                title={deal.address || "No address"}
+              >
+                {deal.address || "-"}
+              </span>
+            </div>
             <div className="flex min-h-0 items-center gap-2">
               <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span
@@ -413,47 +452,45 @@ export function DealCard({
                 />
               )}
             </div>
-            {(teamMembers.length > 0 || deal.assignedToName) && (
-              <div className="flex min-h-0 items-center gap-2" data-no-card-click>
-                <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                {onAssign && teamMembers.length > 0 && !overlay ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="min-w-0 truncate text-left text-[10px] text-muted-foreground hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {deal.assignedToName ?? "Unassigned"}
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                      {(() => {
-                        const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(
-                          columnId || ""
-                        )
-                        return requiresAssignment ? (
-                          <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
-                            Cannot unassign (move to earlier stage first)
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => onAssign(null)}>Unassign</DropdownMenuItem>
-                        )
-                      })()}
-                      {teamMembers.map((m) => (
-                        <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
-                          {m.name || m.email}
+            <div className="flex min-h-0 items-center gap-2" data-no-card-click>
+              <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {onAssign && teamMembers.length > 0 && !overlay ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="min-w-0 truncate text-left text-[10px] text-muted-foreground hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {deal.assignedToName ?? "-"}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                    {(() => {
+                      const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(
+                        columnId || ""
+                      )
+                      return requiresAssignment ? (
+                        <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
+                          Cannot unassign (move to earlier stage first)
                         </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <span className="min-w-0 truncate text-[10px] text-muted-foreground">
-                    {deal.assignedToName ?? "Unassigned"}
-                  </span>
-                )}
-              </div>
-            )}
+                      ) : (
+                        <DropdownMenuItem onClick={() => onAssign(null)}>Unassign</DropdownMenuItem>
+                      )
+                    })()}
+                    {teamMembers.map((m) => (
+                      <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
+                        {m.name || m.email}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <span className="min-w-0 truncate text-[10px] text-muted-foreground">
+                  {deal.assignedToName ?? "-"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -461,52 +498,49 @@ export function DealCard({
         <div
           className={cn(
             "relative mt-1 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
-            showKanbanApproval && "min-h-0"
+            showBannerActions && "min-h-0"
           )}
         >
-          {showKanbanApproval && (
-            <div
-              className="relative z-20 flex shrink-0 flex-wrap gap-1.5 border-b border-border/10 bg-card/95 px-3 pb-1.5 pt-1.5 dark:bg-card/90"
-              data-no-card-click
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <Button
-                type="button"
-                size="sm"
-                className="h-7 px-2.5 text-xs font-semibold"
-                disabled={approvalBusy}
-                onClick={handleApproveKanban}
-              >
-                Approve
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 border-amber-400 px-2.5 text-xs font-semibold text-amber-900 hover:bg-amber-50 dark:text-amber-100 dark:hover:bg-amber-950/40"
-                disabled={approvalBusy}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  setRejectDialogOpen(true)
-                }}
-              >
-                Reject
-              </Button>
-            </div>
-          )}
-
           {showStatusBanner ? (
-            <div className="relative z-0 min-h-[2.5rem]">
-              <div className="relative z-0 flex min-h-[2.25rem] items-center gap-2 px-3 py-1.5">
+            <div className="relative z-0 h-9">
+              <div className="relative z-0 flex h-9 items-center gap-2 px-3 py-1">
                 {footerBaseRow}
               </div>
               <div
-                className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center rounded-b-lg"
+                className={cn(
+                  "absolute inset-0 z-[1] flex flex-col items-center justify-center rounded-b-lg",
+                  showBannerActions ? "cursor-pointer" : "pointer-events-none"
+                )}
                 title={statusBannerTitle}
+                data-no-card-click={showBannerActions ? true : undefined}
+                onPointerDown={(e) => {
+                  if (!showBannerActions) return
+                  e.stopPropagation()
+                }}
+                onPointerUp={(e) => {
+                  if (!showBannerActions) return
+                  if (e.pointerType === "mouse") return
+                  e.stopPropagation()
+                  setPendingApprovalActionsOpen((current) => !current)
+                }}
+                onClick={(e) => {
+                  if (!showBannerActions) return
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+                onMouseLeave={() => {
+                  if (showBannerActions) setPendingApprovalActionsOpen(false)
+                }}
               >
                 <div className={cn("absolute inset-0 rounded-b-lg shadow-inner", overlayBannerClass)} />
-                <div className="relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[10px] font-bold uppercase leading-none tracking-wide text-white drop-shadow-md">
+                <div
+                  className={cn(
+                    "relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[10px] font-bold uppercase leading-none tracking-wide text-white drop-shadow-md transition-opacity duration-150",
+                    showBannerActions && (pendingApprovalActionsOpen
+                      ? "opacity-0"
+                      : "opacity-100 group-hover:opacity-0")
+                  )}
+                >
                   {overdueStyling.badgeText ? (
                     <>
                       <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
@@ -516,10 +550,52 @@ export function DealCard({
                     <span className="truncate">{overlayLabel}</span>
                   )}
                 </div>
+                {showBannerActions && (
+                  <div
+                    className={cn(
+                      "absolute inset-0 z-[3] flex items-center justify-center gap-2 px-2 transition-opacity duration-150",
+                      pendingApprovalActionsOpen
+                        ? "opacity-100 pointer-events-auto"
+                        : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+                    )}
+                    data-no-card-click
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                    }}
+                  >
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-6 bg-emerald-600 px-2.5 text-[10px] font-semibold text-white hover:bg-emerald-700"
+                      disabled={approvalBusy}
+                      onClick={showDraftApproval ? handleApproveDraft : handleApproveKanban}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 border-amber-200 bg-white/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
+                      disabled={approvalBusy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        setRejectDialogOpen(true)
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
-            <div className="relative flex min-h-[2.25rem] items-center gap-2 bg-muted/15 px-3 py-1.5 dark:bg-muted/25">
+            <div className="relative flex h-9 items-center gap-2 bg-muted/15 px-3 py-1 dark:bg-muted/25">
               {footerBaseRow}
             </div>
           )}
@@ -530,14 +606,19 @@ export function DealCard({
         open={rejectDialogOpen}
         onOpenChange={(open) => {
           setRejectDialogOpen(open)
-          if (!open) setRejectReason("")
+          if (!open) {
+            setRejectReason("")
+            setPendingApprovalActionsOpen(false)
+          }
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject completion?</AlertDialogTitle>
+            <AlertDialogTitle>{showDraftApproval ? "Reject draft?" : "Reject completion?"}</AlertDialogTitle>
             <AlertDialogDescription>
-              The job will be sent back so your team can edit it. You can add an optional note for them.
+              {showDraftApproval
+                ? "The draft will be moved to Deleted so it no longer clutters the active board. You can add an optional note for the audit trail."
+                : "The job will be sent back so your team can edit it. You can add an optional note for them."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
@@ -554,7 +635,7 @@ export function DealCard({
               className="bg-amber-600 text-white hover:bg-amber-700"
               onClick={() => void submitRejectKanban()}
             >
-              Reject & send back
+              {showDraftApproval ? "Reject draft" : "Reject & send back"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

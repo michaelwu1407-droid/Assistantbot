@@ -298,10 +298,10 @@ export default function AnalyticsPage() {
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Analytics & Reporting</h1>
+            <h1 className="app-page-title">Analytics & Reporting</h1>
             <div className="flex items-center gap-2">
               <Select value={timeRange} onValueChange={(value) => setTimeRange(value as ReportRange)}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="toolbar-pill w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
                   <SelectItem value="1y">LTM</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" onClick={printReport} title="Print report">
+              <Button variant="outline" size="icon" className="rounded-full" onClick={printReport} title="Print report">
                 <Printer className="h-4 w-4" />
               </Button>
             </div>
@@ -330,7 +330,7 @@ export default function AnalyticsPage() {
         >
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Revenue</p>
+              <p className="app-micro-label">Revenue</p>
               <DollarSign className="h-5 w-5 text-muted-foreground/40" />
             </div>
             <p className="text-3xl font-bold text-neutral-900">{formatCurrency(data.revenue.total)}</p>
@@ -346,7 +346,7 @@ export default function AnalyticsPage() {
         <Card className="cursor-pointer rounded-[18px] hover:shadow-md transition-shadow" onClick={() => setCustomersExpanded(!customersExpanded)}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Customers</p>
+              <p className="app-micro-label">Customers</p>
               <Users className="h-5 w-5 text-muted-foreground/40" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -374,7 +374,7 @@ export default function AnalyticsPage() {
         <Card className="rounded-[18px]">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Jobs won with Tracey</p>
+              <p className="app-micro-label">Jobs won with Tracey</p>
               <LayoutList className="h-5 w-5 text-muted-foreground/40" />
             </div>
             <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>

@@ -217,7 +217,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
             <div className="p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50 dark:bg-red-950/20 shadow-sm shrink-0">
               <h3 className="font-semibold text-red-900 dark:text-red-200 mb-3 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500" />
-                Chatbot feedback
+                Customer feedback
               </h3>
               <div className="space-y-3">
                 {contact.customerFeedback.map((fb) => (
@@ -231,8 +231,8 @@ export default async function ContactDetailPage({ params }: PageProps) {
                     </summary>
                     <div className="p-3 text-xs text-red-700 dark:text-red-400 border-t border-red-200 dark:border-red-900/50 bg-white/50 dark:bg-black/20">
                       <div className="bg-red-50/50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30 whitespace-pre-wrap font-mono">
-                        <p className="font-semibold text-red-900 dark:text-red-300 mb-1 font-sans">Transcript snippet / Comment:</p>
-                        {fb.comment || "No transcript available."}
+                        <p className="font-semibold text-red-900 dark:text-red-300 mb-1 font-sans">Customer comment:</p>
+                        {fb.comment || "No written comment provided."}
                         {fb.resolution && (
                           <div className="mt-3 pt-2 border-t border-red-200 dark:border-red-900/50">
                             <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1 font-sans">Resolution notes:</p>

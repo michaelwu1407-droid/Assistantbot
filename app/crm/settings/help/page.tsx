@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Phone, Activity, BookOpen, GraduationCap } from "lucide-react";
 import { useShellStore } from "@/lib/store";
+import { SupportRequestPanel } from "@/components/settings/support-request-panel";
 
 const handbookSections = [
   {
@@ -21,7 +22,7 @@ const handbookSections = [
   {
     title: "Calls, texts, and lead capture",
     content:
-      "Automated calling and texting controls phone behavior and templates. Integrations handles inbox lead capture and optional immediate-callback behavior.",
+      "Calls & texting controls customer contact hours, urgent-call routing, and automated customer messages. Account handles Tracey's number and forwarding, and Integrations handles inbox lead capture.",
   },
   {
     title: "Scheduling and routing",
@@ -77,7 +78,7 @@ export default function HelpSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline" asChild>
-            <Link href="/crm/settings/support">Open support and create ticket</Link>
+            <Link href="#support-request">Open support form</Link>
           </Button>
         </CardContent>
       </Card>
@@ -99,6 +100,8 @@ export default function HelpSettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      <SupportRequestPanel />
 
       <Card>
         <CardHeader>

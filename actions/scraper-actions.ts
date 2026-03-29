@@ -26,6 +26,7 @@ export interface ScrapeResult {
   email?: string;
   address?: string;
   tradeType?: string;
+  googleReviewUrl?: string;
   emergencyAvailable?: boolean;
   emergencyHours?: string;
 }
@@ -59,6 +60,22 @@ function getHost(value?: string) {
   } catch {
     return "";
   }
+}
+
+function extractGoogleReviewUrlFromHtml(html: string) {
+  const decoded = html.replace(/&amp;/gi, "&");
+  const patterns = [
+    /https?:\/\/g\.page\/[^\s"'<>]+\/review/gi,
+    /https?:\/\/search\.google\.com\/local\/writereview\?[^\s"'<>]+/gi,
+    /https?:\/\/(?:www\.)?google\.com\/maps\/[^\s"'<>]*(?:review|place|search)[^\s"'<>]*/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern);
+    if (match?.[0]) return match[0];
+  }
+
+  return undefined;
 }
 
 async function lookupBusinessHoursFromGooglePlaces(params: {
@@ -278,6 +295,7 @@ Return ONLY valid JSON. No markdown, no code fences.`,
         email: sanitizeString(parsed.email),
         address: sanitizeString(parsed.address),
         tradeType: sanitizeString(parsed.tradeType),
+        googleReviewUrl: extractGoogleReviewUrlFromHtml(html),
         emergencyAvailable: !!parsed.emergencyAvailable,
         emergencyHours: sanitizeString(parsed.emergencyHours),
       },

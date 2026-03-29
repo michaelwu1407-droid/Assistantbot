@@ -416,9 +416,9 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 <div className="mx-auto bg-amber-100 p-3 rounded-full mb-4">
                                     <Star className="h-6 w-6 text-amber-600" />
                                 </div>
-                                <DialogTitle className="text-center">Send Review Request?</DialogTitle>
+                                <DialogTitle className="text-center">Send Feedback Request?</DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Job complete! Send the client a review request via SMS or email?
+                                    Job complete! Send the client a feedback request via SMS or email?
                                 </DialogDescription>
                             </DialogHeader>
 

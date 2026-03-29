@@ -222,7 +222,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 md:p-6 space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Contacts</h1>
+            <h1 className="app-page-title">Contacts</h1>
             {selected.size > 0 && (
               <div className="flex items-center gap-2">
                 <span className="mr-1 text-sm text-muted-foreground">{selected.size} selected</span>
@@ -254,9 +254,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="toolbar"
                   className={cn(
-                    "min-w-[120px] justify-between gap-1.5 text-xs",
+                    "min-w-[120px] justify-between gap-1.5 text-sm",
                     selectedStageIds.size < allStageIds.size && "border-primary/50 bg-primary/5"
                   )}
                 >
@@ -306,7 +306,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="min-w-[100px] justify-between gap-1.5 text-xs">
+                <Button variant="outline" size="toolbar" className="min-w-[120px] justify-between gap-1.5 text-sm">
                   <span className="truncate">
                     {typeFilter === "all" ? "Type: All" : typeFilter === "individual" ? "Individual" : "Business"}
                   </span>

@@ -1,17 +1,7 @@
-import { Separator } from "@/components/ui/separator"
-import { AppearanceForm } from "../appearance-form"
+import { redirect } from "next/navigation"
+
+export const dynamic = "force-dynamic"
 
 export default function AppearanceSettingsPage() {
-    return (
-        <div className="space-y-6">
-            <div>
-                <h3 className="text-lg font-medium">Appearance</h3>
-                <p className="text-sm text-muted-foreground">
-                    Customize the look and feel of the app. Automatically switch between day and night themes.
-                </p>
-            </div>
-            <Separator />
-            <AppearanceForm />
-        </div>
-    )
+  redirect("/crm/settings/display")
 }

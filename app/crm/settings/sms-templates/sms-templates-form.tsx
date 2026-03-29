@@ -24,7 +24,7 @@ interface SmsTemplatesFormProps {
 const TRIGGER_META: Record<TriggerEvent, { label: string; description: string; icon: typeof MessageSquare }> = {
   JOB_COMPLETE: {
     label: "Job Complete",
-    description: "Sent after you mark a job as done. Great for review requests.",
+    description: "Sent after you mark a job as done. Great for requesting customer feedback.",
     icon: MessageSquare,
   },
   ON_MY_WAY: {
@@ -72,7 +72,8 @@ export function SmsTemplatesForm({ initialTemplates }: SmsTemplatesFormProps) {
     <div className="space-y-4">
       <p className="text-xs text-slate-500">
         Use <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[Name]</code> to insert the client&apos;s name and{" "}
-        <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[Link]</code> for your review link.
+        <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[ReviewRequest]</code> for the feedback ask with link.{" "}
+        <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[Link]</code> inserts the raw feedback link only.
       </p>
 
       {templates.map((tpl) => {

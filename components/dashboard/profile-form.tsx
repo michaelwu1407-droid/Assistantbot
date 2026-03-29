@@ -44,11 +44,11 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
   };
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="rounded-[18px] border-slate-200 shadow-sm dark:border-slate-800">
       <CardHeader>
-        <CardTitle>Profile Settings</CardTitle>
+        <CardTitle>Profile</CardTitle>
         <CardDescription>
-          Manage your personal information and preferences
+          Change your display name. Your login email is shown here for reference.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -88,7 +88,7 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
             className="w-full sm:w-auto"
             disabled={isLoading}
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading ? "Saving..." : "Save profile"}
           </Button>
         </form>
       </CardContent>

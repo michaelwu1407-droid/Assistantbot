@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function AfterHoursSettingsPage() {
-  redirect("/crm/settings/automated-calling-texting");
+  redirect("/crm/settings/call-settings");
 }

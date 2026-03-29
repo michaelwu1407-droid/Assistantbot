@@ -403,6 +403,7 @@ export function TraceyOnboarding() {
   const [tradeType, setTradeType] = useState("")
   const [publicPhone, setPublicPhone] = useState("")
   const [publicEmail, setPublicEmail] = useState("")
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("")
   const [physicalAddress, setPhysicalAddress] = useState("")
   const [serviceRadius, setServiceRadius] = useState(20)
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(createDefaultWeeklyHours())
@@ -593,6 +594,7 @@ export function TraceyOnboarding() {
         if (result.data.tradeType && !tradeType) setTradeType(matchTradeType(result.data.tradeType))
         if (result.data.phone && !publicPhone) setPublicPhone(result.data.phone)
         if (result.data.email && !publicEmail) setPublicEmail(result.data.email)
+        if (result.data.googleReviewUrl && !googleReviewUrl) setGoogleReviewUrl(result.data.googleReviewUrl)
         const scrapedPhysicalAddress = resolveScrapedPhysicalAddress(result.data)
         if (scrapedPhysicalAddress && !physicalAddress) {
           setPhysicalAddress(scrapedPhysicalAddress)
@@ -695,7 +697,7 @@ export function TraceyOnboarding() {
     } finally {
       setScraping(false)
     }
-  }, [websiteUrl, businessName, tradeType, publicPhone, publicEmail, physicalAddress])
+  }, [websiteUrl, businessName, tradeType, publicPhone, publicEmail, googleReviewUrl, physicalAddress])
 
   // Trigger scrape when website URL is entered and user moves to step 2
   useEffect(() => {
@@ -942,6 +944,7 @@ export function TraceyOnboarding() {
         tradeType,
         publicPhone,
         publicEmail,
+        googleReviewUrl,
         physicalAddress,
         serviceRadius,
         standardWorkHours: summarizeWeeklyHours(resolvedWeeklyHours),
@@ -1275,6 +1278,17 @@ export function TraceyOnboarding() {
                             value={publicEmail}
                             onChange={(e) => setPublicEmail(e.target.value)}
                           />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <Label>Google review link (optional)</Label>
+                          <Input
+                            placeholder="https://g.page/r/your-business/review"
+                            value={googleReviewUrl}
+                            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                          />
+                          <p className="text-xs text-slate-500">
+                            Optional. If your website already links to Google reviews, we&apos;ll try to pre-fill this. Customers still go through the Earlymark feedback form first. This only adds a public review step for strong feedback.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1634,11 +1648,11 @@ export function TraceyOnboarding() {
 
                     {/* Services Table */}
                     <div className="space-y-3">
-                      <div className="hidden sm:grid sm:grid-cols-12 gap-2 px-1 text-xs font-semibold text-slate-500 uppercase">
-                        <span className="col-span-3">Service</span>
-                        <span className="col-span-2">Min ($)</span>
-                        <span className="col-span-2">Max ($)</span>
-                        <span className="col-span-4">
+                      <div className="hidden sm:grid sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px] gap-2 px-1 text-xs font-semibold text-slate-500 uppercase">
+                        <span>Service</span>
+                        <span>Min ($)</span>
+                        <span>Max ($)</span>
+                        <span>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 cursor-help">
@@ -1650,46 +1664,54 @@ export function TraceyOnboarding() {
                             </Tooltip>
                           </TooltipProvider>
                         </span>
-                        <span className="col-span-1"></span>
+                        <span></span>
                       </div>
 
                       {services.map((svc, i) => (
-                        <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 rounded-lg border bg-white dark:bg-slate-900">
-                          <div className="sm:col-span-3">
+                        <div
+                          key={i}
+                          className="grid grid-cols-1 gap-2 rounded-[18px] border bg-white p-3 dark:bg-slate-900 sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px]"
+                        >
+                          <div>
                             <Label className="sm:hidden text-xs text-slate-500 mb-1">Service Name</Label>
                             <Input
                               placeholder="e.g. Tap Replacement"
                               value={svc.serviceName}
                               onChange={(e) => updateService(i, "serviceName", e.target.value)}
+                              className="min-w-0"
                             />
                           </div>
-                          <div className="sm:col-span-2">
+                          <div>
                             <Label className="sm:hidden text-xs text-slate-500 mb-1">Min ($)</Label>
                             <Input
                               type="number"
                               placeholder="$"
                               value={svc.priceMin ?? ""}
                               onChange={(e) => updateService(i, "priceMin", e.target.value ? Number(e.target.value) : undefined)}
+                              className="min-w-0"
                             />
                           </div>
-                          <div className="sm:col-span-2">
+                          <div>
                             <Label className="sm:hidden text-xs text-slate-500 mb-1">Max ($)</Label>
                             <Input
                               type="number"
                               placeholder="$"
                               value={svc.priceMax ?? ""}
                               onChange={(e) => updateService(i, "priceMax", e.target.value ? Number(e.target.value) : undefined)}
+                              className="min-w-0"
                             />
                           </div>
-                          <div className="sm:col-span-4">
+                          <div>
                             <Label className="sm:hidden text-xs text-slate-500 mb-1">Teach Tracey</Label>
-                            <Input
+                            <Textarea
                               placeholder="e.g. Ask if gas or electric"
                               value={svc.traceyNotes}
                               onChange={(e) => updateService(i, "traceyNotes", e.target.value)}
+                              rows={2}
+                              className="min-h-[60px] resize-none"
                             />
                           </div>
-                          <div className="sm:col-span-1 flex items-center justify-end">
+                          <div className="flex items-start justify-end pt-1">
                             <Button
                               variant="ghost"
                               size="icon"

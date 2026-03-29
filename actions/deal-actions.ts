@@ -744,23 +744,31 @@ export async function persistKanbanColumnOrder(
 export async function approveCompletion(dealId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const auth = await getAuthUser();
-    if (!auth?.email) return { success: false, error: "Not signed in." };
-    const actor = await db.user.findFirst({
-      where: { email: auth.email },
-      select: { id: true, role: true, workspaceId: true },
-    });
-    if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER"))
+    let actor;
+    try {
+      const currentActor = await requireCurrentWorkspaceAccess();
+      actor = await db.user.findUnique({
+        where: { id: currentActor.id },
+        select: { id: true, name: true, role: true, workspaceId: true },
+      });
+    } catch {
+      return { success: false, error: "Not signed in." };
+    }
+    if (!actor) {
+      return { success: false, error: "Not signed in." };
+    }
+    if (actor.role !== "OWNER" && actor.role !== "MANAGER")
       return { success: false, error: "Only a team manager or owner can approve completions." };
 
-    const deal = await db.deal.findUnique({
+    const scopedDeal = await db.deal.findUnique({
       where: { id: dealId },
       select: { id: true, stage: true, workspaceId: true, metadata: true, contactId: true },
     });
-    if (!deal) return { success: false, error: "Deal not found." };
-    if (deal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
-    if (deal.stage !== "PENDING_COMPLETION") return { success: false, error: "This job is not pending approval." };
+    if (!scopedDeal) return { success: false, error: "Deal not found." };
+    if (scopedDeal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
+    if (scopedDeal.stage !== "PENDING_COMPLETION") return { success: false, error: "This job is not pending approval." };
 
-    const meta = (deal.metadata as Record<string, unknown>) ?? {};
+    const meta = (scopedDeal.metadata as Record<string, unknown>) ?? {};
     const requestedBy = meta.completionRequestedBy as string | undefined;
 
     await db.deal.update({
@@ -780,7 +788,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       },
     });
 
-    const userName = auth.name;
+    const userName = auth?.name || actor.name || "Manager";
     await db.activity.create({
       data: {
         type: "NOTE",
@@ -788,7 +796,7 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
         content: "Manager approved and job marked as completed.",
         description: `— ${userName}`,
         dealId,
-        contactId: deal.contactId ?? undefined,
+        contactId: scopedDeal.contactId ?? undefined,
         userId: actor.id,
       },
     });
@@ -812,12 +820,12 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
       console.warn("Pricing learning hook failed on approveCompletion:", learningErr);
     }
     try {
-      await queueCompletionFollowUp(deal.workspaceId, dealId, deal.contactId);
+      await queueCompletionFollowUp(scopedDeal.workspaceId, dealId, scopedDeal.contactId);
     } catch (followUpErr) {
       console.warn("Post-job follow-up hook failed on approveCompletion:", followUpErr);
     }
 
-    // Automate review request
+    // Automate customer feedback request
     try {
       const { sendReviewRequestSMS } = await import("./messaging-actions");
       await sendReviewRequestSMS(dealId);
@@ -839,13 +847,20 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
  */
 export async function rejectCompletion(dealId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const auth = await getAuthUser();
-    if (!auth?.email) return { success: false, error: "Not signed in." };
-    const actor = await db.user.findFirst({
-      where: { email: auth.email },
-      select: { id: true, name: true, role: true, workspaceId: true },
-    });
-    if (!actor || (actor.role !== "OWNER" && actor.role !== "MANAGER"))
+    let actor;
+    try {
+      const currentActor = await requireCurrentWorkspaceAccess();
+      actor = await db.user.findUnique({
+        where: { id: currentActor.id },
+        select: { id: true, name: true, role: true, workspaceId: true },
+      });
+    } catch {
+      return { success: false, error: "Not signed in." };
+    }
+    if (!actor) {
+      return { success: false, error: "Not signed in." };
+    }
+    if (actor.role !== "OWNER" && actor.role !== "MANAGER")
       return { success: false, error: "Only a team manager or owner can reject completions." };
 
     const deal = await db.deal.findUnique({
@@ -904,6 +919,122 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
   } catch (err) {
     logger.error("rejectCompletion failed", { component: "deal-actions", action: "rejectCompletion", dealId }, err as Error);
     return { success: false, error: err instanceof Error ? err.message : "Failed to reject." };
+  }
+}
+
+export async function approveDraft(dealId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    let actor;
+    try {
+      const currentActor = await requireCurrentWorkspaceAccess();
+      actor = await db.user.findUnique({
+        where: { id: currentActor.id },
+        select: { id: true, name: true, workspaceId: true },
+      });
+    } catch {
+      return { success: false, error: "Not signed in." };
+    }
+    if (!actor) {
+      return { success: false, error: "Not signed in." };
+    }
+
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { id: true, title: true, isDraft: true, workspaceId: true, contactId: true },
+    });
+    if (!deal) return { success: false, error: "Deal not found." };
+    if (deal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
+    if (!deal.isDraft) return { success: false, error: "This card is no longer a draft." };
+
+    await db.deal.update({
+      where: { id: dealId },
+      data: {
+        isDraft: false,
+      },
+    });
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Draft approved",
+        content: "Draft approved and moved into the live pipeline.",
+        description: `— ${actor.name || "Team member"}`,
+        dealId,
+        contactId: deal.contactId ?? undefined,
+        userId: actor.id,
+      },
+    });
+
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    return { success: true };
+  } catch (err) {
+    logger.error("approveDraft failed", { component: "deal-actions", action: "approveDraft", dealId }, err as Error);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to approve draft." };
+  }
+}
+
+export async function rejectDraft(dealId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    let actor;
+    try {
+      const currentActor = await requireCurrentWorkspaceAccess();
+      actor = await db.user.findUnique({
+        where: { id: currentActor.id },
+        select: { id: true, name: true, workspaceId: true },
+      });
+    } catch {
+      return { success: false, error: "Not signed in." };
+    }
+    if (!actor) {
+      return { success: false, error: "Not signed in." };
+    }
+
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: { id: true, title: true, isDraft: true, workspaceId: true, contactId: true, metadata: true },
+    });
+    if (!deal) return { success: false, error: "Deal not found." };
+    if (deal.workspaceId !== actor.workspaceId) return { success: false, error: "Deal is in another workspace." };
+    if (!deal.isDraft) return { success: false, error: "This card is no longer a draft." };
+
+    const metadata = (deal.metadata as Record<string, unknown>) ?? {};
+
+    await db.deal.update({
+      where: { id: dealId },
+      data: {
+        isDraft: false,
+        stage: "DELETED",
+        stageChangedAt: new Date(),
+        metadata: JSON.parse(
+          JSON.stringify({
+            ...metadata,
+            draftRejectedAt: new Date().toISOString(),
+            draftRejectedBy: actor.id,
+            draftRejectionReason: reason?.trim() || null,
+          })
+        ),
+      },
+    });
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Draft rejected",
+        content: reason?.trim() ? `Draft rejected: ${reason}` : "Draft rejected and moved to Deleted.",
+        description: `— ${actor.name || "Team member"}`,
+        dealId,
+        contactId: deal.contactId ?? undefined,
+        userId: actor.id,
+      },
+    });
+
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    return { success: true };
+  } catch (err) {
+    logger.error("rejectDraft failed", { component: "deal-actions", action: "rejectDraft", dealId }, err as Error);
+    return { success: false, error: err instanceof Error ? err.message : "Failed to reject draft." };
   }
 }
 

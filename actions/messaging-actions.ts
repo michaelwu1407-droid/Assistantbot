@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -445,8 +446,9 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
 }
 
 /**
- * Send a review request SMS to a customer after a job is completed.
- * Includes a placeholder link for Google Reviews.
+ * Send a customer feedback request SMS after a job is completed.
+ * This links to the internal Earlymark feedback page first, then offers
+ * a Google review on the thank-you screen when the score is strong.
  */
 export async function sendReviewRequestSMS(dealId: string): Promise<MessageResult> {
   try {
@@ -460,7 +462,12 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
     }
 
     const businessName = deal.workspace.name || "us";
-    const message = `Hi ${deal.contact.name}, thanks for letting ${businessName} help you with your job "${deal.title}". We hope you're happy with the results! If you have a moment, we'd love if you could leave us a quick review here: https://g.page/r/your-google-review-link. Thanks!`;
+    const feedbackUrl = buildPublicFeedbackUrl({
+      dealId: deal.id,
+      contactId: deal.contactId,
+      workspaceId: deal.workspaceId,
+    });
+    const message = `Hi ${deal.contact.name}, thanks for letting ${businessName} help with "${deal.title}". We’d love your feedback: ${feedbackUrl}`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 
@@ -468,8 +475,8 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
       await db.activity.create({
         data: {
           type: "NOTE",
-          title: "Review Request Sent",
-          content: `Sent review request SMS to ${deal.contact.name}`,
+          title: "Feedback Request Sent",
+          content: `Sent customer feedback SMS to ${deal.contact.name}`,
           dealId,
           contactId: deal.contactId
         }
@@ -478,8 +485,8 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
 
     return result;
   } catch (error) {
-    console.error("Error sending review request SMS:", error);
-    return { success: false, error: "Failed to send review request SMS" };
+    console.error("Error sending feedback request SMS:", error);
+    return { success: false, error: "Failed to send feedback request SMS" };
   }
 }
 

@@ -48,13 +48,13 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
           <CardTitle className="text-base">Google Review link</CardTitle>
         </div>
         <CardDescription>
-          Tracey sends this link to customers after a job is completed. Get your link from Google Business Profile → Ask for reviews.
+          Optional. Customers always go to the Earlymark feedback form first. If you add a link here, happy customers can then leave a public Google review.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="review-url">Review URL</Label>
-          <div className="flex gap-2 max-w-lg">
+          <div className="flex max-w-lg gap-2">
             <Input
               id="review-url"
               value={url}
@@ -71,7 +71,8 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            This replaces the <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">[Link]</code> placeholder in your job completion SMS template.
+            This does not replace the internal feedback form. It only appears after a strong score, so the{" "}
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">[ReviewRequest]</code> flow can offer a public review at the end.
           </p>
         </div>
         <div className="flex justify-end">

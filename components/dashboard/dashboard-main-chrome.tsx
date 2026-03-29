@@ -66,11 +66,12 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
             <Button
                 id="new-deal-btn"
                 type="button"
+                size="toolbar"
                 onClick={() => {
                     setNewDealInitialStage("new_request")
                     setNewDealOpen(true)
                 }}
-                className="h-9 min-h-9 min-w-[4.75rem] max-w-[4.75rem] px-2.5 text-xs font-bold truncate"
+                className="min-w-[6.25rem] max-w-[7rem] truncate px-4"
             >
                 <Plus className="h-3.5 w-3.5 mr-0.5 shrink-0" />
                 {newDealLabel}

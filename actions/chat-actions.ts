@@ -2603,7 +2603,7 @@ export async function handleSupportRequest(
   if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for phone/AI agent support. Here's what I can see:\n\n📱 AI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your AI agent number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 EARLYMARK (Mon-Fri 9am-5pm) or email support@earlymark.ai`,
+      displayMessage: `Ticket #${supportTicket.id} created for phone/Tracey support. Here's what I can see:\n\n📱 Tracey Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your Tracey number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 EARLYMARK (Mon-Fri 9am-5pm) or email support@earlymark.ai`,
     };
   }
 

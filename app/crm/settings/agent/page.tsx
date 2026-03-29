@@ -92,7 +92,7 @@ export default function AgentSettingsPage() {
       <div>
         <h3 className="text-lg font-medium">AI Assistant</h3>
         <p className="text-sm text-muted-foreground">
-          Configure how Tracey thinks and behaves as an assistant. Call and text handling is in Automated calling and texting.
+          Configure how Tracey thinks, acts, and learns. Business facts live in My business, and customer contact hours and automated messages live in Calls & texting.
         </p>
       </div>
 
@@ -130,9 +130,9 @@ export default function AgentSettingsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-500" />
-            <CardTitle>Learning</CardTitle>
+            <CardTitle>Learning and guardrails</CardTitle>
           </div>
-          <CardDescription>Assistant memory and pricing-learning behavior.</CardDescription>
+          <CardDescription>How Tracey learns from confirmed jobs and the rules she should always follow.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">

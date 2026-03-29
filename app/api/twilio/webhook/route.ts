@@ -153,12 +153,6 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        const wsSettings = (workspace.settings as Record<string, unknown>) ?? {}
-        const autoRespondToMessages = (wsSettings.autoRespondToMessages as boolean) ?? true
-        if (!autoRespondToMessages) {
-            return new NextResponse("OK", { status: 200 })
-        }
-
         // 4. Process in background — return 200 immediately to prevent Twilio timeouts
         const interactionId = interaction.id;
         const workspaceId = workspace.id;

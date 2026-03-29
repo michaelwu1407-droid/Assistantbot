@@ -2464,3 +2464,302 @@ Rule: every agent change commit must include an entry in this file.
   - The internal voice-scheduling API accepts `price` as optional, but the downstream job-creation action requires a concrete number. Passing `undefined` broke production builds under TypeScript.
   - The training and Google Review settings panels had drifted from the full-payload contract used by the shared settings action, which surfaced as TypeScript build failures once the first route error was fixed.
   - The shell still had two separate layout trees around hydration; removing that split eliminates the remaining server/client markup drift in the dashboard frame.
+
+## 2026-03-28 13:46 (AEDT) - Codex
+
+- Files changed:
+  - `components/layout/shell-host.tsx`
+  - `components/settings/call-forwarding-card.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a host-level mount gate so the CRM shell renders the same lightweight frame on the server and first client pass before upgrading to the interactive dashboard shell.
+  - Wired the call-forwarding `Update phone` CTA directly through the Next router instead of relying on a button/link composition.
+- Why:
+  - A host-level mount gate is more robust than trusting every shell subcomponent and third-party panel wrapper to remain SSR-stable.
+  - The phone-settings CTA should navigate explicitly and predictably from the settings surface.
+
+## 2026-03-28 14:02 (AEDT) - Codex
+
+- Files changed:
+  - `actions/deal-actions.ts`
+  - `components/crm/deal-card.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Switched completion approval/rejection actions to resolve the acting user through the shared workspace-access helper instead of requiring a session email match.
+  - Added explicit draft approve/reject actions and moved both draft and pending-approval card actions into the fixed-height footer banner so card heights stay consistent.
+- Why:
+  - Pending-approval actions were still using an older `auth.email` lookup, which could wrongly report `Not signed in` for valid managers/owners whose current session resolved by auth user ID and workspace fallback elsewhere in the CRM.
+  - Draft cards needed a clear accept/reject outcome, and action rows could not keep changing card height inside kanban columns.
+
+## 2026-03-28 14:34 (AEDT) - Codex
+
+- Files changed:
+  - `components/layout/Shell.tsx`
+  - `components/ui/resizable.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Split the assistant edge control into two responsibilities: the resize handle remains the drag surface, and a separate overlay pill button now handles expand/collapse clicks.
+  - Increased the assistant panel minimum width to `27` so the chat pane does not collapse too narrowly.
+- Why:
+  - `react-resizable-panels` gives drag priority to overlapping elements on the resize handle, so an embedded clickable pill remained unreliable even after event-propagation fixes.
+
+## 2026-03-28 14:46 (AEDT) - Codex
+
+- Files changed:
+  - `components/layout/Shell.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced the assistant edge pill with a single custom control that supports both click-to-toggle and click-and-drag resizing/collapse, while hiding the old built-in handle pill.
+- Why:
+  - The dedicated overlay button solved click reliability, but the old handle remained visible and the new control did not support dragging. The custom pill now owns both behaviors directly.
+
+## 2026-03-28 14:58 (AEDT) - Codex
+
+- Files changed:
+  - `components/layout/Shell.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Restored the assistant divider to a hairline instead of a widened strip, kept the old grip-style pill look, and moved the pill-position updates off React state so dragging feels tighter.
+  - Fixed the custom pill close logic to decide collapse vs. clamp from the final dragged size rather than lagging component state.
+- Why:
+  - The widened divider was wasting canvas width, and rerender-driven pill positioning made the edge control feel visually laggy while dragging.
+
+## 2026-03-28 16:12 (AEDT) - Codex
+
+- Files changed:
+  - `app/globals.css`
+  - `components/ui/button.tsx`
+  - `components/layout/global-search.tsx`
+  - `components/dashboard/dashboard-main-chrome.tsx`
+  - `components/dashboard/dashboard-client.tsx`
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `app/crm/analytics/page.tsx`
+  - `app/crm/team/page.tsx`
+  - `components/crm/contacts-client.tsx`
+  - `app/crm/settings/settings-header.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added shared typography/control utility classes for page titles, section titles, body text, micro labels, KPI values, and toolbar pills.
+  - Standardized the most visible product controls around a shared toolbar-pill scale so `New Job`, `Filters`, top-bar search, and key utility actions stop drifting in font size and height.
+  - Removed the `2w` stale-window selector from the dashboard `Attention Required` KPI so it now reflects all attention-signalled cards in general.
+- Why:
+  - The product had a written typography spec but not an enforced implementation layer, which left top-bar controls and page headings visually inconsistent.
+  - The `Attention Required` KPI was implying a date-windowed definition even though the desired behavior is a general attention count.
+
+## 2026-03-28 16:38 (AEDT) - Codex
+
+- Files changed:
+  - `components/crm/deal-card.tsx`
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added an explicit post-decision callback from kanban cards back into the board so draft and pending-approval approve/reject actions immediately update the card banner, stage, and position.
+  - Decision actions now reinsert the affected card at the top of its destination column instead of waiting for a refresh and leaving it visually stuck.
+- Why:
+  - The action buttons were calling server actions and `router.refresh()`, but the in-memory kanban state never changed, so cards appeared unchanged until a later refresh and did not move to a logical place in the board.
+
+## 2026-03-28 18:02 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/integrations/page.tsx`
+  - `app/crm/settings/settings-header.tsx`
+  - `app/crm/settings/account/page.tsx`
+  - `components/settings/account-security-card.tsx`
+  - `components/ui/alert-dialog.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the unused payment-processor section (`Stripe`, `MYOB PayBy`) from Settings â†’ Integrations and removed the dead-end `Documentation (Soon)` action from the settings header.
+  - Redirected the duplicate `/crm/settings/account` route back to the canonical `/crm/settings` account surface.
+  - Rebuilt account deletion into a single stronger 3-step rescue flow with reason selection, a tailored off-ramp step, and final typed-name confirmation; removed reliance on the production-blocked `/api/delete-user` fallback from the primary UI path.
+  - Tightened shared alert-dialog styling so destructive popups align better with the upgraded dialog treatment.
+- Why:
+  - The settings area had dead-end controls and overlapping account surfaces that made the product feel unfinished and internally inconsistent.
+  - The old delete-account flow was too eager, duplicated in two places, and routed through a fallback that is blocked in production.
+
+## 2026-03-28 18:46 (AEDT) - Codex
+
+- Files changed:
+  - `actions/phone-settings.ts`
+  - `app/crm/settings/layout.tsx`
+  - `app/crm/settings/page.tsx`
+  - `app/crm/settings/phone-settings/page.tsx`
+  - `app/crm/settings/integrations/page.tsx`
+  - `components/dashboard/profile-form.tsx`
+  - `components/settings/call-forwarding-card.tsx`
+  - `components/settings/personal-phone-card.tsx`
+  - `components/settings/personal-phone-dialog.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Rebuilt the account settings phone flow so personal mobile updates now happen inline inside `/crm/settings` instead of bouncing users to a separate phone-settings page.
+  - Simplified call forwarding into a single call-handling choice (`Backup AI`, `100% AI`, or `Forwarding off`) and moved carrier selection into an advanced help section instead of presenting it as a primary setup decision.
+  - Redirected the old `/crm/settings/phone-settings` route back to the canonical account settings page, tightened the account page copy/headings, and cleaned up integration copy plus the fake disabled `Connected` Xero button.
+  - Hardened phone settings actions to resolve the current workspace/user through shared workspace access instead of relying on owner-id-only workspace lookup.
+- Why:
+  - The settings flow was asking the same call-forwarding question multiple ways, splitting one phone task across multiple surfaces, and surfacing advanced carrier detail too early.
+  - The account/settings area needed one canonical place for phone changes and fewer controls that looked clickable or primary without matching the actual workflow.
+
+## 2026-03-29 09:18 (AEDT) - Codex
+
+- Files changed:
+  - `components/settings/call-forwarding-card.tsx`
+  - `components/settings/account-security-card.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the carrier-help/settings block from the account phone card and simplified the call-handling copy so the section only asks the decisions that matter.
+  - Fixed the call-handling option layout to wrap text inside each button/card properly, kept all three modes selectable when a Tracey number exists, and cleaned up the one-tap apply section copy.
+  - Rewrote the delete-account rescue flow copy around concrete consequences like losing jobs, contacts, setup, and history instead of generic SaaS phrasing.
+- Why:
+  - The carrier block was exposing internal setup detail without enough user value, and the shared button `whitespace-nowrap` styling was letting longer descriptions spill outside their sections.
+  - The delete flow needed language that sounded like a real warning to a business owner, not abstract product copy.
+
+## 2026-03-29 09:31 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/page.tsx`
+  - `components/dashboard/profile-form.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the redundant section labels and separators from the account settings page so cards are no longer titled twice.
+  - Shortened the page heading from `Account settings` to `Account` and tightened the profile card title to `Profile`.
+- Why:
+  - The settings page was narrating the same information twice, which made it feel verbose and heavier than the actual amount of content on screen.
+
+## 2026-03-29 09:44 (AEDT) - Codex
+
+- Files changed:
+  - `components/settings/pricing-for-agent-section.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Rebalanced the service pricing table so `Service` and `Comment` own most of the width while `Min fee`, `Max fee`, and actions stay compact.
+  - Switched the comment field from a cramped single-line input to a compact two-line textarea for both new and existing rows.
+- Why:
+  - The table needed to stay dense without forcing long service names and pricing guidance into tiny one-line fields that cut off the information users actually need to type.
+
+## 2026-03-29 09:52 (AEDT) - Codex
+
+- Files changed:
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Rebalanced the onboarding services/pricing step to use the same content hierarchy as settings: wide `Service` and `Teach Tracey` columns, fixed-width numeric columns, and a compact two-line notes textarea.
+- Why:
+  - Onboarding needed the same typing space for real service names and pricing guidance, but without turning the step into a bulky back-office table.
+
+## 2026-03-29 10:01 (AEDT) - Codex
+
+- Files changed:
+  - `components/settings/pricing-for-agent-section.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced the always-visible blank draft row in the settings service pricing table with an explicit `Add service` flow.
+  - The table now shows only real rows by default, opens a draft row only when the user asks to add one, and disables the add action until a service name is entered.
+- Why:
+  - The permanent blank row looked broken because the action silently no-opâ€™d until a required name field was filled, which made the table feel buggy and cluttered.
+
+## 2026-03-29 10:22 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/call-settings/page.tsx`
+  - `app/crm/settings/display/page.tsx`
+  - `app/crm/settings/training/page.tsx`
+  - `app/crm/settings/training/training-tabs.tsx`
+  - `app/crm/settings/workspace/page.tsx`
+  - `app/crm/settings/workspace/workspace-form.tsx`
+  - `components/settings/call-settings-client.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed duplicate business-hours editors from `Calls & texting` and `Teach Tracey` so `My business` is now the only settings surface that owns working hours.
+  - Redirected the duplicate `/crm/settings/workspace` route to `My business` and moved the unique pipeline-threshold controls into `Display` so that setting still exists without a second business-details page.
+  - Added an `Other` specialty path in the business-details form that reveals a custom text field instead of trapping users in a fixed preset list.
+- Why:
+  - Settings had overlapping ownership of business data, which made the app feel inconsistent and made it unclear where users should edit the real source of truth.
+
+## 2026-03-29 11:08 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/after-hours/page.tsx`
+  - `app/crm/settings/agent/page.tsx`
+  - `app/crm/settings/ai-voice/page.tsx`
+  - `app/crm/settings/appearance/page.tsx`
+  - `app/crm/settings/help/page.tsx`
+  - `app/crm/settings/layout.tsx`
+  - `app/crm/settings/notifications/page.tsx`
+  - `app/crm/settings/sms-templates/page.tsx`
+  - `app/crm/settings/support/page.tsx`
+  - `app/crm/settings/training/page.tsx`
+  - `components/settings/account-security-card.tsx`
+  - `components/settings/support-request-panel.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Consolidated the settings IA so `My business` owns business facts, `Calls & texting` owns communication behavior, and `AI Assistant` is the single canonical page for Tracey’s decision-making.
+  - Removed the visible `Teach Tracey` duplication by keeping the `AI Assistant` name in the sidebar and redirecting the old training route into the canonical AI Assistant page.
+  - Converted legacy duplicate settings routes like `ai-voice`, `after-hours`, `sms-templates`, `appearance`, and `support` into redirects to their canonical destinations.
+  - Merged the support request form into `Help` and redirected the old support page so help and support no longer compete as separate settings experiences.
+- Why:
+  - The settings area had multiple generations of overlapping pages, which made it unclear where the real source of truth lived for AI behavior, communications, and support.
+
+## 2026-03-29 11:32 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/my-business/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the built-in `Website lead form` section from `My business` so settings no longer presents a second lead-capture path based on embedding an Earlymark form.
+- Why:
+  - The intended workflow is to use the business’s own website form and send those leads to the Earlymark inbound email, not to maintain a parallel embedded webform product inside settings.
+
+## 2026-03-29 11:48 (AEDT) - Codex
+
+- Files changed:
+  - `actions/messaging-actions.ts`
+  - `actions/scraper-actions.ts`
+  - `actions/sms-templates.ts`
+  - `actions/tracey-onboarding.ts`
+  - `actions/tradie-actions.ts`
+  - `app/crm/settings/sms-templates/sms-templates-form.tsx`
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `components/settings/google-review-url-section.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added an optional Google review link field to onboarding so the review URL is captured during setup instead of only living in post-setup settings.
+  - Website scraping now attempts to auto-fill the review URL when the business website already links to a Google review page.
+  - Review-request messaging now degrades cleanly: if no review link is set, Tracey asks for feedback without sending a broken placeholder link.
+- Why:
+  - The review-link workflow needed to be part of setup, and the blank-link case needed to behave intentionally instead of sending bad review-link copy to customers.
+
+## 2026-03-29 23:24 (AEDT) - Codex
+
+- Files changed:
+  - `actions/automated-message-actions.ts`
+  - `actions/feedback-actions.ts`
+  - `actions/messaging-actions.ts`
+  - `actions/sms-templates.ts`
+  - `actions/tradie-actions.ts`
+  - `app/api/public-feedback/route.ts`
+  - `app/api/twilio/webhook/route.ts`
+  - `app/crm/contacts/[id]/page.tsx`
+  - `app/crm/settings/call-settings/page.tsx`
+  - `app/crm/settings/help/page.tsx`
+  - `app/crm/settings/sms-templates/sms-templates-form.tsx`
+  - `app/feedback/[token]/page.tsx`
+  - `components/dashboard/dashboard-kpi-cards.tsx`
+  - `components/feedback/public-feedback-form.tsx`
+  - `components/onboarding/tracey-onboarding.tsx`
+  - `components/settings/call-settings-client.tsx`
+  - `components/settings/google-review-url-section.tsx`
+  - `components/settings/pricing-for-agent-section.tsx`
+  - `components/settings/support-request-panel.tsx`
+  - `components/settings/working-hours-form.tsx`
+  - `docs/user_facing_truth_map.md`
+  - `lib/public-feedback.ts`
+  - `__tests__/public-feedback-route.test.ts`
+  - `__tests__/public-feedback.test.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+- Summary:
+  - Reduced `Calls & texting` to real customer-facing controls only: contact hours, urgent-call routing, and automated customer messages, with the automated-message actions now resolving the current workspace through shared workspace access instead of brittle email lookup.
+  - Added a signed public customer feedback flow at `/feedback/[token]` plus `/api/public-feedback`, and rewired review-request SMS and template placeholders to send customers to the internal Earlymark feedback form first.
+  - Standardized customer ratings around `CustomerFeedback` as the canonical source, including low-score alerts, contact-page feedback visibility, and Google review as an optional second-step CTA only after strong internal feedback.
+  - Removed the separate SMS auto-response kill switch from the Twilio webhook path so Tracey mode remains the single customer-contact policy across calls and messages.
+  - Documented the new product source-of-truth ownership model in `docs/user_facing_truth_map.md` and tightened a few remaining settings saves so business-hours and pricing edits no longer rewrite unrelated hidden voice or debug settings.
+- Why:
+  - The product was implying behavior that did not line up with its real runtime paths. This pass narrows the surface area to what actually works, makes feedback analytics trustworthy by wiring a real intake path, and reduces duplicate or contradictory settings logic.

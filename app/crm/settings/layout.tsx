@@ -25,17 +25,12 @@ const sidebarNavSections: { label?: string; items: { title: string; href: string
     },
     {
         items: [
-            { title: "Teach Tracey", href: "/crm/settings/training" },
-        ],
-    },
-    {
-        items: [
             { title: "My business", href: "/crm/settings/my-business" },
         ],
     },
     {
         items: [
-            { title: "Automated calling & texting", href: "/crm/settings/call-settings" },
+            { title: "Calls & texting", href: "/crm/settings/call-settings" },
         ],
     },
     {
@@ -145,9 +140,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
     return (
         <div className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
             <div className="space-y-1.5">
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h2>
-                <p className="text-slate-500 text-sm">
-                    Manage your account, business, AI agent, and preferences.
+                <h2 className="app-page-title">Settings</h2>
+                <p className="app-body-secondary">
+                    Manage your account, business, AI assistant, and workspace preferences.
                 </p>
             </div>
             <div className="my-6 border-t border-slate-200 dark:border-slate-800" />

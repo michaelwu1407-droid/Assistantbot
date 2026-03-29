@@ -24,6 +24,23 @@ import {
     SelectValue
 } from "@/components/ui/select"
 
+const SPECIALTY_OPTIONS = [
+    "Plumber",
+    "Electrician",
+    "Carpenter",
+    "HVAC Technician",
+    "Locksmith",
+    "Painter",
+    "Roofer",
+    "Tiler",
+    "Landscaper",
+    "Pest Control",
+    "Cleaner",
+    "Handyman",
+] as const
+
+const OTHER_SPECIALTY_VALUE = "__other__"
+
 const workspaceFormSchema = z.object({
     name: z.string().min(2, {
         message: "Workspace name must be at least 2 characters.",
@@ -31,7 +48,16 @@ const workspaceFormSchema = z.object({
     specialty: z.string().min(1, {
         message: "Please select your specialty."
     }),
+    customSpecialty: z.string().optional(),
     location: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.specialty === OTHER_SPECIALTY_VALUE && !data.customSpecialty?.trim()) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please enter your specialty.",
+            path: ["customSpecialty"],
+        })
+    }
 })
 
 import { updateWorkspace } from "@/actions/workspace-actions"
@@ -49,22 +75,33 @@ interface WorkspaceFormProps {
 const defaultValues: Partial<WorkspaceFormValues> = {
     name: "My Awesome Business",
     specialty: "Plumber",
+    customSpecialty: "",
 }
 
 export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) {
     const router = useRouter()
+    const initialSpecialty = (initialData?.specialty || defaultValues.specialty || "Plumber").trim()
+    const usesPresetSpecialty = SPECIALTY_OPTIONS.includes(initialSpecialty as (typeof SPECIALTY_OPTIONS)[number])
+    const initialValues: Partial<WorkspaceFormValues> = {
+        name: initialData?.name ?? defaultValues.name,
+        specialty: usesPresetSpecialty ? initialSpecialty : OTHER_SPECIALTY_VALUE,
+        customSpecialty: usesPresetSpecialty ? "" : initialSpecialty,
+        location: initialData?.location ?? defaultValues.location,
+    }
     const form = useForm<WorkspaceFormValues>({
         resolver: zodResolver(workspaceFormSchema),
-        defaultValues: initialData || defaultValues,
+        defaultValues: initialValues,
     })
+    const selectedSpecialty = form.watch("specialty")
 
     async function onSubmit(data: WorkspaceFormValues) {
         try {
+            const resolvedSpecialty = data.specialty === OTHER_SPECIALTY_VALUE ? data.customSpecialty?.trim() || "" : data.specialty
             await updateWorkspace(workspaceId, {
                 name: data.name,
                 industryType: "TRADES",
                 location: data.location,
-                tradeType: data.specialty,
+                tradeType: resolvedSpecialty,
             })
 
             toast.success("Workspace updated", {
@@ -103,20 +140,17 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Specialty</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select value={field.value} onValueChange={field.onChange}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select your specialty" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="Plumber">Plumber</SelectItem>
-                                    <SelectItem value="Electrician">Electrician</SelectItem>
-                                    <SelectItem value="Carpenter">Carpenter</SelectItem>
-                                    <SelectItem value="HVAC Technician">HVAC Technician</SelectItem>
-                                    <SelectItem value="Painter">Painter</SelectItem>
-                                    <SelectItem value="Roofer">Roofer</SelectItem>
-                                    <SelectItem value="Handyman">Handyman</SelectItem>
+                                    {SPECIALTY_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                    ))}
+                                    <SelectItem value={OTHER_SPECIALTY_VALUE}>Other</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormDescription>
@@ -126,6 +160,24 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                         </FormItem>
                     )}
                 />
+                {selectedSpecialty === OTHER_SPECIALTY_VALUE && (
+                    <FormField
+                        control={form.control}
+                        name="customSpecialty"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Specialty</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. Glazier" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormDescription>
+                                    Enter the trade or specialty you want Tracey to use.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
                 <FormField
                     control={form.control}
                     name="location"

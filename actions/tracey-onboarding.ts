@@ -81,6 +81,13 @@ const TraceyOnboardingSchema = z.object({
   tradeType: z.string().trim().min(1, "Trade type is required"),
   publicPhone: z.string().trim().optional(),
   publicEmail: z.string().trim().optional(),
+  googleReviewUrl: z.preprocess((val) => {
+    if (!val || typeof val !== "string") return undefined;
+    const trimmed = val.trim();
+    if (trimmed === "") return undefined;
+    if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+    return trimmed;
+  }, z.string().url("Invalid Google review URL").optional()),
   physicalAddress: z.string().trim().min(1, "Physical address is required"),
   serviceRadius: z.number().min(1).max(200).default(20),
   standardWorkHours: z.string().trim().min(1),
@@ -349,12 +356,11 @@ export async function saveTraceyOnboarding(
       });
       const currentSettings = getWorkspaceSettings(currentWorkspace?.settings);
       const nextSettings = (
-        normalizedWeeklyHours
-          ? {
-              ...currentSettings,
-              weeklyHours: normalizedWeeklyHours,
-            }
-          : currentSettings
+        {
+          ...currentSettings,
+          ...(normalizedWeeklyHours ? { weeklyHours: normalizedWeeklyHours } : {}),
+          googleReviewUrl: d.googleReviewUrl ?? "",
+        }
       ) as unknown as Prisma.InputJsonValue;
 
       await tx.workspace.update({

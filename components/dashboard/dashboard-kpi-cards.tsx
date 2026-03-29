@@ -1,17 +1,9 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import { DealView } from "@/actions/deal-actions"
-import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import { countAttentionRequiredDeals } from "@/lib/deal-attention"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 interface DashboardKpiCardsProps {
   deals: DealView[]
@@ -22,11 +14,32 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ]
 
+function getDealRevenueValue(deal: DealView) {
+  if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) {
+    return deal.invoicedAmount
+  }
+  return deal.value
+}
+
+function isTraceyWonDeal(deal: DealView) {
+  const metadata = (deal.metadata ?? {}) as Record<string, unknown>
+  const source = typeof metadata.source === "string" ? metadata.source.toLowerCase() : ""
+
+  return (
+    Boolean(source) ||
+    typeof metadata.leadSource === "string" ||
+    typeof metadata.provider === "string" ||
+    typeof metadata.portal === "string" ||
+    Boolean(metadata.leadWonEmail) ||
+    typeof deal.source === "string"
+  )
+}
+
 function KpiMetric({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <h2
       className={cn(
-        "text-xl font-extrabold leading-none tracking-tight tabular-nums text-black dark:text-white",
+        "app-kpi-value tabular-nums text-black dark:text-white",
         className
       )}
     >
@@ -36,7 +49,7 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
 }
 
 const kpiLabelClass =
-  "text-[10px] font-bold uppercase tracking-widest text-black dark:text-white/90"
+  "app-micro-label font-bold tracking-widest text-black dark:text-white/90"
 
 function KpiCardFrame({
   borderClass,
@@ -61,7 +74,6 @@ function KpiCardFrame({
 }
 
 export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
-  const [staleWeeks, setStaleWeeks] = useState(2)
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
@@ -72,11 +84,10 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       new Date(d.stageChangedAt).getMonth() === currentMonth &&
       new Date(d.stageChangedAt).getFullYear() === currentYear
   )
-  const revenue = wonThisMonth.reduce((sum, d) => sum + d.value, 0)
-  const travisWon = wonThisMonth.filter(
-    (d) => d.metadata && typeof d.metadata === "object" && "source" in d.metadata && d.metadata.source
-  )
-  const travisWonRevenue = travisWon.reduce((sum, d) => sum + d.value, 0)
+  const revenue = wonThisMonth.reduce((sum, d) => sum + getDealRevenueValue(d), 0)
+  const travisWon = wonThisMonth.filter(isTraceyWonDeal)
+  const travisWonCount = travisWon.length
+  const travisWonRevenue = travisWon.reduce((sum, d) => sum + getDealRevenueValue(d), 0)
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const upcomingCount = deals.filter((d) => {
     if (d.stage !== "scheduled") return false
@@ -88,19 +99,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       scheduled >= startOfToday
     )
   }).length
-  const staleDays = staleWeeks * 7
-  const staleWindowDeals = deals.filter((d) => {
-    const days = differenceInDays(now, new Date(d.lastActivityDate))
-    return days >= staleDays && d.stage !== "completed" && d.stage !== "lost"
-  })
-  const attentionRequiredCount = countAttentionRequiredDeals(
-    deals.map((deal) => {
-      const staleMatch = staleWindowDeals.some((s) => s.id === deal.id)
-      return staleMatch
-        ? { ...deal, health: { ...deal.health, status: "STALE" as const } }
-        : deal
-    })
-  )
+  const attentionRequiredCount = countAttentionRequiredDeals(deals)
 
   const monthLabel = MONTHS[currentMonth]
 
@@ -116,7 +115,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       <KpiCardFrame borderClass="border-l-emerald-700" bgClass="bg-emerald-100 dark:bg-emerald-950/45">
         <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
-          <KpiMetric>${travisWonRevenue.toLocaleString()}</KpiMetric>
+          <KpiMetric>${travisWonRevenue.toLocaleString()} ({travisWonCount})</KpiMetric>
         </div>
       </KpiCardFrame>
 
@@ -128,26 +127,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       </KpiCardFrame>
 
       <KpiCardFrame borderClass="border-l-red-700" bgClass="bg-red-100 dark:bg-red-950/45">
-        <div className="flex min-w-0 items-start gap-2">
-          <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Attention Required</p>
-          <div className="w-fit max-w-[4.5rem] shrink-0">
-            <Select value={String(staleWeeks)} onValueChange={(v) => setStaleWeeks(Number(v))}>
-              <SelectTrigger
-                aria-label="Stale follow-up window in weeks"
-                className="h-7 !w-auto max-w-[4.5rem] min-w-[3rem] border-black/15 bg-white px-2 py-0 text-xs font-semibold text-black dark:text-black"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 6, 8].map((w) => (
-                  <SelectItem key={w} value={String(w)} className="text-sm">
-                    {w}w
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Attention Required</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{attentionRequiredCount}</KpiMetric>
         </div>
