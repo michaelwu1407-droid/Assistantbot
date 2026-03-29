@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import { useShellStore } from "@/lib/store"
 import { Header } from "@/components/dashboard/header"
@@ -16,9 +16,13 @@ import { isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
  * except `/crm/settings/*`. Settings keeps its own layout.
  */
 export function DashboardMainChrome({ children }: { children: ReactNode }) {
+    const isHydrated = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    )
     const pathname = usePathname()
     const isSettings = pathname.startsWith("/crm/settings")
-    const [isHydrated, setIsHydrated] = useState(false)
     const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
     const [activityOpen, setActivityOpen] = useState(false)
     const [newDealOpen, setNewDealOpen] = useState(false)
@@ -37,10 +41,6 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     }, [industry])
 
     const userNameForHeader = headerDisplayName?.trim() || (userId ? userId.slice(0, 8) : "User")
-
-    useEffect(() => {
-        setIsHydrated(true)
-    }, [])
 
     useEffect(() => {
         const handleOpenNewDeal = (event: Event) => {

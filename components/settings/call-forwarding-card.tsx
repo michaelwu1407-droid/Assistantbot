@@ -225,7 +225,7 @@ export function CallForwardingCard() {
 
             {!hasTraceyNumber ? (
               <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
-                Your Tracey number is not provisioned yet, so call forwarding can't be applied yet.
+                Your Tracey number is not provisioned yet, so call forwarding can&apos;t be applied yet.
               </p>
             ) : null}
           </div>
