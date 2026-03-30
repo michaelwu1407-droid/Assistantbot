@@ -66,6 +66,8 @@ export type WorkspaceVoiceGrounding = {
     }>;
     noGoRules: string[];
   flagOnlyRules: string[];
+  emergencyBypass: boolean;
+  ownerPhone: string | null;
 };
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 120_000;
@@ -675,6 +677,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
         })),
         noGoRules: hardNoGoRules,
         flagOnlyRules: dedupedFlagOnlyRules,
+        emergencyBypass: Boolean(settings?.emergencyBypass),
         ownerPhone: ownerUser?.phone || null,
     };
 

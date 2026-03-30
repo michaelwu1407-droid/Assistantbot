@@ -46,6 +46,21 @@ function buildSummary(callType: string, callerName?: string, callerPhone?: strin
   return summaryParts.join(" ");
 }
 
+function getUrgentEscalation(payload: z.infer<typeof voiceCallPayloadSchema>) {
+  const raw = payload.metadata?.urgentEscalation;
+  if (!raw || typeof raw !== "object") return null;
+  const candidate = raw as { toolUsed?: unknown; payloads?: unknown };
+  const toolUsed = Boolean(candidate.toolUsed);
+  const payloads = Array.isArray(candidate.payloads) ? candidate.payloads : [];
+  if (!toolUsed || payloads.length === 0) return null;
+  const first = payloads[0];
+  if (!first || typeof first !== "object") return { reason: "Urgent or human callback requested" };
+  const reason = typeof (first as Record<string, unknown>).reason === "string"
+    ? ((first as Record<string, unknown>).reason as string).trim()
+    : "";
+  return { reason: reason || "Urgent or human callback requested" };
+}
+
 async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
   const workspace = await findWorkspaceByTwilioNumber(calledPhone);
   return workspace?.id ?? null;
@@ -71,10 +86,18 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = parsed.data;
+    const existingVoiceCall = await db.voiceCall.findUnique({
+      where: { callId: payload.callId },
+      select: { callId: true },
+    });
     const workspaceId = await findWorkspaceIdByCalledNumber(payload.calledPhone);
     const contactId = workspaceId ? await findContactId(workspaceId, payload.callerPhone) : null;
     const transcriptText = payload.transcriptText.trim();
-    const summary = buildSummary(payload.callType, payload.callerName, payload.callerPhone, transcriptText);
+    const urgentEscalation = getUrgentEscalation(payload);
+    const baseSummary = buildSummary(payload.callType, payload.callerName, payload.callerPhone, transcriptText);
+    const summary = urgentEscalation
+      ? `${baseSummary} Manager callback requested: ${urgentEscalation.reason}.`
+      : baseSummary;
 
     await db.voiceCall.upsert({
       where: { callId: payload.callId },
@@ -136,6 +159,7 @@ export async function POST(req: NextRequest) {
           transcriptTurns: payload.transcriptTurns,
           summary,
           voiceCallId: payload.callId,
+          urgentEscalationReason: urgentEscalation?.reason ?? null,
         });
         console.log(`[voice-call-webhook] CRM sync result:`, syncResult);
       } catch (err) {
@@ -144,12 +168,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (workspaceId && urgentEscalation && !existingVoiceCall) {
+      const callbackTitle = payload.callerName
+        ? `Urgent callback: ${payload.callerName}`
+        : payload.callerPhone
+          ? `Urgent callback: ${payload.callerPhone}`
+          : "Urgent callback requested";
+      const callbackDescription = [
+        `Reason: ${urgentEscalation.reason}`,
+        payload.callerPhone ? `Caller: ${payload.callerPhone}` : null,
+        summary,
+      ].filter(Boolean).join("\n");
+
+      await db.task.create({
+        data: {
+          title: callbackTitle,
+          description: callbackDescription,
+          dueAt: new Date(Date.now() + 15 * 60 * 1000),
+          contactId: contactId ?? syncResult?.contactId ?? undefined,
+          dealId: syncResult?.dealId ?? undefined,
+        },
+      });
+    }
+
     // For non-normal calls or if sync was skipped, still log activity
     if (workspaceId && transcriptText && (!syncResult || syncResult.skipped)) {
       await db.activity.create({
         data: {
           type: "CALL",
-          title: payload.callType === "normal" ? "Voice call handled by Tracey" : "Earlymark AI voice call",
+          title: urgentEscalation
+            ? "Urgent callback requested"
+            : payload.callType === "normal"
+              ? "Voice call handled by Tracey"
+              : "Earlymark AI voice call",
           content: summary,
           description: transcriptText.slice(0, 2000),
           contactId: contactId ?? undefined,

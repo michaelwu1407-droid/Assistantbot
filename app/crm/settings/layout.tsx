@@ -142,7 +142,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
             <div className="space-y-1.5">
                 <h2 className="app-page-title">Settings</h2>
                 <p className="app-body-secondary">
-                    Manage your account, business, AI assistant, and workspace preferences.
+                    Manage your account, business, assistant, and app settings.
                 </p>
             </div>
             <div className="my-6 border-t border-slate-200 dark:border-slate-800" />

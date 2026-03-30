@@ -42,7 +42,7 @@ export function SupportRequestPanel() {
       const result = await response.json()
 
       if (result.success) {
-        setSuccess("Support request sent. We’ll get back to you within 24 hours.")
+        setSuccess("Support request sent. We'll get back to you within 24 hours.")
         setPriority("medium")
         e.currentTarget.reset()
       } else {
@@ -61,7 +61,7 @@ export function SupportRequestPanel() {
         <CardHeader>
           <CardTitle>Support request</CardTitle>
           <CardDescription>
-            Tell us what is blocking you and we’ll help you fix it.
+            Tell us what is blocking you and we'll help you fix it.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,7 +84,7 @@ export function SupportRequestPanel() {
                 <Input
                   id="subject"
                   name="subject"
-                  placeholder="e.g. AI assistant number change, billing issue"
+                  placeholder="e.g. Billing issue or phone setup problem"
                   required
                 />
               </div>
@@ -96,9 +96,9 @@ export function SupportRequestPanel() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Low - General question</SelectItem>
-                    <SelectItem value="medium">Medium - Feature request</SelectItem>
-                    <SelectItem value="high">High - Issue affecting work</SelectItem>
-                    <SelectItem value="urgent">Urgent - System down</SelectItem>
+                    <SelectItem value="medium">Medium - Something not working as expected</SelectItem>
+                    <SelectItem value="high">High - Stopping work</SelectItem>
+                    <SelectItem value="urgent">Urgent - Business critical</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -109,7 +109,7 @@ export function SupportRequestPanel() {
               <Textarea
                 id="message"
                 name="message"
-                placeholder="Please describe the issue in detail..."
+                placeholder="Tell us what happened, what you expected, and what you need help with."
                 rows={6}
                 required
               />
@@ -129,32 +129,6 @@ export function SupportRequestPanel() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Common issues</CardTitle>
-          <CardDescription>Quick answers for the problems we see most often.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium">Tracey number not working?</h4>
-            <p className="text-sm text-muted-foreground">
-              Check `Account` to confirm the number is provisioned and forwarding is set correctly. If not, send a support request for manual provisioning help.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-medium">Need to change the Tracey number?</h4>
-            <p className="text-sm text-muted-foreground">
-              Number changes require support assistance. Send a request above and include the current number and the reason for the change.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-medium">SMS not sending to customers?</h4>
-            <p className="text-sm text-muted-foreground">
-              Check that your Tracey number is active in `Account`, then review automated customer messages and connected inbox settings.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

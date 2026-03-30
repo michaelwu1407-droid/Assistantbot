@@ -7,11 +7,9 @@ export default function CallSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-          Calls & texting
-        </h3>
-        <p className="text-sm text-slate-500">
-          Set when Tracey may contact customers, how urgent calls are handled, and the text messages she sends.
+        <h3 className="app-section-title">Calls & texting</h3>
+        <p className="app-body-secondary">
+          Set when Tracey may contact customers and the text messages she sends.
         </p>
       </div>
       <Separator />

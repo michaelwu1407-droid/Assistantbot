@@ -167,7 +167,7 @@ export default function IntegrationsPage() {
             <div>
                 <h3 className="app-section-title">Integrations</h3>
                 <p className="app-body-secondary">
-                    Connect the tools Tracey actually uses to capture leads, sync your calendar, and draft invoices.
+                    Connect the tools Earlymark uses for lead capture, calendar sync, and invoicing.
                 </p>
             </div>
             <Separator />
@@ -178,17 +178,17 @@ export default function IntegrationsPage() {
                     <CardHeader>
                         <div className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-blue-500" />
-                            <CardTitle>Instant Lead Capture</CardTitle>
+                            <CardTitle>Lead capture</CardTitle>
                         </div>
                         <CardDescription>
-                            Connect Gmail or Outlook so Earlymark can capture lead emails automatically. This is usually done during onboarding, but you can finish it here if it was skipped.
+                            Connect Gmail or Outlook so Earlymark can pick up lead emails automatically.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>How it works:</strong> Connect once and Earlymark creates the lead-email filters for the major platforms automatically.
+                                <strong>How it works:</strong> Connect once and Earlymark will sort incoming lead emails for you automatically.
                             </p>
                         </div>
 
@@ -201,7 +201,7 @@ export default function IntegrationsPage() {
                                 <Mail className="h-8 w-8 text-red-500" />
                                 <div className="text-center">
                                     <div className="font-medium">Connect Gmail</div>
-                                    <div className="text-xs text-muted-foreground">Auto-capture from all platforms</div>
+                                    <div className="text-xs text-muted-foreground">Use Gmail for lead emails</div>
                                 </div>
                             </Button>
 
@@ -213,7 +213,7 @@ export default function IntegrationsPage() {
                                 <Mail className="h-8 w-8 text-blue-500" />
                                 <div className="text-center">
                                     <div className="font-medium">Connect Outlook</div>
-                                    <div className="text-xs text-muted-foreground">Auto-capture from all platforms</div>
+                                    <div className="text-xs text-muted-foreground">Use Outlook for lead emails</div>
                                 </div>
                             </Button>
                         </div>
@@ -221,11 +221,11 @@ export default function IntegrationsPage() {
                         {loadingIntegrations ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                Loading connected accounts...
+                                Loading connected email accounts...
                             </div>
                         ) : emailIntegrations.length > 0 && (
                             <div className="space-y-2 pt-2">
-                                <label className="text-sm font-medium">Connected Accounts</label>
+                                <label className="text-sm font-medium">Connected email accounts</label>
                                 <div className="space-y-2">
                                     {emailIntegrations.map((integration) => (
                                         <div key={integration.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
@@ -260,7 +260,7 @@ export default function IntegrationsPage() {
                             Google Calendar
                         </CardTitle>
                         <CardDescription>
-                            Connect Google Calendar so Tracey can read availability and keep scheduled jobs in sync with your real calendar.
+                            Connect Google Calendar so Tracey can see availability and keep scheduled jobs in sync.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -273,7 +273,7 @@ export default function IntegrationsPage() {
                                 <p className="text-sm text-slate-500">
                                     {calendarIntegration.connected
                                         ? `Connected${calendarIntegration.emailAddress ? ` as ${calendarIntegration.emailAddress}` : ""}. Tracey will use Google Calendar availability and sync scheduled jobs.`
-                                        : "Not connected. The scheduler will only see jobs stored inside Earlymark until you connect Google Calendar."}
+                                        : "Not connected. Until you connect Google Calendar, Earlymark will only see jobs stored inside the app."}
                                 </p>
                                 {calendarIntegration.connected && calendarIntegration.lastSyncAt && (
                                     <p className="text-xs text-muted-foreground">
@@ -285,7 +285,7 @@ export default function IntegrationsPage() {
                     </CardContent>
                     <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
                         <div className="text-xs text-slate-500">
-                            Permissions: Read/Write Events
+                            Keep your calendar and scheduled jobs in sync.
                         </div>
                         {calendarIntegration.connected ? (
                             <Button variant="outline" onClick={handleDisconnectGoogleCalendar} disabled={calendarLoading}>
@@ -308,7 +308,7 @@ export default function IntegrationsPage() {
                             Xero Accounting
                         </CardTitle>
                         <CardDescription>
-                            Automatically create draft invoices in Xero when jobs are completed. Your AI agent can invoice on your behalf.
+                            Create draft invoices in Xero automatically when jobs are ready to invoice.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -321,7 +321,7 @@ export default function IntegrationsPage() {
                                 <p className="text-sm text-slate-500">
                                     {xeroStatus === "connected"
                                         ? "Connected. Draft invoices will be created automatically when jobs move to the invoicing stage."
-                                        : "Connect your Xero account to enable automatic draft invoicing from job quotes."}
+                                        : "Connect Xero to create draft invoices automatically."}
                                 </p>
                             </div>
                         </div>
@@ -334,7 +334,7 @@ export default function IntegrationsPage() {
                             </div>
                         ) : (
                             <div className="text-xs text-slate-500">
-                                Permissions: Invoices, Contacts (read/write)
+                                Draft invoices will be created in Xero for you to review.
                             </div>
                         )}
 

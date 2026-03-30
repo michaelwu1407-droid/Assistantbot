@@ -1,15 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Sun, Globe, Accessibility, Smartphone } from "lucide-react"
+import { Globe, Accessibility, Smartphone } from "lucide-react"
 
 export function DisplaySettingsClient() {
-  const { theme, setTheme } = useTheme()
   const [fontScale, setFontScale] = useState(() => {
     if (typeof window === "undefined") return "100"
     return window.localStorage.getItem("ui-font-scale") || "100"
@@ -27,30 +25,6 @@ export function DisplaySettingsClient() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sun className="h-5 w-5" />
-            Theme
-          </CardTitle>
-          <CardDescription>
-            Choose light, dark, or follow your system preference.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select value={theme ?? "system"} onValueChange={(v) => setTheme(v)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="light">Light</SelectItem>
-              <SelectItem value="dark">Dark</SelectItem>
-              <SelectItem value="system">System (auto)</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
       <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -126,7 +100,7 @@ export function DisplaySettingsClient() {
                 <SelectItem value="120">Extra large (120%)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-500">This updates app font size immediately and persists on this browser.</p>
+            <p className="app-body-secondary">Applies to this browser straight away.</p>
           </div>
         </CardContent>
       </Card>
@@ -143,7 +117,7 @@ export function DisplaySettingsClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline">Install PWA</Button>
-          <p className="text-xs text-slate-500">Mobile touch preferences are applied automatically based on your device.</p>
+          <p className="app-body-secondary">Touch behaviour adjusts automatically on mobile.</p>
         </CardContent>
       </Card>
     </div>

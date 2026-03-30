@@ -20,12 +20,47 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
+function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {
+  if (!readiness) {
+    return {
+      tone: "muted" as const,
+      title: "Checking lead email setup",
+      body: "We are checking whether lead email forwarding is ready.",
+    };
+  }
+
+  if (!readiness.ready) {
+    return {
+      tone: "warning" as const,
+      title: "Lead email forwarding is not ready yet",
+      body: "Do not forward live leads here yet. Earlymark is still finishing the email setup for your account.",
+    };
+  }
+
+  if (!readiness.receivingConfirmed) {
+    return {
+      tone: "info" as const,
+      title: "Forwarding address is ready",
+      body: "This address is ready to use. Once your first forwarded lead email arrives, Earlymark will confirm it is working end to end.",
+    };
+  }
+
+  return {
+    tone: "success" as const,
+    title: "Lead email forwarding is live",
+    body: formatDate(readiness.lastInboundEmailSuccessAt)
+      ? `Forwarded lead emails are being received. Last successful lead email: ${formatDate(readiness.lastInboundEmailSuccessAt)}.`
+      : "Forwarded lead emails are being received normally.",
+  };
+}
+
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
   const [readiness, setReadiness] = useState<LeadCaptureEmailReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const readinessMessage = getReadinessMessage(readiness);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,47 +140,30 @@ export function EmailLeadCaptureSettings() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Mail className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Auto-Lead Response</CardTitle>
+          <CardTitle>Lead email forwarding</CardTitle>
         </div>
         <CardDescription>
-          Forward &quot;Lead Won&quot; emails from HiPages, Airtasker, or ServiceSeeking to your unique address.
-          Format is [business-name]@inbound.earlymark.ai. Older forwarding addresses still work, but this is the canonical format shown in the app.
+          Forward lead emails from platforms like HiPages, Airtasker, or ServiceSeeking to this address so Earlymark can create the lead automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {readiness && !readiness.ready && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            <div className="font-medium">Inbound email is not live</div>
-            <div className="mt-1">Do not forward leads to this address yet. The inbound mail route for <strong>{readiness.domain}</strong> is not ready.</div>
-            <ul className="mt-2 list-disc pl-5">
-              {readiness.issues.map((issue) => (
-                <li key={issue}>{issue}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {readiness?.ready && !readiness.receivingConfirmed && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            <div className="font-medium">Inbound email is verified and ready</div>
-            <div className="mt-1">
-              DNS and Resend are verified for <strong>{readiness.domain}</strong>. We have not yet observed a live inbound lead email in the last{" "}
-              {readiness.receivingConfirmationLookbackDays} days.
-            </div>
-          </div>
-        )}
-        {readiness?.ready && readiness.receivingConfirmed && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-            <div className="font-medium">Inbound email is live</div>
-            <div className="mt-1">
-              Recent inbound email processing confirms the route is working.
-              {formatDate(readiness.lastInboundEmailSuccessAt)
-                ? ` Last success: ${formatDate(readiness.lastInboundEmailSuccessAt)}.`
-                : ""}
-            </div>
-          </div>
-        )}
+        <div
+          className={
+            readinessMessage.tone === "success"
+              ? "rounded-[18px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+              : readinessMessage.tone === "warning"
+                ? "rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+                : readinessMessage.tone === "info"
+                  ? "rounded-[18px] border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+                  : "rounded-[18px] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+          }
+        >
+          <div className="font-medium">{readinessMessage.title}</div>
+          <div className="mt-1">{readinessMessage.body}</div>
+        </div>
+
         <div className="space-y-2">
-          <Label>Your forwarding email</Label>
+          <Label>Forward lead emails to</Label>
           <div className="flex items-center gap-2">
             <code className="flex-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm font-mono">
               {forwardingEmail || "-"}
@@ -157,16 +175,16 @@ export function EmailLeadCaptureSettings() {
           <p className="text-xs text-muted-foreground">
             {readiness?.ready
               ? readiness.receivingConfirmed
-                ? "Set up a filter to forward lead emails to this address. We identify the lead and create the contact and deal automatically."
-                : "This address is verified and ready. Forward your first live lead email here to confirm end-to-end receiving."
-              : "This address is reserved, but inbound email is not ready yet. Fix the inbound domain before forwarding live leads."}
+                ? "When a forwarded lead email arrives here, Earlymark will create the lead automatically."
+                : "This address is ready. Forward your first live lead email here to finish confirming the flow."
+              : "Wait until the setup above is ready before forwarding live leads to this address."}
           </p>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border/50 p-4">
           <div>
-            <Label htmlFor="auto-call-leads" className="text-base font-medium">Call new leads immediately?</Label>
+            <Label htmlFor="auto-call-leads" className="text-base font-medium">Call new email leads straight away</Label>
             <p className="text-sm text-muted-foreground mt-0.5">
-              If ON, Tracey calls the lead immediately when an eligible lead email arrives. If OFF, the lead is still captured, but no immediate call is made.
+              If this is on, Tracey will call the lead as soon as an eligible lead email arrives. If it is off, the lead is still captured in Earlymark without the immediate call.
             </p>
           </div>
           <Switch

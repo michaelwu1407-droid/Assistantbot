@@ -21,21 +21,21 @@ export default async function BillingSettingsPage() {
     return (
         <div className="space-y-6">
             <div className="space-y-1.5">
-                <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Billing & Subscription</h3>
+                <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Billing</h3>
                 <p className="text-slate-500 text-sm">
-                    Manage your Stripe subscription status, view active invoices, and update billing methods.
+                    Check your plan and manage your billing.
                 </p>
             </div>
             <Separator />
 
             <div className="max-w-md bg-white dark:bg-slate-900 rounded-xl border p-6 flex flex-col gap-4">
                 <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-500">Current Plan</span>
+                    <span className="text-sm font-semibold text-slate-500">Plan</span>
                     <span className="text-2xl font-bold text-slate-900 dark:text-white">
                         {getPlanLabelForPriceId(workspace.stripePriceId)}
                     </span>
                     <span className="text-sm text-slate-500 mt-1">
-                        {billingInterval ? `Billing cadence: ${billingInterval}` : "No paid subscription on this workspace"}
+                        {billingInterval ? `${billingInterval} billing` : "No paid plan"}
                     </span>
                 </div>
 

@@ -367,6 +367,18 @@ export async function updateWorkspacePipelineSettings(
   return { success: true };
 }
 
+export async function updateCurrentWorkspacePipelineSettings(
+  data: PipelineHealthSettings
+) {
+  const userId = await getAuthUserId();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  const workspace = await getOrCreateWorkspace(userId);
+  return updateWorkspacePipelineSettings(workspace.id, data);
+}
+
 /**
  * Update workspace settings (including industry and location from onboarding).
  */

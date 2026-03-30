@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { Bot, Brain, Plus, X, MessageSquare, ExternalLink } from "lucide-react"
+import { Bot, Brain, Plus, X, MessageSquare, ExternalLink, BellDot } from "lucide-react"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
+import { updateCurrentWorkspacePipelineSettings } from "@/actions/workspace-actions"
 
 export default function AgentSettingsPage() {
   const MAX_BEHAVIOURAL_RULES = 20
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingBoardAttention, setSavingBoardAttention] = useState(false)
   const [settings, setSettings] = useState({
     agentMode: "DRAFT",
     workingHoursStart: "08:00",
@@ -23,6 +25,10 @@ export default function AgentSettingsPage() {
     wrapupNotifyTime: "17:30",
     aiPreferences: "",
     autoUpdateGlossary: true,
+  })
+  const [boardAttention, setBoardAttention] = useState({
+    followUpDays: "7",
+    urgentDays: "14",
   })
   const [learningRules, setLearningRules] = useState<string[]>([])
   const [ruleDraft, setRuleDraft] = useState("")
@@ -34,6 +40,10 @@ export default function AgentSettingsPage() {
     getWorkspaceSettings()
       .then((data) => {
         if (!data) return
+        const pipelineSettings = data as typeof data & {
+          followUpDays?: number
+          urgentDays?: number
+        }
         setSettings({
           agentMode: data.agentMode || "DRAFT",
           workingHoursStart: data.workingHoursStart || "08:00",
@@ -42,6 +52,10 @@ export default function AgentSettingsPage() {
           wrapupNotifyTime: data.wrapupNotifyTime || "17:30",
           aiPreferences: data.aiPreferences || "",
           autoUpdateGlossary: data.autoUpdateGlossary ?? true,
+        })
+        setBoardAttention({
+          followUpDays: String(pipelineSettings.followUpDays ?? 7),
+          urgentDays: String(pipelineSettings.urgentDays ?? 14),
         })
         const parsedRules = (data.aiPreferences || "")
           .split("\n")
@@ -87,12 +101,40 @@ export default function AgentSettingsPage() {
     setLearningRules((prev) => prev.map((rule, i) => (i === index ? value : rule)))
   }
 
+  const saveBoardAttention = async () => {
+    const followUpDays = Number.parseInt(boardAttention.followUpDays, 10)
+    const urgentDays = Number.parseInt(boardAttention.urgentDays, 10)
+
+    if (!Number.isFinite(followUpDays) || followUpDays < 1) {
+      toast.error("Follow up days must be 1 or more")
+      return
+    }
+
+    if (!Number.isFinite(urgentDays) || urgentDays < followUpDays) {
+      toast.error("Urgent days must be the same or more than Follow up days")
+      return
+    }
+
+    setSavingBoardAttention(true)
+    try {
+      await updateCurrentWorkspacePipelineSettings({
+        followUpDays,
+        urgentDays,
+      })
+      toast.success("Board attention settings saved")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save board attention settings")
+    } finally {
+      setSavingBoardAttention(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">AI Assistant</h3>
-        <p className="text-sm text-muted-foreground">
-          Configure how Tracey thinks, acts, and learns. Business facts live in My business, and customer contact hours and automated messages live in Calls & texting.
+        <h3 className="app-section-title">AI Assistant</h3>
+        <p className="app-body-secondary">
+          Set how much Tracey can do on her own and the rules she should follow.
         </p>
       </div>
 
@@ -100,9 +142,9 @@ export default function AgentSettingsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-indigo-500" />
-            <CardTitle>Autonomy mode</CardTitle>
+            <CardTitle>How much Tracey can do</CardTitle>
           </div>
-          <CardDescription>How much Tracey can do automatically.</CardDescription>
+          <CardDescription>Choose whether Tracey acts on her own or waits for approval.</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup
@@ -110,15 +152,15 @@ export default function AgentSettingsPage() {
             onValueChange={(v) => setSettings((s) => ({ ...s, agentMode: v }))}
             className="flex flex-col space-y-3"
           >
-            <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
+            <Label className="flex items-center gap-2 rounded-[18px] border p-3 cursor-pointer">
               <RadioGroupItem value="EXECUTION" id="agent-mode-execute" />
               <span>Execution</span>
             </Label>
-            <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
+            <Label className="flex items-center gap-2 rounded-[18px] border p-3 cursor-pointer">
               <RadioGroupItem value="DRAFT" id="agent-mode-organize" />
               <span>Review &amp; approve</span>
             </Label>
-            <Label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
+            <Label className="flex items-center gap-2 rounded-[18px] border p-3 cursor-pointer">
               <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" />
               <span>Info only</span>
             </Label>
@@ -130,18 +172,18 @@ export default function AgentSettingsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-500" />
-            <CardTitle>Learning and guardrails</CardTitle>
+            <CardTitle>Rules &amp; preferences</CardTitle>
           </div>
-          <CardDescription>How Tracey learns from confirmed jobs and the rules she should always follow.</CardDescription>
+          <CardDescription>Tell Tracey what to learn from confirmed jobs and what rules to always follow.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label>Auto-create pricing suggestions from confirmed jobs</Label>
+            <Label>Learn from confirmed jobs</Label>
             <Switch checked={settings.autoUpdateGlossary} onCheckedChange={(v) => setSettings((s) => ({ ...s, autoUpdateGlossary: v }))} />
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <Label>Behavioral rules and preferences</Label>
+              <Label>Rules to follow</Label>
               <span className="text-xs text-muted-foreground">{learningRules.length}/{MAX_BEHAVIOURAL_RULES} used</span>
             </div>
             <div className="flex gap-2">
@@ -194,13 +236,74 @@ export default function AgentSettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
+            <BellDot className="h-5 w-5 text-amber-500" />
+            <CardTitle>Board attention</CardTitle>
+          </div>
+          <CardDescription>Choose when cards should start showing as Follow up or Urgent on the board.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="follow-up-days">Days until Follow up</Label>
+              <Input
+                id="follow-up-days"
+                type="number"
+                min={1}
+                max={365}
+                value={boardAttention.followUpDays}
+                onChange={(event) =>
+                  setBoardAttention((current) => ({
+                    ...current,
+                    followUpDays: event.target.value,
+                  }))
+                }
+              />
+              <p className="app-body-secondary">After this many days without activity, the card shows as Follow up.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="urgent-days">Days until Urgent</Label>
+              <Input
+                id="urgent-days"
+                type="number"
+                min={1}
+                max={365}
+                value={boardAttention.urgentDays}
+                onChange={(event) =>
+                  setBoardAttention((current) => ({
+                    ...current,
+                    urgentDays: event.target.value,
+                  }))
+                }
+              />
+              <p className="app-body-secondary">After this many days without activity, the card shows as Urgent.</p>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" onClick={saveBoardAttention} disabled={savingBoardAttention}>
+              {savingBoardAttention ? "Saving..." : "Save board attention"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-500" />
             <CardTitle>WhatsApp Assistant</CardTitle>
           </div>
-          <CardDescription>Chat to Tracey via WhatsApp to manage your business on the road.</CardDescription>
+          <CardDescription>Work in progress.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
+          <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
+            This feature is still being built, so it is not ready for day-to-day use yet.
+          </div>
+          <div className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="pointer-events-none absolute inset-0 bg-white/58 backdrop-blur-[1px] dark:bg-slate-950/48" />
+            <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-900 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-100">
+              WIP
+            </div>
+            <div className="relative flex items-center justify-between rounded-[16px] border border-slate-200 p-4 dark:border-slate-700">
             <div>
               <p className="font-medium text-sm">Assistant Number</p>
               <p className="text-lg font-mono text-slate-700 dark:text-slate-300 select-all">
@@ -211,12 +314,13 @@ export default function AgentSettingsPage() {
               Beta
             </div>
           </div>
-          <div className="flex justify-end pt-2">
-            <Button asChild variant="default" className="bg-green-600 hover:bg-green-700 text-white gap-2">
+          <div className="relative flex justify-end pt-2">
+            <Button asChild variant="default" className="bg-green-600 hover:bg-green-700 text-white gap-2 opacity-70">
               <a href={waLink} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4" /> Connect via WhatsApp
               </a>
             </Button>
+          </div>
           </div>
         </CardContent>
       </Card>

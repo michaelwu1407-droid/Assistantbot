@@ -65,6 +65,8 @@ describe("voice prompt regression guards", () => {
         pricingItems: [],
         noGoRules: [],
         flagOnlyRules: [],
+        emergencyBypass: true,
+        ownerPhone: "+61411111111",
       },
     );
 

@@ -28,7 +28,6 @@ import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts 
 import type { STTOptions as DeepgramSTTOptions } from '@livekit/agents-plugin-deepgram';
 import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
-import { SipClient } from 'livekit-server-sdk';
 import { z } from 'zod';
 import {
   assertRequiredVoiceAgentEnv,
@@ -177,6 +176,7 @@ type WorkspaceVoiceGrounding = {
   }>;
   noGoRules: string[];
   flagOnlyRules: string[];
+  emergencyBypass: boolean;
   ownerPhone: string | null;
 };
 
@@ -187,6 +187,11 @@ type TranscriptTurn = {
 };
 
 type LeadCapture = {
+  toolUsed: boolean;
+  payloads: Array<Record<string, unknown>>;
+};
+
+type UrgentEscalationCapture = {
   toolUsed: boolean;
   payloads: Array<Record<string, unknown>>;
 };
@@ -1607,56 +1612,19 @@ export default defineAgent({
       },
     });
 
-    const transferCallTool = livekitLlm.tool({
-      description: "Transfer the call to the human business owner or leave an urgent message if they are unavailable.",
+    const urgentManagerCallbackTool = livekitLlm.tool({
+      description: "Escalate an urgent or human-requested call for manager callback. Use this when the caller says it is urgent, an emergency, or they need a human. Do not promise immediate attendance.",
       parameters: z.object({
         reason: z.string().describe("Why the caller wants to speak to the owner"),
       }),
       execute: async ({ reason }) => {
-        console.log(`[agent] Executing transfer_call tool. Reason: ${reason}`);
+        console.log(`[agent] Executing urgent_manager_callback tool. ${JSON.stringify({
+          callId,
+          reason,
+          emergencyBypass: normalVoiceGrounding?.emergencyBypass ?? null,
+        })}`);
 
-        const currentHour = new Date().getHours();
-        const isOnClock = currentHour >= 8 && currentHour < 17;
-
-        // Resolve the owner's phone number for SIP transfer
-        const ownerPhone = normalVoiceGrounding?.ownerPhone
-          || normalVoiceGrounding?.publicPhone
-          || null;
-
-        if (isOnClock && ownerPhone) {
-          console.log(`[agent] Initiating SIP transfer ${JSON.stringify({ callId, reason, ownerPhone })}`);
-          try {
-            const sipClient = new SipClient(
-              process.env.LIVEKIT_URL || "",
-              process.env.LIVEKIT_API_KEY || "",
-              process.env.LIVEKIT_API_SECRET || "",
-            );
-            const currentRoomName = ctx.room.name || "";
-            const sipParticipantIdentity = participant?.identity || "";
-            if (currentRoomName && sipParticipantIdentity) {
-              await sipClient.transferSipParticipant(
-                currentRoomName,
-                sipParticipantIdentity,
-                `tel:${ownerPhone}`,
-                { playDialtone: true },
-              );
-              console.log(`[agent] SIP transfer initiated successfully to ${ownerPhone}`);
-              return "Transferring you now. Please hold the line.";
-            }
-            console.warn("[agent] Missing room name or participant identity for SIP transfer");
-          } catch (err) {
-            console.error("[agent] SIP transfer failed:", err);
-          }
-          // Fallback if SIP transfer fails
-          return "I'm having trouble connecting you directly. Let me take a message and have them call you back right away.";
-        }
-
-        if (isOnClock && !ownerPhone) {
-          console.warn(`[agent] No owner phone configured for transfer. callId=${callId}`);
-          return "I'm unable to transfer you right now, but I'll make sure the team gets your message immediately. Can I take your details?";
-        }
-
-        return "The owner is currently out of the office or on-site. I am flagging this message as URGENT for them so they see it as soon as possible. Can I get a detailed message for them?";
+        return "I’ll pass this straight to the manager and have them call you back as soon as possible. Is there anything else I should know before I pass it on?";
       },
     });
 
@@ -1851,10 +1819,10 @@ export default defineAgent({
     const tools: livekitLlm.ToolContext<unknown> = isEarlymarkCall
       ? {
         log_lead: logLeadTool,
-        transfer_call: transferCallTool,
+        urgent_manager_callback: urgentManagerCallbackTool,
       }
       : {
-        transfer_call: transferCallTool,
+        urgent_manager_callback: urgentManagerCallbackTool,
         ...normalLookupTools,
         ...normalSchedulingTools,
       };
@@ -1934,6 +1902,7 @@ export default defineAgent({
     const transcriptTurns: TranscriptTurn[] = [];
     const transcriptItemIds = new Set<string>();
     const leadCapture: LeadCapture = { toolUsed: false, payloads: [] };
+    const urgentEscalation: UrgentEscalationCapture = { toolUsed: false, payloads: [] };
     const assistantTranscriptOverrides: AssistantTranscriptOverride[] = [];
     const responsePolicyOutcomes: CustomerFacingResponsePolicyOutcome[] = [];
     const voiceLatencyAudit: VoiceLatencyAudit = {
@@ -2203,12 +2172,22 @@ export default defineAgent({
 
     session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (ev) => {
       for (const call of ev.functionCalls) {
-        if (call.name !== "log_lead") continue;
-        leadCapture.toolUsed = true;
-        try {
-          leadCapture.payloads.push(JSON.parse(call.args) as Record<string, unknown>);
-        } catch {
-          leadCapture.payloads.push({ rawArgs: call.args });
+        if (call.name === "log_lead") {
+          leadCapture.toolUsed = true;
+          try {
+            leadCapture.payloads.push(JSON.parse(call.args) as Record<string, unknown>);
+          } catch {
+            leadCapture.payloads.push({ rawArgs: call.args });
+          }
+          continue;
+        }
+        if (call.name === "urgent_manager_callback") {
+          urgentEscalation.toolUsed = true;
+          try {
+            urgentEscalation.payloads.push(JSON.parse(call.args) as Record<string, unknown>);
+          } catch {
+            urgentEscalation.payloads.push({ rawArgs: call.args });
+          }
         }
       }
     });
@@ -2631,6 +2610,8 @@ export default defineAgent({
           maxConcurrentCalls: getMaxConcurrentCalls(),
           voiceTurnTuning,
           customerContactMode: normalVoiceGrounding?.customerContactMode || null,
+          emergencyBypass: normalVoiceGrounding?.emergencyBypass ?? null,
+          urgentEscalation,
           responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
           voiceLatency: {

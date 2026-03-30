@@ -127,7 +127,7 @@ export function CallForwardingCard() {
             Phone & call handling
           </CardTitle>
           <CardDescription>
-            Keep your personal mobile up to date, choose how Tracey should answer, and then apply the forwarding code on your phone.
+            Add your mobile, choose how Tracey should answer, then turn call forwarding on from your phone.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -140,7 +140,7 @@ export function CallForwardingCard() {
                     {personalPhone || "Not added yet"}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Used for verification codes and Tracey setup texts.
+                    Used for verification codes and setup texts.
                   </p>
                 </div>
                 <Button
@@ -161,17 +161,17 @@ export function CallForwardingCard() {
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {traceyPhone || "Not provisioned yet"}
                 </p>
-                <p className="text-xs text-slate-500">
-                  This is the business number your calls can forward to.
-                </p>
+                  <p className="text-xs text-slate-500">
+                    This is the number your business calls can forward to.
+                  </p>
               </div>
             </div>
           </div>
 
           <div className="rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
             <div className="space-y-1">
-              <Label className="text-sm font-semibold text-slate-900 dark:text-white">How should Tracey handle calls?</Label>
-              <p className="text-sm text-slate-500">
+              <Label className="app-section-title">How should Tracey handle calls?</Label>
+              <p className="app-body-secondary">
                 Pick the mode you want. You can change it any time.
               </p>
             </div>
@@ -179,47 +179,53 @@ export function CallForwardingCard() {
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <Button
                 variant={active === "backup" ? "default" : "outline"}
-                className="h-auto min-h-[132px] items-start justify-start gap-2 rounded-[18px] px-4 py-4 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("backup")}
               >
-                <div className="flex w-full items-center gap-2">
-                  <PhoneForwarded className="h-4 w-4" />
-                  <span>Backup AI</span>
+                <div className="grid h-full w-full content-start gap-4 text-left">
+                  <div className="flex items-center gap-3">
+                    <PhoneForwarded className="h-4 w-4 shrink-0" />
+                    <p className="app-section-title">Backup AI</p>
+                  </div>
+                  <p className="app-body-secondary whitespace-normal">
+                    Your phone rings first. Tracey answers if you miss it.
+                  </p>
                 </div>
-                <span className="whitespace-normal text-xs font-normal leading-5 opacity-90">
-                  Your phone rings first. Tracey answers if you miss it.
-                </span>
               </Button>
 
               <Button
                 variant={active === "full" ? "default" : "outline"}
-                className="h-auto min-h-[132px] items-start justify-start gap-2 rounded-[18px] px-4 py-4 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("full")}
               >
-                <div className="flex w-full items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span>100% AI</span>
+                <div className="grid h-full w-full content-start gap-4 text-left">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-4 w-4 shrink-0" />
+                    <p className="app-section-title">100% AI</p>
+                  </div>
+                  <p className="app-body-secondary whitespace-normal">
+                    Tracey answers every call before your phone rings.
+                  </p>
                 </div>
-                <span className="whitespace-normal text-xs font-normal leading-5 opacity-90">
-                  Tracey answers every call before your phone rings.
-                </span>
               </Button>
 
               <Button
                 variant={active === "off" ? "secondary" : "outline"}
-                className="h-auto min-h-[132px] items-start justify-start gap-2 rounded-[18px] px-4 py-4 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("off")}
               >
-                <div className="flex w-full items-center gap-2">
-                  <PhoneOff className="h-4 w-4" />
-                  <span>Forwarding off</span>
+                <div className="grid h-full w-full content-start gap-4 text-left">
+                  <div className="flex items-center gap-3">
+                    <PhoneOff className="h-4 w-4 shrink-0" />
+                    <p className="app-section-title">Forwarding off</p>
+                  </div>
+                  <p className="app-body-secondary whitespace-normal">
+                    Calls stay on your phone and Tracey does not answer them.
+                  </p>
                 </div>
-                <span className="whitespace-normal text-xs font-normal leading-5 opacity-90">
-                  Calls stay on your phone and Tracey does not answer them.
-                </span>
               </Button>
             </div>
 
@@ -230,11 +236,11 @@ export function CallForwardingCard() {
             ) : null}
           </div>
 
-          {active === "backup" ? (
+          {active === "backup" && hasTraceyNumber ? (
             <div className="rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
               <div className="space-y-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-white">Backup AI pickup timing</Label>
-                <p className="text-sm text-slate-500">
+                <Label className="app-section-title">Backup AI pickup timing</Label>
+                <p className="app-body-secondary">
                   Choose how long your phone should ring before Tracey picks up.
                 </p>
               </div>
@@ -268,10 +274,10 @@ export function CallForwardingCard() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-emerald-600" />
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Apply this on your phone</p>
+                    <p className="app-section-title">Apply this on your phone</p>
                   </div>
-                  <p className="text-sm text-slate-500">
-                    Tap the option you want on your mobile. Your dialer will open with the right forwarding code ready.
+                  <p className="app-body-secondary">
+                    Tap the option you want on your phone. Your dialer will open with the right forwarding code ready.
                   </p>
                 </div>
                 {active !== "off" ? (

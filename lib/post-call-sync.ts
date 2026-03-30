@@ -26,6 +26,7 @@ export interface PostCallPayload {
   transcriptTurns?: Array<{ role: string; text: string; createdAt: number }>;
   summary?: string;
   voiceCallId: string;
+  urgentEscalationReason?: string | null;
 }
 
 export interface PostCallSyncResult {
@@ -106,6 +107,7 @@ export async function syncVoiceCallToCRM(
         voiceCallSummary: payload.summary || null,
         extractedNotes: extracted.notes || null,
         extractedAddress: extracted.address || null,
+        urgentEscalationReason: payload.urgentEscalationReason || null,
       },
       ...(extracted.address ? { address: extracted.address } : {}),
     },
@@ -125,8 +127,12 @@ export async function syncVoiceCallToCRM(
   await db.activity.create({
     data: {
       type: "CALL",
-      title: `New lead from voice call: ${extracted.title}`,
-      content: payload.summary || `${contact.name} called about: ${extracted.title}`,
+      title: payload.urgentEscalationReason
+        ? `Urgent callback requested: ${extracted.title}`
+        : `New lead from voice call: ${extracted.title}`,
+      content: payload.urgentEscalationReason
+        ? `${payload.summary || `${contact.name} called about: ${extracted.title}`}\nUrgent reason: ${payload.urgentEscalationReason}`
+        : payload.summary || `${contact.name} called about: ${extracted.title}`,
       description: (payload.transcriptText || "").slice(0, 2000),
       contactId: contact.id,
       dealId: deal.id,

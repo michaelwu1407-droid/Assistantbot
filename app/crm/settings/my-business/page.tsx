@@ -35,15 +35,15 @@ export default async function MyBusinessSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-medium text-slate-900 dark:text-white">My business</h3>
-        <p className="text-sm text-slate-500">
+        <h3 className="app-section-title">My business</h3>
+        <p className="app-body-secondary">
           Business details, hours, contact info, and pricing so your AI agent can represent you accurately.
         </p>
       </div>
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Business details</h4>
+        <h4 className="app-section-title mb-3">Business details</h4>
         <MyBusinessDetails
           workspaceId={workspace.id}
           initialData={{
@@ -56,7 +56,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Working hours</h4>
+        <h4 className="app-section-title mb-3">Working hours</h4>
         <WorkingHoursForm
           initialData={{
             workingHoursStart: (workspaceWithSettings as { workingHoursStart?: string })?.workingHoursStart ?? "08:00",
@@ -71,19 +71,19 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Contact information</h4>
+        <h4 className="app-section-title mb-3">Contact information</h4>
         <BusinessContactForm initialData={businessContact ?? undefined} />
       </section>
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Service areas</h4>
+        <h4 className="app-section-title mb-3">Service areas</h4>
         <ServiceAreasSection />
       </section>
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Pricing information</h4>
+        <h4 className="app-section-title mb-3">Pricing information</h4>
         <PricingForAgentSection
           initialCallOutFee={(workspaceWithSettings as { callOutFee?: number })?.callOutFee ?? 0}
         />
@@ -91,10 +91,10 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" id="attachment-library">
+        <h4 className="app-section-title mb-3" id="attachment-library">
           AI Attachment Library
         </h4>
-        <p className="text-sm text-slate-500 mb-4">
+        <p className="app-body-secondary mb-4">
           Upload PDF guides, price lists, or insurance forms. The AI agent will automatically email these to callers when requested.
         </p>
         <AttachmentLibrarySection
@@ -110,7 +110,7 @@ export default async function MyBusinessSettingsPage() {
       <Separator />
 
       <section>
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Reviews</h4>
+        <h4 className="app-section-title mb-3">Reviews</h4>
         <GoogleReviewUrlSection initialUrl={googleReviewUrl} />
       </section>
     </div>

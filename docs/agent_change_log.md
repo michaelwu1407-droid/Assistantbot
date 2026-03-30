@@ -2691,7 +2691,7 @@ Rule: every agent change commit must include an entry in this file.
   - `components/settings/support-request-panel.tsx`
   - `docs/agent_change_log.md`
 - Summary:
-  - Consolidated the settings IA so `My business` owns business facts, `Calls & texting` owns communication behavior, and `AI Assistant` is the single canonical page for Tracey’s decision-making.
+  - Consolidated the settings IA so `My business` owns business facts, `Calls & texting` owns communication behavior, and `AI Assistant` is the single canonical page for Traceyï¿½s decision-making.
   - Removed the visible `Teach Tracey` duplication by keeping the `AI Assistant` name in the sidebar and redirecting the old training route into the canonical AI Assistant page.
   - Converted legacy duplicate settings routes like `ai-voice`, `after-hours`, `sms-templates`, `appearance`, and `support` into redirects to their canonical destinations.
   - Merged the support request form into `Help` and redirected the old support page so help and support no longer compete as separate settings experiences.
@@ -2706,7 +2706,7 @@ Rule: every agent change commit must include an entry in this file.
 - Summary:
   - Removed the built-in `Website lead form` section from `My business` so settings no longer presents a second lead-capture path based on embedding an Earlymark form.
 - Why:
-  - The intended workflow is to use the business’s own website form and send those leads to the Earlymark inbound email, not to maintain a parallel embedded webform product inside settings.
+  - The intended workflow is to use the businessï¿½s own website form and send those leads to the Earlymark inbound email, not to maintain a parallel embedded webform product inside settings.
 
 ## 2026-03-29 11:48 (AEDT) - Codex
 

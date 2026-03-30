@@ -28,6 +28,13 @@ type ServiceDraft = {
   comment: string
 }
 
+const servicePricingTableMinWidthClass = "min-w-[1020px]"
+const servicePricingGridClass =
+  "grid items-start gap-3 [grid-template-columns:minmax(240px,1.15fr)_110px_110px_minmax(420px,1.7fr)_120px]"
+
+const compactInputClass = "h-12 min-w-0 rounded-[16px] px-3 text-sm"
+const compactTextareaClass = "h-[56px] min-h-[56px] resize-none rounded-[16px] px-3 py-2 text-sm"
+
 function toServiceDraft(rule: KnowledgeRule): ServiceDraft {
   const metadata = (rule.metadata || {}) as Record<string, unknown>
   return {
@@ -200,97 +207,102 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
             Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
           <div className="rounded-[18px] border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="hidden md:grid md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px] md:gap-3 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-              <span>Service</span>
-              <span>Min fee</span>
-              <span>Max fee</span>
-              <span>Comment</span>
-              <span />
-            </div>
+            <div className="overflow-x-auto">
+              <div className={servicePricingTableMinWidthClass}>
+                <div className={`bg-slate-50 px-3 py-2 dark:bg-slate-900 ${servicePricingGridClass}`}>
+                  <span className="app-micro-label">Service</span>
+                  <span className="app-micro-label">Min fee</span>
+                  <span className="app-micro-label">Max fee</span>
+                  <span className="app-micro-label">Comment</span>
+                  <span />
+                </div>
 
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {services.map((service) => {
-                const row = toServiceDraft(service)
-                return (
-                  <ServiceRow
-                    key={service.id}
-                    service={service}
-                    initialDraft={row}
-                    onSave={saveService}
-                    onDelete={removeService}
-                  />
-                )
-              })}
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {services.map((service) => {
+                    const row = toServiceDraft(service)
+                    return (
+                      <ServiceRow
+                        key={service.id}
+                        service={service}
+                        initialDraft={row}
+                        onSave={saveService}
+                        onDelete={removeService}
+                      />
+                    )
+                  })}
 
-              {isAddingService ? (
-                <div className="bg-slate-50/60 p-3 dark:bg-slate-900/40">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px]">
-                    <FieldShell label="Service">
-                      <Input
-                        value={newService.name}
-                        onChange={(event) => setNewService((prev) => ({ ...prev, name: event.target.value }))}
-                        placeholder="e.g. Drain unblocking"
-                        className="min-w-0"
-                      />
-                    </FieldShell>
-                    <FieldShell label="Min fee">
-                      <Input
-                        value={newService.minFee}
-                        onChange={(event) => setNewService((prev) => ({ ...prev, minFee: event.target.value }))}
-                        placeholder="150"
-                        type="number"
-                        className="min-w-0"
-                      />
-                    </FieldShell>
-                    <FieldShell label="Max fee">
-                      <Input
-                        value={newService.maxFee}
-                        onChange={(event) => setNewService((prev) => ({ ...prev, maxFee: event.target.value }))}
-                        placeholder="320"
-                        type="number"
-                        className="min-w-0"
-                      />
-                    </FieldShell>
-                    <FieldShell label="Comment">
-                      <Textarea
-                        value={newService.comment}
-                        onChange={(event) => setNewService((prev) => ({ ...prev, comment: event.target.value }))}
-                        placeholder="Includes standard parts only"
-                        rows={2}
-                        className="min-h-[60px] resize-none"
-                      />
-                    </FieldShell>
-                    <div className="flex items-start gap-2 md:justify-end md:pt-[22px]">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={addService}
-                        className="justify-center"
-                        disabled={!newService.name.trim()}
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsAddingService(false)
-                          setNewService({ name: "", minFee: "", maxFee: "", comment: "" })
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                  {isAddingService ? (
+                    <div className="bg-slate-50/60 p-3 dark:bg-slate-900/40">
+                      <div className={servicePricingGridClass}>
+                        <FieldShell label="Service">
+                          <Input
+                            value={newService.name}
+                            onChange={(event) => setNewService((prev) => ({ ...prev, name: event.target.value }))}
+                            placeholder="e.g. Drain unblocking"
+                            className={compactInputClass}
+                          />
+                        </FieldShell>
+                        <FieldShell label="Min fee">
+                          <Input
+                            value={newService.minFee}
+                            onChange={(event) => setNewService((prev) => ({ ...prev, minFee: event.target.value }))}
+                            placeholder="150"
+                            type="number"
+                            className={compactInputClass}
+                          />
+                        </FieldShell>
+                        <FieldShell label="Max fee">
+                          <Input
+                            value={newService.maxFee}
+                            onChange={(event) => setNewService((prev) => ({ ...prev, maxFee: event.target.value }))}
+                            placeholder="320"
+                            type="number"
+                            className={compactInputClass}
+                          />
+                        </FieldShell>
+                        <FieldShell label="Comment">
+                          <Textarea
+                            value={newService.comment}
+                            onChange={(event) => setNewService((prev) => ({ ...prev, comment: event.target.value }))}
+                            placeholder="Includes standard parts only"
+                            rows={2}
+                            className={compactTextareaClass}
+                          />
+                        </FieldShell>
+                        <div className="flex items-center gap-2 justify-end self-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addService}
+                            className="h-10 justify-center rounded-full px-4"
+                            disabled={!newService.name.trim()}
+                          >
+                            <Plus className="mr-1 h-4 w-4" />
+                            Add
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 rounded-full px-3"
+                            onClick={() => {
+                              setIsAddingService(false)
+                              setNewService({ name: "", minFee: "", maxFee: "", comment: "" })
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ) : null}
+                  ) : null}
 
-              {!loading && services.length === 0 && !isAddingService ? (
-                <div className="px-4 py-6 text-sm text-slate-500">
-                  No services added yet. Add your first service so Tracey can quote consistently.
+                  {!loading && services.length === 0 && !isAddingService ? (
+                    <div className="px-4 py-6 text-sm text-slate-500">
+                      No services added yet. Add your first service so Tracey can quote consistently.
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
             </div>
           </div>
           <div className="flex justify-start">
@@ -369,12 +381,12 @@ function ServiceRow({
 
   return (
     <div className="p-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.5fr)_88px_88px_minmax(0,1.7fr)_116px]">
+      <div className={servicePricingGridClass}>
         <FieldShell label="Service">
         <Input
           value={draft.name}
           onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-          className="min-w-0"
+          className={compactInputClass}
         />
         </FieldShell>
         <FieldShell label="Min fee">
@@ -382,7 +394,7 @@ function ServiceRow({
           type="number"
           value={draft.minFee}
           onChange={(event) => setDraft((prev) => ({ ...prev, minFee: event.target.value }))}
-          className="min-w-0"
+          className={compactInputClass}
         />
         </FieldShell>
         <FieldShell label="Max fee">
@@ -390,7 +402,7 @@ function ServiceRow({
           type="number"
           value={draft.maxFee}
           onChange={(event) => setDraft((prev) => ({ ...prev, maxFee: event.target.value }))}
-          className="min-w-0"
+          className={compactInputClass}
         />
         </FieldShell>
         <FieldShell label="Comment">
@@ -398,13 +410,14 @@ function ServiceRow({
           value={draft.comment}
           onChange={(event) => setDraft((prev) => ({ ...prev, comment: event.target.value }))}
           rows={2}
-          className="min-h-[60px] resize-none"
+          className={compactTextareaClass}
         />
         </FieldShell>
-        <div className="flex items-start gap-2 md:justify-end md:pt-[22px]">
+        <div className="flex items-center gap-2 xl:justify-end xl:self-center">
           <Button
             variant="outline"
             size="sm"
+            className="h-10 rounded-full px-4"
             disabled={saving}
             onClick={async () => {
               setSaving(true)
@@ -414,7 +427,7 @@ function ServiceRow({
           >
             {saving ? "Saving..." : "Save"}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(service.id)} className="h-8 w-8 text-red-500">
+          <Button variant="ghost" size="icon" onClick={() => onDelete(service.id)} className="h-10 w-10 rounded-full text-red-500">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -432,9 +445,7 @@ function FieldShell({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 md:hidden">
-        {label}
-      </Label>
+      <Label className="sr-only">{label}</Label>
       {children}
     </div>
   )

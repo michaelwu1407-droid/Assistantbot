@@ -216,7 +216,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-red-900">Delete account</p>
                 <p className="text-sm text-red-700">
-                  Permanently remove your account and workspace data. This cannot be undone.
+                  Permanently remove your account and business data. This cannot be undone.
                 </p>
                 <Button
                   type="button"
@@ -257,7 +257,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                 ? "Choose the closest reason. We may have a safer fix than deleting the whole account."
                 : deleteStep === "rescue"
                   ? "Before anything is deleted, here is the safer next step based on what you told us."
-                  : "This removes your login. If you are the last workspace user, it also wipes the workspace data."}
+                  : "This removes your login. If you are the last person on the account, it also removes the business data."}
             </DialogDescription>
           </DialogHeader>
 
@@ -283,7 +283,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                   </div>
                 </div>
                 <div className="rounded-[18px] border border-amber-200/70 bg-amber-50/80 p-4 text-sm text-amber-900">
-                  Deletion is permanent. If you are the last workspace user, jobs, contacts, templates, settings, and related workspace records are removed too.
+                  Deletion is permanent. If you are the last person on the account, jobs, contacts, templates, settings, and history are removed too.
                 </div>
               </div>
             )}
@@ -311,7 +311,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                   <p className="text-sm font-semibold text-red-900">What will happen</p>
                   <ul className="mt-2 space-y-1 text-sm text-red-800">
                     <li>Your account will be removed.</li>
-                    <li>If you are the last workspace user, jobs, contacts, settings, and history will be deleted too.</li>
+                    <li>If you are the last person on the account, jobs, contacts, settings, and history will be deleted too.</li>
                     <li>This cannot be undone from the app.</li>
                   </ul>
                 </div>

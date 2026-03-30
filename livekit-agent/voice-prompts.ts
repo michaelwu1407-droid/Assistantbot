@@ -42,6 +42,8 @@ export type PromptWorkspaceVoiceGrounding = {
   }>;
   noGoRules: string[];
   flagOnlyRules: string[];
+  emergencyBypass: boolean;
+  ownerPhone: string | null;
 };
 
 function getRepresentedBusinessName(callType: PromptCallType, caller: PromptCallerContext): string {
@@ -71,6 +73,7 @@ function buildGroundingSnapshot(grounding?: PromptWorkspaceVoiceGrounding | null
     grounding.emergencyService
       ? `Emergency service: available${grounding.emergencySurcharge ? ` (+$${grounding.emergencySurcharge} surcharge)` : ""}`
       : "Emergency service: not enabled",
+    "Urgent or human-requested calls: take details and promise manager callback ASAP",
   ], 6);
 
   const preferences = compactLines(grounding.aiPreferences, 4);
@@ -134,6 +137,11 @@ export function buildNormalPrompt(caller: PromptCallerContext, grounding?: Promp
   const businessName = grounding?.businessName || getRepresentedBusinessName("normal", caller);
   const modeInstructions = buildCustomerModePolicyLines(grounding?.customerContactMode).join("\n- ");
   const groundingSnapshot = buildGroundingSnapshot(grounding);
+  const escalationPolicy = `ESCALATION POLICY
+- If the caller says the job is urgent, an emergency, or they need a human/owner, do not promise attendance or agree to an urgent booking yourself.
+- Instead, say you will pass it straight to the manager and they will call back as soon as possible.
+- Ask for any missing detail that helps the manager call back prepared, then use the urgent_manager_callback tool to log the callback escalation.
+- Do not use this for routine questions you can handle correctly.`;
   return `You are Tracey, the AI phone assistant for ${businessName}.
 
 IDENTITY
@@ -166,10 +174,7 @@ PRIMARY JOB
 DECISION POLICY
 - ${modeInstructions}
 
-TRANSFER POLICY
-- If the caller asks for a human or owner, first confirm that this is what they want.
-- After confirmation, use the transfer_call tool.
-- Do not transfer routine questions you can handle correctly.
+${escalationPolicy}
 
 TRUTH RULES
 - Never invent pricing, availability, policies, service coverage, or contact details.

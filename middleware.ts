@@ -25,8 +25,6 @@ const INTERNAL_ONLY_PREFIXES = [
   "/test-auth",
   "/test-supabase",
   "/sentry-example-page",
-  "/admin/diagnostics",
-  "/admin/customer-usage",
 ]
 
 function shouldSkipSessionRefresh(pathname: string) {

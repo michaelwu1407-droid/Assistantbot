@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { AlertTriangle, Loader2, MessageSquare, Save } from "lucide-react"
+import { Loader2, MessageSquare, Save } from "lucide-react"
 import { getPhoneNumberStatus } from "@/actions/phone-settings"
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions"
 import {
@@ -31,7 +31,6 @@ type SettingsState = {
   textAllowedEnd?: string
   callAllowedStart?: string
   callAllowedEnd?: string
-  emergencyBypass?: boolean
 }
 
 type PhoneStatus = {
@@ -50,7 +49,6 @@ const DEFAULT_SETTINGS: SettingsState = {
   textAllowedEnd: "20:00",
   callAllowedStart: "08:00",
   callAllowedEnd: "20:00",
-  emergencyBypass: false,
 }
 
 const BOOKING_REMINDER_TIMINGS = [
@@ -154,11 +152,10 @@ export function CallSettingsClient() {
             textAllowedEnd: ws.textAllowedEnd || "20:00",
             callAllowedStart: ws.callAllowedStart || "08:00",
             callAllowedEnd: ws.callAllowedEnd || "20:00",
-            emergencyBypass: ws.emergencyBypass ?? false,
           })
         } else {
           setSettings(DEFAULT_SETTINGS)
-          toast.error("Loaded default customer contact settings because the workspace settings were unavailable.")
+          toast.error("Loaded default contact settings because your saved settings could not be loaded.")
         }
 
         if (rulesResult.status === "fulfilled") {
@@ -166,7 +163,7 @@ export function CallSettingsClient() {
           setRulesError(null)
         } else {
           setRules([])
-          setRulesError("Automated text messages are unavailable right now. Try again once the workspace loads properly.")
+          setRulesError("Automated text messages are unavailable right now. Try again in a moment.")
           toast.error("Failed to load automated text messages")
         }
       })
@@ -187,7 +184,6 @@ export function CallSettingsClient() {
         textAllowedEnd: next.textAllowedEnd,
         callAllowedStart: next.callAllowedStart,
         callAllowedEnd: next.callAllowedEnd,
-        emergencyBypass: next.emergencyBypass,
       })
       setSettings(next)
       toast.success("Settings saved")
@@ -265,7 +261,6 @@ export function CallSettingsClient() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">All times below use this timezone.</p>
             </div>
           </div>
 
@@ -324,32 +319,6 @@ export function CallSettingsClient() {
       <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Emergency calls
-          </CardTitle>
-          <CardDescription>
-            If a caller sounds urgent, Tracey can send the call straight to you instead of continuing through the AI.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <Label>Urgent calls bypass Tracey</Label>
-            <Switch
-              checked={Boolean(settings.emergencyBypass)}
-              onCheckedChange={(checked) =>
-                setSettings((current) => (current ? { ...current, emergencyBypass: checked } : current))
-              }
-            />
-          </div>
-          <Button size="sm" onClick={() => saveSettings(settings)} disabled={saving}>
-            {saving ? "Saving..." : "Save emergency call settings"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Automated text messages
           </CardTitle>
@@ -370,7 +339,7 @@ export function CallSettingsClient() {
             </div>
           ) : rules.length === 0 ? (
             <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
-              No automated text messages are configured for this workspace yet.
+              No automated text messages have been set up yet.
             </div>
           ) : (
             rules.map((rule) => (
