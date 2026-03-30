@@ -2763,3 +2763,23 @@ Rule: every agent change commit must include an entry in this file.
   - Documented the new product source-of-truth ownership model in `docs/user_facing_truth_map.md` and tightened a few remaining settings saves so business-hours and pricing edits no longer rewrite unrelated hidden voice or debug settings.
 - Why:
   - The product was implying behavior that did not line up with its real runtime paths. This pass narrows the surface area to what actually works, makes feedback analytics trustworthy by wiring a real intake path, and reduces duplicate or contradictory settings logic.
+
+## 2026-03-31 01:16 (AEDT) - Codex
+
+- Files changed:
+  - `app/admin/customer-usage/page.tsx`
+  - `app/admin/diagnostics/page.tsx`
+  - `app/admin/ops-status/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/admin/customer-usage.ts`
+  - `lib/admin/voice-ai-rate-card.ts`
+  - `__tests__/admin-internal-route-redirects.test.ts`
+  - `__tests__/customer-usage-metrics.test.ts`
+- Summary:
+  - Replaced the three drifting internal admin pages with one canonical observability surface at `/admin/customer-usage`, using a top overview plus `Overview`, `Customers`, and `Ops` tabs driven by query params.
+  - Removed the hardcoded Stripe `$59` fallback and the old proxy-heavy economics from the admin data contract, keeping only exact subscription revenue from live Stripe, exact current-month Twilio spend, explicit coverage counts, and clearly labeled rollups.
+  - Locked `Jobs Won With Tracey` to the approved system-source formula, added exact `Sub rev - Twilio month spend`, and limited `Cost per won job` to the approved current-month formula.
+  - Added a documented voice-only AI cost estimate path backed by an explicit rate card module, persisted call duration/transcript data, and estimate coverage reporting, while keeping that estimate out of top truth KPIs.
+  - Redirected `/admin/ops-status` and `/admin/diagnostics` into the unified page and added targeted tests for filters, formula helpers, and redirect behavior.
+- Why:
+  - The internal admin surface needed to become a real single point of truth instead of three overlapping pages that mixed exact values with silent fallbacks and proxy metrics.

@@ -1,31 +1,45 @@
-import { subDays, subMonths } from "date-fns";
+import { startOfMonth, subDays } from "date-fns";
 import type Stripe from "stripe";
-import { db } from "@/lib/db";
-import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
+import type { WebhookDiagnostic } from "@/actions/webhook-actions";
 import { getWebhookDiagnostics } from "@/actions/webhook-actions";
-import { getLatencySnapshot } from "@/lib/telemetry/latency";
+import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
+import {
+  getConfiguredVoiceLlmModel,
+  getConfiguredVoiceLlmProvider,
+  getVoiceLlmRate,
+  VOICE_STT_RATE_CARD,
+  VOICE_TTS_RATE_CARD,
+} from "@/lib/admin/voice-ai-rate-card";
+import { db } from "@/lib/db";
+import { type LaunchReadiness, getLaunchReadiness } from "@/lib/launch-readiness";
 import { stripe } from "@/lib/stripe";
+import {
+  buildDemoPrompt,
+  buildInboundDemoPrompt,
+  buildNormalPrompt,
+  type PromptCallType,
+} from "@/livekit-agent/voice-prompts";
 
-export type UsageRange = "7d" | "30d" | "90d" | "1y";
+export type UsageRange = "7d" | "30d" | "90d";
+export type CustomerUsageTab = "overview" | "customers" | "ops";
 export type CustomerUsageSort =
-  | "mrr"
-  | "twilioCost"
-  | "revenue"
-  | "calls"
-  | "recentActivity"
-  | "health";
+  | "attention"
+  | "subRevenue"
+  | "twilioSpend"
+  | "invoiceRevenue"
+  | "jobsWon"
+  | "lastActivity";
 
 export type CustomerUsageFilters = {
+  tab: CustomerUsageTab;
   range: UsageRange;
-  q: string;
-  status: string;
-  industry: string;
-  voice: "all" | "enabled" | "disabled";
-  sort: CustomerUsageSort;
   workspace: string;
+  q: string;
+  sort: CustomerUsageSort;
 };
 
-type HealthStatus = "healthy" | "degraded" | "unhealthy";
+export type CoverageStatus = "live" | "degraded" | "missing";
+export type RollupStatus = "healthy" | "degraded" | "unhealthy";
 
 type TwilioUsageCategory = {
   category: string;
@@ -35,31 +49,62 @@ type TwilioUsageCategory = {
   priceUnit: string;
 };
 
+type StripeSnapshot = {
+  coverage: CoverageStatus;
+  subscriptionRevenue: number | null;
+  currency: string | null;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  latestInvoiceStatus: string | null;
+  latestInvoiceAmount: number | null;
+  latestInvoiceCurrency: string | null;
+  latestInvoiceDate: string | null;
+  planLabel: string;
+  billingInterval: string;
+};
+
+type TwilioSnapshot = {
+  coverage: CoverageStatus;
+  monthSpend: number | null;
+  daySpend: number | null;
+  currency: string | null;
+  categories: TwilioUsageCategory[];
+};
+
 type ProviderSnapshot = {
-  stripe: {
-    available: boolean;
-    degraded: boolean;
-    live: boolean;
-    normalizedMrr: number;
-    subscriptionStatus: string | null;
-    currentPeriodEnd: string | null;
-    latestInvoiceStatus: string | null;
-    latestInvoiceAmount: number | null;
-    latestInvoiceDate: string | null;
+  stripe: StripeSnapshot;
+  twilio: TwilioSnapshot;
+};
+
+type VoiceAiEstimate = {
+  totalUsd: number | null;
+  sttUsd: number;
+  ttsUsd: number;
+  llmUsd: number;
+  coveredCalls: number;
+  excludedCalls: number;
+  totalCalls: number;
+  coverage: CoverageStatus;
+  note: string;
+  llmModels: string[];
+  rateCardSummary: {
+    stt: string;
+    tts: string;
+    llm: string[];
   };
-  twilio: {
-    available: boolean;
-    degraded: boolean;
-    live: boolean;
-    monthSpend: number;
-    daySpend: number;
-    categories: TwilioUsageCategory[];
-  };
-  ai: {
-    available: false;
-    degraded: true;
-    note: string;
-  };
+};
+
+type WorkspaceAttention = {
+  level: "critical" | "warning" | "none";
+  reasons: string[];
+};
+
+type MoneyAggregate = {
+  amount: number | null;
+  currency: string | null;
+  coveredCount: number;
+  excludedCount: number;
+  mixedCurrencies: boolean;
 };
 
 export type CustomerUsageRow = {
@@ -69,68 +114,80 @@ export type CustomerUsageRow = {
   workspaceType: string;
   industryType: string;
   createdAt: string;
-  onboardingComplete: boolean;
-  tutorialComplete: boolean;
   subscriptionStatus: string;
   planLabel: string;
   billingInterval: string;
-  currentPeriodEnd: string | null;
-  teamMembers: number;
-  contactsTotal: number;
-  contactsNewInRange: number;
-  dealsTotal: number;
-  dealsWon: number;
-  dealsLost: number;
-  dealsOpen: number;
-  invoicesDraft: number;
-  invoicesIssued: number;
-  invoicesPaid: number;
-  invoicesVoid: number;
-  completedRevenueInRange: number;
-  averageInvoiceValue: number;
-  voiceEnabled: boolean;
-  twilioPhoneNumber: string | null;
-  twilioSubaccountPresent: boolean;
-  voiceCallCountInRange: number;
-  voiceMinutesInRange: number;
-  lastVoiceCallAt: string | null;
-  currentMonthTwilioSpend: number | null;
-  twilioSpendPerCall: number | null;
-  twilioSpendPerWonDeal: number | null;
-  normalizedMrr: number | null;
-  marginProxy: number | null;
+  subscriptionRevenue: number | null;
+  subscriptionRevenueCurrency: string | null;
+  twilioMonthSpend: number | null;
+  twilioMonthSpendCurrency: string | null;
+  subRevenueMinusTwilio: number | null;
+  subRevenueMinusTwilioCurrency: string | null;
+  paidInvoiceRevenueInRange: number;
+  jobsWonWithTracey: number;
+  voiceCallsInRange: number;
   lastActivityAt: string | null;
-  lastWebhookSuccess: string | null;
-  lastWebhookError: string | null;
-  healthStatus: HealthStatus;
-  healthReasons: string[];
+  lastVoiceCallAt: string | null;
+  provisioningIssue: string | null;
+  attentionLevel: WorkspaceAttention["level"];
+  attentionReasons: string[];
+  passiveHealth: {
+    status: RollupStatus;
+    summary: string;
+  } | null;
   coverage: {
-    stripe: "live" | "stored" | "missing";
-    twilio: "live" | "stored" | "missing";
-    ai: "missing";
+    stripe: CoverageStatus;
+    twilio: CoverageStatus;
+    aiEstimate: CoverageStatus;
   };
 };
 
 export type CustomerUsageDashboardData = {
   filters: CustomerUsageFilters;
-  summary: {
-    totalWorkspaces: number;
-    activePaidWorkspaces: number;
-    inactiveOrTrialWorkspaces: number;
-    totalInternalUsers: number;
-    totalContacts: number;
-    totalDeals: number;
-    totalVoiceCallsInRange: number;
-    totalCompletedRevenueInRange: number;
-    normalizedMrr: number;
-    currentMonthTwilioSpend: number;
-    liveStripeCoverageCount: number;
-    liveTwilioCoverageCount: number;
-    missingCostCoverageCount: number;
-    unhealthyMonitorWorkspaces: number;
-    voiceDisabledWorkspaces: number;
-    pastDueSubscriptions: number;
-    staleActivityWorkspaces: number;
+  truthModel: {
+    exact: string;
+    rollup: string;
+    estimate: string;
+  };
+  overview: {
+    totalCustomers: number;
+    paidCustomers: number;
+    paidInvoiceRevenueInRange: number;
+    jobsWonWithTracey: number;
+    customersNeedingAction: number;
+    openProvisioningBlockers: number;
+    opsIssueCount: number;
+    subscriptionRevenue: MoneyAggregate;
+    twilioMonthSpend: MoneyAggregate;
+    subRevenueMinusTwilio: MoneyAggregate;
+    coverage: {
+      stripe: Record<CoverageStatus, number>;
+      twilio: Record<CoverageStatus, number>;
+      aiEstimate: Record<CoverageStatus, number>;
+    };
+    lists: {
+      immediateAttentionCustomers: Array<{
+        workspaceId: string;
+        workspaceName: string;
+        level: "critical" | "warning";
+        reasons: string[];
+      }>;
+      newestProvisioningFailures: LaunchReadiness["provisioning"]["recentIssues"];
+      staleCustomers: Array<{
+        workspaceId: string;
+        workspaceName: string;
+        lastActivityAt: string | null;
+        reasons: string[];
+      }>;
+      providerFailures: Array<{
+        id: string;
+        label: string;
+        status: RollupStatus;
+        summary: string;
+        lastSeenAt: string | null;
+        source: "ops" | "webhook";
+      }>;
+    };
   };
   rows: CustomerUsageRow[];
   selectedWorkspace: {
@@ -138,30 +195,35 @@ export type CustomerUsageDashboardData = {
     identity: {
       workspaceId: string;
       workspaceName: string;
+      workspaceType: string;
+      industryType: string;
       ownerId: string | null;
       ownerEmail: string;
-      createdAt: string;
-      updatedAt: string;
       voiceEnabled: boolean;
-      autoCallLeads: boolean;
+      twilioPhoneNumber: string | null;
       onboardingComplete: boolean;
       tutorialComplete: boolean;
+      createdAt: string;
+      updatedAt: string;
     };
     billing: {
       stripeCustomerId: string | null;
       stripeSubscriptionId: string | null;
+      subscriptionStatus: string;
       planLabel: string;
       billingInterval: string;
-      subscriptionStatus: string;
       currentPeriodEnd: string | null;
       latestInvoiceStatus: string | null;
       latestInvoiceAmount: number | null;
+      latestInvoiceCurrency: string | null;
       latestInvoiceDate: string | null;
+      subscriptionRevenue: number | null;
+      subscriptionRevenueCurrency: string | null;
       revenue7d: number;
       revenue30d: number;
       revenue90d: number;
       revenueLifetime: number;
-      paidInvoiceTotal: number;
+      paidInvoiceCount: number;
       unpaidInvoiceCount: number;
     };
     funnel: {
@@ -170,10 +232,14 @@ export type CustomerUsageDashboardData = {
       contactsNew30d: number;
       dealsCreated7d: number;
       dealsCreated30d: number;
+      dealsWon: number;
+      dealsLost: number;
+      dealsOpen: number;
       stageDistribution: Array<{ stage: string; count: number }>;
-      winRate: number;
+      winRatePercent: number;
       averageDaysToWin: number;
       jobsWonWithTracey: number;
+      jobsWonWithTraceyCurrentMonth: number;
       averageInvoiceValue: number;
       invoicePaymentLatencyDays: number | null;
     };
@@ -206,16 +272,18 @@ export type CustomerUsageDashboardData = {
         details: unknown;
       }>;
     };
-    cost: {
-      twilioMonthToDate: number | null;
-      twilioDayToDate: number | null;
-      twilioUsageCategories: TwilioUsageCategory[];
-      normalizedMrr: number | null;
-      grossMarginProxy: number | null;
-      costPerContact: number | null;
-      costPerCall: number | null;
+    costs: {
+      subscriptionRevenue: number | null;
+      subscriptionRevenueCurrency: string | null;
+      twilioMonthSpend: number | null;
+      twilioDaySpend: number | null;
+      twilioCurrency: string | null;
+      subRevenueMinusTwilio: number | null;
+      subRevenueMinusTwilioCurrency: string | null;
       costPerWonJob: number | null;
-      aiCostNote: string;
+      costPerWonJobCurrency: string | null;
+      twilioUsageCategories: TwilioUsageCategory[];
+      estimatedAiCost: VoiceAiEstimate;
     };
     activity: {
       lastDealCreatedAt: string | null;
@@ -223,39 +291,37 @@ export type CustomerUsageDashboardData = {
       lastInvoicePaidAt: string | null;
       lastVoiceCallAt: string | null;
       lastWorkspaceActivityAt: string | null;
-      staleWarnings: string[];
+      attentionReasons: string[];
+    };
+    feedback: {
+      feedbackCountInRange: number;
+      averageScoreInRange: number | null;
+      lowScoresInRange: number;
+      unresolvedLowScores: number;
+      recentFeedback: Array<{
+        id: string;
+        score: number;
+        comment: string | null;
+        resolved: boolean;
+        createdAt: string;
+        contactName: string;
+        dealTitle: string;
+      }>;
     };
   } | null;
   ops: {
-    monitorRuns: Array<{
-      monitorKey: string;
-      status: string;
-      summary: string;
-      checkedAt: string;
-      lastSuccessAt: string | null;
-      lastFailureAt: string | null;
-    }>;
-    webhookDiagnostics: Awaited<ReturnType<typeof getWebhookDiagnostics>>;
-    latencySnapshot: Awaited<ReturnType<typeof getLatencySnapshot>>;
-  };
-  coverage: {
-    stripe: {
-      live: number;
-      stored: number;
-      missing: number;
-    };
-    twilio: {
-      live: number;
-      stored: number;
-      missing: number;
-    };
-    ai: {
-      missing: number;
-    };
+    launch: LaunchReadiness;
+    webhookDiagnostics: WebhookDiagnostic[];
   };
 };
 
 type WorkspaceRecord = Awaited<ReturnType<typeof fetchWorkspaceBase>>[number];
+
+type TranscriptTurn = {
+  role: "user" | "assistant";
+  text: string;
+  createdAt: number;
+};
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
@@ -271,11 +337,38 @@ const STAGE_LABELS: Record<string, string> = {
   ARCHIVED: "Archived",
 };
 
+const TRACEY_WON_STAGES = [
+  "NEGOTIATION",
+  "SCHEDULED",
+  "PIPELINE",
+  "INVOICED",
+  "PENDING_COMPLETION",
+  "WON",
+] as const;
+
+export const JOBS_WON_WITH_TRACEY_FORMULA =
+  "Count deals where createdAt or stageChangedAt falls inside the selected range, the deal is in NEGOTIATION, SCHEDULED, PIPELINE, INVOICED, PENDING_COMPLETION, or WON, and the deal has system-source metadata (source, leadWonEmail, leadSource, provider, or portal). Deals created directly into those later stages without system-source metadata are excluded.";
+
+export const SUB_REVENUE_MINUS_TWILIO_FORMULA =
+  "Exact current recurring subscription revenue minus exact current-month Twilio spend. Only shown when both live values share the same currency.";
+
+export const COST_PER_WON_JOB_FORMULA =
+  "Current month only. Formula: Twilio month spend / Jobs Won With Tracey.";
+
+const PROMPT_BASELINE_CALLER = {
+  callType: "normal" as PromptCallType,
+  firstName: "Caller",
+  lastName: "Example",
+  businessName: "Example Plumbing",
+  email: "caller@example.com",
+  phone: "0400000000",
+  calledPhone: "0400000000",
+};
+
 function getRangeStart(range: UsageRange) {
   const now = new Date();
   if (range === "7d") return subDays(now, 7);
   if (range === "90d") return subDays(now, 90);
-  if (range === "1y") return subMonths(now, 12);
   return subDays(now, 30);
 }
 
@@ -291,14 +384,14 @@ function toNumber(value: unknown) {
   return 0;
 }
 
-function safeDivide(value: number, divisor: number) {
-  if (!divisor) return null;
-  return value / divisor;
-}
-
 function roundMoney(value: number | null) {
   if (value == null || !Number.isFinite(value)) return null;
   return Math.round(value * 100) / 100;
+}
+
+function safeDivide(value: number | null, divisor: number) {
+  if (value == null || !divisor) return null;
+  return value / divisor;
 }
 
 function toIso(value?: Date | null) {
@@ -307,6 +400,11 @@ function toIso(value?: Date | null) {
 
 function normalizeSearch(value: string) {
   return value.trim().toLowerCase();
+}
+
+function normalizeCurrency(value?: string | null) {
+  if (!value || !value.trim()) return null;
+  return value.trim().toUpperCase();
 }
 
 function mapLimit<T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> {
@@ -337,71 +435,47 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
   }
 }
 
-async function fetchWorkspaceBase() {
-  return db.workspace.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      industryType: true,
-      ownerId: true,
-      onboardingComplete: true,
-      tutorialComplete: true,
-      voiceEnabled: true,
-      autoCallLeads: true,
-      stripeCustomerId: true,
-      stripeSubscriptionId: true,
-      stripePriceId: true,
-      stripeCurrentPeriodEnd: true,
-      subscriptionStatus: true,
-      twilioPhoneNumber: true,
-      twilioSubaccountId: true,
-      twilioSubaccountAuthToken: true,
-      createdAt: true,
-      updatedAt: true,
-      users: {
-        select: {
-          id: true,
-          email: true,
-          role: true,
-        },
-      },
-    },
-  });
+function readObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
 }
 
-function deriveOwnerEmail(workspace: WorkspaceRecord) {
-  const ownerUser =
-    workspace.users.find((user) => user.id === workspace.ownerId) ||
-    workspace.users.find((user) => user.role === "OWNER") ||
-    workspace.users[0];
-
-  return ownerUser?.email || "Unknown";
+function readString(value: unknown) {
+  return typeof value === "string" ? value : null;
 }
 
-function detectTraceyWonDeal(metadata: unknown, stage: string, createdAt: Date, stageChangedAt: Date | null) {
-  if (!["NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION", "WON"].includes(stage)) {
-    return false;
+function estimateTokenCount(text: string) {
+  if (!text.trim()) return 0;
+  return Math.ceil(text.length / 4);
+}
+
+function parseTranscriptTurns(value: unknown): TranscriptTurn[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      if ((row.role !== "user" && row.role !== "assistant") || typeof row.text !== "string") return null;
+      return {
+        role: row.role,
+        text: row.text,
+        createdAt: typeof row.createdAt === "number" ? row.createdAt : 0,
+      } satisfies TranscriptTurn;
+    })
+    .filter((entry): entry is TranscriptTurn => Boolean(entry));
+}
+
+function getPromptBaselineTokens(callType: string) {
+  if (callType === "demo") {
+    return estimateTokenCount(buildDemoPrompt({ ...PROMPT_BASELINE_CALLER, callType: "demo" }));
   }
-
-  const meta = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
-  const source = typeof meta.source === "string" ? meta.source.toLowerCase() : "";
-  const hasSystemSource =
-    Boolean(source) ||
-    Boolean(meta.leadWonEmail) ||
-    typeof meta.leadSource === "string" ||
-    typeof meta.provider === "string" ||
-    typeof meta.portal === "string";
-
-  const createdDirectlyAtCurrentStage =
-    stageChangedAt && Math.abs(stageChangedAt.getTime() - createdAt.getTime()) < 60_000;
-
-  if (!hasSystemSource && createdDirectlyAtCurrentStage) {
-    return false;
+  if (callType === "inbound_demo") {
+    return estimateTokenCount(buildInboundDemoPrompt({ ...PROMPT_BASELINE_CALLER, callType: "inbound_demo" }));
   }
-
-  return true;
+  return estimateTokenCount(buildNormalPrompt(PROMPT_BASELINE_CALLER, null));
 }
 
 function inferCallDirection(callType: string) {
@@ -414,6 +488,108 @@ function inferCallDirection(callType: string) {
 function getCallDurationMinutes(startedAt: Date, endedAt?: Date | null) {
   if (!endedAt) return 0;
   return Math.max(0, (endedAt.getTime() - startedAt.getTime()) / 60_000);
+}
+
+function maxDate(...values: Array<Date | null | undefined>) {
+  const valid = values.filter((value): value is Date => Boolean(value));
+  if (valid.length === 0) return null;
+  return valid.reduce((latest, value) => (value.getTime() > latest.getTime() ? value : latest));
+}
+
+export function detectTraceyWonDeal(metadata: unknown, stage: string, createdAt: Date, stageChangedAt: Date | null) {
+  if (!TRACEY_WON_STAGES.includes(stage as (typeof TRACEY_WON_STAGES)[number])) {
+    return false;
+  }
+
+  const meta = readObject(metadata);
+  const hasSystemSource =
+    Boolean(readString(meta.source)?.trim()) ||
+    Boolean(meta.leadWonEmail) ||
+    Boolean(readString(meta.leadSource)?.trim()) ||
+    Boolean(readString(meta.provider)?.trim()) ||
+    Boolean(readString(meta.portal)?.trim());
+
+  const createdDirectlyAtCurrentStage =
+    Boolean(stageChangedAt) && Math.abs(stageChangedAt!.getTime() - createdAt.getTime()) < 60_000;
+
+  if (!hasSystemSource && createdDirectlyAtCurrentStage) {
+    return false;
+  }
+
+  return true;
+}
+
+function isDealInsideTraceyWindow(deal: { createdAt: Date; stageChangedAt: Date }, rangeStart: Date) {
+  return deal.createdAt >= rangeStart || deal.stageChangedAt >= rangeStart;
+}
+
+function countJobsWonWithTracey(
+  deals: Array<{ metadata: unknown; stage: string; createdAt: Date; stageChangedAt: Date }>,
+  rangeStart: Date,
+) {
+  return deals.filter((deal) => isDealInsideTraceyWindow(deal, rangeStart))
+    .filter((deal) => detectTraceyWonDeal(deal.metadata, deal.stage, deal.createdAt, deal.stageChangedAt))
+    .length;
+}
+
+function aggregateMoney(
+  items: Array<{
+    amount: number | null;
+    currency: string | null;
+  }>,
+): MoneyAggregate {
+  const eligible = items.filter((item) => item.amount != null && item.currency);
+  const excludedCount = items.length - eligible.length;
+  if (eligible.length === 0) {
+    return {
+      amount: null,
+      currency: null,
+      coveredCount: 0,
+      excludedCount,
+      mixedCurrencies: false,
+    };
+  }
+
+  const currencies = Array.from(new Set(eligible.map((item) => item.currency)));
+  if (currencies.length !== 1) {
+    return {
+      amount: null,
+      currency: null,
+      coveredCount: eligible.length,
+      excludedCount,
+      mixedCurrencies: true,
+    };
+  }
+
+  return {
+    amount: roundMoney(eligible.reduce((sum, item) => sum + (item.amount || 0), 0)),
+    currency: currencies[0] || null,
+    coveredCount: eligible.length,
+    excludedCount,
+    mixedCurrencies: false,
+  };
+}
+
+function subtractMoneyExact(
+  leftAmount: number | null,
+  leftCurrency: string | null,
+  rightAmount: number | null,
+  rightCurrency: string | null,
+) {
+  if (leftAmount == null || rightAmount == null) {
+    return { amount: null, currency: null };
+  }
+  if (!leftCurrency || !rightCurrency || leftCurrency !== rightCurrency) {
+    return { amount: null, currency: null };
+  }
+  return {
+    amount: roundMoney(leftAmount - rightAmount),
+    currency: leftCurrency,
+  };
+}
+
+export function calculateCostPerWonJob(twilioMonthSpend: number | null, jobsWonWithTraceyCurrentMonth: number) {
+  return roundMoney(safeDivide(twilioMonthSpend, jobsWonWithTraceyCurrentMonth));
 }
 
 function getTwilioCredentials(workspace: WorkspaceRecord) {
@@ -468,44 +644,76 @@ async function fetchTwilioUsageRecords(workspace: WorkspaceRecord, period: "Toda
   return payload.usage_records || [];
 }
 
-function normalizeStripeMrrFromSubscription(subscription: Stripe.Subscription) {
+function normalizeStripeSubscriptionRevenue(subscription: Stripe.Subscription) {
   const items = Array.isArray(subscription.items?.data) ? subscription.items.data : [];
+  if (items.length === 0) {
+    return { amount: null, currency: null };
+  }
+
+  const currencies = Array.from(new Set(items.map((item) => normalizeCurrency(item.price.currency)).filter(Boolean)));
+  if (currencies.length !== 1) {
+    return { amount: null, currency: null };
+  }
+
   const monthly = items.reduce((sum: number, item: Stripe.SubscriptionItem) => {
-    const unitAmount = toNumber(item?.price?.unit_amount) / 100;
-    const quantity = toNumber(item?.quantity) || 1;
-    const interval = item?.price?.recurring?.interval;
+    const unitAmount = toNumber(item.price.unit_amount) / 100;
+    const quantity = toNumber(item.quantity) || 1;
+    const interval = item.price.recurring?.interval;
+    const intervalCount = toNumber(item.price.recurring?.interval_count) || 1;
+
     if (interval === "year") {
-      return sum + (unitAmount * quantity) / 12;
+      return sum + (unitAmount * quantity) / (12 * intervalCount);
     }
-    return sum + unitAmount * quantity;
+    if (interval === "month") {
+      return sum + (unitAmount * quantity) / intervalCount;
+    }
+
+    return sum;
   }, 0);
 
-  return roundMoney(monthly) || 0;
+  return {
+    amount: roundMoney(monthly),
+    currency: currencies[0] || null,
+  };
 }
 
-async function fetchStripeSnapshot(workspace: WorkspaceRecord): Promise<ProviderSnapshot["stripe"]> {
+function getStripePricePresentation(workspace: WorkspaceRecord, subscription: Stripe.Subscription | null) {
+  const subscriptionPriceId = subscription?.items?.data?.[0]?.price?.id || null;
+  const priceId = workspace.stripePriceId || subscriptionPriceId;
+  const intervalFromPriceId = getBillingIntervalForPriceId(priceId);
+  const intervalLabel =
+    intervalFromPriceId ||
+    (subscription?.items?.data?.[0]?.price?.recurring?.interval === "year" ? "yearly" : "monthly");
+
+  return {
+    planLabel: getPlanLabelForPriceId(priceId),
+    billingInterval: intervalLabel || "n/a",
+  };
+}
+
+async function fetchStripeSnapshot(workspace: WorkspaceRecord): Promise<StripeSnapshot> {
   if (!workspace.stripeCustomerId && !workspace.stripeSubscriptionId && !workspace.stripePriceId) {
     return {
-      available: false,
-      degraded: false,
-      live: false,
-      normalizedMrr: 0,
+      coverage: "missing",
+      subscriptionRevenue: null,
+      currency: null,
       subscriptionStatus: workspace.subscriptionStatus || null,
       currentPeriodEnd: toIso(workspace.stripeCurrentPeriodEnd),
       latestInvoiceStatus: null,
       latestInvoiceAmount: null,
+      latestInvoiceCurrency: null,
       latestInvoiceDate: null,
+      planLabel: workspace.stripePriceId ? getPlanLabelForPriceId(workspace.stripePriceId) : "No active subscription",
+      billingInterval: workspace.stripePriceId ? (getBillingIntervalForPriceId(workspace.stripePriceId) || "n/a") : "n/a",
     };
   }
 
   try {
     const subscription: Stripe.Subscription | null = workspace.stripeSubscriptionId
       ? await withTimeout(
-          stripe
-            .subscriptions.retrieve(workspace.stripeSubscriptionId, {
+          stripe.subscriptions.retrieve(workspace.stripeSubscriptionId, {
             expand: ["latest_invoice", "items.data.price"],
-            })
-            .then((result) => result as unknown as Stripe.Subscription),
+          }) as Promise<Stripe.Subscription>,
           6_000,
           null,
         )
@@ -516,36 +724,29 @@ async function fetchStripeSnapshot(workspace: WorkspaceRecord): Promise<Provider
         ? (subscription.latest_invoice as Stripe.Invoice)
         : workspace.stripeCustomerId
           ? await withTimeout(
-              stripe.invoices
-                .list({
-                  customer: workspace.stripeCustomerId,
-                  limit: 1,
-                })
-                .then((result) => result.data[0] || null),
+              stripe.invoices.list({
+                customer: workspace.stripeCustomerId,
+                limit: 1,
+              }).then((result) => result.data[0] || null),
               6_000,
               null,
             )
           : null;
 
-    const fallbackMrr = workspace.stripePriceId
-      ? getBillingIntervalForPriceId(workspace.stripePriceId) === "yearly"
-        ? 59
-        : 59
-      : 0;
     const subscriptionPeriodEnd = subscription
       ? subscription.items.data.reduce((max, item) => Math.max(max, item.current_period_end || 0), 0)
       : 0;
+    const normalizedRevenue = subscription ? normalizeStripeSubscriptionRevenue(subscription) : { amount: null, currency: null };
+    const presentation = getStripePricePresentation(workspace, subscription);
 
     return {
-      available: true,
-      degraded: !subscription,
-      live: Boolean(subscription),
-      normalizedMrr: subscription ? normalizeStripeMrrFromSubscription(subscription) : fallbackMrr,
+      coverage: subscription ? "live" : "degraded",
+      subscriptionRevenue: normalizedRevenue.amount,
+      currency: normalizedRevenue.currency,
       subscriptionStatus: subscription?.status || workspace.subscriptionStatus || null,
-      currentPeriodEnd:
-        subscriptionPeriodEnd
-          ? new Date(subscriptionPeriodEnd * 1000).toISOString()
-          : toIso(workspace.stripeCurrentPeriodEnd),
+      currentPeriodEnd: subscriptionPeriodEnd
+        ? new Date(subscriptionPeriodEnd * 1000).toISOString()
+        : toIso(workspace.stripeCurrentPeriodEnd),
       latestInvoiceStatus: latestInvoice?.status || null,
       latestInvoiceAmount:
         typeof latestInvoice?.amount_paid === "number"
@@ -553,33 +754,38 @@ async function fetchStripeSnapshot(workspace: WorkspaceRecord): Promise<Provider
           : typeof latestInvoice?.amount_due === "number"
             ? roundMoney(latestInvoice.amount_due / 100)
             : null,
-      latestInvoiceDate:
-        typeof latestInvoice?.created === "number" ? new Date(latestInvoice.created * 1000).toISOString() : null,
+      latestInvoiceCurrency: normalizeCurrency(latestInvoice?.currency || null),
+      latestInvoiceDate: typeof latestInvoice?.created === "number"
+        ? new Date(latestInvoice.created * 1000).toISOString()
+        : null,
+      planLabel: presentation.planLabel,
+      billingInterval: presentation.billingInterval,
     };
   } catch {
     return {
-      available: true,
-      degraded: true,
-      live: false,
-      normalizedMrr: workspace.stripePriceId ? 59 : 0,
+      coverage: "degraded",
+      subscriptionRevenue: null,
+      currency: null,
       subscriptionStatus: workspace.subscriptionStatus || null,
       currentPeriodEnd: toIso(workspace.stripeCurrentPeriodEnd),
       latestInvoiceStatus: null,
       latestInvoiceAmount: null,
+      latestInvoiceCurrency: null,
       latestInvoiceDate: null,
+      planLabel: workspace.stripePriceId ? getPlanLabelForPriceId(workspace.stripePriceId) : "No active subscription",
+      billingInterval: workspace.stripePriceId ? (getBillingIntervalForPriceId(workspace.stripePriceId) || "n/a") : "n/a",
     };
   }
 }
 
-async function fetchTwilioSnapshot(workspace: WorkspaceRecord): Promise<ProviderSnapshot["twilio"]> {
+async function fetchTwilioSnapshot(workspace: WorkspaceRecord): Promise<TwilioSnapshot> {
   const credentials = getTwilioCredentials(workspace);
   if (!credentials) {
     return {
-      available: false,
-      degraded: false,
-      live: false,
-      monthSpend: 0,
-      daySpend: 0,
+      coverage: "missing",
+      monthSpend: null,
+      daySpend: null,
+      currency: null,
       categories: [],
     };
   }
@@ -591,12 +797,17 @@ async function fetchTwilioSnapshot(workspace: WorkspaceRecord): Promise<Provider
       withTimeout(fetchTwilioUsageRecords(workspace, "ThisMonth"), 6_000, null),
     ]);
 
+    const currency =
+      normalizeCurrency(monthTotals?.find((record) => normalizeCurrency(record.price_unit))?.price_unit) ||
+      normalizeCurrency(dayTotals?.find((record) => normalizeCurrency(record.price_unit))?.price_unit) ||
+      normalizeCurrency(categories?.find((record) => normalizeCurrency(record.price_unit))?.price_unit) ||
+      "USD";
+
     return {
-      available: true,
-      degraded: !monthTotals,
-      live: Boolean(monthTotals),
-      monthSpend: roundMoney(monthTotals?.reduce((sum, record) => sum + toNumber(record.price), 0) || 0) || 0,
-      daySpend: roundMoney(dayTotals?.reduce((sum, record) => sum + toNumber(record.price), 0) || 0) || 0,
+      coverage: monthTotals ? "live" : "degraded",
+      monthSpend: monthTotals ? roundMoney(monthTotals.reduce((sum, record) => sum + toNumber(record.price), 0)) : null,
+      daySpend: dayTotals ? roundMoney(dayTotals.reduce((sum, record) => sum + toNumber(record.price), 0)) : null,
+      currency,
       categories: (categories || [])
         .filter((record) => record.category)
         .map((record) => ({
@@ -604,17 +815,16 @@ async function fetchTwilioSnapshot(workspace: WorkspaceRecord): Promise<Provider
           usage: toNumber(record.usage),
           usageUnit: record.usage_unit || "",
           price: roundMoney(toNumber(record.price)) || 0,
-          priceUnit: record.price_unit || "",
+          priceUnit: normalizeCurrency(record.price_unit) || currency,
         }))
-        .sort((a, b) => b.price - a.price),
+        .sort((left, right) => right.price - left.price),
     };
   } catch {
     return {
-      available: true,
-      degraded: true,
-      live: false,
-      monthSpend: 0,
-      daySpend: 0,
+      coverage: "degraded",
+      monthSpend: null,
+      daySpend: null,
+      currency: null,
       categories: [],
     };
   }
@@ -629,79 +839,253 @@ async function fetchProviderSnapshot(workspace: WorkspaceRecord): Promise<Provid
   return {
     stripe: stripeSnapshot,
     twilio: twilioSnapshot,
-    ai: {
-      available: false,
-      degraded: true,
-      note: "Not instrumented yet",
+  };
+}
+
+async function fetchWorkspaceBase() {
+  return db.workspace.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      industryType: true,
+      ownerId: true,
+      onboardingComplete: true,
+      tutorialComplete: true,
+      voiceEnabled: true,
+      autoCallLeads: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
+      stripePriceId: true,
+      stripeCurrentPeriodEnd: true,
+      subscriptionStatus: true,
+      twilioPhoneNumber: true,
+      twilioSubaccountId: true,
+      twilioSubaccountAuthToken: true,
+      createdAt: true,
+      updatedAt: true,
+      users: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+}
+
+function deriveOwnerEmail(workspace: WorkspaceRecord) {
+  const ownerUser =
+    workspace.users.find((user) => user.id === workspace.ownerId) ||
+    workspace.users.find((user) => user.role === "OWNER") ||
+    workspace.users[0];
+
+  return ownerUser?.email || "Unknown";
+}
+
+function getIncidentWorkspaceId(
+  incident: {
+    details: unknown;
+  },
+  workspaceByPhone: Map<string, string>,
+) {
+  const details = readObject(incident.details);
+  const directWorkspaceId = readString(details.workspaceId);
+  if (directWorkspaceId) return directWorkspaceId;
+
+  const managedNumber = readString(details.managedNumber)?.replace(/\s+/g, "");
+  const calledNumber = readString(details.calledNumber)?.replace(/\s+/g, "");
+  const callerNumber = readString(details.callerNumber)?.replace(/\s+/g, "");
+
+  return (
+    (managedNumber ? workspaceByPhone.get(managedNumber) : undefined) ||
+    (calledNumber ? workspaceByPhone.get(calledNumber) : undefined) ||
+    (callerNumber ? workspaceByPhone.get(callerNumber) : undefined) ||
+    null
+  );
+}
+
+function estimateVoiceAiCost(
+  calls: Array<{
+    callType: string;
+    startedAt: Date;
+    endedAt: Date | null;
+    transcriptTurns: unknown;
+  }>,
+): VoiceAiEstimate {
+  let sttUsd = 0;
+  let ttsUsd = 0;
+  let llmUsd = 0;
+  let coveredCalls = 0;
+  let excludedCalls = 0;
+  const llmModels = new Set<string>();
+
+  for (const call of calls) {
+    const turns = parseTranscriptTurns(call.transcriptTurns);
+    const durationMinutes = getCallDurationMinutes(call.startedAt, call.endedAt);
+    const provider = getConfiguredVoiceLlmProvider(call.callType);
+    const model = getConfiguredVoiceLlmModel(call.callType, provider);
+    const llmRate = getVoiceLlmRate(provider, model);
+
+    if (!turns.length || durationMinutes <= 0 || !llmRate) {
+      excludedCalls += 1;
+      continue;
+    }
+
+    const userText = turns.filter((turn) => turn.role === "user").map((turn) => turn.text.trim()).filter(Boolean).join(" ");
+    const assistantText = turns.filter((turn) => turn.role === "assistant").map((turn) => turn.text.trim()).filter(Boolean).join(" ");
+    if (!userText && !assistantText) {
+      excludedCalls += 1;
+      continue;
+    }
+
+    const promptBaselineTokens = getPromptBaselineTokens(call.callType);
+    const inputTokens = promptBaselineTokens + estimateTokenCount(userText);
+    const outputTokens = estimateTokenCount(assistantText);
+
+    sttUsd += durationMinutes * VOICE_STT_RATE_CARD.usdPerMinute;
+    ttsUsd += (assistantText.length / 1_000) * VOICE_TTS_RATE_CARD.usdPer1KCharacters;
+    llmUsd += (inputTokens / 1_000_000) * llmRate.inputUsdPer1M;
+    llmUsd += (outputTokens / 1_000_000) * llmRate.outputUsdPer1M;
+    llmModels.add(`${llmRate.provider}:${llmRate.model}`);
+    coveredCalls += 1;
+  }
+
+  const coverage: CoverageStatus =
+    coveredCalls === 0
+      ? "missing"
+      : excludedCalls > 0
+        ? "degraded"
+        : "live";
+
+  return {
+    totalUsd: coveredCalls > 0 ? roundMoney(sttUsd + ttsUsd + llmUsd) : null,
+    sttUsd: roundMoney(sttUsd) || 0,
+    ttsUsd: roundMoney(ttsUsd) || 0,
+    llmUsd: roundMoney(llmUsd) || 0,
+    coveredCalls,
+    excludedCalls,
+    totalCalls: calls.length,
+    coverage,
+    note:
+      coveredCalls > 0
+        ? "Voice-only estimate from persisted call duration + transcript turns. Excludes calls without enough transcript data."
+        : "No eligible persisted voice calls had enough transcript data to estimate voice-only AI cost.",
+    llmModels: Array.from(llmModels),
+    rateCardSummary: {
+      stt: `${VOICE_STT_RATE_CARD.provider} ${VOICE_STT_RATE_CARD.model} @ $${VOICE_STT_RATE_CARD.usdPerMinute.toFixed(4)}/min (${VOICE_STT_RATE_CARD.effectiveDate})`,
+      tts: `${VOICE_TTS_RATE_CARD.provider} ${VOICE_TTS_RATE_CARD.model} @ $${VOICE_TTS_RATE_CARD.usdPer1KCharacters.toFixed(6)}/1k chars (${VOICE_TTS_RATE_CARD.effectiveDate})`,
+      llm: Array.from(llmModels),
     },
   };
 }
 
-function buildHealthStatus(input: {
+function buildAttentionState(input: {
   rowVoiceEnabled: boolean;
   subscriptionStatus: string;
-  lastActivityAt: string | null;
-  stripeCoverage: "live" | "stored" | "missing";
-  twilioCoverage: "live" | "stored" | "missing";
+  lastActivityAt: Date | null;
+  stripeCoverage: CoverageStatus;
+  twilioCoverage: CoverageStatus;
   incidents: number;
+  provisioningIssue: LaunchReadiness["provisioning"]["recentIssues"][number] | null;
+  passiveWorkspaceHealth: LaunchReadiness["passiveProduction"]["workspaceRows"][number] | null;
 }) {
-  const reasons: string[] = [];
-  const staleCutoff = subDays(new Date(), 30);
+  const criticalReasons: string[] = [];
+  const warningReasons: string[] = [];
 
-  if (!input.rowVoiceEnabled) reasons.push("Voice disabled");
   if (["past_due", "unpaid", "canceled", "incomplete_expired"].includes(input.subscriptionStatus.toLowerCase())) {
-    reasons.push(`Subscription ${input.subscriptionStatus}`);
-  }
-  if (input.incidents > 0) reasons.push(`${input.incidents} open voice incidents`);
-  if (!input.lastActivityAt || new Date(input.lastActivityAt) < staleCutoff) reasons.push("Stale activity");
-  if (input.stripeCoverage === "stored" || input.twilioCoverage === "stored") reasons.push("Provider coverage degraded");
-  if (input.stripeCoverage === "missing" && input.twilioCoverage === "missing") reasons.push("Cost coverage missing");
-
-  let status: HealthStatus = "healthy";
-  if (!input.rowVoiceEnabled || reasons.some((reason) => reason.startsWith("Subscription")) || input.incidents > 0) {
-    status = "unhealthy";
-  } else if (reasons.length > 0) {
-    status = "degraded";
+    criticalReasons.push(`Subscription ${input.subscriptionStatus}`);
   }
 
-  return { status, reasons };
+  if (input.provisioningIssue?.provisioningStatus === "failed" || input.provisioningIssue?.provisioningStatus === "blocked_duplicate") {
+    criticalReasons.push(`Provisioning ${input.provisioningIssue.provisioningStatus}`);
+  } else if (input.provisioningIssue?.provisioningStatus === "requested" || input.provisioningIssue?.provisioningStatus === "provisioning") {
+    warningReasons.push(`Provisioning ${input.provisioningIssue.provisioningStatus}`);
+  }
+
+  if (input.incidents > 0) {
+    criticalReasons.push(`${input.incidents} open voice incident${input.incidents === 1 ? "" : "s"}`);
+  }
+
+  if (input.passiveWorkspaceHealth?.overallStatus === "unhealthy") {
+    criticalReasons.push(`Passive production ${input.passiveWorkspaceHealth.overallClassification}`);
+  } else if (input.passiveWorkspaceHealth?.overallStatus === "degraded") {
+    warningReasons.push(`Passive production ${input.passiveWorkspaceHealth.overallClassification}`);
+  }
+
+  if (!input.lastActivityAt || input.lastActivityAt < subDays(new Date(), 30)) {
+    warningReasons.push("No meaningful workspace activity in the last 30 days");
+  }
+
+  if (input.rowVoiceEnabled && input.twilioCoverage !== "live") {
+    warningReasons.push(`Twilio coverage ${input.twilioCoverage}`);
+  }
+
+  if (input.subscriptionStatus.toLowerCase() === "active" && input.stripeCoverage !== "live") {
+    warningReasons.push(`Stripe coverage ${input.stripeCoverage}`);
+  }
+
+  if (!input.rowVoiceEnabled) {
+    warningReasons.push("Voice disabled");
+  }
+
+  if (criticalReasons.length > 0) {
+    return {
+      level: "critical",
+      reasons: [...criticalReasons, ...warningReasons],
+    } satisfies WorkspaceAttention;
+  }
+
+  if (warningReasons.length > 0) {
+    return {
+      level: "warning",
+      reasons: warningReasons,
+    } satisfies WorkspaceAttention;
+  }
+
+  return {
+    level: "none",
+    reasons: [],
+  } satisfies WorkspaceAttention;
 }
 
 export function parseCustomerUsageFilters(searchParams?: Record<string, string | string[] | undefined>): CustomerUsageFilters {
-  const readValue = (key: keyof CustomerUsageFilters) => {
+  const readValue = (key: string) => {
     const value = searchParams?.[key];
     return Array.isArray(value) ? value[0] || "" : value || "";
   };
 
+  const tabValue = readValue("tab");
   const rangeValue = readValue("range");
   const sortValue = readValue("sort");
-  const voiceValue = readValue("voice");
 
   return {
-    range: rangeValue === "7d" || rangeValue === "90d" || rangeValue === "1y" ? rangeValue : "30d",
-    q: readValue("q").trim(),
-    status: readValue("status").trim(),
-    industry: readValue("industry").trim(),
-    voice: voiceValue === "enabled" || voiceValue === "disabled" ? voiceValue : "all",
-    sort:
-      sortValue === "mrr" ||
-      sortValue === "revenue" ||
-      sortValue === "calls" ||
-      sortValue === "recentActivity" ||
-      sortValue === "health"
-        ? sortValue
-        : "twilioCost",
+    tab: tabValue === "customers" || tabValue === "ops" ? tabValue : "overview",
+    range: rangeValue === "7d" || rangeValue === "90d" ? rangeValue : "30d",
     workspace: readValue("workspace").trim(),
+    q: readValue("q").trim(),
+    sort:
+      sortValue === "subRevenue" ||
+      sortValue === "twilioSpend" ||
+      sortValue === "invoiceRevenue" ||
+      sortValue === "jobsWon" ||
+      sortValue === "lastActivity"
+        ? sortValue
+        : "attention",
   };
 }
 
 export async function getCustomerUsageDashboardData(
   filters: CustomerUsageFilters,
 ): Promise<CustomerUsageDashboardData> {
+  const now = new Date();
   const rangeStart = getRangeStart(filters.range);
   const rangeStart7d = getRangeStart("7d");
   const rangeStart30d = getRangeStart("30d");
   const rangeStart90d = getRangeStart("90d");
+  const currentMonthStart = startOfMonth(now);
 
   const [
     workspaces,
@@ -710,10 +1094,10 @@ export async function getCustomerUsageDashboardData(
     invoices,
     voiceCalls,
     activityLogs,
-    monitorRuns,
     incidents,
+    feedback,
+    launch,
     webhookDiagnostics,
-    latencySnapshot,
   ] = await Promise.all([
     fetchWorkspaceBase(),
     db.contact.findMany({
@@ -726,13 +1110,16 @@ export async function getCustomerUsageDashboardData(
     db.deal.findMany({
       select: {
         id: true,
+        title: true,
         workspaceId: true,
+        contactId: true,
         stage: true,
         value: true,
         invoicedAmount: true,
         metadata: true,
         createdAt: true,
         stageChangedAt: true,
+        lastActivityAt: true,
       },
     }),
     db.invoice.findMany({
@@ -758,11 +1145,13 @@ export async function getCustomerUsageDashboardData(
         callerPhone: true,
         calledPhone: true,
         callerName: true,
+        transcriptText: true,
+        transcriptTurns: true,
+        summary: true,
+        metadata: true,
         startedAt: true,
         endedAt: true,
         createdAt: true,
-        summary: true,
-        transcriptText: true,
         contact: {
           select: {
             name: true,
@@ -777,20 +1166,6 @@ export async function getCustomerUsageDashboardData(
         createdAt: true,
       },
     }),
-    db.opsMonitorRun.findMany({
-      orderBy: {
-        checkedAt: "desc",
-      },
-      take: 12,
-      select: {
-        monitorKey: true,
-        status: true,
-        summary: true,
-        checkedAt: true,
-        lastSuccessAt: true,
-        lastFailureAt: true,
-      },
-    }),
     db.voiceIncident.findMany({
       where: {
         status: {
@@ -800,7 +1175,7 @@ export async function getCustomerUsageDashboardData(
       orderBy: {
         updatedAt: "desc",
       },
-      take: 20,
+      take: 50,
       select: {
         id: true,
         summary: true,
@@ -810,8 +1185,22 @@ export async function getCustomerUsageDashboardData(
         details: true,
       },
     }),
+    db.customerFeedback.findMany({
+      include: {
+        contact: {
+          select: { name: true },
+        },
+        deal: {
+          select: {
+            workspaceId: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    getLaunchReadiness(),
     getWebhookDiagnostics(),
-    getLatencySnapshot(),
   ]);
 
   const providerSnapshots = await mapLimit(workspaces, 4, async (workspace) => ({
@@ -857,63 +1246,77 @@ export async function getCustomerUsageDashboardData(
     activityByWorkspace.set(log.workspaceId, existing);
   }
 
-  const incidentsByWorkspace = new Map<string, typeof incidents>();
-  for (const incident of incidents) {
-    const detailsText = JSON.stringify(incident.details || {}).toLowerCase();
-    for (const workspace of workspaces) {
-      const phone = (workspace.twilioPhoneNumber || "").replace(/\s+/g, "").toLowerCase();
-      if (!phone || !detailsText.includes(phone)) continue;
-      const existing = incidentsByWorkspace.get(workspace.id) || [];
-      existing.push(incident);
-      incidentsByWorkspace.set(workspace.id, existing);
+  const feedbackByWorkspace = new Map<string, typeof feedback>();
+  for (const item of feedback) {
+    const workspaceId = item.deal?.workspaceId;
+    if (!workspaceId) continue;
+    const existing = feedbackByWorkspace.get(workspaceId) || [];
+    existing.push(item);
+    feedbackByWorkspace.set(workspaceId, existing);
+  }
+
+  const workspaceByPhone = new Map<string, string>();
+  for (const workspace of workspaces) {
+    const phone = workspace.twilioPhoneNumber?.replace(/\s+/g, "");
+    if (phone) {
+      workspaceByPhone.set(phone, workspace.id);
     }
   }
 
+  const incidentsByWorkspace = new Map<string, typeof incidents>();
+  for (const incident of incidents) {
+    const workspaceId = getIncidentWorkspaceId(incident, workspaceByPhone);
+    if (!workspaceId) continue;
+    const existing = incidentsByWorkspace.get(workspaceId) || [];
+    existing.push(incident);
+    incidentsByWorkspace.set(workspaceId, existing);
+  }
+
+  const provisioningByWorkspace = new Map(
+    launch.provisioning.recentIssues.map((issue) => [issue.workspaceId, issue] as const),
+  );
+  const passiveHealthByWorkspace = new Map(
+    launch.passiveProduction.workspaceRows.map((row) => [row.workspaceId, row] as const),
+  );
+
   const rows = workspaces.map((workspace) => {
-    const workspaceContacts = contactsByWorkspace.get(workspace.id) || [];
     const workspaceDeals = dealsByWorkspace.get(workspace.id) || [];
     const workspaceInvoices = invoicesByWorkspace.get(workspace.id) || [];
     const workspaceCalls = callsByWorkspace.get(workspace.id) || [];
     const workspaceActivity = activityByWorkspace.get(workspace.id) || [];
     const workspaceIncidents = incidentsByWorkspace.get(workspace.id) || [];
-    const provider = providerByWorkspace.get(workspace.id);
+    const provider = providerByWorkspace.get(workspace.id)!;
+    const passiveHealth = passiveHealthByWorkspace.get(workspace.id) || null;
+    const provisioningIssue = provisioningByWorkspace.get(workspace.id) || null;
 
-    const contactsNewInRange = workspaceContacts.filter((contact) => contact.createdAt >= rangeStart).length;
-    const dealsWon = workspaceDeals.filter((deal) => deal.stage === "WON").length;
-    const dealsLost = workspaceDeals.filter((deal) => deal.stage === "LOST").length;
-    const dealsOpen = workspaceDeals.filter((deal) => !["WON", "LOST", "ARCHIVED", "DELETED"].includes(deal.stage)).length;
-    const invoicesDraft = workspaceInvoices.filter((invoice) => invoice.status === "DRAFT").length;
-    const invoicesIssued = workspaceInvoices.filter((invoice) => invoice.status === "ISSUED").length;
-    const invoicesPaid = workspaceInvoices.filter((invoice) => invoice.status === "PAID").length;
-    const invoicesVoid = workspaceInvoices.filter((invoice) => invoice.status === "VOID").length;
-    const completedRevenueInRange =
-      roundMoney(
-        workspaceInvoices
-          .filter((invoice) => invoice.status === "PAID" && invoice.paidAt && invoice.paidAt >= rangeStart)
-          .reduce((sum, invoice) => sum + toNumber(invoice.total), 0),
-      ) || 0;
-    const averageInvoiceValue =
-      roundMoney(
-        workspaceInvoices.length
-          ? workspaceInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total), 0) / workspaceInvoices.length
-          : 0,
-      ) || 0;
     const callsInRange = workspaceCalls.filter((call) => call.startedAt >= rangeStart);
-    const voiceMinutesInRange =
-      roundMoney(callsInRange.reduce((sum, call) => sum + getCallDurationMinutes(call.startedAt, call.endedAt), 0)) || 0;
-    const lastVoiceCallAt =
-      workspaceCalls.slice().sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0]?.startedAt || null;
-    const lastActivityAt =
-      workspaceActivity.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]?.createdAt || null;
-    const stripeCoverage = provider?.stripe.live ? "live" : provider?.stripe.available ? "stored" : "missing";
-    const twilioCoverage = provider?.twilio.live ? "live" : provider?.twilio.available ? "stored" : "missing";
-    const health = buildHealthStatus({
+    const paidInvoicesInRange = workspaceInvoices.filter((invoice) => invoice.status === "PAID" && invoice.paidAt && invoice.paidAt >= rangeStart);
+    const lastInvoicePaidAt = workspaceInvoices
+      .filter((invoice) => invoice.status === "PAID" && invoice.paidAt)
+      .sort((left, right) => right.paidAt!.getTime() - left.paidAt!.getTime())[0]?.paidAt || null;
+    const lastDealActivityAt = workspaceDeals.slice().sort((left, right) => right.lastActivityAt.getTime() - left.lastActivityAt.getTime())[0]?.lastActivityAt || null;
+    const lastVoiceCallAt = workspaceCalls.slice().sort((left, right) => right.startedAt.getTime() - left.startedAt.getTime())[0]?.startedAt || null;
+    const lastLogAt = workspaceActivity.slice().sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0]?.createdAt || null;
+    const lastActivityAt = maxDate(lastLogAt, lastDealActivityAt, lastInvoicePaidAt, lastVoiceCallAt);
+
+    const jobsWonWithTracey = countJobsWonWithTracey(workspaceDeals, rangeStart);
+    const aiEstimate = estimateVoiceAiCost(callsInRange);
+    const subRevenueMinusTwilio = subtractMoneyExact(
+      provider.stripe.subscriptionRevenue,
+      provider.stripe.currency,
+      provider.twilio.monthSpend,
+      provider.twilio.currency,
+    );
+
+    const attention = buildAttentionState({
       rowVoiceEnabled: workspace.voiceEnabled,
-      subscriptionStatus: provider?.stripe.subscriptionStatus || workspace.subscriptionStatus || "inactive",
-      lastActivityAt: toIso(lastActivityAt),
-      stripeCoverage,
-      twilioCoverage,
+      subscriptionStatus: provider.stripe.subscriptionStatus || workspace.subscriptionStatus || "inactive",
+      lastActivityAt,
+      stripeCoverage: provider.stripe.coverage,
+      twilioCoverage: provider.twilio.coverage,
       incidents: workspaceIncidents.length,
+      provisioningIssue,
+      passiveWorkspaceHealth: passiveHealth,
     });
 
     return {
@@ -923,86 +1326,78 @@ export async function getCustomerUsageDashboardData(
       workspaceType: workspace.type,
       industryType: workspace.industryType || "Unknown",
       createdAt: workspace.createdAt.toISOString(),
-      onboardingComplete: workspace.onboardingComplete,
-      tutorialComplete: workspace.tutorialComplete,
-      subscriptionStatus: provider?.stripe.subscriptionStatus || workspace.subscriptionStatus || "inactive",
-      planLabel: workspace.stripePriceId ? getPlanLabelForPriceId(workspace.stripePriceId) : "No plan",
-      billingInterval: (workspace.stripePriceId ? getBillingIntervalForPriceId(workspace.stripePriceId) : null) || "n/a",
-      currentPeriodEnd: provider?.stripe.currentPeriodEnd || toIso(workspace.stripeCurrentPeriodEnd),
-      teamMembers: workspace.users.length,
-      contactsTotal: workspaceContacts.length,
-      contactsNewInRange,
-      dealsTotal: workspaceDeals.length,
-      dealsWon,
-      dealsLost,
-      dealsOpen,
-      invoicesDraft,
-      invoicesIssued,
-      invoicesPaid,
-      invoicesVoid,
-      completedRevenueInRange,
-      averageInvoiceValue,
-      voiceEnabled: workspace.voiceEnabled,
-      twilioPhoneNumber: workspace.twilioPhoneNumber,
-      twilioSubaccountPresent: Boolean(workspace.twilioSubaccountId && workspace.twilioSubaccountAuthToken),
-      voiceCallCountInRange: callsInRange.length,
-      voiceMinutesInRange,
-      lastVoiceCallAt: toIso(lastVoiceCallAt),
-      currentMonthTwilioSpend: provider?.twilio.available ? roundMoney(provider.twilio.monthSpend) : null,
-      twilioSpendPerCall: provider?.twilio.available ? roundMoney(safeDivide(provider.twilio.monthSpend, callsInRange.length) || 0) : null,
-      twilioSpendPerWonDeal: provider?.twilio.available ? roundMoney(safeDivide(provider.twilio.monthSpend, dealsWon) || 0) : null,
-      normalizedMrr: provider?.stripe.available ? roundMoney(provider.stripe.normalizedMrr) : null,
-      marginProxy:
-        provider?.stripe.available || provider?.twilio.available
-          ? roundMoney((provider?.stripe.normalizedMrr || 0) - (provider?.twilio.monthSpend || 0))
-          : null,
+      subscriptionStatus: provider.stripe.subscriptionStatus || workspace.subscriptionStatus || "inactive",
+      planLabel: provider.stripe.planLabel,
+      billingInterval: provider.stripe.billingInterval,
+      subscriptionRevenue: provider.stripe.subscriptionRevenue,
+      subscriptionRevenueCurrency: provider.stripe.currency,
+      twilioMonthSpend: provider.twilio.monthSpend,
+      twilioMonthSpendCurrency: provider.twilio.currency,
+      subRevenueMinusTwilio: subRevenueMinusTwilio.amount,
+      subRevenueMinusTwilioCurrency: subRevenueMinusTwilio.currency,
+      paidInvoiceRevenueInRange:
+        roundMoney(paidInvoicesInRange.reduce((sum, invoice) => sum + toNumber(invoice.total), 0)) || 0,
+      jobsWonWithTracey,
+      voiceCallsInRange: callsInRange.length,
       lastActivityAt: toIso(lastActivityAt),
-      lastWebhookSuccess: null,
-      lastWebhookError: null,
-      healthStatus: health.status,
-      healthReasons: health.reasons,
+      lastVoiceCallAt: toIso(lastVoiceCallAt),
+      provisioningIssue: provisioningIssue ? provisioningIssue.provisioningStatus : null,
+      attentionLevel: attention.level,
+      attentionReasons: attention.reasons,
+      passiveHealth: passiveHealth
+        ? {
+            status: passiveHealth.overallStatus,
+            summary: passiveHealth.summary,
+          }
+        : null,
       coverage: {
-        stripe: stripeCoverage,
-        twilio: twilioCoverage,
-        ai: "missing",
+        stripe: provider.stripe.coverage,
+        twilio: provider.twilio.coverage,
+        aiEstimate: aiEstimate.coverage,
       },
     } satisfies CustomerUsageRow;
   });
 
   const search = normalizeSearch(filters.q);
   const filteredRows = rows.filter((row) => {
-    if (search) {
-      const haystack = normalizeSearch(
-        [row.workspaceName, row.ownerEmail, row.workspaceType, row.industryType, row.twilioPhoneNumber || ""].join(" "),
-      );
-      if (!haystack.includes(search)) return false;
-    }
+    if (!search) return true;
+    const haystack = normalizeSearch([
+      row.workspaceName,
+      row.ownerEmail,
+      row.workspaceType,
+      row.industryType,
+      row.subscriptionStatus,
+    ].join(" "));
 
-    if (filters.status && row.subscriptionStatus.toLowerCase() !== filters.status.toLowerCase()) return false;
-    if (filters.industry && row.industryType.toLowerCase() !== filters.industry.toLowerCase()) return false;
-    if (filters.voice === "enabled" && !row.voiceEnabled) return false;
-    if (filters.voice === "disabled" && row.voiceEnabled) return false;
-
-    return true;
+    return haystack.includes(search);
   });
 
-  const healthOrder: Record<HealthStatus, number> = {
-    unhealthy: 0,
-    degraded: 1,
-    healthy: 2,
+  const attentionRank: Record<CustomerUsageRow["attentionLevel"], number> = {
+    critical: 0,
+    warning: 1,
+    none: 2,
   };
 
-  filteredRows.sort((a, b) => {
-    if (filters.sort === "mrr") return (b.normalizedMrr || 0) - (a.normalizedMrr || 0);
-    if (filters.sort === "revenue") return b.completedRevenueInRange - a.completedRevenueInRange;
-    if (filters.sort === "calls") return b.voiceCallCountInRange - a.voiceCallCountInRange;
-    if (filters.sort === "recentActivity") {
-      return new Date(b.lastActivityAt || 0).getTime() - new Date(a.lastActivityAt || 0).getTime();
+  filteredRows.sort((left, right) => {
+    if (filters.sort === "subRevenue") {
+      return (right.subscriptionRevenue || 0) - (left.subscriptionRevenue || 0);
     }
-    if (filters.sort === "health") {
-      return healthOrder[a.healthStatus] - healthOrder[b.healthStatus];
+    if (filters.sort === "twilioSpend") {
+      return (right.twilioMonthSpend || 0) - (left.twilioMonthSpend || 0);
     }
-    return (b.currentMonthTwilioSpend || 0) - (a.currentMonthTwilioSpend || 0);
+    if (filters.sort === "invoiceRevenue") {
+      return right.paidInvoiceRevenueInRange - left.paidInvoiceRevenueInRange;
+    }
+    if (filters.sort === "jobsWon") {
+      return right.jobsWonWithTracey - left.jobsWonWithTracey;
+    }
+    if (filters.sort === "lastActivity") {
+      return new Date(right.lastActivityAt || 0).getTime() - new Date(left.lastActivityAt || 0).getTime();
+    }
+
+    const attentionDiff = attentionRank[left.attentionLevel] - attentionRank[right.attentionLevel];
+    if (attentionDiff !== 0) return attentionDiff;
+    return (right.subscriptionRevenue || 0) - (left.subscriptionRevenue || 0);
   });
 
   const selectedRow = filteredRows.find((row) => row.workspaceId === filters.workspace) || filteredRows[0] || null;
@@ -1012,90 +1407,98 @@ export async function getCustomerUsageDashboardData(
         const workspace = workspaces.find((entry) => entry.id === selectedRow.workspaceId);
         if (!workspace) return null;
 
-        const workspaceContacts = contactsByWorkspace.get(workspace.id) || [];
         const workspaceDeals = dealsByWorkspace.get(workspace.id) || [];
+        const workspaceContacts = contactsByWorkspace.get(workspace.id) || [];
         const workspaceInvoices = invoicesByWorkspace.get(workspace.id) || [];
         const workspaceCalls = callsByWorkspace.get(workspace.id) || [];
         const workspaceIncidents = incidentsByWorkspace.get(workspace.id) || [];
-        const provider = providerByWorkspace.get(workspace.id);
+        const workspaceFeedback = feedbackByWorkspace.get(workspace.id) || [];
+        const provider = providerByWorkspace.get(workspace.id)!;
         const callsInRange = workspaceCalls.filter((call) => call.startedAt >= rangeStart);
         const inboundCallsInRange = callsInRange.filter((call) => inferCallDirection(call.callType) === "inbound");
         const outboundCallsInRange = callsInRange.filter((call) => inferCallDirection(call.callType) === "outbound");
         const completedCallsInRange = callsInRange.filter((call) => Boolean(call.endedAt));
-        const wonDeals = workspaceDeals.filter((deal) => deal.stage === "WON");
-        const paidInvoices = workspaceInvoices.filter((invoice) => invoice.status === "PAID");
         const totalMinutesInRange =
           roundMoney(callsInRange.reduce((sum, call) => sum + getCallDurationMinutes(call.startedAt, call.endedAt), 0)) || 0;
+        const wonDeals = workspaceDeals.filter((deal) => deal.stage === "WON");
+        const currentMonthJobsWonWithTracey = countJobsWonWithTracey(workspaceDeals, currentMonthStart);
         const stageDistribution = Object.entries(
           workspaceDeals.reduce<Record<string, number>>((acc, deal) => {
             acc[deal.stage] = (acc[deal.stage] || 0) + 1;
             return acc;
           }, {}),
         )
-          .map(([stage, count]) => ({ stage: STAGE_LABELS[stage] || stage, count }))
-          .sort((a, b) => b.count - a.count);
+          .map(([stage, count]) => ({
+            stage: STAGE_LABELS[stage] || stage,
+            count,
+          }))
+          .sort((left, right) => right.count - left.count);
         const wonDealDurations = wonDeals
           .map((deal) => Math.max(0, (deal.stageChangedAt.getTime() - deal.createdAt.getTime()) / 86_400_000))
           .filter((value) => Number.isFinite(value));
         const invoicePaymentLatencies = workspaceInvoices
           .filter((invoice) => invoice.issuedAt && invoice.paidAt)
           .map((invoice) => Math.max(0, (invoice.paidAt!.getTime() - invoice.issuedAt!.getTime()) / 86_400_000));
-        const staleWarnings: string[] = [];
-
-        if (!selectedRow.lastActivityAt || new Date(selectedRow.lastActivityAt) < subDays(new Date(), 30)) {
-          staleWarnings.push("No meaningful workspace activity in the last 30 days.");
-        }
-        if (!selectedRow.lastVoiceCallAt || new Date(selectedRow.lastVoiceCallAt) < rangeStart) {
-          staleWarnings.push(`No voice calls recorded inside the current ${filters.range} window.`);
-        }
-        if (provider?.stripe.subscriptionStatus && ["past_due", "unpaid"].includes(provider.stripe.subscriptionStatus)) {
-          staleWarnings.push(`Subscription is ${provider.stripe.subscriptionStatus}.`);
-        }
+        const paidInvoices = workspaceInvoices.filter((invoice) => invoice.status === "PAID");
+        const aiEstimate = estimateVoiceAiCost(callsInRange);
+        const subRevenueMinusTwilio = subtractMoneyExact(
+          provider.stripe.subscriptionRevenue,
+          provider.stripe.currency,
+          provider.twilio.monthSpend,
+          provider.twilio.currency,
+        );
+        const feedbackInRange = workspaceFeedback.filter((item) => item.createdAt >= rangeStart);
+        const lowScoresInRange = feedbackInRange.filter((item) => item.score <= 6);
 
         return {
           row: selectedRow,
           identity: {
             workspaceId: workspace.id,
             workspaceName: workspace.name,
+            workspaceType: workspace.type,
+            industryType: workspace.industryType || "Unknown",
             ownerId: workspace.ownerId,
             ownerEmail: deriveOwnerEmail(workspace),
-            createdAt: workspace.createdAt.toISOString(),
-            updatedAt: workspace.updatedAt.toISOString(),
             voiceEnabled: workspace.voiceEnabled,
-            autoCallLeads: workspace.autoCallLeads,
+            twilioPhoneNumber: workspace.twilioPhoneNumber,
             onboardingComplete: workspace.onboardingComplete,
             tutorialComplete: workspace.tutorialComplete,
+            createdAt: workspace.createdAt.toISOString(),
+            updatedAt: workspace.updatedAt.toISOString(),
           },
           billing: {
             stripeCustomerId: workspace.stripeCustomerId,
             stripeSubscriptionId: workspace.stripeSubscriptionId,
+            subscriptionStatus: selectedRow.subscriptionStatus,
             planLabel: selectedRow.planLabel,
             billingInterval: selectedRow.billingInterval,
-            subscriptionStatus: selectedRow.subscriptionStatus,
-            currentPeriodEnd: selectedRow.currentPeriodEnd,
-            latestInvoiceStatus: provider?.stripe.latestInvoiceStatus || null,
-            latestInvoiceAmount: provider?.stripe.latestInvoiceAmount || null,
-            latestInvoiceDate: provider?.stripe.latestInvoiceDate || null,
+            currentPeriodEnd: provider.stripe.currentPeriodEnd,
+            latestInvoiceStatus: provider.stripe.latestInvoiceStatus,
+            latestInvoiceAmount: provider.stripe.latestInvoiceAmount,
+            latestInvoiceCurrency: provider.stripe.latestInvoiceCurrency,
+            latestInvoiceDate: provider.stripe.latestInvoiceDate,
+            subscriptionRevenue: provider.stripe.subscriptionRevenue,
+            subscriptionRevenueCurrency: provider.stripe.currency,
             revenue7d:
               roundMoney(
-                workspaceInvoices
-                  .filter((invoice) => invoice.status === "PAID" && invoice.paidAt && invoice.paidAt >= rangeStart7d)
+                paidInvoices
+                  .filter((invoice) => invoice.paidAt && invoice.paidAt >= rangeStart7d)
                   .reduce((sum, invoice) => sum + toNumber(invoice.total), 0),
               ) || 0,
             revenue30d:
               roundMoney(
-                workspaceInvoices
-                  .filter((invoice) => invoice.status === "PAID" && invoice.paidAt && invoice.paidAt >= rangeStart30d)
+                paidInvoices
+                  .filter((invoice) => invoice.paidAt && invoice.paidAt >= rangeStart30d)
                   .reduce((sum, invoice) => sum + toNumber(invoice.total), 0),
               ) || 0,
             revenue90d:
               roundMoney(
-                workspaceInvoices
-                  .filter((invoice) => invoice.status === "PAID" && invoice.paidAt && invoice.paidAt >= rangeStart90d)
+                paidInvoices
+                  .filter((invoice) => invoice.paidAt && invoice.paidAt >= rangeStart90d)
                   .reduce((sum, invoice) => sum + toNumber(invoice.total), 0),
               ) || 0,
             revenueLifetime: roundMoney(paidInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total), 0)) || 0,
-            paidInvoiceTotal: paidInvoices.length,
+            paidInvoiceCount: paidInvoices.length,
             unpaidInvoiceCount: workspaceInvoices.filter((invoice) => !["PAID", "VOID"].includes(invoice.status)).length,
           },
           funnel: {
@@ -1104,18 +1507,25 @@ export async function getCustomerUsageDashboardData(
             contactsNew30d: workspaceContacts.filter((contact) => contact.createdAt >= rangeStart30d).length,
             dealsCreated7d: workspaceDeals.filter((deal) => deal.createdAt >= rangeStart7d).length,
             dealsCreated30d: workspaceDeals.filter((deal) => deal.createdAt >= rangeStart30d).length,
+            dealsWon: wonDeals.length,
+            dealsLost: workspaceDeals.filter((deal) => deal.stage === "LOST").length,
+            dealsOpen: workspaceDeals.filter((deal) => !["WON", "LOST", "DELETED", "ARCHIVED"].includes(deal.stage)).length,
             stageDistribution,
-            winRate: roundMoney((wonDeals.length / Math.max(workspaceDeals.length, 1)) * 100) || 0,
+            winRatePercent: roundMoney((wonDeals.length / Math.max(workspaceDeals.length, 1)) * 100) || 0,
             averageDaysToWin:
               roundMoney(
                 wonDealDurations.length
                   ? wonDealDurations.reduce((sum, value) => sum + value, 0) / wonDealDurations.length
                   : 0,
               ) || 0,
-            jobsWonWithTracey: wonDeals.filter((deal) =>
-              detectTraceyWonDeal(deal.metadata, deal.stage, deal.createdAt, deal.stageChangedAt),
-            ).length,
-            averageInvoiceValue: selectedRow.averageInvoiceValue,
+            jobsWonWithTracey: countJobsWonWithTracey(workspaceDeals, rangeStart),
+            jobsWonWithTraceyCurrentMonth: currentMonthJobsWonWithTracey,
+            averageInvoiceValue:
+              roundMoney(
+                paidInvoices.length
+                  ? paidInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total), 0) / paidInvoices.length
+                  : 0,
+              ) || 0,
             invoicePaymentLatencyDays:
               invoicePaymentLatencies.length
                 ? roundMoney(invoicePaymentLatencies.reduce((sum, value) => sum + value, 0) / invoicePaymentLatencies.length)
@@ -1128,14 +1538,14 @@ export async function getCustomerUsageDashboardData(
             completedCallsInRange: completedCallsInRange.length,
             incompleteCallsInRange: callsInRange.length - completedCallsInRange.length,
             totalMinutesInRange,
-            averageDurationMinutes: roundMoney(safeDivide(totalMinutesInRange, callsInRange.length) || 0) || 0,
+            averageDurationMinutes: roundMoney(safeDivide(totalMinutesInRange, callsInRange.length)) || 0,
             maxDurationMinutes:
               roundMoney(
                 callsInRange.reduce((max, call) => Math.max(max, getCallDurationMinutes(call.startedAt, call.endedAt)), 0),
               ) || 0,
             recentCalls: workspaceCalls
               .slice()
-              .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
+              .sort((left, right) => right.startedAt.getTime() - left.startedAt.getTime())
               .slice(0, 10)
               .map((call) => ({
                 id: call.id,
@@ -1157,87 +1567,229 @@ export async function getCustomerUsageDashboardData(
               details: incident.details ?? null,
             })),
           },
-          cost: {
-            twilioMonthToDate: provider?.twilio.available ? roundMoney(provider.twilio.monthSpend) : null,
-            twilioDayToDate: provider?.twilio.available ? roundMoney(provider.twilio.daySpend) : null,
-            twilioUsageCategories: provider?.twilio.categories || [],
-            normalizedMrr: provider?.stripe.available ? roundMoney(provider.stripe.normalizedMrr) : null,
-            grossMarginProxy:
-              provider?.stripe.available || provider?.twilio.available
-                ? roundMoney((provider?.stripe.normalizedMrr || 0) - (provider?.twilio.monthSpend || 0))
-                : null,
-            costPerContact: provider?.twilio.available ? roundMoney(safeDivide(provider.twilio.monthSpend, workspaceContacts.length) || 0) : null,
-            costPerCall: provider?.twilio.available ? roundMoney(safeDivide(provider.twilio.monthSpend, workspaceCalls.length) || 0) : null,
-            costPerWonJob: provider?.twilio.available ? roundMoney(safeDivide(provider.twilio.monthSpend, wonDeals.length) || 0) : null,
-            aiCostNote: provider?.ai.note || "Not instrumented yet",
+          costs: {
+            subscriptionRevenue: provider.stripe.subscriptionRevenue,
+            subscriptionRevenueCurrency: provider.stripe.currency,
+            twilioMonthSpend: provider.twilio.monthSpend,
+            twilioDaySpend: provider.twilio.daySpend,
+            twilioCurrency: provider.twilio.currency,
+            subRevenueMinusTwilio: subRevenueMinusTwilio.amount,
+            subRevenueMinusTwilioCurrency: subRevenueMinusTwilio.currency,
+            costPerWonJob: calculateCostPerWonJob(provider.twilio.monthSpend, currentMonthJobsWonWithTracey),
+            costPerWonJobCurrency: provider.twilio.currency,
+            twilioUsageCategories: provider.twilio.categories,
+            estimatedAiCost: aiEstimate,
           },
           activity: {
-            lastDealCreatedAt: toIso(workspaceDeals.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]?.createdAt || null),
-            lastDealWonAt: toIso(wonDeals.slice().sort((a, b) => b.stageChangedAt.getTime() - a.stageChangedAt.getTime())[0]?.stageChangedAt || null),
-            lastInvoicePaidAt: toIso(paidInvoices.slice().sort((a, b) => b.paidAt!.getTime() - a.paidAt!.getTime())[0]?.paidAt || null),
+            lastDealCreatedAt: toIso(workspaceDeals.slice().sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0]?.createdAt || null),
+            lastDealWonAt: toIso(wonDeals.slice().sort((left, right) => right.stageChangedAt.getTime() - left.stageChangedAt.getTime())[0]?.stageChangedAt || null),
+            lastInvoicePaidAt: toIso(paidInvoices.slice().sort((left, right) => right.paidAt!.getTime() - left.paidAt!.getTime())[0]?.paidAt || null),
             lastVoiceCallAt: selectedRow.lastVoiceCallAt,
             lastWorkspaceActivityAt: selectedRow.lastActivityAt,
-            staleWarnings,
+            attentionReasons: selectedRow.attentionReasons,
+          },
+          feedback: {
+            feedbackCountInRange: feedbackInRange.length,
+            averageScoreInRange:
+              feedbackInRange.length
+                ? roundMoney(feedbackInRange.reduce((sum, item) => sum + item.score, 0) / feedbackInRange.length)
+                : null,
+            lowScoresInRange: lowScoresInRange.length,
+            unresolvedLowScores: workspaceFeedback.filter((item) => item.score <= 6 && !item.resolved).length,
+            recentFeedback: workspaceFeedback.slice(0, 8).map((item) => ({
+              id: item.id,
+              score: item.score,
+              comment: item.comment,
+              resolved: item.resolved,
+              createdAt: item.createdAt.toISOString(),
+              contactName: item.contact.name || "Unknown contact",
+              dealTitle: item.deal?.title || "Unknown deal",
+            })),
           },
         };
       })()
     : null;
 
-  const summary = {
-    totalWorkspaces: filteredRows.length,
-    activePaidWorkspaces: filteredRows.filter((row) => ["active", "trialing"].includes(row.subscriptionStatus.toLowerCase())).length,
-    inactiveOrTrialWorkspaces: filteredRows.filter((row) => !["active"].includes(row.subscriptionStatus.toLowerCase())).length,
-    totalInternalUsers: filteredRows.reduce((sum, row) => sum + row.teamMembers, 0),
-    totalContacts: filteredRows.reduce((sum, row) => sum + row.contactsTotal, 0),
-    totalDeals: filteredRows.reduce((sum, row) => sum + row.dealsTotal, 0),
-    totalVoiceCallsInRange: filteredRows.reduce((sum, row) => sum + row.voiceCallCountInRange, 0),
-    totalCompletedRevenueInRange: roundMoney(filteredRows.reduce((sum, row) => sum + row.completedRevenueInRange, 0)) || 0,
-    normalizedMrr: roundMoney(filteredRows.reduce((sum, row) => sum + (row.normalizedMrr || 0), 0)) || 0,
-    currentMonthTwilioSpend: roundMoney(filteredRows.reduce((sum, row) => sum + (row.currentMonthTwilioSpend || 0), 0)) || 0,
-    liveStripeCoverageCount: filteredRows.filter((row) => row.coverage.stripe === "live").length,
-    liveTwilioCoverageCount: filteredRows.filter((row) => row.coverage.twilio === "live").length,
-    missingCostCoverageCount: filteredRows.filter((row) => row.coverage.stripe === "missing" && row.coverage.twilio === "missing").length,
-    unhealthyMonitorWorkspaces: filteredRows.filter((row) => row.healthStatus === "unhealthy").length,
-    voiceDisabledWorkspaces: filteredRows.filter((row) => !row.voiceEnabled).length,
-    pastDueSubscriptions: filteredRows.filter((row) =>
-      ["past_due", "unpaid", "canceled", "incomplete_expired"].includes(row.subscriptionStatus.toLowerCase()),
-    ).length,
-    staleActivityWorkspaces: filteredRows.filter((row) => !row.lastActivityAt || new Date(row.lastActivityAt) < subDays(new Date(), 30)).length,
-  };
+  const paidCustomers = filteredRows.filter((row) => ["active", "trialing"].includes(row.subscriptionStatus.toLowerCase())).length;
+  const subscriptionRevenue = aggregateMoney(
+    filteredRows.map((row) => ({
+      amount: row.subscriptionRevenue,
+      currency: row.subscriptionRevenueCurrency,
+    })),
+  );
+  const twilioMonthSpend = aggregateMoney(
+    filteredRows.map((row) => ({
+      amount: row.twilioMonthSpend,
+      currency: row.twilioMonthSpendCurrency,
+    })),
+  );
+  const subRevenueMinusTwilio = aggregateMoney(
+    filteredRows.map((row) => ({
+      amount: row.subRevenueMinusTwilio,
+      currency: row.subRevenueMinusTwilioCurrency,
+    })),
+  );
 
-  const coverage = {
-    stripe: {
-      live: filteredRows.filter((row) => row.coverage.stripe === "live").length,
-      stored: filteredRows.filter((row) => row.coverage.stripe === "stored").length,
-      missing: filteredRows.filter((row) => row.coverage.stripe === "missing").length,
-    },
-    twilio: {
-      live: filteredRows.filter((row) => row.coverage.twilio === "live").length,
-      stored: filteredRows.filter((row) => row.coverage.twilio === "stored").length,
-      missing: filteredRows.filter((row) => row.coverage.twilio === "missing").length,
-    },
-    ai: {
-      missing: filteredRows.length,
-    },
-  };
+  const stripeCoverage = {
+    live: filteredRows.filter((row) => row.coverage.stripe === "live").length,
+    degraded: filteredRows.filter((row) => row.coverage.stripe === "degraded").length,
+    missing: filteredRows.filter((row) => row.coverage.stripe === "missing").length,
+  } satisfies Record<CoverageStatus, number>;
+  const twilioCoverage = {
+    live: filteredRows.filter((row) => row.coverage.twilio === "live").length,
+    degraded: filteredRows.filter((row) => row.coverage.twilio === "degraded").length,
+    missing: filteredRows.filter((row) => row.coverage.twilio === "missing").length,
+  } satisfies Record<CoverageStatus, number>;
+  const aiEstimateCoverage = {
+    live: filteredRows.filter((row) => row.coverage.aiEstimate === "live").length,
+    degraded: filteredRows.filter((row) => row.coverage.aiEstimate === "degraded").length,
+    missing: filteredRows.filter((row) => row.coverage.aiEstimate === "missing").length,
+  } satisfies Record<CoverageStatus, number>;
+
+  const providerFailures = [
+    ...(launch.voiceCritical.status !== "healthy"
+      ? [{
+          id: "voice-critical",
+          label: "Voice critical",
+          status: launch.voiceCritical.status,
+          summary: launch.voiceCritical.summary,
+          lastSeenAt: launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.monitoring.healthAudit.status !== "healthy"
+      ? [{
+          id: "monitor-health-audit",
+          label: "Voice agent health audit",
+          status: launch.monitoring.healthAudit.status,
+          summary: launch.monitoring.healthAudit.summary,
+          lastSeenAt: launch.monitoring.healthAudit.lastFailureAt || launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.monitoring.watchdog.status !== "healthy"
+      ? [{
+          id: "monitor-watchdog",
+          label: "Voice monitor watchdog",
+          status: launch.monitoring.watchdog.status,
+          summary: launch.monitoring.watchdog.summary,
+          lastSeenAt: launch.monitoring.watchdog.lastFailureAt || launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.monitoring.passiveTraffic.status !== "healthy"
+      ? [{
+          id: "monitor-passive-traffic",
+          label: "Passive traffic audit",
+          status: launch.monitoring.passiveTraffic.status,
+          summary: launch.monitoring.passiveTraffic.summary,
+          lastSeenAt: launch.monitoring.passiveTraffic.lastFailureAt || launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.communications.status !== "healthy"
+      ? [{
+          id: "communications",
+          label: "Communications readiness",
+          status: launch.communications.status,
+          summary: launch.communications.summary,
+          lastSeenAt: launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.provisioning.status !== "healthy"
+      ? [{
+          id: "provisioning",
+          label: "Provisioning",
+          status: launch.provisioning.status,
+          summary: launch.provisioning.summary,
+          lastSeenAt: launch.provisioning.recentIssues[0]?.updatedAt || launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...(launch.passiveProduction.status !== "healthy"
+      ? [{
+          id: "passive-production",
+          label: "Passive production health",
+          status: launch.passiveProduction.status,
+          summary: launch.passiveProduction.summary,
+          lastSeenAt: launch.checkedAt,
+          source: "ops" as const,
+        }]
+      : []),
+    ...webhookDiagnostics
+      .filter((provider) => {
+        if (provider.errorCount === 0) return false;
+        if (!provider.lastSuccess && provider.lastError) return true;
+        if (!provider.lastError) return false;
+        return new Date(provider.lastError).getTime() >= new Date(provider.lastSuccess || 0).getTime();
+      })
+      .map((provider) => ({
+        id: `webhook-${provider.provider}`,
+        label: `${provider.provider} webhook`,
+        status: "degraded" as RollupStatus,
+        summary: `${provider.errorCount} error event${provider.errorCount === 1 ? "" : "s"} recorded.`,
+        lastSeenAt: provider.lastError,
+        source: "webhook" as const,
+      })),
+  ];
+
+  const newestProvisioningFailures = launch.provisioning.recentIssues
+    .filter((issue) => issue.provisioningStatus === "failed" || issue.provisioningStatus === "blocked_duplicate")
+    .slice(0, 6);
 
   return {
     filters,
-    summary,
+    truthModel: {
+      exact: "Directly measured or directly calculated from stored/live source data.",
+      rollup: "Status summaries built from exact checks. Always inspect the raw checks underneath.",
+      estimate: "Voice-only AI estimate from persisted transcripts and published rate cards. Never used in top truth KPIs.",
+    },
+    overview: {
+      totalCustomers: filteredRows.length,
+      paidCustomers,
+      paidInvoiceRevenueInRange:
+        roundMoney(filteredRows.reduce((sum, row) => sum + row.paidInvoiceRevenueInRange, 0)) || 0,
+      jobsWonWithTracey: filteredRows.reduce((sum, row) => sum + row.jobsWonWithTracey, 0),
+      customersNeedingAction: filteredRows.filter((row) => row.attentionLevel !== "none").length,
+      openProvisioningBlockers: launch.provisioning.counts.failed + launch.provisioning.counts.blocked_duplicate,
+      opsIssueCount: providerFailures.length,
+      subscriptionRevenue,
+      twilioMonthSpend,
+      subRevenueMinusTwilio,
+      coverage: {
+        stripe: stripeCoverage,
+        twilio: twilioCoverage,
+        aiEstimate: aiEstimateCoverage,
+      },
+      lists: {
+        immediateAttentionCustomers: filteredRows
+          .filter((row) => row.attentionLevel !== "none")
+          .slice(0, 8)
+          .map((row) => ({
+            workspaceId: row.workspaceId,
+            workspaceName: row.workspaceName,
+            level: row.attentionLevel === "critical" ? "critical" : "warning",
+            reasons: row.attentionReasons.slice(0, 3),
+          })),
+        newestProvisioningFailures,
+        staleCustomers: filteredRows
+          .filter((row) => !row.lastActivityAt || new Date(row.lastActivityAt) < subDays(new Date(), 30))
+          .slice(0, 8)
+          .map((row) => ({
+            workspaceId: row.workspaceId,
+            workspaceName: row.workspaceName,
+            lastActivityAt: row.lastActivityAt,
+            reasons: row.attentionReasons.filter((reason) => reason.toLowerCase().includes("activity")),
+          })),
+        providerFailures: providerFailures.slice(0, 8),
+      },
+    },
     rows: filteredRows,
     selectedWorkspace,
     ops: {
-      monitorRuns: monitorRuns.map((run) => ({
-        monitorKey: run.monitorKey,
-        status: run.status,
-        summary: run.summary,
-        checkedAt: run.checkedAt.toISOString(),
-        lastSuccessAt: toIso(run.lastSuccessAt),
-        lastFailureAt: toIso(run.lastFailureAt),
-      })),
+      launch,
       webhookDiagnostics,
-      latencySnapshot,
     },
-    coverage,
   };
 }
