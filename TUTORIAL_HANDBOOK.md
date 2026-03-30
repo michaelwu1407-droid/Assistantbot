@@ -84,14 +84,16 @@ Notes: Arabic speaker, uses formal address
 
 Tracey AI can communicate with customers in:
 
-- **Chinese (Mandarin)** - Uses `zh-CN-XiaoxiaoNeural` voice
-- **Spanish** - Uses `es-ES-ElviraNeural` voice
-- **French** - Uses `fr-FR-DeniseNeural` voice
-- **German** - Uses `de-DE-KatjaNeural` voice
-- **Japanese** - Uses `ja-JP-NanamiNeural` voice
-- **Korean** - Uses `ko-KR-SunHiNeural` voice
-- **Arabic** - Uses `ar-SA-ZariyahNeural` voice
-- **English** - Default fallback language
+- **Chinese (Mandarin)**
+- **Spanish**
+- **French**
+- **German**
+- **Japanese**
+- **Korean**
+- **Arabic**
+- **English** — default language
+
+Tracey uses AI voice synthesis for all languages. Contact support for language-specific voice configuration.
 
 ### How Multilingual Support Works
 
@@ -141,8 +143,8 @@ Notes: "speaks Spanish only"
 
 2. **Voice Quality Issues**
    - Ensure stable internet connection
-   - Check Retell AI configuration
-   - Report voice quality problems
+   - Check voice agent status via Settings → Help or contact support
+   - Report voice quality problems to support@earlymark.ai
 
 3. **SMS Language Problems**
    - SMS may be limited to English in some cases
@@ -174,8 +176,7 @@ Use `p50Ms` for typical performance and `p95Ms` for tail latency (slowest user e
 ## Need Help?
 
 ### Support Channels:
-- **Email**: support@earlymark.com
-- **Phone**: 1300 PJ BUDDY
+- **Email**: support@earlymark.ai
 - **AI Assistant**: Ask Tracey in the chat interface
 
 ### Additional Resources:
@@ -185,4 +186,4 @@ Use `p50Ms` for typical performance and `p95Ms` for tail latency (slowest user e
 
 ---
 
-*Last Updated: February 27, 2026*
+*Last Updated: March 30, 2026*
