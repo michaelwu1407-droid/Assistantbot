@@ -184,13 +184,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="w-[min(calc(100vw-1.5rem),54rem)] max-h-[88vh] overflow-y-auto p-0">
                 <DialogHeader className="border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80">
-                        Dashboard
-                    </p>
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
-                    <p className="text-[13px] leading-6 text-slate-500 dark:text-slate-400">
-                        Add the customer, stage, timing, and job details in one place.
-                    </p>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="grid gap-5 bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] px-6 py-6 dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
@@ -307,10 +301,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 <Label className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">Client <span className="text-red-500">*</span></Label>
                                 <p className="text-sm text-slate-500">Select an existing contact or create a new one inline.</p>
                             </div>
-                            <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[200px]">
+                            <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[220px]">
                                 <TabsList className="grid w-full grid-cols-2 h-8">
-                                    <TabsTrigger value="select" className="text-xs">Select</TabsTrigger>
-                                    <TabsTrigger value="create" className="text-xs">Create New</TabsTrigger>
+                                    <TabsTrigger value="select" className="text-xs">Existing</TabsTrigger>
+                                    <TabsTrigger value="create" className="text-xs">Create new</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>

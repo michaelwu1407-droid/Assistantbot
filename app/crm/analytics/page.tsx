@@ -298,7 +298,6 @@ export default function AnalyticsPage() {
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="app-page-title">Analytics & Reporting</h1>
             <div className="flex items-center gap-2">
               <Select value={timeRange} onValueChange={(value) => setTimeRange(value as ReportRange)}>
                 <SelectTrigger className="toolbar-pill w-32">

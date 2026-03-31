@@ -200,12 +200,9 @@ export default function TeamPage() {
     return (
         <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                <div className="space-y-2">
-                    <h1 className="app-page-title">Team Management</h1>
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
                         <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{displayMembers.length} member{displayMembers.length === 1 ? "" : "s"}</span>
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{pendingInviteCount} pending invite{pendingInviteCount === 1 ? "" : "s"}</span>
-                    </div>
                 </div>
 
                 <Dialog open={inviteOpen} onOpenChange={(open) => {

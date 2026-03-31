@@ -10,6 +10,7 @@ import { GlobalSearch } from "@/components/layout/global-search"
 import { cn } from "@/lib/utils"
 
 interface HeaderProps {
+    pageTitle?: string
     userName: string
     userId: string
     workspaceId: string
@@ -27,7 +28,7 @@ interface HeaderProps {
     variant?: "default" | "brand"
 }
 
-export function Header({ userName, userId, workspaceId, userRole, onOpenActivity, headerActions, variant = "default" }: HeaderProps) {
+export function Header({ pageTitle, userName, userId, workspaceId, userRole, onOpenActivity, headerActions, variant = "default" }: HeaderProps) {
     const isBrand = variant === "brand"
     const [weather, setWeather] = useState<{ temp: number; condition: string } | null>(null)
 
@@ -92,7 +93,23 @@ export function Header({ userName, userId, workspaceId, userRole, onOpenActivity
                 <Menu className="h-5 w-5" />
             </Button>
 
-            {/* RHS cluster: compact search + New Job / Filter (desktop); pipeline actions + space (mobile) */}
+            <div className="min-w-0 shrink-0">
+                {pageTitle ? (
+                    <div className="min-w-0 max-w-[16rem] md:max-w-[20rem] lg:max-w-[24rem]">
+                        <p
+                            className={cn(
+                                "truncate text-sm font-semibold tracking-tight",
+                                isBrand ? "text-white" : "text-slate-950"
+                            )}
+                            title={pageTitle}
+                        >
+                            {pageTitle}
+                        </p>
+                    </div>
+                ) : null}
+            </div>
+
+            {/* Search + New Job / Filter */}
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:gap-2.5">
                 <div className="hidden min-w-0 shrink md:block md:w-[11.5rem] md:max-w-[13rem] lg:w-[12.5rem]">
                     <GlobalSearch

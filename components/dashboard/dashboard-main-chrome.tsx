@@ -11,6 +11,19 @@ import { Plus } from "lucide-react"
 import { DashboardHeaderExtraContext } from "@/components/dashboard/dashboard-header-extra-context"
 import { isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
 
+function getShellPageTitle(pathname: string) {
+    if (pathname === "/crm/dashboard") return "Dashboard"
+    if (pathname === "/crm/inbox") return "Inbox"
+    if (pathname === "/crm/schedule") return "Schedule"
+    if (pathname === "/crm/map") return "Map"
+    if (pathname === "/crm/contacts") return "Contacts"
+    if (pathname.startsWith("/crm/contacts/")) return "Contact"
+    if (pathname === "/crm/analytics") return "Analytics"
+    if (pathname === "/crm/team") return "Team"
+    if (pathname.startsWith("/crm/deals/")) return "Job"
+    return ""
+}
+
 /**
  * Brand top bar (search, New Job, notifications, profile) on all dashboard routes
  * except `/crm/settings/*`. Settings keeps its own layout.
@@ -41,6 +54,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
     }, [industry])
 
     const userNameForHeader = headerDisplayName?.trim() || (userId ? userId.slice(0, 8) : "User")
+    const pageTitle = getShellPageTitle(pathname)
 
     useEffect(() => {
         const handleOpenNewDeal = (event: Event) => {
@@ -88,6 +102,7 @@ export function DashboardMainChrome({ children }: { children: ReactNode }) {
                     <div className="sticky top-0 z-20 shrink-0">
                         <Header
                             variant="brand"
+                            pageTitle={pageTitle}
                             userName={userNameForHeader}
                             userId={hydratedUserId}
                             workspaceId={hydratedWorkspaceId}

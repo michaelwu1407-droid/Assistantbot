@@ -263,11 +263,11 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         setContactError("")
                                     }
                                 }}
-                                className="w-[180px]"
+                                className="w-[220px]"
                             >
                                 <TabsList className="grid w-full grid-cols-2 h-8">
-                                    <TabsTrigger value="select" className="text-[10px] font-bold">SELECT</TabsTrigger>
-                                    <TabsTrigger value="create" className="text-[10px] font-bold">NEW</TabsTrigger>
+                                    <TabsTrigger value="select" className="text-[10px] font-bold">EXISTING</TabsTrigger>
+                                    <TabsTrigger value="create" className="text-[10px] font-bold">CREATE NEW</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>
