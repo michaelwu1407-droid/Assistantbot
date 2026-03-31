@@ -90,33 +90,6 @@ function buildQuery(filters: CustomerUsageFilters, overrides: Partial<Record<key
   return `?${params.toString()}`;
 }
 
-function KpiCard({
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  tone: "exact" | "rollup" | "estimate";
-}) {
-  return (
-    <Card className="rounded-[18px]">
-      <CardHeader className="space-y-2 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-slate-900">{label}</CardTitle>
-          {truthBadge(tone)}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
-        <p className="mt-2 text-xs leading-5 text-slate-600">{detail}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 text-sm last:border-b-0">
@@ -130,53 +103,449 @@ function SectionNote({ children }: { children: ReactNode }) {
   return <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">{children}</div>;
 }
 
-function CoverageCard({
-  title,
-  live,
-  degraded,
-  missing,
-}: {
-  title: string;
-  live: number;
-  degraded: number;
-  missing: number;
-}) {
-  return (
-    <Card className="rounded-[18px]">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-slate-900">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex gap-2 text-xs">
-        <Badge variant="default">Live {live}</Badge>
-        <Badge variant="secondary">Degraded {degraded}</Badge>
-        <Badge variant="destructive">Missing {missing}</Badge>
-      </CardContent>
-    </Card>
-  );
+function EmptyState({ children }: { children: ReactNode }) {
+  return <div className="text-sm text-slate-500">{children}</div>;
 }
 
-function ListCard({
+function SectionCard({
   title,
   description,
   children,
+  aside,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
+  aside?: ReactNode;
 }) {
   return (
     <Card className="rounded-[18px]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-slate-900">{title}</CardTitle>
-        <CardDescription className="text-xs text-slate-600">{description}</CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base text-slate-950">{title}</CardTitle>
+            {description ? <CardDescription className="mt-1 text-xs text-slate-600">{description}</CardDescription> : null}
+          </div>
+          {aside}
+        </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
   );
 }
 
-function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="text-sm text-slate-500">{children}</div>;
+function MetricSummaryTable({ data }: { data: CustomerUsageDashboardData }) {
+  const rows = [
+    {
+      metric: "Paid customers",
+      type: "exact" as const,
+      value: formatNumber(data.overview.paidCustomers),
+      method: `${data.overview.totalCustomers} workspaces in the current filtered view.`,
+    },
+    {
+      metric: "Subscription revenue",
+      type: "exact" as const,
+      value: formatMoney(data.overview.subscriptionRevenue.amount, data.overview.subscriptionRevenue.currency),
+      method: `Live Stripe recurring subscription revenue only. Coverage ${data.overview.subscriptionRevenue.coveredCount}/${data.overview.totalCustomers}.`,
+    },
+    {
+      metric: "Twilio month spend",
+      type: "exact" as const,
+      value: formatMoney(data.overview.twilioMonthSpend.amount, data.overview.twilioMonthSpend.currency),
+      method: `Sum of live Twilio Usage Records for the current calendar month using Twilio's ThisMonth totalprice feed. Coverage ${data.overview.twilioMonthSpend.coveredCount}/${data.overview.totalCustomers} means that many customers returned live Twilio month-spend data.`,
+    },
+    {
+      metric: "Paid invoice totals",
+      type: "exact" as const,
+      value: formatMoney(data.overview.paidInvoiceRevenueInRange),
+      method: `Invoices with status PAID and paidAt inside the selected ${data.filters.range} window.`,
+    },
+    {
+      metric: "Jobs Won With Tracey",
+      type: "exact" as const,
+      value: formatNumber(data.overview.jobsWonWithTracey),
+      method: JOBS_WON_WITH_TRACEY_FORMULA,
+    },
+    {
+      metric: "Sub rev - Twilio month spend",
+      type: "exact" as const,
+      value: formatMoney(data.overview.subRevenueMinusTwilio.amount, data.overview.subRevenueMinusTwilio.currency),
+      method: `${SUB_REVENUE_MINUS_TWILIO_FORMULA} Excluded ${data.overview.subRevenueMinusTwilio.excludedCount} customers without full exact coverage.`,
+    },
+    {
+      metric: "Customers needing action",
+      type: "rollup" as const,
+      value: formatNumber(data.overview.customersNeedingAction),
+      method: "Rollup count of customers with billing, provisioning, stale-activity, or passive-health action signals.",
+    },
+    {
+      metric: "Open provisioning blockers",
+      type: "exact" as const,
+      value: formatNumber(data.overview.openProvisioningBlockers),
+      method: "Failed or duplicate-blocked provisioning states.",
+    },
+    {
+      metric: "Ops issues",
+      type: "rollup" as const,
+      value: formatNumber(data.overview.opsIssueCount),
+      method: "Failing or stale monitors plus webhook/provider issues.",
+    },
+  ];
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Metric</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Value</TableHead>
+          <TableHead>How it is calculated</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.metric}>
+            <TableCell className="font-medium text-slate-900">{row.metric}</TableCell>
+            <TableCell>{truthBadge(row.type)}</TableCell>
+            <TableCell className="font-medium text-slate-900">{row.value}</TableCell>
+            <TableCell className="max-w-[560px] text-xs leading-5 text-slate-600">{row.method}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function TruthLegendTable({ data }: { data: CustomerUsageDashboardData }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Class</TableHead>
+          <TableHead>Meaning</TableHead>
+          <TableHead>How to use it</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>{truthBadge("exact")}</TableCell>
+          <TableCell className="font-medium text-slate-900">Exact numbers</TableCell>
+          <TableCell className="text-sm text-slate-600">{data.truthModel.exact}</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>{truthBadge("rollup")}</TableCell>
+          <TableCell className="font-medium text-slate-900">Status rollups</TableCell>
+          <TableCell className="text-sm text-slate-600">{data.truthModel.rollup}</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>{truthBadge("estimate")}</TableCell>
+          <TableCell className="font-medium text-slate-900">Voice AI estimate</TableCell>
+          <TableCell className="text-sm text-slate-600">{data.truthModel.estimate}</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+}
+
+function CoverageTable({ data }: { data: CustomerUsageDashboardData }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Coverage</TableHead>
+          <TableHead>Live</TableHead>
+          <TableHead>Degraded</TableHead>
+          <TableHead>Missing</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell className="font-medium text-slate-900">Stripe</TableCell>
+          <TableCell>{data.overview.coverage.stripe.live}</TableCell>
+          <TableCell>{data.overview.coverage.stripe.degraded}</TableCell>
+          <TableCell>{data.overview.coverage.stripe.missing}</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell className="font-medium text-slate-900">Twilio</TableCell>
+          <TableCell>{data.overview.coverage.twilio.live}</TableCell>
+          <TableCell>{data.overview.coverage.twilio.degraded}</TableCell>
+          <TableCell>{data.overview.coverage.twilio.missing}</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell className="font-medium text-slate-900">Voice AI estimate</TableCell>
+          <TableCell>{data.overview.coverage.aiEstimate.live}</TableCell>
+          <TableCell>{data.overview.coverage.aiEstimate.degraded}</TableCell>
+          <TableCell>{data.overview.coverage.aiEstimate.missing}</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+}
+
+function CustomerTable({
+  rows,
+  filters,
+  selectedWorkspaceId,
+}: {
+  rows: CustomerUsageDashboardData["rows"];
+  filters: CustomerUsageFilters;
+  selectedWorkspaceId?: string;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <Table className="min-w-[1220px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Workspace</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Sub rev</TableHead>
+            <TableHead>Twilio MTD</TableHead>
+            <TableHead>Sub rev - Twilio</TableHead>
+            <TableHead>Paid invoices</TableHead>
+            <TableHead>Jobs Won With Tracey</TableHead>
+            <TableHead>Voice calls</TableHead>
+            <TableHead>Last activity</TableHead>
+            <TableHead>Issues</TableHead>
+            <TableHead>Coverage</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.workspaceId} className={selectedWorkspaceId === row.workspaceId ? "bg-slate-50" : undefined}>
+              <TableCell className="font-medium">
+                <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: row.workspaceId })}>
+                  {row.workspaceName}
+                </Link>
+                <div className="mt-1 text-xs text-slate-500">{row.ownerEmail}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={statusVariant(row.attentionLevel)}>{row.subscriptionStatus}</Badge>
+              </TableCell>
+              <TableCell>{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</TableCell>
+              <TableCell>{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</TableCell>
+              <TableCell>{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</TableCell>
+              <TableCell>{formatMoney(row.paidInvoiceRevenueInRange)}</TableCell>
+              <TableCell>{formatNumber(row.jobsWonWithTracey)}</TableCell>
+              <TableCell>{formatNumber(row.voiceCallsInRange)}</TableCell>
+              <TableCell>{formatShortDate(row.lastActivityAt)}</TableCell>
+              <TableCell className="max-w-[240px] text-xs text-slate-600">{row.provisioningIssue || row.attentionReasons[0] || "--"}</TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant={coverageVariant(row.coverage.stripe)}>Stripe {row.coverage.stripe}</Badge>
+                  <Badge variant={coverageVariant(row.coverage.twilio)}>Twilio {row.coverage.twilio}</Badge>
+                  <Badge variant={coverageVariant(row.coverage.aiEstimate)}>AI {row.coverage.aiEstimate}</Badge>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; filters: CustomerUsageFilters }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">Customers needing immediate attention</h3>
+        <div className="mt-3 overflow-x-auto">
+          {data.overview.lists.immediateAttentionCustomers.length === 0 ? (
+            <EmptyState>No customers currently need action.</EmptyState>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workspace</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Reasons</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.overview.lists.immediateAttentionCustomers.map((item) => (
+                  <TableRow key={item.workspaceId}>
+                    <TableCell className="font-medium">
+                      <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: item.workspaceId })}>
+                        {item.workspaceName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(item.level)}>{item.level}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{item.reasons.join(" | ")}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">Newest provisioning failures</h3>
+        <div className="mt-3 overflow-x-auto">
+          {data.overview.lists.newestProvisioningFailures.length === 0 ? (
+            <EmptyState>No open provisioning blockers.</EmptyState>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workspace</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Error</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.overview.lists.newestProvisioningFailures.map((item) => (
+                  <TableRow key={`${item.workspaceId}:${item.updatedAt}`}>
+                    <TableCell className="font-medium text-slate-900">{item.workspaceName}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(item.provisioningStatus === "failed" ? "critical" : "warning")}>
+                        {item.provisioningStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(item.updatedAt)}</TableCell>
+                    <TableCell className="text-xs text-slate-600">{item.error || "--"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">Stale customers</h3>
+        <div className="mt-3 overflow-x-auto">
+          {data.overview.lists.staleCustomers.length === 0 ? (
+            <EmptyState>No stale customers right now.</EmptyState>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workspace</TableHead>
+                  <TableHead>Last activity</TableHead>
+                  <TableHead>Reason</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.overview.lists.staleCustomers.map((item) => (
+                  <TableRow key={item.workspaceId}>
+                    <TableCell className="font-medium">
+                      <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: item.workspaceId })}>
+                        {item.workspaceName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatDate(item.lastActivityAt)}</TableCell>
+                    <TableCell className="text-xs text-slate-600">{item.reasons.join(" | ") || "No meaningful activity in the last 30 days"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">Webhook and provider failures</h3>
+        <div className="mt-3 overflow-x-auto">
+          {data.overview.lists.providerFailures.length === 0 ? (
+            <EmptyState>No active provider issues.</EmptyState>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Summary</TableHead>
+                  <TableHead>Last seen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.overview.lists.providerFailures.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium text-slate-900">{item.label}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(item.status)}>{item.source}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{item.summary}</TableCell>
+                    <TableCell>{formatDate(item.lastSeenAt)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OpsRollupTable({ data }: { data: CustomerUsageDashboardData }) {
+  const rows = [
+    {
+      section: "Release truth",
+      status: data.ops.launch.release.worker.status,
+      summary: `Web SHA ${data.ops.launch.release.app.shortGitSha || "--"} | Worker ${data.ops.launch.release.worker.status}`,
+      details: `Web deploy ${data.ops.launch.release.app.deploymentId || "--"}`,
+    },
+    {
+      section: "Voice critical",
+      status: data.ops.launch.voiceCritical.status,
+      summary: data.ops.launch.voiceCritical.summary,
+      details: `Twilio ${data.ops.launch.voiceCritical.twilioVoiceRouting.status} | LiveKit ${data.ops.launch.voiceCritical.livekitSip.status} | Fleet ${data.ops.launch.voiceCritical.voiceFleet.status}`,
+    },
+    {
+      section: "Communications readiness",
+      status: data.ops.launch.communications.status,
+      summary: data.ops.launch.communications.summary,
+      details: `SMS ${data.ops.launch.communications.sms.status} | Email ${data.ops.launch.communications.email.status}`,
+    },
+    {
+      section: "Provisioning",
+      status: data.ops.launch.provisioning.status,
+      summary: data.ops.launch.provisioning.summary,
+      details: `Pending ${data.ops.launch.provisioning.pendingCount} | Failed ${data.ops.launch.provisioning.failedCount} | Blocked ${data.ops.launch.provisioning.counts.blocked_duplicate}`,
+    },
+    {
+      section: "Monitor freshness",
+      status: data.ops.launch.monitoring.status,
+      summary: data.ops.launch.monitoring.summary,
+      details: `Health audit ${data.ops.launch.monitoring.healthAudit.status} | Watchdog ${data.ops.launch.monitoring.watchdog.status} | Passive traffic ${data.ops.launch.monitoring.passiveTraffic.status}`,
+    },
+    {
+      section: "Passive production health",
+      status: data.ops.launch.passiveProduction.status,
+      summary: data.ops.launch.passiveProduction.summary,
+      details: `Active ${data.ops.launch.passiveProduction.activeWorkspaceCount} | Failures ${data.ops.launch.passiveProduction.unhealthyActiveWorkspaceCount} | Unknown ${data.ops.launch.passiveProduction.unknownWorkspaceCount}`,
+    },
+  ];
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Section</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Summary</TableHead>
+          <TableHead>Key datapoints</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.section}>
+            <TableCell className="font-medium text-slate-900">{row.section}</TableCell>
+            <TableCell>
+              <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
+            </TableCell>
+            <TableCell className="text-sm text-slate-700">{row.summary}</TableCell>
+            <TableCell className="text-xs text-slate-600">{row.details}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }
 
 function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUsageDashboardData["selectedWorkspace"]> }) {
@@ -275,7 +644,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
                     <span className="font-medium text-slate-900">{item.contactName}</span>
                     <span className="text-slate-600">{item.score}/10</span>
                   </div>
-                  <div className="mt-1 text-slate-500">{item.dealTitle} • {formatShortDate(item.createdAt)}</div>
+                  <div className="mt-1 text-slate-500">{item.dealTitle} | {formatShortDate(item.createdAt)}</div>
                   {item.comment ? <div className="mt-1 text-slate-700">{item.comment}</div> : null}
                 </div>
               ))
@@ -302,42 +671,21 @@ export default async function CustomerUsagePage({
   return (
     <div className="mx-auto max-w-[1800px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="space-y-2">
+        <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Customer observability</h1>
-          <p className="max-w-3xl text-sm text-slate-600">One internal source of truth for customer health, exact billing/cost coverage, and ops readiness.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(["7d", "30d", "90d"] as const).map((range) => (
-            <Link key={range} href={buildQuery(filters, { range, workspace: filters.workspace || "" })} className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}>
+          {(["1d", "7d", "30d", "90d"] as const).map((range) => (
+            <Link
+              key={range}
+              href={buildQuery(filters, { range, workspace: filters.workspace || "" })}
+              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}
+            >
               {range}
             </Link>
           ))}
         </div>
       </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card className="rounded-[18px]"><CardContent className="pt-6">{data.truthModel.exact}</CardContent></Card>
-        <Card className="rounded-[18px]"><CardContent className="pt-6">{data.truthModel.rollup}</CardContent></Card>
-        <Card className="rounded-[18px]"><CardContent className="pt-6">{data.truthModel.estimate}</CardContent></Card>
-      </div>
-
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <KpiCard label="Paid customers" value={formatNumber(data.overview.paidCustomers)} detail={`${data.overview.totalCustomers} workspaces in current filtered view.`} tone="exact" />
-        <KpiCard label="Subscription revenue" value={formatMoney(data.overview.subscriptionRevenue.amount, data.overview.subscriptionRevenue.currency)} detail={`Live Stripe coverage ${data.overview.subscriptionRevenue.coveredCount}/${data.overview.totalCustomers}.`} tone="exact" />
-        <KpiCard label="Twilio month spend" value={formatMoney(data.overview.twilioMonthSpend.amount, data.overview.twilioMonthSpend.currency)} detail={`Live Twilio coverage ${data.overview.twilioMonthSpend.coveredCount}/${data.overview.totalCustomers}.`} tone="exact" />
-        <KpiCard label="Paid invoice totals" value={formatMoney(data.overview.paidInvoiceRevenueInRange)} detail={`Paid invoice totals with paidAt inside the selected ${filters.range} window.`} tone="exact" />
-        <KpiCard label="Jobs Won With Tracey" value={formatNumber(data.overview.jobsWonWithTracey)} detail={JOBS_WON_WITH_TRACEY_FORMULA} tone="exact" />
-        <KpiCard label="Sub rev - Twilio month spend" value={formatMoney(data.overview.subRevenueMinusTwilio.amount, data.overview.subRevenueMinusTwilio.currency)} detail={`Excluded ${data.overview.subRevenueMinusTwilio.excludedCount} customers without full exact coverage.`} tone="exact" />
-        <KpiCard label="Customers needing action" value={formatNumber(data.overview.customersNeedingAction)} detail="Rollup count of customers with billing, provisioning, stale-activity, or passive-health action signals." tone="rollup" />
-        <KpiCard label="Open provisioning blockers" value={formatNumber(data.overview.openProvisioningBlockers)} detail="Exact count of failed or duplicate-blocked provisioning states." tone="exact" />
-        <KpiCard label="Ops issues" value={formatNumber(data.overview.opsIssueCount)} detail="Rollup count of failing/stale monitors plus webhook/provider issues." tone="rollup" />
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-3">
-        <CoverageCard title="Stripe coverage" live={data.overview.coverage.stripe.live} degraded={data.overview.coverage.stripe.degraded} missing={data.overview.coverage.stripe.missing} />
-        <CoverageCard title="Twilio coverage" live={data.overview.coverage.twilio.live} degraded={data.overview.coverage.twilio.degraded} missing={data.overview.coverage.twilio.missing} />
-        <CoverageCard title="AI estimate coverage" live={data.overview.coverage.aiEstimate.live} degraded={data.overview.coverage.aiEstimate.degraded} missing={data.overview.coverage.aiEstimate.missing} />
-      </section>
 
       <div className="flex flex-wrap gap-2">
         {([
@@ -345,182 +693,144 @@ export default async function CustomerUsagePage({
           ["customers", "Customers"],
           ["ops", "Ops"],
         ] as const).map(([tab, label]) => (
-          <Link key={tab} href={buildQuery(filters, { tab })} className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}>
+          <Link
+            key={tab}
+            href={buildQuery(filters, { tab })}
+            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}
+          >
             {label}
           </Link>
         ))}
       </div>
 
       {filters.tab === "overview" ? (
-        <section className="grid gap-4 xl:grid-cols-2">
-          <ListCard title="Customers needing immediate attention" description="Highest-priority customer issues first.">
-            <div className="space-y-2">
-              {data.overview.lists.immediateAttentionCustomers.length === 0 ? <EmptyState>No customers currently need action.</EmptyState> : data.overview.lists.immediateAttentionCustomers.map((item) => (
-                <Link key={item.workspaceId} href={buildQuery(filters, { tab: "customers", workspace: item.workspaceId })} className="block rounded-xl border border-slate-200 px-3 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-900">{item.workspaceName}</span><Badge variant={statusVariant(item.level)}>{item.level}</Badge></div>
-                  <div className="mt-2 text-xs text-slate-600">{item.reasons.join(" • ")}</div>
-                </Link>
-              ))}
-            </div>
-          </ListCard>
-          <ListCard title="Newest provisioning failures" description="Exact recent failures and duplicate blockers.">
-            <div className="space-y-2">
-              {data.overview.lists.newestProvisioningFailures.length === 0 ? <EmptyState>No open provisioning blockers.</EmptyState> : data.overview.lists.newestProvisioningFailures.map((item) => (
-                <div key={`${item.workspaceId}:${item.updatedAt}`} className="rounded-xl border border-slate-200 px-3 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-900">{item.workspaceName}</span><Badge variant={statusVariant(item.provisioningStatus === "failed" ? "critical" : "warning")}>{item.provisioningStatus}</Badge></div>
-                  <div className="mt-2 text-xs text-slate-600">{item.error || "No error text"} • {formatDate(item.updatedAt)}</div>
-                </div>
-              ))}
-            </div>
-          </ListCard>
-          <ListCard title="Stale customers" description="No meaningful activity in the last 30 days.">
-            <div className="space-y-2">
-              {data.overview.lists.staleCustomers.length === 0 ? <EmptyState>No stale customers right now.</EmptyState> : data.overview.lists.staleCustomers.map((item) => (
-                <Link key={item.workspaceId} href={buildQuery(filters, { tab: "customers", workspace: item.workspaceId })} className="block rounded-xl border border-slate-200 px-3 py-3 text-sm">
-                  <div className="font-medium text-slate-900">{item.workspaceName}</div>
-                  <div className="mt-1 text-xs text-slate-500">Last activity {formatDate(item.lastActivityAt)}</div>
-                </Link>
-              ))}
-            </div>
-          </ListCard>
-          <ListCard title="Webhook and provider failures" description="Ops or provider issues that need inspection.">
-            <div className="space-y-2">
-              {data.overview.lists.providerFailures.length === 0 ? <EmptyState>No active provider issues.</EmptyState> : data.overview.lists.providerFailures.map((item) => (
-                <div key={item.id} className="rounded-xl border border-slate-200 px-3 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-900">{item.label}</span><Badge variant={statusVariant(item.status)}>{item.source}</Badge></div>
-                  <div className="mt-2 text-xs text-slate-600">{item.summary}</div>
-                  <div className="mt-1 text-xs text-slate-500">Last seen {formatDate(item.lastSeenAt)}</div>
-                </div>
-              ))}
-            </div>
-          </ListCard>
+        <section className="space-y-4">
+          <SectionCard
+            title="How to read this page"
+            description="Exact numbers are the source of truth. Rollups help you skim. Estimates never appear in the top truth KPIs."
+          >
+            <TruthLegendTable data={data} />
+          </SectionCard>
+
+          <SectionCard
+            title="Overview metrics"
+            description={`Top-line customer, revenue, usage, and issue counts for the selected ${filters.range} window.`}
+          >
+            <MetricSummaryTable data={data} />
+          </SectionCard>
+
+          <SectionCard
+            title="Coverage and data availability"
+            description="Live provider coverage for the customers in the current view."
+          >
+            <CoverageTable data={data} />
+          </SectionCard>
+
+          <SectionCard
+            title="Customers"
+            description={`${data.rows.length} workspaces in the current filtered view.`}
+            aside={
+              <Link
+                href={buildQuery(filters, { tab: "customers" })}
+                className="inline-flex h-9 items-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700"
+              >
+                Open detailed customer view
+              </Link>
+            }
+          >
+            <CustomerTable rows={data.rows} filters={filters} selectedWorkspaceId={selected?.row.workspaceId} />
+          </SectionCard>
+
+          <SectionCard
+            title="Immediate action queues"
+            description="The short lists to check first when something needs attention."
+          >
+            <ActionQueues data={data} filters={filters} />
+          </SectionCard>
         </section>
       ) : null}
 
       {filters.tab === "customers" ? (
         <section className="space-y-4">
-          <Card className="rounded-[18px]">
-            <CardContent className="pt-6">
-              <form className="flex flex-col gap-3 md:flex-row" method="get">
-                <input type="hidden" name="tab" value="customers" />
-                <input type="hidden" name="range" value={filters.range} />
-                {filters.workspace ? <input type="hidden" name="workspace" value={filters.workspace} /> : null}
-                <input className="h-11 flex-1 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.q} name="q" placeholder="Search workspace or owner" />
-                <select className="h-11 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.sort} name="sort">
-                  <option value="attention">Sort: attention</option>
-                  <option value="subRevenue">Sort: sub revenue</option>
-                  <option value="twilioSpend">Sort: Twilio spend</option>
-                  <option value="invoiceRevenue">Sort: paid invoices</option>
-                  <option value="jobsWon">Sort: Jobs Won With Tracey</option>
-                  <option value="lastActivity">Sort: last activity</option>
-                </select>
-                <button className="h-11 rounded-full bg-slate-900 px-5 text-sm font-medium text-white" type="submit">Apply</button>
-              </form>
-            </CardContent>
-          </Card>
+          <SectionCard title="Customer filters" description="Filter and sort the full customer table without leaving this page.">
+            <form className="flex flex-col gap-3 md:flex-row" method="get">
+              <input type="hidden" name="tab" value="customers" />
+              <input type="hidden" name="range" value={filters.range} />
+              {filters.workspace ? <input type="hidden" name="workspace" value={filters.workspace} /> : null}
+              <input className="h-11 flex-1 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.q} name="q" placeholder="Search workspace or owner" />
+              <select className="h-11 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.sort} name="sort">
+                <option value="attention">Sort: attention</option>
+                <option value="subRevenue">Sort: sub revenue</option>
+                <option value="twilioSpend">Sort: Twilio spend</option>
+                <option value="invoiceRevenue">Sort: paid invoices</option>
+                <option value="jobsWon">Sort: Jobs Won With Tracey</option>
+                <option value="lastActivity">Sort: last activity</option>
+              </select>
+              <button className="h-11 rounded-full bg-slate-900 px-5 text-sm font-medium text-white" type="submit">Apply</button>
+            </form>
+          </SectionCard>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(380px,1fr)]">
-            <Card className="rounded-[18px]">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Customers</CardTitle>
-                <CardDescription>{data.rows.length} workspaces in the current filtered view.</CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-x-auto pt-0">
-                <Table className="min-w-[1220px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Workspace</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Sub rev</TableHead>
-                      <TableHead>Twilio MTD</TableHead>
-                      <TableHead>Sub rev - Twilio</TableHead>
-                      <TableHead>Paid invoices</TableHead>
-                      <TableHead>Jobs Won With Tracey</TableHead>
-                      <TableHead>Voice calls</TableHead>
-                      <TableHead>Last activity</TableHead>
-                      <TableHead>Provisioning / issues</TableHead>
-                      <TableHead>Coverage</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.rows.map((row) => (
-                      <TableRow key={row.workspaceId} className={selected?.row.workspaceId === row.workspaceId ? "bg-slate-50" : undefined}>
-                        <TableCell className="font-medium">
-                          <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { workspace: row.workspaceId })}>{row.workspaceName}</Link>
-                          <div className="mt-1 text-xs text-slate-500">{row.ownerEmail}</div>
-                        </TableCell>
-                        <TableCell><Badge variant={statusVariant(row.attentionLevel)}>{row.subscriptionStatus}</Badge></TableCell>
-                        <TableCell>{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</TableCell>
-                        <TableCell>{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</TableCell>
-                        <TableCell>{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</TableCell>
-                        <TableCell>{formatMoney(row.paidInvoiceRevenueInRange)}</TableCell>
-                        <TableCell>{formatNumber(row.jobsWonWithTracey)}</TableCell>
-                        <TableCell>{formatNumber(row.voiceCallsInRange)}</TableCell>
-                        <TableCell>{formatShortDate(row.lastActivityAt)}</TableCell>
-                        <TableCell className="text-xs text-slate-600">{row.provisioningIssue || row.attentionReasons[0] || "--"}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            <Badge variant={coverageVariant(row.coverage.stripe)}>Stripe {row.coverage.stripe}</Badge>
-                            <Badge variant={coverageVariant(row.coverage.twilio)}>Twilio {row.coverage.twilio}</Badge>
-                            <Badge variant={coverageVariant(row.coverage.aiEstimate)}>AI {row.coverage.aiEstimate}</Badge>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <SectionCard title="Customer table" description={`${data.rows.length} workspaces in the current filtered view.`}>
+              <CustomerTable rows={data.rows} filters={filters} selectedWorkspaceId={selected?.row.workspaceId} />
+            </SectionCard>
 
-            {selected ? <SelectedWorkspacePanel selected={selected} /> : <Card className="rounded-[18px]"><CardContent className="pt-6 text-sm text-slate-500">No workspace selected.</CardContent></Card>}
+            {selected ? (
+              <SelectedWorkspacePanel selected={selected} />
+            ) : (
+              <Card className="rounded-[18px]">
+                <CardContent className="pt-6 text-sm text-slate-500">No workspace selected.</CardContent>
+              </Card>
+            )}
           </div>
         </section>
       ) : null}
 
       {filters.tab === "ops" ? (
         <section className="space-y-4">
-          <Card className="rounded-[18px]">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">Ops overview</CardTitle>
-                  <CardDescription className="text-xs text-slate-600">{data.ops.launch.summary}</CardDescription>
-                </div>
-                <Badge variant={statusVariant(data.ops.launch.status)}>{data.ops.launch.status}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-500">Checked {formatDate(data.ops.launch.checkedAt)}</CardContent>
-          </Card>
+          <SectionCard
+            title="Ops overview"
+            description={data.ops.launch.summary}
+            aside={<Badge variant={statusVariant(data.ops.launch.status)}>{data.ops.launch.status}</Badge>}
+          >
+            <div className="text-xs text-slate-500">Checked {formatDate(data.ops.launch.checkedAt)}</div>
+          </SectionCard>
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <ListCard title="Release truth" description="Worker and web release state.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>Web SHA: {data.ops.launch.release.app.shortGitSha || "--"}</div><div>Web deploy: {data.ops.launch.release.app.deploymentId || "--"}</div><div>Worker status: {data.ops.launch.release.worker.status}</div></div></ListCard>
-            <ListCard title="Voice critical" description="Routing, SIP, runtime, and latency.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>{data.ops.launch.voiceCritical.summary}</div><div>Twilio routing: {data.ops.launch.voiceCritical.twilioVoiceRouting.status}</div><div>LiveKit SIP: {data.ops.launch.voiceCritical.livekitSip.status}</div><div>Runtime drift: {data.ops.launch.voiceCritical.voiceWorker.status}</div><div>Fleet: {data.ops.launch.voiceCritical.voiceFleet.status}</div></div></ListCard>
-            <ListCard title="Communications readiness" description="SMS and inbound email configuration.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>{data.ops.launch.communications.summary}</div><div>SMS: {data.ops.launch.communications.sms.status}</div><div>Email: {data.ops.launch.communications.email.status}</div><div>Inbound email domain: {data.ops.launch.communications.email.domain}</div></div></ListCard>
-            <ListCard title="Provisioning" description="Workspace provisioning drift and blockers.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>{data.ops.launch.provisioning.summary}</div><div>Pending: {data.ops.launch.provisioning.pendingCount}</div><div>Failed: {data.ops.launch.provisioning.failedCount}</div><div>Blocked duplicate: {data.ops.launch.provisioning.counts.blocked_duplicate}</div></div></ListCard>
-            <ListCard title="Monitor freshness" description="Scheduled monitor recency.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>{data.ops.launch.monitoring.summary}</div><div>Health audit: {data.ops.launch.monitoring.healthAudit.status}</div><div>Watchdog: {data.ops.launch.monitoring.watchdog.status}</div><div>Passive traffic audit: {data.ops.launch.monitoring.passiveTraffic.status}</div></div></ListCard>
-            <ListCard title="Passive production health" description="Real customer traffic rather than synthetic probes.">{truthBadge("rollup")}<div className="mt-3 space-y-2 text-sm text-slate-700"><div>{data.ops.launch.passiveProduction.summary}</div><div>Active workspaces: {data.ops.launch.passiveProduction.activeWorkspaceCount}</div><div>Failures: {data.ops.launch.passiveProduction.unhealthyActiveWorkspaceCount}</div><div>Unknown: {data.ops.launch.passiveProduction.unknownWorkspaceCount}</div></div></ListCard>
+          <SectionCard
+            title="Ops checks"
+            description="Rollups for release, voice, communications, provisioning, monitoring, and passive production health."
+          >
+            <OpsRollupTable data={data} />
+          </SectionCard>
+
+          <div id="webhooks">
+            <SectionCard title="Webhook diagnostics" description="Exact provider event timestamps and error counts.">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Provider</TableHead>
+                    <TableHead>Result</TableHead>
+                    <TableHead>Last success</TableHead>
+                    <TableHead>Last error</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.ops.webhookDiagnostics.map((provider) => (
+                    <TableRow key={provider.provider}>
+                      <TableCell className="font-medium capitalize text-slate-900">{provider.provider}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(provider.errorCount > 0 ? "warning" : "healthy")}>
+                          {provider.successCount} ok / {provider.errorCount} err
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(provider.lastSuccess)}</TableCell>
+                      <TableCell>{formatDate(provider.lastError)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </SectionCard>
           </div>
-
-          <Card id="webhooks" className="rounded-[18px]">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">Webhook diagnostics</CardTitle>
-                  <CardDescription className="text-xs text-slate-600">Exact provider event timestamps and error counts.</CardDescription>
-                </div>
-                {truthBadge("exact")}
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2">
-              {data.ops.webhookDiagnostics.map((provider) => (
-                <div key={provider.provider} className="rounded-xl border border-slate-200 px-3 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3"><span className="font-medium capitalize text-slate-900">{provider.provider}</span><Badge variant={statusVariant(provider.errorCount > 0 ? "warning" : "healthy")}>{provider.successCount} ok / {provider.errorCount} err</Badge></div>
-                  <div className="mt-2 text-xs text-slate-600">Last success {formatDate(provider.lastSuccess)}</div>
-                  <div className="mt-1 text-xs text-slate-600">Last error {formatDate(provider.lastError)}</div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </section>
       ) : null}
     </div>

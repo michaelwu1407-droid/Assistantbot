@@ -2783,3 +2783,18 @@ Rule: every agent change commit must include an entry in this file.
   - Redirected `/admin/ops-status` and `/admin/diagnostics` into the unified page and added targeted tests for filters, formula helpers, and redirect behavior.
 - Why:
   - The internal admin surface needed to become a real single point of truth instead of three overlapping pages that mixed exact values with silent fallbacks and proxy metrics.
+
+## 2026-03-31 20:33 (AEDT) - Codex
+
+- Files changed:
+  - `app/admin/customer-usage/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/admin/customer-usage.ts`
+  - `__tests__/customer-usage-metrics.test.ts`
+- Summary:
+  - Added a `1d` range to the unified internal admin page and its filter parser so the observability view can switch between `1d`, `7d`, `30d`, and `90d` without falling back to card-only summary blocks.
+  - Reworked `/admin/customer-usage` from a card-heavy dashboard collage into clearer table-based sections for truth rules, overview metrics, coverage, customer rows, action queues, and ops checks, while keeping the full customer table visible both in Overview and in the detailed Customers tab.
+  - Removed the extra top subtitle, improved the truth-model wording to clarify exact numbers vs rollups vs estimates, and expanded the `Twilio month spend` explanation so it states that the number is the live current-month total from Twilio Usage Records plus explicit coverage.
+  - Kept the selected customer drilldown intact while cleaning up the remaining observability wording and separators so the page reads more like one operational monitor and less like three dashboards stitched together.
+- Why:
+  - The unified page still felt too card-driven and too hard to skim. This pass makes the main internal page denser, clearer, and closer to the single source of truth the user expected.

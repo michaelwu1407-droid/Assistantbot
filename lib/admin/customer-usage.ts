@@ -20,7 +20,7 @@ import {
   type PromptCallType,
 } from "@/livekit-agent/voice-prompts";
 
-export type UsageRange = "7d" | "30d" | "90d";
+export type UsageRange = "1d" | "7d" | "30d" | "90d";
 export type CustomerUsageTab = "overview" | "customers" | "ops";
 export type CustomerUsageSort =
   | "attention"
@@ -367,6 +367,7 @@ const PROMPT_BASELINE_CALLER = {
 
 function getRangeStart(range: UsageRange) {
   const now = new Date();
+  if (range === "1d") return subDays(now, 1);
   if (range === "7d") return subDays(now, 7);
   if (range === "90d") return subDays(now, 90);
   return subDays(now, 30);
@@ -1063,7 +1064,7 @@ export function parseCustomerUsageFilters(searchParams?: Record<string, string |
 
   return {
     tab: tabValue === "customers" || tabValue === "ops" ? tabValue : "overview",
-    range: rangeValue === "7d" || rangeValue === "90d" ? rangeValue : "30d",
+    range: rangeValue === "1d" || rangeValue === "7d" || rangeValue === "90d" ? rangeValue : "30d",
     workspace: readValue("workspace").trim(),
     q: readValue("q").trim(),
     sort:
@@ -1741,9 +1742,9 @@ export async function getCustomerUsageDashboardData(
   return {
     filters,
     truthModel: {
-      exact: "Directly measured or directly calculated from stored/live source data.",
-      rollup: "Status summaries built from exact checks. Always inspect the raw checks underneath.",
-      estimate: "Voice-only AI estimate from persisted transcripts and published rate cards. Never used in top truth KPIs.",
+      exact: "Taken straight from stored records or live provider data, or calculated directly from those exact inputs without fallback guesses.",
+      rollup: "A status summary built from exact checks. Use it to skim quickly, then inspect the exact rows underneath before acting.",
+      estimate: "Voice-only AI cost estimated from persisted call transcripts and the published rate card in code. It never appears in the top truth KPIs.",
     },
     overview: {
       totalCustomers: filteredRows.length,

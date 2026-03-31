@@ -20,14 +20,14 @@ describe("customer observability helpers", () => {
     expect(
       parseCustomerUsageFilters({
         tab: "customers",
-        range: "90d",
+        range: "1d",
         workspace: "ws_123",
         q: "splash",
         sort: "jobsWon",
       }),
     ).toEqual({
       tab: "customers",
-      range: "90d",
+      range: "1d",
       workspace: "ws_123",
       q: "splash",
       sort: "jobsWon",
