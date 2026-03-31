@@ -104,6 +104,15 @@ function formatRelativeDate(value: string | null | undefined) {
   return { text: `${diffDays}d ago`, className: "text-red-600" };
 }
 
+function formatProvisioningIssue(status: string | null) {
+  if (!status) return null;
+  if (status === "failed") return "Setup failed";
+  if (status === "blocked_duplicate") return "Setup blocked (duplicate)";
+  if (status === "requested") return "Setup pending";
+  if (status === "provisioning") return "Setting up";
+  return status;
+}
+
 function CoverageDots({ coverage }: { coverage: { stripe: CoverageStatus; twilio: CoverageStatus; aiEstimate: CoverageStatus } }) {
   const dotColor = (status: CoverageStatus) =>
     status === "live" ? "bg-emerald-500" : status === "degraded" ? "bg-amber-400" : "bg-red-500";
@@ -366,16 +375,12 @@ function CustomerTable({
                 {/* Status: subscription + voice enabled + onboarding */}
                 <TableCell>
                   <Badge variant={statusVariant(row.attentionLevel)}>{row.subscriptionStatus}</Badge>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full ${row.voiceEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
-                      title={row.voiceEnabled ? "Voice enabled" : "Voice disabled"}
-                    />
-                    <span
-                      className={`text-[11px] ${row.onboardingComplete ? "text-emerald-600" : "text-slate-400"}`}
-                      title={row.onboardingComplete ? "Onboarding complete" : "Onboarding incomplete"}
-                    >
-                      {row.onboardingComplete ? "\u2713" : "\u2717"}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                    <span className={row.voiceEnabled ? "text-emerald-600" : "text-slate-400"}>
+                      {row.voiceEnabled ? "\u25CF Voice on" : "\u25CB Voice off"}
+                    </span>
+                    <span className={row.onboardingComplete ? "text-emerald-600" : "text-slate-400"}>
+                      {row.onboardingComplete ? "\u2713 Onboarded" : "\u2717 Not onboarded"}
                     </span>
                   </div>
                 </TableCell>
@@ -426,9 +431,9 @@ function CustomerTable({
                       </span>
                     ) : null}
                   </div>
-                  {row.provisioningIssue || row.attentionReasons[0] ? (
-                    <div className="mt-1 truncate text-[11px] text-slate-500" title={row.provisioningIssue || row.attentionReasons[0]}>
-                      {row.provisioningIssue || row.attentionReasons[0]}
+                  {formatProvisioningIssue(row.provisioningIssue) || row.attentionReasons[0] ? (
+                    <div className="mt-1 truncate text-[11px] text-slate-500" title={formatProvisioningIssue(row.provisioningIssue) || row.attentionReasons[0] || ""}>
+                      {formatProvisioningIssue(row.provisioningIssue) || row.attentionReasons[0]}
                     </div>
                   ) : null}
                   <div className="mt-1">

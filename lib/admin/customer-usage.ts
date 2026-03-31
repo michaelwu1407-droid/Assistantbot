@@ -1005,40 +1005,51 @@ function buildAttentionState(input: {
   const criticalReasons: string[] = [];
   const warningReasons: string[] = [];
 
-  if (["past_due", "unpaid", "canceled", "incomplete_expired"].includes(input.subscriptionStatus.toLowerCase())) {
-    criticalReasons.push(`Subscription ${input.subscriptionStatus}`);
+  const subStatus = input.subscriptionStatus.toLowerCase();
+  if (subStatus === "past_due") {
+    criticalReasons.push("Billing past due");
+  } else if (subStatus === "unpaid") {
+    criticalReasons.push("Billing unpaid");
+  } else if (subStatus === "canceled") {
+    criticalReasons.push("Subscription cancelled");
+  } else if (subStatus === "incomplete_expired") {
+    criticalReasons.push("Subscription expired");
   }
 
-  if (input.provisioningIssue?.provisioningStatus === "failed" || input.provisioningIssue?.provisioningStatus === "blocked_duplicate") {
-    criticalReasons.push(`Provisioning ${input.provisioningIssue.provisioningStatus}`);
-  } else if (input.provisioningIssue?.provisioningStatus === "requested" || input.provisioningIssue?.provisioningStatus === "provisioning") {
-    warningReasons.push(`Provisioning ${input.provisioningIssue.provisioningStatus}`);
+  if (input.provisioningIssue?.provisioningStatus === "failed") {
+    criticalReasons.push("Setup failed");
+  } else if (input.provisioningIssue?.provisioningStatus === "blocked_duplicate") {
+    criticalReasons.push("Setup blocked (duplicate)");
+  } else if (input.provisioningIssue?.provisioningStatus === "requested") {
+    warningReasons.push("Setup pending");
+  } else if (input.provisioningIssue?.provisioningStatus === "provisioning") {
+    warningReasons.push("Setting up");
   }
 
   if (input.incidents > 0) {
-    criticalReasons.push(`${input.incidents} open voice incident${input.incidents === 1 ? "" : "s"}`);
+    criticalReasons.push(`${input.incidents} voice issue${input.incidents === 1 ? "" : "s"}`);
   }
 
   if (input.passiveWorkspaceHealth?.overallStatus === "unhealthy") {
-    criticalReasons.push(`Passive production ${input.passiveWorkspaceHealth.overallClassification}`);
+    criticalReasons.push(`Health check: ${input.passiveWorkspaceHealth.overallClassification}`);
   } else if (input.passiveWorkspaceHealth?.overallStatus === "degraded") {
-    warningReasons.push(`Passive production ${input.passiveWorkspaceHealth.overallClassification}`);
+    warningReasons.push(`Health check: ${input.passiveWorkspaceHealth.overallClassification}`);
   }
 
   if (!input.lastActivityAt || input.lastActivityAt < subDays(new Date(), 30)) {
-    warningReasons.push("No meaningful workspace activity in the last 30 days");
+    warningReasons.push("Inactive 30+ days");
   }
 
   if (input.rowVoiceEnabled && input.twilioCoverage !== "live") {
-    warningReasons.push(`Twilio coverage ${input.twilioCoverage}`);
+    warningReasons.push(input.twilioCoverage === "missing" ? "Twilio not connected" : "Twilio degraded");
   }
 
   if (input.subscriptionStatus.toLowerCase() === "active" && input.stripeCoverage !== "live") {
-    warningReasons.push(`Stripe coverage ${input.stripeCoverage}`);
+    warningReasons.push(input.stripeCoverage === "missing" ? "Stripe not connected" : "Stripe degraded");
   }
 
   if (!input.rowVoiceEnabled) {
-    warningReasons.push("Voice disabled");
+    warningReasons.push("Voice off");
   }
 
   if (criticalReasons.length > 0) {
