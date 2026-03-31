@@ -90,6 +90,41 @@ function buildQuery(filters: CustomerUsageFilters, overrides: Partial<Record<key
   return `?${params.toString()}`;
 }
 
+function formatRelativeDate(value: string | null | undefined) {
+  if (!value) return { text: "--", className: "text-slate-400" };
+  const now = new Date();
+  const date = new Date(value);
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 1) return { text: "today", className: "text-emerald-600" };
+  if (diffDays === 1) return { text: "1d ago", className: "text-emerald-600" };
+  if (diffDays < 7) return { text: `${diffDays}d ago`, className: "text-emerald-600" };
+  if (diffDays < 30) return { text: `${diffDays}d ago`, className: "text-slate-600" };
+  if (diffDays < 60) return { text: `${diffDays}d ago`, className: "text-amber-600" };
+  return { text: `${diffDays}d ago`, className: "text-red-600" };
+}
+
+function CoverageDots({ coverage }: { coverage: { stripe: CoverageStatus; twilio: CoverageStatus; aiEstimate: CoverageStatus } }) {
+  const dotColor = (status: CoverageStatus) =>
+    status === "live" ? "bg-emerald-500" : status === "degraded" ? "bg-amber-400" : "bg-red-500";
+  return (
+    <div className="flex items-center gap-1" title={`Stripe: ${coverage.stripe} | Twilio: ${coverage.twilio} | AI: ${coverage.aiEstimate}`}>
+      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.stripe)}`} />
+      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.twilio)}`} />
+      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.aiEstimate)}`} />
+    </div>
+  );
+}
+
+function IndustryBadge({ industry }: { industry: string }) {
+  if (industry === "Unknown") return null;
+  return (
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+      {industry === "REAL_ESTATE" ? "RE" : industry}
+    </span>
+  );
+}
+
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 text-sm last:border-b-0">
@@ -293,51 +328,116 @@ function CustomerTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[1220px]">
+      <Table className="min-w-[1100px]">
         <TableHeader>
           <TableRow>
-            <TableHead>Workspace</TableHead>
+            <TableHead>Customer</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Sub rev</TableHead>
+            <TableHead>Adoption</TableHead>
+            <TableHead>Sub Rev</TableHead>
             <TableHead>Twilio MTD</TableHead>
-            <TableHead>Sub rev - Twilio</TableHead>
-            <TableHead>Paid invoices</TableHead>
-            <TableHead>Jobs Won With Tracey</TableHead>
-            <TableHead>Voice calls</TableHead>
-            <TableHead>Last activity</TableHead>
-            <TableHead>Issues</TableHead>
-            <TableHead>Coverage</TableHead>
+            <TableHead>Margin</TableHead>
+            <TableHead>Revenue</TableHead>
+            <TableHead>Voice</TableHead>
+            <TableHead>Last Active</TableHead>
+            <TableHead>Health</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.workspaceId} className={selectedWorkspaceId === row.workspaceId ? "bg-slate-50" : undefined}>
-              <TableCell className="font-medium">
-                <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: row.workspaceId })}>
-                  {row.workspaceName}
-                </Link>
-                <div className="mt-1 text-xs text-slate-500">{row.ownerEmail}</div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={statusVariant(row.attentionLevel)}>{row.subscriptionStatus}</Badge>
-              </TableCell>
-              <TableCell>{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</TableCell>
-              <TableCell>{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</TableCell>
-              <TableCell>{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</TableCell>
-              <TableCell>{formatMoney(row.paidInvoiceRevenueInRange)}</TableCell>
-              <TableCell>{formatNumber(row.jobsWonWithTracey)}</TableCell>
-              <TableCell>{formatNumber(row.voiceCallsInRange)}</TableCell>
-              <TableCell>{formatShortDate(row.lastActivityAt)}</TableCell>
-              <TableCell className="max-w-[240px] text-xs text-slate-600">{row.provisioningIssue || row.attentionReasons[0] || "--"}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant={coverageVariant(row.coverage.stripe)}>Stripe {row.coverage.stripe}</Badge>
-                  <Badge variant={coverageVariant(row.coverage.twilio)}>Twilio {row.coverage.twilio}</Badge>
-                  <Badge variant={coverageVariant(row.coverage.aiEstimate)}>AI {row.coverage.aiEstimate}</Badge>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {rows.map((row) => {
+            const relative = formatRelativeDate(row.lastActivityAt);
+            const voiceRelative = formatRelativeDate(row.lastVoiceCallAt);
+            return (
+              <TableRow key={row.workspaceId} className={selectedWorkspaceId === row.workspaceId ? "bg-slate-50" : undefined}>
+                {/* Customer: name + email + phone + industry */}
+                <TableCell className="max-w-[200px]">
+                  <Link className="font-medium underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: row.workspaceId })}>
+                    {row.workspaceName}
+                  </Link>
+                  <div className="mt-0.5 text-xs text-slate-500">{row.ownerEmail}</div>
+                  {row.twilioPhoneNumber ? (
+                    <div className="mt-0.5 font-mono text-[11px] text-slate-400">{row.twilioPhoneNumber}</div>
+                  ) : null}
+                  <div className="mt-1">
+                    <IndustryBadge industry={row.industryType} />
+                  </div>
+                </TableCell>
+
+                {/* Status: subscription + voice enabled + onboarding */}
+                <TableCell>
+                  <Badge variant={statusVariant(row.attentionLevel)}>{row.subscriptionStatus}</Badge>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${row.voiceEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+                      title={row.voiceEnabled ? "Voice enabled" : "Voice disabled"}
+                    />
+                    <span
+                      className={`text-[11px] ${row.onboardingComplete ? "text-emerald-600" : "text-slate-400"}`}
+                      title={row.onboardingComplete ? "Onboarding complete" : "Onboarding incomplete"}
+                    >
+                      {row.onboardingComplete ? "\u2713" : "\u2717"}
+                    </span>
+                  </div>
+                </TableCell>
+
+                {/* Adoption: created date + contacts + deals */}
+                <TableCell>
+                  <div className="text-xs text-slate-500">{formatShortDate(row.createdAt)}</div>
+                  <div className="mt-0.5 text-xs text-slate-600">{formatNumber(row.contactCount)} contacts</div>
+                  <div className="text-xs text-slate-600">{formatNumber(row.dealCount)} deals</div>
+                </TableCell>
+
+                {/* Sub Rev */}
+                <TableCell className="font-medium">{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</TableCell>
+
+                {/* Twilio MTD */}
+                <TableCell>{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</TableCell>
+
+                {/* Margin */}
+                <TableCell>{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</TableCell>
+
+                {/* Revenue: paid invoices + jobs won */}
+                <TableCell>
+                  <div className="text-sm font-medium">{formatMoney(row.paidInvoiceRevenueInRange)}</div>
+                  <div className="text-xs text-slate-500">{formatNumber(row.jobsWonWithTracey)} jobs won</div>
+                </TableCell>
+
+                {/* Voice: call count + last call */}
+                <TableCell>
+                  <div className="text-sm font-medium">{formatNumber(row.voiceCallsInRange)} calls</div>
+                  <div className={`text-xs ${voiceRelative.className}`}>{voiceRelative.text}</div>
+                </TableCell>
+
+                {/* Last Active: date + relative */}
+                <TableCell>
+                  <div className="text-xs text-slate-600">{formatShortDate(row.lastActivityAt)}</div>
+                  <div className={`text-xs font-medium ${relative.className}`}>{relative.text}</div>
+                </TableCell>
+
+                {/* Health: attention + incidents + issue + coverage dots */}
+                <TableCell className="max-w-[200px]">
+                  <div className="flex items-center gap-1.5">
+                    {row.attentionLevel !== "none" ? (
+                      <Badge variant={statusVariant(row.attentionLevel)}>{row.attentionLevel}</Badge>
+                    ) : null}
+                    {row.incidentCount > 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700" title={`${row.incidentCount} open incident(s)`}>
+                        {row.incidentCount} inc
+                      </span>
+                    ) : null}
+                  </div>
+                  {row.provisioningIssue || row.attentionReasons[0] ? (
+                    <div className="mt-1 truncate text-[11px] text-slate-500" title={row.provisioningIssue || row.attentionReasons[0]}>
+                      {row.provisioningIssue || row.attentionReasons[0]}
+                    </div>
+                  ) : null}
+                  <div className="mt-1">
+                    <CoverageDots coverage={row.coverage} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -765,6 +865,9 @@ export default async function CustomerUsagePage({
                 <option value="invoiceRevenue">Sort: paid invoices</option>
                 <option value="jobsWon">Sort: Jobs Won With Tracey</option>
                 <option value="lastActivity">Sort: last activity</option>
+                <option value="voiceCalls">Sort: voice calls</option>
+                <option value="createdAt">Sort: newest</option>
+                <option value="name">Sort: name</option>
               </select>
               <button className="h-11 rounded-full bg-slate-900 px-5 text-sm font-medium text-white" type="submit">Apply</button>
             </form>
