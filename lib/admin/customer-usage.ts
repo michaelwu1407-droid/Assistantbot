@@ -28,7 +28,10 @@ export type CustomerUsageSort =
   | "twilioSpend"
   | "invoiceRevenue"
   | "jobsWon"
-  | "lastActivity";
+  | "lastActivity"
+  | "voiceCalls"
+  | "createdAt"
+  | "name";
 
 export type CustomerUsageFilters = {
   tab: CustomerUsageTab;
@@ -140,6 +143,12 @@ export type CustomerUsageRow = {
     twilio: CoverageStatus;
     aiEstimate: CoverageStatus;
   };
+  twilioPhoneNumber: string | null;
+  voiceEnabled: boolean;
+  onboardingComplete: boolean;
+  contactCount: number;
+  dealCount: number;
+  incidentCount: number;
 };
 
 export type CustomerUsageDashboardData = {
@@ -1072,7 +1081,10 @@ export function parseCustomerUsageFilters(searchParams?: Record<string, string |
       sortValue === "twilioSpend" ||
       sortValue === "invoiceRevenue" ||
       sortValue === "jobsWon" ||
-      sortValue === "lastActivity"
+      sortValue === "lastActivity" ||
+      sortValue === "voiceCalls" ||
+      sortValue === "createdAt" ||
+      sortValue === "name"
         ? sortValue
         : "attention",
   };
@@ -1356,6 +1368,12 @@ export async function getCustomerUsageDashboardData(
         twilio: provider.twilio.coverage,
         aiEstimate: aiEstimate.coverage,
       },
+      twilioPhoneNumber: workspace.twilioPhoneNumber,
+      voiceEnabled: workspace.voiceEnabled,
+      onboardingComplete: workspace.onboardingComplete,
+      contactCount: (contactsByWorkspace.get(workspace.id) || []).length,
+      dealCount: workspaceDeals.length,
+      incidentCount: workspaceIncidents.length,
     } satisfies CustomerUsageRow;
   });
 
@@ -1368,6 +1386,7 @@ export async function getCustomerUsageDashboardData(
       row.workspaceType,
       row.industryType,
       row.subscriptionStatus,
+      row.twilioPhoneNumber || "",
     ].join(" "));
 
     return haystack.includes(search);
@@ -1394,6 +1413,15 @@ export async function getCustomerUsageDashboardData(
     }
     if (filters.sort === "lastActivity") {
       return new Date(right.lastActivityAt || 0).getTime() - new Date(left.lastActivityAt || 0).getTime();
+    }
+    if (filters.sort === "voiceCalls") {
+      return right.voiceCallsInRange - left.voiceCallsInRange;
+    }
+    if (filters.sort === "createdAt") {
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    }
+    if (filters.sort === "name") {
+      return left.workspaceName.localeCompare(right.workspaceName);
     }
 
     const attentionDiff = attentionRank[left.attentionLevel] - attentionRank[right.attentionLevel];
