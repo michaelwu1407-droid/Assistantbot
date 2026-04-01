@@ -340,6 +340,65 @@ export async function processFollowUpReminders(): Promise<{
   return { notified, errors };
 }
 
+// ─── Request payment for a completed deal (SMS to contact) ──────────
+
+export async function requestPaymentForDeal(dealId: string): Promise<FollowUpResult> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      select: {
+        id: true,
+        title: true,
+        value: true,
+        invoicedAmount: true,
+        contactId: true,
+        workspaceId: true,
+        contact: { select: { name: true, phone: true, email: true } },
+        workspace: { select: { name: true } },
+      },
+    });
+    if (!deal) return { success: false, error: "Deal not found" };
+
+    const amount = deal.invoicedAmount ?? deal.value;
+    const formattedAmount = amount ? `$${Number(amount).toLocaleString()}` : "the invoice";
+
+    const message = `Hi ${deal.contact.name}, ${formattedAmount} is now due for ${deal.title}. Please get in touch to arrange payment. Thanks, ${deal.workspace.name || "us"}.`;
+
+    if (!deal.contact.phone) {
+      // Fall back to email if available
+      if (deal.contact.email) {
+        const resendKey = process.env.RESEND_API_KEY;
+        if (!resendKey) return { success: false, error: "No phone or email configured" };
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendKey);
+        await resend.emails.send({
+          from: `${deal.workspace.name || "Earlymark"} <noreply@earlymark.ai>`,
+          to: [deal.contact.email],
+          subject: `Payment due: ${deal.title}`,
+          text: message,
+        });
+        await db.activity.create({
+          data: {
+            type: "EMAIL",
+            title: `Payment request emailed to ${deal.contact.name}`,
+            content: message,
+            dealId,
+            contactId: deal.contactId,
+          },
+        });
+        return { success: true };
+      }
+      return { success: false, error: `${deal.contact.name} has no phone or email on file` };
+    }
+
+    const result = await sendSMS(deal.contactId, message, dealId);
+    return { success: result.success, error: result.error };
+  } catch (error) {
+    console.error("[followup-actions] requestPaymentForDeal failed:", error);
+    return { success: false, error: "Failed to send payment request" };
+  }
+}
+
 // ─── Cron: process post-job follow-ups ──────────────────────────────
 // Sends "thank you" SMS 24h after a job is completed (WON stage)
 
