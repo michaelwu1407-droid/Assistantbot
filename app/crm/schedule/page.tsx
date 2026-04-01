@@ -50,7 +50,6 @@ export default async function SchedulePage() {
 
     return (
         <div className="h-full flex flex-col p-4 md:p-6 overflow-hidden">
-            <h1 className="text-xl font-bold text-midnight mb-3 shrink-0">Schedule</h1>
             <div className="flex-1 min-h-0">
                 <ScheduleCalendar deals={deals} teamMembers={teamMembers} />
             </div>

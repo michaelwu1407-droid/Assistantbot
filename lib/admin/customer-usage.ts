@@ -113,9 +113,17 @@ type MoneyAggregate = {
 export type CustomerUsageRow = {
   workspaceId: string;
   workspaceName: string;
+  ownerName: string | null;
   ownerEmail: string;
+  users: Array<{
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  }>;
   workspaceType: string;
   industryType: string;
+  twilioPhoneNumber: string | null;
   createdAt: string;
   subscriptionStatus: string;
   planLabel: string;
@@ -878,6 +886,7 @@ async function fetchWorkspaceBase() {
       users: {
         select: {
           id: true,
+          name: true,
           email: true,
           role: true,
         },
@@ -886,13 +895,16 @@ async function fetchWorkspaceBase() {
   });
 }
 
-function deriveOwnerEmail(workspace: WorkspaceRecord) {
+function deriveOwnerIdentity(workspace: WorkspaceRecord) {
   const ownerUser =
     workspace.users.find((user) => user.id === workspace.ownerId) ||
     workspace.users.find((user) => user.role === "OWNER") ||
     workspace.users[0];
 
-  return ownerUser?.email || "Unknown";
+  return {
+    name: ownerUser?.name || null,
+    email: ownerUser?.email || "Unknown",
+  };
 }
 
 function getIncidentWorkspaceId(
@@ -1331,6 +1343,7 @@ export async function getCustomerUsageDashboardData(
       provider.twilio.monthSpend,
       provider.twilio.currency,
     );
+    const owner = deriveOwnerIdentity(workspace);
 
     const attention = buildAttentionState({
       rowVoiceEnabled: workspace.voiceEnabled,
@@ -1346,9 +1359,25 @@ export async function getCustomerUsageDashboardData(
     return {
       workspaceId: workspace.id,
       workspaceName: workspace.name,
-      ownerEmail: deriveOwnerEmail(workspace),
+      ownerName: owner.name,
+      ownerEmail: owner.email,
+      users: workspace.users
+        .map((user) => ({
+          id: user.id,
+          name: user.name || null,
+          email: user.email || "Unknown",
+          role: user.role,
+        }))
+        .sort((left, right) => {
+          if (left.id === workspace.ownerId) return -1;
+          if (right.id === workspace.ownerId) return 1;
+          if (left.role === "OWNER" && right.role !== "OWNER") return -1;
+          if (right.role === "OWNER" && left.role !== "OWNER") return 1;
+          return left.email.localeCompare(right.email);
+        }),
       workspaceType: workspace.type,
       industryType: workspace.industryType || "Unknown",
+      twilioPhoneNumber: workspace.twilioPhoneNumber,
       createdAt: workspace.createdAt.toISOString(),
       subscriptionStatus: provider.stripe.subscriptionStatus || workspace.subscriptionStatus || "inactive",
       planLabel: provider.stripe.planLabel,
@@ -1393,7 +1422,9 @@ export async function getCustomerUsageDashboardData(
     if (!search) return true;
     const haystack = normalizeSearch([
       row.workspaceName,
+      row.ownerName || "",
       row.ownerEmail,
+      row.twilioPhoneNumber || "",
       row.workspaceType,
       row.industryType,
       row.subscriptionStatus,
@@ -1498,7 +1529,7 @@ export async function getCustomerUsageDashboardData(
             workspaceType: workspace.type,
             industryType: workspace.industryType || "Unknown",
             ownerId: workspace.ownerId,
-            ownerEmail: deriveOwnerEmail(workspace),
+            ownerEmail: deriveOwnerIdentity(workspace).email,
             voiceEnabled: workspace.voiceEnabled,
             twilioPhoneNumber: workspace.twilioPhoneNumber,
             onboardingComplete: workspace.onboardingComplete,

@@ -104,14 +104,14 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
                         placeholder="Filter settings..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="h-9 pl-8 text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        className="h-9 pl-8 app-body-secondary bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
                     />
                 </div>
             </div>
             {visibleSections.map((section, si) => (
                 <div key={si} className="lg:space-y-1">
                     {section.label && (
-                        <p className="hidden lg:block px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <p className="app-field-label hidden lg:block px-4 py-2 dark:text-slate-400">
                             {section.label}
                         </p>
                     )}
@@ -124,7 +124,7 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
                                 pathname === item.href
                                     ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
                                     : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 text-slate-500",
-                                "inline-flex h-10 items-center rounded-xl px-4 py-2 text-sm transition-colors"
+                                "inline-flex h-10 items-center rounded-xl px-4 py-2 app-body-primary transition-colors"
                             )}
                         >
                             {item.title}

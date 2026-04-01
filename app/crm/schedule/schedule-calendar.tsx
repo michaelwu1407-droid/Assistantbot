@@ -138,9 +138,9 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       draggable
       onDragStart={(e) => handleDragStart(e, deal.id)}
       onClick={() => setSelectedDealId(deal.id)}
-      className="w-full text-left px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium truncate border border-primary/20 cursor-grab active:cursor-grabbing"
+      className="app-body-primary w-full truncate rounded border border-primary/20 bg-primary/10 px-2 py-1 text-left text-primary hover:bg-primary/20 cursor-grab active:cursor-grabbing"
     >
-      {deal.scheduledAt && <span className="text-xs text-primary/60 mr-1">{format(new Date(deal.scheduledAt), "h:mm a")}</span>}
+      {deal.scheduledAt && <span className="app-body-secondary mr-1 text-xs text-primary/60">{format(new Date(deal.scheduledAt), "h:mm a")}</span>}
       {deal.title}
     </div>
   )
@@ -154,7 +154,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     const days = eachDayOfInterval({ start: startMonthDay, end: endMonthDay })
 
     return (
-      <div className="grid grid-cols-7 flex-1 min-h-0 text-xs">
+      <div className="grid grid-cols-7 flex-1 min-h-0">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div key={d} className="p-1.5 border-b border-r border-slate-100 font-medium text-slate-500 bg-slate-50/50">{d}</div>
         ))}
@@ -184,7 +184,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 )}>
                   {format(day, "d")}
                 </span>
-                {dayDeals.length > 0 && <span className="text-xs text-slate-400 font-bold">{dayDeals.length}</span>}
+                {dayDeals.length > 0 && <span className="app-body-secondary text-xs font-bold text-slate-400">{dayDeals.length}</span>}
               </div>
               <div className="space-y-1">{dayDeals.map(renderDealChip)}</div>
             </div>
@@ -201,7 +201,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     const days = eachDayOfInterval({ start: ws, end: we })
 
     return (
-      <div className="grid grid-cols-7 flex-1 min-h-0 text-xs">
+      <div className="grid grid-cols-7 flex-1 min-h-0">
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd")
           const dayDeals = dealsByDay[key] ?? []
@@ -217,7 +217,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 className={cn("p-2 border-b border-slate-100 text-center cursor-pointer hover:bg-slate-50", isToday && "bg-primary/5")}
                 onClick={() => { setCurrent(day); setView("day") }}
               >
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{format(day, "EEE")}</p>
+                <p className="app-field-label tracking-[0.08em]">{format(day, "EEE")}</p>
                 <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-slate-700")}>{format(day, "d")}</p>
               </div>
               <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-slate-50/20">{dayDeals.map(renderDealChip)}</div>
@@ -278,7 +278,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                   <div className="p-3 rounded-lg bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={cn(
-                        "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight",
+                        "app-field-label rounded px-1.5 py-0.5 tracking-[0.08em]",
                         memberId ? "text-primary bg-primary/5" : "text-slate-400 bg-slate-100"
                       )}>
                         {deal.scheduledAt ? format(new Date(deal.scheduledAt), "h:mm a") : "TBD"}
@@ -286,12 +286,12 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                       {memberId ? <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
                     </div>
                     <p className={cn(
-                      "text-xs font-bold line-clamp-1",
+                      "app-panel-title line-clamp-1",
                       memberId ? "text-slate-900 group-hover:text-primary transition-colors" : "text-slate-600"
                     )}>
                       {deal.title}
                     </p>
-                    <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                    <p className="app-body-secondary truncate mt-0.5 text-xs">
                       {memberId ? (deal.address || "No address") : (deal.contactName || "No contact")}
                     </p>
                   </div>
@@ -307,7 +307,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       <div className="flex-1 min-h-0 bg-slate-50/30 overflow-hidden">
         <div className="h-full overflow-auto">
           <div className="grid min-w-[1560px]" style={gridStyle}>
-            <div className="sticky top-0 left-0 z-30 border-b border-r border-slate-200 bg-slate-50/95 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 backdrop-blur">
+            <div className="app-field-label sticky top-0 left-0 z-30 border-b border-r border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
               Team
             </div>
             {DAY_HOURS.map((hour) => (
@@ -315,10 +315,10 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 key={`day-hour-${hour}`}
                 className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50/95 px-2 py-3 text-center backdrop-blur"
               >
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                <p className="app-field-label">
                   {hour < 12 ? "AM" : "PM"}
                 </p>
-                <p className="text-sm font-bold text-slate-700">
+                <p className="app-panel-title text-slate-700">
                   {hour <= 12 ? hour : hour - 12}:00
                 </p>
               </div>
@@ -327,15 +327,15 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
             {teamMembers.map((member) => (
               <div key={member.id} className="contents">
                 <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-white px-4">
-                  <p className="text-sm font-bold text-slate-900 truncate">{member.name}</p>
-                  <p className="text-xs text-slate-500 uppercase font-medium">{member.role.replace('_', ' ')}</p>
+                  <p className="app-panel-title truncate">{member.name}</p>
+                  <p className="app-field-label tracking-[0.08em]">{member.role.replace('_', ' ')}</p>
                 </div>
                 {DAY_HOURS.map((hour) => renderHourCell(member.id, hour))}
               </div>
             ))}
 
             <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
-              <p className="text-sm font-semibold text-neutral-400">Unassigned</p>
+              <p className="app-panel-title text-neutral-400">Unassigned</p>
             </div>
             {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
           </div>
@@ -370,7 +370,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     if (sortedDeals.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-          <p className="text-base font-semibold">No jobs scheduled for this {view}.</p>
+          <p className="app-section-title">No jobs scheduled for this {view}.</p>
         </div>
       )
     }
@@ -385,21 +385,21 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
           >
             <div className="flex justify-between items-start mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                <span className="app-body-primary rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   {format(new Date(deal.scheduledAt!), "MMM d")}
                 </span>
-                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                <span className="app-body-primary rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
                   {format(new Date(deal.scheduledAt!), "h:mm a")}
                 </span>
               </div>
               {deal.assignedToId && (
-                <span className="text-[10px] uppercase font-bold text-slate-400">
+                <span className="app-field-label tracking-[0.08em] text-slate-400">
                   {teamMembers.find(m => m.id === deal.assignedToId)?.name || 'Assigned'}
                 </span>
               )}
             </div>
-            <p className="font-semibold text-slate-800 text-sm mt-1">{deal.title}</p>
-            <p className="text-xs text-slate-500 truncate mt-0.5">
+            <p className="app-panel-title mt-1 text-slate-800">{deal.title}</p>
+            <p className="app-body-secondary truncate mt-0.5 text-xs">
               {deal.address || deal.contactName || "No location details"}
             </p>
           </div>
@@ -418,7 +418,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
           <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-white shadow-sm font-medium">
             Today
           </Button>
-          <h2 className="text-sm font-bold text-slate-900 min-w-[150px] text-center">{headerLabel()}</h2>
+          <h2 className="app-panel-title min-w-[150px] text-center">{headerLabel()}</h2>
           <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -427,11 +427,11 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
         <div className="flex items-center gap-3">
           {/* Team Member Filter */}
           <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-neutral-200 rounded-md shadow-sm">
-            <span className="text-[10px] font-semibold text-neutral-400 uppercase ml-1">Team:</span>
+            <span className="app-field-label ml-1 tracking-[0.08em]">Team</span>
             <select
               value={filterMemberId || ""}
               onChange={(e) => setFilterMemberId(e.target.value || null)}
-              className="text-xs font-bold bg-transparent border-none focus:ring-0 cursor-pointer pr-6"
+              className="app-body-primary h-8 bg-transparent border-none focus:ring-0 cursor-pointer pr-6"
             >
               <option value="">All Members</option>
               {teamMembers.map(m => (
@@ -446,7 +446,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
-                  "px-4 py-1.5 text-xs font-semibold rounded-md transition-all capitalize",
+                  "px-4 py-1.5 text-sm font-semibold rounded-md transition-all capitalize",
                   view === v ? "bg-white text-neutral-900 shadow-xs" : "text-neutral-500 hover:text-neutral-700"
                 )}
               >

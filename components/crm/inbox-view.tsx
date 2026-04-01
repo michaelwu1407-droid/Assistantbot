@@ -366,12 +366,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
         {/* ─── LEFT PANEL: Contact List ──────────────────────── */}
         <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
           <div className="p-3 border-b border-border/40 space-y-2">
-            <h2 className="text-sm font-semibold text-foreground px-1">Contacts</h2>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Contact type</p>
+                <p className="app-field-label px-1">Contact type</p>
                 <Select value={segmentFilter} onValueChange={(value) => setSegmentFilter(value as ContactSegment | "all")}>
-                  <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                  <SelectTrigger className="h-9 app-body-secondary bg-background/50 border-border/50">
                     <div className="flex items-center gap-2">
                       <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                       <SelectValue />
@@ -385,7 +384,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 </Select>
               </div>
               <div className="space-y-1">
-                <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Date</p>
+                <p className="app-field-label px-1">Date</p>
                 <Select
                   value={dateFilter}
                   onValueChange={(value) => {
@@ -399,7 +398,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     }
                   }}
                 >
-                  <SelectTrigger className="h-9 bg-background/50 border-border/50 text-xs">
+                  <SelectTrigger className="h-9 app-body-secondary bg-background/50 border-border/50">
                     <div className="flex items-center gap-2">
                       <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
                       <SelectValue />
@@ -426,7 +425,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
               {/* Contact suggestions dropdown */}
               {searchFocused && contactSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border/60 rounded-lg shadow-lg overflow-hidden z-50">
-                  <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30">Contacts</p>
                   {contactSuggestions.map((c) => (
                     <button
                       key={c.id}
@@ -436,7 +434,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                         if (sorted[0]) setSelectedId(sorted[0].id)
                         setSearch("")
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-primary/10 transition-colors text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2 app-body-primary hover:bg-primary/10 transition-colors text-left"
                     >
                       <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-semibold">
                         {c.name.charAt(0).toUpperCase()}
@@ -476,18 +474,18 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline gap-2">
                         <span className={cn(
-                          "font-medium truncate text-sm",
+                          "app-body-primary truncate font-medium",
                           isSelected ? "text-primary" : "text-foreground"
                         )}>
                           {contact.name}
                         </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
+                        <span className="app-body-secondary shrink-0 text-xs">
                           {latest?.time ?? ""}
                         </span>
                       </div>
                       <div className="mt-0.5 flex items-start gap-1.5 min-w-0">
                         <span className="mt-0.5 shrink-0">{preview.icon}</span>
-                        <p className="text-xs text-muted-foreground truncate leading-snug" title={preview.text}>
+                        <p className="app-body-secondary truncate text-xs leading-snug" title={preview.text}>
                           {preview.text}
                         </p>
                       </div>
@@ -513,10 +511,10 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     {selectedContact.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="font-semibold text-foreground text-sm truncate">
+                    <h2 className="app-panel-title truncate">
                       {selectedContact.name}
                     </h2>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="app-body-secondary truncate text-xs">
                       {selectedContact.phone || "No phone"} · {selectedContact.email || "No email"}
                     </p>
                   </div>
@@ -605,13 +603,13 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 <div className="flex bg-muted/30 rounded-lg p-0.5 max-w-xs">
                   <button
                     onClick={() => setDetailTab("conversations")}
-                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
                   >
                     Conversations
                   </button>
                   <button
                     onClick={() => setDetailTab("activity")}
-                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
                   >
                     System Activity
                   </button>
@@ -646,8 +644,8 @@ If the request is to contact the customer, use the appropriate customer-contact 
                         </div>
                         <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xs font-medium text-foreground">{item.title}</span>
-                            <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                            <span className="app-body-primary text-xs font-medium">{item.title}</span>
+                            <span className="app-body-secondary text-xs">{item.time}</span>
                           </div>
                           {item.content && (
                             <p
@@ -672,7 +670,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
                   <button
                     onClick={() => setMessageMode("travis")}
-                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
                       messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -680,7 +678,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </button>
                   <button
                     onClick={() => setMessageMode("direct")}
-                    className={cn("flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
                       messageMode === "direct" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -716,15 +714,15 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (
-                  <p className="text-[10px] text-red-400 mt-1">No phone number on file — add one to send direct messages.</p>
+                  <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file — add one to send direct messages.</p>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
-                  <p className={cn("text-[10px] mt-1 text-right", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                  <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
                     {messageText.length}/160 characters
                   </p>
                 )}
                 {messageMode === "travis" && (
-                  <p className="text-[10px] text-muted-foreground mt-1">Tracey will handle communication with this customer on your behalf.</p>
+                  <p className="app-body-secondary mt-1 text-xs">Tracey will handle communication with this customer on your behalf.</p>
                 )}
               </div>
             </>
@@ -733,7 +731,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
               <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
                 <Search className="w-6 h-6 opacity-50" />
               </div>
-              <p className="text-sm font-medium">Select a contact to view their details</p>
+              <p className="app-panel-title font-medium">Select a contact to view their details</p>
             </div>
           )}
         </div>
@@ -748,11 +746,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Start date</label>
+              <label className="app-panel-title">Start date</label>
               <Input type="date" value={draftStartDate} onChange={(e) => setDraftStartDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">End date</label>
+              <label className="app-panel-title">End date</label>
               <Input type="date" value={draftEndDate} onChange={(e) => setDraftEndDate(e.target.value)} />
             </div>
           </div>
