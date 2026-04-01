@@ -112,50 +112,6 @@ function buildQuery(filters: CustomerUsageFilters, overrides: Partial<Record<key
   return `?${params.toString()}`;
 }
 
-function formatRelativeDate(value: string | null | undefined) {
-  if (!value) return { text: "--", className: "text-slate-400" };
-  const now = new Date();
-  const date = new Date(value);
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays < 1) return { text: "today", className: "text-emerald-600" };
-  if (diffDays === 1) return { text: "1d ago", className: "text-emerald-600" };
-  if (diffDays < 7) return { text: `${diffDays}d ago`, className: "text-emerald-600" };
-  if (diffDays < 30) return { text: `${diffDays}d ago`, className: "text-slate-600" };
-  if (diffDays < 60) return { text: `${diffDays}d ago`, className: "text-amber-600" };
-  return { text: `${diffDays}d ago`, className: "text-red-600" };
-}
-
-function formatProvisioningIssue(status: string | null) {
-  if (!status) return null;
-  if (status === "failed") return "Setup failed";
-  if (status === "blocked_duplicate") return "Setup blocked (duplicate)";
-  if (status === "requested") return "Setup pending";
-  if (status === "provisioning") return "Setting up";
-  return status;
-}
-
-function CoverageDots({ coverage }: { coverage: { stripe: CoverageStatus; twilio: CoverageStatus; aiEstimate: CoverageStatus } }) {
-  const dotColor = (status: CoverageStatus) =>
-    status === "live" ? "bg-emerald-500" : status === "degraded" ? "bg-amber-400" : "bg-red-500";
-  return (
-    <div className="flex items-center gap-1" title={`Stripe: ${coverage.stripe} | Twilio: ${coverage.twilio} | AI: ${coverage.aiEstimate}`}>
-      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.stripe)}`} />
-      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.twilio)}`} />
-      <span className={`inline-block h-2 w-2 rounded-full ${dotColor(coverage.aiEstimate)}`} />
-    </div>
-  );
-}
-
-function IndustryBadge({ industry }: { industry: string }) {
-  if (industry === "Unknown") return null;
-  return (
-    <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-      {industry === "REAL_ESTATE" ? "RE" : industry}
-    </span>
-  );
-}
-
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 text-sm last:border-b-0">
@@ -372,6 +328,7 @@ function CustomerTable({
           <TableRow>
             <TableHead>Customer</TableHead>
             <TableHead>User</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead>Provisioned number</TableHead>
             <TableHead>Sub rev</TableHead>
             <TableHead>Twilio MTD</TableHead>
@@ -394,6 +351,10 @@ function CustomerTable({
               <TableCell className="min-w-[220px] align-top">
                 <div className="font-medium text-slate-900">{user?.name || "--"}</div>
                 <div className="mt-1 text-xs text-slate-500">{user?.email || row.ownerEmail}</div>
+              </TableCell>
+              <TableCell className="min-w-[130px] align-top">
+                <div className="font-medium text-slate-900">{formatShortDate(row.createdAt)}</div>
+                <div className="mt-1 text-xs text-slate-500">Customer created</div>
               </TableCell>
               <TableCell className="min-w-[150px] align-top">
                 <div className="font-medium text-slate-900">{row.twilioPhoneNumber || "--"}</div>
@@ -419,9 +380,11 @@ function CustomerTable({
                 <div className="font-medium text-slate-900">{formatMoney(row.paidInvoiceRevenueInRange)}</div>
                 <div className="mt-1 text-xs text-slate-500">{formatNumber(row.jobsWonWithTracey)} jobs won</div>
               </TableCell>
-              <TableCell className="min-w-[110px] align-top">
+              <TableCell className="min-w-[150px] align-top">
                 <div className="font-medium text-slate-900">{formatNumber(row.voiceCallsInRange)}</div>
-                <div className="mt-1 text-xs text-slate-500">Selected range</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {row.lastVoiceCallAt ? `Last call ${formatShortDate(row.lastVoiceCallAt)}` : "No calls yet"}
+                </div>
               </TableCell>
               <TableCell className="min-w-[170px] align-top">
                 <div className="font-medium text-slate-900">{formatShortDate(row.lastActivityAt)}</div>

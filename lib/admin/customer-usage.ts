@@ -151,7 +151,6 @@ export type CustomerUsageRow = {
     twilio: CoverageStatus;
     aiEstimate: CoverageStatus;
   };
-  twilioPhoneNumber: string | null;
   voiceEnabled: boolean;
   onboardingComplete: boolean;
   contactCount: number;
@@ -1408,7 +1407,6 @@ export async function getCustomerUsageDashboardData(
         twilio: provider.twilio.coverage,
         aiEstimate: aiEstimate.coverage,
       },
-      twilioPhoneNumber: workspace.twilioPhoneNumber,
       voiceEnabled: workspace.voiceEnabled,
       onboardingComplete: workspace.onboardingComplete,
       contactCount: (contactsByWorkspace.get(workspace.id) || []).length,
