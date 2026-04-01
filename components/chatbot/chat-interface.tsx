@@ -332,12 +332,7 @@ function ChatWithHistory({
         { icon: Sparkles, label: "Draft email", prompt: "Draft an email to this contact" },
       ];
     }
-    if (pathname?.includes('/assets')) {
-      return [
-        { icon: Sparkles, label: "Analyse assets", prompt: "Can you analyse my inventory allocation?" },
-      ];
-    }
-    return QUICK_ACTIONS;
+return QUICK_ACTIONS;
   };
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();

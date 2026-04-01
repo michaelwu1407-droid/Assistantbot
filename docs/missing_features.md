@@ -10,7 +10,11 @@ Last audited: 2026-03-28
 
 ### Low Priority (Polish/Edge Cases)
 
-- **Asset DNA**: Key/asset management page exists (`/crm/assets`), but the "Asset DNA" concept (deep equipment identity / service history tagging) is not explicitly built out as a distinct feature.
+_No open items._
+
+### Archived
+
+- **Asset DNA / Digital Handover**: Part of the real estate agent arm. Feature archived and route removed (2026-03-28). Prisma `Key` model retained in schema for data preservation.
 
 ---
 
@@ -28,7 +32,7 @@ All previously reported high and medium priority gaps have been addressed:
 | Kanban Stale Deal modals | Implemented — `kanban-automation-modal.tsx`, `stale-deal-follow-up-modal.tsx` |
 | AI Voice Agent settings UI | Implemented — `call-settings-client.tsx`, `ai-receptionist-settings.tsx` |
 | After Hours Mode settings | Implemented — voice after-hours message textarea in call settings |
-| Digital Handover UI | Implemented — key checkout/checkin at `/crm/assets` |
+| Digital Handover UI | Archived — part of real estate agent arm, route removed |
 | Job Workflow (Start Travel / Complete Job) | Fixed in Round 3 |
 | AI Parsing / Pricing accuracy | Fixed — rebuilt to tool-use architecture (Sprint 21) |
 | Kanban drag to Lost column | Fixed — `updateDealStage` persists correctly |
