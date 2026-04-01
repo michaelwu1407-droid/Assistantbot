@@ -30,6 +30,22 @@ export function validateEnvironment(): EnvironmentValidation {
     warnings.push("NEXT_PUBLIC_APP_URL is missing; Twilio voice/SMS callbacks and diagnostics may drift")
   }
 
+  if (!process.env.STRIPE_SECRET_KEY) {
+    warnings.push("STRIPE_SECRET_KEY is missing; billing checkout cannot be verified")
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    warnings.push("STRIPE_WEBHOOK_SECRET is missing; Stripe webhook verification cannot be verified")
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    warnings.push("RESEND_API_KEY is missing; outbound email delivery cannot be verified")
+  }
+
+  if (!process.env.RESEND_WEBHOOK_SECRET) {
+    warnings.push("RESEND_WEBHOOK_SECRET is missing; inbound webhook verification cannot be verified")
+  }
+
   if (getKnownEarlymarkInboundNumbers().length === 0) {
     warnings.push(
       "No Earlymark inbound phone number is configured (EARLYMARK_INBOUND_PHONE_NUMBERS / EARLYMARK_INBOUND_PHONE_NUMBER / EARLYMARK_PHONE_NUMBER / TWILIO_PHONE_NUMBER)",

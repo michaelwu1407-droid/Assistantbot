@@ -111,7 +111,8 @@ function detectLeadPlatform(from: string, subject: string): string | null {
 /** Australian mobile: 04... or +61 4... (with optional spaces/dashes). */
 const AUS_MOBILE_REGEX = /(?:04|\+61\s?4)(?:\d(?:[\s-]?\d){7,8})/g;
 /** Name after "Name:" or "Client:". */
-const NAME_REGEX = /(?:Name|Client):\s*([A-Za-z][A-Za-z ]*)/i;
+const NAME_REGEX =
+  /(?:Name|Client):\s*([A-Za-z][A-Za-z ]*?)(?=\s+(?:Phone|Mobile|Email|Address|Job|Work|Budget)\s*:|$)/i;
 
 function parseLeadContactDetails(textBody: string): { phone: string | null; name: string | null } {
   const normalized = (textBody || "").replace(/\s+/g, " ");

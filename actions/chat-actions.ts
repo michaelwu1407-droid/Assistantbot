@@ -496,7 +496,7 @@ export async function runCreateDeal(
   const contacts = await searchContacts(workspaceId, company);
   contactId = contacts[0]?.id;
   if (!contactId) {
-    const result = await createContact({ name: company, workspaceId });
+    const result = await createContact({ name: company, workspaceId, contactType: "BUSINESS" });
     if (result.success) contactId = result.contactId;
   }
   if (!contactId) {

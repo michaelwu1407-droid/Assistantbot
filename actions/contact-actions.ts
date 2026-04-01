@@ -59,6 +59,7 @@ const CreateContactSchema = z
   })
   .refine(
     (data) => {
+      if (data.contactType === "BUSINESS") return true;
       const hasEmail = typeof data.email === "string" && data.email.trim() !== "";
       const hasPhone = typeof data.phone === "string" && data.phone.trim() !== "";
       return hasEmail || hasPhone;
@@ -312,18 +313,22 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     return { success: false as const, error: "Unauthorized workspace" };
   }
 
+  const uniqueContactClauses = [
+    parsed.data.email ? { email: parsed.data.email } : null,
+    parsed.data.phone ? { phone: parsed.data.phone } : null,
+  ].filter((value): value is { email?: string; phone?: string } => Boolean(value));
+
   // 1. Smart Deduplication Check: only reuse by email/phone when the name matches.
   // Otherwise multiple jobs with different client names but same phone would all
   // attach to one contact and show the last name (e.g. all cards showing "John").
-  const existingContact = await db.contact.findFirst({
-    where: {
-      workspaceId: parsed.data.workspaceId,
-      OR: [
-        parsed.data.email ? { email: parsed.data.email } : {},
-        parsed.data.phone ? { phone: parsed.data.phone } : {},
-      ],
-    },
-  });
+  const existingContact = uniqueContactClauses.length > 0
+    ? await db.contact.findFirst({
+        where: {
+          workspaceId: parsed.data.workspaceId,
+          OR: uniqueContactClauses,
+        },
+      })
+    : null;
 
   const nameMatches =
     existingContact &&
@@ -382,16 +387,15 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      const collided = await db.contact.findFirst({
-        where: {
-          workspaceId: parsed.data.workspaceId,
-          OR: [
-            emailVal ? { email: emailVal } : {},
-            parsed.data.phone ? { phone: parsed.data.phone } : {},
-          ],
-        },
-        select: { id: true },
-      });
+      const collided = uniqueContactClauses.length > 0
+        ? await db.contact.findFirst({
+            where: {
+              workspaceId: parsed.data.workspaceId,
+              OR: uniqueContactClauses,
+            },
+            select: { id: true },
+          })
+        : null;
       if (collided) {
         return { success: true as const, contactId: collided.id, enriched: null, merged: true };
       }

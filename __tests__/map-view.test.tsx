@@ -1,0 +1,97 @@
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+const { mapFitBounds, mapFlyTo } = vi.hoisted(() => ({
+  mapFitBounds: vi.fn(),
+  mapFlyTo: vi.fn(),
+}));
+
+vi.mock("react-leaflet", () => ({
+  MapContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="map-container">{children}</div>,
+  TileLayer: () => <div data-testid="tile-layer" />,
+  Marker: ({ children }: { children?: React.ReactNode }) => <div data-testid="marker">{children}</div>,
+  Popup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CircleMarker: () => <div data-testid="circle-marker" />,
+  useMap: () => ({
+    fitBounds: mapFitBounds,
+    flyTo: mapFlyTo,
+  }),
+}));
+
+vi.mock("leaflet", () => ({
+  default: {
+    divIcon: vi.fn(() => ({ icon: true })),
+    latLngBounds: vi.fn((positions: unknown) => positions),
+  },
+}));
+
+vi.mock("@/components/tradie/job-completion-modal", () => ({
+  JobCompletionModal: () => null,
+}));
+
+vi.mock("@/components/crm/deal-detail-modal", () => ({
+  DealDetailModal: () => null,
+}));
+
+import MapView from "@/components/map/map-view";
+
+describe("MapView", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal(
+      "navigator",
+      {
+        geolocation: {
+          getCurrentPosition: vi.fn(),
+        },
+        permissions: {
+          query: vi.fn().mockResolvedValue({ state: "denied" }),
+        },
+      } as Navigator,
+    );
+    vi.stubGlobal("open", vi.fn());
+  });
+
+  it("shows the empty-state copy for days with no scheduled jobs", () => {
+    render(<MapView jobs={[]} />);
+
+    expect(screen.getByText("Today's Jobs")).toBeInTheDocument();
+    expect(screen.getByText("No jobs scheduled for today.")).toBeInTheDocument();
+    expect(screen.getByText(/Upcoming booked jobs still appear on the map/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /enable route mode/i })).toBeInTheDocument();
+  });
+
+  it("lets the user select a job and exposes route and messaging actions", async () => {
+    const user = userEvent.setup();
+    render(
+      <MapView
+        jobs={[
+          {
+            id: "deal_1",
+            title: "Blocked Drain",
+            clientName: "Acme Plumbing",
+            address: "1 King St, Sydney",
+            status: "SCHEDULED",
+            value: 420,
+            scheduledAt: new Date("2026-04-02T10:00:00.000Z"),
+            lat: -33.86,
+            lng: 151.2,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /select job blocked drain for acme plumbing/i }));
+
+    expect(screen.getByRole("button", { name: /view job/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /message/i }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /open in google maps/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /enable route mode/i }));
+
+    expect(screen.getByRole("button", { name: /navigate to job/i })).toBeInTheDocument();
+    expect(screen.getByText("Active Target")).toBeInTheDocument();
+  });
+});

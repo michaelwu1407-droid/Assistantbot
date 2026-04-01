@@ -1,0 +1,174 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const hoisted = vi.hoisted(() => ({
+  db: {
+    contact: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+  },
+  enrichFromEmail: vi.fn(),
+  evaluateAutomations: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
+  requireContactInCurrentWorkspace: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({ db: hoisted.db }));
+vi.mock("@/lib/enrichment", () => ({
+  enrichFromEmail: hoisted.enrichFromEmail,
+}));
+vi.mock("@/actions/automation-actions", () => ({
+  evaluateAutomations: hoisted.evaluateAutomations,
+}));
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
+  requireContactInCurrentWorkspace: hoisted.requireContactInCurrentWorkspace,
+}));
+
+import { createContact, updateContact } from "@/actions/contact-actions";
+
+describe("contact-actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      workspaceId: "ws_1",
+    });
+    hoisted.requireContactInCurrentWorkspace.mockResolvedValue({
+      contact: {
+        id: "contact_1",
+        workspaceId: "ws_1",
+        email: "alex@example.com",
+        phone: "0400000000",
+      },
+    });
+    hoisted.enrichFromEmail.mockResolvedValue(null);
+  });
+
+  it("merges into an existing matching-name contact instead of creating a duplicate", async () => {
+    hoisted.db.contact.findFirst.mockResolvedValue({
+      id: "contact_1",
+      name: "Alex Smith",
+      email: "alex@example.com",
+      phone: "0400000000",
+      company: "Old Co",
+      address: "1 King St",
+      metadata: { existing: true },
+    });
+
+    const result = await createContact({
+      name: "Alex Smith",
+      email: "alex@example.com",
+      phone: "0400000000",
+      company: "New Co",
+      workspaceId: "ws_1",
+      contactType: "BUSINESS",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      contactId: "contact_1",
+      enriched: null,
+      merged: true,
+    });
+    expect(hoisted.db.contact.update).toHaveBeenCalledWith({
+      where: { id: "contact_1" },
+      data: expect.objectContaining({
+        name: "Alex Smith",
+        email: "alex@example.com",
+        phone: "0400000000",
+        company: "New Co",
+        metadata: expect.objectContaining({
+          existing: true,
+          contactType: "BUSINESS",
+        }),
+      }),
+    });
+    expect(hoisted.db.contact.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a new enriched contact and triggers new_lead automations", async () => {
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.enrichFromEmail.mockResolvedValue({
+      name: "Acme Plumbing",
+      logoUrl: "https://example.com/logo.png",
+      domain: "acme.com",
+      industry: "Trades",
+      size: "small",
+      linkedinUrl: "https://linkedin.com/company/acme",
+    });
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_2" });
+
+    const result = await createContact({
+      name: "Pat Jones",
+      email: "pat@acme.com",
+      phone: "0411111111",
+      workspaceId: "ws_1",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      contactId: "contact_2",
+      enriched: expect.objectContaining({
+        name: "Acme Plumbing",
+      }),
+      merged: false,
+    });
+    expect(hoisted.db.contact.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Pat Jones",
+        company: "Acme Plumbing",
+        avatarUrl: "https://example.com/logo.png",
+        workspaceId: "ws_1",
+      }),
+    });
+    expect(hoisted.evaluateAutomations).toHaveBeenCalledWith("ws_1", {
+      type: "new_lead",
+      contactId: "contact_2",
+    });
+  });
+
+  it("allows business contacts without phone or email for placeholder CRM records", async () => {
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_3" });
+
+    const result = await createContact({
+      name: "Acme Plumbing",
+      workspaceId: "ws_1",
+      contactType: "BUSINESS",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      contactId: "contact_3",
+      enriched: null,
+      merged: false,
+    });
+    expect(hoisted.db.contact.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Acme Plumbing",
+        email: null,
+        phone: null,
+        workspaceId: "ws_1",
+        metadata: expect.objectContaining({
+          contactType: "BUSINESS",
+        }),
+      }),
+    });
+  });
+
+  it("rejects updates that would remove both phone and email", async () => {
+    const result = await updateContact({
+      contactId: "contact_1",
+      email: "",
+      phone: "",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "At least one of phone or email is required.",
+    });
+    expect(hoisted.db.contact.update).not.toHaveBeenCalled();
+  });
+});
