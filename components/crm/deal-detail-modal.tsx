@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DealNotes } from "@/components/crm/deal-notes"
 import { StaleJobReconciliationModal } from "@/components/crm/stale-job-reconciliation-modal"
-import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, AlertTriangle, ChevronDown } from "lucide-react"
+import { Edit, MessageSquare, FileText, MapPin, DollarSign, Briefcase, AlertTriangle, ChevronDown, Bell, BellOff, CheckCircle2 } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { updateDeal, approveCompletion, rejectCompletion, updateDealStage, type DealView } from "@/actions/deal-actions"
+import { scheduleFollowUp, completeFollowUp, cancelFollowUp } from "@/actions/followup-actions"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Check, X } from "lucide-react"
@@ -51,6 +52,11 @@ type DealDetail = DealView & {
   updatedAt?: unknown
   stageChangedAt?: unknown
   lastActivityDate?: unknown
+  // Follow-up scheduling fields
+  followUpAt?: string | null
+  followUpNote?: string | null
+  followUpChannel?: string | null
+  followUpCompletedAt?: string | null
 }
 
 type ContactDeal = DealView & { updatedAt?: unknown }
@@ -160,6 +166,18 @@ function DealDetailContent({
 
   const [overdueDismissed, setOverdueDismissed] = useState(false)
   const [showReconcile, setShowReconcile] = useState(false)
+
+  // Follow-up scheduling
+  const [showFollowUpForm, setShowFollowUpForm] = useState(false)
+  const [followUpDate, setFollowUpDate] = useState(
+    deal.followUpAt ? format(new Date(deal.followUpAt), "yyyy-MM-dd'T'HH:mm") : ""
+  )
+  const [followUpNote, setFollowUpNoteState] = useState(deal.followUpNote || "")
+  const [followUpChannel, setFollowUpChannel] = useState(deal.followUpChannel || "sms")
+  const [savingFollowUp, setSavingFollowUp] = useState(false)
+  const followUpAt = deal.followUpAt ?? null
+  const followUpCompletedAt = deal.followUpCompletedAt ?? null
+  const followUpNoteSaved = deal.followUpNote ?? null
 
   const overdueStyling = getOverdueStyling({
     stage: deal.stage,
@@ -571,6 +589,185 @@ function DealDetailContent({
                 <p className="text-slate-500 text-xs">Created</p>
                 <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
               </div>
+            </div>
+
+            {/* ─── Follow-up Reminder ─────────────────────────────── */}
+            <div className="mt-3 rounded-[14px] border border-slate-100 bg-slate-50/60 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                  <Bell className="w-3.5 h-3.5 text-amber-500" />
+                  Follow-up
+                </span>
+                {followUpAt && !followUpCompletedAt && (
+                  <button
+                    className="text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                    onClick={async () => {
+                      await cancelFollowUp(deal.id)
+                      setDeal((d) => ({ ...d!, followUpAt: null, followUpNote: null, followUpChannel: null } as DealDetail))
+                      setFollowUpDate("")
+                      setFollowUpNoteState("")
+                      setShowFollowUpForm(false)
+                      toast.success("Follow-up cancelled")
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              {/* Show existing scheduled follow-up */}
+              {followUpAt && !followUpCompletedAt && !showFollowUpForm && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-sm font-medium",
+                      new Date(followUpAt) < new Date() ? "text-red-600" : "text-slate-900"
+                    )}>
+                      {new Date(followUpAt) < new Date() ? "⚠ Overdue — " : ""}
+                      {format(new Date(followUpAt), "EEE MMM d, h:mm a")}
+                    </span>
+                  </div>
+                  {followUpNoteSaved && (
+                    <p className="text-xs text-slate-500">{followUpNoteSaved}</p>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => setShowFollowUpForm(true)}
+                    >
+                      <Edit className="w-3 h-3" /> Reschedule
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={async () => {
+                        setSavingFollowUp(true)
+                        const result = await completeFollowUp(deal.id, "Marked complete")
+                        if (result.success) {
+                          setDeal((d) => ({ ...d!, followUpCompletedAt: new Date().toISOString() } as DealDetail))
+                          toast.success("Follow-up marked complete")
+                          onDealUpdated?.()
+                        } else {
+                          toast.error(result.error || "Failed")
+                        }
+                        setSavingFollowUp(false)
+                      }}
+                      disabled={savingFollowUp}
+                    >
+                      <CheckCircle2 className="w-3 h-3" /> Done
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Completed state */}
+              {followUpCompletedAt && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs text-slate-500">
+                    Completed {format(new Date(followUpCompletedAt), "MMM d")}
+                  </span>
+                  <button
+                    className="text-[10px] text-primary hover:underline ml-auto"
+                    onClick={() => {
+                      setDeal((d) => ({ ...d!, followUpCompletedAt: null, followUpAt: null } as DealDetail))
+                      setShowFollowUpForm(true)
+                    }}
+                  >
+                    Schedule another
+                  </button>
+                </div>
+              )}
+
+              {/* No follow-up yet */}
+              {!followUpAt && !followUpCompletedAt && !showFollowUpForm && (
+                <button
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  onClick={() => setShowFollowUpForm(true)}
+                >
+                  <Bell className="w-3.5 h-3.5" /> Schedule a follow-up reminder
+                </button>
+              )}
+
+              {/* Follow-up form */}
+              {showFollowUpForm && (
+                <div className="space-y-2 mt-1">
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">When</label>
+                    <input
+                      type="datetime-local"
+                      value={followUpDate}
+                      onChange={(e) => setFollowUpDate(e.target.value)}
+                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Note (optional)</label>
+                    <Input
+                      value={followUpNote}
+                      onChange={(e) => setFollowUpNoteState(e.target.value)}
+                      placeholder="What to follow up about..."
+                      className="mt-0.5 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Channel</label>
+                    <select
+                      value={followUpChannel}
+                      onChange={(e) => setFollowUpChannel(e.target.value)}
+                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="sms">SMS</option>
+                      <option value="email">Email</option>
+                      <option value="phone">Phone</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setShowFollowUpForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={!followUpDate || savingFollowUp}
+                      onClick={async () => {
+                        if (!followUpDate) return
+                        setSavingFollowUp(true)
+                        const result = await scheduleFollowUp(
+                          deal.id,
+                          new Date(followUpDate),
+                          followUpNote || undefined,
+                          followUpChannel || undefined
+                        )
+                        if (result.success) {
+                          setDeal((d) => ({
+                            ...d!,
+                            followUpAt: new Date(followUpDate).toISOString(),
+                            followUpNote: followUpNote || null,
+                            followUpChannel: followUpChannel || null,
+                            followUpCompletedAt: null,
+                          } as DealDetail))
+                          setShowFollowUpForm(false)
+                          toast.success("Follow-up reminder saved")
+                          onDealUpdated?.()
+                        } else {
+                          toast.error(result.error || "Failed to save")
+                        }
+                        setSavingFollowUp(false)
+                      }}
+                    >
+                      {savingFollowUp ? "Saving..." : "Save Reminder"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

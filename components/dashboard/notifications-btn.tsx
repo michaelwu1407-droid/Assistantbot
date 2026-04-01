@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Bell, Check, Sparkles, Phone, FileText, CheckCircle2, ClipboardCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getNotifications, markAsRead, markAllAsRead, type NotificationView } from "@/actions/notification-actions"
+import { approveCompletion, approveDraft } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -30,10 +31,50 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
 
     const handleAction = async (n: NotificationView) => {
         await handleMarkRead(n.id)
+        setIsOpen(false)
+
+        const payload = (n.actionPayload ?? {}) as Record<string, string>
+        const dealId = payload.dealId
+
+        if (n.actionType === "CONFIRM_JOB" && dealId) {
+            // Confirm a draft booking
+            const result = await approveDraft(dealId)
+            if (result.success) {
+                toast.success("Job confirmed")
+            } else {
+                toast.error(result.error ?? "Could not confirm job")
+                if (n.link) router.push(n.link)
+            }
+            return
+        }
+
+        if (n.actionType === "APPROVE_COMPLETION" && dealId) {
+            // Approve a job completion
+            const result = await approveCompletion(dealId)
+            if (result.success) {
+                toast.success("Job completion approved")
+            } else {
+                toast.error(result.error ?? "Could not approve completion")
+                if (n.link) router.push(n.link)
+            }
+            return
+        }
+
+        if (n.actionType === "CALL_CLIENT") {
+            // Open native phone dialler — payload may have a phone number
+            const phone = payload.phone
+            if (phone) {
+                window.location.href = `tel:${phone}`
+            } else if (n.link) {
+                router.push(n.link)
+            }
+            return
+        }
+
+        // SEND_INVOICE and anything else: navigate to the linked page
         if (n.link) {
             router.push(n.link)
         }
-        setIsOpen(false)
     }
 
     const fetchNotifications = useCallback(async () => {

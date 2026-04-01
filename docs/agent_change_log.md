@@ -1,3 +1,29 @@
+## 2026-04-01 (AEDT) - Claude (sonnet-4-6)
+
+- Files changed:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260401_add_followup_fields/migration.sql`
+  - `actions/followup-actions.ts` (new)
+  - `actions/followup-actions.ts` — `sendFollowUpMessage` fix in stale-deal modal
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `components/crm/deal-detail-modal.tsx`
+  - `components/crm/job-completion-modal.tsx`
+  - `components/dashboard/notifications-btn.tsx`
+  - `app/api/cron/followup-reminders/route.ts` (new)
+  - `docs/missing_features.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Audit**: Full APP_FEATURES.md × codebase cross-check. Confirmed working: auth, billing, onboarding, kanban, contacts, calendar, schedule, map, inbox (Ask Tracey IS real — routes through `/api/chat`), chat/AI, quoting/invoicing, analytics, team, RBAC, global search, job reminders cron, automation rules engine, morning/evening digest, Xero on-demand, Stripe, MYOB.
+  - **Schema**: Added `followUpAt`, `followUpNote`, `followUpChannel`, `followUpCompletedAt` to `Deal` model.
+  - **`actions/followup-actions.ts`**: New file — `scheduleFollowUp`, `completeFollowUp`, `cancelFollowUp`, `sendFollowUpMessage` (real Twilio/Resend), `processFollowUpReminders` (cron), `processPostJobFollowUps` (cron — fires "Follow Up After Job" rule that was defined but never executed).
+  - **Stale deal follow-up modal**: Replaced `setTimeout` simulation with real `sendFollowUpMessage`. Phone channel schedules a dated reminder instead of pretending to dial.
+  - **Deal detail modal**: Added Follow-up reminder card — schedule/reschedule/complete/cancel per deal, overdue highlighted red.
+  - **`/api/cron/followup-reminders`**: New hourly cron — runs reminder notifications + post-job follow-ups in parallel.
+  - **CRM job completion modal**: Replaced `setTimeout` stub — Request Review triggers real `sendReviewRequestSMS`, Request Payment sends invoice email via Resend.
+  - **Notification action buttons**: CONFIRM_JOB → `approveDraft`, APPROVE_COMPLETION → `approveCompletion`, SEND_INVOICE → navigate to invoice, CALL_CLIENT → `tel:` link.
+- Why:
+  - Pre-launch audit revealed the follow-up lifecycle (detect → notify → act → record) was entirely broken despite being documented as complete. All critical stubs fixed; remaining open items documented in `missing_features.md`.
+
 ## 2026-03-27 19:22 (AEDT) - Codex
 
 - Files changed:

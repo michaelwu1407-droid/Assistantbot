@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, Star, DollarSign, Camera } from "lucide-react"
 import { toast } from "sonner"
+import { sendReviewRequestSMS } from "@/actions/messaging-actions"
+import { requestPaymentForDeal } from "@/actions/followup-actions"
 
 interface JobCompletionModalProps {
   open: boolean
@@ -78,17 +80,39 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    
+
     try {
-      // Simulate submission
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      // Fire the parent callback first (moves deal to WON etc.)
       onComplete(reviewData)
+
+      // Run follow-up actions in parallel
+      const followUps: Promise<void>[] = []
+
+      if (reviewData.requestReview) {
+        followUps.push(
+          sendReviewRequestSMS(deal.id).then((result) => {
+            if (!result.success) {
+              toast.warning(`Review request not sent: ${result.error}`)
+            }
+          })
+        )
+      }
+
+      if (reviewData.requestPayment) {
+        followUps.push(
+          requestPaymentForDeal(deal.id).then((result) => {
+            if (!result.success) {
+              toast.warning(`Payment request not sent: ${result.error}`)
+            }
+          })
+        )
+      }
+
+      await Promise.allSettled(followUps)
+
+      toast.success("Job completed" + (reviewData.requestReview || reviewData.requestPayment ? " — follow-ups sent" : ""))
       onOpenChange(false)
-      
-      toast.success("Job completion review submitted successfully")
-      
-      // Reset form
+
       setReviewData({
         rating: 0,
         clientSatisfaction: 0,

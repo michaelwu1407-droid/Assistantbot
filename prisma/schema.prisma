@@ -282,6 +282,12 @@ model Deal {
   escalatedAt     DateTime?
   escalationReason String?   @db.Text
 
+  // Follow-up scheduling & tracking
+  followUpAt          DateTime? // When the user wants to follow up with this customer
+  followUpNote        String?   @db.Text // What to follow up about
+  followUpCompletedAt DateTime? // When the follow-up was actually done
+  followUpChannel     String?   // "sms", "email", "phone" — preferred channel
+
   lastActivityAt     DateTime @default(now())
   stageChangedAt     DateTime @default(now())
   lastReminderSentAt DateTime? // Dedup: prevents duplicate booking reminder SMS
