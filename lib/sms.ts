@@ -35,7 +35,7 @@ export async function sendIntroSms(options: {
     process.env.TWILIO_AUTH_TOKEN!
   );
 
-  const introMessage = `Hi! This is ${owner?.name || workspace.name} from Pj Buddy. Thanks for your interest! I've received your request and will get back to you shortly with a quote. Best way to reach me is replying to this message. Cheers!`;
+  const introMessage = `Hi, this is ${owner?.name || workspace.name} from Pj Buddy. Thanks for your enquiry. I'll get back to you shortly with a quote. Reply here anytime.`;
 
   const message = await twilioClient.messages.create({
     body: introMessage,

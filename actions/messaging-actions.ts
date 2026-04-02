@@ -35,6 +35,19 @@ const SendMessageSchema = z.object({
   channel: z.enum(["sms", "whatsapp"]).default("sms"),
 });
 
+function formatSmsSchedule(value: Date | string | null | undefined) {
+  if (!value) return "today";
+  const scheduled = new Date(value);
+  if (Number.isNaN(scheduled.getTime())) return "today";
+  return scheduled.toLocaleString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 // ─── Twilio Client ──────────────────────────────────────────────────
 
 /**
@@ -362,7 +375,7 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
       return { success: false, error: "No contact phone number found" };
     }
 
-    const message = `Hi ${deal.contact.name}, this is a confirmation for your job scheduled for ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "today"} at ${deal.address || "your location"}. Please reply "CONFIRM" to confirm or call us if you need to reschedule. Thanks!`;
+    const message = `Hi ${deal.contact.name}, your job is booked for ${formatSmsSchedule(deal.scheduledAt)} at ${deal.address || "your location"}. Reply CONFIRM or call us to reschedule.`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 
@@ -411,7 +424,7 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
       return { success: false, error: "No contact phone number found" };
     }
 
-    const message = `Hi ${deal.contact.name}, just following up on your job scheduled for ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "today"}. Please reply "CONFIRM" or call us to reschedule. Thanks!`;
+    const message = `Hi ${deal.contact.name}, just following up on your job for ${formatSmsSchedule(deal.scheduledAt)}. Reply CONFIRM or call us to reschedule.`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 
@@ -467,7 +480,7 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
       contactId: deal.contactId,
       workspaceId: deal.workspaceId,
     });
-    const message = `Hi ${deal.contact.name}, thanks for letting ${businessName} help with "${deal.title}". We’d love your feedback: ${feedbackUrl}`;
+    const message = `Hi ${deal.contact.name}, thanks for choosing ${businessName}. We'd love your feedback: ${feedbackUrl}`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 

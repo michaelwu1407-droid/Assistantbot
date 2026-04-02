@@ -48,16 +48,17 @@ export function buildCallForwardingSetupSmsBody(params: {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://earlymark.ai").replace(/\/$/, "");
   const codes = buildCallForwardingCodes(params.agentPhoneNumber, params.delaySec);
   const recommendedCode = params.mode === "full" ? codes.full : codes.backup;
-  const setupHint = buildCarrierSetupHint(params.carrier, params.delaySec);
+  const settingsUrl = appUrl
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "") + "/crm/settings";
 
   return [
-    `Tracey call forwarding is ready for ${params.businessName}.`,
-    `Tracey's number: ${params.agentPhoneNumber}.`,
-    setupHint,
+    `Tracey forwarding ready for ${params.businessName}.`,
+    `Number: ${params.agentPhoneNumber}.`,
     params.mode === "full"
-      ? `Turn on 100% AI forwarding with: ${recommendedCode}`
-      : `Turn on missed-call backup after about ${params.delaySec} seconds with: ${recommendedCode}`,
-    `Turn forwarding off anytime with: ${codes.off}`,
-    `Open setup in Earlymark: ${appUrl}/crm/settings`,
+      ? `Use code ${recommendedCode}.`
+      : `Use code ${recommendedCode}.`,
+    `Off: ${codes.off}.`,
+    settingsUrl,
   ].join("\n");
 }

@@ -12,22 +12,21 @@ import type { TriggerEvent } from "@prisma/client";
 
 const DEFAULT_TEMPLATES: Record<TriggerEvent, string> = {
   JOB_COMPLETE:
-    "Hi [Name], thanks for today! [ReviewRequest]\n\nKind regards, Tracey (AI assistant for [Company])",
+    "Hi [Name], thanks for today. [ReviewRequest]\nTracey, [Company]",
   ON_MY_WAY: "Hi [Name], I'm Tracey, AI assistant for [Company]. Your tradie is about 20 minutes away.",
   LATE: "Hi [Name], I'm Tracey, AI assistant for [Company]. Quick heads up: we're running about 15 minutes late.",
-  BOOKING_REMINDER_24H: "Hi [Name], this is Tracey, AI assistant for [Company]. Friendly reminder about your appointment tomorrow. Reply YES to confirm.",
+  BOOKING_REMINDER_24H: "Hi [Name], this is Tracey, AI assistant for [Company]. Reminder: your appointment is tomorrow. Reply YES to confirm.",
 };
 
 function ensureTraceyStyle(content: string, companyName: string): string {
   const message = content.trim();
   if (!message) return message;
-  const lower = message.toLowerCase();
-  if (lower.includes("tracey") && lower.includes("ai assistant")) return message;
-  return `${message}\n\nKind regards, Tracey (AI assistant for ${companyName})`;
+  if (/tracey/i.test(message) && message.includes(companyName)) return message;
+  return `${message}\nTracey, ${companyName}`;
 }
 
 function buildReviewRequestText(feedbackUrl: string) {
-  return `We'd love your feedback: ${feedbackUrl}`
+  return `Feedback: ${feedbackUrl}`
 }
 
 function replaceReviewPlaceholders(content: string, feedbackUrl: string) {
