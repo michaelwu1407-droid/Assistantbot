@@ -605,6 +605,39 @@ function subtractMoneyExact(
   };
 }
 
+export function describeExactMarginCoverageGap(input: {
+  subscriptionRevenue: number | null;
+  subscriptionRevenueCurrency: string | null;
+  twilioMonthSpend: number | null;
+  twilioMonthSpendCurrency: string | null;
+  stripeCoverage: CoverageStatus;
+  twilioCoverage: CoverageStatus;
+}) {
+  if (input.stripeCoverage !== "live" && input.twilioCoverage !== "live") {
+    return "Awaiting exact Stripe + Twilio coverage";
+  }
+
+  if (input.stripeCoverage !== "live") {
+    return "Awaiting exact Stripe coverage";
+  }
+
+  if (input.twilioCoverage !== "live") {
+    return "Awaiting exact Twilio coverage";
+  }
+
+  if (
+    input.subscriptionRevenue != null &&
+    input.twilioMonthSpend != null &&
+    input.subscriptionRevenueCurrency &&
+    input.twilioMonthSpendCurrency &&
+    input.subscriptionRevenueCurrency !== input.twilioMonthSpendCurrency
+  ) {
+    return `Exact margin unavailable: currency mismatch (${input.subscriptionRevenueCurrency} vs ${input.twilioMonthSpendCurrency})`;
+  }
+
+  return "Exact margin unavailable";
+}
+
 export function calculateCostPerWonJob(twilioMonthSpend: number | null, jobsWonWithTraceyCurrentMonth: number) {
   return roundMoney(safeDivide(twilioMonthSpend, jobsWonWithTraceyCurrentMonth));
 }
@@ -1003,7 +1036,7 @@ function estimateVoiceAiCost(
   };
 }
 
-function buildAttentionState(input: {
+export function buildAttentionState(input: {
   rowVoiceEnabled: boolean;
   subscriptionStatus: string;
   lastActivityAt: Date | null;
@@ -1043,11 +1076,17 @@ function buildAttentionState(input: {
 
   if (input.passiveWorkspaceHealth?.overallStatus === "unhealthy") {
     criticalReasons.push(`Health check: ${input.passiveWorkspaceHealth.overallClassification}`);
-  } else if (input.passiveWorkspaceHealth?.overallStatus === "degraded") {
+  } else if (
+    input.passiveWorkspaceHealth?.overallStatus === "degraded" &&
+    (input.rowVoiceEnabled || subStatus === "active")
+  ) {
     warningReasons.push(`Health check: ${input.passiveWorkspaceHealth.overallClassification}`);
   }
 
-  if (!input.lastActivityAt || input.lastActivityAt < subDays(new Date(), 30)) {
+  if (
+    subStatus === "active" &&
+    (!input.lastActivityAt || input.lastActivityAt < subDays(new Date(), 30))
+  ) {
     warningReasons.push("Inactive 30+ days");
   }
 
@@ -1057,10 +1096,6 @@ function buildAttentionState(input: {
 
   if (input.subscriptionStatus.toLowerCase() === "active" && input.stripeCoverage !== "live") {
     warningReasons.push(input.stripeCoverage === "missing" ? "Stripe not connected" : "Stripe degraded");
-  }
-
-  if (!input.rowVoiceEnabled) {
-    warningReasons.push("Voice off");
   }
 
   if (criticalReasons.length > 0) {

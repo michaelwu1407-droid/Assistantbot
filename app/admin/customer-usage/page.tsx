@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   COST_PER_WON_JOB_FORMULA,
+  describeExactMarginCoverageGap,
   getCustomerUsageDashboardData,
   JOBS_WON_WITH_TRACEY_FORMULA,
   parseCustomerUsageFilters,
@@ -83,11 +84,11 @@ function primaryHealthSummary(row: CustomerUsageDashboardData["rows"][number]) {
     return `Operational blocker: ${row.provisioningIssue}`;
   }
 
-  if (row.coverage.twilio !== "live") {
+  if (row.voiceEnabled && row.coverage.twilio !== "live") {
     return `Operational blocker: Twilio coverage ${row.coverage.twilio}`;
   }
 
-  if (row.coverage.stripe !== "live") {
+  if (row.subscriptionStatus.toLowerCase() === "active" && row.coverage.stripe !== "live") {
     return `Operational blocker: Stripe coverage ${row.coverage.stripe}`;
   }
 
@@ -373,7 +374,16 @@ function CustomerTable({
               <TableCell className="min-w-[160px] align-top">
                 <div className="font-medium text-slate-900">{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {row.subRevenueMinusTwilio == null ? "Needs exact Stripe + Twilio coverage" : "Sub rev - Twilio MTD"}
+                  {row.subRevenueMinusTwilio == null
+                    ? describeExactMarginCoverageGap({
+                        subscriptionRevenue: row.subscriptionRevenue,
+                        subscriptionRevenueCurrency: row.subscriptionRevenueCurrency,
+                        twilioMonthSpend: row.twilioMonthSpend,
+                        twilioMonthSpendCurrency: row.twilioMonthSpendCurrency,
+                        stripeCoverage: row.coverage.stripe,
+                        twilioCoverage: row.coverage.twilio,
+                      })
+                    : "Sub rev - Twilio MTD"}
                 </div>
               </TableCell>
               <TableCell className="min-w-[170px] align-top">

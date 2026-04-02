@@ -97,6 +97,16 @@ describe("runVoiceSpokenPstnCanary", () => {
     expect(result.callStatus).toBe("completed");
     expect(result.verification?.heardProbePhrase).toBe(true);
     expect(result.verification?.capturedAssistantSpeech).toBe(true);
+    expect(twilioState.createCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        twiml: expect.stringContaining('language="en-AU"'),
+      }),
+    );
+    expect(twilioState.createCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        twiml: expect.stringContaining('voice="Polly.Nicole"'),
+      }),
+    );
   });
 
   it("returns unhealthy when the call completes but no matching VoiceCall is persisted", async () => {

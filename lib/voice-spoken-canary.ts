@@ -13,6 +13,8 @@ const FAILURE_CALL_STATUSES = new Set(["busy", "failed", "no-answer", "canceled"
 const CALL_POLL_INTERVAL_MS = 2_000;
 const TRANSCRIPT_POLL_INTERVAL_MS = 2_000;
 const PROBE_TRANSCRIPT_PHRASE = "voice monitor probe";
+const PROBE_TWILIO_VOICE = "Polly.Nicole";
+const PROBE_TWILIO_LANGUAGE = "en-AU";
 
 type TwilioCallSnapshot = {
   sid: string;
@@ -64,7 +66,7 @@ function escapeXml(value: string) {
 }
 
 function buildProbePhrase() {
-  return "Hello Tracey. This is the Earlymark voice monitor probe. Can you hear me?";
+  return "Hello Tracey. Voice monitor probe. Can you hear me?";
 }
 
 function buildProbeTwiml(phrase: string) {
@@ -72,7 +74,7 @@ function buildProbeTwiml(phrase: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Pause length="1" />
-  <Say voice="Polly.Olivia">${escapeXml(phrase)}</Say>
+  <Say language="${PROBE_TWILIO_LANGUAGE}" voice="${PROBE_TWILIO_VOICE}">${escapeXml(phrase)}</Say>
   <Pause length="${pauseSeconds}" />
   <Hangup />
 </Response>`;
