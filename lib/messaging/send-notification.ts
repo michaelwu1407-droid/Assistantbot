@@ -54,19 +54,6 @@ export async function sendNotification(
 
   const channel = getNotificationChannel(contact, scenario)
 
-  if (channel === "portal-only") {
-    await db.activity.create({
-      data: {
-        type: "NOTE",
-        title: "Job status update (portal)",
-        content: "Customer notified via job portal — no message sent.",
-        dealId: deal.id,
-        contactId: deal.contactId,
-      },
-    })
-    return { channel, sent: false }
-  }
-
   let portalUrl: string | null = null
   if (includePortalLink) {
     portalUrl = buildPublicJobPortalUrl({

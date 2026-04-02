@@ -18,6 +18,7 @@ const ALWAYS_SMS_SCENARIOS = new Set<NotificationScenario>([
   NotificationScenario.NEW_LEAD_RESPONSE,
   NotificationScenario.QUOTE_SENT,
   NotificationScenario.BOOKING_CONFIRMATION_REQUIRES_ACTION,
+  NotificationScenario.ON_MY_WAY,
   NotificationScenario.RUNNING_LATE,
   NotificationScenario.JOB_COMPLETE_FEEDBACK,
   NotificationScenario.VERIFICATION,
@@ -27,18 +28,14 @@ const ALWAYS_SMS_SCENARIOS = new Set<NotificationScenario>([
  * Determines the best notification channel for a given contact and scenario.
  *
  * Rules:
- * - ON_MY_WAY → portal-only (customer already has portal link; status updates automatically)
  * - Urgent/action-required scenarios → SMS always (higher response rate)
- * - Non-urgent scenarios → email if contact has email, else SMS
+ * - Non-urgent scenarios (24h reminder, informational booking confirmation, bulk) →
+ *   email if contact has email, else SMS
  */
 export function getNotificationChannel(
   contact: { email?: string | null; phone?: string | null },
   scenario: NotificationScenario,
 ): NotificationChannel {
-  if (scenario === NotificationScenario.ON_MY_WAY) {
-    return "portal-only"
-  }
-
   if (ALWAYS_SMS_SCENARIOS.has(scenario)) {
     return "sms"
   }

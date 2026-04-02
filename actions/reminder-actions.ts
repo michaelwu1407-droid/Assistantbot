@@ -190,25 +190,66 @@ export async function sendTripSms(dealId: string) {
       return { success: false, error: "Trip SMS disabled" };
     }
 
-    console.log(`⚙️ [TRIP SMS] Processing on-the-way update for workspace: ${workspace.id}`);
+    if (!deal.contact.phone) {
+      console.error(`❌ [TRIP SMS] Deal has no contact phone: ${dealId}`);
+      return { success: false, error: "No contact phone" };
+    }
 
-    // Update job status to TRAVELING — the customer portal polls and will show "On the way"
-    await db.deal.update({
-      where: { id: dealId },
-      data: { jobStatus: "TRAVELING" },
-    });
+    if (!workspace.twilioPhoneNumber) {
+      console.log(`⚠️ [TRIP SMS] No Twilio phone configured for workspace: ${workspace.id}`);
+      return { success: false, error: "No phone configured" };
+    }
 
-    // Log the status change as an activity
-    await db.activity.create({
-      data: {
-        type: "NOTE",
-        title: "Tradie on the way",
-        content: `Job status updated to TRAVELING. Customer portal updated automatically — no SMS sent.`,
-        dealId,
+    if (!workspace.twilioSubaccountId) {
+      console.log(`⚠️ [TRIP SMS] No Twilio subaccount configured for workspace: ${workspace.id}`);
+      return { success: false, error: "No subaccount configured" };
+    }
+
+    console.log(`⚙️ [TRIP SMS] Trip SMS enabled for workspace: ${workspace.id}`);
+
+    const customerName = deal.contact.name || "there";
+    const message = `Hi ${customerName}, kind reminder I'm on my way to yours now for the job`;
+
+    console.log(`📱 [TRIP SMS] Preparing SMS to ${customerName} at ${deal.contact.phone}`);
+    console.log(`📝 [TRIP SMS] Message: "${message}"`);
+
+    const formattedPhone = formatPhoneE164(deal.contact.phone);
+    console.log(`🔢 [TRIP SMS] Formatted phone: ${formattedPhone}`);
+
+    const idem = await runIdempotent<{ activityId: string }>({
+      actionType: "TRIP_SMS",
+      bucketAt: new Date(),
+      parts: [dealId, formattedPhone, message],
+      resultFactory: async () => {
+        await sendSms(formattedPhone, message, workspace.twilioPhoneNumber!, workspace);
+
+        console.log(`✅ [TRIP SMS] SMS sent successfully to ${customerName}`);
+
+        // Also update job status so portal reflects the change
+        await db.deal.update({
+          where: { id: dealId },
+          data: { jobStatus: "TRAVELING" },
+        });
+
+        const activity = await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Trip SMS Sent",
+            content: `Automated trip SMS sent to ${customerName}: ${message}`,
+            dealId,
+          },
+        });
+
+        console.log(`📊 [TRIP SMS] Activity logged: ${activity.id}`);
+        return { activityId: activity.id };
       },
     });
 
-    console.log(`✅ [TRIP SMS] Job status set to TRAVELING — portal updated, no SMS sent`);
+    if (!idem.created) {
+      console.log(`ℹ️ [TRIP SMS] Skipped duplicate trip SMS for deal: ${dealId}`);
+    }
+
+    console.log(`✅ [TRIP SMS] Done`);
 
     revalidatePath("/crm", "layout");
     console.log(`🔄 [TRIP SMS] Dashboard revalidated`);
