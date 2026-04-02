@@ -55,15 +55,10 @@ export function MessageActionSheet({
     if (!preview) return;
     setSending(true);
     try {
-      const result = await sendTemplateMessage(
-        jobId,
-        triggerEvent,
-        preview.channel
-      );
+      const result = await sendTemplateMessage(jobId, triggerEvent);
       if (result.success) {
-        toast.success(
-          `${preview.channel === "sms" ? "SMS" : "Email"} sent to ${preview.contactName}!`
-        );
+        const sentVia = result.channel === "email" ? "Email" : "SMS";
+        toast.success(`${sentVia} sent to ${preview.contactName}!`);
         onSent?.();
         onOpenChange(false);
       } else {

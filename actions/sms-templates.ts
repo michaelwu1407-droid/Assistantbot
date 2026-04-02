@@ -104,6 +104,15 @@ export async function upsertSmsTemplate(
   }
 }
 
+// ─── Map trigger events to notification scenarios ───────────────────
+
+const TRIGGER_TO_SCENARIO: Record<TriggerEvent, NotificationScenario> = {
+  JOB_COMPLETE: NotificationScenario.JOB_COMPLETE_FEEDBACK,
+  ON_MY_WAY: NotificationScenario.ON_MY_WAY,
+  LATE: NotificationScenario.RUNNING_LATE,
+  BOOKING_REMINDER_24H: NotificationScenario.REMINDER_24H,
+}
+
 // ─── Get template + contact info for a deal ─────────────────────────
 
 export async function getMessagePreview(
@@ -138,9 +147,9 @@ export async function getMessagePreview(
   const messageBodyWithName = rawContent.replace(/\[Name\]/g, contact.name);
   const messageBody = replaceReviewPlaceholders(messageBodyWithName, feedbackUrl);
 
-  // Determine channel based on what the contact has
-  const channel: "sms" | "email" =
-    contact.phone ? "sms" : contact.email ? "email" : "sms";
+  // Determine channel using the same routing logic as actual sends
+  const routedChannel = getNotificationChannel(contact, TRIGGER_TO_SCENARIO[triggerEvent]);
+  const channel: "sms" | "email" = routedChannel === "portal-only" ? "sms" : routedChannel;
 
   return {
     contactName: contact.name,
@@ -150,15 +159,6 @@ export async function getMessagePreview(
     messageBody,
     isActive: template?.isActive ?? true,
   };
-}
-
-// ─── Map trigger events to notification scenarios ───────────────────
-
-const TRIGGER_TO_SCENARIO: Record<TriggerEvent, NotificationScenario> = {
-  JOB_COMPLETE: NotificationScenario.JOB_COMPLETE_FEEDBACK,
-  ON_MY_WAY: NotificationScenario.ON_MY_WAY,
-  LATE: NotificationScenario.RUNNING_LATE,
-  BOOKING_REMINDER_24H: NotificationScenario.REMINDER_24H,
 }
 
 // ─── Send the message ────────────────────────────────────────────────
