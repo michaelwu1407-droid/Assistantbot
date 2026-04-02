@@ -11,7 +11,17 @@ type FetchSummary = {
   error?: string;
 };
 
-const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+function getArgValue(flag: string): string | null {
+  const index = process.argv.indexOf(flag);
+  if (index === -1) return null;
+  return process.argv[index + 1] ?? null;
+}
+
+const providedBaseUrl = getArgValue("--base-url");
+const baseUrl = (providedBaseUrl || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000").replace(
+  /\/+$/,
+  "",
+);
 const mode = process.argv.includes("--active") ? "active" : "passive";
 
 async function fetchJson(path: string): Promise<FetchSummary> {
@@ -106,4 +116,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

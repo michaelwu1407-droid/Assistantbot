@@ -44,6 +44,10 @@ interface SearchableContact extends SearchableItem {
   contact: ContactView;
 }
 
+type UniqueContactClause =
+  | { email: string; phone?: undefined }
+  | { phone: string; email?: undefined };
+
 // ─── Validation ─────────────────────────────────────────────────────
 
 const CreateContactSchema = z
@@ -316,7 +320,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
   const uniqueContactClauses = [
     parsed.data.email ? { email: parsed.data.email } : null,
     parsed.data.phone ? { phone: parsed.data.phone } : null,
-  ].filter((value): value is { email?: string; phone?: string } => Boolean(value));
+  ].filter((value): value is UniqueContactClause => value !== null);
 
   // 1. Smart Deduplication Check: only reuse by email/phone when the name matches.
   // Otherwise multiple jobs with different client names but same phone would all
