@@ -7,6 +7,8 @@ import { getAuthUserId } from "@/lib/auth";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { revalidatePath } from "next/cache";
 import type { TriggerEvent } from "@prisma/client";
+import { sendNotification } from "@/lib/messaging/send-notification";
+import { NotificationScenario } from "@/lib/messaging/channel-router";
 
 // ─── Default Templates ──────────────────────────────────────────────
 
@@ -150,47 +152,73 @@ export async function getMessagePreview(
   };
 }
 
-// ─── Send the message (stub — wire to Twilio/SendGrid in prod) ──────
+// ─── Map trigger events to notification scenarios ───────────────────
+
+const TRIGGER_TO_SCENARIO: Record<TriggerEvent, NotificationScenario> = {
+  JOB_COMPLETE: NotificationScenario.JOB_COMPLETE_FEEDBACK,
+  ON_MY_WAY: NotificationScenario.ON_MY_WAY,
+  LATE: NotificationScenario.RUNNING_LATE,
+  BOOKING_REMINDER_24H: NotificationScenario.REMINDER_24H,
+}
+
+// ─── Send the message ────────────────────────────────────────────────
 
 export async function sendTemplateMessage(
   dealId: string,
   triggerEvent: TriggerEvent,
-  channel: "sms" | "email"
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; channel?: string }> {
   try {
-    const preview = await getMessagePreview(dealId, triggerEvent);
-    if (!preview) return { success: false, error: "Job not found" };
-
-    if (channel === "sms" && !preview.contactPhone) {
-      return { success: false, error: "No phone number on file" };
-    }
-    if (channel === "email" && !preview.contactEmail) {
-      return { success: false, error: "No email on file" };
-    }
-
-    // TODO: Wire to Twilio for SMS / SendGrid for Email
-    console.log(
-      `[MESSAGE] Sending ${channel.toUpperCase()} to ${channel === "sms" ? preview.contactPhone : preview.contactEmail
-      }: ${preview.messageBody}`
-    );
-
-    // Log as activity
     const userId = await getAuthUserId();
-    if (!userId) throw new Error("Not authenticated");
-    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!userId) return { success: false, error: "Not authenticated" };
 
-    await db.activity.create({
-      data: {
-        type: channel === "sms" ? "CALL" : "EMAIL",
-        title: `Sent ${triggerEvent.replace(/_/g, " ").toLowerCase()} ${channel.toUpperCase()}`,
-        description: preview.messageBody,
-        dealId,
-        contactId: (await db.deal.findUnique({ where: { id: dealId } }))?.contactId,
-        userId: user?.id,
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      include: {
+        contact: { select: { id: true, name: true, phone: true, email: true } },
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            twilioPhoneNumber: true,
+            twilioSubaccountId: true,
+            twilioSubaccountAuthToken: true,
+          },
+        },
       },
     });
+    if (!deal) return { success: false, error: "Job not found" };
 
-    return { success: true };
+    // Find user's template or fall back to default
+    const template = await db.smsTemplate.findFirst({
+      where: { userId, triggerEvent },
+    });
+
+    const feedbackUrl = buildPublicFeedbackUrl({
+      dealId: deal.id,
+      contactId: deal.contactId,
+      workspaceId: deal.workspaceId,
+    });
+
+    const rawContent = template?.content ?? DEFAULT_TEMPLATES[triggerEvent];
+    const messageWithName = rawContent.replace(/\[Name\]/g, deal.contact.name);
+    const messageBody = replaceReviewPlaceholders(messageWithName, feedbackUrl);
+
+    const scenario = TRIGGER_TO_SCENARIO[triggerEvent];
+    const result = await sendNotification({
+      contact: deal.contact,
+      workspace: deal.workspace,
+      deal: { id: dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+      scenario,
+      smsBody: messageBody,
+      emailSubject: `Update from ${deal.workspace.name}`,
+      emailBody: messageBody,
+    });
+
+    if (!result.sent && result.channel !== "portal-only") {
+      return { success: false, error: result.error || "Failed to send message" };
+    }
+
+    return { success: true, channel: result.channel };
   } catch (error) {
     console.error("Failed to send message:", error);
     return { success: false, error: "Failed to send message" };

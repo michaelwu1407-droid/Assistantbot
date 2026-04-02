@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getWorkspaceTwilioClient, twilioMasterClient } from "@/lib/twilio";
 import { runIdempotent } from "@/lib/idempotency";
+import { sendNotification } from "@/lib/messaging/send-notification";
+import { NotificationScenario } from "@/lib/messaging/channel-router";
+import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 
 // Simple phone formatting function
 function formatPhoneE164(phone: string): string {
@@ -64,9 +67,9 @@ export async function sendJobReminder(dealId: string) {
       return { success: false, error: "No scheduled time" };
     }
 
-    if (!deal.contact.phone) {
-      console.error(`❌ [JOB REMINDER] Deal has no contact phone: ${dealId}`);
-      return { success: false, error: "No contact phone" };
+    if (!deal.contact.phone && !deal.contact.email) {
+      console.error(`❌ [JOB REMINDER] Deal has no contact phone or email: ${dealId}`);
+      return { success: false, error: "No contact phone or email" };
     }
 
     console.log(`📋 [JOB REMINDER] Deal found: ${deal.title} for ${deal.contact.name}`);
@@ -78,14 +81,10 @@ export async function sendJobReminder(dealId: string) {
       return { success: false, error: "Reminders disabled" };
     }
 
-    if (!workspace.twilioPhoneNumber) {
-      console.log(`⚠️ [JOB REMINDER] No Twilio phone configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No phone configured" };
-    }
-
-    if (!workspace.twilioSubaccountId) {
-      console.log(`⚠️ [JOB REMINDER] No Twilio subaccount configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No subaccount configured" };
+    // Twilio is only required if the contact has no email (SMS fallback path)
+    if (!deal.contact.email && !workspace.twilioPhoneNumber) {
+      console.log(`⚠️ [JOB REMINDER] Contact has no email and workspace has no Twilio configured: ${workspace.id}`);
+      return { success: false, error: "No phone configured and no email on contact" };
     }
 
     console.log(`⚙️ [JOB REMINDER] Workspace settings - Hours: ${workspace.jobReminderHours}, Enabled: ${workspace.enableJobReminders}`);
@@ -111,46 +110,40 @@ export async function sendJobReminder(dealId: string) {
     const jobDescription = deal.title || "your job";
     const scheduledTimeFormatted = scheduledTime.toLocaleString("en-AU", {
       weekday: "long",
-      month: "long", 
+      month: "long",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
     });
 
-    const message = `Hi ${customerName}, kind reminder about your ${jobDescription} scheduled for ${scheduledTimeFormatted}. Looking forward to seeing you!`;
+    const smsBody = `Hi ${customerName}, kind reminder about your ${jobDescription} scheduled for ${scheduledTimeFormatted}. Looking forward to seeing you!`;
+    const emailBody = `Hi ${customerName},\n\nJust a reminder — your ${jobDescription} with ${workspace.name} is ${scheduledTimeFormatted}.\n\nLooking forward to seeing you!\n\n- ${workspace.name} via Earlymark`;
+    const emailSubject = `Reminder: your ${jobDescription} is ${scheduledTimeFormatted}`;
 
-    console.log(`📱 [JOB REMINDER] Preparing SMS to ${customerName} at ${deal.contact.phone}`);
-    console.log(`📝 [JOB REMINDER] Message: "${message}"`);
+    console.log(`📱 [JOB REMINDER] Sending reminder to ${customerName}`);
 
-    const formattedPhone = formatPhoneE164(deal.contact.phone);
-    console.log(`🔢 [JOB REMINDER] Formatted phone: ${formattedPhone}`);
-
-    const idem = await runIdempotent<{ activityId: string }>({
+    const idem = await runIdempotent<{ channel: string }>({
       actionType: "JOB_REMINDER_SMS",
       bucketAt: sendTargetAt,
-      parts: [dealId, formattedPhone, message],
+      parts: [dealId, deal.contact.phone ?? deal.contact.email ?? "", smsBody],
       resultFactory: async () => {
-        await sendSms(
-          formattedPhone,
-          message,
-          workspace.twilioPhoneNumber!,
-          workspace
-        );
-
-        console.log(`✅ [JOB REMINDER] SMS sent successfully to ${customerName}`);
-
-        // Log the reminder as an activity
-        const activity = await db.activity.create({
-          data: {
-            type: "NOTE",
-            title: "Job Reminder Sent",
-            content: `Automated reminder sent to ${customerName}: ${message}`,
-            dealId,
-          },
+        const result = await sendNotification({
+          contact: deal.contact,
+          workspace,
+          deal: { id: dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+          scenario: NotificationScenario.REMINDER_24H,
+          smsBody,
+          emailSubject,
+          emailBody,
         });
 
-        console.log(`📊 [JOB REMINDER] Activity logged: ${activity.id}`);
-        return { activityId: activity.id };
+        if (!result.sent && result.channel !== "portal-only") {
+          throw new Error(result.error || "Failed to send reminder");
+        }
+
+        console.log(`✅ [JOB REMINDER] Sent via ${result.channel} to ${customerName}`);
+        return { channel: result.channel };
       },
     });
 
@@ -189,11 +182,6 @@ export async function sendTripSms(dealId: string) {
       return { success: false, error: "Invalid deal" };
     }
 
-    if (!deal.contact.phone) {
-      console.error(`❌ [TRIP SMS] Deal has no contact phone: ${dealId}`);
-      return { success: false, error: "No contact phone" };
-    }
-
     console.log(`📋 [TRIP SMS] Deal found: ${deal.title} for ${deal.contact.name}`);
 
     const workspace = deal.workspace;
@@ -202,60 +190,25 @@ export async function sendTripSms(dealId: string) {
       return { success: false, error: "Trip SMS disabled" };
     }
 
-    if (!workspace.twilioPhoneNumber) {
-      console.log(`⚠️ [TRIP SMS] No Twilio phone configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No phone configured" };
-    }
+    console.log(`⚙️ [TRIP SMS] Processing on-the-way update for workspace: ${workspace.id}`);
 
-    if (!workspace.twilioSubaccountId) {
-      console.log(`⚠️ [TRIP SMS] No Twilio subaccount configured for workspace: ${workspace.id}`);
-      return { success: false, error: "No subaccount configured" };
-    }
+    // Update job status to TRAVELING — the customer portal polls and will show "On the way"
+    await db.deal.update({
+      where: { id: dealId },
+      data: { jobStatus: "TRAVELING" },
+    });
 
-    console.log(`⚙️ [TRIP SMS] Trip SMS enabled for workspace: ${workspace.id}`);
-
-    // Send trip SMS
-    const customerName = deal.contact.name || "there";
-    const message = `Hi ${customerName}, kind reminder I'm on my way to yours now for the job`;
-
-    console.log(`📱 [TRIP SMS] Preparing SMS to ${customerName} at ${deal.contact.phone}`);
-    console.log(`📝 [TRIP SMS] Message: "${message}"`);
-
-    const formattedPhone = formatPhoneE164(deal.contact.phone);
-    console.log(`🔢 [TRIP SMS] Formatted phone: ${formattedPhone}`);
-
-    const idem = await runIdempotent<{ activityId: string }>({
-      actionType: "TRIP_SMS",
-      bucketAt: new Date(),
-      parts: [dealId, formattedPhone, message],
-      resultFactory: async () => {
-        await sendSms(
-          formattedPhone,
-          message,
-          workspace.twilioPhoneNumber!,
-          workspace
-        );
-
-        console.log(`✅ [TRIP SMS] SMS sent successfully to ${customerName}`);
-
-        // Log the trip SMS as an activity
-        const activity = await db.activity.create({
-          data: {
-            type: "NOTE",
-            title: "Trip SMS Sent",
-            content: `Automated trip SMS sent to ${customerName}: ${message}`,
-            dealId,
-          },
-        });
-
-        console.log(`📊 [TRIP SMS] Activity logged: ${activity.id}`);
-        return { activityId: activity.id };
+    // Log the status change as an activity
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Tradie on the way",
+        content: `Job status updated to TRAVELING. Customer portal updated automatically — no SMS sent.`,
+        dealId,
       },
     });
 
-    if (!idem.created) {
-      console.log(`ℹ️ [TRIP SMS] Skipped duplicate trip SMS for deal: ${dealId}`);
-    }
+    console.log(`✅ [TRIP SMS] Job status set to TRAVELING — portal updated, no SMS sent`);
 
     revalidatePath("/crm", "layout");
     console.log(`🔄 [TRIP SMS] Dashboard revalidated`);

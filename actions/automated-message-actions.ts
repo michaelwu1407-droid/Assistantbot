@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 import { runIdempotent } from "@/lib/idempotency";
+import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
 
 export interface AutomatedMessageRuleView {
   id: string;
@@ -201,7 +202,9 @@ export async function processBookingReminders(): Promise<{
         jobStatus: { not: "CANCELLED" },
       },
       include: {
-        contact: true,
+        contact: {
+          select: { id: true, name: true, phone: true, email: true },
+        },
       },
     });
 
@@ -211,7 +214,9 @@ export async function processBookingReminders(): Promise<{
     });
 
     for (const job of upcomingJobs) {
-      if (!job.contact?.phone) continue;
+      const hasPhone = !!job.contact?.phone;
+      const hasEmail = !!job.contact?.email;
+      if (!hasPhone && !hasEmail) continue;
 
       // ── Dedup: skip if reminder already sent for this booking ──
       if (job.lastReminderSentAt) {
@@ -242,17 +247,76 @@ export async function processBookingReminders(): Promise<{
         scheduledAt.getTime() + (rule.hoursOffset ?? -24) * 60 * 60 * 1000
       );
 
-      // Send SMS if workspace has Twilio configured
-      if (
-        rule.channel !== "email" &&
-        workspace?.twilioPhoneNumber &&
-        workspace?.twilioSubaccountId
-      ) {
+      // For booking_confirmation, always include the portal tracking link
+      const isBookingConfirmation = rule.triggerType === "booking_confirmation";
+      const portalUrl = isBookingConfirmation
+        ? buildPublicJobPortalUrl({
+            dealId: job.id,
+            contactId: job.contactId,
+            workspaceId: job.workspaceId,
+          })
+        : null;
+
+      // ── Determine channel: booking_confirmation and 24h reminder use email when available ──
+      // Urgent/action scenarios (any other triggerType) use SMS always.
+      const preferEmail =
+        hasEmail &&
+        (rule.triggerType === "booking_confirmation" ||
+          rule.triggerType === "booking_reminder_24h");
+      const useEmail = preferEmail && rule.channel !== "sms";
+
+      if (useEmail && hasEmail) {
+        // ── Send via Resend email ──
+        try {
+          const emailRes = await runIdempotent<{ sentAt: string }>({
+            actionType: "BOOKING_REMINDER_EMAIL",
+            bucketAt: sendTargetAt,
+            parts: [job.id, job.contactId ?? "", job.contact?.email ?? "", message],
+            resultFactory: async () => {
+              const resendKey = process.env.RESEND_API_KEY;
+              if (!resendKey) throw new Error("RESEND_API_KEY not configured");
+              const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
+              const { Resend } = await import("resend");
+              const resend = new Resend(resendKey);
+
+              const emailBody = portalUrl
+                ? `${message}\n\nTrack your appointment: ${portalUrl}`
+                : message;
+
+              const subject = isBookingConfirmation
+                ? `Booking confirmed: ${job.title || "your appointment"}`
+                : `Reminder: ${job.title || "your appointment"} is tomorrow`;
+
+              const { error } = await resend.emails.send({
+                from: `${workspace?.name || "Earlymark"} <noreply@${fromDomain}>`,
+                to: [job.contact!.email!],
+                subject,
+                text: emailBody,
+              });
+              if (error) throw new Error(error.message);
+
+              const sentAt = new Date();
+              await db.deal.update({
+                where: { id: job.id },
+                data: { lastReminderSentAt: sentAt },
+              });
+              return { sentAt: sentAt.toISOString() };
+            },
+          });
+          if (emailRes.created) sent++;
+        } catch (err) {
+          console.error(`[BookingReminder] Email failed for job ${job.id}:`, err);
+          errors++;
+          continue;
+        }
+      } else if (!useEmail && hasPhone && rule.channel !== "email" && workspace?.twilioPhoneNumber && workspace?.twilioSubaccountId) {
+        // ── Send via Twilio SMS ──
+        const smsBody = portalUrl ? `${message}\n\nTrack your job: ${portalUrl}` : message;
         try {
           const smsRes = await runIdempotent<{ sentAt: string }>({
             actionType: "BOOKING_REMINDER_SMS",
             bucketAt: sendTargetAt,
-            parts: [job.id, job.contactId ?? "", job.contact?.phone ?? "", message],
+            parts: [job.id, job.contactId ?? "", job.contact?.phone ?? "", smsBody],
             resultFactory: async () => {
               const { getWorkspaceTwilioClient } = await import("@/lib/twilio");
               const client = getWorkspaceTwilioClient(workspace);
@@ -264,11 +328,10 @@ export async function processBookingReminders(): Promise<{
                 client.messages.create({
                   to: job.contact!.phone!,
                   from: workspace!.twilioPhoneNumber!,
-                  body: message,
+                  body: smsBody,
                 })
               );
 
-              // ── Mark as sent (dedup flag) ──
               const sentAt = new Date();
               await db.deal.update({
                 where: { id: job.id },
@@ -286,7 +349,7 @@ export async function processBookingReminders(): Promise<{
             err
           );
           errors++;
-          continue; // Don't log activity for failed sends
+          continue;
         }
       }
 
