@@ -23,13 +23,18 @@ const baseUrl = (providedBaseUrl || process.env.NEXT_PUBLIC_APP_URL || process.e
   "",
 );
 const mode = process.argv.includes("--active") ? "active" : "passive";
+const opsKey =
+  getArgValue("--ops-key") ||
+  process.env.TELEMETRY_ADMIN_KEY ||
+  process.env.CRON_SECRET ||
+  "";
 
-async function fetchJson(path: string): Promise<FetchSummary> {
+async function fetchJson(path: string, headers?: Record<string, string>): Promise<FetchSummary> {
   const url = `${baseUrl}${path}`;
 
   try {
     const response = await fetch(url, {
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(headers || {}) },
     });
 
     let body: JsonValue | undefined;
@@ -82,9 +87,20 @@ async function main() {
   }
 
   logSection("Application probes");
-  const [health, checkEnv] = await Promise.all([fetchJson("/api/health"), fetchJson("/api/check-env")]);
+  const protectedHeaders = opsKey
+    ? {
+        authorization: `Bearer ${opsKey}`,
+        "x-telemetry-key": opsKey,
+        "x-ops-key": opsKey,
+      }
+    : undefined;
+  const [health, checkEnv, launchReadiness] = await Promise.all([
+    fetchJson("/api/health"),
+    fetchJson("/api/check-env"),
+    fetchJson("/api/internal/launch-readiness", protectedHeaders),
+  ]);
 
-  for (const probe of [health, checkEnv]) {
+  for (const probe of [health, checkEnv, launchReadiness]) {
     console.log(`${probe.ok ? "PASS" : "FAIL"} ${probe.url} (${probe.status})`);
     if (probe.error) {
       console.log(`  error: ${probe.error}`);
@@ -101,10 +117,17 @@ async function main() {
     printJson(checkEnv.body);
   }
 
+  if (launchReadiness.body) {
+    console.log("\n/api/internal/launch-readiness summary:");
+    printJson(launchReadiness.body);
+  }
+
   logSection("Next steps");
-  console.log("1. Passive mode checks staging readiness only and does not create Stripe/Twilio/Resend/LiveKit side effects.");
-  console.log("2. After passive mode is green, run the manual checklist in docs/REAL_INTEGRATION_VERIFICATION.md.");
-  console.log("3. Use a dedicated staging workspace and test credentials before any active verification.");
+  console.log("1. Passive mode checks readiness only and does not create Stripe/Twilio/Resend/LiveKit side effects.");
+  console.log("2. In production, /api/health and /api/check-env may intentionally 404 behind middleware unless internal debug routes are enabled.");
+  console.log("3. Provide --ops-key (or TELEMETRY_ADMIN_KEY / CRON_SECRET locally) to query /api/internal/launch-readiness in production.");
+  console.log("4. After passive mode is green, run the manual checklist in docs/REAL_INTEGRATION_VERIFICATION.md.");
+  console.log("5. Use a dedicated staging workspace and test credentials before any active verification.");
 
   if (mode === "active") {
     console.log("4. Active mode is intentionally documentation-only right now. Follow the doc checklist to avoid accidental live side effects.");
