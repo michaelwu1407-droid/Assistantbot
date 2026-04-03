@@ -23,7 +23,15 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateBusinessContact({ phone: phone?.trim() || undefined, email: email?.trim() || undefined, address: address?.trim() || undefined })
+      const result = await updateBusinessContact({
+        phone: phone?.trim() || undefined,
+        email: email?.trim() || undefined,
+        address: address?.trim() || undefined,
+      })
+      if (!result.success) {
+        toast.error("Failed to save")
+        return
+      }
       toast.success("Business contact saved")
     } catch {
       toast.error("Failed to save")

@@ -1463,6 +1463,108 @@ export async function updateDealAssignedTo(
 }
 
 /**
+ * Reschedule a deal and optionally change the assigned team member in one atomic update.
+ * Used by drag/drop calendar flows so time and assignee changes cannot partially apply.
+ */
+export async function rescheduleDeal(
+  dealId: string,
+  data: {
+    scheduledAt: Date | string;
+    assignedToId?: string | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  const nextScheduledAt = new Date(data.scheduledAt);
+  if (Number.isNaN(nextScheduledAt.getTime())) {
+    return { success: false, error: "Invalid scheduled date." };
+  }
+
+  const nextAssignedToId = data.assignedToId !== undefined ? data.assignedToId : deal.assignedToId ?? null;
+
+  if (actor.role === "TEAM_MEMBER" && nextAssignedToId !== deal.assignedToId) {
+    return { success: false, error: "Only managers can reassign jobs." };
+  }
+
+  if (!nextAssignedToId) {
+    const stagesRequiringAssignment = ["SCHEDULED", "READY_TO_INVOICE", "WON", "PENDING_COMPLETION"];
+    if (stagesRequiringAssignment.includes(deal.stage)) {
+      return { success: false, error: "Cannot unassign a deal in the Scheduled stage or later. Move it to an earlier stage first." };
+    }
+  }
+
+  let nextAssigneeName: string | null = null;
+  if (nextAssignedToId) {
+    const member = await db.user.findFirst({
+      where: { id: nextAssignedToId, workspaceId: deal.workspaceId },
+      select: { id: true, name: true },
+    });
+    if (!member) return { success: false, error: "User not in this workspace" };
+    nextAssigneeName = member.name ?? null;
+  }
+
+  await db.deal.update({
+    where: { id: dealId },
+    data: {
+      scheduledAt: nextScheduledAt,
+      assignedToId: nextAssignedToId,
+    },
+  });
+
+  const changeLines = [
+    `Scheduled: ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "None"} -> ${nextScheduledAt.toLocaleString()}`,
+  ];
+  if (nextAssignedToId !== deal.assignedToId) {
+    changeLines.push(`Assigned to: ${nextAssigneeName || "Unassigned"}`);
+  }
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: nextAssignedToId !== deal.assignedToId ? "Job rescheduled and reassigned" : "Job rescheduled",
+      content: changeLines.join("\n"),
+      description: `Updated by ${actor.name || "team member"}`,
+      dealId,
+      contactId: deal.contactId ?? undefined,
+      userId: actor.id,
+    },
+  });
+
+  await recordWorkspaceAuditEvent({
+    workspaceId: deal.workspaceId,
+    userId: actor.id,
+    action: "deal.rescheduled",
+    entityType: "deal",
+    entityId: dealId,
+    metadata: {
+      previousScheduledAt: deal.scheduledAt ? new Date(deal.scheduledAt).toISOString() : null,
+      nextScheduledAt: nextScheduledAt.toISOString(),
+      previousAssignedToId: deal.assignedToId ?? null,
+      nextAssignedToId,
+      source: "deal-actions.rescheduleDeal",
+    },
+  });
+
+  await syncGoogleCalendarEventForDeal(dealId).catch((err) => {
+    recordSyncIssue({
+      workspaceId: deal.workspaceId,
+      dealId,
+      contactId: deal.contactId,
+      surface: "calendar_sync",
+      message: `Calendar sync failed after rescheduling "${deal.title}": ${err instanceof Error ? err.message : String(err)}`,
+    });
+  });
+
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${dealId}`);
+  return { success: true };
+}
+
+/**
  * Delete a deal and its related data (cascade).
  */
 export async function deleteDeal(dealId: string) {

@@ -101,7 +101,7 @@ vi.mock("@/actions/messaging-actions", () => ({
   sendConfirmationSMS: hoisted.sendConfirmationSMS,
 }));
 
-import { createDeal, updateDeal, updateDealAssignedTo, updateDealStage } from "@/actions/deal-actions";
+import { createDeal, rescheduleDeal, updateDeal, updateDealAssignedTo, updateDealStage } from "@/actions/deal-actions";
 
 describe("deal-actions", () => {
   beforeEach(() => {
@@ -395,5 +395,56 @@ describe("deal-actions", () => {
 
     expect(result).toEqual({ success: true });
     expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
+  });
+
+  it("reschedules and reassigns a job atomically", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1", role: "MANAGER", name: "Sam" },
+      deal: {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        stage: "SCHEDULED",
+        metadata: {},
+        assignedToId: "worker_1",
+        scheduledAt: new Date("2026-04-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-04-01T08:00:00.000Z"),
+      },
+    });
+    hoisted.db.user.findFirst.mockResolvedValueOnce({ id: "worker_2", name: "Alex" });
+
+    const result = await rescheduleDeal("deal_1", {
+      scheduledAt: "2026-04-02T11:30:00.000Z",
+      assignedToId: "worker_2",
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: {
+        scheduledAt: new Date("2026-04-02T11:30:00.000Z"),
+        assignedToId: "worker_2",
+      },
+    });
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Job rescheduled and reassigned",
+        dealId: "deal_1",
+        contactId: "contact_1",
+        userId: "user_1",
+      }),
+    });
+    expect(hoisted.recordWorkspaceAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: "ws_1",
+        action: "deal.rescheduled",
+        metadata: expect.objectContaining({
+          previousAssignedToId: "worker_1",
+          nextAssignedToId: "worker_2",
+        }),
+      }),
+    );
+    expect(hoisted.syncGoogleCalendarEventForDeal).toHaveBeenCalledWith("deal_1");
   });
 });

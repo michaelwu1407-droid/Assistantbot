@@ -22,7 +22,7 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
     try {
       const current = await getWorkspaceSettings()
       if (!current) throw new Error("Could not load settings")
-      await updateWorkspaceSettings({
+      const result = await updateWorkspaceSettings({
         agentMode: current.agentMode ?? "DRAFT",
         workingHoursStart: current.workingHoursStart ?? "08:00",
         workingHoursEnd: current.workingHoursEnd ?? "17:00",
@@ -32,6 +32,7 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
         aiPreferences: current.aiPreferences ?? undefined,
         googleReviewUrl: url.trim(),
       })
+      if (!result.success) throw new Error("Failed to save")
       toast.success("Google Review URL saved")
     } catch {
       toast.error("Failed to save")

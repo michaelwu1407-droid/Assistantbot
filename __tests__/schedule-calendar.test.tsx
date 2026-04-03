@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { updateDeal, updateDealAssignedTo, routerRefresh, toastSuccess, toastError } = vi.hoisted(() => ({
-  updateDeal: vi.fn(),
-  updateDealAssignedTo: vi.fn(),
+const { rescheduleDeal, routerRefresh, toastSuccess, toastError } = vi.hoisted(() => ({
+  rescheduleDeal: vi.fn(),
   routerRefresh: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
@@ -20,8 +19,7 @@ vi.mock("@/lib/crm-selection", () => ({
 }));
 
 vi.mock("@/actions/deal-actions", () => ({
-  updateDeal,
-  updateDealAssignedTo,
+  rescheduleDeal,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -42,8 +40,7 @@ import { ScheduleCalendar } from "@/app/crm/schedule/schedule-calendar";
 describe("ScheduleCalendar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    updateDeal.mockResolvedValue({ success: true });
-    updateDealAssignedTo.mockResolvedValue({ success: true });
+    rescheduleDeal.mockResolvedValue({ success: true });
   });
 
   it("hides the team filter and unassigned lane when only one team member is visible", async () => {
@@ -104,7 +101,7 @@ describe("ScheduleCalendar", () => {
       },
     };
 
-    updateDeal.mockResolvedValue({
+    rescheduleDeal.mockResolvedValue({
       success: false,
       error: "Set a scheduled date before moving the job to this stage.",
     });
@@ -141,5 +138,61 @@ describe("ScheduleCalendar", () => {
     });
     expect(toastSuccess).not.toHaveBeenCalled();
     expect(routerRefresh).toHaveBeenCalled();
+  });
+
+  it("uses a single reschedule action when moving across team lanes", async () => {
+    const user = userEvent.setup();
+    const scheduledAt = new Date();
+    scheduledAt.setHours(9, 0, 0, 0);
+    const dataTransfer = {
+      store: new Map<string, string>(),
+      setData(type: string, value: string) {
+        this.store.set(type, value);
+      },
+      getData(type: string) {
+        return this.store.get(type) ?? "";
+      },
+    };
+
+    const { container } = render(
+      <ScheduleCalendar
+        teamMembers={[
+          { id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" },
+          { id: "user_2", name: "Michael", email: "michael@example.com", role: "OWNER" },
+        ]}
+        deals={[
+          {
+            id: "deal_1",
+            title: "Blocked drain",
+            address: "12 King St",
+            contactName: "Alice",
+            assignedToId: "user_1",
+            scheduledAt,
+          } as never,
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "day" }));
+
+    const dragSource = screen.getAllByText("Blocked drain")[0]?.closest("[draggable='true']");
+    const memberRows = Array.from(container.querySelectorAll(".sticky.left-0"));
+    const michaelRow = memberRows.find((row) => row.textContent?.includes("Michael"));
+    const michaelDropCell = michaelRow?.nextElementSibling as HTMLElement | null;
+
+    expect(dragSource).not.toBeNull();
+    expect(michaelDropCell).not.toBeNull();
+
+    fireEvent.dragStart(dragSource!, { dataTransfer });
+    fireEvent.drop(michaelDropCell!, { dataTransfer });
+
+    await waitFor(() => expect(rescheduleDeal).toHaveBeenCalledTimes(1));
+    expect(rescheduleDeal).toHaveBeenCalledWith(
+      "deal_1",
+      expect.objectContaining({
+        assignedToId: "user_2",
+      }),
+    );
+    expect(toastSuccess).toHaveBeenCalledWith("Job updated");
   });
 });

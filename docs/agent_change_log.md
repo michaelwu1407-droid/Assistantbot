@@ -3116,3 +3116,23 @@ Rule: every agent change commit must include an entry in this file.
   - Added direct component proof for the Calls & texting settings page covering fallback/default loading, merged settings saves, and automatic Tracey sign-off handling on automated message templates.
 - Why:
   - At this stage the remaining CRM risks were workflow-consistency risks: different entry points into the same business action behaving differently, or a save succeeding in the backend but not cleanly propagating back to the page the user is actually on. This pass closes several of those last visible seams.
+
+## 2026-04-04 02:05 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/business-contact-form.test.tsx`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/google-review-url-section.test.tsx`
+  - `__tests__/schedule-calendar.test.tsx`
+  - `actions/deal-actions.ts`
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `components/settings/business-contact-form.tsx`
+  - `components/settings/google-review-url-section.tsx`
+- Summary:
+  - Removed the last meaningful partial-update risk in the CRM schedule by replacing the two-step drag/drop mutation path with a single `rescheduleDeal()` server action. Cross-lane moves now update time and assignee atomically instead of risking a half-applied backend state.
+  - Added direct proof that the calendar now uses the atomic reschedule path and still surfaces backend failures honestly.
+  - Added direct component proof for two more My business forms: business contact details and Google review URL. Both now have interaction coverage for trimmed saves and visible failure handling.
+  - Tightened those form components so they no longer treat a non-throwing failed save result as success.
+- Why:
+  - The remaining CRM issues were no longer missing pages; they were subtle trust problems where one failed mutation could leave data in-between states or where settings forms were only "probably fine." This pass reduces that last class of risk in both schedule operations and business-profile settings.

@@ -112,18 +112,14 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     }
 
     try {
-      const { updateDeal } = await import("@/actions/deal-actions")
-      const { updateDealAssignedTo } = await import("@/actions/deal-actions")
+      const { rescheduleDeal } = await import("@/actions/deal-actions")
 
-      const updateResult = await updateDeal(dealId, { scheduledAt: newDate })
+      const updateResult = await rescheduleDeal(dealId, {
+        scheduledAt: newDate,
+        ...(memberId !== undefined ? { assignedToId: memberId || null } : {}),
+      })
       if (!updateResult.success) {
         throw new Error(updateResult.error || "Could not update the job.")
-      }
-      if (memberId !== undefined) {
-        const assignmentResult = await updateDealAssignedTo(dealId, memberId || null)
-        if (!assignmentResult.success) {
-          throw new Error(assignmentResult.error || "Could not update the assigned team member.")
-        }
       }
 
       setLocalDeals((prev) =>

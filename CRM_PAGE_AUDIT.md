@@ -78,6 +78,9 @@ Status meanings:
    - Reassigning a scheduled job now behaves like a first-class CRM action instead of a silent field change: it logs an activity, records an audit event, revalidates the main schedule/map/detail surfaces, and best-effort resyncs the calendar event.
    - My business saves now revalidate the live canonical page instead of only the old `/crm/settings/knowledge` alias.
    - The Calls & texting settings surface now has direct component proof for both fallback/default loading and successful save behavior, including automated-message signature handling.
+25. Atomic schedule moves and business-profile form proof
+   - Schedule drag/drop now uses a single reschedule action instead of two separate server actions, so moving a job across time/member lanes cannot partially apply on the backend.
+   - My business now has direct component proof for the business contact form and Google review link flow, including trimmed saves and error handling.
 
 ## CRM surface status
 
@@ -155,6 +158,7 @@ Status meanings:
   - Team members now only see their own jobs and their own lane, which matches the intended restricted workflow better.
   - Failed drag/drop updates now surface real backend rejection messages instead of falsely toasting success.
   - Assignment changes now propagate more cleanly too because the reassignment action logs, revalidates, and resyncs the underlying scheduled job instead of acting like a silent metadata tweak.
+  - Drag/drop reschedules are now atomic on the server, so a cross-lane move cannot leave the scheduled time updated but the assignee unchanged after a mid-flight failure.
 - Evidence:
   - `__tests__/schedule-page.test.tsx`
   - `__tests__/schedule-calendar.test.tsx`
@@ -222,6 +226,7 @@ Status meanings:
   - Billing access is now proven at the page boundary too, not just inferred from hidden sidebar links.
   - Calls & texting now has direct component proof for fallback loading, merged settings saves, and automated-message signature handling.
   - My business write paths now invalidate the canonical page they actually live on instead of only the legacy alias route.
+  - Core My business forms now also have direct interaction proof for save success and error handling instead of only relying on server-action tests.
   - Not fully journey-audited in this pass.
   - Some sections are already stronger than others, so this needs a dedicated settings audit rather than a blanket claim.
 - Evidence:
@@ -230,6 +235,8 @@ Status meanings:
   - `__tests__/call-settings-client.test.tsx`
   - `__tests__/service-areas-section.test.tsx`
   - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/business-contact-form.test.tsx`
+  - `__tests__/google-review-url-section.test.tsx`
 
 ### `/crm/settings/integrations`
 
@@ -257,7 +264,7 @@ Status meanings:
 
 2. Schedule journey
    - drag/update interactions
-   - confirmation/reminder side effects beyond the now-covered assignment/calendar consistency
+   - confirmation/reminder side effects beyond the now-covered atomic move + assignment/calendar consistency
 
 3. Team and analytics pages
    - server/client access behavior
@@ -265,7 +272,7 @@ Status meanings:
    - empty/error states
 
 4. Settings journey
-   - especially phone, agent, inbox/messaging, and business profile settings beyond the now-proven redirect/access/save paths
+   - especially phone, agent, inbox/messaging, and business profile settings beyond the now-proven redirect/access/save/form paths
 
 ## Current blunt verdict
 
