@@ -1,3 +1,16 @@
+## 2026-04-04 03:18 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/inbox-view.test.tsx`
+  - `__tests__/workspace-setup-comms-route.test.ts`
+  - `CRM_PAGE_AUDIT.md`
+- Summary:
+  - Added inbox journey coverage for direct SMS success/failure and Ask Tracey success/failure from the real CRM thread UI.
+  - Added route-level coverage for `/api/workspace/setup-comms`, including unauthenticated, missing-workspace, and successful provisioning handoff responses.
+  - Updated the CRM audit to reflect the stronger inbox journey proof.
+- Why:
+  - The inbox and the final onboarding provisioning handoff are both high-importance user touchpoints. They now have direct regression coverage for the real paths users take before live provider testing.
+
 ## 2026-04-04 03:12 (AEDT) - Codex
 
 - Files changed:

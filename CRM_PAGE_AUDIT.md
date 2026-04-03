@@ -150,11 +150,12 @@ Status meanings:
 - Why:
   - Real inbox view with contact selection, thread detail, direct send, and "Tell Tracey" mode.
   - This pass fixed the broken deep-link expectation from contact/deal surfaces.
+  - Direct message and Ask Tracey paths now have journey-level proof for success and failure behavior, so this page is no longer relying only on deep-link coverage and manual confidence.
 - Evidence:
   - `__tests__/inbox-view.test.tsx`
 - Watch items:
   - Still manager-only at page level.
-  - Would benefit from a page-level route test around query-param behavior and permissions.
+  - Would still benefit from a page-level route test around permissions plus a broader provider-backed send smoke test later.
 
 ### `/crm/schedule`
 

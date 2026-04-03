@@ -1,6 +1,14 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+const { sendSMS, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
+  sendSMS: vi.fn(),
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+  toastInfo: vi.fn(),
+}));
 
 vi.mock("next/link", () => ({
   default: ({
@@ -25,19 +33,28 @@ vi.mock("@/lib/store", () => ({
 }));
 
 vi.mock("@/actions/messaging-actions", () => ({
-  sendSMS: vi.fn(),
+  sendSMS,
 }));
 
 vi.mock("sonner", () => ({
   toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+    success: toastSuccess,
+    error: toastError,
+    info: toastInfo,
   },
 }));
 
 import { InboxView } from "@/components/crm/inbox-view";
 
 describe("InboxView", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("honors an initial contact id and opens that contact thread first", async () => {
     render(
       <InboxView
@@ -79,5 +96,162 @@ describe("InboxView", () => {
     });
 
     expect(screen.getByText("Bob message")).toBeInTheDocument();
+  });
+
+  it("sends a direct SMS from the selected inbox thread", async () => {
+    const user = userEvent.setup();
+    sendSMS.mockResolvedValue({ success: true });
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            content: "Can you come this afternoon?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    const input = screen.getByPlaceholderText(/Text Alice Example directly/i);
+    await user.type(input, "On my way");
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => expect(sendSMS).toHaveBeenCalledWith("contact_a", "On my way"));
+    expect(toastSuccess).toHaveBeenCalledWith("SMS sent");
+  });
+
+  it("shows the backend error when direct SMS fails", async () => {
+    const user = userEvent.setup();
+    sendSMS.mockResolvedValue({ success: false, error: "Twilio offline" });
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            content: "Can you come this afternoon?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    const input = screen.getByPlaceholderText(/Text Alice Example directly/i);
+    await user.type(input, "On my way");
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Twilio offline"));
+  });
+
+  it("routes Ask Tracey requests through the chat API and clears the draft on success", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => "",
+      }),
+    );
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            content: "Can you come this afternoon?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /Ask Tracey/i }));
+    const input = screen.getByPlaceholderText(/Tell Tracey what to do with Alice Example/i);
+    await user.type(input, "Please let them know we'll be there at 3.");
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/chat",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }),
+      ),
+    );
+    expect(toastSuccess).toHaveBeenCalledWith("Tracey is handling Alice Example");
+  });
+
+  it("shows a clear error when Ask Tracey cannot reach the API", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            content: "Can you come this afternoon?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /Ask Tracey/i }));
+    const input = screen.getByPlaceholderText(/Tell Tracey what to do with Alice Example/i);
+    await user.type(input, "Please let them know we'll be there at 3.");
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith("Could not reach Tracey. Check your connection and try again."),
+    );
   });
 });
