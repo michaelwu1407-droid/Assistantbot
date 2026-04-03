@@ -63,6 +63,14 @@ Status meanings:
    - Draft confirmation and invoice saves now respect returned `{ success: false }` errors instead of falsely toasting success.
 19. Deal modal related-job scoping
    - The `/api/deals/[id]` modal data route now scopes related customer jobs the same way as the full detail page, so team members do not see other tradies' jobs inside the modal.
+20. Billing and photo flow truthfulness
+   - The deal billing tab no longer treats a returned `{ success: false }` invoice-creation result as success.
+   - Photo upload now has direct component proof for both the success path and the returned backend-error path, so that surface is no longer just assumed from the action code.
+21. Settings route coherence proof
+   - Legacy settings URLs now have direct redirect coverage to their canonical pages, so users who land on old paths still reach a real destination instead of a dead branch.
+   - Billing now has direct route-level proof that team members are blocked before the page loads, not just hidden from the sidebar.
+22. Tradie on-my-way guard alignment
+   - The `sendOnMyWaySMS` action now scopes through the shared deal-access guard before loading the job, matching the rest of the tradie CRM workflow instead of doing an unscoped read first.
 
 ## CRM surface status
 
@@ -164,12 +172,16 @@ Status meanings:
   - This pass closed a real access hole by routing detail-page access through the scoped deal guard, so team members cannot open arbitrary jobs by direct URL anymore.
   - This pass also scoped the related "Past jobs" panel so tradies do not see other team members' jobs for the same customer.
   - The linked modal actions are now more coherent too: edit buttons go to edit pages, quick-send actually fires from the button, and failed saves no longer pretend they worked.
+  - The billing tab now tells the truth when invoice creation is rejected, and the photo-upload surface now has direct proof for both success and returned backend-error handling.
   - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`
   - `__tests__/deal-edit-form.test.tsx`
   - `__tests__/deal-api-route.test.ts`
   - `__tests__/deal-page-access.test.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+  - `__tests__/deal-photos-upload.test.tsx`
+  - `__tests__/tradie-actions.test.ts`
 
 ### `/crm/team`
 
@@ -196,10 +208,13 @@ Status meanings:
 - Why:
   - Large real settings surface with many tested actions.
   - Manager-only sidebar discoverability now has direct coverage, so team members no longer see obvious dead-end nav links for Billing and Integrations.
+  - Legacy route aliases like old phone, support, SMS template, AI voice, and after-hours paths now have direct proof that they redirect into the canonical settings pages instead of stranding users.
+  - Billing access is now proven at the page boundary too, not just inferred from hidden sidebar links.
   - Not fully journey-audited in this pass.
   - Some sections are already stronger than others, so this needs a dedicated settings audit rather than a blanket claim.
 - Evidence:
   - `__tests__/settings-layout.test.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
 
 ### `/crm/settings/integrations`
 
@@ -209,12 +224,21 @@ Status meanings:
 - Evidence:
   - `__tests__/crm-route-guards.test.tsx`
 
+### `/crm/settings/billing`
+
+- Status: `go`
+- Why:
+  - Real page with current subscription status and management CTA.
+  - Now has direct route-level proof that team members are redirected out before workspace/billing data loads, which matches the CRM navigation rules.
+- Evidence:
+  - `__tests__/settings-route-redirects.test.tsx`
+
 ## Remaining CRM concerns worth auditing next
 
 1. Deals detail and edit as a full journey
    - message customer
    - verify state reflects correctly everywhere
-   - tighten any remaining linked-action and billing/photo journey gaps
+   - tighten any remaining linked-action journey gaps outside the now-covered billing/photo surfaces
 
 2. Schedule journey
    - drag/update interactions
@@ -226,7 +250,7 @@ Status meanings:
    - empty/error states
 
 4. Settings journey
-   - especially phone, agent, inbox/messaging, and business profile settings
+   - especially phone, agent, inbox/messaging, and business profile settings beyond the now-proven redirect/access paths
 
 ## Current blunt verdict
 

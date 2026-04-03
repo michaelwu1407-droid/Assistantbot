@@ -82,7 +82,7 @@ export function DealPhotosUpload({ dealId, initialPhotos }: DealPhotosUploadProp
             className="gap-2"
           >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploading ? "Uploading…" : "Upload photo with note"}
+            {uploading ? "Uploading..." : "Upload photo with note"}
           </Button>
         </div>
       </div>

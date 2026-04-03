@@ -74,7 +74,7 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { generateQuote, markInvoicePaid } from "@/actions/tradie-actions";
+import { generateQuote, markInvoicePaid, sendOnMyWaySMS } from "@/actions/tradie-actions";
 
 describe("tradie-actions", () => {
   beforeEach(() => {
@@ -190,5 +190,33 @@ describe("tradie-actions", () => {
         }),
       }),
     );
+  });
+
+  it("scopes on-my-way SMS through the shared deal access guard before sending", async () => {
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      title: "Blocked drain",
+      contact: {
+        id: "contact_1",
+        name: "Taylor",
+        phone: "0400000000",
+      },
+    });
+    hoisted.sendSMS.mockResolvedValue({ success: true });
+
+    const result = await sendOnMyWaySMS("deal_1");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.requireDealInCurrentWorkspace).toHaveBeenCalledWith("deal_1");
+    expect(hoisted.db.deal.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "deal_1",
+        workspaceId: "ws_1",
+      },
+      include: { contact: true },
+    });
+    expect(hoisted.sendSMS).toHaveBeenCalledWith("contact_1", "Hi Taylor, I'm on my way to Blocked drain. See you soon!");
   });
 });

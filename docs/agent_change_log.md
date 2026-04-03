@@ -3076,3 +3076,23 @@ Rule: every agent change commit must include an entry in this file.
   - Added focused proof for the modal interactions and the API scoping, and cleaned two visible settings save labels back to plain ASCII `Saving...`.
 - Why:
   - The deal modal is one of the highest-traffic CRM surfaces. It needs to be held to the same standard as the full pages: the right user sees the right data, every prominent action goes somewhere real, and failures are reported honestly instead of being papered over.
+
+## 2026-04-04 01:38 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/deal-photos-upload.test.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `actions/tradie-actions.ts`
+  - `components/crm/deal-photos-upload.tsx`
+  - `components/tradie/job-billing-tab.tsx`
+- Summary:
+  - Tightened the remaining CRM truthfulness gaps around billing, photo uploads, and legacy settings entry points so those surfaces are now proven under the same "does the user actually get the right outcome?" standard as the earlier schedule and deal-detail fixes.
+  - The job billing tab now respects returned `generateQuote()` failures instead of falsely toasting success, and gained focused component coverage for both the rejected and successful create-invoice paths.
+  - Added direct photo-upload coverage proving the deal detail surface refreshes and clears its note on success, while surfacing backend rejection messages without falsely refreshing on failure.
+  - Added route-level proof that legacy settings URLs still land on the correct canonical pages and that direct `/crm/settings/billing` access is blocked for team members before any workspace data loads.
+  - Aligned `sendOnMyWaySMS()` with the shared scoped-deal guard so the tradie workflow no longer performs an unscoped job lookup before sending a live customer message.
+- Why:
+  - The remaining CRM risk was less about missing pages and more about trust: whether high-traffic actions tell the truth, whether old URLs still get users somewhere sensible, and whether live customer-facing actions obey the same access rules as the rest of the system. This pass closes several of those last obvious gaps.

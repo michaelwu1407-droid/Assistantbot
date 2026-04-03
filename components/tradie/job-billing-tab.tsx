@@ -135,11 +135,15 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
         setPriceError(null)
         setCreating(true)
         try {
-            await generateQuote(dealId, [{ desc: variationDesc, price }])
+            const result = await generateQuote(dealId, [{ desc: variationDesc, price }])
+            if (result.success === false) {
+                toast.error(result.error ?? "Failed to create invoice")
+                return
+            }
             toast.success("Invoice created")
             setVariationDesc("")
             setVariationPrice("")
-            fetchInvoices()
+            await fetchInvoices()
         } catch (error) {
             console.error(error)
             toast.error("Failed to create invoice")

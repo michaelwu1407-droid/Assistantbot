@@ -321,8 +321,12 @@ export async function getJobDetails(jobId: string) {
  * Send "On My Way" SMS to the client.
  */
 export async function sendOnMyWaySMS(jobId: string) {
-  const deal = await db.deal.findUnique({
-    where: { id: jobId },
+  const { actor, deal: scopedDeal } = await requireDealInCurrentWorkspace(jobId);
+  const deal = await db.deal.findFirst({
+    where: {
+      id: scopedDeal.id,
+      workspaceId: actor.workspaceId,
+    },
     include: { contact: true }
   });
 
