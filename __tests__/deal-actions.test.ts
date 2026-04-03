@@ -397,6 +397,33 @@ describe("deal-actions", () => {
     expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
   });
 
+  it("clears reminder state when updateDeal changes the scheduled time", async () => {
+    hoisted.db.deal.findFirst.mockResolvedValueOnce({
+      id: "deal_1",
+      title: "Hot Water Fix",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      stage: "SCHEDULED",
+      isDraft: false,
+      scheduledAt: new Date("2026-04-01T10:00:00.000Z"),
+      lastReminderSentAt: new Date("2026-03-31T10:00:00.000Z"),
+      workspace: { autoUpdateGlossary: false },
+    });
+
+    const result = await updateDeal("deal_1", {
+      scheduledAt: "2026-04-02T11:30:00.000Z",
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: expect.objectContaining({
+        scheduledAt: new Date("2026-04-02T11:30:00.000Z"),
+        lastReminderSentAt: null,
+      }),
+    });
+  });
+
   it("reschedules and reassigns a job atomically", async () => {
     hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
       actor: { id: "user_1", workspaceId: "ws_1", role: "MANAGER", name: "Sam" },
@@ -425,6 +452,7 @@ describe("deal-actions", () => {
       data: {
         scheduledAt: new Date("2026-04-02T11:30:00.000Z"),
         assignedToId: "worker_2",
+        lastReminderSentAt: null,
       },
     });
     expect(hoisted.db.activity.create).toHaveBeenCalledWith({

@@ -81,6 +81,9 @@ Status meanings:
 25. Atomic schedule moves and business-profile form proof
    - Schedule drag/drop now uses a single reschedule action instead of two separate server actions, so moving a job across time/member lanes cannot partially apply on the backend.
    - My business now has direct component proof for the business contact form and Google review link flow, including trimmed saves and error handling.
+26. Reschedule reminder parity
+   - Moving a scheduled job now clears its `lastReminderSentAt` marker when the scheduled time actually changes.
+   - That keeps 24h reminder automation logically aligned with the new booking time instead of silently treating a rescheduled job as "already reminded" for the old slot.
 
 ## CRM surface status
 
@@ -159,12 +162,13 @@ Status meanings:
   - Failed drag/drop updates now surface real backend rejection messages instead of falsely toasting success.
   - Assignment changes now propagate more cleanly too because the reassignment action logs, revalidates, and resyncs the underlying scheduled job instead of acting like a silent metadata tweak.
   - Drag/drop reschedules are now atomic on the server, so a cross-lane move cannot leave the scheduled time updated but the assignee unchanged after a mid-flight failure.
+  - Rescheduling a job now also clears stale reminder state so the 24h reminder cron can fire against the new appointment time instead of skipping the job as already handled.
 - Evidence:
   - `__tests__/schedule-page.test.tsx`
   - `__tests__/schedule-calendar.test.tsx`
   - `__tests__/deal-actions.test.ts`
 - Watch items:
-  - Still needs end-to-end verification for drag/update side effects like reminders, confirmations, and assignment changes.
+  - Booking reminders now reset correctly on reschedule, but customer-facing reschedule confirmations still need explicit product-level verification.
 
 ### `/crm/map`
 

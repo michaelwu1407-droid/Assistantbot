@@ -1,3 +1,18 @@
+## 2026-04-04 02:28 (AEDT) - Codex
+
+- Files changed:
+  - `actions/deal-actions.ts`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/deal-actions-sync.test.ts`
+  - `CRM_PAGE_AUDIT.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Reset scheduled-job reminder state whenever the scheduled time actually changes through the deal edit flow or atomic reschedule action.
+  - Added regression coverage so moved bookings become eligible for a fresh 24h reminder instead of being silently skipped because `lastReminderSentAt` was still set from the old slot.
+  - Updated the CRM audit to reflect that booking-reminder parity is now part of the schedule workflow.
+- Why:
+  - Rescheduling a job previously left the old reminder marker intact, which meant the automation cron could treat a newly moved booking as already reminded and never send the correct reminder for the new appointment time.
+
 ## 2026-04-01 (AEDT) - Claude (sonnet-4-6)
 
 - Files changed:

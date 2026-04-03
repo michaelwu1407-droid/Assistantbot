@@ -128,6 +128,24 @@ async function fireBookingConfirmation(
   }
 }
 
+function normalizeScheduledAtInput(value: Date | string | null | undefined): Date | null {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const parsed = value instanceof Date ? new Date(value) : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function didScheduledTimeChange(
+  previousScheduledAt: Date | string | null | undefined,
+  nextScheduledAt: Date | string | null | undefined
+): boolean {
+  const previousTime = normalizeScheduledAtInput(previousScheduledAt)?.getTime() ?? null;
+  const nextTime = normalizeScheduledAtInput(nextScheduledAt)?.getTime() ?? null;
+  return previousTime !== nextTime;
+}
+
 type PrismaStage = "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "PENDING_COMPLETION" | "WON" | "LOST" | "DELETED";
 
 export interface DealView {
@@ -1140,6 +1158,9 @@ export async function updateDeal(
   if (!deal) return { success: false, error: "Deal not found" };
   const stageMovedToWon = data.stage !== undefined && (STAGE_REVERSE[data.stage] ?? "") === "WON";
   const draftConfirmed = deal.isDraft && data.isDraft === false;
+  const nextScheduledAt = data.scheduledAt !== undefined ? normalizeScheduledAtInput(data.scheduledAt) : undefined;
+  const scheduledTimeChanged =
+    data.scheduledAt !== undefined && didScheduledTimeChange(deal.scheduledAt, nextScheduledAt);
 
   type DealUpdate = Parameters<typeof db.deal.update>[0]["data"];
   const update: DealUpdate = {};
@@ -1148,13 +1169,8 @@ export async function updateDeal(
   if (data.stage !== undefined) {
     const prismaStage = STAGE_REVERSE[data.stage];
     if (!prismaStage) return { success: false, error: `Invalid stage: ${data.stage}` };
-    const nextScheduledAt =
-      data.scheduledAt !== undefined
-        ? data.scheduledAt == null || data.scheduledAt === ""
-          ? null
-          : new Date(data.scheduledAt as string | Date)
-        : deal.scheduledAt;
-    if (kanbanStageRequiresScheduledDate(data.stage) && !nextScheduledAt) {
+    const scheduledAtForStage = nextScheduledAt ?? deal.scheduledAt;
+    if (kanbanStageRequiresScheduledDate(data.stage) && !scheduledAtForStage) {
       return { success: false, error: "Set a scheduled date before moving the job to this stage." };
     }
     update.stage = prismaStage as DealUpdate["stage"];
@@ -1166,7 +1182,10 @@ export async function updateDeal(
   }
   if (data.address !== undefined) update.address = data.address || null;
   if (data.scheduledAt !== undefined) {
-    update.scheduledAt = data.scheduledAt == null || data.scheduledAt === "" ? null : new Date(data.scheduledAt as string | Date);
+    update.scheduledAt = nextScheduledAt;
+    if (scheduledTimeChanged) {
+      update.lastReminderSentAt = null;
+    }
   }
 
   await db.deal.update({
@@ -1476,10 +1495,11 @@ export async function rescheduleDeal(
   const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
-  const nextScheduledAt = new Date(data.scheduledAt);
-  if (Number.isNaN(nextScheduledAt.getTime())) {
+  const nextScheduledAt = normalizeScheduledAtInput(data.scheduledAt);
+  if (!nextScheduledAt) {
     return { success: false, error: "Invalid scheduled date." };
   }
+  const scheduledTimeChanged = didScheduledTimeChange(deal.scheduledAt, nextScheduledAt);
 
   const nextAssignedToId = data.assignedToId !== undefined ? data.assignedToId : deal.assignedToId ?? null;
 
@@ -1509,6 +1529,7 @@ export async function rescheduleDeal(
     data: {
       scheduledAt: nextScheduledAt,
       assignedToId: nextAssignedToId,
+      ...(scheduledTimeChanged ? { lastReminderSentAt: null } : {}),
     },
   });
 

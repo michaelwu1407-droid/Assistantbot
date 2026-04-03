@@ -146,4 +146,28 @@ describe("updateDeal — calendar sync failures recorded as SyncIssues", () => {
 
     expect(recordSyncIssue).not.toHaveBeenCalled();
   });
+
+  it("clears lastReminderSentAt when a scheduled job is moved", async () => {
+    dbMocks.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      title: "Fix leak",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      stage: "SCHEDULED",
+      isDraft: false,
+      scheduledAt: new Date("2026-04-01T10:00:00Z"),
+      lastReminderSentAt: new Date("2026-03-31T10:00:00Z"),
+      workspace: { autoUpdateGlossary: false },
+    });
+
+    await updateDeal("deal_1", { scheduledAt: "2026-04-02T10:00:00Z" });
+
+    expect(dbMocks.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: expect.objectContaining({
+        scheduledAt: new Date("2026-04-02T10:00:00Z"),
+        lastReminderSentAt: null,
+      }),
+    });
+  });
 });
