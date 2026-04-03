@@ -3244,3 +3244,16 @@ Rule: every agent change commit must include an entry in this file.
   - Tightened those form components so they no longer treat a non-throwing failed save result as success.
 - Why:
   - The remaining CRM issues were no longer missing pages; they were subtle trust problems where one failed mutation could leave data in-between states or where settings forms were only "probably fine." This pass reduces that last class of risk in both schedule operations and business-profile settings.
+
+## 2026-04-04 03:22 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/dashboard-layout.test.tsx`
+  - `__tests__/inbox-page.test.tsx`
+- Summary:
+  - Added direct route-level proof for the main CRM shell gates so the app now explicitly verifies the three user-entry branches that matter most: unauthenticated users are redirected to `/auth`, unpaid workspaces to `/billing`, and active but not-yet-onboarded workspaces to `/setup`.
+  - Added a new page-level inbox test suite covering login redirect, manager-only route protection, query-param thread selection, and the "database unavailable" fallback state. That closes the gap where the inbox internals were well-tested but the page boundary itself was still assumed.
+  - Updated the CRM audit to reflect that `/crm/inbox` is now supported by both page-level and component-level journey proof.
+- Why:
+  - The next reliability layer is no longer "does the widget work," but "can the intended user actually reach the right page and get sensible behavior from the boundary conditions?" This pass adds that proof for two of the most central CRM surfaces.

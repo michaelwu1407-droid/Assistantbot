@@ -87,6 +87,9 @@ Status meanings:
 27. Reschedule customer communication parity
    - Scheduled jobs now send a distinct updated booking confirmation when their customer-facing appointment time changes.
    - The original booking confirmation and the later reschedule confirmation are now separate, explicit behaviors with regression coverage, so schedule edits no longer rely on the next 24h reminder to correct the customer's expectation.
+28. CRM shell and inbox page-boundary proof
+   - The main CRM shell now has direct route-level proof for its three real entry gates: unauthenticated users go to `/auth`, unpaid workspaces go to `/billing`, and active-but-unonboarded workspaces go to `/setup`.
+   - The global inbox now has direct page-level proof for auth, manager-only access, deep-linked contact thread selection, and database-unavailable fallback rendering, instead of relying only on inner component tests.
 
 ## CRM surface status
 
@@ -151,11 +154,12 @@ Status meanings:
   - Real inbox view with contact selection, thread detail, direct send, and "Tell Tracey" mode.
   - This pass fixed the broken deep-link expectation from contact/deal surfaces.
   - Direct message and Ask Tracey paths now have journey-level proof for success and failure behavior, so this page is no longer relying only on deep-link coverage and manual confidence.
+  - The page boundary itself is now proven too: login redirect, manager-only route protection, selected-thread handoff, and graceful DB-unavailable fallback.
 - Evidence:
   - `__tests__/inbox-view.test.tsx`
+  - `__tests__/inbox-page.test.tsx`
 - Watch items:
-  - Still manager-only at page level.
-  - Would still benefit from a page-level route test around permissions plus a broader provider-backed send smoke test later.
+  - Would still benefit from a broader provider-backed send smoke test later.
 
 ### `/crm/schedule`
 
