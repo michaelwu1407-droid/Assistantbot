@@ -3257,3 +3257,24 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the CRM audit to reflect that `/crm/inbox` is now supported by both page-level and component-level journey proof.
 - Why:
   - The next reliability layer is no longer "does the widget work," but "can the intended user actually reach the right page and get sensible behavior from the boundary conditions?" This pass adds that proof for two of the most central CRM surfaces.
+
+## 2026-04-04 04:18 (AEDT) - Codex
+
+- Files changed:
+  - `.gitignore`
+  - `app/crm/dashboard/page.tsx`
+  - `e2e/admin.spec.ts`
+  - `e2e/constants.ts`
+  - `e2e/global-setup.ts`
+  - `e2e/public-preview.spec.ts`
+  - `e2e/team-member.spec.ts`
+  - `lib/auth.ts`
+  - `package.json`
+  - `playwright.config.ts`
+- Summary:
+  - Added a real Playwright harness to the repo with a test script, config, auth-cookie test mode, and browser specs for admin, tradie, and public customer-facing flows.
+  - The CRM specs are designed to run against an isolated Postgres-backed E2E workspace when the harness can provision it, and they now skip cleanly instead of hanging when that DB layer is unavailable.
+  - Added public browser smoke coverage that runs without the DB harness and verifies the landing page plus the polished portal preview route in a real browser.
+  - Suppressed dashboard demo seeding during E2E runs so browser assertions can target deterministic data instead of dev-only injected jobs.
+- Why:
+  - The next step after unit/integration proof is real browser proof. This harness makes that possible in-repo while being honest about environmental blockers: public Playwright smoke tests pass now, and the deeper CRM flows are ready to execute as soon as the isolated DB harness becomes available on the machine running the suite.

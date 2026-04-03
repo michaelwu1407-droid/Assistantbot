@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logging";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+
+const E2E_AUTH_COOKIE_NAME = "earlymark_e2e_user_id";
 
 function hasSupabaseAuthEnv() {
   return Boolean(
@@ -44,11 +48,42 @@ const getSessionUser = cache(async (): Promise<User | null> => {
   }
 });
 
+async function getE2EAuthUser() {
+  if (process.env.E2E_AUTH_ENABLED !== "1") {
+    return null;
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get(E2E_AUTH_COOKIE_NAME)?.value;
+    if (!userId) {
+      return null;
+    }
+
+    return db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        bio: true,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get the current user's ID from Supabase.
  */
 export async function getAuthUserId(): Promise<string | null> {
   try {
+    const e2eUser = await getE2EAuthUser();
+    if (e2eUser?.id) {
+      return e2eUser.id;
+    }
+
     const user = await getSessionUser();
 
     if (!user) {
@@ -67,6 +102,16 @@ export async function getAuthUserId(): Promise<string | null> {
  */
 export async function getAuthUser(): Promise<{ id: string; name: string; email?: string; bio?: string; image?: string } | null> {
   try {
+    const e2eUser = await getE2EAuthUser();
+    if (e2eUser) {
+      return {
+        id: e2eUser.id,
+        name: e2eUser.name || e2eUser.email?.split("@")[0] || "User",
+        email: e2eUser.email ?? undefined,
+        bio: e2eUser.bio ?? undefined,
+      };
+    }
+
     const user = await getSessionUser();
 
     if (!user) {

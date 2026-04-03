@@ -21,7 +21,8 @@
     "twilio:list-bundles": "npx tsx scripts/list-regulatory-bundles.ts",
     "twilio:cleanup-orphans": "npx tsx scripts/cleanup-twilio-orphan-subaccounts.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -96,6 +97,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@prisma/client": "^5.22.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",

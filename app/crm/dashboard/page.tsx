@@ -30,7 +30,7 @@ export default async function CrmDashboardPage(props: {
 
     try {
         workspace = await getOrCreateWorkspace(userId)
-        if (process.env.NODE_ENV === "development") {
+        if (process.env.NODE_ENV === "development" && process.env.E2E_SKIP_DEMO_SEEDS !== "1") {
             await ensureDashboardDemoDeals(workspace.id).catch(() => {})
         }
         const [, dealsResult, teamResult] = await Promise.all([
