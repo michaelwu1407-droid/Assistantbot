@@ -65,6 +65,9 @@ describe("MapView", () => {
 
   it("lets the user select a job and exposes route and messaging actions", async () => {
     const user = userEvent.setup();
+    const scheduledAt = new Date();
+    scheduledAt.setHours(10, 0, 0, 0);
+
     render(
       <MapView
         jobs={[
@@ -75,7 +78,7 @@ describe("MapView", () => {
             address: "1 King St, Sydney",
             status: "SCHEDULED",
             value: 420,
-            scheduledAt: new Date("2026-04-02T10:00:00.000Z"),
+            scheduledAt,
             lat: -33.86,
             lng: 151.2,
           },

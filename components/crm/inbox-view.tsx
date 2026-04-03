@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
@@ -81,6 +81,8 @@ interface InboxViewProps {
   contactSegment?: Record<string, ContactSegment>
   /** Required for "Tell Tracey" mode so the chat API can run in the correct workspace. */
   workspaceId?: string
+  /** Optional deep link so other CRM pages can open a specific contact thread. */
+  initialContactId?: string | null
 }
 
 const typeLabel: Record<string, string> = {
@@ -134,12 +136,33 @@ function getInboxListPreviewRow(latest: ActivityView | undefined): { text: strin
   }
 }
 
-export function InboxView({ initialInteractions, contactSegment = {}, workspaceId }: InboxViewProps) {
+function findInitialSelectedActivityId(
+  interactions: ActivityView[],
+  initialContactId?: string | null,
+): string | null {
+  if (initialContactId) {
+    const matching = sortActivitiesByCreatedDesc(
+      interactions.filter((activity) => (activity.contactId || activity.id) === initialContactId),
+    )[0];
+    if (matching?.id) return matching.id;
+  }
+
+  return interactions[0]?.id ?? null;
+}
+
+export function InboxView({
+  initialInteractions,
+  contactSegment = {},
+  workspaceId,
+  initialContactId = null,
+}: InboxViewProps) {
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"
   const interactions = isTutorialInboxStep ? [...FAKE_TUTORIAL_INBOX, ...initialInteractions] : initialInteractions
 
-  const [selectedId, setSelectedId] = useState<string | null>(interactions[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    findInitialSelectedActivityId(interactions, initialContactId),
+  )
   const [search, setSearch] = useState("")
   const [searchFocused, setSearchFocused] = useState(false)
   const [segmentFilter, setSegmentFilter] = useState<ContactSegment | "all">("all")
@@ -176,6 +199,23 @@ export function InboxView({ initialInteractions, contactSegment = {}, workspaceI
   }
 
   const contacts = Array.from(contactMap.values())
+  const deepLinkedSelectedId = useMemo(() => {
+    if (!initialContactId) return null
+    const deepLinkedContact = contactMap.get(initialContactId)
+    if (!deepLinkedContact?.interactions?.length) return null
+    return sortActivitiesByCreatedDesc(deepLinkedContact.interactions)[0]?.id ?? null
+  }, [contactMap, initialContactId])
+
+  useEffect(() => {
+    if (deepLinkedSelectedId && deepLinkedSelectedId !== selectedId) {
+      setSelectedId(deepLinkedSelectedId)
+      return
+    }
+
+    if (!selectedId && interactions[0]?.id) {
+      setSelectedId(interactions[0].id)
+    }
+  }, [deepLinkedSelectedId, interactions, selectedId])
   const filteredContacts = useMemo(() => {
     const searchLower = search.toLowerCase()
     const startDate = appliedStartDate ? new Date(`${appliedStartDate}T00:00:00`) : null

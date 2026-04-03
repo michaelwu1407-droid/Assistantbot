@@ -2901,3 +2901,24 @@ Rule: every agent change commit must include an entry in this file.
   - Listed the current highest-priority journeys to audit with that lens: internal WhatsApp assistant, chatbot feedback, booking confirmations, the public job portal, and multilingual Tracey calls.
 - Why:
   - A feature can be technically implemented and still be incomplete for the real user. This adds a concrete standard for "nothing important is missing" rather than treating that as a vague feeling.
+
+## 2026-04-03 23:55 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/contact-form.test.tsx`
+  - `__tests__/inbox-view.test.tsx`
+  - `__tests__/map-view.test.tsx`
+  - `app/crm/contacts/[id]/edit/page.tsx`
+  - `app/crm/contacts/new/page.tsx`
+  - `app/crm/inbox/page.tsx`
+  - `components/crm/contact-form.tsx`
+  - `components/crm/inbox-view.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Audited the main CRM surface with a user-journey lens instead of only checking server actions and backend behavior.
+  - Fixed two concrete CRM usability gaps: the missing contact create/edit pages behind existing links, and the inbox deep-link behavior so `/crm/inbox?contact=...` now opens the intended contact thread.
+  - Added focused coverage for contact create/update flow and inbox deep-linking, and made the map-view interaction test resilient to date drift.
+  - Documented the current CRM page verdicts in `CRM_PAGE_AUDIT.md`, separating stronger `go` surfaces from `watch` areas that still need more end-to-end verification.
+- Why:
+  - The user explicitly wanted confidence that the actual CRM pages and workflows are there, accessible, and logically complete. This pass closes obvious dead ends and records what still needs a deeper audit.

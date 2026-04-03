@@ -10,9 +10,15 @@ export const dynamic = "force-dynamic"
 
 const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const
 
-export default async function InboxPage() {
+export default async function InboxPage(props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
     const authUser = await getAuthUser()
     if (!authUser) redirect("/login")
+
+    const searchParams = props.searchParams ? await props.searchParams : {}
+    const contactParam = searchParams.contact
+    const initialContactId = Array.isArray(contactParam) ? contactParam[0] ?? null : contactParam ?? null
 
     // RBAC: Team members cannot access the global inbox
     if (!(await isManagerOrAbove())) {
@@ -54,7 +60,12 @@ export default async function InboxPage() {
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <InboxView initialInteractions={interactions} contactSegment={contactSegment} workspaceId={workspaceId} />
+            <InboxView
+                initialInteractions={interactions}
+                contactSegment={contactSegment}
+                workspaceId={workspaceId}
+                initialContactId={initialContactId}
+            />
         </div>
     )
 }
