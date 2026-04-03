@@ -33,7 +33,7 @@ export default function AgentSettingsPage() {
   const [learningRules, setLearningRules] = useState<string[]>([])
   const [ruleDraft, setRuleDraft] = useState("")
 
-  const whatsappNumber = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || "+1234567890" // Fallback display
+  const whatsappNumber = process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || "+61485010634"
   const waLink = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=Hi%20Earlymark`
 
   useEffect(() => {

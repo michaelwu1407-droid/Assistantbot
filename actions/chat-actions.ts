@@ -2614,10 +2614,16 @@ export async function handleSupportRequest(
     };
   }
 
-  if (lowerMessage.includes("feature") || lowerMessage.includes("request") || lowerMessage.includes("suggestion")) {
+  if (
+    lowerMessage.includes("feedback") ||
+    lowerMessage.includes("feature") ||
+    lowerMessage.includes("request") ||
+    lowerMessage.includes("suggestion") ||
+    lowerMessage.includes("complaint")
+  ) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for your feature request. Our product team reviews suggestions weekly.\n\nYour request is tagged "${priority}" priority. We'll email you at ${user.email} when there's an update.`,
+      displayMessage: `Thanks — ticket #${supportTicket.id} created for your product feedback. We review every feedback ticket and will follow up at ${user.email} if we need more detail or have an update.\n\nIf you'd like, send more context now and I'll attach it to the same ticket.`,
     };
   }
 
@@ -2634,7 +2640,7 @@ export async function handleSupportRequest(
 function extractSupportSubject(message: string): string {
   if (message.includes("phone") || message.includes("twilio") || message.includes("ai agent")) return "Phone/AI Agent Issue";
   if (message.includes("billing") || message.includes("payment") || message.includes("subscription")) return "Billing Question";
-  if (message.includes("feature") || message.includes("request") || message.includes("suggestion")) return "Feature Request";
+  if (message.includes("feedback") || message.includes("feature") || message.includes("request") || message.includes("suggestion") || message.includes("complaint")) return "Product Feedback";
   if (message.includes("bug") || message.includes("error") || message.includes("broken")) return "Bug Report";
   if (message.includes("account") || message.includes("login") || message.includes("password")) return "Account Issue";
   return "General Support";

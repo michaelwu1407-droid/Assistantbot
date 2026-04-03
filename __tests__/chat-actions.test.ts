@@ -248,6 +248,37 @@ describe("chat-actions", () => {
     expect(result.displayMessage).toContain("Tracey Number: +61400000000");
   });
 
+  it("treats feedback-like messages as product feedback tickets", async () => {
+    hoisted.db.user.findUnique.mockResolvedValue({
+      email: "owner@example.com",
+      name: "Owner",
+      phone: "0400000000",
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      name: "Acme Plumbing",
+      twilioPhoneNumber: "+61400000000",
+      type: "TRADES",
+      twilioSubaccountId: "ACsub123",
+      twilioSipTrunkSid: "TK123",
+    });
+    hoisted.db.activity.create.mockResolvedValue({ id: "ticket_2" });
+
+    const result = await handleSupportRequest(
+      "I have feedback: the chatbot answered this in a confusing way and I'd love to suggest a better flow",
+      "user_1",
+      "ws_1",
+    );
+
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Chatbot Support Request: Product Feedback",
+      }),
+    });
+    expect(result.ticketId).toBe("ticket_2");
+    expect(result.displayMessage).toContain("ticket #ticket_2 created for your product feedback");
+    expect(result.displayMessage).toContain("attach it to the same ticket");
+  });
+
   it("returns an empty history array if chat history lookup fails", async () => {
     hoisted.db.chatMessage.findMany.mockRejectedValue(new Error("db down"));
 

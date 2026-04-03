@@ -83,6 +83,7 @@ const INVOICE_PATTERNS = [
 
 const SUPPORT_PATTERNS = [
   /\b(help|support|bug|broken|not working|issue|problem|can't|cannot)\b/i,
+  /\b(feedback|feature request|feature|suggestion|idea|complaint|frustrating|annoying)\b/i,
 ];
 
 // ─── Classifier ─────────────────────────────────────────────────────
@@ -170,7 +171,8 @@ function getContextHints(intent: IntentHint): string[] {
       ];
     case "support":
       return [
-        "SUPPORT REQUEST: Try to help first. If unable, use contactSupport to escalate.",
+        "SUPPORT REQUEST: If the user is giving product feedback, a complaint, a bug report, or a feature suggestion, acknowledge it and use contactSupport so it becomes an internal ticket instead of being handled casually in chat.",
+        "For general support, try to help first. If you cannot resolve it confidently, use contactSupport to escalate.",
       ];
     default:
       return [];

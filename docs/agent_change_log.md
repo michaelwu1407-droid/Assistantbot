@@ -2841,3 +2841,20 @@ Rule: every agent change commit must include an entry in this file.
   - Updated `APP_FEATURES.md` to document the real WhatsApp access model and to note that multilingual voice is live in runtime while the onboarding multilingual toggle is currently captured preference data rather than a hard runtime gate.
 - Why:
   - Product truth had drifted: the WhatsApp assistant was more real than the UI suggested, while the multilingual onboarding toggle implied a stronger runtime switch than the code currently enforces. This pass aligns tests and docs with what actually works today.
+
+## 2026-04-03 22:58 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/pre-classifier.test.ts`
+  - `actions/chat-actions.ts`
+  - `app/crm/settings/agent/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/ai/pre-classifier.ts`
+- Summary:
+  - Added a lightweight chatbot feedback guardrail so obvious feedback, complaints, and feature-suggestion language gets classified into the support/escalation lane instead of being handled too casually in general chat.
+  - Updated the support-ticket subject and user-facing support response so feedback-like requests are labeled as `Product Feedback` and acknowledged as something the team reviews directly.
+  - Added regression coverage for the new pre-classifier behavior and for feedback-like chatbot messages creating the expected ticket type.
+  - Confirmed via the linked Vercel project envs that the deployed WhatsApp backend number is the Earlymark demo number `+61485010634`, and aligned the AI Assistant settings page fallback display to that number so the UI does not fall back to a fake placeholder when no public env is present.
+- Why:
+  - Missing feedback is more expensive than over-escalating it. This keeps product feedback from disappearing into a normal chatbot reply while keeping the implementation lightweight and easy to maintain.
