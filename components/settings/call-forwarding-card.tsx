@@ -188,7 +188,7 @@ export function CallForwardingCard() {
                     <PhoneForwarded className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">Backup AI</p>
                   </div>
-                  <p className="app-body-secondary whitespace-normal">
+                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
                     Your phone rings first. Tracey answers if you miss it.
                   </p>
                 </div>
@@ -205,7 +205,7 @@ export function CallForwardingCard() {
                     <Shield className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">100% AI</p>
                   </div>
-                  <p className="app-body-secondary whitespace-normal">
+                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
                     Tracey answers every call before your phone rings.
                   </p>
                 </div>
@@ -222,7 +222,7 @@ export function CallForwardingCard() {
                     <PhoneOff className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">Forwarding off</p>
                   </div>
-                  <p className="app-body-secondary whitespace-normal">
+                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
                     Calls stay on your phone and Tracey does not answer them.
                   </p>
                 </div>
