@@ -2922,3 +2922,22 @@ Rule: every agent change commit must include an entry in this file.
   - Documented the current CRM page verdicts in `CRM_PAGE_AUDIT.md`, separating stronger `go` surfaces from `watch` areas that still need more end-to-end verification.
 - Why:
   - The user explicitly wanted confidence that the actual CRM pages and workflows are there, accessible, and logically complete. This pass closes obvious dead ends and records what still needs a deeper audit.
+
+## 2026-04-04 00:08 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/crm-route-guards.test.tsx`
+  - `app/crm/analytics/layout.tsx`
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `app/crm/settings/integrations/layout.tsx`
+  - `app/crm/team/page.tsx`
+  - `components\layout\search-dialog.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Tightened CRM page access so manager-only sections are now blocked at the route layer for analytics and integrations instead of relying on client-side redirects or hidden sidebar links alone.
+  - Made the team page more coherent for team members by hiding invite and role-management controls they are not allowed to use.
+  - Improved schedule drag/drop failure handling so users get a visible error toast instead of a silent console-only failure.
+  - Updated the CRM audit to reflect the stronger direct-access guarantees and the team-page behavior improvements.
+- Why:
+  - A CRM page is not really "working" if the wrong user can reach it in a confusing state or if an interaction fails without clear user feedback.

@@ -129,6 +129,8 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       toast.success("Job updated")
     } catch (err) {
       console.error(err)
+      const { toast } = await import("sonner")
+      toast.error("Could not update the job. Please try again.")
     }
   }
 

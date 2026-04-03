@@ -50,6 +50,8 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
     const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
     const workspaceId = useShellStore(s => s.workspaceId)
+    const userRole = useShellStore(s => s.userRole)
+    const isManager = userRole === "OWNER" || userRole === "MANAGER"
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -162,11 +164,13 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                             <span>Profile</span>
                             <CommandShortcut>⌘P</CommandShortcut>
                         </CommandItem>
+                        {isManager ? (
                         <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings/billing"))}>
                             <CreditCard className="mr-2 h-4 w-4" />
                             <span>Billing</span>
                             <CommandShortcut>⌘B</CommandShortcut>
                         </CommandItem>
+                        ) : null}
                         <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings"))}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Settings</span>

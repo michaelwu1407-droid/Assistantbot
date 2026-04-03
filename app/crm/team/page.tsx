@@ -35,6 +35,7 @@ import {
 import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2, CheckCircle, Mail } from "lucide-react"
 import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, removeMember, updateMemberRole } from "@/actions/invite-actions"
 import { toast } from "sonner"
+import { useShellStore } from "@/lib/store"
 
 interface TeamMember {
     id: string
@@ -53,6 +54,8 @@ interface Invite {
 }
 
 export default function TeamPage() {
+    const userRole = useShellStore((state) => state.userRole)
+    const isManager = userRole === "OWNER" || userRole === "MANAGER"
     const [members, setMembers] = useState<TeamMember[]>([])
     const [invites, setInvites] = useState<Invite[]>([])
     const [loading, setLoading] = useState(true)
@@ -205,6 +208,7 @@ export default function TeamPage() {
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{pendingInviteCount} pending invite{pendingInviteCount === 1 ? "" : "s"}</span>
                 </div>
 
+                {isManager ? (
                 <Dialog open={inviteOpen} onOpenChange={(open) => {
                     setInviteOpen(open)
                     if (!open) {
@@ -335,6 +339,11 @@ export default function TeamPage() {
                         </div>
                     </DialogContent>
                 </Dialog>
+                ) : (
+                    <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500">
+                        Team members can view the roster but can&apos;t manage invites or roles.
+                    </div>
+                )}
             </div>
 
             <div className={pendingInviteCount > 0 ? "grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]" : "mx-auto w-full max-w-4xl"}>
@@ -361,7 +370,7 @@ export default function TeamPage() {
 
                                     <div className="space-y-1">
                                         <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
-                                        {(member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
+                                        {(!isManager || member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
                                             <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
                                                 {member.role === "OWNER" && <Shield className="mr-1 h-3 w-3" />}
                                                 {getRoleLabel(member.role)}
@@ -383,7 +392,7 @@ export default function TeamPage() {
                                     </div>
 
                                     <div className="flex items-center justify-end gap-2">
-                                        {!member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
+                                        {isManager && !member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button
@@ -421,7 +430,7 @@ export default function TeamPage() {
                     </CardContent>
                 </Card>
 
-                {pendingInviteCount > 0 && (
+                {isManager && pendingInviteCount > 0 && (
                     <Card className="rounded-[18px]">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">

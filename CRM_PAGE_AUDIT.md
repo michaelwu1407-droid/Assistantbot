@@ -24,6 +24,12 @@ Status meanings:
 4. Test reliability
    - Added focused coverage for the new contact form flow and inbox deep-linking.
    - Updated the map-view test to avoid a brittle fixed-date assumption.
+5. Manager-only route guards
+   - Added server-side route guards for analytics and integrations so direct URLs are blocked before the page renders for team members.
+6. Team page coherence
+   - Hid invite and role-management controls for team members so they no longer see actions they are not allowed to use.
+7. Schedule failure feedback
+   - Schedule drag/drop now shows a visible toast error instead of only logging to the console when an update fails.
 
 ## CRM surface status
 
@@ -120,14 +126,17 @@ Status meanings:
 - Status: `watch`
 - Why:
   - Real page with member list and invite management.
-  - Actions enforce owner/manager permissions, but the page itself is client-rendered and not yet strongly page-tested.
+  - This pass hid invite and role-management controls for team members so the page matches what they can actually do.
+  - Still needs stronger page-level coverage around role-specific rendering.
 
 ### `/crm/analytics`
 
-- Status: `watch`
+- Status: `go`
 - Why:
   - Real page with reporting UI and role-aware redirect logic.
-  - This pass did not verify the full analytics fetch/report journey end to end.
+  - This pass added a server-side route guard so direct URL access for team members is blocked before render.
+- Evidence:
+  - `__tests__/crm-route-guards.test.tsx`
 
 ### `/crm/settings/*`
 
@@ -136,6 +145,14 @@ Status meanings:
   - Large real settings surface with many tested actions.
   - Not fully journey-audited in this pass.
   - Some sections are already stronger than others, so this needs a dedicated settings audit rather than a blanket claim.
+
+### `/crm/settings/integrations`
+
+- Status: `go`
+- Why:
+  - Real page and now server-guarded for manager-only access, which matches sidebar visibility.
+- Evidence:
+  - `__tests__/crm-route-guards.test.tsx`
 
 ## Remaining CRM concerns worth auditing next
 
