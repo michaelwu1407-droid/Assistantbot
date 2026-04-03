@@ -2858,3 +2858,16 @@ Rule: every agent change commit must include an entry in this file.
   - Confirmed via the linked Vercel project envs that the deployed WhatsApp backend number is the Earlymark demo number `+61485010634`, and aligned the AI Assistant settings page fallback display to that number so the UI does not fall back to a fake placeholder when no public env is present.
 - Why:
   - Missing feedback is more expensive than over-escalating it. This keeps product feedback from disappearing into a normal chatbot reply while keeping the implementation lightweight and easy to maintain.
+
+## 2026-04-03 23:08 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/chat-actions.test.ts`
+  - `actions/chat-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Extended chatbot-created support and feedback tickets so they now also send an email to the configured support inbox (`SUPPORT_EMAIL_TO`) using the same Resend-based support channel as the manual support form.
+  - Included ticket ID, workspace context, Tracey number, Twilio/voice status, and the original user message in the outbound support email so product/support can triage directly from inbox.
+  - Added regression coverage proving chatbot phone-support and product-feedback requests now trigger the support email send as well as the internal activity ticket.
+- Why:
+  - Capturing feedback only in the database still risked it going unseen. Emailing the support inbox closes that loop so chatbot feedback reaches a channel the team actually monitors.

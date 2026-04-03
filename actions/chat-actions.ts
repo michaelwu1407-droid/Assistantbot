@@ -2584,6 +2584,11 @@ export async function handleSupportRequest(
     };
   }
 
+  const supportEmail = process.env.SUPPORT_EMAIL_TO || "support@earlymark.ai";
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
+  const fromAddress = process.env.SUPPORT_EMAIL_FROM || `support@${fromDomain}`;
+
   // Log support request to activity feed
   const supportTicket = await db.activity.create({
     data: {
@@ -2592,6 +2597,38 @@ export async function handleSupportRequest(
       content: `Priority: ${priority}\n\nOriginal message: "${message}"\n\nUser: ${user.email}\nPhone: ${user.phone || "Not provided"}\nWorkspace: ${workspace.name}\nAI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
     },
   });
+
+  if (resendKey) {
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendKey);
+      await resend.emails.send({
+        from: `Earlymark Support <${fromAddress}>`,
+        to: [supportEmail],
+        replyTo: user.email ?? undefined,
+        subject: `[Chat Support:${priority.toUpperCase()}] ${subject}`,
+        text: [
+          `Priority: ${priority}`,
+          `Ticket ID: ${supportTicket.id}`,
+          `User: ${user.name || "Unknown user"}`,
+          `Email: ${user.email || "Unknown email"}`,
+          `Phone: ${user.phone || "Not provided"}`,
+          `Workspace: ${workspace.name}`,
+          `Tracey number: ${workspace.twilioPhoneNumber || "Not configured"}`,
+          `Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}`,
+          `Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
+          "",
+          message,
+        ].join("\n"),
+      });
+    } catch (error) {
+      logger.error("Failed to email chatbot support request", {
+        component: "chat-actions",
+        action: "handleSupportRequest",
+        ticketId: supportTicket.id,
+      }, error as Error);
+    }
+  }
 
   const signal = `[STATE: TICKET_CREATED] [TICKET_ID: ${supportTicket.id}] If the user's next message is a detail/correction, automatically call 'appendTicketNote' with this ID.`;
   const base = {

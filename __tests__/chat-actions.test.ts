@@ -64,6 +64,7 @@ const hoisted = vi.hoisted(() => ({
   requiresCustomerContactApproval: vi.fn(),
   getAttentionSignalsForDeal: vi.fn(),
   loggerError: vi.fn(),
+  resendSend: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -149,17 +150,28 @@ vi.mock("@/lib/logging", () => ({
     error: hoisted.loggerError,
   },
 }));
+vi.mock("resend", () => ({
+  Resend: class {
+    emails = {
+      send: hoisted.resendSend,
+    };
+  },
+}));
 
 import { getChatHistory, handleSupportRequest, runCreateDeal, runMoveDeal } from "@/actions/chat-actions";
 
 describe("chat-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("RESEND_API_KEY", "test-resend-key");
+    vi.stubEnv("SUPPORT_EMAIL_TO", "support@earlymark.ai");
+    vi.stubEnv("SUPPORT_EMAIL_FROM", "support@earlymark.ai");
     hoisted.getDeals.mockResolvedValue([]);
     hoisted.updateDealStage.mockResolvedValue({ success: true });
     hoisted.createDeal.mockResolvedValue({ success: true, dealId: "deal_1" });
     hoisted.createContact.mockResolvedValue({ success: true, contactId: "contact_1" });
     hoisted.searchContacts.mockResolvedValue([]);
+    hoisted.resendSend.mockResolvedValue({ data: { id: "email_1" }, error: null });
   });
 
   it("moves a deal to the resolved stage label and revalidates CRM views", async () => {
@@ -246,6 +258,11 @@ describe("chat-actions", () => {
     expect(result.SYSTEM_CONTEXT_SIGNAL).toContain("TICKET_ID: ticket_1");
     expect(result.displayMessage).toContain("Ticket #ticket_1 created for phone/Tracey support.");
     expect(result.displayMessage).toContain("Tracey Number: +61400000000");
+    expect(hoisted.resendSend).toHaveBeenCalledWith(expect.objectContaining({
+      to: ["support@earlymark.ai"],
+      subject: "[Chat Support:MEDIUM] Phone/AI Agent Issue",
+      replyTo: "owner@example.com",
+    }));
   });
 
   it("treats feedback-like messages as product feedback tickets", async () => {
@@ -277,6 +294,11 @@ describe("chat-actions", () => {
     expect(result.ticketId).toBe("ticket_2");
     expect(result.displayMessage).toContain("ticket #ticket_2 created for your product feedback");
     expect(result.displayMessage).toContain("attach it to the same ticket");
+    expect(hoisted.resendSend).toHaveBeenCalledWith(expect.objectContaining({
+      to: ["support@earlymark.ai"],
+      subject: "[Chat Support:LOW] Product Feedback",
+      replyTo: "owner@example.com",
+    }));
   });
 
   it("returns an empty history array if chat history lookup fails", async () => {
