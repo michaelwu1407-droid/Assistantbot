@@ -84,6 +84,9 @@ Status meanings:
 26. Reschedule reminder parity
    - Moving a scheduled job now clears its `lastReminderSentAt` marker when the scheduled time actually changes.
    - That keeps 24h reminder automation logically aligned with the new booking time instead of silently treating a rescheduled job as "already reminded" for the old slot.
+27. Reschedule customer communication parity
+   - Scheduled jobs now send a distinct updated booking confirmation when their customer-facing appointment time changes.
+   - The original booking confirmation and the later reschedule confirmation are now separate, explicit behaviors with regression coverage, so schedule edits no longer rely on the next 24h reminder to correct the customer's expectation.
 
 ## CRM surface status
 
@@ -163,12 +166,13 @@ Status meanings:
   - Assignment changes now propagate more cleanly too because the reassignment action logs, revalidates, and resyncs the underlying scheduled job instead of acting like a silent metadata tweak.
   - Drag/drop reschedules are now atomic on the server, so a cross-lane move cannot leave the scheduled time updated but the assignee unchanged after a mid-flight failure.
   - Rescheduling a job now also clears stale reminder state so the 24h reminder cron can fire against the new appointment time instead of skipping the job as already handled.
+  - Rescheduling a job now also sends an updated customer confirmation instead of leaving the customer to discover the new time only through a later reminder or manual follow-up.
 - Evidence:
   - `__tests__/schedule-page.test.tsx`
   - `__tests__/schedule-calendar.test.tsx`
   - `__tests__/deal-actions.test.ts`
 - Watch items:
-  - Booking reminders now reset correctly on reschedule, but customer-facing reschedule confirmations still need explicit product-level verification.
+  - The reschedule confirmation path is now covered locally, but provider-delivery monitoring still needs a real ops signal for the last successful scheduled or rescheduled customer confirmation.
 
 ### `/crm/map`
 
@@ -191,6 +195,7 @@ Status meanings:
   - The linked modal actions are now more coherent too: edit buttons go to edit pages, quick-send actually fires from the button, and failed saves no longer pretend they worked.
   - The billing tab now tells the truth when invoice creation is rejected, and the photo-upload surface now has direct proof for both success and returned backend-error handling.
   - Direct creation into `Scheduled` now matches the live transition flows, so jobs created from CRM forms do not quietly skip the booking-confirmation behavior.
+  - Later scheduled-time changes now send a distinct updated booking confirmation instead of silently changing the CRM record and waiting for the next reminder.
   - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`

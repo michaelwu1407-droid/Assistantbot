@@ -1,3 +1,19 @@
+## 2026-04-04 02:52 (AEDT) - Codex
+
+- Files changed:
+  - `actions/deal-actions.ts`
+  - `actions/messaging-actions.ts`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/deal-actions-sync.test.ts`
+  - `__tests__/messaging-actions.test.ts`
+  - `CRM_PAGE_AUDIT.md`
+- Summary:
+  - Added a dedicated reschedule confirmation SMS for customer-visible booking time changes instead of silently relying on the next 24h reminder.
+  - Wired that message into both scheduled job edit flow and atomic calendar reschedule flow, while keeping the original confirmation trigger limited to the first transition into `Scheduled`.
+  - Added regression coverage proving the split behavior: initial schedule sends the original confirmation, later reschedules send the updated booking confirmation and reset reminder eligibility.
+- Why:
+  - The CRM could already move jobs safely, but customers were not explicitly told about schedule changes unless someone followed up manually or they later noticed the 24h reminder. This closes that communication gap.
+
 ## 2026-04-04 02:28 (AEDT) - Codex
 
 - Files changed:

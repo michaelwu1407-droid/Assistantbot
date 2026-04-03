@@ -72,6 +72,7 @@ vi.mock("@/actions/task-actions", () => ({
 }));
 vi.mock("@/actions/messaging-actions", () => ({
   sendConfirmationSMS: vi.fn(),
+  sendRescheduleConfirmationSMS: vi.fn(),
 }));
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

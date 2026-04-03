@@ -25,7 +25,7 @@ vi.mock("@/lib/public-feedback", () => ({
   buildPublicFeedbackUrl: hoisted.buildPublicFeedbackUrl,
 }));
 
-import { sendConfirmationSMS, sendSMS } from "@/actions/messaging-actions";
+import { sendConfirmationSMS, sendRescheduleConfirmationSMS, sendSMS } from "@/actions/messaging-actions";
 
 describe("messaging-actions", () => {
   beforeEach(() => {
@@ -122,6 +122,51 @@ describe("messaging-actions", () => {
     expect(hoisted.db.activity.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         title: "Confirmation SMS Sent",
+        dealId: "deal_1",
+        contactId: "contact_1",
+      }),
+    });
+  });
+
+  it("sends reschedule confirmation SMS and logs the updated booking note", async () => {
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      title: "Hot Water Fix",
+      scheduledAt: new Date("2026-04-03T11:30:00.000Z"),
+      address: "12 King St",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      metadata: { existing: true, confirmationSent: "2026-04-01T01:00:00.000Z" },
+      contact: {
+        id: "contact_1",
+        name: "Alex",
+        phone: "0400000000",
+      },
+    });
+    hoisted.db.contact.findUnique.mockResolvedValue({
+      id: "contact_1",
+      name: "Alex",
+      phone: "0400000000",
+      workspaceId: "ws_1",
+    });
+
+    const result = await sendRescheduleConfirmationSMS("deal_1");
+
+    expect(result.success).toBe(true);
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: {
+        metadata: expect.objectContaining({
+          existing: true,
+          confirmationSent: "2026-04-01T01:00:00.000Z",
+          rescheduleConfirmationSent: expect.any(String),
+          confirmationStatus: "pending",
+        }),
+      },
+    });
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Reschedule confirmation SMS sent",
         dealId: "deal_1",
         contactId: "contact_1",
       }),

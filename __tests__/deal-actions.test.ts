@@ -38,6 +38,7 @@ const hoisted = vi.hoisted(() => ({
   kanbanStageRequiresScheduledDate: vi.fn(),
   loggerError: vi.fn(),
   sendConfirmationSMS: vi.fn(),
+  sendRescheduleConfirmationSMS: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -99,6 +100,7 @@ vi.mock("@/lib/logging", () => ({
 }));
 vi.mock("@/actions/messaging-actions", () => ({
   sendConfirmationSMS: hoisted.sendConfirmationSMS,
+  sendRescheduleConfirmationSMS: hoisted.sendRescheduleConfirmationSMS,
 }));
 
 import { createDeal, rescheduleDeal, updateDeal, updateDealAssignedTo, updateDealStage } from "@/actions/deal-actions";
@@ -152,6 +154,7 @@ describe("deal-actions", () => {
     hoisted.syncGoogleCalendarEventForDeal.mockResolvedValue(undefined);
     hoisted.removeGoogleCalendarEventForDeal.mockResolvedValue(undefined);
     hoisted.sendConfirmationSMS.mockResolvedValue({ success: true });
+    hoisted.sendRescheduleConfirmationSMS.mockResolvedValue({ success: true });
   });
 
   it("creates a deal, logs activity, and records audit metadata", async () => {
@@ -423,6 +426,7 @@ describe("deal-actions", () => {
       }),
     });
     expect(hoisted.sendConfirmationSMS).not.toHaveBeenCalled();
+    expect(hoisted.sendRescheduleConfirmationSMS).toHaveBeenCalledWith("deal_1");
   });
 
   it("reschedules and reassigns a job atomically", async () => {
@@ -476,5 +480,6 @@ describe("deal-actions", () => {
     );
     expect(hoisted.syncGoogleCalendarEventForDeal).toHaveBeenCalledWith("deal_1");
     expect(hoisted.sendConfirmationSMS).not.toHaveBeenCalled();
+    expect(hoisted.sendRescheduleConfirmationSMS).toHaveBeenCalledWith("deal_1");
   });
 });

@@ -411,6 +411,54 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
 }
 
 /**
+ * Send a customer-facing SMS when a scheduled booking time changes.
+ */
+export async function sendRescheduleConfirmationSMS(dealId: string): Promise<MessageResult> {
+  try {
+    const deal = await db.deal.findUnique({
+      where: { id: dealId },
+      include: { contact: true }
+    });
+
+    if (!deal || !deal.contact.phone) {
+      return { success: false, error: "No contact phone number found" };
+    }
+
+    const message = `Hi ${deal.contact.name}, your booking has been updated to ${formatSmsSchedule(deal.scheduledAt)} at ${deal.address || "your location"}. Reply CONFIRM or call us if you need anything else.`;
+
+    const result = await sendSMS(deal.contactId, message, dealId);
+
+    if (result.success) {
+      await db.deal.update({
+        where: { id: dealId },
+        data: {
+          metadata: JSON.parse(JSON.stringify({
+            ...(deal.metadata as Record<string, unknown> | null || {}),
+            rescheduleConfirmationSent: new Date().toISOString(),
+            confirmationStatus: "pending"
+          }))
+        }
+      });
+
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Reschedule confirmation SMS sent",
+          content: `Sent updated booking confirmation to ${deal.contact.name}`,
+          dealId,
+          contactId: deal.contactId
+        }
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error sending reschedule confirmation SMS:", error);
+    return { success: false, error: "Failed to send reschedule confirmation SMS" };
+  }
+}
+
+/**
  * Resend/nudge confirmation SMS for a pending job.
  */
 export async function resendConfirmationSMS(dealId: string): Promise<MessageResult> {

@@ -128,6 +128,15 @@ async function fireBookingConfirmation(
   }
 }
 
+async function fireRescheduleConfirmation(dealId: string) {
+  try {
+    const { sendRescheduleConfirmationSMS } = await import("./messaging-actions");
+    await sendRescheduleConfirmationSMS(dealId);
+  } catch (confirmationErr) {
+    console.warn("Reschedule confirmation hook failed after scheduled time change:", confirmationErr);
+  }
+}
+
 function normalizeScheduledAtInput(value: Date | string | null | undefined): Date | null {
   if (value == null || value === "") {
     return null;
@@ -1285,6 +1294,10 @@ export async function updateDeal(
 
   await fireBookingConfirmation(dealId, deal.stage, nextStage as PrismaStage);
 
+  if (scheduledTimeChanged && deal.stage === "SCHEDULED") {
+    await fireRescheduleConfirmation(dealId);
+  }
+
   if (stageMovedToWon || draftConfirmed) {
     try {
       await maybeCreatePricingSuggestionFromConfirmedJob(dealId, {
@@ -1576,6 +1589,10 @@ export async function rescheduleDeal(
       message: `Calendar sync failed after rescheduling "${deal.title}": ${err instanceof Error ? err.message : String(err)}`,
     });
   });
+
+  if (scheduledTimeChanged && deal.stage === "SCHEDULED") {
+    await fireRescheduleConfirmation(dealId);
+  }
 
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/deals");
