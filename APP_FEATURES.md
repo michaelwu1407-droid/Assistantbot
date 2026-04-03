@@ -367,7 +367,10 @@
 - "Add Service" button (Plus icon, outline)
 - Validation: min price ≤ max price, at least 1 service
 
-**Multilingual Toggle:** "Can Tracey accept jobs from customers who speak languages other than English?"
+**Multilingual Jobs Toggle:** "Can Tracey accept jobs from customers who speak languages other than English?"
+- Captured during onboarding as a business preference (`acceptsMultilingual`)
+- Current live voice runtime already performs automatic language detection and replies in the caller's language on phone calls
+- Current implementation does not appear to gate the voice runtime on this toggle; treat it as captured preference data, not a hard runtime switch
 
 ### Step 5: Provisioning & Activation
 
@@ -1931,6 +1934,16 @@ Search/filter on desktop, hidden on mobile.
 **WhatsApp Assistant (Beta):**
 - WhatsApp number display
 - "Connect via WhatsApp" button (green, external link)
+- Access model: internal only. Admins/managers/team members can message the assistant from the personal mobile number saved on their Earlymark user account
+- Authentication: inbound WhatsApp sender number must match a `User.phone` / saved personal mobile
+- End customers are not authorized for this WhatsApp assistant channel
+- Delivery path: Twilio WhatsApp webhook -> phone lookup -> spam filter -> headless CRM AI agent -> WhatsApp reply
+
+**Multilingual Voice Calls:**
+- Live voice agent uses Deepgram with `language: "multi"` and `detectLanguage: true`
+- On each caller turn, Tracey updates reply TTS language from the detected speech language
+- Prompts explicitly instruct Tracey to reply in the same language as the caller and stay there unless the caller switches back
+- This applies to normal customer calls and Earlymark demo/sales calls
 
 ### 16.4 Automated Calling & Texting
 

@@ -139,4 +139,37 @@ describe("POST /api/webhooks/whatsapp", () => {
       body: "Booked it in.",
     });
   });
+
+  it("authenticates users with the cleaned phone number and sends a fallback reply on agent failure", async () => {
+    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1" });
+    hoisted.classifyMessage.mockResolvedValue({
+      classification: "ham",
+      reason: "",
+      confidence: 0.02,
+    });
+    hoisted.processAgentCommand.mockRejectedValue(new Error("agent timeout"));
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+
+    const body = new URLSearchParams({
+      From: "whatsapp:+61411112222",
+      Body: "show me today's jobs",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/whatsapp", {
+        method: "POST",
+        body,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.findUserByPhone).toHaveBeenCalledWith("+61411112222");
+    expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
+    await hoisted.waitUntil.mock.calls[0][0];
+    expect(hoisted.twilioMessagesCreate).toHaveBeenCalledWith({
+      from: "whatsapp:+61485010634",
+      to: "whatsapp:+61411112222",
+      body: "⚠️ The system encountered an error while processing your request. Please try again later.",
+    });
+  });
 });

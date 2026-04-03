@@ -2824,3 +2824,20 @@ Rule: every agent change commit must include an entry in this file.
   - Kept the selected customer drilldown intact while cleaning up the remaining observability wording and separators so the page reads more like one operational monitor and less like three dashboards stitched together.
 - Why:
   - The unified page still felt too card-driven and too hard to skim. This pass makes the main internal page denser, clearer, and closer to the single source of truth the user expected.
+
+## 2026-04-03 14:05 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/voice-prompts.test.ts`
+  - `__tests__/whatsapp-route.test.ts`
+  - `app/crm/settings/agent/page.tsx`
+  - `APP_FEATURES.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Audited the internal WhatsApp Assistant path and the multilingual voice-call claim against the actual runtime code instead of relying on old UI wording.
+  - Added regression coverage showing the WhatsApp webhook authenticates users by their saved personal mobile, strips the `whatsapp:` prefix before lookup, and sends a fallback WhatsApp reply when the headless CRM agent errors.
+  - Added direct voice-prompt tests so normal customer calls plus both Earlymark sales/demo call types all preserve the explicit "reply in the same language as the caller" rule.
+  - Updated the AI Assistant settings copy to describe WhatsApp as a beta internal control surface for workspace users, not an end-customer channel and not a vague WIP.
+  - Updated `APP_FEATURES.md` to document the real WhatsApp access model and to note that multilingual voice is live in runtime while the onboarding multilingual toggle is currently captured preference data rather than a hard runtime gate.
+- Why:
+  - Product truth had drifted: the WhatsApp assistant was more real than the UI suggested, while the multilingual onboarding toggle implied a stronger runtime switch than the code currently enforces. This pass aligns tests and docs with what actually works today.
