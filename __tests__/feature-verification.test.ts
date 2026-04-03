@@ -22,7 +22,7 @@ function buildLaunch(overrides?: Partial<Record<string, unknown>>) {
 }
 
 describe("buildFeatureVerificationReport", () => {
-  it("marks portal visibility as a gap because observability and live proof are still missing", () => {
+  it("keeps portal visibility in watch because observability improved but live proof is still missing", () => {
     const report = buildFeatureVerificationReport({
       launch: buildLaunch(),
       webhookDiagnostics: [],
@@ -35,10 +35,10 @@ describe("buildFeatureVerificationReport", () => {
 
     const portal = report.items.find((item) => item.key === "public-job-portal");
 
-    expect(portal?.overallStatus).toBe("gap");
-    expect(portal?.observability.status).toBe("missing");
+    expect(portal?.overallStatus).toBe("watch");
+    expect(portal?.observability.status).toBe("partial");
     expect(portal?.liveProof.status).toBe("missing");
-    expect(report.summary.gapCount).toBeGreaterThanOrEqual(1);
+    expect(report.summary.watchCount).toBeGreaterThanOrEqual(1);
   });
 
   it("downgrades chatbot feedback delivery to a gap when support email delivery is not configured", () => {

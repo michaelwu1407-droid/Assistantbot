@@ -1,3 +1,21 @@
+## 2026-04-04 03:12 (AEDT) - Codex
+
+- Files changed:
+  - `actions/job-portal-actions.ts`
+  - `__tests__/job-portal-actions.test.ts`
+  - `__tests__/job-portal-page.test.tsx`
+  - `__tests__/agent-settings-page.test.tsx`
+  - `__tests__/chat-actions.test.ts`
+  - `lib/feature-verification.ts`
+- Summary:
+  - Added portal journey coverage for token resolution, public page render, completion feedback handoff, and invalid-token not-found behavior.
+  - Added a deduped `Job portal viewed` activity note so portal opens are no longer completely invisible in ops.
+  - Added direct proof that the WhatsApp assistant entry point is discoverable in settings with the right number, constraints, and `wa.me` link.
+  - Added coverage that chatbot product-feedback tickets still get created even when support email delivery is unavailable.
+  - Updated the feature-verification report so the portal is no longer marked as entirely unobservable.
+- Why:
+  - These were the next highest-risk non-provider gaps: proving the portal and WhatsApp journeys are actually reachable and understandable to users, and making sure support feedback still has a safe fallback when email delivery is down.
+
 ## 2026-04-04 03:00 (AEDT) - Codex
 
 - Files changed:

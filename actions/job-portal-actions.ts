@@ -48,6 +48,29 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     return null
   }
 
+  const recentPortalView = await db.activity.findFirst({
+    where: {
+      dealId: deal.id,
+      title: "Job portal viewed",
+      createdAt: {
+        gte: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    },
+    select: { id: true },
+  })
+
+  if (!recentPortalView) {
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Job portal viewed",
+        content: "A customer opened the public job portal.",
+        dealId: deal.id,
+        contactId: deal.contactId,
+      },
+    })
+  }
+
   const isComplete = deal.jobStatus === "COMPLETED"
   const isCancelled = deal.jobStatus === "CANCELLED"
 

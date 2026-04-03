@@ -181,15 +181,15 @@ export function buildFeatureVerificationReport(params: {
 
   const portalBehavior = evidence(
     "partial",
-    "Signed token generation and the portal page are implemented, but there is no dedicated regression test for the full customer portal journey yet.",
+    "Signed token generation, the public portal page, and portal status fetching now have direct regression coverage, but there is still no full synthetic exercising provider-backed message delivery into the portal journey.",
   );
   const portalDelivery = evidence(
     "partial",
-    "Messages can include a job portal link, but the app does not currently track whether customers opened it successfully.",
+    "Messages can include a job portal link, and portal opens now create a deduped activity note, but there is still no provider-level proof that a customer actually received and opened a specific portal link end to end.",
   );
   const portalObservability = evidence(
-    "missing",
-    "Portal opens are not currently audited, so there is no 'last portal viewed' or 'portal failures' signal in ops.",
+    "partial",
+    "Portal opens now create a deduped activity note on the job timeline, but there is no aggregated ops row yet showing the last successful portal open across workspaces.",
   );
   const portalLiveProof = evidence(
     "missing",

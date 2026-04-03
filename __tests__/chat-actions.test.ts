@@ -301,6 +301,38 @@ describe("chat-actions", () => {
     }));
   });
 
+  it("still creates a product feedback ticket when support email delivery is unavailable", async () => {
+    hoisted.db.user.findUnique.mockResolvedValue({
+      email: "owner@example.com",
+      name: "Owner",
+      phone: "0400000000",
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      name: "Acme Plumbing",
+      twilioPhoneNumber: "+61400000000",
+      type: "TRADES",
+      twilioSubaccountId: "ACsub123",
+      twilioSipTrunkSid: "TK123",
+    });
+    hoisted.db.activity.create.mockResolvedValue({ id: "ticket_3" });
+    hoisted.resendSend.mockRejectedValue(new Error("provider offline"));
+
+    const result = await handleSupportRequest(
+      "feedback: the wording here was confusing",
+      "user_1",
+      "ws_1",
+    );
+
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Chatbot Support Request: Product Feedback",
+      }),
+    });
+    expect(result.ticketId).toBe("ticket_3");
+    expect(result.displayMessage).toContain("ticket #ticket_3 created for your product feedback");
+    expect(hoisted.loggerError).toHaveBeenCalled();
+  });
+
   it("returns an empty history array if chat history lookup fails", async () => {
     hoisted.db.chatMessage.findMany.mockRejectedValue(new Error("db down"));
 
