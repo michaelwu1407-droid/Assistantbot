@@ -15,6 +15,30 @@ interface TutorialOverlayProps {
     onComplete?: () => void
 }
 
+// Parse **bold** markdown into React elements
+function parseBold(text: string): React.ReactNode[] {
+    return text.split(/\*\*(.*?)\*\*/g).map((part, i) =>
+        i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part
+    )
+}
+
+// Steps that show as bottom cards (full page visible behind them)
+const BOTTOM_CARD_IDS = new Set([
+    "dashboard-home",
+    "nav-inbox",
+    "nav-schedule",
+    "nav-map",
+    "nav-contacts",
+    "nav-analytics",
+    "nav-team",
+    "nav-settings",
+])
+
+// Steps excluded from spotlight mode (bottom cards + modals)
+const NO_SPOTLIGHT_IDS = new Set([
+    ...BOTTOM_CARD_IDS,
+])
+
 export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const router = useRouter()
     const pathname = usePathname()
@@ -22,64 +46,33 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [isVisible, setIsVisible] = useState(true)
 
-    // Sync step index so Shell can open the chat panel on the chat step (step 4)
+    // Sync step index so Shell can open the chat panel on the chat step
     useEffect(() => {
         if (viewMode === "TUTORIAL") setTutorialStepIndex(currentStepIndex)
     }, [viewMode, currentStepIndex, setTutorialStepIndex])
 
-    // Steps 1–2 must be shown in chat mode: ensure we're on dashboard root
+    // Steps 0–2 must be shown in chat mode: ensure we're on dashboard root
     useEffect(() => {
         if (viewMode === "TUTORIAL" && (currentStepIndex === 0 || currentStepIndex === 1) && pathname !== "/crm/dashboard") {
             router.push("/crm/dashboard")
         }
     }, [viewMode, currentStepIndex, pathname, router])
 
-    // Navigate to inbox page when showing the inbox step (card 7)
+    // Auto-navigate to the right page for each nav step
     useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-inbox") {
-            router.push("/crm/inbox")
+        if (viewMode !== "TUTORIAL") return
+        const stepId = TUTORIAL_STEPS[currentStepIndex]?.id
+        const routes: Record<string, string> = {
+            "nav-inbox": "/crm/inbox",
+            "nav-schedule": "/crm/schedule",
+            "nav-map": "/crm/map",
+            "nav-contacts": "/crm/contacts",
+            "nav-analytics": "/crm/analytics",
+            "nav-team": "/crm/team",
+            "nav-settings": "/crm/settings",
         }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to schedule page when showing the schedule step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-schedule") {
-            router.push("/crm/schedule")
-        }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to map page when showing the map step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-map") {
-            router.push("/crm/map")
-        }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to contacts page when showing the contacts step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-contacts") {
-            router.push("/crm/contacts")
-        }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to team page when showing the team step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-team") {
-            router.push("/crm/team")
-        }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to settings page when showing the settings step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "nav-settings") {
-            router.push("/crm/settings")
-        }
-    }, [viewMode, currentStepIndex, router])
-
-    // Navigate to Settings → Help when showing the Tracey Handbook step
-    useEffect(() => {
-        if (viewMode === "TUTORIAL" && TUTORIAL_STEPS[currentStepIndex]?.id === "travis-handbook") {
-            router.push("/crm/settings/help")
+        if (stepId && routes[stepId]) {
+            router.push(routes[stepId])
         }
     }, [viewMode, currentStepIndex, router])
 
@@ -119,41 +112,49 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
     const cardContent = (
         <>
             <h3 className="font-heading font-bold text-lg mb-2 pr-6">{step.title}</h3>
-            <p className="text-sm text-black mb-3 leading-relaxed whitespace-pre-line">
-                {step.message.split(/\*\*(.*?)\*\*/g).map((part, i) => i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part)}
+
+            {/* Message */}
+            <p className="text-sm text-foreground/80 mb-3 leading-relaxed whitespace-pre-line">
+                {parseBold(step.message)}
             </p>
 
-            {/* Schedule step: custom bullets (no generic examples) */}
-            {step.id === "nav-schedule" && (
-                <ul className="list-disc list-inside text-sm text-black mb-3 space-y-1 pl-1">
-                    <li>Jobs auto-slot when Tracey creates them.</li>
-                    <li>Tracey auto-checks for clashes and suggests alternatives.</li>
-                    <li>Best of all, Tracey can group nearby jobs together to minimise travel.</li>
-                </ul>
+            {/* Feature list */}
+            {step.features && step.features.length > 0 && (
+                <div className="space-y-1.5 mb-3">
+                    {step.features.map((feat, i) => (
+                        <div key={i} className="flex items-start gap-2 text-sm text-foreground/70">
+                            <span className="shrink-0 mt-[5px] h-1.5 w-1.5 rounded-full bg-primary" />
+                            <span>{parseBold(feat)}</span>
+                        </div>
+                    ))}
+                </div>
             )}
 
-            {/* Example phrases (dot points) - hidden for dashboard/inbox (irrelevant to topic) */}
-            {step.chatExample && step.id !== "dashboard-home" && step.id !== "nav-inbox" && step.id !== "nav-schedule" && step.id !== "nav-map" && step.id !== "nav-contacts" && step.id !== "nav-team" && step.id !== "nav-settings" && (
-                <ul className="list-disc list-inside text-sm text-black mb-3 space-y-1 pl-1">
-                    {step.id === "chat-preferences" ? (
-                        <>
-                            <li>&quot;From now on always add 1 hour buffer between jobs&quot;</li>
-                            <li>&quot;Always text the client the day before a job&quot;</li>
-                            <li>&quot;Default to 2pm when I don&apos;t specify a time&quot;</li>
-                            <li>&quot;Never schedule jobs on Fridays&quot;</li>
-                        </>
-                    ) : (
-                        <>
-                            <li>&quot;New repair job for Frank at 300 George St for $600 tomorrow 2pm&quot;</li>
-                            <li>&quot;Text Steven I&apos;m on my way&quot;</li>
-                            <li>&quot;Move John&apos;s job to Completed&quot;</li>
-                            <li>&quot;Assign Ben to the Circle St job&quot;</li>
-                        </>
-                    )}
-                </ul>
+            {/* Chat example as bubble mockup */}
+            {step.chatExample && (
+                <div className="rounded-xl bg-white/60 dark:bg-black/20 border border-sky-200 dark:border-sky-800 p-3 mb-3 space-y-2">
+                    <div className="flex justify-end">
+                        <span className="inline-block bg-primary/15 text-foreground text-xs px-3 py-1.5 rounded-2xl rounded-br-sm max-w-[85%]">
+                            {step.chatExample.input}
+                        </span>
+                    </div>
+                    <div className="flex justify-start">
+                        <span className="inline-block bg-white dark:bg-slate-800 text-foreground/80 text-xs px-3 py-1.5 rounded-2xl rounded-bl-sm max-w-[85%] border border-slate-200 dark:border-slate-700">
+                            {step.chatExample.output}
+                        </span>
+                    </div>
+                </div>
             )}
 
-            {/* Progress Bar */}
+            {/* Tip callout */}
+            {step.tip && (
+                <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2 mb-3 text-xs text-foreground/70">
+                    <span className="shrink-0 text-primary font-bold">TIP</span>
+                    <span>{parseBold(step.tip)}</span>
+                </div>
+            )}
+
+            {/* Progress bar */}
             <div className="h-1 bg-muted rounded-full mb-3 overflow-hidden">
                 <motion.div
                     className="h-full bg-primary"
@@ -184,8 +185,8 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
     return (
         <>
-            {/* Dashboard step: no spotlight, card fixed at bottom so kanban is visible */}
-            {step.id === "dashboard-home" && (
+            {/* Bottom card mode: full page is visible behind the card */}
+            {BOTTOM_CARD_IDS.has(step.id) && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
@@ -199,103 +200,13 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
                 </div>
             )}
 
-            {/* Inbox step: no spotlight, wide card at bottom on inbox page */}
-            {step.id === "nav-inbox" && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Schedule step: no spotlight, bottom middle, wider and shorter card */}
-            {step.id === "nav-schedule" && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl max-h-[240px]">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Map step: no spotlight, bottom card on map page */}
-            {step.id === "nav-map" && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl max-h-[240px]">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Contacts step: no spotlight, bottom middle, wider and shorter card */}
-            {step.id === "nav-contacts" && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl max-h-[240px]">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Team step: no spotlight, bottom middle, wider and shorter card */}
-            {step.id === "nav-team" && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl max-h-[240px]">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Settings + Tracey Handbook steps: no spotlight, bottom middle, wider and shorter card */}
-            {(step.id === "nav-settings" || step.id === "travis-handbook") && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 pt-0">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-4xl"
-                    >
-                        <Card className="p-4 !bg-sky-100 dark:!bg-sky-900 border-sky-300 dark:border-sky-700 shadow-2xl rounded-2xl max-h-[240px]">
-                            {cardContent}
-                        </Card>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* Spotlight mode: step has a target element (not dashboard, inbox, schedule, map, contacts, team, settings, or handbook) */}
-            {step.targetId && step.id !== "dashboard-home" && step.id !== "nav-inbox" && step.id !== "nav-schedule" && step.id !== "nav-map" && step.id !== "nav-contacts" && step.id !== "nav-team" && step.id !== "nav-settings" && step.id !== "travis-handbook" && (
+            {/* Spotlight mode: step has a target element and is not a bottom card */}
+            {step.targetId && !NO_SPOTLIGHT_IDS.has(step.id) && (
                 <Spotlight
                     targetId={step.targetId}
                     resizeHandleId={step.resizeHandleId}
-                    cardPlacement={step.id === 'two-modes' ? 'bottomCenter' : 'auto'}
-                    spotlightExpandBottom={step.id === 'basic-mode' ? 100 : 0}
+                    cardPlacement={step.id === "two-modes" ? "bottomCenter" : "auto"}
+                    spotlightExpandBottom={step.id === "chat-mode" ? 100 : 0}
                 >
                     <Card className="w-full h-full max-w-full p-5 !bg-sky-100 dark:!bg-sky-900 text-card-foreground border-sky-300 dark:border-sky-700 shadow-2xl relative flex flex-col min-h-0 overflow-hidden">
                         {currentStepIndex === 0 && (
@@ -335,4 +246,3 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         </>
     )
 }
-
