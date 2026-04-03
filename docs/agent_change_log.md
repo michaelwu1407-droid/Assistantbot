@@ -3057,3 +3057,22 @@ Rule: every agent change commit must include an entry in this file.
   - Cleaned the visible week-range header copy to plain ASCII punctuation.
 - Why:
   - A CRM workflow is not trustworthy if the page says "Job updated" when the backend actually said no. This makes the schedule UI tell the truth under failure, not just under happy-path success.
+
+## 2026-04-04 01:20 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/deal-api-route.test.ts`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `app/api/deals/[id]/route.ts`
+  - `components/crm/deal-detail-modal.tsx`
+  - `components/settings/business-contact-form.tsx`
+  - `components/settings/working-hours-form.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Tightened the deal-detail modal and its backing API so the modal now matches the stricter full-page behavior instead of drifting into its own weaker access and action rules.
+  - The modal API route now scopes related customer jobs by workspace and assigned tradie for `TEAM_MEMBER` users, closing a second path where other tradies' jobs could still leak through the modal after the full detail page was fixed.
+  - The modal's `Edit` buttons now route to the actual deal/contact edit pages, the quick-update send button now really sends without requiring Enter in the input, and returned `updateDeal()` failures now surface as errors for draft confirmation and invoice updates instead of pretending the save worked.
+  - Added focused proof for the modal interactions and the API scoping, and cleaned two visible settings save labels back to plain ASCII `Saving...`.
+- Why:
+  - The deal modal is one of the highest-traffic CRM surfaces. It needs to be held to the same standard as the full pages: the right user sees the right data, every prominent action goes somewhere real, and failures are reported honestly instead of being papered over.

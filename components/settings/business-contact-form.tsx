@@ -60,7 +60,7 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
           <Textarea placeholder="Business address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save contact"}
+          {saving ? "Saving..." : "Save contact"}
         </Button>
       </CardContent>
     </Card>

@@ -110,7 +110,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
           </div>
         )}
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save hours"}
+          {saving ? "Saving..." : "Save hours"}
         </Button>
       </CardContent>
     </Card>

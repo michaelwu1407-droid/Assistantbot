@@ -57,6 +57,12 @@ Status meanings:
 17. Schedule truthfulness on failed drops
    - The schedule calendar no longer treats a non-throwing `{ success: false }` deal update as a success.
    - Failed drag/drop updates now show the backend error message and refresh back to server truth instead of leaving a false "Job updated" impression.
+18. Deal modal truthfulness and navigation
+   - Deal-detail modal "Edit" actions now land on real edit pages instead of looping back to read-only detail screens.
+   - The quick-update send button now actually sends the message instead of only working via Enter key in the input.
+   - Draft confirmation and invoice saves now respect returned `{ success: false }` errors instead of falsely toasting success.
+19. Deal modal related-job scoping
+   - The `/api/deals/[id]` modal data route now scopes related customer jobs the same way as the full detail page, so team members do not see other tradies' jobs inside the modal.
 
 ## CRM surface status
 
@@ -157,10 +163,12 @@ Status meanings:
   - Real detail page with contact info, notes, photos, billing tab, sync issues, and inbox link.
   - This pass closed a real access hole by routing detail-page access through the scoped deal guard, so team members cannot open arbitrary jobs by direct URL anymore.
   - This pass also scoped the related "Past jobs" panel so tradies do not see other team members' jobs for the same customer.
+  - The linked modal actions are now more coherent too: edit buttons go to edit pages, quick-send actually fires from the button, and failed saves no longer pretend they worked.
   - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`
   - `__tests__/deal-edit-form.test.tsx`
+  - `__tests__/deal-api-route.test.ts`
   - `__tests__/deal-page-access.test.tsx`
 
 ### `/crm/team`

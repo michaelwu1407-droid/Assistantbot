@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    await requireDealInCurrentWorkspace(id)
+    const { actor } = await requireDealInCurrentWorkspace(id)
 
     const deal = await db.deal.findUnique({
       where: { id },
@@ -27,7 +27,12 @@ export async function GET(
     }
 
     const contactDeals = await db.deal.findMany({
-      where: { contactId: deal.contactId, id: { not: id } },
+      where: {
+        contactId: deal.contactId,
+        workspaceId: actor.workspaceId,
+        id: { not: id },
+        ...(actor.role === "TEAM_MEMBER" ? { assignedToId: actor.id } : {}),
+      },
       orderBy: { updatedAt: "desc" },
       take: 10,
       include: { contact: true },

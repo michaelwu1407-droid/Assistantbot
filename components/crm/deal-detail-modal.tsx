@@ -157,6 +157,8 @@ function DealDetailContent({
   const [deal, setDeal] = useState<DealDetail>(initialDeal)
 
   const [activeDetailTab, setActiveDetailTab] = useState<"activities" | "jobs" | "notes">(initialTab || "activities")
+  const [quickMessage, setQuickMessage] = useState("")
+  const [sendingQuickMessage, setSendingQuickMessage] = useState(false)
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
@@ -233,7 +235,7 @@ function DealDetailContent({
 
   const handleEdit = () => {
     onOpenChange(false)
-    router.push(`/crm/deals/${deal.id}`)
+    router.push(`/crm/deals/${deal.id}/edit`)
   }
 
   const handleEditContact = () => {
@@ -242,7 +244,7 @@ function DealDetailContent({
       return
     }
     onOpenChange(false)
-    router.push(`/crm/contacts/${contact.id}`)
+    router.push(`/crm/contacts/${contact.id}/edit`)
   }
 
   const [isEditingInvoice, setIsEditingInvoice] = useState(false)
@@ -258,12 +260,15 @@ function DealDetailContent({
     setSavingInvoice(true)
     try {
       const val = parseFloat(forcedVal ?? invoiceVal)
-      await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
+      const result = await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update invoice amount")
+      }
       toast.success("Invoice amount updated")
       setIsEditingInvoice(false)
       setDeal((d) => ({ ...d, invoicedAmount: isNaN(val) ? undefined : val }))
-    } catch {
-      toast.error("Failed to update invoice amount")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update invoice amount")
     } finally {
       setSavingInvoice(false)
     }
@@ -271,13 +276,41 @@ function DealDetailContent({
 
   const handleConfirmDraft = async () => {
     try {
-      await updateDeal(deal.id, { isDraft: false })
+      const result = await updateDeal(deal.id, { isDraft: false })
+      if (!result.success) {
+        throw new Error(result.error || "Failed to confirm job")
+      }
       toast.success("Job confirmed")
       setDeal((d) => ({ ...d, isDraft: false }))
       onOpenChange(false)
       onDealUpdated?.()
-    } catch {
-      toast.error("Failed to confirm job")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to confirm job")
+    }
+  }
+
+  const handleSendQuickUpdate = async () => {
+    const message = quickMessage.trim()
+    if (!message) return
+    if (!deal.contactId) {
+      toast.error("No contact to message")
+      return
+    }
+
+    setSendingQuickMessage(true)
+    try {
+      const { sendSMS } = await import("@/actions/messaging-actions")
+      const res = await sendSMS(deal.contactId, message, deal.id)
+      if (!res.success) {
+        throw new Error(res.error || "Failed to send")
+      }
+      setQuickMessage("")
+      toast.success("Message sent")
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send")
+    } finally {
+      setSendingQuickMessage(false)
     }
   }
 
@@ -456,7 +489,7 @@ function DealDetailContent({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" size="sm" className="shrink-0" onClick={handleEdit}>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleEdit} aria-label="Edit job">
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
@@ -475,7 +508,7 @@ function DealDetailContent({
                 <FileText className="h-4 w-4" />
                 Contact details
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEditContact}>
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEditContact} aria-label="Edit contact">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
@@ -533,7 +566,7 @@ function DealDetailContent({
                 <Briefcase className="h-4 w-4" />
                 Current job
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEdit}>
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEdit} aria-label="Edit job">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
@@ -817,7 +850,7 @@ function DealDetailContent({
                         key={d.id}
                         onClick={() => {
                           onOpenChange(false)
-                          window.location.href = `/crm/deals/${d.id}`
+                          router.push(`/crm/deals/${d.id}`)
                         }}
                         className="block w-full rounded-[18px] border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
                       >
@@ -846,23 +879,24 @@ function DealDetailContent({
                       <Input
                         placeholder="Send a quick update..."
                         className="bg-white h-9 text-xs"
+                        value={quickMessage}
+                        onChange={(e) => setQuickMessage(e.target.value)}
                         onKeyDown={async (e) => {
                           if (e.key === 'Enter') {
-                            const val = e.currentTarget.value.trim();
-                            if (!val) return;
-                            if (!deal.contactId) {
-                              toast.error("No contact to message")
-                              return
-                            }
-                            e.currentTarget.value = '';
-                            const { sendSMS } = await import("@/actions/messaging-actions");
-                            const res = await sendSMS(deal.contactId, val, deal.id);
-                            if (res.success) toast.success("Message sent");
-                            else toast.error(res.error || "Failed to send");
+                            e.preventDefault()
+                            await handleSendQuickUpdate()
                           }
                         }}
+                        disabled={sendingQuickMessage}
                       />
-                      <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/10" aria-label="Send quick update">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-primary hover:bg-primary/10"
+                        aria-label="Send quick update"
+                        onClick={() => void handleSendQuickUpdate()}
+                        disabled={sendingQuickMessage || quickMessage.trim().length === 0}
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>

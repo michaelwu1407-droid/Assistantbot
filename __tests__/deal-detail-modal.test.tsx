@@ -13,6 +13,7 @@ const {
   scheduleFollowUp,
   completeFollowUp,
   cancelFollowUp,
+  sendSMS,
   toastSuccess,
   toastError,
 } = vi.hoisted(() => ({
@@ -25,6 +26,7 @@ const {
   scheduleFollowUp: vi.fn(),
   completeFollowUp: vi.fn(),
   cancelFollowUp: vi.fn(),
+  sendSMS: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
 }));
@@ -61,6 +63,10 @@ vi.mock("@/actions/followup-actions", () => ({
   cancelFollowUp,
 }));
 
+vi.mock("@/actions/messaging-actions", () => ({
+  sendSMS,
+}));
+
 vi.mock("@/components/crm/activity-feed", () => ({
   ActivityFeed: () => <div>Activity Feed</div>,
 }));
@@ -82,45 +88,50 @@ vi.mock("sonner", () => ({
 
 import { DealDetailModal } from "@/components/crm/deal-detail-modal";
 
+function makeDealResponse(overrides?: Record<string, unknown>) {
+  return new Response(
+    JSON.stringify({
+      deal: {
+        id: "deal_1",
+        title: "Blocked Drain",
+        value: 420,
+        stage: "PENDING_COMPLETION",
+        contactId: "contact_1",
+        company: "Acme Plumbing",
+        address: "1 King St",
+        createdAt: "2026-04-01T10:00:00.000Z",
+        scheduledAt: "2026-04-02T10:00:00.000Z",
+        metadata: { notes: "Customer prefers text updates." },
+        contact: {
+          id: "contact_1",
+          name: "Acme Plumbing",
+          company: "Acme Plumbing",
+          phone: "0400000001",
+          email: "office@acme.com",
+        },
+        jobPhotos: [],
+        ...overrides,
+      },
+      contactDeals: [],
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+}
+
 describe("DealDetailModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            deal: {
-              id: "deal_1",
-              title: "Blocked Drain",
-              value: 420,
-              stage: "PENDING_COMPLETION",
-              contactId: "contact_1",
-              company: "Acme Plumbing",
-              address: "1 King St",
-              createdAt: "2026-04-01T10:00:00.000Z",
-              scheduledAt: "2026-04-02T10:00:00.000Z",
-              metadata: { notes: "Customer prefers text updates." },
-              contact: {
-                id: "contact_1",
-                name: "Acme Plumbing",
-                company: "Acme Plumbing",
-                phone: "0400000001",
-                email: "office@acme.com",
-              },
-              jobPhotos: [],
-            },
-            contactDeals: [],
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        ),
-      ),
+      vi.fn().mockImplementation(() => Promise.resolve(makeDealResponse())),
     );
     approveCompletion.mockResolvedValue({ success: true });
     rejectCompletion.mockResolvedValue({ success: true });
+    updateDeal.mockResolvedValue({ success: true });
+    sendSMS.mockResolvedValue({ success: true });
   });
 
   it("loads a pending-completion deal and lets a manager approve it", async () => {
@@ -177,5 +188,73 @@ describe("DealDetailModal", () => {
     await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("routes edit actions to the actual edit pages", async () => {
+    const user = userEvent.setup();
+
+    const { unmount } = render(
+      <DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />,
+    );
+
+    await screen.findAllByText("Blocked Drain");
+
+    await user.click(screen.getAllByRole("button", { name: "Edit job" })[0]);
+    expect(routerPush).toHaveBeenCalledWith("/crm/deals/deal_1/edit");
+
+    unmount();
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+    await screen.findAllByText("Blocked Drain");
+
+    await user.click(screen.getByRole("button", { name: "Edit contact" }));
+    expect(routerPush).toHaveBeenCalledWith("/crm/contacts/contact_1/edit");
+  });
+
+  it("sends a quick update when clicking the send button", async () => {
+    const user = userEvent.setup();
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+
+    await user.type(screen.getByPlaceholderText("Send a quick update..."), "Running 10 mins late");
+    await user.click(screen.getByRole("button", { name: "Send quick update" }));
+
+    await waitFor(() => {
+      expect(sendSMS).toHaveBeenCalledWith("contact_1", "Running 10 mins late", "deal_1");
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("Message sent");
+    expect(routerRefresh).toHaveBeenCalled();
+  });
+
+  it("shows the returned error when confirming a draft job is rejected", async () => {
+    updateDeal.mockResolvedValue({ success: false, error: "Only managers can confirm drafts." });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            stage: "CONTACTED",
+            isDraft: true,
+          }),
+        ),
+      ),
+    );
+
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={onOpenChange} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    await user.click(screen.getByRole("button", { name: /confirm booking/i }));
+
+    await waitFor(() => {
+      expect(updateDeal).toHaveBeenCalledWith("deal_1", { isDraft: false });
+    });
+    expect(toastError).toHaveBeenCalledWith("Only managers can confirm drafts.");
+    expect(toastSuccess).not.toHaveBeenCalledWith("Job confirmed");
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
