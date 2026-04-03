@@ -1,3 +1,16 @@
+## 2026-04-04 03:00 (AEDT) - Codex
+
+- Files changed:
+  - `components/settings/call-forwarding-card.tsx`
+  - `__tests__/call-forwarding-card.test.tsx`
+  - `docs/tracey_call_handling_live_checklist.md`
+- Summary:
+  - Made the three Tracey call-handling modes more explicit in the settings UI by giving each mode its own primary next-step instruction, mode-specific setup-text wording, and clearer helper copy.
+  - Added regression coverage proving the UI now changes its next-step guidance appropriately for `Backup AI`, `100% AI`, and `Forwarding off`.
+  - Added a live verification checklist for real-device and real-call testing of the three modes.
+- Why:
+  - Saving the right mode was not enough on its own. Each mode leads to a different phone action and different expected live behavior, so the UI now guides the user more directly and the repo now includes a concrete checklist for proving the real-world flow.
+
 ## 2026-04-04 02:56 (AEDT) - Codex
 
 - Files changed:

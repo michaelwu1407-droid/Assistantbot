@@ -23,6 +23,39 @@ type PhoneStatus = {
 
 const BACKUP_DELAYS = [12, 15, 20, 25, 30, 35, 40]
 
+const MODE_GUIDANCE: Record<
+  ForwardMode,
+  {
+    nextStepTitle: string
+    nextStepBody: string
+    primaryActionLabel: (delaySec: number) => string
+    setupTextLabel: string | null
+    helperNote: string
+  }
+> = {
+  backup: {
+    nextStepTitle: "Next step: turn on Backup AI from your phone",
+    nextStepBody: "Use the backup forwarding code below. Your phone rings first, then Tracey picks up if you miss the call.",
+    primaryActionLabel: (delaySec) => `Turn on Backup AI after ~${delaySec}s`,
+    setupTextLabel: "Text me backup setup steps",
+    helperNote: "Best when you still want first shot at answering, but want Tracey as a safety net.",
+  },
+  full: {
+    nextStepTitle: "Next step: forward every call to Tracey",
+    nextStepBody: "Use the full forwarding code below. Tracey answers immediately, before your phone rings.",
+    primaryActionLabel: () => "Turn on 100% AI",
+    setupTextLabel: "Text me full AI setup steps",
+    helperNote: "Best when you want Tracey to act as the front desk and handle every incoming call first.",
+  },
+  off: {
+    nextStepTitle: "Next step: turn forwarding off on your phone",
+    nextStepBody: "Use the off code below to stop forwarding. Calls stay on your phone and Tracey will not answer them.",
+    primaryActionLabel: () => "Turn forwarding off",
+    setupTextLabel: null,
+    helperNote: "Use this when you want to take calls directly again and stop Tracey from answering.",
+  },
+}
+
 export function CallForwardingCard() {
   const [active, setActive] = useState<ForwardMode>("backup")
   const [delaySec, setDelaySec] = useState(12)
@@ -68,6 +101,9 @@ export function CallForwardingCard() {
   const traceyPhone = status?.phoneNumber || null
   const hasTraceyNumber = Boolean(status?.hasPhoneNumber && traceyPhone)
   const codes = useMemo(() => (traceyPhone ? buildCallForwardingCodes(traceyPhone, delaySec) : null), [traceyPhone, delaySec])
+  const activeModeGuidance = MODE_GUIDANCE[active]
+  const activeDialerHref = active === "backup" ? codes?.backupHref : active === "full" ? codes?.fullHref : codes?.offHref
+  const activeActionLabel = activeModeGuidance.primaryActionLabel(delaySec)
 
   const saveHandling = async (
     nextMode: ForwardMode,
@@ -277,10 +313,13 @@ export function CallForwardingCard() {
                     <p className="app-section-title">Apply this on your phone</p>
                   </div>
                   <p className="app-body-secondary">
-                    Tap the option you want on your phone. Your dialer will open with the right forwarding code ready.
+                    {activeModeGuidance.nextStepBody}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {activeModeGuidance.helperNote}
                   </p>
                 </div>
-                {active !== "off" ? (
+                {activeModeGuidance.setupTextLabel ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -289,16 +328,28 @@ export function CallForwardingCard() {
                     onClick={handleSendSetupText}
                   >
                     {sendingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Smartphone className="mr-2 h-4 w-4" />}
-                    Text me setup steps
+                    {activeModeGuidance.setupTextLabel}
                   </Button>
                 ) : null}
               </div>
 
+              <div className="mt-4 rounded-[18px] border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {activeModeGuidance.nextStepTitle}
+                </p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                  Your phone&apos;s dialer will open with the right code ready to run.
+                </p>
+                <Button asChild className="mt-3 h-auto min-h-[56px] w-full justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                  <a href={activeDialerHref}>{activeActionLabel}</a>
+                </Button>
+              </div>
+
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <Button asChild variant={active === "backup" ? "default" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild variant={active === "backup" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
                   <a href={codes.backupHref}>Backup AI after ~{delaySec}s</a>
                 </Button>
-                <Button asChild variant={active === "full" ? "default" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild variant={active === "full" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
                   <a href={codes.fullHref}>Forward every call</a>
                 </Button>
                 <Button asChild variant={active === "off" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">

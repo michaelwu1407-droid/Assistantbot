@@ -120,6 +120,8 @@ describe("CallForwardingCard", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Backup AI/i })).toBeInTheDocument());
 
     expect(screen.getByText(/Backup AI pickup timing/i)).toBeInTheDocument();
+    expect(screen.getByText(/Next step: turn on Backup AI from your phone/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Turn on Backup AI after ~12s/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /100% AI/i }));
     await waitFor(() =>
@@ -130,6 +132,8 @@ describe("CallForwardingCard", () => {
       }),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Call handling preference saved");
+    expect(screen.getByText(/Next step: forward every call to Tracey/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Turn on 100% AI/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Forwarding off/i }));
     await waitFor(() =>
@@ -140,6 +144,8 @@ describe("CallForwardingCard", () => {
       }),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Call forwarding preference updated");
+    expect(screen.getByText(/Next step: turn forwarding off on your phone/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Turn forwarding off/i }).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: /Backup AI/i }));
     await waitFor(() =>
@@ -155,9 +161,9 @@ describe("CallForwardingCard", () => {
     const user = userEvent.setup();
     render(<CallForwardingCard />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /Text me setup steps/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Text me backup setup steps/i })).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: /Text me setup steps/i }));
+    await user.click(screen.getByRole("button", { name: /Text me backup setup steps/i }));
     await waitFor(() =>
       expect(sendCallForwardingSetupSms).toHaveBeenCalledWith({
         mode: "backup",
@@ -175,7 +181,7 @@ describe("CallForwardingCard", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: /Text me setup steps/i }));
+    await user.click(screen.getByRole("button", { name: /Text me full AI setup steps/i }));
     await waitFor(() =>
       expect(sendCallForwardingSetupSms).toHaveBeenCalledWith({
         mode: "full",
@@ -193,6 +199,6 @@ describe("CallForwardingCard", () => {
       }),
     );
 
-    expect(screen.queryByRole("button", { name: /Text me setup steps/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Text me .* setup steps/i })).not.toBeInTheDocument();
   });
 });
