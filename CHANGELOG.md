@@ -1,5 +1,17 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.5.3 (April 3, 2026)
+
+### Onboarding Tutorial Revamp
+- Reduced tutorial from 16 to 15 steps; condensed Settings+Handbook and Feedback+Finish into single steps each.
+- Added new **Analytics** page step (routes to `/crm/analytics`, spotlights `reports-link` sidebar item).
+- Added new **"More Than Just Chat"** step showcasing quoting/invoicing, analytics, scheduling, and contact lookup via natural language.
+- Updated Dashboard step to highlight RHS chat panel availability in advanced mode.
+- Corrected all outdated settings names: removed One-Tap Messages, Repair Glossary, AI Voice Agent, Phone & Support; added Calls & Texting, My Business, AI Assistant, Automations, AI Attachment Library.
+- New `TutorialStep` interface fields: `features` (dot-list bullets) and `tip` (highlighted callout box).
+- Card formatting redesign: chat examples render as speech bubble mockups, features as dot rows, tips in mint callout. Fixed `text-black` → `text-foreground/80` for dark mode support.
+- Overlay code cleanup: consolidated 8 repeated bottom-card blocks into one `BOTTOM_CARD_IDS` set check; consolidated 8 route `useEffect` hooks into one routes map.
+
 ## Version 2.5.2 (March 1, 2026)
 
 ### AI Quality + Latency Optimization

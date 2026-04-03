@@ -508,9 +508,12 @@ Sidebar (45px) | Main Canvas (default 72%) | Resize Handle (2px) | Assistant Pan
 
 **Tutorial Integration:**
 - `TutorialOverlay` always mounted, manages own visibility
-- Step 4 (chat mode) automatically expands chat panel
-- Steps 1-2 force BASIC mode
+- Step index 3 (`chat-mode`) automatically expands chat panel via `CHAT_STEP_INDEX = 3` in `Shell.tsx`
+- Steps 0-1 force BASIC mode (welcome + two-modes shown in chat view)
 - Completion calls `completeTutorial(workspaceId)`
+- 15 steps total across 4 sections: Welcome & Orientation, Chat Mode & AI Power, Dashboard & Navigation, Settings & Wrap-Up
+- New `TutorialStep` fields: `features?: string[]` (dot-list), `tip?: string` (mint callout box)
+- Chat examples rendered as speech bubble mockups (not bullet lists)
 
 **Hydration:** Uses `mounted` state; `ResizablePanelGroup` only renders after mount
 
