@@ -3096,3 +3096,23 @@ Rule: every agent change commit must include an entry in this file.
   - Aligned `sendOnMyWaySMS()` with the shared scoped-deal guard so the tradie workflow no longer performs an unscoped job lookup before sending a live customer message.
 - Why:
   - The remaining CRM risk was less about missing pages and more about trust: whether high-traffic actions tell the truth, whether old URLs still get users somewhere sensible, and whether live customer-facing actions obey the same access rules as the rest of the system. This pass closes several of those last obvious gaps.
+
+## 2026-04-04 01:50 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/call-settings-client.test.tsx`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/service-areas-section.test.tsx`
+  - `actions/deal-actions.ts`
+  - `actions/knowledge-actions.ts`
+  - `components/settings/service-areas-section.tsx`
+- Summary:
+  - Closed a real workflow gap where jobs created directly into `Scheduled` did not have the same business-rule parity as the other scheduled-entry paths. Scheduled creation now requires both an assignee and a booked time, and it fires the booking-confirmation hook just like stage transitions and direct deal edits.
+  - Promoted job reassignment from a silent field update into a proper CRM action by logging it, auditing it, revalidating the key schedule/map/detail surfaces, and best-effort resyncing the calendar event when the deal is already scheduled.
+  - Fixed a stale settings invalidation path by revalidating the live `/crm/settings/my-business` surface alongside the legacy `/crm/settings/knowledge` alias for knowledge/service-area mutations.
+  - Tightened the My business service-area component so it now respects returned backend failures instead of always toasting success.
+  - Added direct component proof for the Calls & texting settings page covering fallback/default loading, merged settings saves, and automatic Tracey sign-off handling on automated message templates.
+- Why:
+  - At this stage the remaining CRM risks were workflow-consistency risks: different entry points into the same business action behaving differently, or a save succeeding in the backend but not cleanly propagating back to the page the user is actually on. This pass closes several of those last visible seams.

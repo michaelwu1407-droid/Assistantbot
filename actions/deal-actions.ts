@@ -355,6 +355,9 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
   if (prismaStage === "SCHEDULED" && !assignedToId) {
     return { success: false, error: "Assign a team member when creating a job in Scheduled stage." };
   }
+  if (prismaStage === "SCHEDULED" && !scheduledAt) {
+    return { success: false, error: "Set a scheduled date when creating a job in Scheduled stage." };
+  }
 
   const deal = await db.deal.create({
     data: {
@@ -448,6 +451,8 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       });
     });
   }
+
+  await fireBookingConfirmation(deal.id, null, prismaStage as PrismaStage);
 
   return { success: true, dealId: deal.id };
 }
@@ -1392,18 +1397,68 @@ export async function updateDealAssignedTo(
     }
   }
 
+  let nextAssigneeName: string | null = null;
   if (assignedToId) {
     const member = await db.user.findFirst({
       where: { id: assignedToId, workspaceId: deal.workspaceId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!member) return { success: false, error: "User not in this workspace" };
+    nextAssigneeName = member.name ?? null;
   }
 
   await db.deal.update({
     where: { id: dealId },
     data: { assignedToId },
   });
+
+  const previousAssigneeName =
+    deal.assignedToId && deal.assignedToId !== assignedToId ? "previous team member" : null;
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Assigned team member updated",
+      content: assignedToId
+        ? `Assigned to ${nextAssigneeName || "selected team member"}.`
+        : "Deal unassigned.",
+      dealId,
+      contactId: deal.contactId ?? undefined,
+      userId: actor.id,
+      ...(previousAssigneeName ? { description: `Updated by ${actor.name || "team member"}` } : {}),
+    },
+  });
+
+  await recordWorkspaceAuditEvent({
+    workspaceId: deal.workspaceId,
+    userId: actor.id,
+    action: "deal.assignee_changed",
+    entityType: "deal",
+    entityId: dealId,
+    metadata: {
+      previousAssignedToId: deal.assignedToId ?? null,
+      nextAssignedToId: assignedToId,
+      source: "deal-actions.updateDealAssignedTo",
+    },
+  });
+
+  if (deal.scheduledAt) {
+    await syncGoogleCalendarEventForDeal(dealId).catch((err) => {
+      recordSyncIssue({
+        workspaceId: deal.workspaceId,
+        dealId,
+        contactId: deal.contactId,
+        surface: "calendar_sync",
+        message: `Calendar sync failed after reassigning "${deal.title}": ${err instanceof Error ? err.message : String(err)}`,
+      });
+    });
+  }
+
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${dealId}`);
   return { success: true };
 }
 

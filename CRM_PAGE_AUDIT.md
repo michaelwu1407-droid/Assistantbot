@@ -71,6 +71,13 @@ Status meanings:
    - Billing now has direct route-level proof that team members are blocked before the page loads, not just hidden from the sidebar.
 22. Tradie on-my-way guard alignment
    - The `sendOnMyWaySMS` action now scopes through the shared deal-access guard before loading the job, matching the rest of the tradie CRM workflow instead of doing an unscoped read first.
+23. Scheduled-creation parity
+   - Creating a deal directly in `Scheduled` now follows the same product rules and side effects as the transition paths.
+   - It now requires a scheduled date as well as an assignee, and it fires the booking-confirmation hook just like `updateDealStage()` and `updateDeal()`.
+24. Assignment and settings workflow proof
+   - Reassigning a scheduled job now behaves like a first-class CRM action instead of a silent field change: it logs an activity, records an audit event, revalidates the main schedule/map/detail surfaces, and best-effort resyncs the calendar event.
+   - My business saves now revalidate the live canonical page instead of only the old `/crm/settings/knowledge` alias.
+   - The Calls & texting settings surface now has direct component proof for both fallback/default loading and successful save behavior, including automated-message signature handling.
 
 ## CRM surface status
 
@@ -147,9 +154,11 @@ Status meanings:
   - Real schedule page with direct route-level and component-level coverage for manager vs team-member views.
   - Team members now only see their own jobs and their own lane, which matches the intended restricted workflow better.
   - Failed drag/drop updates now surface real backend rejection messages instead of falsely toasting success.
+  - Assignment changes now propagate more cleanly too because the reassignment action logs, revalidates, and resyncs the underlying scheduled job instead of acting like a silent metadata tweak.
 - Evidence:
   - `__tests__/schedule-page.test.tsx`
   - `__tests__/schedule-calendar.test.tsx`
+  - `__tests__/deal-actions.test.ts`
 - Watch items:
   - Still needs end-to-end verification for drag/update side effects like reminders, confirmations, and assignment changes.
 
@@ -173,6 +182,7 @@ Status meanings:
   - This pass also scoped the related "Past jobs" panel so tradies do not see other team members' jobs for the same customer.
   - The linked modal actions are now more coherent too: edit buttons go to edit pages, quick-send actually fires from the button, and failed saves no longer pretend they worked.
   - The billing tab now tells the truth when invoice creation is rejected, and the photo-upload surface now has direct proof for both success and returned backend-error handling.
+  - Direct creation into `Scheduled` now matches the live transition flows, so jobs created from CRM forms do not quietly skip the booking-confirmation behavior.
   - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`
@@ -210,11 +220,16 @@ Status meanings:
   - Manager-only sidebar discoverability now has direct coverage, so team members no longer see obvious dead-end nav links for Billing and Integrations.
   - Legacy route aliases like old phone, support, SMS template, AI voice, and after-hours paths now have direct proof that they redirect into the canonical settings pages instead of stranding users.
   - Billing access is now proven at the page boundary too, not just inferred from hidden sidebar links.
+  - Calls & texting now has direct component proof for fallback loading, merged settings saves, and automated-message signature handling.
+  - My business write paths now invalidate the canonical page they actually live on instead of only the legacy alias route.
   - Not fully journey-audited in this pass.
   - Some sections are already stronger than others, so this needs a dedicated settings audit rather than a blanket claim.
 - Evidence:
   - `__tests__/settings-layout.test.tsx`
   - `__tests__/settings-route-redirects.test.tsx`
+  - `__tests__/call-settings-client.test.tsx`
+  - `__tests__/service-areas-section.test.tsx`
+  - `__tests__/knowledge-actions.test.ts`
 
 ### `/crm/settings/integrations`
 
@@ -242,7 +257,7 @@ Status meanings:
 
 2. Schedule journey
    - drag/update interactions
-   - confirmation/reminder side effects
+   - confirmation/reminder side effects beyond the now-covered assignment/calendar consistency
 
 3. Team and analytics pages
    - server/client access behavior
@@ -250,7 +265,7 @@ Status meanings:
    - empty/error states
 
 4. Settings journey
-   - especially phone, agent, inbox/messaging, and business profile settings beyond the now-proven redirect/access paths
+   - especially phone, agent, inbox/messaging, and business profile settings beyond the now-proven redirect/access/save paths
 
 ## Current blunt verdict
 

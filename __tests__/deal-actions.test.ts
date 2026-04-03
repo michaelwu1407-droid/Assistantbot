@@ -218,6 +218,38 @@ describe("deal-actions", () => {
     expect(hoisted.db.deal.create).not.toHaveBeenCalled();
   });
 
+  it("blocks scheduled deal creation when no scheduled date is provided", async () => {
+    const result = await createDeal({
+      title: "Booked Job",
+      value: 800,
+      stage: "scheduled",
+      contactId: "contact_1",
+      workspaceId: "ws_1",
+      assignedToId: "worker_1",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Set a scheduled date when creating a job in Scheduled stage.",
+    });
+    expect(hoisted.db.deal.create).not.toHaveBeenCalled();
+  });
+
+  it("fires a booking confirmation when a deal is created directly in scheduled", async () => {
+    const result = await createDeal({
+      title: "Booked Job",
+      value: 800,
+      stage: "scheduled",
+      contactId: "contact_1",
+      workspaceId: "ws_1",
+      assignedToId: "worker_1",
+      scheduledAt: new Date("2026-04-02T09:00:00.000Z"),
+    });
+
+    expect(result).toEqual({ success: true, dealId: "deal_1" });
+    expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
+  });
+
   it("prevents team members from reassigning jobs", async () => {
     hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
       actor: { id: "user_1", workspaceId: "ws_1", role: "TEAM_MEMBER" },
@@ -240,6 +272,53 @@ describe("deal-actions", () => {
       error: "Only managers can reassign jobs.",
     });
     expect(hoisted.db.deal.update).not.toHaveBeenCalled();
+  });
+
+  it("logs reassignment side effects and refreshes schedule surfaces", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1", role: "MANAGER", name: "Sam" },
+      deal: {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        stage: "SCHEDULED",
+        metadata: {},
+        assignedToId: "worker_1",
+        scheduledAt: new Date("2026-04-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-04-01T08:00:00.000Z"),
+      },
+    });
+    hoisted.db.user.findFirst.mockResolvedValueOnce({ id: "worker_2", name: "Alex" });
+
+    const result = await updateDealAssignedTo("deal_1", "worker_2");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Assigned team member updated",
+        content: "Assigned to Alex.",
+        dealId: "deal_1",
+        contactId: "contact_1",
+        userId: "user_1",
+      }),
+    });
+    expect(hoisted.recordWorkspaceAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: "ws_1",
+        action: "deal.assignee_changed",
+        metadata: expect.objectContaining({
+          previousAssignedToId: "worker_1",
+          nextAssignedToId: "worker_2",
+        }),
+      }),
+    );
+    expect(hoisted.syncGoogleCalendarEventForDeal).toHaveBeenCalledWith("deal_1");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/schedule");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/map");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/dashboard");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals/deal_1");
   });
 
   it("moves team-member completions into pending approval instead of WON", async () => {

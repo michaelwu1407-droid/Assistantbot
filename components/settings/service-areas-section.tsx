@@ -45,7 +45,11 @@ export function ServiceAreasSection() {
   const save = async () => {
     setSaving(true)
     try {
-      await updateServiceArea(serviceRadius, serviceSuburbs)
+      const result = await updateServiceArea(serviceRadius, serviceSuburbs)
+      if (!result.success) {
+        toast.error(result.error || "Failed to save service area")
+        return
+      }
       toast.success("Service area saved")
     } catch {
       toast.error("Failed to save service area")
