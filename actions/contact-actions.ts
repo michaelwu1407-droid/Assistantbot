@@ -239,11 +239,13 @@ export async function getContactsPage(
  * Fetch a single contact by ID.
  */
 export async function getContact(contactId: string): Promise<ContactView | null> {
-  const { contact: scopedContact } = await requireContactInCurrentWorkspace(contactId);
+  const { actor, contact: scopedContact } = await requireContactInCurrentWorkspace(contactId);
+  const visibleDealWhere = actor.role === "TEAM_MEMBER" ? { assignedToId: actor.id } : undefined;
   const contact = await db.contact.findFirst({
     where: { id: scopedContact.id, workspaceId: scopedContact.workspaceId },
     include: {
       deals: {
+        where: visibleDealWhere,
         orderBy: { lastActivityAt: "desc" },
         include: { invoices: { select: { total: true, status: true } } },
       },
@@ -427,8 +429,11 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
   }
 
   const { contactId, ...data } = parsed.data;
-  const { contact } = await requireContactInCurrentWorkspace(contactId);
+  const { actor, contact } = await requireContactInCurrentWorkspace(contactId);
   if (!contact) return { success: false, error: "Contact not found" };
+  if (actor.role === "TEAM_MEMBER") {
+    return { success: false, error: "Only managers can edit contact details." };
+  }
 
   const newEmail = data.email !== undefined ? (data.email && data.email.trim() ? data.email.trim() : null) : contact.email;
   const newPhone = data.phone !== undefined ? (data.phone && data.phone.trim() ? data.phone.trim() : null) : contact.phone;
@@ -550,7 +555,10 @@ export async function searchContacts(
  * Delete a contact.
  */
 export async function deleteContact(contactId: string) {
-  await requireContactInCurrentWorkspace(contactId);
+  const { actor } = await requireContactInCurrentWorkspace(contactId);
+  if (actor.role === "TEAM_MEMBER") {
+    return { success: false, error: "Only managers can delete contacts." };
+  }
   await db.contact.delete({ where: { id: contactId } });
   return { success: true };
 }
@@ -560,6 +568,9 @@ export async function deleteContact(contactId: string) {
  */
 export async function deleteContacts(contactIds: string[]) {
   const actor = await requireCurrentWorkspaceAccess();
+  if (actor.role === "TEAM_MEMBER") {
+    return { success: false, error: "Only managers can delete contacts." };
+  }
   await db.contact.deleteMany({
     where: {
       id: { in: contactIds },

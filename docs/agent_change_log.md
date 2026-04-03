@@ -3011,3 +3011,34 @@ Rule: every agent change commit must include an entry in this file.
   - Replaced broken handbook arrows in Settings -> Help with stable readable text.
 - Why:
   - Even when the workflows work, broken copy makes the CRM feel less trustworthy. These are high-visibility surfaces that users read directly while learning and using the product.
+
+## 2026-04-04 01:03 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/contact-page-access.test.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+  - `app/crm/contacts/[id]/page.tsx`
+  - `app/crm/deals/[id]/page.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Closed a quieter CRM visibility leak where team members could be blocked from unrelated contacts/deals by URL but still see other tradies' jobs and history once inside a shared customer record.
+  - Scoped contact detail jobs, customer feedback, and timeline items down to the current tradie's visible assigned jobs, and added focused regression coverage proving hidden items no longer render.
+  - Scoped the deal detail page's related "Past jobs" panel to the current tradie's own jobs for that customer, and added page-level proof for the new query behavior.
+  - Cleaned the visible job-history copy on those detail pages to remove broken punctuation and ambiguous placeholder glyphs.
+- Why:
+  - Access control has to hold inside the page, not just at the route boundary. This closes another class of "page loads, but shows too much" CRM issue on the highest-visibility customer/job detail screens.
+
+## 2026-04-04 01:06 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/contact-actions.test.ts`
+  - `actions/contact-actions.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Aligned contact mutation permissions with the actual CRM UI by blocking `TEAM_MEMBER` users from editing contact fields or bulk-deleting contacts through server actions.
+  - Tightened the shared `getContact` helper so future consumers inherit the same visible-deal scoping as the live contact detail page instead of reintroducing full-history leakage by accident.
+  - Added regression coverage proving team members are rejected from contact-detail edits and bulk contact deletion even if they can still view the assigned customer record.
+- Why:
+  - Hiding manager-only pages is not enough if a looser server action still accepts the change. This closes the backend side of that mismatch for contact management.

@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
   enrichFromEmail: vi.fn(),
@@ -26,7 +27,7 @@ vi.mock("@/lib/workspace-access", () => ({
   requireContactInCurrentWorkspace: hoisted.requireContactInCurrentWorkspace,
 }));
 
-import { createContact, updateContact } from "@/actions/contact-actions";
+import { createContact, deleteContacts, updateContact } from "@/actions/contact-actions";
 
 describe("contact-actions", () => {
   beforeEach(() => {
@@ -34,8 +35,14 @@ describe("contact-actions", () => {
     hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
       id: "user_1",
       workspaceId: "ws_1",
+      role: "OWNER",
     });
     hoisted.requireContactInCurrentWorkspace.mockResolvedValue({
+      actor: {
+        id: "user_1",
+        workspaceId: "ws_1",
+        role: "OWNER",
+      },
       contact: {
         id: "contact_1",
         workspaceId: "ws_1",
@@ -170,5 +177,48 @@ describe("contact-actions", () => {
       error: "At least one of phone or email is required.",
     });
     expect(hoisted.db.contact.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects contact field edits from team members even if they can view the contact", async () => {
+    hoisted.requireContactInCurrentWorkspace.mockResolvedValue({
+      actor: {
+        id: "user_2",
+        workspaceId: "ws_1",
+        role: "TEAM_MEMBER",
+      },
+      contact: {
+        id: "contact_1",
+        workspaceId: "ws_1",
+        email: "alex@example.com",
+        phone: "0400000000",
+      },
+    });
+
+    const result = await updateContact({
+      contactId: "contact_1",
+      name: "Updated Name",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Only managers can edit contact details.",
+    });
+    expect(hoisted.db.contact.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects bulk contact deletion for team members", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_2",
+      workspaceId: "ws_1",
+      role: "TEAM_MEMBER",
+    });
+
+    const result = await deleteContacts(["contact_1", "contact_2"]);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Only managers can delete contacts.",
+    });
+    expect(hoisted.db.contact.deleteMany).not.toHaveBeenCalled();
   });
 });

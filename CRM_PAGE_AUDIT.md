@@ -47,6 +47,13 @@ Status meanings:
    - Team members can no longer open unrelated contact detail pages by direct URL unless that contact is tied to one of their assigned jobs.
 14. Map role filtering
    - Team members now only see their own scheduled jobs on the map, matching the schedule page instead of loading the whole workspace roster.
+15. Detail-page related history scoping
+   - Team members no longer see other tradies' jobs or unrelated contact history inside shared contact/deal detail pages.
+   - Contact detail now filters jobs, feedback, and timeline items down to the tradie's visible assigned jobs.
+   - Deal detail now filters the "Past jobs" panel to only that tradie's other assigned jobs for the same customer.
+16. Contact mutation guard alignment
+   - Contact edit/delete server actions now match the manager-only CRM UI instead of allowing team members to mutate records through direct action calls.
+   - This closes the gap between what the pages showed and what the backend would still accept.
 
 ## CRM surface status
 
@@ -88,6 +95,7 @@ Status meanings:
   - Detail page is real and rich, with job links, notes, feedback, and activity.
   - Usable now that edit path exists.
   - This pass closed a direct-link access hole by scoping contact detail through the contact guard, so tradies cannot browse unrelated customer records by URL.
+  - This pass also scoped the visible jobs, feedback, and timeline items on the page itself so tradies do not see other team members' customer history once they are inside a shared contact.
   - Still needs a fuller end-to-end journey test around linked actions and role-specific expectations.
 - Evidence:
   - `__tests__/contact-page-access.test.tsx`
@@ -98,8 +106,10 @@ Status meanings:
 - Why:
   - Newly added real edit page.
   - Existing edit links now land somewhere correct and save back into CRM.
+  - Contact mutation guards now match the page-level permissions, so team members cannot bypass the manager-only edit restriction through direct server action calls.
 - Evidence:
   - `__tests__/contact-form.test.tsx`
+  - `__tests__/contact-actions.test.ts`
 
 ### `/crm/inbox`
 
@@ -142,6 +152,7 @@ Status meanings:
 - Why:
   - Real detail page with contact info, notes, photos, billing tab, sync issues, and inbox link.
   - This pass closed a real access hole by routing detail-page access through the scoped deal guard, so team members cannot open arbitrary jobs by direct URL anymore.
+  - This pass also scoped the related "Past jobs" panel so tradies do not see other team members' jobs for the same customer.
   - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`
@@ -223,6 +234,7 @@ Most solid right now:
 Still usable but not fully proven:
 
 - deal detail journeys
+- contact detail journeys
 - schedule side effects
 - team
 - analytics

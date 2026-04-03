@@ -41,12 +41,17 @@ export default async function ContactDetailPage({ params }: PageProps) {
     }
     throw error
   }
+  const isRestrictedActor = actor.role === "TEAM_MEMBER"
+  const visibleDealWhere = isRestrictedActor ? { assignedToId: actor.id } : undefined
 
   const contact = await db.contact.findFirst({
     where: { id, workspaceId: actor.workspaceId },
     include: {
-      deals: { orderBy: { createdAt: "desc" } },
-      customerFeedback: { orderBy: { createdAt: "desc" } },
+      deals: { where: visibleDealWhere, orderBy: { createdAt: "desc" } },
+      customerFeedback: {
+        ...(isRestrictedActor ? { where: { deal: { assignedToId: actor.id } } } : {}),
+        orderBy: { createdAt: "desc" },
+      },
       syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 20 },
     },
   })
@@ -57,8 +62,12 @@ export default async function ContactDetailPage({ params }: PageProps) {
   const contactType = (metadata.contactType as string) === "BUSINESS" ? "BUSINESS" : "PERSON"
   const notes = (metadata.notes as string) ?? ""
   const [currentDeal, ...pastDeals] = contact.deals
+  const visibleDealIds = new Set(contact.deals.map((deal) => deal.id))
 
-  const activities = await getActivities({ contactId: id, limit: 40 })
+  const rawActivities = await getActivities({ contactId: id, limit: 40 })
+  const activities = isRestrictedActor
+    ? rawActivities.filter((activity) => activity.dealId && visibleDealIds.has(activity.dealId))
+    : rawActivities
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 overflow-hidden">
@@ -215,7 +224,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
               </div>
               <Button variant="outline" size="sm" className="mt-2" asChild>
                 <Link href={`/crm/deals/${currentDeal.id}`}>
-                  Open job →
+                  Open job {"->"}
                 </Link>
               </Button>
             </div>
@@ -333,7 +342,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-slate-900 dark:text-foreground truncate">{d.title}</p>
-                            <p className="text-xs text-slate-400">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • ${Number(d.value).toLocaleString("en-AU")} • {format(new Date(d.updatedAt), "MMM d")}</p>
+                            <p className="text-xs text-slate-400">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - ${Number(d.value).toLocaleString("en-AU")} - {format(new Date(d.updatedAt), "MMM d")}</p>
                           </div>
                         </Link>
                       ))}

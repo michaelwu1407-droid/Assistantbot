@@ -136,4 +136,24 @@ describe("deal page access", () => {
     expect(screen.getByTestId("deal-edit-form")).toHaveTextContent("manage-assignment:false");
     expect(screen.getByTestId("deal-edit-form")).toHaveTextContent("members:0");
   });
+
+  it("scopes related job history to the assigned tradie on the detail page", async () => {
+    requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1", role: "TEAM_MEMBER" },
+      deal: { id: "deal_1", workspaceId: "ws_1" },
+    });
+
+    render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
+
+    expect(db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          contactId: "contact_1",
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+          id: { not: "deal_1" },
+        }),
+      }),
+    );
+  });
 });

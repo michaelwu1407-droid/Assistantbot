@@ -85,4 +85,80 @@ describe("ContactDetailPage", () => {
       ContactDetailPage({ params: Promise.resolve({ id: "contact_1" }) }),
     ).rejects.toThrow("NOT_FOUND");
   });
+
+  it("limits tradie contact detail history to their own assigned jobs", async () => {
+    requireContactInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1", role: "TEAM_MEMBER" },
+      contact: { id: "contact_1", workspaceId: "ws_1" },
+    });
+    db.contact.findFirst.mockResolvedValue({
+      id: "contact_1",
+      name: "Acme Plumbing",
+      phone: "0400000001",
+      email: "office@acme.com",
+      company: "Acme Plumbing",
+      address: "1 King St",
+      metadata: {},
+      deals: [
+        {
+          id: "deal_visible",
+          title: "Visible Job",
+          stage: "SCHEDULED",
+          value: 420,
+          createdAt: new Date("2026-04-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-04-02T10:00:00.000Z"),
+          address: "1 King St",
+          metadata: {},
+        },
+      ],
+      customerFeedback: [],
+      syncIssues: [],
+    });
+    getActivities.mockResolvedValue([
+      {
+        id: "activity_visible",
+        type: "note",
+        title: "Visible activity",
+        description: "Assigned job note",
+        time: "1h ago",
+        createdAt: new Date("2026-04-02T11:00:00.000Z"),
+        dealId: "deal_visible",
+        contactId: "contact_1",
+      },
+      {
+        id: "activity_hidden",
+        type: "note",
+        title: "Hidden activity",
+        description: "Another tradie's job note",
+        time: "2h ago",
+        createdAt: new Date("2026-04-02T09:00:00.000Z"),
+        dealId: "deal_hidden",
+        contactId: "contact_1",
+      },
+      {
+        id: "voice_hidden",
+        type: "call",
+        title: "Customer call",
+        description: "Unscoped contact activity",
+        time: "3h ago",
+        createdAt: new Date("2026-04-02T08:00:00.000Z"),
+        contactId: "contact_1",
+      },
+    ]);
+
+    render(await ContactDetailPage({ params: Promise.resolve({ id: "contact_1" }) }));
+
+    expect(db.contact.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          deals: expect.objectContaining({ where: { assignedToId: "user_1" } }),
+          customerFeedback: expect.objectContaining({ where: { deal: { assignedToId: "user_1" } } }),
+        }),
+      }),
+    );
+    expect(screen.getByText("Visible Job")).toBeInTheDocument();
+    expect(screen.getByText("Visible activity")).toBeInTheDocument();
+    expect(screen.queryByText("Hidden activity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Customer call")).not.toBeInTheDocument();
+  });
 });

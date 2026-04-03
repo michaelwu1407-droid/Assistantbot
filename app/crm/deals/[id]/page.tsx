@@ -50,9 +50,15 @@ export default async function DealDetailPage({ params }: PageProps) {
   })
 
   if (!deal) notFound()
+  const isRestrictedActor = actor.role === "TEAM_MEMBER"
 
   const contactDeals = await db.deal.findMany({
-    where: { contactId: deal.contactId, id: { not: id } },
+    where: {
+      contactId: deal.contactId,
+      workspaceId: actor.workspaceId,
+      id: { not: id },
+      ...(isRestrictedActor ? { assignedToId: actor.id } : {}),
+    },
     orderBy: { updatedAt: "desc" },
     take: 10,
     include: { contact: true },
@@ -94,7 +100,7 @@ export default async function DealDetailPage({ params }: PageProps) {
               </Badge>
             </div>
             <p className="text-slate-500 text-sm mt-0.5">
-              {contact?.company || "No company"} • <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString("en-AU")}</span>
+              {contact?.company || "No company"} - <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString("en-AU")}</span>
             </p>
           </div>
         </div>
@@ -176,7 +182,7 @@ export default async function DealDetailPage({ params }: PageProps) {
               <div>
                 <p className="text-slate-500 text-xs">Scheduled</p>
                 <p className="font-medium text-slate-900">
-                  {deal.scheduledAt ? format(new Date(deal.scheduledAt), "MMM d, yyyy h:mm a") : "—"}
+                  {deal.scheduledAt ? format(new Date(deal.scheduledAt), "MMM d, yyyy h:mm a") : "Not scheduled"}
                 </p>
               </div>
               <div>
@@ -243,7 +249,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
                         <span className="text-slate-500 ml-2">${Number(d.value || 0).toLocaleString("en-AU")}</span>
-                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} • {format(new Date(d.updatedAt), "MMM d")}</span>
+                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {format(new Date(d.updatedAt), "MMM d")}</span>
                       </Link>
                     ))
                   )}
