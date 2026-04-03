@@ -8,7 +8,7 @@ import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { revalidatePath } from "next/cache";
 import type { TriggerEvent } from "@prisma/client";
 import { sendNotification } from "@/lib/messaging/send-notification";
-import { NotificationScenario } from "@/lib/messaging/channel-router";
+import { getNotificationChannel, NotificationScenario } from "@/lib/messaging/channel-router";
 
 // ─── Default Templates ──────────────────────────────────────────────
 

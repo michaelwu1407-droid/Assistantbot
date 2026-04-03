@@ -463,7 +463,7 @@ export async function updateDealStage(dealId: string, stage: string) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    let prismaStage = STAGE_REVERSE[parsed.data.stage];
+    let prismaStage: PrismaStage | undefined = STAGE_REVERSE[parsed.data.stage] as PrismaStage | undefined;
     if (!prismaStage) {
       return { success: false, error: `Invalid stage: ${stage}` };
     }
