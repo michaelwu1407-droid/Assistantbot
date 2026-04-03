@@ -29,13 +29,13 @@ export function JobStatusDisplay({
   const [, startTransition] = useTransition()
 
   useEffect(() => {
-    // Poll every 30 seconds for status updates
+    // Poll every 5 minutes for status updates.
     const interval = setInterval(() => {
       startTransition(async () => {
         const updated = await getJobPortalStatus(token)
         if (updated) setData(updated)
       })
-    }, 30_000)
+    }, 300_000)
     return () => clearInterval(interval)
   }, [token])
 
