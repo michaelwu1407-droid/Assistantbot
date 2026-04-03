@@ -3042,3 +3042,18 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage proving team members are rejected from contact-detail edits and bulk contact deletion even if they can still view the assigned customer record.
 - Why:
   - Hiding manager-only pages is not enough if a looser server action still accepts the change. This closes the backend side of that mismatch for contact management.
+
+## 2026-04-04 01:12 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/schedule-calendar.test.tsx`
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed a misleading schedule-calendar path where drag/drop reschedules treated a returned `{ success: false }` action result as success as long as the server action did not throw.
+  - The calendar now checks the actual action result, shows the backend error message when a drop is rejected, and refreshes back to server truth instead of leaving the user with a false success toast.
+  - Added a drag/drop regression test proving failed reschedules now surface the backend message and trigger a refresh, while keeping the earlier team-lane visibility coverage.
+  - Cleaned the visible week-range header copy to plain ASCII punctuation.
+- Why:
+  - A CRM workflow is not trustworthy if the page says "Job updated" when the backend actually said no. This makes the schedule UI tell the truth under failure, not just under happy-path success.

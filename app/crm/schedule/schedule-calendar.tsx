@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays } from "date-fns"
+import { useRouter } from "next/navigation"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
@@ -26,6 +27,7 @@ interface ScheduleCalendarProps {
 const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
 
 export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) {
+  const router = useRouter()
   const [current, setCurrent] = useState(new Date())
   const [view, setView] = useState<ViewMode>("month")
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
@@ -82,7 +84,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     if (view === "week") {
       const ws = startOfWeek(current, { weekStartsOn: 0 })
       const we = endOfWeek(current, { weekStartsOn: 0 })
-      return `${format(ws, "MMM d")} – ${format(we, "MMM d, yyyy")}`
+      return `${format(ws, "MMM d")} - ${format(we, "MMM d, yyyy")}`
     }
     return format(current, "EEEE, MMMM d, yyyy")
   }
@@ -113,9 +115,15 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       const { updateDeal } = await import("@/actions/deal-actions")
       const { updateDealAssignedTo } = await import("@/actions/deal-actions")
 
-      await updateDeal(dealId, { scheduledAt: newDate })
+      const updateResult = await updateDeal(dealId, { scheduledAt: newDate })
+      if (!updateResult.success) {
+        throw new Error(updateResult.error || "Could not update the job.")
+      }
       if (memberId !== undefined) {
-        await updateDealAssignedTo(dealId, memberId || null)
+        const assignmentResult = await updateDealAssignedTo(dealId, memberId || null)
+        if (!assignmentResult.success) {
+          throw new Error(assignmentResult.error || "Could not update the assigned team member.")
+        }
       }
 
       setLocalDeals((prev) =>
@@ -131,7 +139,8 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     } catch (err) {
       console.error(err)
       const { toast } = await import("sonner")
-      toast.error("Could not update the job. Please try again.")
+      toast.error(err instanceof Error ? err.message : "Could not update the job. Please try again.")
+      router.refresh()
     }
   }
 

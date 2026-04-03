@@ -54,6 +54,9 @@ Status meanings:
 16. Contact mutation guard alignment
    - Contact edit/delete server actions now match the manager-only CRM UI instead of allowing team members to mutate records through direct action calls.
    - This closes the gap between what the pages showed and what the backend would still accept.
+17. Schedule truthfulness on failed drops
+   - The schedule calendar no longer treats a non-throwing `{ success: false }` deal update as a success.
+   - Failed drag/drop updates now show the backend error message and refresh back to server truth instead of leaving a false "Job updated" impression.
 
 ## CRM surface status
 
@@ -129,6 +132,7 @@ Status meanings:
 - Why:
   - Real schedule page with direct route-level and component-level coverage for manager vs team-member views.
   - Team members now only see their own jobs and their own lane, which matches the intended restricted workflow better.
+  - Failed drag/drop updates now surface real backend rejection messages instead of falsely toasting success.
 - Evidence:
   - `__tests__/schedule-page.test.tsx`
   - `__tests__/schedule-calendar.test.tsx`
