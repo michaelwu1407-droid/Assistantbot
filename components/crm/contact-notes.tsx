@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { updateContactMetadata } from "@/actions/contact-actions"
@@ -36,11 +36,11 @@ export function ContactNotes({ contactId, initialNotes }: ContactNotesProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <Textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
-        placeholder="Log notes about this customer…"
+        placeholder="Log notes about this customer..."
         className="min-h-[120px] resize-y text-sm"
       />
       <Button
@@ -49,7 +49,7 @@ export function ContactNotes({ contactId, initialNotes }: ContactNotesProps) {
         onClick={handleSave}
         disabled={saving}
       >
-        {saving ? "Saving…" : "Save notes"}
+        {saving ? "Saving..." : "Save notes"}
       </Button>
     </div>
   )

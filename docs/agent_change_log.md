@@ -2998,3 +2998,16 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the CRM audit to reflect that map visibility and contact access are now materially stronger than before.
 - Why:
   - CRM pages have to agree on who can see what. When one page still leaks the full workspace while another is restricted, the product feels inconsistent and unsafe. This pass removes two more of those inconsistencies.
+
+## 2026-04-04 00:51 (AEDT) - Codex
+
+- Files changed:
+  - `app/crm/settings/help/page.tsx`
+  - `components/crm/contact-notes.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Cleaned obvious mojibake and broken punctuation in the CRM help handbook and contact-notes editor so these core user-facing surfaces read like finished product instead of mis-encoded text.
+  - Standardized the contact-notes placeholder and save button copy to plain ASCII wording.
+  - Replaced broken handbook arrows in Settings -> Help with stable readable text.
+- Why:
+  - Even when the workflows work, broken copy makes the CRM feel less trustworthy. These are high-visibility surfaces that users read directly while learning and using the product.

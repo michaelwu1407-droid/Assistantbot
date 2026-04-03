@@ -31,11 +31,11 @@ const handbookSections: { title: string; content: React.ReactNode }[] = [
       <div className="space-y-2">
         <p>Complete these settings areas so Tracey has what she needs to represent your business correctly.</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Settings → My business</strong> for business details, hours, pricing, and services</li>
-          <li><strong>Settings → Account</strong> for your phone setup and call handling</li>
-          <li><strong>Settings → Integrations</strong> for lead capture and connected inboxes</li>
-          <li><strong>Settings → AI Assistant</strong> for Tracey&apos;s operating mode and rules</li>
-          <li><strong>Settings → Calls & texting</strong> for contact hours and automated messages</li>
+          <li><strong>Settings - My business</strong> for business details, hours, pricing, and services</li>
+          <li><strong>Settings - Account</strong> for your phone setup and call handling</li>
+          <li><strong>Settings - Integrations</strong> for lead capture and connected inboxes</li>
+          <li><strong>Settings - AI Assistant</strong> for Tracey&apos;s operating mode and rules</li>
+          <li><strong>Settings - Calls & texting</strong> for contact hours and automated messages</li>
         </ul>
       </div>
     ),
@@ -44,7 +44,7 @@ const handbookSections: { title: string; content: React.ReactNode }[] = [
     title: "AI assistant modes",
     content: (
       <div className="space-y-3">
-        <p>Change this any time in <strong>Settings → AI Assistant</strong>.</p>
+        <p>Change this any time in <strong>Settings - AI Assistant</strong>.</p>
         <div className="space-y-2">
           <div>
             <p className="font-medium text-slate-700 dark:text-slate-300">Execution</p>
@@ -66,7 +66,7 @@ const handbookSections: { title: string; content: React.ReactNode }[] = [
     title: "Calls, texts, and lead capture",
     content: (
       <div className="space-y-2">
-        <p>Tracey calls and texts from your Earlymark number. Configure this in <strong>Settings → Account</strong>, <strong>Calls & texting</strong>, and <strong>Integrations</strong>.</p>
+        <p>Tracey calls and texts from your Earlymark number. Configure this in <strong>Settings - Account</strong>, <strong>Calls & texting</strong>, and <strong>Integrations</strong>.</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Account handles your number and call forwarding</li>
           <li>Calls & texting controls when Tracey can contact customers and what messages she sends</li>
@@ -93,7 +93,7 @@ const handbookSections: { title: string; content: React.ReactNode }[] = [
     title: "Pricing and refusal rules",
     content: (
       <div className="space-y-2">
-        <p>Use <strong>Settings → My business</strong> to set pricing ranges and list work you do not take on, so Tracey stays consistent.</p>
+        <p>Use <strong>Settings - My business</strong> to set pricing ranges and list work you do not take on, so Tracey stays consistent.</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Add price ranges for common services</li>
           <li>Set refusal rules for work you do not want</li>
