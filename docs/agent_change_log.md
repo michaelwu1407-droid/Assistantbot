@@ -2980,3 +2980,21 @@ Rule: every agent change commit must include an entry in this file.
   - Added role-specific rendering coverage for the team page so manager-only invite controls are now directly proven instead of only visually inspected.
 - Why:
   - CRM trust drops fast when users can reach the wrong records by URL or are shown controls they should not be able to use. This pass closes those holes and adds proof around them.
+
+## 2026-04-04 00:47 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/contact-page-access.test.tsx`
+  - `__tests__/map-page-access.test.tsx`
+  - `app/crm/contacts/[id]/page.tsx`
+  - `app/crm/map/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/workspace-access.ts`
+- Summary:
+  - Closed another direct-link access hole by scoping contact detail pages through the shared contact-access guard, so team members cannot browse unrelated customer records by URL.
+  - Aligned the map page with the schedule page by filtering scheduled jobs down to the current tradie for `TEAM_MEMBER` users instead of loading the whole workspace roster.
+  - Added focused page-level coverage proving contact detail access now fails closed when the scoped guard denies access, and that the map page respects manager vs tradie visibility.
+  - Updated the CRM audit to reflect that map visibility and contact access are now materially stronger than before.
+- Why:
+  - CRM pages have to agree on who can see what. When one page still leaks the full workspace while another is restricted, the product feels inconsistent and unsafe. This pass removes two more of those inconsistencies.

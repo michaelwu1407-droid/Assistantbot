@@ -43,6 +43,10 @@ Status meanings:
    - The edit page now hides assignment controls when the current user should not manage assignment.
 12. Team page proof
    - Added direct tests for manager vs team-member rendering on the team page so invite-management visibility is no longer just inferred from code.
+13. Contact direct-link access
+   - Team members can no longer open unrelated contact detail pages by direct URL unless that contact is tied to one of their assigned jobs.
+14. Map role filtering
+   - Team members now only see their own scheduled jobs on the map, matching the schedule page instead of loading the whole workspace roster.
 
 ## CRM surface status
 
@@ -83,7 +87,10 @@ Status meanings:
 - Why:
   - Detail page is real and rich, with job links, notes, feedback, and activity.
   - Usable now that edit path exists.
-  - Still needs a dedicated page-level journey test, not just component-level coverage.
+  - This pass closed a direct-link access hole by scoping contact detail through the contact guard, so tradies cannot browse unrelated customer records by URL.
+  - Still needs a fuller end-to-end journey test around linked actions and role-specific expectations.
+- Evidence:
+  - `__tests__/contact-page-access.test.tsx`
 
 ### `/crm/contacts/[id]/edit`
 
@@ -124,8 +131,10 @@ Status meanings:
 - Why:
   - Real page with scheduled-job loading, empty state, route mode, and action affordances.
   - Existing interaction coverage is good enough for now.
+  - This pass aligned role filtering with the schedule page, so tradies only see their own assigned scheduled jobs instead of the whole workspace map.
 - Evidence:
   - `__tests__/map-view.test.tsx`
+  - `__tests__/map-page-access.test.tsx`
 
 ### `/crm/deals/[id]`
 
@@ -205,10 +214,11 @@ Most solid right now:
 - dashboard / kanban
 - contacts list
 - contact create/edit
+- contact access scoping
 - inbox thread selection
 - deal access scoping
 - schedule access and lane visibility
-- map
+- map access and route visibility
 
 Still usable but not fully proven:
 

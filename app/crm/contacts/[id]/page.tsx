@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { requireContactInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import { ContactNotes } from "@/components/crm/contact-notes"
 import { Badge } from "@/components/ui/badge"
@@ -32,7 +32,15 @@ interface PageProps {
 
 export default async function ContactDetailPage({ params }: PageProps) {
   const { id } = await params
-  const actor = await requireCurrentWorkspaceAccess()
+  let actor: Awaited<ReturnType<typeof requireContactInCurrentWorkspace>>["actor"]
+  try {
+    ;({ actor } = await requireContactInCurrentWorkspace(id))
+  } catch (error) {
+    if (error instanceof Error && error.message === "Contact not found") {
+      notFound()
+    }
+    throw error
+  }
 
   const contact = await db.contact.findFirst({
     where: { id, workspaceId: actor.workspaceId },

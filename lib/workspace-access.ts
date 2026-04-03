@@ -43,6 +43,7 @@ export async function requireContactInCurrentWorkspace(contactId: string) {
     where: {
       id: contactId,
       workspaceId: actor.workspaceId,
+      ...(actor.role === "TEAM_MEMBER" ? { deals: { some: { assignedToId: actor.id } } } : {}),
     },
   });
 

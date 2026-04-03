@@ -4,6 +4,7 @@ import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"
 import { Calendar } from "lucide-react"
 import { redirect } from "next/navigation"
+import { getCurrentUserRole } from "@/lib/rbac"
 
 export const dynamic = "force-dynamic"
 
@@ -35,11 +36,15 @@ export default async function DashboardMapPage() {
 
     try {
         const workspace = await getOrCreateWorkspace(userId)
+        const role = await getCurrentUserRole()
         // Server-side filtering: only fetch scheduled, non-deleted deals
-        const scheduledDeals = await getDeals(workspace.id, undefined, {
+        let scheduledDeals = await getDeals(workspace.id, undefined, {
             excludeStages: ["DELETED"],
             requireScheduled: true,
         })
+        if (role === "TEAM_MEMBER") {
+            scheduledDeals = scheduledDeals.filter((deal) => deal.assignedToId === userId)
+        }
         displayJobs = scheduledDeals.map(dealToMapJob)
 
         const todayStart = new Date()
