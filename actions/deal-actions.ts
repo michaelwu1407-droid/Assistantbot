@@ -111,6 +111,23 @@ async function queueCompletionFollowUp(
   ));
 }
 
+async function fireBookingConfirmation(
+  dealId: string,
+  previousStage: PrismaStage | string | null | undefined,
+  nextStage: PrismaStage
+) {
+  if (previousStage === "SCHEDULED" || nextStage !== "SCHEDULED") {
+    return;
+  }
+
+  try {
+    const { sendConfirmationSMS } = await import("./messaging-actions");
+    await sendConfirmationSMS(dealId);
+  } catch (confirmationErr) {
+    console.warn("Booking confirmation hook failed after stage transition:", confirmationErr);
+  }
+}
+
 type PrismaStage = "NEW" | "CONTACTED" | "NEGOTIATION" | "SCHEDULED" | "PIPELINE" | "INVOICED" | "PENDING_COMPLETION" | "WON" | "LOST" | "DELETED";
 
 export interface DealView {
@@ -653,6 +670,8 @@ export async function updateDealStage(dealId: string, stage: string) {
     } catch (automationErr) {
       console.warn("Automation evaluation failed after stage update:", automationErr);
     }
+
+    await fireBookingConfirmation(parsed.data.dealId, currentDeal.stage, prismaStage);
 
     if (prismaStage === "WON") {
       try {
@@ -1208,6 +1227,8 @@ export async function updateDeal(
     if (origDate !== newDate) changes.push(`Scheduled: ${origDate} -> ${newDate}`);
   }
 
+  const nextStage = typeof update.stage === "string" ? update.stage : deal.stage;
+
   const content = changes.length > 0 ? changes.join("\n") : "Title, value or stage was changed.";
   const activityTitle = changes.length === 1 ? `${changes[0].split(":")[0]} updated` : "Deal updated";
 
@@ -1237,6 +1258,8 @@ export async function updateDeal(
       },
     });
   }
+
+  await fireBookingConfirmation(dealId, deal.stage, nextStage as PrismaStage);
 
   if (stageMovedToWon || draftConfirmed) {
     try {

@@ -6,6 +6,8 @@ const hoisted = vi.hoisted(() => ({
       create: vi.fn(),
       updateMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
     activity: {
       create: vi.fn(),
@@ -35,6 +37,7 @@ const hoisted = vi.hoisted(() => ({
   recordSyncIssue: vi.fn(),
   kanbanStageRequiresScheduledDate: vi.fn(),
   loggerError: vi.fn(),
+  sendConfirmationSMS: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -94,8 +97,11 @@ vi.mock("@/lib/logging", () => ({
     error: hoisted.loggerError,
   },
 }));
+vi.mock("@/actions/messaging-actions", () => ({
+  sendConfirmationSMS: hoisted.sendConfirmationSMS,
+}));
 
-import { createDeal, updateDealStage } from "@/actions/deal-actions";
+import { createDeal, updateDeal, updateDealStage } from "@/actions/deal-actions";
 
 describe("deal-actions", () => {
   beforeEach(() => {
@@ -125,6 +131,17 @@ describe("deal-actions", () => {
       contactId: "contact_1",
       stage: "PENDING_COMPLETION",
     });
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      title: "Hot Water Fix",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      stage: "CONTACTED",
+      isDraft: false,
+      scheduledAt: null,
+      workspace: { autoUpdateGlossary: false },
+    });
+    hoisted.db.deal.update.mockResolvedValue({});
     hoisted.triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT" });
     hoisted.getAuthUser.mockResolvedValue({
       name: "Sam",
@@ -132,6 +149,9 @@ describe("deal-actions", () => {
     });
     hoisted.db.user.findFirst.mockResolvedValue({ id: "user_1", role: "TEAM_MEMBER" });
     hoisted.kanbanStageRequiresScheduledDate.mockReturnValue(false);
+    hoisted.syncGoogleCalendarEventForDeal.mockResolvedValue(undefined);
+    hoisted.removeGoogleCalendarEventForDeal.mockResolvedValue(undefined);
+    hoisted.sendConfirmationSMS.mockResolvedValue({ success: true });
   });
 
   it("creates a deal, logs activity, and records audit metadata", async () => {
@@ -235,5 +255,42 @@ describe("deal-actions", () => {
       }),
     );
     expect(hoisted.evaluateAutomations).not.toHaveBeenCalled();
+  });
+
+  it("fires a booking confirmation when a deal enters scheduled via updateDealStage", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1" },
+      deal: {
+        id: "deal_1",
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        stage: "CONTACTED",
+        metadata: {},
+        assignedToId: "worker_1",
+        scheduledAt: new Date("2026-04-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-04-01T08:00:00.000Z"),
+      },
+    });
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      stage: "SCHEDULED",
+    });
+
+    const result = await updateDealStage("deal_1", "scheduled");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
+  });
+
+  it("fires a booking confirmation when updateDeal moves a deal into scheduled", async () => {
+    const result = await updateDeal("deal_1", {
+      stage: "scheduled",
+      scheduledAt: "2026-04-01T10:00:00.000Z",
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
   });
 });

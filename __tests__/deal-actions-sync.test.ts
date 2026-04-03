@@ -70,6 +70,9 @@ vi.mock("@/actions/learning-actions", () => ({
 vi.mock("@/actions/task-actions", () => ({
   createTask: vi.fn(),
 }));
+vi.mock("@/actions/messaging-actions", () => ({
+  sendConfirmationSMS: vi.fn(),
+}));
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
