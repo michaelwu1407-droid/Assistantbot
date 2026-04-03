@@ -2888,3 +2888,16 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage for the verification report logic and linked `APP_FEATURES.md` back to the new verification process so product docs and live proof do not drift apart again.
 - Why:
   - The gap was not just missing code. It was missing proof that the right thing reached the right destination and that ops could tell when it stopped happening. This makes those gaps visible instead of accidental.
+
+## 2026-04-03 23:41 (AEDT) - Codex
+
+- Files changed:
+  - `FEATURE_VERIFICATION.md`
+  - `JOURNEY_ACCEPTANCE.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a separate journey-acceptance gate focused on whether the intended user can actually find, access, complete, and make sense of the flow end to end, instead of only checking backend correctness.
+  - Documented the eight release checks for user journeys: discoverability, access, completion, outcome, coherence, follow-through, failure handling, and proof.
+  - Listed the current highest-priority journeys to audit with that lens: internal WhatsApp assistant, chatbot feedback, booking confirmations, the public job portal, and multilingual Tracey calls.
+- Why:
+  - A feature can be technically implemented and still be incomplete for the real user. This adds a concrete standard for "nothing important is missing" rather than treating that as a vague feeling.

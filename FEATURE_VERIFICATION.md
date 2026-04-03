@@ -2,6 +2,8 @@
 
 This file exists to keep product truth tighter than "the code looks right."
 
+Pair this with `JOURNEY_ACCEPTANCE.md`, which checks whether the intended user can actually find, access, complete, and understand the flow end to end.
+
 The live source of truth is the internal admin ops page:
 
 - `/admin/customer-usage?tab=ops#feature-promises`
