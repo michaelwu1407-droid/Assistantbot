@@ -422,6 +422,7 @@ describe("deal-actions", () => {
         lastReminderSentAt: null,
       }),
     });
+    expect(hoisted.sendConfirmationSMS).not.toHaveBeenCalled();
   });
 
   it("reschedules and reassigns a job atomically", async () => {
@@ -474,5 +475,6 @@ describe("deal-actions", () => {
       }),
     );
     expect(hoisted.syncGoogleCalendarEventForDeal).toHaveBeenCalledWith("deal_1");
+    expect(hoisted.sendConfirmationSMS).not.toHaveBeenCalled();
   });
 });
