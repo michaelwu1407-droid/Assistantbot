@@ -2871,3 +2871,20 @@ Rule: every agent change commit must include an entry in this file.
   - Added regression coverage proving chatbot phone-support and product-feedback requests now trigger the support email send as well as the internal activity ticket.
 - Why:
   - Capturing feedback only in the database still risked it going unseen. Emailing the support inbox closes that loop so chatbot feedback reaches a channel the team actually monitors.
+
+## 2026-04-03 23:32 (AEDT) - Codex
+
+- Files changed:
+  - `FEATURE_VERIFICATION.md`
+  - `APP_FEATURES.md`
+  - `__tests__/feature-verification.test.ts`
+  - `app/admin/customer-usage/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/feature-verification.ts`
+- Summary:
+  - Added a new feature-verification source of truth that grades important promises across behavior, delivery, observability, and live-proof layers instead of assuming implemented code means a feature is production-proven.
+  - Surfaced that report directly inside the internal ops tab at `/admin/customer-usage?tab=ops#feature-promises`, including current blockers and the next reinforcement needed for each promise.
+  - Tracked the current proof state for the internal WhatsApp assistant, chatbot feedback delivery, multilingual voice calls, booking confirmations on scheduled transitions, and the public job portal.
+  - Added regression coverage for the verification report logic and linked `APP_FEATURES.md` back to the new verification process so product docs and live proof do not drift apart again.
+- Why:
+  - The gap was not just missing code. It was missing proof that the right thing reached the right destination and that ops could tell when it stopped happening. This makes those gaps visible instead of accidental.

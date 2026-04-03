@@ -14,6 +14,12 @@ import {
   type CustomerUsageDashboardData,
   type CustomerUsageFilters,
 } from "@/lib/admin/customer-usage";
+import {
+  buildFeatureVerificationReport,
+  type FeatureReleaseTruth,
+  type FeatureVerificationItem,
+  type VerificationEvidenceStatus,
+} from "@/lib/feature-verification";
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
 
 export const dynamic = "force-dynamic";
@@ -62,8 +68,8 @@ function truthBadge(tone: "exact" | "rollup" | "estimate") {
 }
 
 function statusVariant(status: string) {
-  if (status === "unhealthy" || status === "critical") return "destructive" as const;
-  if (status === "degraded" || status === "warning") return "secondary" as const;
+  if (status === "unhealthy" || status === "critical" || status === "gap") return "destructive" as const;
+  if (status === "degraded" || status === "warning" || status === "watch") return "secondary" as const;
   return "default" as const;
 }
 
@@ -71,6 +77,18 @@ function coverageVariant(status: CoverageStatus) {
   if (status === "missing") return "destructive" as const;
   if (status === "degraded") return "secondary" as const;
   return "default" as const;
+}
+
+function evidenceVariant(status: VerificationEvidenceStatus) {
+  if (status === "missing") return "destructive" as const;
+  if (status === "partial") return "secondary" as const;
+  return "default" as const;
+}
+
+function releaseTruthVariant(status: FeatureReleaseTruth) {
+  if (status === "marketed") return "default" as const;
+  if (status === "beta") return "secondary" as const;
+  return "outline" as const;
 }
 
 function attentionLabel(level: CustomerUsageDashboardData["rows"][number]["attentionLevel"]) {
@@ -154,6 +172,88 @@ function SectionCard({
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  );
+}
+
+function FeatureVerificationTable({ items }: { items: FeatureVerificationItem[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Feature</TableHead>
+          <TableHead>Blockers</TableHead>
+          <TableHead>Trigger to destination</TableHead>
+          <TableHead>Proofs</TableHead>
+          <TableHead>Next reinforcement</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.key}>
+            <TableCell className="align-top">
+              <div className="space-y-2">
+                <div className="font-medium text-slate-900">{item.feature}</div>
+                <div className="text-xs leading-5 text-slate-600">{item.promise}</div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={releaseTruthVariant(item.releaseTruth)}>{item.releaseTruth}</Badge>
+                  <Badge variant={statusVariant(item.overallStatus)}>{item.overallStatus}</Badge>
+                </div>
+                <div className="text-xs text-slate-500">
+                  Audience: {item.audience}
+                  <br />
+                  Owner: {item.owner}
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="align-top">
+              <div className="space-y-2 text-xs leading-5 text-slate-600">
+                {item.blockers.length ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    {item.blockers.join(" ")}
+                  </div>
+                ) : (
+                  <span className="text-slate-400">No blockers noted.</span>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="max-w-[320px] align-top text-xs leading-5 text-slate-600">
+              <div>
+                <div className="font-medium text-slate-900">Trigger</div>
+                <div>{item.trigger}</div>
+              </div>
+              <div className="mt-3">
+                <div className="font-medium text-slate-900">Destination</div>
+                <div>{item.destination}</div>
+              </div>
+            </TableCell>
+            <TableCell className="max-w-[360px] align-top">
+              <div className="space-y-3 text-xs leading-5 text-slate-600">
+                {([
+                  ["Behavior", item.behavior],
+                  ["Delivery", item.delivery],
+                  ["Observability", item.observability],
+                  ["Live proof", item.liveProof],
+                ] as const).map(([label, proof]) => (
+                  <div key={label}>
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="font-medium text-slate-900">{label}</span>
+                      <Badge variant={evidenceVariant(proof.status)}>{proof.status}</Badge>
+                    </div>
+                    <div>{proof.summary}</div>
+                    {proof.lastVerifiedAt ? (
+                      <div className="mt-1 text-slate-500">Last signal: {formatDate(proof.lastVerifiedAt)}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </TableCell>
+            <TableCell className="max-w-[250px] align-top text-xs leading-5 text-slate-600">
+              {item.nextReinforcement}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -740,6 +840,10 @@ export default async function CustomerUsagePage({
   const resolvedSearchParams = await searchParams;
   const filters = parseCustomerUsageFilters(resolvedSearchParams);
   const data = await getCustomerUsageDashboardData(filters);
+  const featureVerification = buildFeatureVerificationReport({
+    launch: data.ops.launch,
+    webhookDiagnostics: data.ops.webhookDiagnostics,
+  });
   const selected = data.selectedWorkspace;
 
   return (
@@ -879,6 +983,34 @@ export default async function CustomerUsagePage({
           >
             <OpsRollupTable data={data} />
           </SectionCard>
+
+          <div id="feature-promises">
+            <SectionCard
+              title="Feature promise verification"
+              description="Use this to decide whether a claim is merely implemented, actually observable, or truly proven end to end."
+              aside={
+                <Badge variant={statusVariant(featureVerification.summary.gapCount > 0 ? "warning" : "healthy")}>
+                  {featureVerification.summary.verifiedCount} verified / {featureVerification.summary.watchCount} watch / {featureVerification.summary.gapCount} gap
+                </Badge>
+              }
+            >
+              <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <SectionNote>
+                  Verified: behavior, delivery, observability, and live proof are all present.
+                </SectionNote>
+                <SectionNote>
+                  Watch: the feature looks real, but one of the proof layers is still partial.
+                </SectionNote>
+                <SectionNote>
+                  Gap: at least one critical proof layer is missing, so the promise is still easy to overstate.
+                </SectionNote>
+                <SectionNote>
+                  Marketed promises still needing reinforcement: {featureVerification.summary.marketedWithGapsCount}
+                </SectionNote>
+              </div>
+              <FeatureVerificationTable items={featureVerification.items} />
+            </SectionCard>
+          </div>
 
           <div id="webhooks">
             <SectionCard title="Webhook diagnostics" description="Exact provider event timestamps and error counts.">

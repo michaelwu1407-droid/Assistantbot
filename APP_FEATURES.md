@@ -4,6 +4,8 @@
 >
 > Earlymark is an AI-powered CRM and business assistant for trades and services businesses. The AI assistant is named **Tracey**.
 >
+> Product-truth note: this file documents intended behavior. For current proof status on high-risk promises, cross-check `FEATURE_VERIFICATION.md` and the internal ops table at `/admin/customer-usage?tab=ops#feature-promises`.
+>
 > ### Product Personas
 > 1. **The Tradie (User):** Logs into the dashboard to manage jobs. Uses the Internal Chatbot (Gemini) for data mutation and navigation.
 > 2. **Tracey Voice/SMS Agent:** The digital receptionist. Powered by LiveKit & Twilio. QUALIFIES leads and books jobs into the CRM.
