@@ -26,6 +26,15 @@ const HeroDashboardReel = dynamic(
     },
 );
 
+const PulsingLogo = dynamic(
+    () => import("@/components/home/PulsingLogo").then((mod) => mod.PulsingLogo),
+    {
+        loading: () => (
+            <div className="w-[240px] sm:w-[300px] lg:w-[340px] aspect-square rounded-full bg-emerald-100/50 animate-pulse" />
+        ),
+    },
+);
+
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
 const fadeUp = (delay = 0) => ({
@@ -767,69 +776,49 @@ export default function Home() {
                     }}
                 />
 
-                <div className="container mx-auto max-w-4xl text-center flex flex-col items-center gap-8 relative z-10">
+                <div className="container mx-auto max-w-6xl relative z-10">
 
-                    <motion.h1
-                        {...fadeUp(0.06)}
-                        className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
-                    >
-                        Your AI assistant & CRM — here to give you an{" "}
-                        <span className="text-primary">early mark</span>
-                    </motion.h1>
+                    {/* ── Two-column: headline + CTAs left, PulsingLogo right ── */}
+                    <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
-                    {/* CTA buttons — moved above screenshot */}
-                    <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
-                        <Link href="/auth">
-                            <Button size="lg" variant="mint">
-                                Get started
-                            </Button>
-                        </Link>
-                        <Link href="#interview-assistant">
-                            <Button size="lg" variant="outline">
-                                Interview your assistant
-                            </Button>
-                        </Link>
-                    </motion.div>
+                        {/* LEFT: headline + CTA buttons */}
+                        <div className="flex-1 flex flex-col items-center lg:items-start gap-8 text-center lg:text-left">
+                            <motion.h1
+                                {...fadeUp(0.06)}
+                                className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance"
+                            >
+                                Your AI assistant & CRM — here to give you an{" "}
+                                <span className="text-primary">early mark</span>
+                            </motion.h1>
 
-                    {/* Dashboard hero reel */}
-                    <motion.div {...fadeUp(0.14)} className="w-full max-w-5xl mx-auto">
+                            <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
+                                <Link href="/auth">
+                                    <Button size="lg" variant="mint">
+                                        Get started
+                                    </Button>
+                                </Link>
+                                <Link href="#interview-assistant">
+                                    <Button size="lg" variant="outline">
+                                        Interview your assistant
+                                    </Button>
+                                </Link>
+                            </motion.div>
+                        </div>
+
+                        {/* RIGHT: interactive pulsing logo */}
+                        <motion.div {...fadeUp(0.12)} className="flex-1 flex justify-center">
+                            <PulsingLogo />
+                        </motion.div>
+
+                    </div>
+
+                    {/* Dashboard hero reel — full width below */}
+                    <motion.div {...fadeUp(0.14)} className="w-full max-w-5xl mx-auto mt-16">
                         <HeroDashboardReel />
-                        {false ? <div className="rounded overflow-hidden shadow-2xl border border-white/20">
-                            {/* Browser chrome */}
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 border-b border-slate-300">
-                                <div className="flex gap-1.5">
-                                    <span className="w-3 h-3 rounded-full bg-red-400 block" />
-                                    <span className="w-3 h-3 rounded-full bg-yellow-400 block" />
-                                    <span className="w-3 h-3 rounded-full bg-green-400 block" />
-                                </div>
-                                <div className="flex-1 flex justify-center">
-                                    <div className="bg-white rounded px-4 py-1 text-[11px] text-slate-400 font-medium">
-                                        earlymark.ai/crm
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Fake kanban */}
-                            <div className="bg-white p-4 flex gap-3 overflow-hidden">
-                                {[{ title: "New request", color: "bg-blue-400", cards: ["Kitchen reno — $4,200", "Bathroom leak — $850"] }, { title: "Scheduled", color: "bg-emerald-400", cards: ["Deck build — $6,100", "Hot water install — $1,900"] }, { title: "Completed", color: "bg-violet-400", cards: ["Fence repair — $2,400"] }].map((col) => (
-                                    <div key={col.title} className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                                            <span className="text-xs font-semibold text-slate-700 truncate">{col.title}</span>
-                                            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{col.cards.length}</span>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {col.cards.map((card) => (
-                                                <div key={card} className="bg-slate-50 border border-slate-200 rounded px-3 py-2 text-xs text-slate-600 truncate">{card}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div> : null}
                     </motion.div>
 
                     {/* Value Props — gradient glass cards (no icons) */}
-                    <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto">
+                    <motion.div {...fadeUp(0.18)} className="w-full max-w-[1200px] mx-auto mt-10">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
