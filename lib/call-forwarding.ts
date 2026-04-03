@@ -48,9 +48,7 @@ export function buildCallForwardingSetupSmsBody(params: {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://earlymark.ai").replace(/\/$/, "");
   const codes = buildCallForwardingCodes(params.agentPhoneNumber, params.delaySec);
   const recommendedCode = params.mode === "full" ? codes.full : codes.backup;
-  const settingsUrl = appUrl
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "") + "/crm/settings";
+  const settingsUrl = `${appUrl}/crm/settings`;
 
   return [
     `Tracey forwarding ready for ${params.businessName}.`,

@@ -1,3 +1,15 @@
+## 2026-04-04 02:56 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/call-forwarding-card.test.tsx`
+  - `lib/call-forwarding.ts`
+- Summary:
+  - Added direct user-flow coverage for the three Tracey call-handling modes in the settings card: `Backup AI`, `100% AI`, and `Forwarding off`.
+  - Verified setup-text behavior for backup/full modes and confirmed the setup CTA is blocked when forwarding is off.
+  - Fixed the forwarding setup SMS body to include a full `https://.../crm/settings` URL instead of a bare domain path.
+- Why:
+  - This gives concrete proof that the app surfaces all three modes coherently to users, and it closes a real usability gap where the setup SMS link was less reliably clickable than intended.
+
 ## 2026-04-04 02:52 (AEDT) - Codex
 
 - Files changed:
