@@ -31,6 +31,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null)
   const [localDeals, setLocalDeals] = useState(deals)
+  const showTeamFilter = teamMembers.length > 1
 
   useEffect(() => {
     setLocalDeals(deals)
@@ -234,6 +235,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const renderDay = () => {
     const key = format(current, "yyyy-MM-dd")
     const dayDeals = dealsByDay[key] ?? []
+    const showUnassignedRow = teamMembers.length > 1 || dayDeals.some((deal) => !deal.assignedToId)
 
     // Sort deals by time
     const sortedDeals = [...dayDeals].sort((a, b) => {
@@ -336,10 +338,14 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
               </div>
             ))}
 
-            <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
-              <p className="app-panel-title text-neutral-400">Unassigned</p>
-            </div>
-            {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
+            {showUnassignedRow ? (
+              <>
+                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
+                  <p className="app-panel-title text-neutral-400">Unassigned</p>
+                </div>
+                {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -428,19 +434,21 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
 
         <div className="flex items-center gap-3">
           {/* Team Member Filter */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-neutral-200 rounded-md shadow-sm">
-            <span className="app-field-label ml-1 tracking-[0.08em]">Team</span>
-            <select
-              value={filterMemberId || ""}
-              onChange={(e) => setFilterMemberId(e.target.value || null)}
-              className="app-body-primary h-8 bg-transparent border-none focus:ring-0 cursor-pointer pr-6"
-            >
-              <option value="">All Members</option>
-              {teamMembers.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
+          {showTeamFilter ? (
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-neutral-200 rounded-md shadow-sm">
+              <span className="app-field-label ml-1 tracking-[0.08em]">Team</span>
+              <select
+                value={filterMemberId || ""}
+                onChange={(e) => setFilterMemberId(e.target.value || null)}
+                className="app-body-primary h-8 bg-transparent border-none focus:ring-0 cursor-pointer pr-6"
+              >
+                <option value="">All Members</option>
+                {teamMembers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <div className="flex bg-neutral-100 rounded-lg p-1 gap-1">
             {(["month", "week", "day"] as ViewMode[]).map((v) => (

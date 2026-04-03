@@ -16,6 +16,7 @@ export default async function SchedulePage() {
     let deals: any[] = [], teamMembers: any[] = []
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
+        const role = await getCurrentUserRole()
         const [allDeals, members] = await Promise.all([
             getDeals(workspace.id),
             db.user.findMany({
@@ -26,14 +27,16 @@ export default async function SchedulePage() {
         // Deleted jobs should not appear on the schedule
         let filteredDeals = allDeals.filter((d: any) => d.stage !== "deleted")
 
-        // RBAC: Team members only see jobs assigned to them
-        const role = await getCurrentUserRole()
+        // RBAC: Team members should only see their own schedule lane and jobs.
         if (role === "TEAM_MEMBER") {
             filteredDeals = filteredDeals.filter((d: any) => d.assignedToId === authUser.id)
+            teamMembers = members.filter((m: any) => m.id === authUser.id)
+        } else {
+            teamMembers = members
         }
 
         deals = filteredDeals
-        teamMembers = members.map((m: any) => ({
+        teamMembers = teamMembers.map((m: any) => ({
             ...m,
             name: m.name || m.email.split('@')[0]
         }))

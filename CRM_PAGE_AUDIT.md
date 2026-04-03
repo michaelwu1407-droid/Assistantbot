@@ -30,6 +30,11 @@ Status meanings:
    - Hid invite and role-management controls for team members so they no longer see actions they are not allowed to use.
 7. Schedule failure feedback
    - Schedule drag/drop now shows a visible toast error instead of only logging to the console when an update fails.
+8. Schedule lane coherence
+   - Team members now only see their own schedule lane instead of the whole roster with everyone else's empty rows.
+   - The team filter now hides itself when there is only one visible team member.
+9. Settings discoverability proof
+   - Added direct coverage that team members do not see manager-only Billing and Integrations links in the settings sidebar.
 
 ## CRM surface status
 
@@ -97,10 +102,13 @@ Status meanings:
 
 - Status: `watch`
 - Why:
-  - Real schedule page with role-aware filtering.
-  - Appears logically sound from code, but this pass did not add direct schedule-page tests.
+  - Real schedule page with direct route-level and component-level coverage for manager vs team-member views.
+  - Team members now only see their own jobs and their own lane, which matches the intended restricted workflow better.
+- Evidence:
+  - `__tests__/schedule-page.test.tsx`
+  - `__tests__/schedule-calendar.test.tsx`
 - Watch items:
-  - Needs end-to-end verification for team-member filtering and schedule interactions.
+  - Still needs end-to-end verification for drag/update side effects like reminders, confirmations, and assignment changes.
 
 ### `/crm/map`
 
@@ -143,8 +151,11 @@ Status meanings:
 - Status: `watch`
 - Why:
   - Large real settings surface with many tested actions.
+  - Manager-only sidebar discoverability now has direct coverage, so team members no longer see obvious dead-end nav links for Billing and Integrations.
   - Not fully journey-audited in this pass.
   - Some sections are already stronger than others, so this needs a dedicated settings audit rather than a blanket claim.
+- Evidence:
+  - `__tests__/settings-layout.test.tsx`
 
 ### `/crm/settings/integrations`
 
@@ -164,8 +175,6 @@ Status meanings:
    - verify state reflects correctly everywhere
 
 2. Schedule journey
-   - manager view
-   - team-member restricted view
    - drag/update interactions
    - confirmation/reminder side effects
 
@@ -187,12 +196,13 @@ Most solid right now:
 - contacts list
 - contact create/edit
 - inbox thread selection
+- schedule access and lane visibility
 - map
 
 Still usable but not fully proven:
 
 - deal detail journeys
-- schedule
+- schedule side effects
 - team
 - analytics
 - the broader settings surface

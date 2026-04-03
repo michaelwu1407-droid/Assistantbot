@@ -2941,3 +2941,20 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the CRM audit to reflect the stronger direct-access guarantees and the team-page behavior improvements.
 - Why:
   - A CRM page is not really "working" if the wrong user can reach it in a confusing state or if an interaction fails without clear user feedback.
+
+## 2026-04-04 00:20 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/schedule-calendar.test.tsx`
+  - `__tests__/schedule-page.test.tsx`
+  - `__tests__/settings-layout.test.tsx`
+  - `app/crm/schedule/page.tsx`
+  - `app/crm/schedule/schedule-calendar.tsx`
+- Summary:
+  - Tightened the schedule journey for team members so they now only see their own jobs and their own visible lane instead of the full team roster with empty lanes.
+  - Hid the schedule team filter when there is only one visible team member, which removes a pointless control in the restricted tradie view.
+  - Added direct coverage for the schedule page role split and the schedule calendar UI behavior, plus sidebar coverage proving team members do not see Billing or Integrations links in settings.
+  - Updated the CRM audit to distinguish the now-stronger schedule access proof from the still-unverified scheduling side effects.
+- Why:
+  - A page can still feel wrong even when the raw data is filtered correctly. This pass makes the tradie schedule view match the intended product workflow and adds proof that the CRM navigation matches user permissions.
