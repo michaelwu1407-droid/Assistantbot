@@ -11,6 +11,7 @@ export async function requireCurrentWorkspaceAccess() {
     where: { id: userId },
     select: {
       id: true,
+      name: true,
       workspaceId: true,
       role: true,
     },
@@ -23,6 +24,7 @@ export async function requireCurrentWorkspaceAccess() {
         where: { email: authUser.email },
         select: {
           id: true,
+          name: true,
           workspaceId: true,
           role: true,
         },
