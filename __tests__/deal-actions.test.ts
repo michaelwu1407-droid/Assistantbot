@@ -101,7 +101,7 @@ vi.mock("@/actions/messaging-actions", () => ({
   sendConfirmationSMS: hoisted.sendConfirmationSMS,
 }));
 
-import { createDeal, updateDeal, updateDealStage } from "@/actions/deal-actions";
+import { createDeal, updateDeal, updateDealAssignedTo, updateDealStage } from "@/actions/deal-actions";
 
 describe("deal-actions", () => {
   beforeEach(() => {
@@ -216,6 +216,30 @@ describe("deal-actions", () => {
       error: "Assign a team member when creating a job in Scheduled stage.",
     });
     expect(hoisted.db.deal.create).not.toHaveBeenCalled();
+  });
+
+  it("prevents team members from reassigning jobs", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1", role: "TEAM_MEMBER" },
+      deal: {
+        id: "deal_1",
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        stage: "SCHEDULED",
+        metadata: {},
+        assignedToId: "worker_1",
+        scheduledAt: new Date("2026-04-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-04-01T08:00:00.000Z"),
+      },
+    });
+
+    const result = await updateDealAssignedTo("deal_1", "worker_2");
+
+    expect(result).toEqual({
+      success: false,
+      error: "Only managers can reassign jobs.",
+    });
+    expect(hoisted.db.deal.update).not.toHaveBeenCalled();
   });
 
   it("moves team-member completions into pending approval instead of WON", async () => {

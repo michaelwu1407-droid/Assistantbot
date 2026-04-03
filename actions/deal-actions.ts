@@ -1377,8 +1377,12 @@ export async function updateDealAssignedTo(
   dealId: string,
   assignedToId: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const { deal } = await requireDealInCurrentWorkspace(dealId);
+  const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
+
+  if (actor.role === "TEAM_MEMBER" && assignedToId !== deal.assignedToId) {
+    return { success: false, error: "Only managers can reassign jobs." };
+  }
 
   // Prevent unassignment for deals in Scheduled or later stages
   if (!assignedToId) {

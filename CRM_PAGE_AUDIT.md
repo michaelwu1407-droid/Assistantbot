@@ -35,6 +35,14 @@ Status meanings:
    - The team filter now hides itself when there is only one visible team member.
 9. Settings discoverability proof
    - Added direct coverage that team members do not see manager-only Billing and Integrations links in the settings sidebar.
+10. Deal direct-link access
+   - Team members can no longer open arbitrary deal detail or edit pages in their workspace by guessing `/crm/deals/[id]` URLs.
+   - Deal detail and edit pages now scope through the same deal-access guard as the rest of the job actions.
+11. Deal reassignment guardrail
+   - Team members can no longer reassign jobs through the edit form or server action path.
+   - The edit page now hides assignment controls when the current user should not manage assignment.
+12. Team page proof
+   - Added direct tests for manager vs team-member rendering on the team page so invite-management visibility is no longer just inferred from code.
 
 ## CRM surface status
 
@@ -124,10 +132,12 @@ Status meanings:
 - Status: `watch`
 - Why:
   - Real detail page with contact info, notes, photos, billing tab, sync issues, and inbox link.
-  - The deeper component behavior is covered, but page-level navigation and linked actions still need tighter verification.
+  - This pass closed a real access hole by routing detail-page access through the scoped deal guard, so team members cannot open arbitrary jobs by direct URL anymore.
+  - The deeper component behavior is covered, but linked actions and end-to-end state changes still need tighter verification.
 - Evidence:
   - `__tests__/deal-detail-modal.test.tsx`
   - `__tests__/deal-edit-form.test.tsx`
+  - `__tests__/deal-page-access.test.tsx`
 
 ### `/crm/team`
 
@@ -135,7 +145,9 @@ Status meanings:
 - Why:
   - Real page with member list and invite management.
   - This pass hid invite and role-management controls for team members so the page matches what they can actually do.
-  - Still needs stronger page-level coverage around role-specific rendering.
+  - Now has direct role-specific rendering coverage, but the deeper invite/revoke/remove flows still need more end-to-end verification.
+- Evidence:
+  - `__tests__/team-page.test.tsx`
 
 ### `/crm/analytics`
 
@@ -168,11 +180,9 @@ Status meanings:
 ## Remaining CRM concerns worth auditing next
 
 1. Deals detail and edit as a full journey
-   - open from dashboard
-   - edit
-   - save
    - message customer
    - verify state reflects correctly everywhere
+   - tighten any remaining linked-action and billing/photo journey gaps
 
 2. Schedule journey
    - drag/update interactions
@@ -196,6 +206,7 @@ Most solid right now:
 - contacts list
 - contact create/edit
 - inbox thread selection
+- deal access scoping
 - schedule access and lane visibility
 - map
 

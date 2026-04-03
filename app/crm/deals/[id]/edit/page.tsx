@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Home } from "lucide-react"
@@ -14,14 +14,23 @@ interface PageProps {
 
 export default async function DealEditPage({ params }: PageProps) {
   const { id } = await params
-  const actor = await requireCurrentWorkspaceAccess()
+  let actor: Awaited<ReturnType<typeof requireDealInCurrentWorkspace>>["actor"]
+  try {
+    ;({ actor } = await requireDealInCurrentWorkspace(id))
+  } catch (error) {
+    if (error instanceof Error && error.message === "Deal not found") {
+      notFound()
+    }
+    throw error
+  }
 
+  const canManageAssignment = actor.role !== "TEAM_MEMBER"
   const [deal, teamMembers, recurrence] = await Promise.all([
     db.deal.findFirst({
       where: { id, workspaceId: actor.workspaceId },
       include: { contact: true, assignedTo: { select: { id: true, name: true } } },
     }),
-    getTeamMembers(),
+    canManageAssignment ? getTeamMembers() : Promise.resolve([]),
     getDealRecurrence(id),
   ])
 
@@ -68,6 +77,7 @@ export default async function DealEditPage({ params }: PageProps) {
         initialScheduledAt={deal.scheduledAt ? new Date(deal.scheduledAt).toISOString().slice(0, 16) : ""}
         initialAssignedToId={deal.assignedToId ?? ""}
         teamMembers={teamMembers}
+        canManageAssignment={canManageAssignment}
         stageOptions={STAGE_OPTIONS}
         initialRecurrence={recurrence}
       />

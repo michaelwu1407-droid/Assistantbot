@@ -161,6 +161,7 @@ describe("DealEditForm", () => {
           { value: "lead", label: "Lead" },
           { value: "scheduled", label: "Scheduled" },
         ]}
+        canManageAssignment
         initialRecurrence={null}
       />,
     );
@@ -239,4 +240,53 @@ describe("DealEditForm", () => {
     expect(routerPush).toHaveBeenCalledWith("/crm/deals/deal_123");
     expect(routerRefresh).toHaveBeenCalled();
   }, 15000);
+
+  it("hides reassignment controls for team-member editing and skips assignee updates", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <DealEditForm
+        dealId="deal_123"
+        initialTitle="Blocked Drain"
+        initialValue={250}
+        initialStage="scheduled"
+        initialNotes="Needs inspection"
+        initialAddress="12 King St"
+        initialScheduledAt="2026-04-15T09:30"
+        initialAssignedToId="user_1"
+        teamMembers={[
+          { id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" },
+        ]}
+        canManageAssignment={false}
+        stageOptions={[
+          { value: "lead", label: "Lead" },
+          { value: "scheduled", label: "Scheduled" },
+        ]}
+        initialRecurrence={null}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/assigned to/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/notes/i), {
+      target: { value: "Team member updated notes" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(updateDeal).toHaveBeenCalledWith("deal_123", {
+        title: "Blocked Drain",
+        value: 250,
+        stage: "scheduled",
+        address: "12 King St",
+        scheduledAt: "2026-04-15T09:30",
+      });
+    });
+
+    expect(updateDealAssignedTo).not.toHaveBeenCalled();
+    expect(updateDealMetadata).toHaveBeenCalledWith("deal_123", {
+      notes: "Team member updated notes",
+    });
+  });
 });

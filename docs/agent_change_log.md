@@ -2958,3 +2958,25 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the CRM audit to distinguish the now-stronger schedule access proof from the still-unverified scheduling side effects.
 - Why:
   - A page can still feel wrong even when the raw data is filtered correctly. This pass makes the tradie schedule view match the intended product workflow and adds proof that the CRM navigation matches user permissions.
+
+## 2026-04-04 00:34 (AEDT) - Codex
+
+- Files changed:
+  - `CRM_PAGE_AUDIT.md`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/deal-edit-form.test.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+  - `__tests__/team-page.test.tsx`
+  - `actions/deal-actions.ts`
+  - `app/crm/deals/[id]/edit/deal-edit-form.tsx`
+  - `app/crm/deals/[id]/edit/page.tsx`
+  - `app/crm/deals/[id]/page.tsx`
+  - `docs/agent_change_log.md`
+  - `lib/workspace-access.ts`
+- Summary:
+  - Closed a direct-URL access hole where team members could still reach arbitrary deal detail and edit pages inside the workspace even though the rest of the CRM filtered them to assigned jobs.
+  - Routed the deal detail and deal edit pages through the shared scoped-deal guard and added page-level tests proving forbidden jobs now resolve as not found.
+  - Added a reassignment guardrail so team members can no longer change assignees through the edit flow or server action path, and hid assignment controls for restricted users on the edit form.
+  - Added role-specific rendering coverage for the team page so manager-only invite controls are now directly proven instead of only visually inspected.
+- Why:
+  - CRM trust drops fast when users can reach the wrong records by URL or are shown controls they should not be able to use. This pass closes those holes and adds proof around them.

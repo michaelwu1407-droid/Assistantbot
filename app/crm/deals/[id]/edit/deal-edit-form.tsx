@@ -28,6 +28,7 @@ interface DealEditFormProps {
   initialScheduledAt: string
   initialAssignedToId: string
   teamMembers: TeamMemberOption[]
+  canManageAssignment?: boolean
   stageOptions: { value: string; label: string }[]
   initialRecurrence?: RecurrenceRule | null
 }
@@ -42,6 +43,7 @@ export function DealEditForm({
   initialScheduledAt,
   initialAssignedToId,
   teamMembers,
+  canManageAssignment = true,
   stageOptions,
   initialRecurrence,
 }: DealEditFormProps) {
@@ -89,7 +91,9 @@ export function DealEditForm({
         setSaving(false)
         return
       }
-      await updateDealAssignedTo(dealId, assignedToId || null)
+      if (canManageAssignment && assignedToId !== initialAssignedToId) {
+        await updateDealAssignedTo(dealId, assignedToId || null)
+      }
       if (notes !== initialNotes) {
         await updateDealMetadata(dealId, { notes })
       }
@@ -217,7 +221,7 @@ export function DealEditForm({
           </SelectContent>
         </Select>
       </div>
-      {teamMembers.length > 0 && (
+      {canManageAssignment && teamMembers.length > 0 && (
         <div className="space-y-2">
           <Label htmlFor="assignedTo">Assigned to {stage === "scheduled" ? <span className="text-red-500">*</span> : ""}</Label>
           <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>

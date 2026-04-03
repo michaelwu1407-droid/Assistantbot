@@ -59,6 +59,7 @@ export async function requireDealInCurrentWorkspace(dealId: string) {
     where: {
       id: dealId,
       workspaceId: actor.workspaceId,
+      ...(actor.role === "TEAM_MEMBER" ? { assignedToId: actor.id } : {}),
     },
   });
 

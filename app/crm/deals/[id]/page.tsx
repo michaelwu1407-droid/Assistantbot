@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle } from "lucide-react"
@@ -34,7 +34,15 @@ interface PageProps {
 
 export default async function DealDetailPage({ params }: PageProps) {
   const { id } = await params
-  const actor = await requireCurrentWorkspaceAccess()
+  let actor: Awaited<ReturnType<typeof requireDealInCurrentWorkspace>>["actor"]
+  try {
+    ;({ actor } = await requireDealInCurrentWorkspace(id))
+  } catch (error) {
+    if (error instanceof Error && error.message === "Deal not found") {
+      notFound()
+    }
+    throw error
+  }
 
   const deal = await db.deal.findFirst({
     where: { id, workspaceId: actor.workspaceId },
