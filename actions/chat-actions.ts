@@ -204,6 +204,35 @@ const CHAT_STAGE_LABELS: Record<string, string> = {
   deleted: "Deleted",
 };
 
+function getDealNextStepGuidance(input: {
+  chatStage: string;
+  hasSchedule: boolean;
+  hasInvoice: boolean;
+}): string | null {
+  switch (input.chatStage) {
+    case "new_request":
+      return "Review the request, then either send a quote or assign a team member and set a scheduled date before moving it forward.";
+    case "quote_sent":
+      return "Confirm the customer wants to proceed, then assign a team member and schedule the job.";
+    case "scheduled":
+      return input.hasInvoice
+        ? "Finish the work, update any notes, and mark the invoice status correctly when the job is done."
+        : "Complete the work, record any field notes or materials, and generate the invoice when the job is finished.";
+    case "ready_to_invoice":
+      return input.hasInvoice
+        ? "Issue the invoice or update its status, then follow through to payment."
+        : "Generate the invoice and send or review it before closing out payment.";
+    case "pending_approval":
+      return "Review the completion details, then approve it to move to completed or reject it with a reason.";
+    case "completed":
+      return input.hasInvoice
+        ? "The job is completed. The main remaining step is making sure the invoice and payment status are correct."
+        : "The job is completed. Generate or issue the invoice if billing is still outstanding.";
+    default:
+      return null;
+  }
+}
+
 /** Resolve a user-facing stage name to the internal stage key */
 function resolveStage(raw: string): string | null {
   const key = raw.trim().toLowerCase().replace(/\s+/g, " ");
@@ -1336,9 +1365,15 @@ export async function runGetDealContext(
   });
 
   const latestInvoice = fullDeal.invoices[0];
+  const chatStage = PRISMA_STAGE_TO_CHAT_STAGE[fullDeal.stage] ?? "";
+  const nextStepGuidance = getDealNextStepGuidance({
+    chatStage,
+    hasSchedule: Boolean(fullDeal.scheduledAt),
+    hasInvoice: Boolean(latestInvoice),
+  });
   const lines = [
     `Job: ${fullDeal.title}`,
-    `Stage: ${CHAT_STAGE_LABELS[PRISMA_STAGE_TO_CHAT_STAGE[fullDeal.stage] ?? ""] ?? fullDeal.stage}`,
+    `Stage: ${CHAT_STAGE_LABELS[chatStage] ?? fullDeal.stage}`,
     `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
     fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
@@ -1346,6 +1381,7 @@ export async function runGetDealContext(
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
       : null,
     latestInvoice ? `Latest invoice: ${latestInvoice.number} (${latestInvoice.status}) $${Number(latestInvoice.total ?? 0).toLocaleString()}` : null,
+    nextStepGuidance ? `Next steps: ${nextStepGuidance}` : null,
   ].filter(Boolean);
 
   if (notes.length) {

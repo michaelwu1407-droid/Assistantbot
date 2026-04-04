@@ -282,8 +282,42 @@ describe("chat-actions", () => {
     expect(result).toContain("Job: Blocked Drain");
     expect(result).toContain("Stage: Scheduled");
     expect(result).toContain("Latest invoice: INV-001 (DRAFT) $480");
+    expect(result).toContain("Next steps:");
     expect(result).toContain("Recent notes:");
     expect(result).toContain("Bring ladder.");
+  });
+
+  it("includes concrete next-step guidance for new requests", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Gutter Repair",
+        assignedToId: "user_1",
+        contactId: "contact_1",
+      },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      title: "Gutter Repair",
+      stage: "NEW",
+      value: 650,
+      address: "8 Harbour Road Manly",
+      scheduledAt: null,
+      contact: {
+        name: "Delta Cafe",
+        phone: "0290011002",
+        email: "ops@deltacafe.example.com",
+        company: null,
+        address: "8 Harbour Road Manly",
+      },
+      invoices: [],
+    });
+    hoisted.db.activity.findMany.mockResolvedValue([]);
+
+    const result = await runGetDealContext("ws_1", { dealTitle: "Gutter Repair" });
+
+    expect(result).toContain("Stage: New request");
+    expect(result).toContain("Next steps: Review the request, then either send a quote or assign a team member and set a scheduled date before moving it forward.");
   });
 
   it("lists only matching jobs that are ready to invoice or already invoiced", async () => {
