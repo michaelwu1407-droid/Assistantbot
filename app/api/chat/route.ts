@@ -509,6 +509,8 @@ async function buildResolvedEntitiesBlock(
             .map((deal) => `${deal.title} (${deal.stage}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`)
             .join(", ")}`,
         );
+      } else if (likelyDealQuery) {
+        lines.push(`No exact jobs currently match "${likelyDealQuery}". Do not substitute similar run IDs, names, or fuzzy matches.`);
       }
     } catch {
       // Ignore pre-resolution failures and let the model resolve via tools.
