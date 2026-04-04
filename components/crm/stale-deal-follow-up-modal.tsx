@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Clock, MessageSquare, Phone, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { sendFollowUpMessage, scheduleFollowUp } from "@/actions/followup-actions"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 interface StaleDealFollowUpModalProps {
   open: boolean
@@ -158,7 +159,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span>Value: ${deal.value.toLocaleString()}</span>
                   <span>•</span>
-                  <span>Stage: {deal.stage}</span>
+                  <span>Stage: {getUserFacingDealStageLabel(deal.stage)}</span>
                 </div>
               </div>
               <Badge className={getStalenessColor()}>

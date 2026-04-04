@@ -73,6 +73,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
 
         // SEND_INVOICE and anything else: navigate to the linked page
         if (n.link) {
+            notifyNavigationFor(n)
             router.push(n.link)
         }
     }
@@ -96,6 +97,12 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
         const interval = setInterval(fetchNotifications, 60000)
         return () => clearInterval(interval)
     }, [fetchNotifications])
+
+    const notifyNavigationFor = (n: NotificationView) => {
+        if (n.actionType === "SEND_INVOICE" && n.link) {
+            toast.success("Opening job & billing")
+        }
+    }
 
     const handleMarkRead = async (id: string) => {
         // Optimistic update
@@ -205,6 +212,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                             )}
                                             onClick={() => {
                                                 if (n.link) {
+                                                    notifyNavigationFor(n)
                                                     router.push(n.link);
                                                 }
                                                 if (!n.read) {

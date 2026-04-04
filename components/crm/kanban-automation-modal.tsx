@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Clock, MessageSquare, Calendar, Target, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { executeKanbanAction } from "@/actions/kanban-automation-actions"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 interface KanbanAutomationModalProps {
   open: boolean
@@ -168,7 +169,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span>Value: ${deal.value.toLocaleString()}</span>
                   <span>•</span>
-                  <span>Stage: {deal.currentStage}</span>
+                  <span>Stage: {getUserFacingDealStageLabel(deal.currentStage)}</span>
                 </div>
               </div>
               <Badge className={getStalenessColor()}>

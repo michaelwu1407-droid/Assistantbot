@@ -1,3 +1,15 @@
+## 2026-04-05 19:00 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `components/dashboard/notifications-btn.tsx`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `components/crm/kanban-automation-modal.tsx`
+- Summary:
+  - Notifications: **`SEND_INVOICE`** actions and row taps that open the job link now show a **`Opening job & billing`** success toast so users get immediate feedback (same helper used for primary action buttons and list-row navigation).
+  - Stale-deal and kanban automation modals show **user-facing stage labels** via `getUserFacingDealStageLabel` instead of raw internal stage strings.
+- Why:
+  - Aligns with the CRM stage-language cleanup and the audit note that invoice-related notification paths lacked an obvious outcome.
+
 ## 2026-04-05 18:15 (AEDT) - Cursor Agent
 
 - Files changed:
