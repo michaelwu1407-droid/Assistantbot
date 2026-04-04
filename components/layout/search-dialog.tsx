@@ -128,7 +128,11 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                     {results.length > 0 && (
                         <CommandGroup heading="Search Results">
                             {results.map((item) => (
-                                <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                <CommandItem
+                                    key={item.id}
+                                    onSelect={() => runCommand(() => router.push(item.url))}
+                                    onClick={() => runCommand(() => router.push(item.url))}
+                                >
                                     {item.type === 'contact' ? <User className="mr-2 h-4 w-4" /> :
                                         item.type === 'deal' ? <CreditCard className="mr-2 h-4 w-4" /> :
                                             <LayoutDashboard className="mr-2 h-4 w-4" />}

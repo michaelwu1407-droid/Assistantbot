@@ -98,7 +98,6 @@ const contacts: ContactView[] = [
 describe("ContactsClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("confirm", vi.fn(() => true));
     deleteContacts.mockResolvedValue(undefined);
   });
 
@@ -142,11 +141,11 @@ describe("ContactsClient", () => {
     const checkboxes = within(table as HTMLTableElement).getAllByRole("checkbox");
     await user.click(checkboxes[1]);
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete contacts" }));
 
     await waitFor(() => {
       expect(deleteContacts).toHaveBeenCalledWith(["contact_1"]);
     });
-    expect(global.confirm).toHaveBeenCalledWith("Are you sure you want to delete 1 contact? This cannot be undone.");
     expect(toastSuccess).toHaveBeenCalledWith("Deleted 1 contact");
     expect(routerRefresh).toHaveBeenCalled();
   });
@@ -178,6 +177,7 @@ describe("ContactsClient", () => {
     const checkboxes = within(table as HTMLTableElement).getAllByRole("checkbox");
     await user.click(checkboxes[1]);
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete contacts" }));
 
     await waitFor(() => {
       expect(deleteContacts).toHaveBeenCalledWith(["contact_1"]);

@@ -303,8 +303,14 @@ export default function TeamPage() {
                                             <CheckCircle className="w-6 h-6 text-green-600" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-slate-900">Invite sent to {sentEmail}!</h3>
-                                            <p className="text-sm text-slate-600 mt-1">They can join your workspace using the link below.</p>
+                                            <h3 className="text-lg font-semibold text-slate-900">
+                                                {sentEmail ? `Invite sent to ${sentEmail}!` : "Invite link ready"}
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                {sentEmail
+                                                    ? "They can join your workspace using the link below."
+                                                    : "Share this link with your teammate so they can join your workspace."}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
@@ -462,14 +468,37 @@ export default function TeamPage() {
                                                     {getRoleLabel(invite.role)}
                                                 </Badge>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
-                                                onClick={() => handleRevoke(invite.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                    className="h-9"
+                                                >
+                                                    <a href={`/invite/join?token=${invite.token}`} target="_blank" rel="noreferrer">
+                                                        Open invite link
+                                                    </a>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/invite/join?token=${invite.token}`)
+                                                        toast.success("Invite link copied")
+                                                    }}
+                                                >
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                    onClick={() => handleRevoke(invite.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

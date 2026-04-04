@@ -83,6 +83,10 @@ describe("TeamPage", () => {
     });
 
     expect(screen.getByText(/pending invites/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open invite link/i })).toHaveAttribute(
+      "href",
+      "/invite/join?token=token_1",
+    );
   });
 
   it("hides invite controls and pending invites for team members", async () => {

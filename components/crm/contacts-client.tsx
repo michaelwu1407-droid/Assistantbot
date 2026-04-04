@@ -12,6 +12,16 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
 interface ContactsClientProps {
@@ -82,6 +92,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("last_interacted")
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
 
@@ -154,10 +165,6 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
 
   const handleDelete = async () => {
     const selectedCount = selected.size
-    if (!confirm(`Are you sure you want to delete ${selectedCount} contact${selectedCount === 1 ? "" : "s"}? This cannot be undone.`)) {
-      return
-    }
-
     setSending(true)
     try {
       const result = await deleteContacts(Array.from(selected))
@@ -166,6 +173,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
       }
       toast.success(`Deleted ${selectedCount} contact${selectedCount === 1 ? "" : "s"}`)
       setSelected(new Set())
+      setDeleteDialogOpen(false)
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete contacts")
@@ -232,7 +240,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
                   Export CSV
                 </Button>
-                <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={handleDelete} disabled={sending}>
+                <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => setDeleteDialogOpen(true)} disabled={sending}>
                   Delete
                 </Button>
                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setSelected(new Set())}>
@@ -514,6 +522,29 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
           )}
         </div>
       </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selected.size} contact{selected.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the selected contact records and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                void handleDelete()
+              }}
+              disabled={sending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {sending ? "Deleting..." : "Delete contacts"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
