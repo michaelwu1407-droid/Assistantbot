@@ -215,7 +215,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         /^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)
           ? 'The user already gave enough information to create the job now. Use createJobNatural, not createDeal or showJobDraftForConfirmation. Do not ask for phone or email unless the tool truly requires it.'
           : null,
-      ];
+      ].filter(Boolean) as string[];
     case "invoice":
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
