@@ -10,4 +10,12 @@ describe("pre-classifier", () => {
     expect(result.suggestedTools).toContain("contactSupport");
     expect(result.contextHints.join(" ")).toContain("product feedback");
   });
+
+  it("recognizes CRM mutation requests and suggests direct action tools", () => {
+    const result = preClassify("Move Hot Water Fix to scheduled and add a note for the customer access code.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools).toContain("moveDeal");
+    expect(result.suggestedTools).toContain("addDealNote");
+  });
 });

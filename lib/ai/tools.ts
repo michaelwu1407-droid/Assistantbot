@@ -24,8 +24,11 @@ import {
     runGetInvoiceStatusAction,
     runUpdateAiPreferences,
     runLogActivity,
+    runAddDealNote,
+    runAddContactNote,
     runCreateTask,
     runSearchContacts,
+    runGetDealContext,
     runCreateContact,
     runUpdateContactFields,
     runSendSms,
@@ -302,6 +305,22 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             }),
             execute: async ({ type, content }) => runLogActivity({ type, content }),
         }),
+        addDealNote: tool({
+            description: "Add an internal CRM note to a specific job/deal by title.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job/deal title"),
+                note: z.string().describe("Internal note content"),
+            }),
+            execute: async (params) => runAddDealNote(workspaceId, params),
+        }),
+        addContactNote: tool({
+            description: "Add an internal CRM note to a specific contact by name.",
+            inputSchema: z.object({
+                contactName: z.string().describe("Contact name"),
+                note: z.string().describe("Internal note content"),
+            }),
+            execute: async (params) => runAddContactNote(workspaceId, params),
+        }),
         createTask: tool({
             description: "Create a reminder or to-do task.",
             inputSchema: z.object({
@@ -331,6 +350,13 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 query: z.string().describe("Name or keyword to search"),
             }),
             execute: async ({ query }) => runSearchContacts(workspaceId, query),
+        }),
+        getDealContext: tool({
+            description: "Get the current CRM details for a specific job/deal, including stage, schedule, contact, latest invoice, and recent notes.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job/deal title"),
+            }),
+            execute: async (params) => runGetDealContext(workspaceId, params),
         }),
         createContact: tool({
             description: "Add a new contact to the CRM.",
@@ -578,11 +604,40 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
 }
 
 // Tools that are always included regardless of intent classification
-const CORE_TOOLS = [
-    'listDeals', 'getAttentionRequired', 'searchContacts', 'contactSupport', 'showConfirmationCard',
-    'showJobDraftForConfirmation', 'updateAiPreferences', 'addAgentFlag',
+const MINIMAL_FLOW_TOOLS = [
+    'showConfirmationCard',
+    'showJobDraftForConfirmation',
     'undoLastAction',
 ];
+
+const CRM_CORE_TOOLS = [
+    'listDeals',
+    'getAttentionRequired',
+    'searchContacts',
+    'searchJobHistory',
+    'getClientContext',
+    'getDealContext',
+    'listRecentCrmChanges',
+    'createDeal',
+    'updateDealFields',
+    'moveDeal',
+    'assignTeamMember',
+    'unassignDeal',
+    'restoreDeal',
+    'revertDealStageMove',
+    'createContact',
+    'updateContactFields',
+    'addDealNote',
+    'addContactNote',
+    'createTask',
+    'createNotification',
+    'showConfirmationCard',
+    'showJobDraftForConfirmation',
+    'updateAiPreferences',
+    'addAgentFlag',
+    'undoLastAction',
+    'contactSupport',
+] as const;
 
 // Intent-specific tool groups that supplement core tools
 const INTENT_TOOL_GROUPS: Record<string, string[]> = {
@@ -596,6 +651,7 @@ const INTENT_TOOL_GROUPS: Record<string, string[]> = {
         'reverseInvoiceStatus', 'updateInvoiceFields', 'updateInvoiceAmount',
         'sendInvoiceReminder', 'getInvoiceStatus', 'pricingLookup', 'pricingCalculator',
     ],
+    crm_action: ['createJobNatural', 'proposeReschedule', 'bulkMoveDeals', 'bulkAssignDeals', 'bulkUpdateDealDisposition', 'bulkCreateDealReminder'],
     support: ['appendTicketNote'],
     flow_control: [], // Minimal tools for "ok", "yes", "next", etc.
 };
@@ -612,13 +668,20 @@ export function getAgentToolsForIntent(
 ) {
     const allTools = getAgentTools(workspaceId, settings, userId);
 
-    // Low confidence or general intent: send all tools
+    // Low confidence or broad/general intent: give the model the full workspace toolkit.
     if (classification.intent === 'general' || classification.confidence < 0.5) {
         return allTools;
     }
 
+    if (classification.intent === 'flow_control') {
+        const relevant = new Set(MINIMAL_FLOW_TOOLS);
+        return Object.fromEntries(
+            Object.entries(allTools).filter(([k]) => relevant.has(k))
+        ) as typeof allTools;
+    }
+
     const intentTools = INTENT_TOOL_GROUPS[classification.intent] ?? [];
-    const relevant = new Set([...CORE_TOOLS, ...intentTools, ...classification.suggestedTools]);
+    const relevant = new Set([...CRM_CORE_TOOLS, ...intentTools, ...classification.suggestedTools]);
     return Object.fromEntries(
         Object.entries(allTools).filter(([k]) => relevant.has(k))
     ) as typeof allTools;

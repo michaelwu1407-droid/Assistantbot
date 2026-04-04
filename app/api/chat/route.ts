@@ -10,7 +10,7 @@ import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/c
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
 import { getAgentToolsForIntent } from "@/lib/ai/tools";
-import { preClassify } from "@/lib/ai/pre-classifier";
+import { preClassify, type PreClassification } from "@/lib/ai/pre-classifier";
 import { validatePricingInResponse } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
@@ -126,23 +126,32 @@ function findMostRecentMultiJobCandidate(messages: unknown[]): string | null {
   return null;
 }
 
-function shouldAttemptStructuredJobExtraction(text: string): boolean {
+export function shouldAttemptStructuredJobExtraction(text: string, classification: PreClassification): boolean {
   const trimmed = text.trim();
   if (trimmed.length < 15) return false;
   const lower = trimmed.toLowerCase();
   if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/.test(lower)) return false;
-  const strongSignals =
-    /(create|add|book|new job|log|needs|need|repair|install|replace|quote)/i.test(trimmed) ||
+  if (classification.intent === "flow_control" || classification.intent === "contact_lookup" || classification.intent === "reporting" || classification.intent === "support") {
+    return false;
+  }
+  if (/\b(move|moved|assign|assigned|unassign|update|updated|change|changed|edit|edited|rename|set|mark|marked|show|list|find|search|look up|lookup|who is|what is|status|note|reminder|invoice|email|text|message|call)\b/i.test(trimmed)) {
+    return false;
+  }
+  const explicitCreationIntent =
+    /\b(create|add|book|log)\b/i.test(trimmed) ||
+    /\b(new job|new lead|inbound lead|lead from|customer called|customer texted|customer emailed|new enquiry)\b/i.test(trimmed);
+  if (!explicitCreationIntent) return false;
+  const enoughJobPayload =
     /\$\s*\d+/.test(trimmed) ||
     /\b\d{8,}\b/.test(trimmed) ||
     /@/.test(trimmed) ||
-    /\b(tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(trimmed) ||
-    /\b\d{1,2}\s?(am|pm)\b/i.test(trimmed);
-  if (strongSignals) return true;
+    /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(trimmed) ||
+    /\b\d{1,2}\s?(am|pm)\b/i.test(trimmed) ||
+    (trimmed.match(/,/g) ?? []).length >= 2;
+  if (enoughJobPayload) return true;
   const likelyQuestion = /^(what|show|list|how|why|who|when|where)\b/i.test(lower) || trimmed.includes("?");
   if (likelyQuestion) return false;
-  const commaCount = (trimmed.match(/,/g) ?? []).length;
-  return commaCount >= 2 && /\d/.test(trimmed);
+  return false;
 }
 
 function shouldIncludeHistoricalPricing(text: string): boolean {
@@ -382,7 +391,7 @@ export async function POST(req: Request) {
     const classification = preClassify(content);
     const isFlowControl = classification.intent === 'flow_control';
 
-    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content);
+    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
     const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);
     const shouldGetMemoryContext = !isFlowControl && shouldFetchMemory(lastMessageContent);
 

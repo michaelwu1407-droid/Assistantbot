@@ -121,69 +121,87 @@ async function getCustomerContactGuardResult(
 }
 
 // ─── Stage Alias Mapping ─────────────────────────────────────────────
-// Maps any user-facing stage name (industry-specific or generic) to the
-// internal lowercase stage key used by the Kanban board and DB.
+// Maps user-facing stage names to the canonical frontend stage keys used by
+// deal-actions. Chat should speak the same stage language as the live CRM.
 const STAGE_ALIASES: Record<string, string> = {
-  // Internal keys (identity)
-  "new": "new",
-  "contacted": "contacted",
-  "negotiation": "negotiation",
-  "won": "won",
+  // Canonical frontend keys
+  "new": "new_request",
+  "new request": "new_request",
+  "quote sent": "quote_sent",
+  "quoted": "quote_sent",
+  "quoting": "quote_sent",
+  "scheduled": "scheduled",
+  "ready to invoice": "ready_to_invoice",
+  "pending approval": "pending_approval",
+  "completed": "completed",
   "lost": "lost",
-  "invoiced": "invoiced",
+  "deleted": "deleted",
+  // Legacy/internal aliases
+  "contacted": "quote_sent",
+  "negotiation": "scheduled",
+  "pipeline": "quote_sent",
+  "invoiced": "ready_to_invoice",
+  "won": "completed",
   // Generic CRM
-  "new lead": "new",
-  "lead": "new",
+  "new lead": "new_request",
+  "lead": "new_request",
   // Trades
-  "new job": "new",
-  "new jobs": "new",
-  "quoted": "contacted",
-  "quote": "contacted",
-  "quoting": "contacted",
-  "in progress": "negotiation",
-  "in-progress": "negotiation",
-  "inprogress": "negotiation",
-  "progress": "negotiation",
-  "completed": "won",
-  "complete": "won",
-  "done": "won",
-  "finished": "won",
-  "scheduled": "won",
+  "new job": "new_request",
+  "new jobs": "new_request",
+  "quote": "quote_sent",
+  "in progress": "scheduled",
+  "in-progress": "scheduled",
+  "inprogress": "scheduled",
+  "progress": "scheduled",
+  "complete": "completed",
+  "done": "completed",
+  "finished": "completed",
   // Real Estate
-  "new listing": "new",
-  "new listings": "new",
-  "listing": "new",
-  "appraised": "contacted",
-  "appraisal": "contacted",
-  "under offer": "negotiation",
-  "under-offer": "negotiation",
-  "offer": "negotiation",
-  "settled": "won",
-  "settlement": "won",
-  "under contract": "won",
-  "exchanged": "won",
+  "new listing": "new_request",
+  "new listings": "new_request",
+  "listing": "new_request",
+  "appraised": "quote_sent",
+  "appraisal": "quote_sent",
+  "under offer": "scheduled",
+  "under-offer": "scheduled",
+  "offer": "scheduled",
+  "settled": "completed",
+  "settlement": "completed",
+  "under contract": "completed",
+  "exchanged": "completed",
   "withdrawn": "lost",
   "cancelled": "lost",
   "canceled": "lost",
   // Construction
-  "awarded": "won",
+  "awarded": "completed",
   // Paid / Invoice stages
-  "paid": "won",
-  "invoice": "invoiced",
+  "paid": "completed",
+  "invoice": "ready_to_invoice",
 };
 
 const PRISMA_STAGE_TO_CHAT_STAGE: Record<string, string> = {
-  NEW: "new",
-  CONTACTED: "contacted",
-  NEGOTIATION: "negotiation",
+  NEW: "new_request",
+  CONTACTED: "quote_sent",
+  NEGOTIATION: "scheduled",
   SCHEDULED: "scheduled",
-  PIPELINE: "pipeline",
-  INVOICED: "invoiced",
-  PENDING_COMPLETION: "won",
-  WON: "won",
+  PIPELINE: "quote_sent",
+  INVOICED: "ready_to_invoice",
+  PENDING_COMPLETION: "pending_approval",
+  WON: "completed",
   LOST: "lost",
   DELETED: "deleted",
   ARCHIVED: "archived",
+};
+
+const CHAT_STAGE_LABELS: Record<string, string> = {
+  new_request: "New request",
+  quote_sent: "Quote sent",
+  scheduled: "Scheduled",
+  ready_to_invoice: "Ready to invoice",
+  pending_approval: "Pending approval",
+  completed: "Completed",
+  lost: "Lost",
+  deleted: "Deleted",
 };
 
 /** Resolve a user-facing stage name to the internal stage key */
@@ -197,8 +215,8 @@ function resolveStage(raw: string): string | null {
   return null;
 }
 
-/** Fuzzy-match a deal title from the deals list */
-function findDealByTitle(deals: { id: string; title: string }[], query: string): { id: string; title: string } | null {
+/** Fuzzy-match a deal title from the deals list while preserving extra fields. */
+function findDealByTitle<T extends { id: string; title: string }>(deals: T[], query: string): T | null {
   const q = query.toLowerCase().trim();
   // Exact match first
   const exact = deals.find(d => d.title.toLowerCase() === q);
@@ -210,7 +228,7 @@ function findDealByTitle(deals: { id: string; title: string }[], query: string):
   const reverseContains = deals.find(d => q.includes(d.title.toLowerCase()));
   if (reverseContains) return reverseContains;
   // Fuzzy match
-  let bestDeal: { id: string; title: string } | null = null;
+  let bestDeal: T | null = null;
   let bestScore = 0;
   for (const deal of deals) {
     const score = fuzzyScore(q, deal.title.toLowerCase());
@@ -299,7 +317,7 @@ export async function runMoveDeal(
   assignedTo?: string
 ): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-  const deal = deals.find(d => d.title.toLowerCase().trim() === dealTitle.toLowerCase().trim());
+  const deal = findDealByTitle(deals, dealTitle);
   if (!deal) {
     const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
     return {
@@ -335,18 +353,7 @@ export async function runMoveDeal(
   if (!result.success) {
     return { success: false, message: result.error ?? "Failed to move deal." };
   }
-  let industryType: string | null = null;
-  try {
-    const workspace = await db.workspace.findUnique({
-      where: { id: workspaceId },
-      select: { industryType: true },
-    });
-    industryType = workspace?.industryType ?? null;
-  } catch {
-    // ignore
-  }
-  const ctx = getIndustryContext(industryType);
-  const stageLabel = ctx.stageLabels[resolvedStage.toUpperCase() as keyof typeof ctx.stageLabels] ?? resolvedStage;
+  const stageLabel = CHAT_STAGE_LABELS[resolvedStage] ?? resolvedStage;
   revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
   return {
@@ -1025,6 +1032,76 @@ export async function runLogActivity(params: { type: string, content: string, de
   }
 }
 
+export async function runAddDealNote(
+  workspaceId: string,
+  params: { dealTitle: string; note: string }
+): Promise<{ success: boolean; message: string; dealId?: string }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
+    return {
+      success: false,
+      message: `Couldn't find a job matching "${params.dealTitle}".${deals.length > 0 ? ` Current jobs: ${suggestions}` : " No jobs yet."}`,
+    };
+  }
+
+  const result = await logActivity({
+    type: "NOTE",
+    title: "AI note added",
+    content: params.note.trim(),
+    dealId: deal.id,
+    contactId: deal.contactId ?? undefined,
+  });
+
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Failed to add the note." };
+  }
+
+  revalidatePath("/crm", "layout");
+  revalidatePath(`/crm/deals/${deal.id}`);
+
+  return {
+    success: true,
+    message: `Added a note to "${deal.title}".`,
+    dealId: deal.id,
+  };
+}
+
+export async function runAddContactNote(
+  workspaceId: string,
+  params: { contactName: string; note: string }
+): Promise<{ success: boolean; message: string; contactId?: string }> {
+  const contacts = await searchContacts(workspaceId, params.contactName.trim());
+  const contact = contacts[0];
+  if (!contact) {
+    return {
+      success: false,
+      message: `Couldn't find a contact matching "${params.contactName}".`,
+    };
+  }
+
+  const result = await logActivity({
+    type: "NOTE",
+    title: "AI note added",
+    content: params.note.trim(),
+    contactId: contact.id,
+  });
+
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Failed to add the note." };
+  }
+
+  revalidatePath("/crm", "layout");
+  revalidatePath(`/crm/contacts/${contact.id}`);
+
+  return {
+    success: true,
+    message: `Added a note to ${contact.name}.`,
+    contactId: contact.id,
+  };
+}
+
 /**
  * AI Tool Action: Append note to an existing support ticket.
  */
@@ -1127,6 +1204,76 @@ export async function runSearchContacts(workspaceId: string, query: string) {
   } catch (err) {
     return `Error searching contacts: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+export async function runGetDealContext(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<string> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    const suggestions = deals.slice(0, 5).map((d) => `"${d.title}"`).join(", ");
+    return `Couldn't find a job matching "${params.dealTitle}".${deals.length > 0 ? ` Current jobs: ${suggestions}` : " No jobs yet."}`;
+  }
+
+  const fullDeal = await db.deal.findUnique({
+    where: { id: deal.id },
+    include: {
+      contact: {
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          company: true,
+          address: true,
+        },
+      },
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          number: true,
+          status: true,
+          total: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!fullDeal) {
+    return `Couldn't load details for "${deal.title}".`;
+  }
+
+  const notes = await db.activity.findMany({
+    where: { dealId: deal.id, type: "NOTE" },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: { title: true, content: true, createdAt: true },
+  });
+
+  const latestInvoice = fullDeal.invoices[0];
+  const lines = [
+    `Job: ${fullDeal.title}`,
+    `Stage: ${CHAT_STAGE_LABELS[PRISMA_STAGE_TO_CHAT_STAGE[fullDeal.stage] ?? ""] ?? fullDeal.stage}`,
+    `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
+    fullDeal.address ? `Address: ${fullDeal.address}` : null,
+    fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
+    fullDeal.contact
+      ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
+      : null,
+    latestInvoice ? `Latest invoice: ${latestInvoice.number} (${latestInvoice.status}) $${Number(latestInvoice.total ?? 0).toLocaleString()}` : null,
+  ].filter(Boolean);
+
+  if (notes.length) {
+    lines.push("Recent notes:");
+    for (const note of notes) {
+      lines.push(`- ${note.title}: ${(note.content ?? "").trim() || "No details"} (${formatTimeAgo(note.createdAt)})`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /**

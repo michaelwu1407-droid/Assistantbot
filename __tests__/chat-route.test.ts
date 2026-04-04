@@ -94,14 +94,20 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { POST } from "@/app/api/chat/route";
+import { POST, shouldAttemptStructuredJobExtraction } from "@/app/api/chat/route";
 
 describe("POST /api/chat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     hoisted.rateLimit.mockResolvedValue({ allowed: true, retryAfterMs: 0 });
-    hoisted.preClassify.mockReturnValue({ intent: "unknown", contextHints: [] });
+    hoisted.preClassify.mockReturnValue({
+      intent: "general",
+      confidence: 0.3,
+      contextHints: [],
+      suggestedTools: [],
+      requiresCalculator: false,
+    });
   });
 
   afterEach(() => {
@@ -163,5 +169,27 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({
       error: "Missing GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY",
     });
+  });
+
+  it("does not treat CRM update requests as structured job-creation drafts", () => {
+    expect(
+      shouldAttemptStructuredJobExtraction("Move Hot Water Fix to scheduled", {
+        intent: "crm_action",
+        confidence: 0.95,
+        contextHints: [],
+        suggestedTools: ["moveDeal"],
+        requiresCalculator: false,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldAttemptStructuredJobExtraction("Create a new blocked drain job for Alex tomorrow at 2pm for $420", {
+        intent: "crm_action",
+        confidence: 0.95,
+        contextHints: [],
+        suggestedTools: ["createDeal"],
+        requiresCalculator: false,
+      }),
+    ).toBe(true);
   });
 });

@@ -19,6 +19,7 @@ export type IntentHint =
   | "flow_control"
   | "reporting"
   | "contact_lookup"
+  | "crm_action"
   | "invoice"
   | "support"
   | "general";
@@ -76,6 +77,11 @@ const CONTACT_PATTERNS = [
   /\b(customer|client|their number|their email|their address)\b/i,
 ];
 
+const CRM_ACTION_PATTERNS = [
+  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo)\b/i,
+  /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage)\b/i,
+];
+
 const INVOICE_PATTERNS = [
   /\b(invoice|invoiced|create invoice|send invoice|draft invoice|mark.*paid|void)\b/i,
   /\b(payment|paid|unpaid|outstanding|overdue)\b/i,
@@ -112,6 +118,7 @@ export function preClassify(text: string): PreClassification {
     { intent: "communication", score: countMatches(trimmed, COMMUNICATION_PATTERNS) },
     { intent: "reporting", score: countMatches(trimmed, REPORTING_PATTERNS) },
     { intent: "contact_lookup", score: countMatches(trimmed, CONTACT_PATTERNS) },
+    { intent: "crm_action", score: countMatches(trimmed, CRM_ACTION_PATTERNS) },
     { intent: "invoice", score: countMatches(trimmed, INVOICE_PATTERNS) },
     { intent: "support", score: countMatches(trimmed, SUPPORT_PATTERNS) },
   ];
@@ -164,6 +171,12 @@ function getContextHints(intent: IntentHint): string[] {
       return [
         "CONTACT QUERY: Use searchContacts or getClientContext to find the person first.",
       ];
+    case "crm_action":
+      return [
+        "CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it.",
+        "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
+        "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
+      ];
     case "invoice":
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
@@ -191,6 +204,19 @@ function getSuggestedTools(intent: IntentHint): string[] {
       return ["getFinancialReport", "getTodaySummary"];
     case "contact_lookup":
       return ["searchContacts", "getClientContext"];
+    case "crm_action":
+      return [
+        "moveDeal",
+        "updateDealFields",
+        "assignTeamMember",
+        "createDeal",
+        "createContact",
+        "updateContactFields",
+        "addDealNote",
+        "addContactNote",
+        "createTask",
+        "getDealContext",
+      ];
     case "invoice":
       return ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
     case "support":

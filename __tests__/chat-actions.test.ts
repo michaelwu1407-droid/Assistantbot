@@ -12,6 +12,7 @@ const hoisted = vi.hoisted(() => ({
     },
     activity: {
       create: vi.fn(),
+      findMany: vi.fn(),
       findFirst: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
@@ -158,7 +159,14 @@ vi.mock("resend", () => ({
   },
 }));
 
-import { getChatHistory, handleSupportRequest, runCreateDeal, runMoveDeal } from "@/actions/chat-actions";
+import {
+  getChatHistory,
+  handleSupportRequest,
+  runAddDealNote,
+  runCreateDeal,
+  runGetDealContext,
+  runMoveDeal,
+} from "@/actions/chat-actions";
 
 describe("chat-actions", () => {
   beforeEach(() => {
@@ -179,12 +187,10 @@ describe("chat-actions", () => {
       {
         id: "deal_1",
         title: "Hot Water Fix",
-        assignedToId: null,
+        assignedToId: "user_2",
+        contactId: "contact_1",
       },
     ]);
-    hoisted.db.workspace.findUnique.mockResolvedValue({
-      industryType: null,
-    });
 
     const result = await runMoveDeal("ws_1", "Hot Water Fix", "scheduled");
 
@@ -193,9 +199,88 @@ describe("chat-actions", () => {
       message: 'Moved "Hot Water Fix" to Scheduled.',
       dealId: "deal_1",
     });
-    expect(hoisted.updateDealStage).toHaveBeenCalledWith("deal_1", "won");
+    expect(hoisted.updateDealStage).toHaveBeenCalledWith("deal_1", "scheduled");
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm", "layout");
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
+  });
+
+  it("adds a note to a deal by fuzzy title match", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix - Unit 5",
+        assignedToId: "user_1",
+        contactId: "contact_1",
+      },
+    ]);
+    hoisted.logActivity.mockResolvedValue({ success: true });
+
+    const result = await runAddDealNote("ws_1", {
+      dealTitle: "Hot Water Fix",
+      note: "Customer asked for the side gate to stay shut.",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      message: 'Added a note to "Hot Water Fix - Unit 5".',
+      dealId: "deal_1",
+    });
+    expect(hoisted.logActivity).toHaveBeenCalledWith({
+      type: "NOTE",
+      title: "AI note added",
+      content: "Customer asked for the side gate to stay shut.",
+      dealId: "deal_1",
+      contactId: "contact_1",
+    });
+  });
+
+  it("returns deal context with invoice and recent notes", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        assignedToId: "user_1",
+        contactId: "contact_1",
+      },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      title: "Blocked Drain",
+      stage: "SCHEDULED",
+      value: 480,
+      address: "12 Test St",
+      scheduledAt: new Date("2026-04-05T01:30:00.000Z"),
+      contact: {
+        name: "Alex Jones",
+        phone: "0400000000",
+        email: "alex@example.com",
+        company: null,
+        address: "12 Test St",
+      },
+      invoices: [
+        {
+          number: "INV-001",
+          status: "DRAFT",
+          total: 480,
+          createdAt: new Date("2026-04-04T00:00:00.000Z"),
+        },
+      ],
+    });
+    hoisted.db.activity.findMany.mockResolvedValue([
+      {
+        title: "AI note added",
+        content: "Bring ladder.",
+        createdAt: new Date("2026-04-04T00:00:00.000Z"),
+      },
+    ]);
+
+    const result = await runGetDealContext("ws_1", { dealTitle: "Blocked Drain" });
+
+    expect(result).toContain("Job: Blocked Drain");
+    expect(result).toContain("Stage: Scheduled");
+    expect(result).toContain("Latest invoice: INV-001 (DRAFT) $480");
+    expect(result).toContain("Recent notes:");
+    expect(result).toContain("Bring ladder.");
   });
 
   it("creates a contact on demand before creating a deal from chat", async () => {
