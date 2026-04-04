@@ -105,7 +105,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         features: [
             "**New Request** → **Quote Sent** → **Scheduled** → **Awaiting Payment** → **Completed**",
         ],
-        tip: "The **chat panel** on the right is always available in advanced mode — on every page",
+        tip: "**Drag the resize handle** to open or close the chat panel on the right. If collapsed, tap the floating **chat bubble** to reopen it. Tracey is available on every page in advanced mode.",
         chatExample: { input: "Give me my daily summary", output: "Today: 4 jobs, $2,400 revenue. 1 overdue task. 3 new messages." },
         position: "right",
         actionLabel: "Next",
