@@ -91,6 +91,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
         if (newContactEmail || newContactPhone) setContactError("")
     }, [newContactEmail, newContactPhone])
 
+    const hasValidEmail = (value: string) => !value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setAttemptedSubmit(true)
@@ -105,6 +107,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
             // Require at least email or phone
             if (!newContactEmail && !newContactPhone) {
                 setContactError("Please provide at least an email or phone number.")
+                return
+            }
+            if (!hasValidEmail(newContactEmail)) {
+                setContactError("Enter a valid email address.")
                 return
             }
             if (newContactType === "BUSINESS" && !newContactCompany.trim()) {
@@ -151,8 +157,8 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 assignedToId: assignedToId || undefined,
             })
 
-            if (result.success) {
-                toast.success("Job created successfully!")
+            if (result.success && result.dealId) {
+                toast.success("Job created. Opening it now.")
                 setTitle("")
                 setValue("")
                 setAddress("")
@@ -171,6 +177,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 setAttemptedSubmit(false)
 
                 onClose()
+                router.push(`/crm/deals/${result.dealId}`)
                 router.refresh()
             } else {
                 console.error(result.error)
@@ -358,7 +365,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="new-email" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                                        Email <span className="text-red-500">*</span>
+                                        Email
                                     </Label>
                                     <div className="col-span-3 relative">
                                         <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -373,7 +380,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-phone" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Phone <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="new-phone" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Phone</Label>
                                     <div className="col-span-3 relative">
                                         <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
@@ -413,7 +420,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                         </TabsList>
                                     </Tabs>
                                 </div>
-                                <p className="text-[11px] text-slate-500 text-right"><span className="text-red-500">*</span> Email or phone required</p>
+                                <p className="text-[11px] text-slate-500 text-right"><span className="text-red-500">*</span> Name required. Email or phone required.</p>
                                 {contactError && (
                                     <div className="flex items-center gap-1.5 text-red-600 text-xs mt-1">
                                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />

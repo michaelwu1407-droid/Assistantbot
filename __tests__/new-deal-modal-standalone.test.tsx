@@ -184,7 +184,7 @@ describe("NewDealModalStandalone", () => {
       { id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" },
     ]);
     createContact.mockResolvedValue({ success: true, contactId: "contact_new" });
-    createDeal.mockResolvedValue({ success: true });
+    createDeal.mockResolvedValue({ success: true, dealId: "deal_new" });
   });
 
   it("creates a job for an existing selected contact", async () => {
@@ -225,8 +225,8 @@ describe("NewDealModalStandalone", () => {
         assignedToId: undefined,
       });
     });
-    expect(toastSuccess).toHaveBeenCalledWith("Job created successfully!");
-    expect(routerPush).toHaveBeenCalledWith("/crm/dashboard");
+    expect(toastSuccess).toHaveBeenCalledWith("Job created. Opening it now.");
+    expect(routerPush).toHaveBeenCalledWith("/crm/deals/deal_new");
   });
 
   it("requires a business name for new business contacts", async () => {
@@ -251,6 +251,30 @@ describe("NewDealModalStandalone", () => {
     fireEvent.submit(screen.getByRole("button", { name: /save job & close/i }).closest("form")!);
 
     expect(screen.getByText("Business name is required when client type is Business.")).toBeInTheDocument();
+    expect(createContact).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+  });
+
+  it("shows a clear invalid-email error before creating a contact", async () => {
+    render(<NewDealModalStandalone workspaceId="ws_1" />);
+
+    await waitFor(() => {
+      expect(getContacts).toHaveBeenCalledWith("ws_1");
+    });
+
+    fireEvent.change(screen.getByLabelText(/job description/i), {
+      target: { value: "Commercial fit-out" },
+    });
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: "Acme Reception" },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "ops-at-acme" },
+    });
+
+    fireEvent.submit(screen.getByRole("button", { name: /save job & close/i }).closest("form")!);
+
+    expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument();
     expect(createContact).not.toHaveBeenCalled();
     expect(createDeal).not.toHaveBeenCalled();
   });

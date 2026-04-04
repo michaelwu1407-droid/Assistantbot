@@ -56,6 +56,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     const [isFetchingContacts, setIsFetchingContacts] = useState(false)
     const [contactError, setContactError] = useState("")
     const [attemptedSubmit, setAttemptedSubmit] = useState(false)
+    const hasValidEmail = (value: string) => !value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 
     useEffect(() => {
         if (workspaceId) {
@@ -96,6 +97,10 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
             if (!newContactName) return
             if (!newContactEmail && !newContactPhone) {
                 setContactError("Please provide at least an email or phone number.")
+                return
+            }
+            if (!hasValidEmail(newContactEmail)) {
+                setContactError("Enter a valid email address.")
                 return
             }
             if (newContactType === "BUSINESS" && !newContactCompany.trim()) {
@@ -140,9 +145,9 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 assignedToId: assignedToId || undefined
             })
 
-            if (result.success) {
-                toast.success("Job created successfully!")
-                router.push("/crm/dashboard")
+            if (result.success && result.dealId) {
+                toast.success("Job created. Opening it now.")
+                router.push(`/crm/deals/${result.dealId}`)
             } else {
                 toast.error("Failed: " + result.error)
             }
@@ -340,6 +345,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         </TabsList>
                                     </Tabs>
                                 </div>
+                                <p className="text-[11px] text-slate-500 text-right"><span className="text-red-500">*</span> Name required. Email or phone required.</p>
                                 {contactError && <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
                             </div>
                         )}

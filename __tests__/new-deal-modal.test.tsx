@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const {
+  routerPush,
   routerRefresh,
   createDeal,
   getContacts,
@@ -11,6 +12,7 @@ const {
   toastSuccess,
   toastError,
 } = vi.hoisted(() => ({
+  routerPush: vi.fn(),
   routerRefresh: vi.fn(),
   createDeal: vi.fn(),
   getContacts: vi.fn(),
@@ -21,6 +23,7 @@ const {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
+    push: routerPush,
     refresh: routerRefresh,
   }),
 }));
@@ -183,7 +186,7 @@ describe("NewDealModal", () => {
       { id: "contact_existing", name: "Existing Client", company: "Acme", email: null, phone: null },
     ]);
     createContact.mockResolvedValue({ success: true, contactId: "contact_new" });
-    createDeal.mockResolvedValue({ success: true });
+    createDeal.mockResolvedValue({ success: true, dealId: "deal_new" });
   });
 
   it("requires an assignee when creating a scheduled job", async () => {
@@ -291,9 +294,41 @@ describe("NewDealModal", () => {
       assignedToId: "user_1",
     });
     expect(toastSuccess).toHaveBeenCalledWith("Contact created!");
-    expect(toastSuccess).toHaveBeenCalledWith("Job created successfully!");
+    expect(toastSuccess).toHaveBeenCalledWith("Job created. Opening it now.");
     expect(onClose).toHaveBeenCalled();
+    expect(routerPush).toHaveBeenCalledWith("/crm/deals/deal_new");
     expect(routerRefresh).toHaveBeenCalled();
     expect(screen.getByLabelText(/job description/i)).toHaveValue("");
+  });
+
+  it("shows a clear inline error for an invalid email", async () => {
+    render(
+      <NewDealModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="ws_1"
+        teamMembers={[{ id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getContacts).toHaveBeenCalledWith("ws_1");
+    });
+
+    fireEvent.change(screen.getByLabelText(/job description/i), {
+      target: { value: "Quoted visit" },
+    });
+    fireEvent.change(screen.getByLabelText(/first name/i), {
+      target: { value: "Sarah Jones" },
+    });
+    fireEvent.change(screen.getByLabelText(/email$/i), {
+      target: { value: "not-an-email" },
+    });
+
+    fireEvent.submit(screen.getByRole("button", { name: "Create Job" }).closest("form")!);
+
+    expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument();
+    expect(createContact).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
   });
 });
