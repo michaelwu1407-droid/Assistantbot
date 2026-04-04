@@ -57,6 +57,11 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getChatHistory).mockResolvedValue([]);
+  try {
+    sessionStorage.clear();
+  } catch {
+    // ignore
+  }
 });
 
 async function renderChatInterface() {
@@ -92,14 +97,13 @@ describe("ChatInterface", () => {
     expect(screen.getByRole("button", { name: "Move a deal" })).toBeInTheDocument();
   });
 
-  it("fills the message box from a quick action", async () => {
+  it("sends the quick-action prompt immediately so Tracey responds without an extra Send click", async () => {
     const { user } = await renderChatInterface();
 
     await user.click(screen.getByRole("button", { name: "Schedule a job" }));
 
-    expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue(
-      "Help me schedule a job with a client",
-    );
+    expect(screen.getByText("Help me schedule a job with a client")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("");
   });
 
   it("enables the send button when the message box has text", async () => {

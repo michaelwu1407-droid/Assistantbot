@@ -1,3 +1,16 @@
+## 2026-04-05 18:15 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `components/chatbot/chat-interface.tsx`
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/chat-interface.test.tsx`
+- Summary:
+  - **Quick actions** (Schedule a job, Create quote, etc.) now **send the prompt immediately** via `sendMessage` instead of only filling the textarea—users see the user bubble and “Thinking…” without a second Send click (addresses audit: no visible outcome from quick actions).
+  - **Chat interface tests** clear `sessionStorage` in `beforeEach` so history load is not skipped across runs after persisted messages.
+  - **Job map** sidebar stage pills use **shared user-facing stage labels** (`getUserFacingDealStageLabel`) instead of raw internal stage strings.
+- Why:
+  - Clearer Tracey UX and consistent CRM wording on the map list.
+
 ## 2026-04-05 17:30 (AEDT) - Cursor Agent
 
 - Files changed:

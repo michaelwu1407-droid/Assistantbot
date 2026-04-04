@@ -463,7 +463,10 @@ return QUICK_ACTIONS;
   };
 
   const handleQuickAction = (prompt: string) => {
-    setInput(prompt);
+    if (isLoading || !prompt.trim()) return;
+    sendTimestampRef.current = performance.now();
+    sendMessage({ text: prompt.trim() });
+    setInput("");
   };
 
   const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

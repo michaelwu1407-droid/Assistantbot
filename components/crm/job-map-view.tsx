@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { isToday, isValid } from "date-fns";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 import type { Job } from "@/components/map/map-view";
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -144,7 +145,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                       deal.stage === 'negotiation' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                         'bg-muted text-muted-foreground border-border/50'
                       }`}>
-                      {deal.stage}
+                      {getUserFacingDealStageLabel(deal.stage)}
                     </span>
                   </div>
 
