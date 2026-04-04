@@ -203,7 +203,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
     return (
         <div className="space-y-6">
             {/* Quick Invoice / Variation */}
-            <Card>
+            <Card className="min-h-[17rem]">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium">Quick Invoice / Variation</CardTitle>
                 </CardHeader>
@@ -247,8 +247,8 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                 {loading && invoices.length === 0 ? (
                     <div className="text-center py-4 text-slate-400 text-xs">Loading invoices...</div>
                 ) : invoices.length === 0 ? (
-                    <Card className="bg-slate-50 border-dashed shadow-none">
-                        <CardContent className="py-8 text-center text-slate-500 text-sm">
+                    <Card className="min-h-[10rem] bg-slate-50 border-dashed shadow-none">
+                        <CardContent className="flex min-h-[10rem] items-center justify-center py-8 text-center text-slate-500 text-sm">
                             No invoices generated yet.
                         </CardContent>
                     </Card>

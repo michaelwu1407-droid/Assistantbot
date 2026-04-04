@@ -68,9 +68,11 @@ export default async function DealDetailPage({ params }: PageProps) {
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
   const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
+  const sectionCardClass = "rounded-lg border border-slate-200 bg-white shadow-sm"
+  const topSectionMinHeightClass = "min-h-[16rem] md:min-h-[18rem]"
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 overflow-hidden">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-4 overflow-y-auto p-4 md:p-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
           <Home className="h-4 w-4" />
@@ -113,11 +115,11 @@ export default async function DealDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         {/* Left: Contact + Current job */}
-        <div className="lg:col-span-1 flex flex-col gap-4 overflow-y-auto">
+        <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Contact details */}
-          <div className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm shrink-0">
+          <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
             <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Contact details
@@ -165,7 +167,7 @@ export default async function DealDetailPage({ params }: PageProps) {
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm shrink-0">
+          <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
             <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <Briefcase className="w-4 h-4" />
               Current job
@@ -194,7 +196,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
           {/* Sync issues */}
           {deal.syncIssues && deal.syncIssues.length > 0 && (
-            <div className="p-4 border border-amber-200 dark:border-amber-900/50 rounded-lg bg-amber-50 dark:bg-amber-950/20 shadow-sm shrink-0">
+            <div className="min-h-[12rem] rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/20">
               <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
                 Sync issues ({deal.syncIssues.length})
@@ -219,9 +221,9 @@ export default async function DealDetailPage({ params }: PageProps) {
         </div>
 
         {/* Right: History + Notes */}
-        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Customer / job history */}
-          <div className="flex-1 min-h-0 border border-slate-200 rounded-lg bg-white flex flex-col overflow-hidden shadow-sm">
+          <div className={`${sectionCardClass} min-h-[20rem] md:min-h-[24rem] flex flex-col overflow-hidden`}>
             <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
@@ -234,10 +236,10 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </Button>
               </Link>
             </div>
-            <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0 min-h-0">
-              <div className="border-b md:border-b-0 md:border-r border-slate-100 flex flex-col min-h-0">
+            <div className="grid flex-1 grid-cols-1 gap-0 md:grid-cols-2">
+              <div className="flex min-h-[12rem] flex-col border-b border-slate-100 md:min-h-[20rem] md:border-b-0 md:border-r">
                 <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Past jobs</p>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                <div className="flex-1 p-3 space-y-2">
                   {contactDeals.length === 0 ? (
                     <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
                   ) : (
@@ -255,9 +257,9 @@ export default async function DealDetailPage({ params }: PageProps) {
                   )}
                 </div>
               </div>
-              <div className="flex flex-col min-h-0">
+              <div className="flex min-h-[12rem] flex-col md:min-h-[20rem]">
                 <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Notes</p>
-                <div className="flex-1 overflow-y-auto p-3">
+                <div className="flex-1 p-3">
                   <DealNotes dealId={deal.id} initialNotes={notes} />
                 </div>
               </div>
