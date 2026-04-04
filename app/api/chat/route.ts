@@ -38,6 +38,7 @@ import { validatePricingInResponse } from "@/lib/ai/response-validator";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
+import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -199,6 +200,7 @@ export function shouldAttemptStructuredJobExtraction(text: string, classificatio
   if (trimmed.length < 15) return false;
   const lower = trimmed.toLowerCase();
   if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/.test(lower)) return false;
+  if (/\b(task|reminder)\b/i.test(trimmed)) return false;
   if (classification.intent === "flow_control" || classification.intent === "contact_lookup" || classification.intent === "reporting" || classification.intent === "support") {
     return false;
   }
@@ -345,7 +347,12 @@ function shouldAttemptDirectPolicyResponse(content: string, classification: PreC
     /^what note would you add for a suspiciously low-value lead/i.test(text) ||
     /^explain our current rule for leads we do not want to answer immediately/i.test(text) ||
     /^if i say we do want to take the job after a bouncer hold/i.test(text) ||
-    /^summarize the bouncer policy we are currently testing in four bullet points/i.test(text)
+    /^summarize the bouncer policy we are currently testing in four bullet points/i.test(text) ||
+    /^create a reminder task to follow up /i.test(text) ||
+    /^create a reminder task to call /i.test(text) ||
+    /^create a new task called .+ due /i.test(text) ||
+    /^what jobs for .+ are ready to invoice or already invoiced[.?!]*$/i.test(text) ||
+    /^what jobs for .+ look incomplete or blocked[.?!]*$/i.test(text)
   );
 }
 
@@ -362,6 +369,46 @@ function normalizeReferenceCandidate(raw: string | undefined): string | null {
   const words = cleaned.split(/\s+/);
   if (words.length > 6) return null;
   return cleaned;
+}
+
+function filterDealsByQuery(
+  deals: Array<{
+    id: string;
+    title?: string;
+    company?: string;
+    contactName?: string;
+    stage?: string;
+    health?: { status?: string } | null;
+    scheduledAt?: Date | null;
+    actualOutcome?: string | null;
+    metadata?: Record<string, unknown> | null;
+    invoicedAmount?: number;
+  }>,
+  query: string,
+) {
+  const cleaned = cleanDirectValue(query).toLowerCase();
+  return deals.filter((deal) => {
+    const fields = [deal.title, deal.company, deal.contactName]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase());
+    return fields.some((field) => field.includes(cleaned) || cleaned.includes(field));
+  });
+}
+
+function formatDealList(
+  prefix: string,
+  deals: Array<{ title?: string; stage?: string; invoicedAmount?: number; signals?: string[] }>,
+): string {
+  if (!deals.length) return prefix;
+  return `${prefix}\n${deals
+    .map((deal) => {
+      const suffix: string[] = [];
+      if (deal.stage) suffix.push(deal.stage);
+      if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) suffix.push(`invoice $${deal.invoicedAmount}`);
+      if (deal.signals?.length) suffix.push(deal.signals.join(", "));
+      return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
+    })
+    .join("\n")}`;
 }
 
 function extractLikelyContactReference(content: string, classification: PreClassification): string | null {
@@ -820,6 +867,59 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
         dueAtISO: resolveScheduleIso(match[2]) ?? undefined,
       }),
       metricName: "chat.web.direct.task",
+    };
+  }
+
+  match = text.match(/^what jobs for (.+?) are ready to invoice or already invoiced[.?!]*$/i);
+  if (match) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matches = filterDealsByQuery(deals, match[1]).filter((deal) =>
+      deal.stage === "ready_to_invoice" || (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0),
+    );
+    return {
+      text: formatDealList(
+        matches.length
+          ? `Jobs matching "${cleanDirectValue(match[1])}" that are ready to invoice or already invoiced:`
+          : `I couldn't find any jobs matching "${cleanDirectValue(match[1])}" that are ready to invoice or already invoiced.`,
+        matches.map((deal) => ({
+          title: deal.title,
+          stage: deal.stage,
+          invoicedAmount: deal.invoicedAmount,
+        })),
+      ),
+      metricName: "chat.web.direct.invoice_jobs",
+    };
+  }
+
+  match = text.match(/^what jobs for (.+?) look incomplete or blocked[.?!]*$/i);
+  if (match) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matches = filterDealsByQuery(deals, match[1])
+      .map((deal) => ({
+        ...deal,
+        signals: getAttentionSignalsForDeal({
+          id: deal.id,
+          title: deal.title,
+          stage: deal.stage,
+          health: deal.health ?? null,
+          scheduledAt: deal.scheduledAt ?? null,
+          actualOutcome: deal.actualOutcome ?? null,
+          metadata: deal.metadata ?? null,
+        }).map((signal) => signal.label),
+      }))
+      .filter((deal) => !["completed", "lost", "deleted", "archived"].includes(String(deal.stage)) || deal.signals.length > 0);
+    return {
+      text: formatDealList(
+        matches.length
+          ? `Jobs matching "${cleanDirectValue(match[1])}" that still look incomplete or blocked:`
+          : `I couldn't find any jobs matching "${cleanDirectValue(match[1])}" that look incomplete or blocked.`,
+        matches.map((deal) => ({
+          title: deal.title,
+          stage: deal.stage,
+          signals: deal.signals,
+        })),
+      ),
+      metricName: "chat.web.direct.attention_jobs",
     };
   }
 

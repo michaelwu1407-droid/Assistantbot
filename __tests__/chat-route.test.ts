@@ -290,6 +290,16 @@ describe("POST /api/chat", () => {
         requiresCalculator: false,
       }),
     ).toBe(true);
+
+    expect(
+      shouldAttemptStructuredJobExtraction("Create a new task called Check parts for Hot Water Service due tomorrow at 7am.", {
+        intent: "crm_action",
+        confidence: 0.95,
+        contextHints: [],
+        suggestedTools: ["createTask"],
+        requiresCalculator: false,
+      }),
+    ).toBe(false);
   });
 
   it("routes common contact creation requests through the LLM/tool path with crm-action hints", async () => {
@@ -449,6 +459,107 @@ describe("POST /api/chat", () => {
     expect(hoisted.streamText).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
       text: "That should be a warning review, not a hard decline. Hold the lead without replying yet, add an orange-badge style warning for distance/risk, and surface it in the evening briefing so the user can decide whether to take it.",
+    });
+  });
+
+  it("executes exact task creation prompts directly to avoid job-draft loops", async () => {
+    hoisted.runCreateTask.mockResolvedValue('Successfully created task: "Check parts for Hot Water Service" due at 5/04/2026, 7:00:00 am');
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new task called Check parts for Hot Water Service due tomorrow at 7am." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runCreateTask).toHaveBeenCalled();
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: 'Successfully created task: "Check parts for Hot Water Service" due at 5/04/2026, 7:00:00 am',
+    });
+  });
+
+  it("answers ready-to-invoice aggregate queries directly from crm state", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "ZZZ AUTO test Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "ready_to_invoice",
+        invoicedAmount: undefined,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO test Hot Water Service",
+        company: "",
+        contactName: "Brianna Cole",
+        stage: "completed",
+        invoicedAmount: 2680,
+      },
+    ]);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What jobs for ZZZ AUTO test are ready to invoice or already invoiced?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: 'Jobs matching "ZZZ AUTO test" that are ready to invoice or already invoiced:\n- ZZZ AUTO test Blocked Drain (ready_to_invoice)\n- ZZZ AUTO test Hot Water Service (completed; invoice $2680)',
+    });
+  });
+
+  it("answers incomplete-or-blocked aggregate queries directly from crm state", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "ZZZ AUTO test Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "scheduled",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO test Completed Job",
+        company: "",
+        contactName: "Brianna Cole",
+        stage: "completed",
+        health: { status: "HEALTHY" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+    ]);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What jobs for ZZZ AUTO test look incomplete or blocked?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: 'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
     });
   });
 });
