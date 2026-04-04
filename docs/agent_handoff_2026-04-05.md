@@ -19,51 +19,54 @@ The next agent should read these files in this order before making assumptions:
 - Read the newest entries first.
 - This gives the implementation timeline and avoids repeating recently finished work.
 
-3. [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md)
+3. [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md)
+- This is the flat checklist of what is fixed, open, re-verify, deferred, and local-only.
+
+4. [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md)
 - Treat this as a live issue list and evidence trail, not perfect truth.
 - Some items may already be resolved; verify before acting.
 
-4. [app/api/chat/route.ts](/C:/Users/micha/Projects/Assistantbot/app/api/chat/route.ts)
+5. [app/api/chat/route.ts](/C:/Users/micha/Projects/Assistantbot/app/api/chat/route.ts)
 - This is the core Tracey chat entrypoint and still the most important file for chatbot orchestration behavior.
 
-5. [actions/chat-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/chat-actions.ts)
+6. [actions/chat-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/chat-actions.ts)
 - This contains the main CRM-facing chat actions and aggregate/query helpers used by Tracey.
 
-6. [lib/ai/pre-classifier.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/pre-classifier.ts)
+7. [lib/ai/pre-classifier.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/pre-classifier.ts)
 - This is the intent classifier/hint layer feeding the LLM path.
 
-7. [lib/ai/tools.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/tools.ts)
+8. [lib/ai/tools.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/tools.ts)
 - This is the tool registry for model-driven CRM operations.
 
-8. [lib/ai/prompt-contract.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/prompt-contract.ts)
+9. [lib/ai/prompt-contract.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/prompt-contract.ts)
 - This shapes the system prompt and is critical for keeping Tracey LLM-first while still steering behavior.
 
-9. [lib/ai/triage.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/triage.ts)
+10. [lib/ai/triage.ts](/C:/Users/micha/Projects/Assistantbot/lib/ai/triage.ts)
 - This now reflects the hold-for-review Bouncer policy and should not drift back toward hard auto-decline without an explicit product decision.
 
-10. [lib/digest.ts](/C:/Users/micha/Projects/Assistantbot/lib/digest.ts)
+11. [lib/digest.ts](/C:/Users/micha/Projects/Assistantbot/lib/digest.ts)
 - This is where held-review leads now surface into the evening digest.
 
-11. [components/chatbot/chat-interface.tsx](/C:/Users/micha/Projects/Assistantbot/components/chatbot/chat-interface.tsx)
+12. [components/chatbot/chat-interface.tsx](/C:/Users/micha/Projects/Assistantbot/components/chatbot/chat-interface.tsx)
 - This is the main chat UI and includes the assistant-side digest/review presentation.
 
-12. [actions/deal-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/deal-actions.ts)
+13. [actions/deal-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/deal-actions.ts)
 - High-impact CRM mutations, stage transitions, scheduling/rescheduling, and related messaging hooks live here.
 
-13. [actions/tradie-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/tradie-actions.ts)
+14. [actions/tradie-actions.ts](/C:/Users/micha/Projects/Assistantbot/actions/tradie-actions.ts)
 - Billing/invoice mutations and route-related tradie actions live here.
 
-14. [components/ui/address-autocomplete.tsx](/C:/Users/micha/Projects/Assistantbot/components/ui/address-autocomplete.tsx)
+15. [components/ui/address-autocomplete.tsx](/C:/Users/micha/Projects/Assistantbot/components/ui/address-autocomplete.tsx)
 - Read this before changing address behavior. The silent-autoselect trust issue was intentionally removed.
 
-15. [components/modals/new-deal-modal.tsx](/C:/Users/micha/Projects/Assistantbot/components/modals/new-deal-modal.tsx)
-16. [components/modals/new-deal-modal-standalone.tsx](/C:/Users/micha/Projects/Assistantbot/components/modals/new-deal-modal-standalone.tsx)
+16. [components/modals/new-deal-modal.tsx](/C:/Users/micha/Projects/Assistantbot/components/modals/new-deal-modal.tsx)
+17. [components/modals/new-deal-modal-standalone.tsx](/C:/Users/micha/Projects/Assistantbot/components/modals/new-deal-modal-standalone.tsx)
 - These are the main job creation flows affected by the address-trust and validation changes.
 
-17. [app/crm/settings/layout.tsx](/C:/Users/micha/Projects/Assistantbot/app/crm/settings/layout.tsx)
+18. [app/crm/settings/layout.tsx](/C:/Users/micha/Projects/Assistantbot/app/crm/settings/layout.tsx)
 - This contains the settings-page scroll fix. Do not accidentally reintroduce clipped inner-scroll layouts.
 
-18. [lib/deal-utils.ts](/C:/Users/micha/Projects/Assistantbot/lib/deal-utils.ts)
+19. [lib/deal-utils.ts](/C:/Users/micha/Projects/Assistantbot/lib/deal-utils.ts)
 - Shared stage labels and CRM-stage display helpers live here. Reuse this instead of hardcoding user-facing stage text.
 
 ## Current Branch / Status
@@ -157,6 +160,7 @@ What to know:
 
 ### Verification / audit / live testing references
 
+- [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md)
 - [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md)
 - [docs/live_chatbot_regression.md](/C:/Users/micha/Projects/Assistantbot/docs/live_chatbot_regression.md)
 - [scripts/run-live-chatbot-regression.mjs](/C:/Users/micha/Projects/Assistantbot/scripts/run-live-chatbot-regression.mjs)
@@ -250,10 +254,11 @@ These were either still open or needed reconfirmation in the live product:
 
 1. Read this handoff.
 2. Read the latest entry in [docs/agent_change_log.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_change_log.md).
-3. Open [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md) only as a reference list of suspected live issues.
-4. Reproduce each still-open item in the live authenticated app before changing code.
-5. For chatbot work, keep the LLM-first architecture intact and improve prompt/context/tool quality before adding more deterministic routing.
-6. After each fix, update the change log and rerun only the relevant targeted suites first, then any broader regression if the change touches shared behavior.
+3. Read [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md) to see the flat status view.
+4. Open [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md) only as a reference list of suspected live issues.
+5. Reproduce each still-open item in the live authenticated app before changing code.
+6. For chatbot work, keep the LLM-first architecture intact and improve prompt/context/tool quality before adding more deterministic routing.
+7. After each fix, update the change log and rerun only the relevant targeted suites first, then any broader regression if the change touches shared behavior.
 
 ## Tests To Read Before Editing
 
@@ -302,4 +307,4 @@ Do not stop at “tests pass.” The target is:
 
 ## One-Sentence Resume Instruction For The Next Agent
 
-Resume from [docs/agent_handoff_2026-04-05.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_handoff_2026-04-05.md), keep Tracey LLM-first, verify any remaining live CRM issue before changing code, and continue improving workflow trust, chatbot correctness, and cross-page coherence without reintroducing silent data mutation or clipped layouts.
+Resume from [docs/agent_handoff_2026-04-05.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_handoff_2026-04-05.md), then [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md), keep Tracey LLM-first, verify any remaining live CRM issue before changing code, and continue improving workflow trust, chatbot correctness, and cross-page coherence without reintroducing silent data mutation or clipped layouts.

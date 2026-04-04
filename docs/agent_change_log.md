@@ -3318,3 +3318,13 @@ Rule: every agent change commit must include an entry in this file.
   - Suppressed dashboard demo seeding during E2E runs so browser assertions can target deterministic data instead of dev-only injected jobs.
 - Why:
   - The next step after unit/integration proof is real browser proof. This harness makes that possible in-repo while being honest about environmental blockers: public Playwright smoke tests pass now, and the deeper CRM flows are ready to execute as soon as the isolated DB harness becomes available on the machine running the suite.
+## 2026-04-05 00:28 (AEDT) - Codex
+
+- Files changed:
+  - `docs/agent_handoff_2026-04-05.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - Added a flat master checklist that consolidates the full-chat context into one operational status document: what is fixed, what is still open, what must be re-verified in the live app, what is deferred for real provider/device testing, and what context only exists in local unshipped files.
+  - Updated the main handoff so the next agent reads this checklist before diving into code or the live workflow audit.
+- Why:
+  - The handoff, change log, and workflow audit together were already strong, but they still required synthesis. This pass removes that ambiguity by giving the next agent one explicit checklist that captures the outstanding work from the whole session.
