@@ -33,7 +33,7 @@ Status meanings:
 - `fixed` Chatbot feedback/support routing now creates a ticket and sends to the support email path.
 - `fixed` Feature verification matrix and journey acceptance docs exist.
 - `fixed` Major CRM dead ends were closed for contact create/edit, inbox deep-linking, route guards, and multiple permission holes.
-- `fixed` Stage-language cleanup now maps visible CRM states to `Quote sent`, `Scheduled`, `Awaiting payment`, etc.
+- `fixed` Stage-language cleanup now maps visible CRM states to `Quote sent`, `Scheduled`, `Awaiting payment`, and related user-facing labels.
 - `fixed` Invoice-related actions revalidate key CRM surfaces more reliably.
 - `fixed` Address input no longer silently rewrites typed addresses.
 - `fixed` Held-review triage now surfaces in notes, digests, and deal-card UI.
@@ -43,8 +43,39 @@ Status meanings:
 - `open` Continue live authenticated CRM workflow testing and fix remaining trust/coherence issues.
 - `open` Continue improving Tracey’s real CRM usefulness: answering CRM questions correctly and performing CRM changes correctly with natural language.
 - `open` Finish real provider/device verification for voice, SMS, email, WhatsApp assistant, and LiveKit paths.
+- `open` Reconcile and stabilize the targeted test suite after the later upstream CRM/UI batch so verification is green again.
 
-## Live CRM Workflow Bugs / Product Gaps To Re-Verify
+## Latest Upstream Review Snapshot
+
+The repo was later advanced beyond the original handoff and then reviewed against `origin/main` up to commit `6a0eae53`.
+
+### What looked good
+
+- `fixed` Global search mouse-click behavior now has direct test coverage and passed.
+- `fixed` Core Tracey/chat suites still passed:
+  - `chat-route`
+  - `chat-actions`
+  - `tracey-prompt-contract`
+  - `triage`
+  - `digest`
+- `fixed` Stage-label and portal-label helpers remained healthy.
+- `fixed` Core deal/tradie/settings target suites still passed.
+- `fixed` The later agent generally followed the intended direction rather than rewriting architecture.
+
+### What did not verify cleanly yet
+
+- `open` The post-handoff bundle did not go fully green in batch.
+- `re-verify` `contact-form.test.tsx` failed in the full batch but passed when rerun alone.
+- `re-verify` `inbox-view.test.tsx` Ask Tracey success flow failed in the full batch but passed when rerun alone.
+- `open` `team-page.test.tsx` is stale against the implementation because `Open invite link` is now a button using `window.open`, not a link.
+- `open` `contacts-client.test.tsx` is stale against the newer summary and pagination copy and now also collides with duplicated summary text.
+- `open` `new-deal-modal.test.tsx` is stale against the newer assignee option label, which now includes both name and email.
+
+### Immediate Next Verification Step
+
+- `open` Update or stabilize the stale and flaky tests before treating the later upstream CRM batch as fully signed off.
+
+## Live CRM Workflow Bugs And Product Gaps To Re-Verify
 
 ### Contacts / Contact Flow
 
@@ -54,10 +85,12 @@ Status meanings:
 - `re-verify` Contact detail page may still omit editable fields like company/address.
 - `re-verify` Bulk contact delete appeared to be a no-op in live testing.
 - `re-verify` Search/filter footer count stayed wrong after filtering.
+- `open` Align `contacts-client` tests with the newer summary copy and decide whether duplicated count text is intentional or should be simplified in the UI.
+- `re-verify` Contact form redirect flow itself appears healthy, but the suite showed batch flake and should be stabilized.
 
 ### Deal / Job Detail
 
-- `re-verify` Deal detail/history cards and sections need product-polish validation after recent page-height fix.
+- `re-verify` Deal detail/history cards and sections need product-polish validation after the recent page-height fix.
 - `re-verify` Job detail page may still lack enough communication history/context for an operational page.
 - `re-verify` Some visible billing/value transitions may still be confusing after invoice creation.
 - `re-verify` Notes saved on contacts/jobs may still not surface where users expect.
@@ -75,11 +108,12 @@ Status meanings:
 - `re-verify` `Direct Message` vs `Ask Tracey` in the CRM inbox is still too ambiguous.
 - `re-verify` The visible composer may still behave like Tracey when the user expects direct manual messaging.
 - `re-verify` Inbox `Conversations` vs `System Activity` split may still be incoherent.
+- `re-verify` The newer inbox tab/copy work looks directionally good, but the Ask Tracey success test was flaky in the larger batch and should be stabilized.
 
 ### Billing / Quotes / Invoices
 
 - `re-verify` Contacts page and other CRM surfaces may still use inconsistent billing/stage words such as `Invoiced` vs `Awaiting payment`.
-- `re-verify` Invoice creation/resulting job value still may not be explained clearly enough to users.
+- `re-verify` Invoice creation and resulting job value still may not be explained clearly enough to users.
 - `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
 - `open` Post-job review-request flow still needs deeper live testing.
@@ -95,6 +129,7 @@ Status meanings:
 - `re-verify` Analytics still had unclear metric copy like `Status 0`.
 - `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use.
 - `re-verify` Settings pages should be checked again after the scrolling fix to ensure no remaining clipped cards/buttons.
+- `open` Update `team-page` tests to match the new `window.open` invite-link behavior, or restore link semantics if that is the preferred UX.
 
 ## Chatbot / Tracey Outstanding Work
 
@@ -111,9 +146,9 @@ Status meanings:
 - `open` Job approval and kanban progression from AI-generated draft/job-card flows.
 - `open` Field routing and customer communication flows such as `ON_MY_WAY`.
 - `open` Quoting, invoicing, and sign-off workflows from the user’s operational perspective.
-- `open` Stale deals / approvals / rejection flows.
+- `open` Stale deals, approvals, and rejection flows.
 - `open` Daily digest and task triage morning routine.
-- `open` AI-assisted manual tasks like “create a quote for John Smith for $500” with confirmation/undo style UX.
+- `open` AI-assisted manual tasks like `create a quote for John Smith for $500` with confirmation/undo style UX.
 
 ## Voice / LiveKit / SMS / Email / WhatsApp Outstanding Work
 
@@ -155,3 +190,4 @@ Status meanings:
 - `fixed` Reproduce suspected live issues before changing code.
 - `fixed` Prefer targeted tests and existing live harnesses over inventing parallel workflows.
 - `fixed` Update logs/docs after each substantial pass so the next handoff stays accurate.
+- `fixed` If continuing from the later upstream CRM batch, first fix or stabilize the stale/flaky targeted tests before assuming the implementation is fully verified.

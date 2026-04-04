@@ -74,6 +74,32 @@ The next agent should read these files in this order before making assumptions:
 - Branch: `main`
 - This handoff was prepared after a clean targeted test pass and is intended to be the resume point after the latest push.
 
+## Latest Upstream Review (After This Handoff)
+
+A later AI agent continued work after the original handoff. That follow-up work was fetched and reviewed against `origin/main` up to commit `6a0eae53`.
+
+What that later work appears to have improved:
+- CRM contact counts and billing/status wording
+- global search mouse-click behavior
+- inbox composer wording and direct-vs-Tracey clarity
+- team invite success-copy cleanup
+- integration disabled-state tooltips
+- Tracey quick actions sending immediately
+- shared stage labels in more secondary surfaces
+- AI scheduling timezone anchoring and broader deal/schedule revalidation
+- contact deletion safety and map/assignment UX polish
+
+What was verified:
+- A clean review worktree was created from `origin/main`.
+- The directly relevant CRM/chat test bundle was run there after `npm install`.
+- Many suites passed, including the core chat, triage, digest, deal, tradie, stage-label, settings-layout, and global-search tests.
+
+What did not verify cleanly yet:
+- The full targeted suite was not green.
+- Some failures look like stale tests after deliberate UI changes.
+- Some failures were flaky in batch and passed when rerun individually.
+- The next agent should treat the latest upstream batch as promising but not fully signed off yet.
+
 ## What Was Just Finished
 
 1. CRM stage-language cleanup
@@ -172,11 +198,13 @@ What to know:
 
 ## Targeted Tests Already Run
 
-These passed in the final verification pass for this batch:
+These passed in the original verification pass for the trust-fix batch:
 
 ```powershell
 npx vitest run __tests__/chat-route.test.ts __tests__/chat-actions.test.ts __tests__/triage.test.ts __tests__/digest.test.ts __tests__/deal-utils.test.ts __tests__/contact-actions.test.ts __tests__/deal-actions.test.ts __tests__/tradie-actions.test.ts __tests__/settings-layout.test.tsx __tests__/new-deal-modal.test.tsx __tests__/new-deal-modal-standalone.test.tsx
 ```
+
+The later upstream batch was also reviewed with a larger targeted bundle, but that review did not finish fully green. See [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md) for the exact stale/flaky test follow-up required.
 
 ## Most Important Product Decisions To Preserve
 
@@ -229,9 +257,11 @@ These are the highest-value remaining areas to continue:
 - Some entries in it may already be resolved.
 - Use it as a lead list, then verify each issue against the current app before acting.
 
-## Known Likely Open Problems To Re-Verify
+5. Verification cleanup on the post-handoff upstream changes
+- Reconcile stale tests with the newer UI copy and semantics.
+- Stabilize the flaky batch tests before treating the latest upstream CRM pass as fully verified.
 
-These were either still open or needed reconfirmation in the live product:
+## Known Likely Open Problems To Re-Verify
 
 1. Contact list count / pagination trust mismatch
 - The visible rows and footer count did not always agree in the live CRM.
@@ -250,15 +280,23 @@ These were either still open or needed reconfirmation in the live product:
 - The big remaining question is still whether Tracey consistently performs and explains CRM actions the way a real user expects.
 - Continue with real-user prompts, not toy prompts.
 
+6. Latest upstream verification gaps
+- `team-page` expectations still assumed `Open invite link` was a link, but the implementation now uses a button with `window.open`.
+- `contacts-client` tests still expected older summary copy and singular footer semantics.
+- `new-deal-modal` tests still expected an assignee option named only `Jess Smith`, but the UI now exposes name plus email in the option label.
+- `contact-form` and `inbox-view` had batch failures that passed when rerun alone, so they should be treated as flaky/stability issues first, not immediately as product regressions.
+
 ## Recommended Resume Sequence
 
 1. Read this handoff.
 2. Read the latest entry in [docs/agent_change_log.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_change_log.md).
 3. Read [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md) to see the flat status view.
-4. Open [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md) only as a reference list of suspected live issues.
-5. Reproduce each still-open item in the live authenticated app before changing code.
-6. For chatbot work, keep the LLM-first architecture intact and improve prompt/context/tool quality before adding more deterministic routing.
-7. After each fix, update the change log and rerun only the relevant targeted suites first, then any broader regression if the change touches shared behavior.
+4. Read the latest upstream review note in [docs/master_outstanding_checklist.md](/C:/Users/micha/Projects/Assistantbot/docs/master_outstanding_checklist.md) before assuming the post-handoff commits are fully verified.
+5. Open [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md) only as a reference list of suspected live issues.
+6. Reproduce each still-open item in the live authenticated app before changing code.
+7. For chatbot work, keep the LLM-first architecture intact and improve prompt/context/tool quality before adding more deterministic routing.
+8. First fix the stale/flaky test layer for the newer upstream UI changes, then continue normal product work.
+9. After each fix, update the change log and rerun only the relevant targeted suites first, then any broader regression if the change touches shared behavior.
 
 ## Tests To Read Before Editing
 
@@ -274,6 +312,9 @@ These tests capture the most relevant recent intent and should be read before to
 - [__tests__/settings-layout.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/settings-layout.test.tsx)
 - [__tests__/new-deal-modal.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/new-deal-modal.test.tsx)
 - [__tests__/new-deal-modal-standalone.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/new-deal-modal-standalone.test.tsx)
+- [__tests__/contacts-client.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/contacts-client.test.tsx)
+- [__tests__/team-page.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/team-page.test.tsx)
+- [__tests__/inbox-view.test.tsx](/C:/Users/micha/Projects/Assistantbot/__tests__/inbox-view.test.tsx)
 
 ## Useful Existing Harnesses / Places To Resume
 
