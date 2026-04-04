@@ -514,6 +514,12 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
 
   await fireBookingConfirmation(deal.id, null, prismaStage as PrismaStage);
 
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${deal.id}`);
+
   return { success: true, dealId: deal.id };
 }
 
@@ -666,6 +672,9 @@ export async function updateDealStage(dealId: string, stage: string) {
         });
         revalidatePath("/crm/dashboard");
         revalidatePath("/crm/deals");
+        revalidatePath("/crm/schedule");
+        revalidatePath("/crm/map");
+        revalidatePath(`/crm/deals/${parsed.data.dealId}`);
         return { success: true };
       }
     }
@@ -760,6 +769,11 @@ export async function updateDealStage(dealId: string, stage: string) {
     } catch {
       // Non-critical — don't block stage change
     }
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    revalidatePath("/crm/schedule");
+    revalidatePath("/crm/map");
+    revalidatePath(`/crm/deals/${parsed.data.dealId}`);
 
     return { success: true };
   } catch (err) {
@@ -1173,6 +1187,12 @@ export async function updateDealMetadata(
       ...(userId && { userId }),
     },
   });
+
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${dealId}`);
 
   return { success: true };
 }
