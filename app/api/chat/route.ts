@@ -432,6 +432,26 @@ function extractLikelyContactReference(content: string, classification: PreClass
   return null;
 }
 
+function extractLikelyDealQuery(content: string): string | null {
+  const patterns = [
+    /what jobs for (.+?) are ready to invoice or already invoiced[.?!]*$/i,
+    /what jobs for (.+?) look incomplete or blocked[.?!]*$/i,
+    /do you know the latest note on (.+?)[.?!]*$/i,
+    /show me the current crm details for (.+?)[.?!]*$/i,
+    /show me the latest details for (.+?)(?: including.*)?[.?!]*$/i,
+    /show me the full job context for (.+?)(?: including.*)?[.?!]*$/i,
+    /summarize the current state of (.+?)(?: in one tight paragraph)?[.?!]*$/i,
+    /search past job history for (.+?)[.?!]*$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    const candidate = normalizeReferenceCandidate(match?.[1]);
+    if (candidate) return candidate;
+  }
+  return null;
+}
+
 async function buildResolvedEntitiesBlock(
   workspaceId: string,
   content: string,
@@ -475,11 +495,13 @@ async function buildResolvedEntitiesBlock(
   if (["crm_action", "scheduling", "invoice", "communication", "reporting"].includes(classification.intent)) {
     try {
       const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-      const exactMatches = deals
-        .filter((deal) => {
-          const title = deal.title?.trim();
-          return title ? textLower.includes(title.toLowerCase()) : false;
-        })
+      const likelyDealQuery = extractLikelyDealQuery(content);
+      const exactMatches = (likelyDealQuery
+        ? filterDealsByQuery(deals, likelyDealQuery)
+        : deals.filter((deal) => {
+            const title = deal.title?.trim();
+            return title ? textLower.includes(title.toLowerCase()) : false;
+          }))
         .slice(0, 3);
       if (exactMatches.length > 0) {
         lines.push(
