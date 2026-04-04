@@ -92,7 +92,7 @@ const typeLabel: Record<string, string> = {
 }
 
 type DetailTab = "conversations" | "activity"
-type MessageMode = "travis" | "direct"
+type MessageMode = "tracey" | "direct"
 type DateFilter = "latest" | "oldest" | "custom"
 
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
@@ -176,8 +176,12 @@ export function InboxView({
   // RHS detail panel state
   const [detailTab, setDetailTab] = useState<DetailTab>("conversations")
   const [messageMode, setMessageMode] = useState<MessageMode>("direct")
-  const [messageText, setMessageText] = useState("")
+  const [messageDrafts, setMessageDrafts] = useState<Record<MessageMode, string>>({
+    direct: "",
+    tracey: "",
+  })
   const [sending, setSending] = useState(false)
+  const messageText = messageDrafts[messageMode]
 
   // Group interactions by contact
   const contactMap = new Map<string, { name: string; id: string; phone?: string | null; email?: string | null; interactions: ActivityView[] }>()
@@ -340,7 +344,7 @@ export function InboxView({
         const result = await sendSMS(selectedContact.id, messageText)
         if (result.success) {
           toast.success("SMS sent")
-          setMessageText("")
+          setMessageDrafts((current) => ({ ...current, direct: "" }))
         } else {
           toast.error(result.error || "Failed to send")
         }
@@ -376,7 +380,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
           })
           if (res.ok) {
             toast.success(`Tracey is handling ${selectedContact.name}`)
-            setMessageText("")
+            setMessageDrafts((current) => ({ ...current, tracey: "" }))
           } else {
             const text = await res.text()
             let errMsg = "Tracey couldn't send that message."
@@ -709,9 +713,9 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 {/* Mode toggle */}
                 <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
                   <button
-                    onClick={() => setMessageMode("travis")}
+                    onClick={() => setMessageMode("tracey")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "travis" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Ask Tracey
@@ -722,20 +726,33 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       messageMode === "direct" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <MessageSquare className="h-3.5 w-3.5" /> Direct Message
+                    <MessageSquare className="h-3.5 w-3.5" /> Send myself
                   </button>
+                </div>
+
+                <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {messageMode === "direct"
+                      ? "You are sending an SMS directly to the customer."
+                      : "Tracey can reply to the customer or update the CRM for you."}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {messageMode === "direct"
+                      ? "Use this when you want to personally send the exact SMS now."
+                      : "Be explicit about whether you want Tracey to update the CRM, draft a reply, or contact the customer."}
+                  </p>
                 </div>
 
                 {/* Message input */}
                 <div className="flex gap-2">
                   <Input
-                    placeholder={messageMode === "travis"
-                      ? `Tell Tracey what to do with ${selectedContact.name}...`
-                      : `Text ${selectedContact.name} directly...`
+                    placeholder={messageMode === "tracey"
+                      ? `Ask Tracey to reply or update the CRM for ${selectedContact.name}...`
+                      : `Send an SMS to ${selectedContact.name} yourself...`
                     }
                     className="flex-1 bg-background/50 border-border/50"
                     value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
+                    onChange={(e) => setMessageDrafts((current) => ({ ...current, [messageMode]: e.target.value }))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault()
@@ -751,6 +768,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     onClick={handleSendMessage}
                   >
                     <Send className="h-4 w-4" />
+                    <span className="ml-1 text-xs">{messageMode === "direct" ? "Send SMS" : "Ask Tracey"}</span>
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (
@@ -761,8 +779,8 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     {messageText.length}/160 characters
                   </p>
                 )}
-                {messageMode === "travis" && (
-                  <p className="app-body-secondary mt-1 text-xs">Tracey will handle communication with this customer on your behalf.</p>
+                {messageMode === "tracey" && (
+                  <p className="app-body-secondary mt-1 text-xs">Tracey stays in orchestration mode here, so ask in plain language for the CRM change or customer action you want.</p>
                 )}
               </div>
             </>
