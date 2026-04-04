@@ -360,7 +360,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
+            {hasActiveClientFilters
+              ? `Matches on this page: ${filtered.length} of ${contacts.length} loaded · ${pagination?.total || 0} contacts in workspace · page ${pagination?.page || 1}`
+              : `Showing ${contacts.length} of ${pagination?.total || 0} contacts (page ${pagination?.page || 1})`}
           </p>
 
           <div className="overflow-hidden rounded-[18px] border border-border bg-card">

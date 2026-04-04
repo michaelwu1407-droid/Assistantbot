@@ -14,7 +14,7 @@ import {
 } from "@/actions/tradie-actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
+import { formatInvoiceStatusLabel } from "@/lib/job-portal-status-labels"
 
 const STATUS_STYLE: Record<string, string> = {
     DRAFT: "text-slate-600 border-slate-200 bg-slate-50",
@@ -285,7 +285,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                     <div className="text-right shrink-0">
                                         <span className="block font-bold text-slate-900">${Number(inv.total).toLocaleString()}</span>
                                         <Badge variant="outline" className={`shadow-none ${STATUS_STYLE[inv.status] ?? ""}`}>
-                                            {inv.status}
+                                            {formatInvoiceStatusLabel(inv.status)}
                                         </Badge>
                                     </div>
                                 </div>

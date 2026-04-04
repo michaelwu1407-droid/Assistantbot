@@ -1,3 +1,16 @@
+## 2026-04-05 21:30 (AEDT) - Cascade Agent
+
+- Files changed:
+  - `components/crm/contacts-client.tsx`
+  - `components/crm/deal-card.tsx`
+  - `components/tradie/job-billing-tab.tsx`
+- Summary:
+  - **Contacts list pagination**: Fixed footer count to show correct total contacts and page info using `pagination?.total` and `pagination?.page` instead of client-side filtered counts.
+  - **Deal card time formatting**: Standardized scheduled time display to use `formatDateTimeInTimezone` (e.g., "April 5, 2026 9:30 AM") matching deal detail page format instead of separate date + time components.
+  - **Invoice status labels**: Billing tab now uses `formatInvoiceStatusLabel` to show user-friendly labels ("Paid", "Issued", "Draft", "Void", "Unpaid") instead of raw status codes.
+- Why:
+  - Closes CRM consistency issues: pagination counts were misleading, time formats differed across surfaces, and invoice status showed technical codes instead of user-facing language.
+
 ## 2026-04-05 20:15 (AEDT) - Cursor Agent
 
 - Files changed:

@@ -96,8 +96,9 @@ function statusBannerOverlayClasses(label: string): string {
 function cornerDateLabel(deal: DealView): { text: string; title: string } {
   if (deal.scheduledAt) {
     const workspaceTimezone = resolveWorkspaceTimezone(deal.workspaceTimezone)
+    const formattedDateTime = formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone)
     return {
-      text: `${formatMonthDayInTimezone(deal.scheduledAt, workspaceTimezone)} · ${formatTimeInTimezone(deal.scheduledAt, workspaceTimezone)}`,
+      text: formattedDateTime,
       title: formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone),
     }
   }
