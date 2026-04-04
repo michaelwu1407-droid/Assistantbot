@@ -100,6 +100,26 @@ export function preClassify(text: string): PreClassification {
     return { intent: "general", confidence: 0, contextHints: [], suggestedTools: [], requiresCalculator: false };
   }
 
+  if (/\b(ready to invoice|already invoiced)\b/i.test(trimmed)) {
+    return {
+      intent: "invoice",
+      confidence: 0.95,
+      contextHints: getContextHints("invoice", trimmed),
+      suggestedTools: getSuggestedTools("invoice", trimmed),
+      requiresCalculator: true,
+    };
+  }
+
+  if (/\b(incomplete|blocked)\b/i.test(trimmed) && /\b(job|jobs)\b/i.test(trimmed)) {
+    return {
+      intent: "reporting",
+      confidence: 0.95,
+      contextHints: getContextHints("reporting", trimmed),
+      suggestedTools: getSuggestedTools("reporting", trimmed),
+      requiresCalculator: false,
+    };
+  }
+
   // Flow control is the fastest path — exact match on short strings
   if (FLOW_CONTROL_PATTERNS.some((p) => p.test(trimmed))) {
     return {
@@ -136,7 +156,7 @@ export function preClassify(text: string): PreClassification {
     intent: best.intent,
     confidence,
     contextHints: getContextHints(best.intent, trimmed),
-    suggestedTools: getSuggestedTools(best.intent),
+    suggestedTools: getSuggestedTools(best.intent, trimmed),
     requiresCalculator: best.intent === "pricing" || best.intent === "invoice",
   };
 }
@@ -201,7 +221,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
   }
 }
 
-function getSuggestedTools(intent: IntentHint): string[] {
+function getSuggestedTools(intent: IntentHint, text: string): string[] {
   switch (intent) {
     case "pricing":
       return ["pricingLookup", "pricingCalculator"];

@@ -18,4 +18,20 @@ describe("pre-classifier", () => {
     expect(result.suggestedTools).toContain("moveDeal");
     expect(result.suggestedTools).toContain("addDealNote");
   });
+
+  it("steers aggregate invoice queries toward the exact invoice-ready tool", () => {
+    const result = preClassify("What jobs for ZZZ AUTO test are ready to invoice or already invoiced?");
+
+    expect(result.intent).toBe("invoice");
+    expect(result.suggestedTools[0]).toBe("listInvoiceReadyJobs");
+    expect(result.contextHints.join(" ")).toContain("listInvoiceReadyJobs first");
+  });
+
+  it("steers blocked or incomplete job queries toward the exact attention tool", () => {
+    const result = preClassify("What jobs for ZZZ AUTO test look incomplete or blocked?");
+
+    expect(result.intent).toBe("reporting");
+    expect(result.suggestedTools[0]).toBe("listIncompleteOrBlockedJobs");
+    expect(result.contextHints.join(" ")).toContain("listIncompleteOrBlockedJobs first");
+  });
 });
