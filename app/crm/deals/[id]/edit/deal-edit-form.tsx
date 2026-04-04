@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { updateDeal, updateDealMetadata, updateDealAssignedTo, setDealRecurrence, type RecurrenceRule } from "@/actions/deal-actions"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
+import { parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 interface TeamMemberOption {
   id: string
@@ -27,6 +28,7 @@ interface DealEditFormProps {
   initialAddress: string
   initialScheduledAt: string
   initialAssignedToId: string
+  workspaceTimezone: string
   teamMembers: TeamMemberOption[]
   canManageAssignment?: boolean
   stageOptions: { value: string; label: string }[]
@@ -42,6 +44,7 @@ export function DealEditForm({
   initialAddress,
   initialScheduledAt,
   initialAssignedToId,
+  workspaceTimezone,
   teamMembers,
   canManageAssignment = true,
   stageOptions,
@@ -60,6 +63,7 @@ export function DealEditForm({
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceRule["unit"]>(initialRecurrence?.unit ?? "week")
   const [recurrenceInterval, setRecurrenceInterval] = useState(String(initialRecurrence?.interval ?? 1))
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(initialRecurrence?.endDate ?? "")
+  const resolvedTimezone = resolveWorkspaceTimezone(workspaceTimezone)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,7 +88,7 @@ export function DealEditForm({
         value: numValue,
         stage,
         address: address.trim() || null,
-        scheduledAt: scheduledAt.trim() ? scheduledAt : null,
+        scheduledAt: scheduledAt.trim() ? parseDateTimeLocalInTimezone(scheduledAt.trim(), resolvedTimezone) : null,
       })
       if (!res.success) {
         toast.error(res.error ?? "Failed to update")

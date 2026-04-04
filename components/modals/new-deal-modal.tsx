@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
+import { getWorkspaceSettings } from "@/actions/settings-actions"
 import { toast } from "sonner"
 import { NEW_JOB_STAGE_OPTIONS, isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
 import { User, Mail, Phone, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { DEFAULT_WORKSPACE_TIMEZONE, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 interface TeamMemberOption {
     id: string
@@ -42,6 +44,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
     const [assignedToId, setAssignedToId] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
+    const [workspaceTimezone, setWorkspaceTimezone] = useState(DEFAULT_WORKSPACE_TIMEZONE)
 
     // New Contact Mode State
     const [mode, setMode] = useState<"select" | "create">("create")
@@ -58,8 +61,15 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
 
     const fetchContacts = useCallback(() => {
         setIsFetchingContacts(true)
-        getContacts(workspaceId)
-            .then(setContacts)
+        Promise.allSettled([getContacts(workspaceId), getWorkspaceSettings()])
+            .then((results) => {
+                const contactsResult = results[0]
+                const settingsResult = results[1]
+                const nextContacts = contactsResult.status === "fulfilled" ? contactsResult.value : []
+                const settings = settingsResult.status === "fulfilled" ? settingsResult.value : null
+                setContacts(nextContacts)
+                setWorkspaceTimezone(resolveWorkspaceTimezone(settings?.workspaceTimezone))
+            })
             .catch(console.error)
             .finally(() => setIsFetchingContacts(false))
     }, [workspaceId])
@@ -137,7 +147,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 address: address || undefined,
                 latitude: latitude ?? undefined,
                 longitude: longitude ?? undefined,
-                scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+                scheduledAt: scheduledAt ? parseDateTimeLocalInTimezone(scheduledAt, workspaceTimezone) ?? undefined : undefined,
                 assignedToId: assignedToId || undefined,
             })
 

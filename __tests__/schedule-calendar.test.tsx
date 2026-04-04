@@ -50,6 +50,7 @@ describe("ScheduleCalendar", () => {
 
     render(
       <ScheduleCalendar
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[{ id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" }]}
         deals={[
           {
@@ -75,6 +76,7 @@ describe("ScheduleCalendar", () => {
   it("keeps the team filter available when multiple team members are visible", () => {
     render(
       <ScheduleCalendar
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[
           { id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" },
           { id: "user_2", name: "Michael", email: "michael@example.com", role: "OWNER" },
@@ -108,6 +110,7 @@ describe("ScheduleCalendar", () => {
 
     const { container } = render(
       <ScheduleCalendar
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[{ id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" }]}
         deals={[
           {
@@ -156,6 +159,7 @@ describe("ScheduleCalendar", () => {
 
     const { container } = render(
       <ScheduleCalendar
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[
           { id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" },
           { id: "user_2", name: "Michael", email: "michael@example.com", role: "OWNER" },
@@ -194,5 +198,34 @@ describe("ScheduleCalendar", () => {
       }),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Job updated");
+  });
+
+  it("renders scheduled times in the workspace timezone", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-14T23:30:00.000Z"));
+    try {
+      render(
+        <ScheduleCalendar
+          workspaceTimezone="Australia/Sydney"
+          teamMembers={[{ id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" }]}
+          deals={[
+            {
+              id: "deal_1",
+              title: "Blocked drain",
+              address: "12 King St",
+              contactName: "Alice",
+              assignedToId: "user_1",
+              scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
+            } as never,
+          ]}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "day" }));
+
+      expect(screen.getAllByText("9:30 AM").length).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

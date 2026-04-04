@@ -11,6 +11,7 @@ import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 export const dynamic = "force-dynamic"
 
@@ -44,12 +45,19 @@ export default async function DealDetailPage({ params }: PageProps) {
     throw error
   }
 
-  const deal = await db.deal.findFirst({
-    where: { id, workspaceId: actor.workspaceId },
-    include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
-  })
+  const [deal, workspace] = await Promise.all([
+    db.deal.findFirst({
+      where: { id, workspaceId: actor.workspaceId },
+      include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
+    }),
+    db.workspace.findUnique({
+      where: { id: actor.workspaceId },
+      select: { workspaceTimezone: true },
+    }),
+  ])
 
   if (!deal) notFound()
+  const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone)
   const isRestrictedActor = actor.role === "TEAM_MEMBER"
 
   const contactDeals = await db.deal.findMany({
@@ -184,7 +192,7 @@ export default async function DealDetailPage({ params }: PageProps) {
               <div>
                 <p className="text-slate-500 text-xs">Scheduled</p>
                 <p className="font-medium text-slate-900">
-                  {deal.scheduledAt ? format(new Date(deal.scheduledAt), "MMM d, yyyy h:mm a") : "Not scheduled"}
+                  {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
               </div>
               <div>

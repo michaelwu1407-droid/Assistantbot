@@ -21,6 +21,7 @@ import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { recordSyncIssue } from "@/lib/sync-issues";
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
 import { logger } from "@/lib/logging";
+import { formatDateTimeInTimezone, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 import {
   KANBAN_COLUMN_SORT_ORDER,
   kanbanColumnIdForDealStage,
@@ -137,21 +138,34 @@ async function fireRescheduleConfirmation(dealId: string) {
   }
 }
 
-function normalizeScheduledAtInput(value: Date | string | null | undefined): Date | null {
+function isLocalDateTimeString(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value.trim());
+}
+
+function normalizeScheduledAtInput(
+  value: Date | string | null | undefined,
+  workspaceTimezone?: string | null
+): Date | null {
   if (value == null || value === "") {
     return null;
   }
 
-  const parsed = value instanceof Date ? new Date(value) : new Date(value);
+  const parsed =
+    typeof value === "string" && isLocalDateTimeString(value)
+      ? parseDateTimeLocalInTimezone(value, resolveWorkspaceTimezone(workspaceTimezone))
+      : value instanceof Date
+        ? new Date(value)
+        : new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function didScheduledTimeChange(
   previousScheduledAt: Date | string | null | undefined,
-  nextScheduledAt: Date | string | null | undefined
+  nextScheduledAt: Date | string | null | undefined,
+  workspaceTimezone?: string | null
 ): boolean {
-  const previousTime = normalizeScheduledAtInput(previousScheduledAt)?.getTime() ?? null;
-  const nextTime = normalizeScheduledAtInput(nextScheduledAt)?.getTime() ?? null;
+  const previousTime = normalizeScheduledAtInput(previousScheduledAt, workspaceTimezone)?.getTime() ?? null;
+  const nextTime = normalizeScheduledAtInput(nextScheduledAt, workspaceTimezone)?.getTime() ?? null;
   return previousTime !== nextTime;
 }
 
@@ -193,6 +207,7 @@ export interface DealView {
   agentFlags?: string[];
   // Lead Source
   source?: string | null;
+  workspaceTimezone?: string;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -208,7 +223,7 @@ const CreateDealSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  scheduledAt: z.union([z.coerce.date(), z.string().transform((s) => new Date(s))]).optional(),
+  scheduledAt: z.union([z.date(), z.string()]).optional(),
   assignedToId: z.string().optional().nullable(),
 });
 
@@ -285,11 +300,12 @@ export async function getDeals(
     }
     const filtered = deals.filter((d) => !toDelete.find((t) => t.id === d.id));
 
-    const workspace = await db.workspace.findUnique({
+    const workspace = await db.workspace?.findUnique?.({
       where: { id: workspaceId },
-      select: { settings: true },
+      select: { settings: true, workspaceTimezone: true },
     });
     const pipelineSettings = (workspace?.settings as { followUpDays?: number; urgentDays?: number }) ?? {};
+    const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone);
     const healthOptions = {
       daysUntilStale: pipelineSettings.followUpDays,
       daysUntilRotting: pipelineSettings.urgentDays,
@@ -325,6 +341,7 @@ export async function getDeals(
         longitude: deal.longitude ?? undefined,
         scheduledAt: deal.scheduledAt ?? undefined,
         workspaceId: deal.workspaceId,
+        workspaceTimezone,
         assignedToId: deal.assignedToId ?? undefined,
         assignedToName: deal.assignedTo?.name ?? undefined,
         // Stale Job Recovery System fields
@@ -377,12 +394,18 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
   }
 
   const { title, value, stage, contactId, workspaceId, address, latitude, longitude, metadata, scheduledAt, assignedToId } = parsed.data;
+  const workspace = await db.workspace?.findUnique?.({
+    where: { id: workspaceId },
+    select: { workspaceTimezone: true },
+  });
+  const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone);
+  const normalizedScheduledAt = normalizeScheduledAtInput(scheduledAt, workspaceTimezone);
   const prismaStage = STAGE_REVERSE[stage] ?? "NEW";
 
   if (prismaStage === "SCHEDULED" && !assignedToId) {
     return { success: false, error: "Assign a team member when creating a job in Scheduled stage." };
   }
-  if (prismaStage === "SCHEDULED" && !scheduledAt) {
+  if (prismaStage === "SCHEDULED" && !normalizedScheduledAt) {
     return { success: false, error: "Set a scheduled date when creating a job in Scheduled stage." };
   }
 
@@ -398,7 +421,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
       latitude: latitude ?? undefined,
       longitude: longitude ?? undefined,
       metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
-      scheduledAt: scheduledAt ?? undefined,
+      scheduledAt: normalizedScheduledAt ?? undefined,
     },
   });
 
@@ -441,9 +464,9 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
   }
 
   // Smart Routing: Proximity check for scheduled jobs
-  if (scheduledAt && latitude !== undefined && longitude !== undefined) {
+  if (normalizedScheduledAt && latitude !== undefined && longitude !== undefined) {
     try {
-      const nearby = await findNearbyBookings(workspaceId, latitude, longitude, new Date(scheduledAt), deal.id);
+      const nearby = await findNearbyBookings(workspaceId, latitude, longitude, normalizedScheduledAt, deal.id);
       if (nearby) {
         await db.activity.create({
           data: {
@@ -467,7 +490,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     stage: prismaStage,
   });
 
-  if (scheduledAt) {
+  if (normalizedScheduledAt) {
     await syncGoogleCalendarEventForDeal(deal.id).catch((err) => {
       recordSyncIssue({
         workspaceId,
@@ -1162,14 +1185,15 @@ export async function updateDeal(
   await requireDealInCurrentWorkspace(dealId);
   const deal = await db.deal.findFirst({
     where: { id: dealId },
-    include: { workspace: { select: { autoUpdateGlossary: true } } }
+    include: { workspace: { select: { autoUpdateGlossary: true, workspaceTimezone: true } } }
   });
   if (!deal) return { success: false, error: "Deal not found" };
+  const workspaceTimezone = resolveWorkspaceTimezone(deal.workspace?.workspaceTimezone);
   const stageMovedToWon = data.stage !== undefined && (STAGE_REVERSE[data.stage] ?? "") === "WON";
   const draftConfirmed = deal.isDraft && data.isDraft === false;
-  const nextScheduledAt = data.scheduledAt !== undefined ? normalizeScheduledAtInput(data.scheduledAt) : undefined;
+  const nextScheduledAt = data.scheduledAt !== undefined ? normalizeScheduledAtInput(data.scheduledAt, workspaceTimezone) : undefined;
   const scheduledTimeChanged =
-    data.scheduledAt !== undefined && didScheduledTimeChange(deal.scheduledAt, nextScheduledAt);
+    data.scheduledAt !== undefined && didScheduledTimeChange(deal.scheduledAt, nextScheduledAt, workspaceTimezone);
 
   type DealUpdate = Parameters<typeof db.deal.update>[0]["data"];
   const update: DealUpdate = {};
@@ -1255,8 +1279,8 @@ export async function updateDeal(
     changes.push(`Invoice: $${currentInvoiced || 0} -> $${data.invoicedAmount || 0}`);
   }
   if (data.scheduledAt !== undefined) {
-    const origDate = deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "None";
-    const newDate = data.scheduledAt ? new Date(data.scheduledAt as Date | string).toLocaleString() : "None";
+    const origDate = deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "None";
+    const newDate = nextScheduledAt ? formatDateTimeInTimezone(nextScheduledAt, workspaceTimezone) : "None";
     if (origDate !== newDate) changes.push(`Scheduled: ${origDate} -> ${newDate}`);
   }
 
@@ -1508,11 +1532,16 @@ export async function rescheduleDeal(
   const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
-  const nextScheduledAt = normalizeScheduledAtInput(data.scheduledAt);
+  const workspace = await db.workspace?.findUnique?.({
+    where: { id: deal.workspaceId },
+    select: { workspaceTimezone: true },
+  });
+  const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone);
+  const nextScheduledAt = normalizeScheduledAtInput(data.scheduledAt, workspaceTimezone);
   if (!nextScheduledAt) {
     return { success: false, error: "Invalid scheduled date." };
   }
-  const scheduledTimeChanged = didScheduledTimeChange(deal.scheduledAt, nextScheduledAt);
+  const scheduledTimeChanged = didScheduledTimeChange(deal.scheduledAt, nextScheduledAt, workspaceTimezone);
 
   const nextAssignedToId = data.assignedToId !== undefined ? data.assignedToId : deal.assignedToId ?? null;
 
@@ -1547,7 +1576,7 @@ export async function rescheduleDeal(
   });
 
   const changeLines = [
-    `Scheduled: ${deal.scheduledAt ? new Date(deal.scheduledAt).toLocaleString() : "None"} -> ${nextScheduledAt.toLocaleString()}`,
+    `Scheduled: ${deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "None"} -> ${formatDateTimeInTimezone(nextScheduledAt, workspaceTimezone)}`,
   ];
   if (nextAssignedToId !== deal.assignedToId) {
     changeLines.push(`Assigned to: ${nextAssigneeName || "Unassigned"}`);

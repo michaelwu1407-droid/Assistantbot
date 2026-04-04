@@ -5,6 +5,7 @@ import { getDeals } from "@/actions/deal-actions"
 import { ScheduleCalendar } from "./schedule-calendar"
 import { getCurrentUserRole } from "@/lib/rbac"
 import { db } from "@/lib/db"
+import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 export const dynamic = "force-dynamic"
 
@@ -14,16 +15,22 @@ export default async function SchedulePage() {
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     let deals: any[] = [], teamMembers: any[] = []
+    let workspaceTimezone = DEFAULT_WORKSPACE_TIMEZONE
     try {
         const workspace = await getOrCreateWorkspace(authUser.id)
         const role = await getCurrentUserRole()
-        const [allDeals, members] = await Promise.all([
+        const [allDeals, members, workspaceConfig] = await Promise.all([
             getDeals(workspace.id),
             db.user.findMany({
                 where: { workspaceId: workspace.id },
                 select: { id: true, name: true, email: true, role: true }
-            })
+            }),
+            db.workspace?.findUnique?.({
+                where: { id: workspace.id },
+                select: { workspaceTimezone: true },
+            }),
         ])
+        workspaceTimezone = resolveWorkspaceTimezone(workspaceConfig?.workspaceTimezone)
         // Deleted jobs should not appear on the schedule
         let filteredDeals = allDeals.filter((d: any) => d.stage !== "deleted")
 
@@ -54,7 +61,7 @@ export default async function SchedulePage() {
     return (
         <div className="h-full flex flex-col p-4 md:p-6 overflow-hidden">
             <div className="flex-1 min-h-0">
-                <ScheduleCalendar deals={deals} teamMembers={teamMembers} />
+                <ScheduleCalendar deals={deals} teamMembers={teamMembers} workspaceTimezone={workspaceTimezone} />
             </div>
         </div>
     )

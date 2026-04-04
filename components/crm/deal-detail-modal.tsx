@@ -32,6 +32,7 @@ import {
   PRISMA_STAGE_LABELS,
 } from "@/lib/deal-utils"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
+import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 interface DealDetailModalProps {
   dealId: string | null
@@ -45,6 +46,7 @@ interface DealDetailModalProps {
 type DealDetail = DealView & {
   contact: { id: string; name: string; company?: string | null; email?: string | null; phone?: string | null }
   assignedTo?: { id: string; name: string | null } | null
+  workspace?: { workspaceTimezone?: string | null } | null
   jobPhotos: Array<{ id: string; url?: string; fileUrl?: string; caption?: string | null }>
   // API route stringifies dates; keep flexible in UI.
   scheduledAt?: unknown
@@ -162,6 +164,7 @@ function DealDetailContent({
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
+  const workspaceTimezone = resolveWorkspaceTimezone(deal.workspace?.workspaceTimezone)
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const isPendingApproval = deal.stage === "PENDING_COMPLETION"
   const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
@@ -615,7 +618,7 @@ function DealDetailContent({
               <div>
                 <p className="text-slate-500 text-xs">Scheduled</p>
                 <p className="font-medium text-slate-900">
-                  {deal.scheduledAt ? format(new Date(deal.scheduledAt), "MMM d, yyyy h:mm a") : "—"}
+                  {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "—"}
                 </p>
               </div>
               <div>

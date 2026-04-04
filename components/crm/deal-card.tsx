@@ -7,7 +7,6 @@ import { CSS } from "@dnd-kit/utilities"
 import { MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { approveCompletion, approveDraft, DealView, rejectCompletion, rejectDraft } from "@/actions/deal-actions"
-import { format } from "date-fns"
 import { getOverdueStyling } from "@/lib/deal-utils"
 import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
 import {
@@ -30,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { HoverScrollName } from "@/components/ui/hover-scroll-name"
+import { formatMonthDayInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 interface TeamMemberOption {
   id: string
@@ -88,8 +88,9 @@ function statusBannerOverlayClasses(label: string): string {
 /** Top-right: scheduled job date only; "-" when not scheduled. */
 function cornerDateLabel(deal: DealView): { text: string; title: string } {
   if (deal.scheduledAt) {
+    const workspaceTimezone = resolveWorkspaceTimezone(deal.workspaceTimezone)
     return {
-      text: format(new Date(deal.scheduledAt), "MMM d"),
+      text: formatMonthDayInTimezone(deal.scheduledAt, workspaceTimezone),
       title: "Scheduled date",
     }
   }

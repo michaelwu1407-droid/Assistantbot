@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays } from "date-fns"
+import { startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays } from "date-fns"
 import { useRouter } from "next/navigation"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
@@ -9,6 +9,20 @@ import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { publishCrmSelection } from "@/lib/crm-selection"
+import {
+  buildDateForHourInTimezone,
+  formatLongDateInTimezone,
+  formatMonthDayInTimezone,
+  formatMonthDayYearInTimezone,
+  formatMonthYearInTimezone,
+  formatShortWeekdayInTimezone,
+  formatTimeInTimezone,
+  getHourInTimezone,
+  getZonedDateParts,
+  parseDateTimeLocalInTimezone,
+  resolveWorkspaceTimezone,
+  toDateKeyInTimezone,
+} from "@/lib/timezone"
 
 type ViewMode = "month" | "week" | "day"
 
@@ -22,11 +36,12 @@ interface TeamMember {
 interface ScheduleCalendarProps {
   deals: DealView[]
   teamMembers: TeamMember[]
+  workspaceTimezone: string
 }
 
 const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
 
-export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) {
+export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone }: ScheduleCalendarProps) {
   const router = useRouter()
   const [current, setCurrent] = useState(new Date())
   const [view, setView] = useState<ViewMode>("month")
@@ -34,6 +49,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null)
   const [localDeals, setLocalDeals] = useState(deals)
   const showTeamFilter = teamMembers.length > 1
+  const resolvedTimezone = resolveWorkspaceTimezone(workspaceTimezone)
 
   useEffect(() => {
     setLocalDeals(deals)
@@ -67,7 +83,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   const dealsByDay = filteredDeals
     .filter((d) => d.scheduledAt)
     .reduce<Record<string, DealView[]>>((acc, deal) => {
-      const d = format(new Date(deal.scheduledAt!), "yyyy-MM-dd")
+      const d = toDateKeyInTimezone(deal.scheduledAt!, resolvedTimezone)
       if (!acc[d]) acc[d] = []
       acc[d].push(deal)
       return acc
@@ -80,13 +96,13 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
   }
 
   const headerLabel = () => {
-    if (view === "month") return format(current, "MMMM yyyy")
+    if (view === "month") return formatMonthYearInTimezone(current, resolvedTimezone)
     if (view === "week") {
       const ws = startOfWeek(current, { weekStartsOn: 0 })
       const we = endOfWeek(current, { weekStartsOn: 0 })
-      return `${format(ws, "MMM d")} - ${format(we, "MMM d, yyyy")}`
+      return `${formatMonthDayInTimezone(ws, resolvedTimezone)} - ${formatMonthDayYearInTimezone(we, resolvedTimezone)}`
     }
-    return format(current, "EEEE, MMMM d, yyyy")
+    return formatLongDateInTimezone(current, resolvedTimezone)
   }
 
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
@@ -98,18 +114,16 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     const dealId = e.dataTransfer.getData("dealId")
     if (!dealId) return
 
-    // Calculate new date with time preserved if possible
     const deal = localDeals.find(d => d.id === dealId)
-    const newDate = new Date(date)
-    const hasExplicitTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0 || date.getMilliseconds() !== 0
-    if (deal?.scheduledAt) {
-      const oldDate = new Date(deal.scheduledAt)
-      if (hasExplicitTime) {
-        newDate.setMinutes(oldDate.getMinutes(), oldDate.getSeconds(), oldDate.getMilliseconds())
-      } else {
-        newDate.setHours(oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds(), oldDate.getMilliseconds())
-      }
-    }
+    const targetParts = getZonedDateParts(date, resolvedTimezone)
+    const hasExplicitTime =
+      targetParts.hour !== 0 || targetParts.minute !== 0 || targetParts.second !== 0
+    const existingParts = deal?.scheduledAt ? getZonedDateParts(deal.scheduledAt, resolvedTimezone) : null
+    const newDate =
+      parseDateTimeLocalInTimezone(
+        `${String(targetParts.year).padStart(4, "0")}-${String(targetParts.month).padStart(2, "0")}-${String(targetParts.day).padStart(2, "0")}T${String(hasExplicitTime ? targetParts.hour : existingParts?.hour ?? 9).padStart(2, "0")}:${String(hasExplicitTime ? targetParts.minute : existingParts?.minute ?? 0).padStart(2, "0")}:${String(hasExplicitTime ? targetParts.second : existingParts?.second ?? 0).padStart(2, "0")}`,
+        resolvedTimezone,
+      ) ?? new Date(date)
 
     try {
       const { rescheduleDeal } = await import("@/actions/deal-actions")
@@ -148,7 +162,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
       onClick={() => setSelectedDealId(deal.id)}
       className="app-body-primary w-full truncate rounded border border-primary/20 bg-primary/10 px-2 py-1 text-left text-primary hover:bg-primary/20 cursor-grab active:cursor-grabbing"
     >
-      {deal.scheduledAt && <span className="app-body-secondary mr-1 text-xs text-primary/60">{format(new Date(deal.scheduledAt), "h:mm a")}</span>}
+      {deal.scheduledAt && <span className="app-body-secondary mr-1 text-xs text-primary/60">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>}
       {deal.title}
     </div>
   )
@@ -167,10 +181,11 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
           <div key={d} className="p-1.5 border-b border-r border-slate-100 font-medium text-slate-500 bg-slate-50/50">{d}</div>
         ))}
         {days.map((day) => {
-          const key = format(day, "yyyy-MM-dd")
+          const key = toDateKeyInTimezone(day, resolvedTimezone)
           const dayDeals = dealsByDay[key] ?? []
           const isToday = isSameDay(day, new Date())
           const isCurrentMonth = isSameMonth(day, current)
+          const dayParts = getZonedDateParts(day, resolvedTimezone)
 
           return (
             <div
@@ -190,7 +205,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                   "font-medium w-6 h-6 flex items-center justify-center rounded-full text-sm",
                   isToday ? "bg-primary text-white shadow-sm" : "text-slate-600"
                 )}>
-                  {format(day, "d")}
+                  {dayParts.day}
                 </span>
                 {dayDeals.length > 0 && <span className="app-body-secondary text-xs font-bold text-slate-400">{dayDeals.length}</span>}
               </div>
@@ -211,9 +226,10 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     return (
       <div className="grid grid-cols-7 flex-1 min-h-0">
         {days.map((day) => {
-          const key = format(day, "yyyy-MM-dd")
+          const key = toDateKeyInTimezone(day, resolvedTimezone)
           const dayDeals = dealsByDay[key] ?? []
           const isToday = isSameDay(day, new Date())
+          const dayParts = getZonedDateParts(day, resolvedTimezone)
           return (
             <div
               key={key}
@@ -225,8 +241,8 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                 className={cn("p-2 border-b border-slate-100 text-center cursor-pointer hover:bg-slate-50", isToday && "bg-primary/5")}
                 onClick={() => { setCurrent(day); setView("day") }}
               >
-                <p className="app-field-label tracking-[0.08em]">{format(day, "EEE")}</p>
-                <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-slate-700")}>{format(day, "d")}</p>
+                <p className="app-field-label tracking-[0.08em]">{formatShortWeekdayInTimezone(day, resolvedTimezone)}</p>
+                <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-slate-700")}>{dayParts.day}</p>
               </div>
               <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-slate-50/20">{dayDeals.map(renderDealChip)}</div>
             </div>
@@ -238,7 +254,7 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
 
   // ─── Day View (Resource Gantt) ───────────────────────
   const renderDay = () => {
-    const key = format(current, "yyyy-MM-dd")
+    const key = toDateKeyInTimezone(current, resolvedTimezone)
     const dayDeals = dealsByDay[key] ?? []
     const showUnassignedRow = teamMembers.length > 1 || dayDeals.some((deal) => !deal.assignedToId)
 
@@ -253,16 +269,14 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
     }
 
     const buildSlotDate = (hour: number) => {
-      const slotDate = new Date(current)
-      slotDate.setHours(hour, 0, 0, 0)
-      return slotDate
+      return buildDateForHourInTimezone(current, hour, resolvedTimezone)
     }
 
     const renderHourCell = (memberId: string | null, hour: number) => {
       const hourDeals = sortedDeals.filter((deal) => {
         if ((memberId ? deal.assignedToId === memberId : !deal.assignedToId) === false) return false
         if (!deal.scheduledAt) return false
-        return new Date(deal.scheduledAt).getHours() === hour
+        return getHourInTimezone(deal.scheduledAt, resolvedTimezone) === hour
       })
 
       return (
@@ -288,9 +302,9 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={cn(
                         "app-field-label rounded px-1.5 py-0.5 tracking-[0.08em]",
-                        memberId ? "text-primary bg-primary/5" : "text-slate-400 bg-slate-100"
-                      )}>
-                        {deal.scheduledAt ? format(new Date(deal.scheduledAt), "h:mm a") : "TBD"}
+                      memberId ? "text-primary bg-primary/5" : "text-slate-400 bg-slate-100"
+                    )}>
+                        {deal.scheduledAt ? formatTimeInTimezone(deal.scheduledAt, resolvedTimezone) : "TBD"}
                       </span>
                       {memberId ? <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
                     </div>
@@ -399,10 +413,10 @@ export function ScheduleCalendar({ deals, teamMembers }: ScheduleCalendarProps) 
             <div className="flex justify-between items-start mb-1.5">
               <div className="flex items-center gap-2">
                 <span className="app-body-primary rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
-                  {format(new Date(deal.scheduledAt!), "MMM d")}
+                  {formatMonthDayInTimezone(deal.scheduledAt!, resolvedTimezone)}
                 </span>
                 <span className="app-body-primary rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
-                  {format(new Date(deal.scheduledAt!), "h:mm a")}
+                  {formatTimeInTimezone(deal.scheduledAt!, resolvedTimezone)}
                 </span>
               </div>
               {deal.assignedToId && (

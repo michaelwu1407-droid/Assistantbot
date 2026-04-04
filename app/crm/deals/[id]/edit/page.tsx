@@ -7,6 +7,7 @@ import { getTeamMembers } from "@/actions/invite-actions"
 import { DealEditForm } from "./deal-edit-form"
 import { PRISMA_STAGE_TO_UI_STAGE, STAGE_OPTIONS } from "@/lib/deal-utils"
 import { getDealRecurrence } from "@/actions/deal-actions"
+import { resolveWorkspaceTimezone, toDateTimeLocalValue } from "@/lib/timezone"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -25,16 +26,21 @@ export default async function DealEditPage({ params }: PageProps) {
   }
 
   const canManageAssignment = actor.role !== "TEAM_MEMBER"
-  const [deal, teamMembers, recurrence] = await Promise.all([
+  const [deal, teamMembers, recurrence, workspace] = await Promise.all([
     db.deal.findFirst({
       where: { id, workspaceId: actor.workspaceId },
       include: { contact: true, assignedTo: { select: { id: true, name: true } } },
     }),
     canManageAssignment ? getTeamMembers() : Promise.resolve([]),
     getDealRecurrence(id),
+    db.workspace.findUnique({
+      where: { id: actor.workspaceId },
+      select: { workspaceTimezone: true },
+    }),
   ])
 
   if (!deal) notFound()
+  const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone)
 
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (typeof metadata.notes === "string" ? metadata.notes : "") ?? ""
@@ -74,8 +80,9 @@ export default async function DealEditPage({ params }: PageProps) {
         initialStage={stage}
         initialNotes={notes}
         initialAddress={deal.address ?? ""}
-        initialScheduledAt={deal.scheduledAt ? new Date(deal.scheduledAt).toISOString().slice(0, 16) : ""}
+        initialScheduledAt={toDateTimeLocalValue(deal.scheduledAt, workspaceTimezone)}
         initialAssignedToId={deal.assignedToId ?? ""}
+        workspaceTimezone={workspaceTimezone}
         teamMembers={teamMembers}
         canManageAssignment={canManageAssignment}
         stageOptions={STAGE_OPTIONS}

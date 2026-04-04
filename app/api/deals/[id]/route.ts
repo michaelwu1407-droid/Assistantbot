@@ -18,6 +18,7 @@ export async function GET(
       include: {
         contact: true,
         assignedTo: { select: { id: true, name: true } },
+        workspace: { select: { workspaceTimezone: true } },
         jobPhotos: { orderBy: { createdAt: "desc" } },
       },
     })

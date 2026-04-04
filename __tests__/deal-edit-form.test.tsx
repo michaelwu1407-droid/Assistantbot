@@ -154,6 +154,7 @@ describe("DealEditForm", () => {
         initialAddress="12 King St"
         initialScheduledAt=""
         initialAssignedToId=""
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[
           { id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" },
         ]}
@@ -223,7 +224,7 @@ describe("DealEditForm", () => {
         value: 375.5,
         stage: "scheduled",
         address: "15 Queen St",
-        scheduledAt: "2026-04-15T09:30",
+        scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
       });
     });
 
@@ -254,6 +255,7 @@ describe("DealEditForm", () => {
         initialAddress="12 King St"
         initialScheduledAt="2026-04-15T09:30"
         initialAssignedToId="user_1"
+        workspaceTimezone="Australia/Sydney"
         teamMembers={[
           { id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" },
         ]}
@@ -280,7 +282,7 @@ describe("DealEditForm", () => {
         value: 250,
         stage: "scheduled",
         address: "12 King St",
-        scheduledAt: "2026-04-15T09:30",
+        scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
       });
     });
 

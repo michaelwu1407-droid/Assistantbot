@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createDeal } from "@/actions/deal-actions"
 import { getContacts, createContact, type ContactView } from "@/actions/contact-actions"
 import { getTeamMembers } from "@/actions/invite-actions"
+import { getWorkspaceSettings } from "@/actions/settings-actions"
 import { NEW_JOB_STAGE_OPTIONS } from "@/lib/deal-utils"
 import { toast } from "sonner"
 import { User, Mail, Phone, CalendarClock, AlertCircle, ChevronLeft } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { DEFAULT_WORKSPACE_TIMEZONE, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 interface TeamMemberOption {
     id: string
@@ -40,6 +42,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
     const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([])
+    const [workspaceTimezone, setWorkspaceTimezone] = useState(DEFAULT_WORKSPACE_TIMEZONE)
 
     // New Contact Mode State
     const [mode, setMode] = useState<"select" | "create">("create")
@@ -57,10 +60,14 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     useEffect(() => {
         if (workspaceId) {
             setIsFetchingContacts(true)
-            Promise.all([
+            Promise.allSettled([
                 getContacts(workspaceId),
-                getTeamMembers()
-            ]).then(([c, tm]) => {
+                getTeamMembers(),
+                getWorkspaceSettings(),
+            ]).then(([contactsResult, teamMembersResult, settingsResult]) => {
+                const c = contactsResult.status === "fulfilled" ? contactsResult.value : []
+                const tm = teamMembersResult.status === "fulfilled" ? teamMembersResult.value : []
+                const settings = settingsResult.status === "fulfilled" ? settingsResult.value : null
                 setContacts(c)
                 setTeamMembers(
                     tm.map((m) => ({
@@ -70,6 +77,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                         role: m.role,
                     }))
                 )
+                setWorkspaceTimezone(resolveWorkspaceTimezone(settings?.workspaceTimezone))
             }).catch(console.error)
                 .finally(() => setIsFetchingContacts(false))
         }
@@ -128,7 +136,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 address: address || undefined,
                 latitude: latitude ?? undefined,
                 longitude: longitude ?? undefined,
-                scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+                scheduledAt: scheduledAt ? parseDateTimeLocalInTimezone(scheduledAt, workspaceTimezone) ?? undefined : undefined,
                 assignedToId: assignedToId || undefined
             })
 
