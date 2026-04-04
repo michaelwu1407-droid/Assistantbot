@@ -286,6 +286,8 @@ export function buildCrmChatSystemPrompt(
         "Use tools for live CRM data and real business facts before answering.",
         "Never guess pricing, availability, schedule, customer facts, or workflow status.",
         "If a tool fails, say what failed and suggest the next correction or retry.",
+        "If the user already gave enough concrete CRM details to execute the request, do the action instead of asking for confirmation again.",
+        "Do not ask for information the user already provided.",
       ],
     },
     options.pricingIntegrityBlock

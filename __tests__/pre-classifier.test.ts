@@ -34,4 +34,13 @@ describe("pre-classifier", () => {
     expect(result.suggestedTools[0]).toBe("listIncompleteOrBlockedJobs");
     expect(result.contextHints.join(" ")).toContain("listIncompleteOrBlockedJobs first");
   });
+
+  it("steers fully specified job creation toward createJobNatural without forcing a draft", () => {
+    const result = preClassify("Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools[0]).toBe("createJobNatural");
+    expect(result.contextHints.join(" ")).toContain("Use createJobNatural");
+    expect(result.contextHints.join(" ")).toContain("Do not ask for phone or email");
+  });
 });

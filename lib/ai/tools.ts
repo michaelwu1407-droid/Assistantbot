@@ -148,7 +148,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runBulkCreateDealReminder(workspaceId, params),
         }),
         createDeal: tool({
-            description: "Create a new deal/job.",
+            description: "Create a minimal placeholder deal/job when you only know the title, company, or rough value. Do not use this when the user already provided a client, address, work details, and price; use createJobNatural instead.",
             inputSchema: z.object({
                 title: z.string().describe("Deal or job title"),
                 company: z.string().optional().describe("Client or company name"),
@@ -170,7 +170,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runUpdateDealFields(workspaceId, params),
         }),
         createJobNatural: tool({
-            description: "Create a job from natural language. Always extract phone if included. Pass schedule when date/time is mentioned.",
+            description: "Create a real job when the user has already given the client, work details, address, price, and optional schedule. Prefer this over createDeal for concrete booking/job creation requests. Always include phone or email if the user provided them, but do not ask for them if the job can be created without them.",
             inputSchema: z.object({
                 clientName: z.string().describe("Client full name"),
                 workDescription: z.string().describe("What work is needed"),
@@ -183,7 +183,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runCreateJobNatural(workspaceId, params),
         }),
         showJobDraftForConfirmation: tool({
-            description: "Show a draft CARD with Confirm/Cancel buttons. REQUIRED for multi-job flows — never use plain text for job details.",
+            description: "Show a draft CARD with Confirm/Cancel buttons. Use this for multi-job flows or when key job details are missing or ambiguous. Do not use it when the user has already given a complete create-job request and wants the action executed now.",
             inputSchema: z.object({
                 clientName: z.string().describe("Client full name"),
                 workDescription: z.string().describe("What work is needed"),

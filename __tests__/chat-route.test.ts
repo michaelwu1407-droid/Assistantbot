@@ -363,34 +363,6 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({ text: "model response" });
   });
 
-  it("executes exact structured job creation prompts directly so address and value are preserved", async () => {
-    hoisted.runCreateJobNatural.mockResolvedValue({
-      success: true,
-      message: "Job created: Blocked Drain for Alex Harper, $420.",
-      dealId: "deal_1",
-    });
-
-    const response = await POST(
-      new Request("https://app.example.com/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: "ws_1",
-          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420." }] }],
-        }),
-      }),
-    );
-
-    expect(hoisted.runCreateJobNatural).toHaveBeenCalledWith("ws_1", {
-      workDescription: "Blocked Drain",
-      clientName: "Alex Harper",
-      address: "12 Test Street Sydney",
-      price: 420,
-    });
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(await response.json()).toEqual({ text: "Job created: Blocked Drain for Alex Harper, $420." });
-  });
-
   it("injects likely contact context for contact lookups while keeping the model in charge", async () => {
     hoisted.preClassify.mockReturnValue({
       intent: "contact_lookup",
@@ -589,5 +561,17 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({
       text: 'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
     });
+  });
+
+  it("does not turn a fully specified create-job request into a draft-card extraction before the llm path", () => {
+    expect(
+      shouldAttemptStructuredJobExtraction("Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420.", {
+        intent: "crm_action",
+        confidence: 0.95,
+        contextHints: [],
+        suggestedTools: ["createJobNatural"],
+        requiresCalculator: false,
+      }),
+    ).toBe(false);
   });
 });

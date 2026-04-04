@@ -100,6 +100,16 @@ export function preClassify(text: string): PreClassification {
     return { intent: "general", confidence: 0, contextHints: [], suggestedTools: [], requiresCalculator: false };
   }
 
+  if (/^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(trimmed)) {
+    return {
+      intent: "crm_action",
+      confidence: 0.95,
+      contextHints: getContextHints("crm_action", trimmed),
+      suggestedTools: getSuggestedTools("crm_action", trimmed),
+      requiresCalculator: false,
+    };
+  }
+
   if (/\b(ready to invoice|already invoiced)\b/i.test(trimmed)) {
     return {
       intent: "invoice",
@@ -202,6 +212,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         "CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it.",
         "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
         "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
+        /^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)
+          ? 'The user already gave enough information to create the job now. Use createJobNatural, not createDeal or showJobDraftForConfirmation. Do not ask for phone or email unless the tool truly requires it.'
+          : null,
       ];
     case "invoice":
       return [
@@ -236,6 +249,9 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
     case "contact_lookup":
       return ["searchContacts", "getClientContext"];
     case "crm_action":
+      if (/^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)) {
+        return ["createJobNatural", "createDeal", "createContact"];
+      }
       return [
         "moveDeal",
         "updateDealFields",
