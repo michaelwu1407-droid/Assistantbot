@@ -1,3 +1,15 @@
+## 2026-04-05 17:30 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `app/crm/contacts/[id]/page.tsx`
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/contact-page-access.test.tsx`
+- Summary:
+  - **Person** contacts on the detail page now show **Company** and **Address** when present (previously only the business-type card showed them), closing a gap vs edit form fields.
+  - Job map empty states explain **Today vs All Jobs** and that mapping depends on addresses / geocoding.
+- Why:
+  - Audit items on missing contact fields and confusing map empty copy; regression extended for contact detail.
+
 ## 2026-04-05 16:45 (AEDT) - Cursor Agent
 
 - Files changed:

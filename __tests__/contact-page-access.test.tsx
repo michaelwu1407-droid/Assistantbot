@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 const { notFound, requireContactInCurrentWorkspace, db, getActivities } = vi.hoisted(() => ({
   notFound: vi.fn(() => {
@@ -76,6 +76,11 @@ describe("ContactDetailPage", () => {
 
     expect(screen.getByRole("heading", { name: "Acme Plumbing" })).toBeInTheDocument();
     expect(screen.getByText("Contact notes")).toBeInTheDocument();
+    const detailsCard = screen.getByText("Contact details").closest("div")?.parentElement;
+    expect(detailsCard).toBeTruthy();
+    expect(within(detailsCard as HTMLElement).getByText("Company")).toBeInTheDocument();
+    expect(within(detailsCard as HTMLElement).getByText("Address")).toBeInTheDocument();
+    expect(within(detailsCard as HTMLElement).getByText("1 King St")).toBeInTheDocument();
   });
 
   it("returns not found when the scoped contact lookup denies access", async () => {

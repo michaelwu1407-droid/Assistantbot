@@ -118,10 +118,10 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
             <div className="p-8 text-center text-muted-foreground">
               <MapPin className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
               <h3 className="text-sm font-medium text-foreground mb-1">No jobs found</h3>
-              <p className="text-xs text-muted-foreground/80">
+              <p className="text-xs text-muted-foreground/80 max-w-xs mx-auto">
                 {filter === 'today'
-                  ? "No mapped jobs scheduled for today."
-                  : "No mapped jobs found in your workspace."}
+                  ? "No mapped jobs for today. Use All Jobs to see upcoming dates, or confirm jobs are scheduled and geocoded."
+                  : "No mapped jobs in your workspace yet. Scheduled jobs need an address; use Update Locations when addresses are missing."}
               </p>
               {pendingCount > 0 && (
                 <p className="text-xs mt-4 text-primary">
