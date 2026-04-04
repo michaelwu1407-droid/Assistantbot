@@ -78,6 +78,13 @@ type AgentToolSettings = {
     weeklyHours?: WeeklyHours;
 } & Record<string, unknown>;
 
+const nullableOptionalString = () =>
+    z
+        .string()
+        .nullable()
+        .optional()
+        .transform((value) => value ?? undefined);
+
 export function getAgentTools(workspaceId: string, settings: AgentToolSettings | null | undefined, userId?: string) {
     return {
         listDeals: tool({
@@ -175,10 +182,10 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 clientName: z.string().describe("Client full name"),
                 workDescription: z.string().describe("What work is needed"),
                 price: z.number().describe("Price in dollars"),
-                address: z.string().optional().describe("Street address"),
-                schedule: z.string().optional().describe("When, e.g. tomorrow 2pm"),
-                phone: z.string().optional().describe("Client phone number"),
-                email: z.string().optional().describe("Client email"),
+                address: nullableOptionalString().describe("Street address"),
+                schedule: nullableOptionalString().describe("When, e.g. tomorrow 2pm"),
+                phone: nullableOptionalString().describe("Client phone number"),
+                email: nullableOptionalString().describe("Client email"),
             }),
             execute: async (params) => runCreateJobNatural(workspaceId, params),
         }),
@@ -188,10 +195,10 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 clientName: z.string().describe("Client full name"),
                 workDescription: z.string().describe("What work is needed"),
                 price: z.number().describe("Price in dollars"),
-                address: z.string().optional().describe("Street address"),
-                schedule: z.string().optional().describe("When, e.g. tomorrow 2pm"),
-                phone: z.string().optional().describe("Client phone number"),
-                email: z.string().optional().describe("Client email"),
+                address: nullableOptionalString().describe("Street address"),
+                schedule: nullableOptionalString().describe("When, e.g. tomorrow 2pm"),
+                phone: nullableOptionalString().describe("Client phone number"),
+                email: nullableOptionalString().describe("Client email"),
             }),
             execute: async (params) => {
                 const draft = buildJobDraftFromParams({
