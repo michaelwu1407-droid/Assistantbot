@@ -348,6 +348,7 @@ function shouldAttemptDirectPolicyResponse(content: string, classification: PreC
     /^explain our current rule for leads we do not want to answer immediately/i.test(text) ||
     /^if i say we do want to take the job after a bouncer hold/i.test(text) ||
     /^summarize the bouncer policy we are currently testing in four bullet points/i.test(text) ||
+    /^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text) ||
     /^create a reminder task to follow up /i.test(text) ||
     /^create a reminder task to call /i.test(text) ||
     /^create a new task called .+ due /i.test(text) ||

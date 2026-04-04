@@ -336,7 +336,7 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({ text: "model response" });
   });
 
-  it("routes common job creation requests through the LLM/tool path instead of direct regex execution", async () => {
+  it("keeps broader natural-language job creation on the LLM/tool path", async () => {
     hoisted.preClassify.mockReturnValue({
       intent: "crm_action",
       confidence: 0.92,
@@ -353,7 +353,7 @@ describe("POST /api/chat", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           workspaceId: "ws_1",
-          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420." }] }],
+          messages: [{ role: "user", parts: [{ type: "text", text: "Book Alex Harper in for a blocked drain at 12 Test Street Sydney for $420 tomorrow." }] }],
         }),
       }),
     );
@@ -361,6 +361,34 @@ describe("POST /api/chat", () => {
     expect(hoisted.runCreateJobNatural).not.toHaveBeenCalled();
     expect(hoisted.streamText).toHaveBeenCalledTimes(1);
     expect(await response.json()).toEqual({ text: "model response" });
+  });
+
+  it("executes exact structured job creation prompts directly so address and value are preserved", async () => {
+    hoisted.runCreateJobNatural.mockResolvedValue({
+      success: true,
+      message: "Job created: Blocked Drain for Alex Harper, $420.",
+      dealId: "deal_1",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runCreateJobNatural).toHaveBeenCalledWith("ws_1", {
+      workDescription: "Blocked Drain",
+      clientName: "Alex Harper",
+      address: "12 Test Street Sydney",
+      price: 420,
+    });
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ text: "Job created: Blocked Drain for Alex Harper, $420." });
   });
 
   it("injects likely contact context for contact lookups while keeping the model in charge", async () => {
