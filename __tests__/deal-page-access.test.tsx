@@ -12,6 +12,9 @@ const { notFound, requireDealInCurrentWorkspace, db } = vi.hoisted(() => ({
       findFirst: vi.fn(),
       findMany: vi.fn(),
     },
+    workspace: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -41,6 +44,10 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/components/crm/deal-notes", () => ({
   DealNotes: () => <div>Deal notes</div>,
+}));
+
+vi.mock("@/components/crm/activity-feed", () => ({
+  ActivityFeed: () => <div>Activity feed</div>,
 }));
 
 vi.mock("@/components/crm/deal-photos-upload", () => ({
@@ -105,6 +112,7 @@ describe("deal page access", () => {
       syncIssues: [],
     });
     db.deal.findMany.mockResolvedValue([]);
+    db.workspace.findUnique.mockResolvedValue({ workspaceTimezone: "Australia/Sydney" });
   });
 
   it("renders the deal detail page when access is allowed", async () => {
@@ -115,6 +123,11 @@ describe("deal page access", () => {
       "href",
       "/crm/inbox?contact=contact_1",
     );
+    expect(screen.getByRole("link", { name: /edit contact/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+    expect(screen.getByText("Activity feed")).toBeInTheDocument();
   });
 
   it("returns not found when the scoped deal lookup denies access", async () => {

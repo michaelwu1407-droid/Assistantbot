@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
+import { ActivityFeed } from "@/components/crm/activity-feed"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
@@ -128,10 +129,20 @@ export default async function DealDetailPage({ params }: PageProps) {
         <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Contact details */}
           <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Contact details
-            </h3>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Contact details
+              </h3>
+              {contact && (
+                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+                  <Link href={`/crm/contacts/${contact.id}/edit`}>
+                    <Edit className="w-3.5 h-3.5 mr-1" />
+                    Edit contact
+                  </Link>
+                </Button>
+              )}
+            </div>
             {contact ? (
               <div className="space-y-2.5 text-sm">
                 <div>
@@ -244,10 +255,19 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </Button>
               </Link>
             </div>
-            <div className="grid flex-1 grid-cols-1 gap-0 md:grid-cols-2">
-              <div className="flex min-h-[12rem] flex-col border-b border-slate-100 md:min-h-[20rem] md:border-b-0 md:border-r">
-                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Past jobs</p>
-                <div className="flex-1 p-3 space-y-2">
+            <Tabs defaultValue="communications" className="flex min-h-0 flex-1 flex-col">
+              <div className="border-b border-slate-100 px-3 py-2">
+                <TabsList className="h-9 bg-slate-100/70">
+                  <TabsTrigger value="communications" className="text-xs">Communications</TabsTrigger>
+                  <TabsTrigger value="jobs" className="text-xs">Past jobs</TabsTrigger>
+                  <TabsTrigger value="notes" className="text-xs">Notes</TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="communications" className="mt-0 flex-1 min-h-[16rem] p-0">
+                <ActivityFeed contactId={deal.contactId} compact className="h-full" />
+              </TabsContent>
+              <TabsContent value="jobs" className="mt-0 flex-1 min-h-[16rem] p-3">
+                <div className="space-y-2">
                   {contactDeals.length === 0 ? (
                     <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
                   ) : (
@@ -255,23 +275,22 @@ export default async function DealDetailPage({ params }: PageProps) {
                       <Link
                         key={d.id}
                         href={`/crm/deals/${d.id}`}
-                        className="block p-2 rounded-lg border border-slate-100 hover:bg-slate-50 text-sm"
+                        className="block rounded-lg border border-slate-100 p-2 text-sm hover:bg-slate-50"
                       >
                         <span className="font-medium text-slate-900">{d.title}</span>
-                        <span className="text-slate-500 ml-2">${Number(d.value || 0).toLocaleString("en-AU")}</span>
-                        <span className="text-slate-400 text-xs block mt-0.5">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {format(new Date(d.updatedAt), "MMM d")}</span>
+                        <span className="ml-2 text-slate-500">${Number(d.value || 0).toLocaleString("en-AU")}</span>
+                        <span className="mt-0.5 block text-xs text-slate-400">
+                          {PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {format(new Date(d.updatedAt), "MMM d")}
+                        </span>
                       </Link>
                     ))
                   )}
                 </div>
-              </div>
-              <div className="flex min-h-[12rem] flex-col md:min-h-[20rem]">
-                <p className="text-xs font-medium text-slate-500 px-3 py-2 border-b border-slate-100">Notes</p>
-                <div className="flex-1 p-3">
-                  <DealNotes dealId={deal.id} initialNotes={notes} />
-                </div>
-              </div>
-            </div>
+              </TabsContent>
+              <TabsContent value="notes" className="mt-0 flex-1 min-h-[16rem] p-3">
+                <DealNotes dealId={deal.id} initialNotes={notes} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
