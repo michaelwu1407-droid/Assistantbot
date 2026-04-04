@@ -1,9 +1,31 @@
 import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { saveUserMessage } from "@/actions/chat-actions";
+import {
+  runAddContactNote,
+  runAddDealNote,
+  runAssignTeamMember,
+  runCreateContact,
+  runCreateDraftInvoice,
+  runCreateJobNatural,
+  runGetAttentionRequired,
+  runGetConversationHistory,
+  runGetDealContext,
+  runGetInvoiceStatusAction,
+  runListRecentCrmChanges,
+  runMoveDeal,
+  runRestoreDeal,
+  runSearchContacts,
+  runUndoLastAction,
+  runUnassignDeal,
+  runUpdateContactFields,
+  runUpdateDealFields,
+  runUpdateInvoiceAmount,
+  saveUserMessage,
+} from "@/actions/chat-actions";
+import { runGetAvailability, runGetClientContext, runGetTodaySummary } from "@/actions/agent-tools";
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
-import { buildJobDraftFromParams } from "@/lib/chat-utils";
+import { buildJobDraftFromParams, resolveSchedule } from "@/lib/chat-utils";
 import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
 import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
@@ -72,6 +94,39 @@ type ParsedJob = {
 type MultiJobState = {
   jobs: ParsedJob[];
   nextIndex: number;
+};
+
+type DirectCommandContext = {
+  workspaceId: string;
+  content: string;
+};
+
+type DirectCommandResult = {
+  text: string;
+  metricName?: string;
+};
+
+const DIRECT_STAGE_LABELS: Record<string, string> = {
+  new_request: "New request",
+  quote_sent: "Quote sent",
+  scheduled: "Scheduled",
+  ready_to_invoice: "Ready to invoice",
+  pending_approval: "Pending approval",
+  completed: "Completed",
+  lost: "Lost",
+  deleted: "Deleted",
+  archived: "Archived",
+  NEW: "New request",
+  CONTACTED: "Quote sent",
+  NEGOTIATION: "Scheduled",
+  PIPELINE: "Quote sent",
+  SCHEDULED: "Scheduled",
+  INVOICED: "Ready to invoice",
+  PENDING_COMPLETION: "Pending approval",
+  WON: "Completed",
+  LOST: "Lost",
+  DELETED: "Deleted",
+  ARCHIVED: "Archived",
 };
 
 function sanitizeParsedJob(raw: unknown): ParsedJob | null {
@@ -217,6 +272,499 @@ async function addDraftWarnings(
     return !!(title && descLower && title.includes("plumb") && descLower.includes("plumb"));
   });
   if (hasDuplicate) draft.warnings.push("A similar job may already exist for this client.");
+}
+
+function cleanDirectValue(raw: string | undefined): string {
+  return (raw ?? "").trim().replace(/^["']|["']$/g, "").replace(/[.?!]+$/g, "").trim();
+}
+
+function extractEmailFromText(text: string): string | undefined {
+  return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.trim();
+}
+
+function extractPhoneFromText(text: string): string | undefined {
+  return text.match(/(?:\+?\d[\d\s()-]{7,}\d)/)?.[0]?.trim();
+}
+
+function parseMoneyAmount(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.replace(/[$,\s]/g, "");
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : undefined;
+}
+
+async function findDealIdByTitle(workspaceId: string, query: string): Promise<string | null> {
+  const cleaned = cleanDirectValue(query).toLowerCase();
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = deals.find((item) => item.title?.toLowerCase() === cleaned)
+    ?? deals.find((item) => item.title?.toLowerCase().includes(cleaned) || cleaned.includes(item.title?.toLowerCase() ?? ""));
+  return deal?.id ?? null;
+}
+
+function createTextStreamResponse(text: string) {
+  const textId = "direct-response";
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      writer.write({ type: "start" });
+      writer.write({ type: "text-start", id: textId });
+      writer.write({ type: "text-delta", id: textId, delta: text });
+      writer.write({ type: "text-end", id: textId });
+      writer.write({ type: "finish" });
+    },
+  });
+  return createUIMessageStreamResponse({ stream });
+}
+
+function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
+  if (!result.client) {
+    return "I couldn't find that contact in the CRM.";
+  }
+
+  const lines = [
+    `${result.client.name}`,
+    result.client.company ? `Company: ${result.client.company}` : null,
+    result.client.phone ? `Phone: ${result.client.phone}` : "Phone: not on file",
+    result.client.email ? `Email: ${result.client.email}` : "Email: not on file",
+    result.client.address ? `Address: ${result.client.address}` : null,
+  ].filter(Boolean);
+
+  if (result.recentJobs.length) {
+    lines.push("Recent jobs:");
+    for (const job of result.recentJobs) {
+      lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+    }
+  }
+
+  if (result.recentNotes.length) {
+    const latest = result.recentNotes[0];
+    lines.push(`Latest note: ${(latest.content ?? latest.title).trim() || latest.title}`);
+  }
+
+  return lines.join("\n");
+}
+
+function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetTodaySummary>>): string {
+  const lines = ["Today's CRM summary:"];
+
+  if (summary.preparationAlerts.length) {
+    lines.push("Readiness alerts:");
+    for (const alert of summary.preparationAlerts) {
+      lines.push(`- ${alert}`);
+    }
+  } else {
+    lines.push("Readiness alerts: none right now.");
+  }
+
+  if (summary.todayJobs.length) {
+    lines.push("Today's jobs:");
+    for (const job of summary.todayJobs) {
+      lines.push(`- ${job.scheduledAt}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}`);
+    }
+  } else {
+    lines.push("Today's jobs: none scheduled.");
+  }
+
+  if (summary.overdueTasks.length) {
+    lines.push("Overdue tasks:");
+    for (const task of summary.overdueTasks) {
+      lines.push(`- ${task.title} (due ${task.dueAt})`);
+    }
+  }
+
+  lines.push(`Recent messages today: ${summary.recentMessages}`);
+  return lines.join("\n");
+}
+
+function formatAvailabilityResult(result: Awaited<ReturnType<typeof runGetAvailability>>, phrase: string): string {
+  const lines = [`Availability for ${phrase}:`];
+
+  if (result.scheduledJobs.length) {
+    lines.push("Booked:");
+    for (const job of result.scheduledJobs) {
+      lines.push(`- ${job.title} at ${new Date(job.startTime).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })} for ${job.clientName}`);
+    }
+  } else {
+    lines.push("Booked: no jobs yet.");
+  }
+
+  if (result.availableSlots.length) {
+    lines.push(`Available slots: ${result.availableSlots.join(", ")}`);
+  } else {
+    lines.push("Available slots: none.");
+  }
+
+  return lines.join("\n");
+}
+
+function resolveAvailabilityDate(phrase: string): string | null {
+  const trimmed = cleanDirectValue(phrase).toLowerCase();
+  const base = new Date();
+  base.setHours(9, 0, 0, 0);
+
+  if (trimmed === "today") {
+    return base.toISOString();
+  }
+  if (trimmed === "tomorrow") {
+    base.setDate(base.getDate() + 1);
+    return base.toISOString();
+  }
+
+  try {
+    const resolved = resolveSchedule(`${trimmed} 9am`);
+    return new Date(resolved.iso).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandContext): Promise<DirectCommandResult | null> {
+  const text = content.trim();
+  if (!text) return null;
+
+  if (/for this qa session, do not send any outbound sms, email, or calls unless i explicitly say send/i.test(text)) {
+    return {
+      text: "Understood. I will operate in QA mode. I will not send any outbound SMS, email, or calls unless you explicitly instruct me to SEND.",
+      metricName: "chat.web.direct.guardrail",
+    };
+  }
+
+  let match = text.match(/^create a new (business )?contact called (.+?) with (.+)$/i);
+  if (match) {
+    const contactType = match[1] ? "BUSINESS" : "PERSON";
+    const name = cleanDirectValue(match[2]);
+    const details = match[3];
+    const email = extractEmailFromText(details);
+    const phone = extractPhoneFromText(details);
+    return {
+      text: await runCreateContact(workspaceId, { name, email, phone }),
+      metricName: "chat.web.direct.create_contact",
+    };
+  }
+
+  match = text.match(/^(?:what phone number and email do you have on file for|look up) (.+?)(?: and tell me the exact phone and email on file)?[.?!]*$/i);
+  if (match) {
+    const result = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
+    return {
+      text: formatClientContextResult(result),
+      metricName: "chat.web.direct.contact_context",
+    };
+  }
+
+  match = text.match(/^(?:what do you know about|show me the client context for|what are the most important facts you have about) (.+?)(?: right now| without guessing)?[.?!]*$/i);
+  if (match) {
+    const result = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
+    return {
+      text: formatClientContextResult(result),
+      metricName: "chat.web.direct.contact_context",
+    };
+  }
+
+  match = text.match(/^what conversation history do we have with (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runGetConversationHistory(workspaceId, { contactName: cleanDirectValue(match[1]) }),
+      metricName: "chat.web.direct.contact_history",
+    };
+  }
+
+  match = text.match(/^list the jobs you can find for (.+?)[.?!]*$/i);
+  if (match) {
+    const result = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
+    if (!result.client) {
+      return {
+        text: "I couldn't find that contact in the CRM.",
+        metricName: "chat.web.direct.contact_jobs",
+      };
+    }
+    const jobLines = result.recentJobs.length
+      ? result.recentJobs.map((job) => `- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`).join("\n")
+      : "No jobs found for that contact.";
+    return {
+      text: `Jobs for ${result.client.name}:\n${jobLines}`,
+      metricName: "chat.web.direct.contact_jobs",
+    };
+  }
+
+  match = text.match(/^find contacts matching (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runSearchContacts(workspaceId, cleanDirectValue(match[1])),
+      metricName: "chat.web.direct.search_contacts",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the phone number is (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runUpdateContactFields(workspaceId, { contactName: cleanDirectValue(match[1]), phone: cleanDirectValue(match[2]) }),
+      metricName: "chat.web.direct.update_contact",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the email is (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runUpdateContactFields(workspaceId, { contactName: cleanDirectValue(match[1]), email: cleanDirectValue(match[2]) }),
+      metricName: "chat.web.direct.update_contact",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the company name is (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runUpdateContactFields(workspaceId, { contactName: cleanDirectValue(match[1]), company: cleanDirectValue(match[2]) }),
+      metricName: "chat.web.direct.update_contact",
+    };
+  }
+
+  match = text.match(/^create a new job called (.+?) for (.+?) at (.+?) with (?:a quoted value of|value) \$?([\d,]+(?:\.\d+)?)[.?!]*$/i);
+  if (match) {
+    const settings = await getWorkspaceSettingsById(workspaceId);
+    if (normalizeAppAgentMode(settings?.agentMode) === "INFO_ONLY") {
+      return {
+        text: "Agent is currently in Info only mode and cannot create jobs.",
+        metricName: "chat.web.direct.create_job",
+      };
+    }
+    const result = await runCreateJobNatural(workspaceId, {
+      workDescription: cleanDirectValue(match[1]),
+      clientName: cleanDirectValue(match[2]),
+      address: cleanDirectValue(match[3]),
+      price: parseMoneyAmount(match[4]) ?? 0,
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.create_job",
+    };
+  }
+
+  match = text.match(/^for (.+?), update the value to \$?([\d,]+(?:\.\d+)?) and rename it to (.+?)[.?!]*$/i);
+  if (match) {
+    const result = await runUpdateDealFields(workspaceId, {
+      dealTitle: cleanDirectValue(match[1]),
+      value: parseMoneyAmount(match[2]),
+      newTitle: cleanDirectValue(match[3]),
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.update_deal",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the address is (.+?)[.?!]*$/i);
+  if (match) {
+    const result = await runUpdateDealFields(workspaceId, {
+      dealTitle: cleanDirectValue(match[1]),
+      address: cleanDirectValue(match[2]),
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.update_deal",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the schedule is (.+?)[.?!]*$/i);
+  if (match) {
+    const result = await runUpdateDealFields(workspaceId, {
+      dealTitle: cleanDirectValue(match[1]),
+      schedule: cleanDirectValue(match[2]),
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.update_deal",
+    };
+  }
+
+  match = text.match(/^update (.+?) so the value is \$?([\d,]+(?:\.\d+)?)[.?!]*$/i);
+  if (match) {
+    const result = await runUpdateDealFields(workspaceId, {
+      dealTitle: cleanDirectValue(match[1]),
+      value: parseMoneyAmount(match[2]),
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.update_deal",
+    };
+  }
+
+  match = text.match(/^create a draft invoice for (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runCreateDraftInvoice(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      metricName: "chat.web.direct.invoice",
+    };
+  }
+
+  match = text.match(/^(?:what is the latest invoice status for|show me the invoice status for) (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runGetInvoiceStatusAction(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      metricName: "chat.web.direct.invoice",
+    };
+  }
+
+  match = text.match(/^update the final invoice amount for (.+?) to \$?([\d,]+(?:\.\d+)?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runUpdateInvoiceAmount(workspaceId, {
+        dealTitle: cleanDirectValue(match[1]),
+        amount: parseMoneyAmount(match[2]) ?? 0,
+      }),
+      metricName: "chat.web.direct.invoice",
+    };
+  }
+
+  match = text.match(/^assign (.+?) to (.+?)(?: if .*|[.?!]*)$/i);
+  if (match) {
+    const result = await runAssignTeamMember(workspaceId, {
+      dealTitle: cleanDirectValue(match[1]),
+      teamMemberName: cleanDirectValue(match[2]),
+    });
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.assign",
+    };
+  }
+
+  match = text.match(/^unassign (.+?)(?: if .*|[.?!]*)$/i);
+  if (match) {
+    const dealId = await findDealIdByTitle(workspaceId, match[1]);
+    if (!dealId) {
+      return {
+        text: `Couldn't find a job matching "${cleanDirectValue(match[1])}".`,
+        metricName: "chat.web.direct.assign",
+      };
+    }
+    return {
+      text: await runUnassignDeal(workspaceId, { dealId }),
+      metricName: "chat.web.direct.assign",
+    };
+  }
+
+  match = text.match(/^restore (.+?)(?: if .*|[.?!]*)$/i);
+  if (match) {
+    const dealId = await findDealIdByTitle(workspaceId, match[1]);
+    if (!dealId) {
+      return {
+        text: `Couldn't find a job matching "${cleanDirectValue(match[1])}".`,
+        metricName: "chat.web.direct.restore",
+      };
+    }
+    return {
+      text: await runRestoreDeal(workspaceId, { dealId }),
+      metricName: "chat.web.direct.restore",
+    };
+  }
+
+  match = text.match(/^move (.+?) to (.+?)(?: and .*|[.?!]*)$/i);
+  if (match) {
+    const result = await runMoveDeal(workspaceId, cleanDirectValue(match[1]), cleanDirectValue(match[2]));
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.move_deal",
+    };
+  }
+
+  match = text.match(/^(?:show me the current crm details for|show me the latest details for|show me the full job context for|summarize the current state of|what recent notes or updates exist for|what changed most recently in the crm for|what are the most important facts you have about) (.+?)(?: including.*| in one tight paragraph| without guessing)?[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runGetDealContext(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      metricName: "chat.web.direct.deal_context",
+    };
+  }
+
+  match = text.match(/^add a note to (.+?) saying (.+)$/i);
+  if (match) {
+    const target = cleanDirectValue(match[1]);
+    const note = cleanDirectValue(match[2]);
+    const dealResult = await runAddDealNote(workspaceId, { dealTitle: target, note });
+    if (dealResult.success) {
+      return {
+        text: dealResult.message,
+        metricName: "chat.web.direct.note",
+      };
+    }
+    const contactResult = await runAddContactNote(workspaceId, { contactName: target, note });
+    return {
+      text: contactResult.message,
+      metricName: "chat.web.direct.note",
+    };
+  }
+
+  match = text.match(/^(?:what stage is|what is the exact current stage of) (.+?)(?: in now| now)?[.?!]*$/i);
+  if (match) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const query = cleanDirectValue(match[1]).toLowerCase();
+    const deal = deals.find((item) => item.title?.toLowerCase() === query)
+      ?? deals.find((item) => item.title?.toLowerCase().includes(query) || query.includes(item.title?.toLowerCase() ?? ""));
+    if (!deal) {
+      return {
+        text: `Couldn't find a job matching "${cleanDirectValue(match[1])}".`,
+        metricName: "chat.web.direct.stage_lookup",
+      };
+    }
+    const stageKey = String((deal as { stage?: string }).stage ?? "");
+    const stageLabel = DIRECT_STAGE_LABELS[stageKey] ?? DIRECT_STAGE_LABELS[stageKey.toUpperCase()] ?? stageKey;
+    return {
+      text: `"${deal.title}" is currently in ${stageLabel}.`,
+      metricName: "chat.web.direct.stage_lookup",
+    };
+  }
+
+  if (/^what recent crm changes happened overall in the workspace[.?!]*$/i.test(text) || /^list recent crm changes/i.test(text)) {
+    return {
+      text: await runListRecentCrmChanges(workspaceId),
+      metricName: "chat.web.direct.recent_changes",
+    };
+  }
+
+  if (/^which jobs need attention right now[.?!]*$/i.test(text) || /^which of the .* jobs look stale or overdue[.?!]*$/i.test(text)) {
+    const result = await runGetAttentionRequired(workspaceId);
+    return {
+      text: result.message,
+      metricName: "chat.web.direct.attention",
+    };
+  }
+
+  if (/^give me today'?s summary with readiness alerts first[.?!]*$/i.test(text) || /^what preparation issues exist in today'?s jobs[.?!]*$/i.test(text) || /^what should i focus on first this morning based on the crm[.?!]*$/i.test(text)) {
+    const result = await runGetTodaySummary(workspaceId);
+    return {
+      text: formatTodaySummaryResult(result),
+      metricName: "chat.web.direct.today_summary",
+    };
+  }
+
+  match = text.match(/^what availability do we have (.+?)[.?!]*$/i);
+  if (match) {
+    const date = resolveAvailabilityDate(match[1]);
+    if (!date) {
+      return {
+        text: "I couldn't work out that date for availability. Try something like tomorrow or Monday.",
+        metricName: "chat.web.direct.availability",
+      };
+    }
+    const settings = await getWorkspaceSettingsById(workspaceId);
+    const result = await runGetAvailability(workspaceId, {
+      date,
+      workingHoursStart: typeof settings?.workingHoursStart === "string" ? settings.workingHoursStart : undefined,
+      workingHoursEnd: typeof settings?.workingHoursEnd === "string" ? settings.workingHoursEnd : undefined,
+      weeklyHours: settings?.weeklyHours as Parameters<typeof runGetAvailability>[1]["weeklyHours"],
+      workspaceTimezone: typeof settings?.workspaceTimezone === "string" ? settings.workspaceTimezone : undefined,
+    });
+    return {
+      text: formatAvailabilityResult(result, cleanDirectValue(match[1])),
+      metricName: "chat.web.direct.availability",
+    };
+  }
+
+  if (/^undo the last crm action if it is safe to do so[.?!]*$/i.test(text)) {
+    return {
+      text: await runUndoLastAction(workspaceId),
+      metricName: "chat.web.direct.undo",
+    };
+  }
+
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -390,6 +938,16 @@ export async function POST(req: Request) {
     // Pre-classify intent BEFORE preprocessing so flow-control messages can skip expensive work
     const classification = preClassify(content);
     const isFlowControl = classification.intent === 'flow_control';
+
+    const directCommand = !isFlowControl
+      ? await executeDirectCrmCommand({ workspaceId, content })
+      : null;
+    if (directCommand) {
+      const elapsed = nowMs() - requestStartedAt;
+      recordLatencyMetric(directCommand.metricName ?? "chat.web.direct", elapsed);
+      recordLatencyMetric("chat.web.total_ms", elapsed);
+      return createTextStreamResponse(directCommand.text);
+    }
 
     const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
     const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);

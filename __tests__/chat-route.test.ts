@@ -8,8 +8,30 @@ const hoisted = vi.hoisted(() => ({
   createUIMessageStreamResponse: vi.fn(),
   createGoogleGenerativeAI: vi.fn(),
   saveUserMessage: vi.fn(),
+  runAddContactNote: vi.fn(),
+  runAddDealNote: vi.fn(),
+  runAssignTeamMember: vi.fn(),
+  runCreateContact: vi.fn(),
+  runCreateDraftInvoice: vi.fn(),
+  runCreateJobNatural: vi.fn(),
+  runGetAttentionRequired: vi.fn(),
+  runGetConversationHistory: vi.fn(),
+  runGetDealContext: vi.fn(),
+  runGetInvoiceStatusAction: vi.fn(),
+  runListRecentCrmChanges: vi.fn(),
+  runMoveDeal: vi.fn(),
+  runRestoreDeal: vi.fn(),
+  runSearchContacts: vi.fn(),
+  runUndoLastAction: vi.fn(),
+  runUnassignDeal: vi.fn(),
+  runUpdateContactFields: vi.fn(),
+  runUpdateDealFields: vi.fn(),
+  runUpdateInvoiceAmount: vi.fn(),
   getDeals: vi.fn(),
   getWorkspaceSettingsById: vi.fn(),
+  runGetAvailability: vi.fn(),
+  runGetClientContext: vi.fn(),
+  runGetTodaySummary: vi.fn(),
   buildJobDraftFromParams: vi.fn(),
   parseJobWithAI: vi.fn(),
   parseMultipleJobsWithAI: vi.fn(),
@@ -42,6 +64,30 @@ vi.mock("@ai-sdk/google", () => ({
 }));
 vi.mock("@/actions/chat-actions", () => ({
   saveUserMessage: hoisted.saveUserMessage,
+  runAddContactNote: hoisted.runAddContactNote,
+  runAddDealNote: hoisted.runAddDealNote,
+  runAssignTeamMember: hoisted.runAssignTeamMember,
+  runCreateContact: hoisted.runCreateContact,
+  runCreateDraftInvoice: hoisted.runCreateDraftInvoice,
+  runCreateJobNatural: hoisted.runCreateJobNatural,
+  runGetAttentionRequired: hoisted.runGetAttentionRequired,
+  runGetConversationHistory: hoisted.runGetConversationHistory,
+  runGetDealContext: hoisted.runGetDealContext,
+  runGetInvoiceStatusAction: hoisted.runGetInvoiceStatusAction,
+  runListRecentCrmChanges: hoisted.runListRecentCrmChanges,
+  runMoveDeal: hoisted.runMoveDeal,
+  runRestoreDeal: hoisted.runRestoreDeal,
+  runSearchContacts: hoisted.runSearchContacts,
+  runUndoLastAction: hoisted.runUndoLastAction,
+  runUnassignDeal: hoisted.runUnassignDeal,
+  runUpdateContactFields: hoisted.runUpdateContactFields,
+  runUpdateDealFields: hoisted.runUpdateDealFields,
+  runUpdateInvoiceAmount: hoisted.runUpdateInvoiceAmount,
+}));
+vi.mock("@/actions/agent-tools", () => ({
+  runGetAvailability: hoisted.runGetAvailability,
+  runGetClientContext: hoisted.runGetClientContext,
+  runGetTodaySummary: hoisted.runGetTodaySummary,
 }));
 vi.mock("@/actions/deal-actions", () => ({
   getDeals: hoisted.getDeals,
@@ -100,6 +146,7 @@ describe("POST /api/chat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
     hoisted.rateLimit.mockResolvedValue({ allowed: true, retryAfterMs: 0 });
     hoisted.preClassify.mockReturnValue({
       intent: "general",
@@ -108,6 +155,26 @@ describe("POST /api/chat", () => {
       suggestedTools: [],
       requiresCalculator: false,
     });
+    hoisted.saveUserMessage.mockResolvedValue(undefined);
+    hoisted.createUIMessageStream.mockImplementation(({ execute }: { execute: ({ writer }: { writer: { write: (event: { type?: string; delta?: string }) => void } }) => void }) => {
+      const chunks: string[] = [];
+      execute({
+        writer: {
+          write: (event) => {
+            if (event.type === "text-delta" && typeof event.delta === "string") {
+              chunks.push(event.delta);
+            }
+          },
+        },
+      });
+      return { text: chunks.join("") };
+    });
+    hoisted.createUIMessageStreamResponse.mockImplementation(({ stream }: { stream: { text?: string } }) =>
+      new Response(JSON.stringify({ text: stream.text ?? "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
   });
 
   afterEach(() => {
@@ -191,5 +258,119 @@ describe("POST /api/chat", () => {
         requiresCalculator: false,
       }),
     ).toBe(true);
+  });
+
+  it("executes direct contact creation without calling the model", async () => {
+    hoisted.runCreateContact.mockResolvedValue('Successfully added contact "Alex Harper".');
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new contact called Alex Harper with phone 0400000101 and email alex@example.com." }] }],
+        }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(hoisted.runCreateContact).toHaveBeenCalledWith("ws_1", {
+      name: "Alex Harper",
+      phone: "0400000101",
+      email: "alex@example.com",
+    });
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(payload).toEqual({ text: 'Successfully added contact "Alex Harper".' });
+  });
+
+  it("executes direct job creation without showing a draft loop", async () => {
+    hoisted.runCreateJobNatural.mockResolvedValue({
+      success: true,
+      message: "Job created: Blocked Drain for Alex Harper, $420.",
+      dealId: "deal_1",
+    });
+    hoisted.getWorkspaceSettingsById.mockResolvedValue({ agentMode: "AUTO" });
+    hoisted.normalizeAppAgentMode.mockReturnValue("AUTO");
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a new job called Blocked Drain for Alex Harper at 12 Test Street Sydney with a quoted value of $420." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runCreateJobNatural).toHaveBeenCalledWith("ws_1", {
+      workDescription: "Blocked Drain",
+      clientName: "Alex Harper",
+      address: "12 Test Street Sydney",
+      price: 420,
+    });
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ text: "Job created: Blocked Drain for Alex Harper, $420." });
+  });
+
+  it("executes direct deal note mutations before the LLM", async () => {
+    hoisted.runAddDealNote.mockResolvedValue({
+      success: true,
+      message: 'Added a note to "Blocked Drain".',
+      dealId: "deal_1",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Add a note to Blocked Drain saying customer requested a 30 minute heads-up before arrival." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runAddDealNote).toHaveBeenCalledWith("ws_1", {
+      dealTitle: "Blocked Drain",
+      note: "customer requested a 30 minute heads-up before arrival",
+    });
+    expect(hoisted.runAddContactNote).not.toHaveBeenCalled();
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ text: 'Added a note to "Blocked Drain".' });
+  });
+
+  it("executes direct contact context lookups before the LLM", async () => {
+    hoisted.runGetClientContext.mockResolvedValue({
+      client: {
+        id: "contact_1",
+        name: "Alex Harper",
+        email: "alex@example.com",
+        phone: "0400000101",
+        company: null,
+        address: "12 Test Street Sydney",
+      },
+      recentNotes: [],
+      recentMessages: [],
+      recentJobs: [],
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What phone number and email do you have on file for Alex Harper?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runGetClientContext).toHaveBeenCalledWith("ws_1", { clientName: "Alex Harper" });
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: "Alex Harper\nPhone: 0400000101\nEmail: alex@example.com\nAddress: 12 Test Street Sydney",
+    });
   });
 });
