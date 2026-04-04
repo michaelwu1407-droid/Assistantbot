@@ -30,6 +30,27 @@ export const DAY_ABBREVS: Record<string, string> = {
   "today": "today", "tomorrow": "tomorrow", "asap": "ASAP", "urgent": "URGENT", "stat": "STAT",
 };
 
+const WEEKDAY_INDEX: Record<string, number> = {
+  sun: 0,
+  sunday: 0,
+  mon: 1,
+  monday: 1,
+  tue: 2,
+  tues: 2,
+  tuesday: 2,
+  wed: 3,
+  weds: 3,
+  wednesday: 3,
+  thu: 4,
+  thur: 4,
+  thurs: 4,
+  thursday: 4,
+  fri: 5,
+  friday: 5,
+  sat: 6,
+  saturday: 6,
+};
+
 // ─── Functions ──────────────────────────────────────────────────────
 
 /** Capitalise each word: "sally jane" → "Sally Jane" */
@@ -87,9 +108,8 @@ export function resolveSchedule(raw: string): { display: string; iso: string } {
     // already today
   } else if (dayPart === "tomorrow" || dayPart === "tmrw" || dayPart === "ymrw") {
     targetDate.setDate(targetDate.getDate() + 1);
-  } else if (["mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(dayPart)) {
-    const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    const targetDay = dayNames.indexOf(dayPart);
+  } else if (dayPart in WEEKDAY_INDEX) {
+    const targetDay = WEEKDAY_INDEX[dayPart];
     const currentDay = now.getDay();
     let daysAhead = targetDay - currentDay;
     if (daysAhead <= 0) daysAhead += 7;

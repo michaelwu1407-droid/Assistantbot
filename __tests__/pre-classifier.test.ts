@@ -43,4 +43,20 @@ describe("pre-classifier", () => {
     expect(result.contextHints.join(" ")).toContain("Use createJobNatural");
     expect(result.contextHints.join(" ")).toContain("Do not ask for phone or email");
   });
+
+  it("treats latest-note questions as contact lookups when phrased around a person", () => {
+    const result = preClassify("Do you know the latest note on Alex Harper?");
+
+    expect(result.intent).toBe("contact_lookup");
+    expect(result.suggestedTools).toContain("getClientContext");
+    expect(result.contextHints.join(" ")).toContain("latest-note questions about a contact");
+  });
+
+  it("steers completion blocker questions toward deal context instead of vague advice", () => {
+    const result = preClassify("What still needs to happen before Hot Water Service can be completed?");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools[0]).toBe("getDealContext");
+    expect(result.contextHints.join(" ")).toContain("explain what is still missing");
+  });
 });

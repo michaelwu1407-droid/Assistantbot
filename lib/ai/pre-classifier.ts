@@ -75,6 +75,7 @@ const REPORTING_PATTERNS = [
 const CONTACT_PATTERNS = [
   /\b(find|search|look up|lookup|who is|contact info|details for)\b/i,
   /\b(customer|client|their number|their email|their address)\b/i,
+  /\b(latest note|recent note|last note)\b/i,
 ];
 
 const CRM_ACTION_PATTERNS = [
@@ -126,6 +127,16 @@ export function preClassify(text: string): PreClassification {
       confidence: 0.95,
       contextHints: getContextHints("reporting", trimmed),
       suggestedTools: getSuggestedTools("reporting", trimmed),
+      requiresCalculator: false,
+    };
+  }
+
+  if (/^what still needs to happen before .+ can be completed[.?!]*$/i.test(trimmed)) {
+    return {
+      intent: "crm_action",
+      confidence: 0.92,
+      contextHints: getContextHints("crm_action", trimmed),
+      suggestedTools: ["getDealContext", "getInvoiceStatus", "updateDealFields"],
       requiresCalculator: false,
     };
   }
@@ -188,6 +199,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
     case "scheduling":
       return [
         "SCHEDULING QUERY: Use getSchedule or getAvailability before answering. Never guess availability.",
+        "Treat the workspace's current date/time as authoritative for relative dates like today, tomorrow, this month, or next Monday.",
       ];
     case "communication":
       return [
@@ -206,12 +218,21 @@ function getContextHints(intent: IntentHint, text: string): string[] {
     case "contact_lookup":
       return [
         "CONTACT QUERY: Use searchContacts or getClientContext to find the person first.",
-      ];
+        /\b(latest note|recent note|last note)\b/i.test(text)
+          ? "For latest-note questions about a contact, use getClientContext and answer from the most recent CRM note instead of asking unnecessary follow-up questions."
+          : null,
+      ].filter(Boolean) as string[];
     case "crm_action":
       return [
         "CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it.",
         "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
         "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
+        /\b(what still needs to happen before .+ can be completed)\b/i.test(text)
+          ? "For blockers or next-step questions, use getDealContext first, then explain what is still missing instead of asking the user what action they want to take."
+          : null,
+        /\b(tomorrow|today|this month|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(text)
+          ? "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month."
+          : null,
         /^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)
           ? 'The user already gave enough information to create the job now. Use createJobNatural, not createDeal or showJobDraftForConfirmation. Do not ask for phone or email unless the tool truly requires it.'
           : null,
@@ -220,6 +241,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
+        "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month.",
         /\b(ready to invoice|already invoiced)\b/i.test(text)
           ? "For aggregate invoice-ready or already-invoiced job queries, use listInvoiceReadyJobs first, then current invoice/deal state if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
           : null,

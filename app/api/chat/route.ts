@@ -109,6 +109,7 @@ type DirectCommandResult = {
 };
 
 type WorkspacePromptContext = {
+  currentDateStr: string;
   knowledgeBaseStr: string;
   workingHoursStr: string;
   agentScriptStr: string;
@@ -421,6 +422,7 @@ function extractLikelyContactReference(content: string, classification: PreClass
     /show me the client context for (.+?)(?:[.?!]|$)/i,
     /look up (.+?)(?: and tell me.*)?(?:[.?!]|$)/i,
     /conversation history do we have with (.+?)(?:[.?!]|$)/i,
+    /do you know the latest note on (.+?)[.?!]*$/i,
     /(?:text|email|call|message) (.+?)(?: saying| about| that|[.?!]|$)/i,
     /details for (.+?)(?:[.?!]|$)/i,
   ];
@@ -438,6 +440,7 @@ function extractLikelyDealQuery(content: string): string | null {
     /what jobs for (.+?) are ready to invoice or already invoiced[.?!]*$/i,
     /what jobs for (.+?) look incomplete or blocked[.?!]*$/i,
     /do you know the latest note on (.+?)[.?!]*$/i,
+    /what still needs to happen before (.+?) can be completed[.?!]*$/i,
     /show me the current crm details for (.+?)[.?!]*$/i,
     /show me the latest details for (.+?)(?: including.*)?[.?!]*$/i,
     /show me the full job context for (.+?)(?: including.*)?[.?!]*$/i,
@@ -479,6 +482,11 @@ async function buildResolvedEntitiesBlock(
         lines.push(
           `Likely contact: ${context.client.name}${context.client.phone ? `, phone ${context.client.phone}` : ""}${context.client.email ? `, email ${context.client.email}` : ""}`,
         );
+        if (context.recentNotes.length > 0) {
+          const latest = context.recentNotes[0];
+          const latestContent = (latest.content ?? latest.title).trim() || latest.title;
+          lines.push(`Latest contact note for ${context.client.name}: ${latestContent}`);
+        }
         if (context.recentJobs.length > 0) {
           lines.push(
             `Recent jobs for ${context.client.name}: ${context.recentJobs
@@ -493,7 +501,7 @@ async function buildResolvedEntitiesBlock(
     }
   }
 
-  if (["crm_action", "scheduling", "invoice", "communication", "reporting"].includes(classification.intent)) {
+  if (["crm_action", "scheduling", "invoice", "communication", "reporting", "contact_lookup"].includes(classification.intent)) {
     try {
       const deals = await getDeals(workspaceId, undefined, { unbounded: true });
       const likelyDealQuery = extractLikelyDealQuery(content);
@@ -526,7 +534,7 @@ function buildWorkspaceContextBlocks(
   content: string,
   context: WorkspacePromptContext,
 ): string[] {
-  const baseBlocks = [context.knowledgeBaseStr, context.preferencesStr];
+  const baseBlocks = [context.currentDateStr, context.knowledgeBaseStr, context.preferencesStr];
   const alwaysRelevant = [context.memoryContextStr, context.selectionContextStr];
   const includePricing = classification.requiresCalculator || classification.intent === "invoice" || classification.intent === "pricing";
   const includeBouncer = shouldIncludeBouncerContext(content);
@@ -1602,6 +1610,16 @@ export async function POST(req: Request) {
       selectedDeals,
     );
     const workspaceContextBlocks = buildWorkspaceContextBlocks(classification, content, {
+      currentDateStr: `CURRENT DATE/TIME:\n- Today is ${new Intl.DateTimeFormat("en-AU", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: settings?.workspaceTimezone || "Australia/Sydney",
+      }).format(new Date())} in ${settings?.workspaceTimezone || "Australia/Sydney"}.\n- Use this as the authoritative reference for relative dates like today, tomorrow, this month, and next Monday.`,
       knowledgeBaseStr,
       workingHoursStr,
       agentScriptStr,

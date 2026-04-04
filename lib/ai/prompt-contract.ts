@@ -285,6 +285,7 @@ export function buildCrmChatSystemPrompt(
       lines: [
         "Use tools for live CRM data and real business facts before answering.",
         "Never guess pricing, availability, schedule, customer facts, or workflow status.",
+        "Treat the WORKSPACE CONTEXT current date/time as authoritative for relative dates like today, tomorrow, this month, and next Monday.",
         "If a tool fails, say what failed and suggest the next correction or retry.",
         "If the user already gave enough concrete CRM details to execute the request, do the action instead of asking for confirmation again.",
         "Do not ask for information the user already provided.",

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
   titleCase,
   categoriseWork,
@@ -131,6 +131,15 @@ describe("enrichAddress", () => {
 // ─── resolveSchedule ────────────────────────────────────────────────
 
 describe("resolveSchedule", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-04T10:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("resolves time with tomorrow shorthand", () => {
     const result = resolveSchedule("2pm tmrw");
     expect(result.display).toContain("2:");
@@ -192,6 +201,13 @@ describe("resolveSchedule", () => {
     const date = new Date(result.iso);
     expect(date.getHours()).toBe(9);
     expect(date.getDay()).toBe(1); // Monday
+  });
+
+  it("resolves full weekday names", () => {
+    const result = resolveSchedule("8am Monday");
+    const date = new Date(result.iso);
+    expect(date.getHours()).toBe(8);
+    expect(date.getDay()).toBe(1);
   });
 
   it("returns valid ISO string", () => {

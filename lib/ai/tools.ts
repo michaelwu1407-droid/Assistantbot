@@ -375,7 +375,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ query }) => runSearchContacts(workspaceId, query),
         }),
         getDealContext: tool({
-            description: "Get the current CRM details for a specific job/deal, including stage, schedule, contact, latest invoice, and recent notes.",
+            description: "Get the current CRM details for a specific job/deal, including stage, schedule, contact, latest invoice, recent notes, and enough context to explain blockers or next steps.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
             }),
@@ -573,7 +573,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 recordManualRevenue(workspaceId, { amount, startDate, endDate }),
         }),
         getClientContext: tool({
-            description: "Full client profile: contact info, recent jobs, notes, messages.",
+            description: "Full client profile: contact info, recent jobs, recent notes, and recent messages. Use this for latest-note questions about a contact.",
             inputSchema: z.object({
                 clientName: z.string().describe("Client name (fuzzy matched)"),
             }),

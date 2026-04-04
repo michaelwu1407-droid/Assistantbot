@@ -380,7 +380,7 @@ describe("POST /api/chat", () => {
         company: null,
         address: "12 Test Street Sydney",
       },
-      recentNotes: [],
+      recentNotes: [{ title: "AI note added", content: "Call after lunch.", createdAt: "2026-04-04T00:00:00.000Z" }],
       recentMessages: [],
       recentJobs: [{ id: "deal_1", title: "Blocked Drain", stage: "Scheduled", scheduledAt: null }],
     });
@@ -400,8 +400,52 @@ describe("POST /api/chat", () => {
     expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         intentHintBlock: expect.stringContaining("CONTACT QUERY"),
-        resolvedEntitiesBlock: expect.stringContaining("Likely contact: Alex Harper"),
-        workspaceContextBlocks: expect.not.arrayContaining(["PRICING RULES:\n- Use approved prices"]),
+        resolvedEntitiesBlock: expect.stringMatching(/Likely contact: Alex Harper[\s\S]*Latest contact note for Alex Harper: Call after lunch\./),
+        workspaceContextBlocks: expect.arrayContaining([
+          expect.stringContaining("CURRENT DATE/TIME:"),
+        ]),
+      }),
+    );
+    const promptArgs = hoisted.buildCrmChatSystemPrompt.mock.calls.at(-1)?.[0];
+    expect(promptArgs.workspaceContextBlocks).not.toContain("PRICING RULES:\n- Use approved prices");
+    expect(await response.json()).toEqual({ text: "model response" });
+  });
+
+  it("injects current workspace date and likely job context for next-step completion questions", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "crm_action",
+      confidence: 0.92,
+      contextHints: ["For blockers or next-step questions, use getDealContext first, then explain what is still missing instead of asking the user what action they want to take."],
+      suggestedTools: ["getDealContext", "getInvoiceStatus"],
+      requiresCalculator: false,
+    });
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Gutter Repair",
+        stage: "SCHEDULED",
+        scheduledAt: new Date("2026-04-05T01:00:00.000Z"),
+      },
+    ]);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What still needs to happen before Gutter Repair can be completed?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolvedEntitiesBlock: expect.stringContaining("Likely jobs: Gutter Repair"),
+        workspaceContextBlocks: expect.arrayContaining([
+          expect.stringContaining("Use this as the authoritative reference for relative dates"),
+        ]),
       }),
     );
     expect(await response.json()).toEqual({ text: "model response" });
