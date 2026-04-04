@@ -157,12 +157,13 @@ function normalizeScheduledAtInput(
     return null;
   }
 
-  const parsed =
+  const parsed: Date | null =
     typeof value === "string" && isLocalDateTimeString(value)
       ? parseDateTimeLocalInTimezone(value, resolveWorkspaceTimezone(workspaceTimezone))
       : value instanceof Date
         ? new Date(value)
         : new Date(value);
+  if (!parsed) return null;
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -1377,6 +1378,11 @@ export async function updateDeal(
     }
   }
 
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath("/crm/deals");
+  revalidatePath(`/crm/deals/${dealId}`);
   return { success: true };
 }
 

@@ -1,3 +1,19 @@
+## 2026-04-05 03:15 (AEST) - Antigravity Agent
+
+- Files changed:
+  - `lib/chat-utils.ts`
+  - `actions/chat-actions.ts`
+  - `actions/deal-actions.ts`
+- Summary:
+  - **Root cause identified and fixed**: The schedule calendar was displaying jobs at the wrong time (e.g. "10:30 AM" on deal detail → "8:30 PM" on schedule page). Confirmed via diagnostic that the bug was in `resolveSchedule` in `lib/chat-utils.ts` which was using the server's local clock (UTC on Vercel) to anchor natural-language schedule times like "Monday 10am", storing them as UTC 10:00 instead of Sydney 10:00 (= UTC 00:30 the previous day).
+  - **`lib/chat-utils.ts` → `resolveSchedule`**: Added optional `timezone` parameter. When provided (IANA string), inlines the same offset-calculation algorithm as `parseDateTimeLocalInTimezone` to produce a UTC-correct ISO anchor without creating a circular dep on `lib/timezone.ts`.
+  - **`actions/chat-actions.ts` → `runUpdateDealFields`**: Was passing the raw natural-language schedule string directly to `updateDeal` which could only parse `YYYY-MM-DDTHH:MM` format — all AI-set schedules were silently failing or storing as Invalid Date. Now fetches workspace timezone and resolves through `resolveSchedule(raw, wsTz)` first.
+  - **`actions/chat-actions.ts` → `runCreateJobNatural`**: Now fetches workspace timezone before calling `resolveSchedule` so AI-created jobs are stored at the correct UTC instant.
+  - **`actions/deal-actions.ts` → `updateDeal`**: Was missing all `revalidatePath` calls — changes via the edit form were not triggering cache invalidation for `/crm/schedule`, `/crm/map`, `/crm/dashboard`, or the deal detail itself. Added 5 revalidations to match `rescheduleDeal`.
+  - **`actions/deal-actions.ts` → `normalizeScheduledAtInput`**: Fixed pre-existing TS18047 null-safety gap (`parseDateTimeLocalInTimezone` can return null; added guard).
+- Why:
+  - The "10:30 AM vs 8:30 PM" disparity reported in LIVE_CRM_WORKFLOW_AUDIT.md scenario 3 was a UTC/timezone anchoring bug in the AI-assisted scheduling path. The edit-form path (which uses `parseDateTimeLocalInTimezone` client-side) was already correct. All 51 relevant tests pass; no new TS errors introduced.
+
 ## 2026-04-05 21:30 (AEDT) - Cascade Agent
 
 - Files changed:

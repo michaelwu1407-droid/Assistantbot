@@ -35,6 +35,7 @@ import {
 } from "@/lib/agent-mode";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { logger } from "@/lib/logging";
+import { resolveWorkspaceTimezone } from "@/lib/timezone";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -716,6 +717,13 @@ export async function runUpdateDealFields(
     };
   }
 
+  // Resolve workspace timezone so AI-scheduled times anchor to the right city.
+  const wsRecord = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { workspaceTimezone: true },
+  });
+  const workspaceTz = resolveWorkspaceTimezone(wsRecord?.workspaceTimezone);
+
   const payload: {
     title?: string;
     value?: number;
@@ -727,7 +735,23 @@ export async function runUpdateDealFields(
   if (params.newTitle?.trim()) payload.title = params.newTitle.trim();
   if (typeof params.value === "number") payload.value = params.value;
   if (params.address !== undefined) payload.address = params.address.trim() || null;
-  if (params.schedule !== undefined) payload.scheduledAt = params.schedule.trim() || null;
+  if (params.schedule !== undefined) {
+    const raw = params.schedule.trim();
+    if (!raw) {
+      payload.scheduledAt = null;
+    } else {
+      // Convert natural-language schedule string (e.g. "Monday 3pm") to a
+      // UTC ISO string anchored to the workspace timezone, then pass the ISO
+      // string to updateDeal which treats it as UTC-exact (no re-conversion).
+      try {
+        const resolved = resolveSchedule(raw, workspaceTz);
+        payload.scheduledAt = resolved.iso;
+      } catch {
+        // If resolveSchedule throws, pass the raw string and let normalizeScheduledAtInput handle it
+        payload.scheduledAt = raw;
+      }
+    }
+  }
   if (params.newStage?.trim()) {
     const resolvedStage = resolveStage(params.newStage.trim());
     if (!resolvedStage) {
@@ -869,7 +893,13 @@ export async function runCreateJobNatural(
   let scheduleDisplay = params.schedule ?? "";
   if (hasSchedule) {
     try {
-      const resolved = resolveSchedule(params.schedule!.trim());
+      // Resolve the workspace timezone so "10am Monday" means 10am Sydney, not 10am UTC.
+      const wsRec = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { workspaceTimezone: true },
+      });
+      const wsTz = resolveWorkspaceTimezone(wsRec?.workspaceTimezone);
+      const resolved = resolveSchedule(params.schedule!.trim(), wsTz);
       scheduledAt = new Date(resolved.iso);
       scheduleDisplay = resolved.display;
     } catch {
