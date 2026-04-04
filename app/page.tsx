@@ -30,7 +30,7 @@ const PulsingLogo = dynamic(
     () => import("@/components/home/PulsingLogo").then((mod) => mod.PulsingLogo),
     {
         loading: () => (
-            <div className="w-[240px] sm:w-[300px] lg:w-[340px] aspect-square rounded-full bg-emerald-100/50 animate-pulse" />
+            <div className="w-[220px] sm:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[2.5rem] bg-slate-200/50 animate-pulse" />
         ),
     },
 );

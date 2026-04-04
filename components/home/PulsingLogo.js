@@ -14,11 +14,10 @@ export function PulsingLogo() {
     const filterId = `liquid-distortion-${uid.replace(/:/g, "")}`;
 
     useEffect(() => {
-        // Respect reduced-motion preference
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
         if (!isPlaying || !turbRef.current || reducedMotion) {
-            turbRef.current?.setAttribute("baseFrequency", "0.015");
+            turbRef.current?.setAttribute("baseFrequency", "0.006");
             return;
         }
 
@@ -26,8 +25,10 @@ export function PulsingLogo() {
 
         function animate(now) {
             const elapsed = (now - startRef.current) / 1000;
-            const freq = (0.025 + 0.018 * Math.sin(elapsed * 1.8)).toFixed(4);
-            turbRef.current?.setAttribute("baseFrequency", freq);
+            // Two-axis frequency for organic liquid movement
+            const freqX = (0.006 + 0.004 * Math.sin(elapsed * 0.8)).toFixed(4);
+            const freqY = (0.006 + 0.004 * Math.sin(elapsed * 0.6 + 1.2)).toFixed(4);
+            turbRef.current?.setAttribute("baseFrequency", `${freqX} ${freqY}`);
             rafRef.current = requestAnimationFrame(animate);
         }
 
@@ -43,74 +44,69 @@ export function PulsingLogo() {
             onClick={togglePlay}
             role="presentation"
         >
-            <svg
-                viewBox="0 0 200 200"
-                className="w-[240px] sm:w-[300px] lg:w-[340px] h-auto drop-shadow-2xl"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <defs>
-                    <filter
-                        id={filterId}
-                        x="-20%"
-                        y="-20%"
-                        width="140%"
-                        height="140%"
-                        colorInterpolationFilters="sRGB"
+            {/* Phone frame */}
+            <div className="relative w-[220px] sm:w-[280px] lg:w-[320px] rounded-[2.5rem] border-[3px] border-slate-800/90 bg-slate-900 p-2 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
+                {/* Dynamic island */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-[18px] rounded-full bg-black z-10" />
+
+                {/* Screen */}
+                <div className="relative rounded-[2rem] overflow-hidden">
+                    <svg
+                        viewBox="0 0 200 200"
+                        className="w-full h-auto block"
+                        xmlns="http://www.w3.org/2000/svg"
                     >
-                        <feTurbulence
-                            ref={turbRef}
-                            type="turbulence"
-                            baseFrequency="0.015"
-                            numOctaves={3}
-                            seed={2}
-                            result="turbulence"
-                        />
-                        <feDisplacementMap
-                            in="SourceGraphic"
-                            in2="turbulence"
-                            scale={isPlaying ? 18 : 5}
-                            xChannelSelector="R"
-                            yChannelSelector="G"
-                        />
-                    </filter>
-                </defs>
+                        <defs>
+                            <filter
+                                id={filterId}
+                                x="-30%"
+                                y="-30%"
+                                width="160%"
+                                height="160%"
+                                colorInterpolationFilters="sRGB"
+                            >
+                                <feTurbulence
+                                    ref={turbRef}
+                                    type="turbulence"
+                                    baseFrequency="0.006"
+                                    numOctaves={1}
+                                    seed={2}
+                                    result="turbulence"
+                                />
+                                <feDisplacementMap
+                                    in="SourceGraphic"
+                                    in2="turbulence"
+                                    scale={isPlaying ? 35 : 8}
+                                    xChannelSelector="R"
+                                    yChannelSelector="G"
+                                />
+                            </filter>
+                        </defs>
 
-                {/* ── Outer circle — receives liquid distortion ── */}
-                <circle
-                    cx="100"
-                    cy="100"
-                    r="92"
-                    fill="#10B981"
-                    filter={`url(#${filterId})`}
-                />
+                        {/* ── Outer circle — receives liquid distortion ── */}
+                        <circle
+                            cx="100"
+                            cy="100"
+                            r="100"
+                            fill="#10B981"
+                            filter={`url(#${filterId})`}
+                        />
 
-                {/* ── Inner headset — NO filter, always crisp ── */}
-                <g>
-                    {/* Headband arc */}
-                    <path
-                        d="M 60,108 A 50,54 0 0,1 140,108"
-                        stroke="white"
-                        strokeWidth="7.5"
-                        fill="none"
-                        strokeLinecap="round"
-                    />
-                    {/* Left ear cup */}
-                    <rect x="45" y="97" width="19" height="32" rx="6" fill="white" />
-                    {/* Right ear cup */}
-                    <rect x="136" y="97" width="19" height="32" rx="6" fill="white" />
-                    {/* Mic boom arm */}
-                    <path
-                        d="M 54,129 L 54,148 Q 54,157 63,157 L 73,157"
-                        stroke="white"
-                        strokeWidth="5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    {/* Mic capsule */}
-                    <circle cx="78" cy="157" r="5.5" fill="white" />
-                </g>
-            </svg>
+                        {/* ── Actual earlymark logo — NO filter, always crisp ── */}
+                        <image
+                            href="/latest-logo.png"
+                            x="15"
+                            y="15"
+                            width="170"
+                            height="170"
+                            preserveAspectRatio="xMidYMid meet"
+                        />
+                    </svg>
+                </div>
+
+                {/* Home indicator */}
+                <div className="mx-auto mt-1.5 w-24 h-1 rounded-full bg-slate-600" />
+            </div>
 
             {/* Play / pause label */}
             <motion.button
