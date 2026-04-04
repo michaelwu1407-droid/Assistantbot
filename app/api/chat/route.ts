@@ -923,8 +923,8 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
         ...deal,
         signals: getAttentionSignalsForDeal({
           id: deal.id,
-          title: deal.title,
-          stage: deal.stage,
+          title: deal.title ?? deal.contactName ?? "Job",
+          stage: deal.stage ?? "new_request",
           health: deal.health ?? null,
           scheduledAt: deal.scheduledAt ?? null,
           actualOutcome: deal.actualOutcome ?? null,
