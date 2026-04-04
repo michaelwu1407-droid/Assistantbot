@@ -27,6 +27,17 @@ function roundDecimalMoney(value: Prisma.Decimal): Prisma.Decimal {
   return value.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 }
 
+function revalidateInvoiceSurfaces(dealId: string, contactId?: string | null) {
+  revalidatePath("/crm", "layout");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath(`/crm/deals/${dealId}`);
+  revalidatePath("/crm/contacts");
+  if (contactId) {
+    revalidatePath(`/crm/contacts/${contactId}`);
+  }
+}
+
 async function ensurePostJobFollowUp(dealId: string) {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
@@ -636,6 +647,8 @@ export async function generateQuote(
     },
   });
 
+  revalidateInvoiceSurfaces(parsed.data.dealId, deal.contactId);
+
   return { success: true, total: total.toNumber(), invoiceNumber, dealId: parsed.data.dealId };
 }
 
@@ -690,6 +703,7 @@ export async function issueInvoice(invoiceId: string) {
       source: "tradie-actions.issueInvoice",
     },
   });
+  revalidateInvoiceSurfaces(invoice.dealId, invoice.deal.contactId);
   return { success: true };
 }
 
@@ -752,6 +766,8 @@ export async function markInvoicePaid(invoiceId: string) {
     },
   });
 
+  revalidateInvoiceSurfaces(invoice.dealId, invoice.deal.contactId);
+
   return { success: true };
 }
 
@@ -798,6 +814,8 @@ export async function voidInvoice(invoiceId: string) {
       source: "tradie-actions.voidInvoice",
     },
   });
+
+  revalidateInvoiceSurfaces(existing.dealId, existing.deal.contactId);
 
   return { success: true };
 }
@@ -862,6 +880,8 @@ export async function reverseInvoiceStatus(
     },
   });
 
+  revalidateInvoiceSurfaces(existing.dealId, existing.deal.contactId);
+
   return { success: true };
 }
 
@@ -912,6 +932,8 @@ export async function updateInvoiceLineItems(
       source: "tradie-actions.updateInvoiceLineItems",
     },
   });
+
+  revalidateInvoiceSurfaces(existing.dealId, existing.deal.contactId);
 
   return { success: true, subtotal: subtotal.toNumber(), tax: tax.toNumber(), total: total.toNumber() };
 }
@@ -965,6 +987,8 @@ export async function emailInvoice(invoiceId: string) {
       contactId: contact.id,
     },
   });
+
+  revalidateInvoiceSurfaces(invoice.dealId, contact.id);
 
   return { success: true };
 }

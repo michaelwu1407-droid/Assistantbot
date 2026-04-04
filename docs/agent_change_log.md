@@ -1,3 +1,43 @@
+## 2026-04-05 00:15 (AEDT) - Codex
+
+- Files changed:
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/chat-route.test.ts`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/deal-utils.test.ts`
+  - `__tests__/digest.test.ts`
+  - `__tests__/new-deal-modal-standalone.test.tsx`
+  - `__tests__/new-deal-modal.test.tsx`
+  - `__tests__/settings-layout.test.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `__tests__/triage.test.ts`
+  - `actions/chat-actions.ts`
+  - `actions/contact-actions.ts`
+  - `actions/deal-actions.ts`
+  - `actions/learning-actions.ts`
+  - `actions/tradie-actions.ts`
+  - `app/api/chat/route.ts`
+  - `app/crm/settings/layout.tsx`
+  - `components/chatbot/chat-interface.tsx`
+  - `components/crm/deal-card.tsx`
+  - `components/modals/new-deal-modal-standalone.tsx`
+  - `components/modals/new-deal-modal.tsx`
+  - `components/ui/address-autocomplete.tsx`
+  - `docs/agent_handoff_2026-04-05.md`
+  - `lib/admin/customer-usage.ts`
+  - `lib/ai/triage.ts`
+  - `lib/deal-utils.ts`
+  - `lib/digest.ts`
+- Summary:
+  - Unified user-facing CRM stage language so contact views, activity/history text, admin usage reporting, and chat responses now present modern labels such as `Quote sent`, `Scheduled`, and `Awaiting payment` instead of leaking legacy internal stage names.
+  - Fixed the CRM settings shell to use page-level vertical scrolling instead of clipping bottom actions inside nested scroll containers.
+  - Revalidated invoice-related CRM surfaces after quote/invoice mutations so actions like `Mark Paid` refresh the deal, dashboard, and linked invoice views more reliably.
+  - Removed silent address auto-selection from job creation. Typed addresses now save exactly as entered unless the user explicitly chooses an autocomplete suggestion, and stale coordinates are cleared when the typed address changes.
+  - Reworked lead triage from hard decline to `hold for review`: risky leads now create visible review notes, surface in the evening digest, and show a `Needs review` banner on deal cards rather than being auto-rejected.
+  - Kept Tracey chat LLM-first while aligning aggregate invoice/chat wording to the user-facing CRM language and making the direct aggregate response path use friendly stage labels.
+- Why:
+  - This pass focused on trust and clarity: making visible CRM language consistent, preventing silent data mutation, keeping important actions reachable on long settings pages, and aligning the AI triage/chat behavior with the intended human review workflow instead of surprising users with hidden declines or internal labels.
+
 ## 2026-04-04 03:18 (AEDT) - Codex
 
 - Files changed:

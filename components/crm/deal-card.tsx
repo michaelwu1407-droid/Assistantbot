@@ -80,6 +80,8 @@ function statusBannerOverlayClasses(label: string): string {
       return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
     case "Rejected":
       return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+    case "Needs review":
+      return "bg-orange-400/65 text-orange-950 shadow-inner dark:bg-orange-500/65 dark:text-orange-950"
     default:
       return "bg-muted/65 text-foreground shadow-inner"
   }
@@ -166,6 +168,10 @@ export function DealCard({
       statusLabel = "Urgent"
     } else if (deal.health?.status === "STALE") {
       statusLabel = "Follow up"
+    }
+
+    if (deal.aiTriageRecommendation === "HOLD_REVIEW") {
+      statusLabel = "Needs review"
     }
 
     if (deal.isDraft) {

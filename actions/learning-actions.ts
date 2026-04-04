@@ -22,8 +22,8 @@ export interface DeviationEventData {
 // ─── Deviation Detection ────────────────────────────────────────────
 
 /**
- * Called when a deal's stage changes. Checks if the AI recommended DECLINE
- * but the user overrode it (moved to a positive stage like SCHEDULED/WON).
+ * Called when a deal's stage changes. Checks if the AI recommended holding a lead
+ * for review but the user overrode it (moved to a positive stage like SCHEDULED/WON).
  */
 export async function checkForDeviation(
   dealId: string,
@@ -45,7 +45,7 @@ export async function checkForDeviation(
 
     if (!deal || !deal.aiTriageRecommendation) return;
 
-    const aiSaidDecline = ["DECLINE", "OUT_OF_AREA"].includes(
+    const aiSuggestedReview = ["HOLD_REVIEW"].includes(
       deal.aiTriageRecommendation
     );
     const userOverrode = [
@@ -56,7 +56,7 @@ export async function checkForDeviation(
       "WON",
     ].includes(newStage.toUpperCase());
 
-    if (!aiSaidDecline || !userOverrode) return;
+    if (!aiSuggestedReview || !userOverrode) return;
 
     // Find the specific negative-scope rule that triggered the decline
     const agentFlags = (deal as Record<string, unknown>).agentFlags as
@@ -64,7 +64,7 @@ export async function checkForDeviation(
       | null;
     const triggeredRule = agentFlags?.find(
       (f: string) =>
-        f.includes("Negative scope") || f.includes("Out of area")
+        f.includes("Needs review")
     );
 
     // Log the deviation
@@ -87,13 +87,13 @@ export async function checkForDeviation(
     if (owner) {
       const contactName = deal.contact?.name || "a customer";
       const ruleText = triggeredRule
-        ? triggeredRule.replace("Negative scope: ", "")
+        ? triggeredRule.replace("Needs review: ", "")
         : deal.aiTriageRecommendation;
 
       await createNotification({
         userId: owner.id,
         title: "AI Learning Insight",
-        message: `I recommended declining the "${deal.title}" job for ${contactName} (reason: ${ruleText}), but you accepted it. Should I remove this rule from my negative scope?`,
+        message: `I held the "${deal.title}" job for ${contactName} for manual review (reason: ${ruleText}), but you accepted it. Should I relax this rule or keep treating similar leads as review-needed?`,
         type: "INFO",
         actionType: "RESOLVE_DEVIATION",
         actionPayload: { dealId: deal.id, deviationRule: triggeredRule },
@@ -178,7 +178,7 @@ export async function resolveDeviation(
     // If removing the rule, find and delete it from BusinessKnowledge
     if (action === "REMOVE_RULE" && deviation.ruleContent) {
       const ruleText = deviation.ruleContent
-        .replace("Negative scope: ", "")
+        .replace("Needs review: ", "")
         .trim();
 
       // Find matching negative scope rules

@@ -22,6 +22,7 @@ import { recordSyncIssue } from "@/lib/sync-issues";
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules";
 import { logger } from "@/lib/logging";
 import { formatDateTimeInTimezone, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { getUserFacingDealStageLabel, UI_STAGE_LABELS } from "@/lib/deal-utils";
 import {
   KANBAN_COLUMN_SORT_ORDER,
   kanbanColumnIdForDealStage,
@@ -59,15 +60,21 @@ const STAGE_REVERSE: Record<string, string> = {
 
 // Human-readable labels for activity log (e.g. "Moved to Deleted jobs")
 const STAGE_ACTIVITY_LABELS: Record<string, string> = {
-  new: "New request",
-  new_request: "New request",
-  quote_sent: "Quote sent",
-  scheduled: "Scheduled",
-  ready_to_invoice: "Ready to invoice",
-  pending_approval: "Pending approval",
-  completed: "Completed",
-  lost: "Lost",
-  deleted: "Deleted",
+  new: UI_STAGE_LABELS.new_request,
+  new_request: UI_STAGE_LABELS.new_request,
+  quote_sent: UI_STAGE_LABELS.quote_sent,
+  scheduled: UI_STAGE_LABELS.scheduled,
+  ready_to_invoice: UI_STAGE_LABELS.ready_to_invoice,
+  pending_approval: UI_STAGE_LABELS.pending_approval,
+  completed: UI_STAGE_LABELS.completed,
+  lost: UI_STAGE_LABELS.lost,
+  deleted: UI_STAGE_LABELS.deleted,
+  contacted: UI_STAGE_LABELS.quote_sent,
+  negotiation: UI_STAGE_LABELS.scheduled,
+  pipeline: UI_STAGE_LABELS.quote_sent,
+  invoiced: UI_STAGE_LABELS.ready_to_invoice,
+  pending_completion: UI_STAGE_LABELS.pending_approval,
+  won: UI_STAGE_LABELS.completed,
 };
 
 async function queueCompletionFollowUp(
@@ -205,6 +212,7 @@ export interface DealView {
   outcomeNotes?: string | null;
   // AI Agent Triage Flags
   agentFlags?: string[];
+  aiTriageRecommendation?: string | null;
   // Lead Source
   source?: string | null;
   workspaceTimezone?: string;
@@ -350,6 +358,7 @@ export async function getDeals(
         outcomeNotes: deal.outcomeNotes,
         // AI Agent Triage Flags
         agentFlags: Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : undefined,
+        aiTriageRecommendation: deal.aiTriageRecommendation ?? null,
         // Lead Source
         source: deal.source ?? null,
       };
@@ -1271,7 +1280,7 @@ export async function updateDeal(
   if (data.stage !== undefined) {
     const prismaStage = STAGE_REVERSE[data.stage];
     if (prismaStage !== deal.stage) {
-      changes.push(`Stage: ${STAGE_ACTIVITY_LABELS[deal.stage.toLowerCase()] || deal.stage} -> ${STAGE_ACTIVITY_LABELS[data.stage] || data.stage}`);
+      changes.push(`Stage: ${getUserFacingDealStageLabel(deal.stage)} -> ${getUserFacingDealStageLabel(data.stage)}`);
     }
   }
   const currentInvoiced = deal.invoicedAmount ? Number(deal.invoicedAmount) : null;

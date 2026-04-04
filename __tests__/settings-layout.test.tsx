@@ -59,4 +59,11 @@ describe("SettingsLayout", () => {
     expect(screen.getByRole("link", { name: "Integrations" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Billing" })).toBeInTheDocument();
   });
+
+  it("does not trap settings inside its own vertical scroll pane", () => {
+    const { container } = render(<SettingsLayout><div>settings content</div></SettingsLayout>);
+
+    expect(container.firstChild).toHaveClass("min-h-full");
+    expect(container.firstChild).not.toHaveClass("overflow-y-auto");
+  });
 });

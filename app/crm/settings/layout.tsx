@@ -138,7 +138,7 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
     return (
-        <div className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
+        <div className="min-h-full flex-1 space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
             <div className="space-y-1.5">
                 <h2 className="app-page-title">Settings</h2>
                 <p className="app-body-secondary">

@@ -320,7 +320,7 @@ describe("chat-actions", () => {
     expect(result).toContain("Next steps: Review the request, then either send a quote or assign a team member and set a scheduled date before moving it forward.");
   });
 
-  it("lists only matching jobs that are ready to invoice or already invoiced", async () => {
+  it("lists only matching jobs that are awaiting payment or already invoiced", async () => {
     hoisted.getDeals.mockResolvedValue([
       {
         id: "deal_1",
@@ -351,7 +351,7 @@ describe("chat-actions", () => {
     const result = await runListInvoiceReadyJobs("ws_1", { query: "ZZZ AUTO test" });
 
     expect(result).toBe(
-      'Jobs matching "ZZZ AUTO test" that are ready to invoice or already invoiced:\n- ZZZ AUTO test Blocked Drain (ready to invoice)\n- ZZZ AUTO test Hot Water Service (invoice $2680)',
+      'Jobs matching "ZZZ AUTO test" that are awaiting payment or already invoiced:\n- ZZZ AUTO test Blocked Drain (awaiting payment)\n- ZZZ AUTO test Hot Water Service (invoice $2680)',
     );
   });
 

@@ -847,6 +847,23 @@ return QUICK_ACTIONS;
                   Pipeline value: ${digestModal.digest.totalPipelineValue.toLocaleString("en-AU")} · Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
                 </p>
               </div>
+              {digestModal.kind === "evening" && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">Held leads & review queue</p>
+                  {digestModal.digest.items.filter(i => i.type === "triage_review").length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No leads are waiting for manual review.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {digestModal.digest.items.filter(i => i.type === "triage_review").map((item, idx) => (
+                        <li key={idx} className="rounded-lg border border-orange-200 dark:border-orange-700 bg-orange-50/70 dark:bg-orange-900/40 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-orange-800 dark:text-orange-100">{item.title}</p>
+                          <p className="text-[11px] text-orange-800/90 dark:text-orange-100/90 mt-0.5">{item.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Urgent & rotting jobs</p>

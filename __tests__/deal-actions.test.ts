@@ -398,6 +398,12 @@ describe("deal-actions", () => {
 
     expect(result).toEqual({ success: true });
     expect(hoisted.sendConfirmationSMS).toHaveBeenCalledWith("deal_1");
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Deal updated",
+        content: expect.stringContaining("Stage: Quote sent -> Scheduled"),
+      }),
+    });
   });
 
   it("clears reminder state when updateDeal changes the scheduled time", async () => {

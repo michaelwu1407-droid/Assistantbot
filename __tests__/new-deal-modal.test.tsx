@@ -170,11 +170,30 @@ vi.mock("@/components/ui/address-autocomplete", () => ({
     id,
     value,
     onChange,
+    onPlaceSelect,
   }: {
     id: string;
     value: string;
     onChange: (value: string) => void;
-  }) => <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />,
+    onPlaceSelect?: (place: { address: string; latitude: number | null; longitude: number | null; placeId: string | null }) => void;
+  }) => (
+    <div>
+      <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
+      <button
+        type="button"
+        onClick={() =>
+          onPlaceSelect?.({
+            address: "15 Queen St, Sydney NSW 2000",
+            latitude: -33.867,
+            longitude: 151.207,
+            placeId: "place_1",
+          })
+        }
+      >
+        Select suggested address
+      </button>
+    </div>
+  ),
 }));
 
 import { NewDealModal } from "@/components/modals/new-deal-modal";
@@ -330,5 +349,49 @@ describe("NewDealModal", () => {
     expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument();
     expect(createContact).not.toHaveBeenCalled();
     expect(createDeal).not.toHaveBeenCalled();
+  });
+
+  it("clears stale coordinates when the user types over a previously selected address", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NewDealModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="ws_1"
+        teamMembers={[{ id: "user_1", name: "Jess Smith", email: "jess@example.com", role: "STAFF" }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getContacts).toHaveBeenCalledWith("ws_1");
+    });
+
+    fireEvent.change(screen.getByLabelText(/job description/i), {
+      target: { value: "Address trust job" },
+    });
+    fireEvent.change(screen.getByLabelText(/first name/i), {
+      target: { value: "Sarah Jones" },
+    });
+    fireEvent.change(screen.getByLabelText(/phone/i), {
+      target: { value: "0400000002" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select suggested address" }));
+    fireEvent.change(screen.getByLabelText(/^address$/i), {
+      target: { value: "500 QA Avenue, Sydney NSW" },
+    });
+
+    fireEvent.submit(screen.getByRole("button", { name: "Create Job" }).closest("form")!);
+
+    await waitFor(() => {
+      expect(createDeal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          address: "500 QA Avenue, Sydney NSW",
+          latitude: undefined,
+          longitude: undefined,
+        }),
+      );
+    });
   });
 });

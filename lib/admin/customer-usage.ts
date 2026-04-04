@@ -340,16 +340,16 @@ type TranscriptTurn = {
 };
 
 const STAGE_LABELS: Record<string, string> = {
-  NEW: "New request",
-  CONTACTED: "Quote sent",
-  NEGOTIATION: "Negotiation",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Ready to invoice",
-  PENDING_COMPLETION: "Pending approval",
-  WON: "Completed",
-  LOST: "Lost",
-  DELETED: "Deleted",
+  NEW: getUserFacingDealStageLabel("NEW"),
+  CONTACTED: getUserFacingDealStageLabel("CONTACTED"),
+  NEGOTIATION: getUserFacingDealStageLabel("NEGOTIATION"),
+  SCHEDULED: getUserFacingDealStageLabel("SCHEDULED"),
+  PIPELINE: getUserFacingDealStageLabel("PIPELINE"),
+  INVOICED: getUserFacingDealStageLabel("INVOICED"),
+  PENDING_COMPLETION: getUserFacingDealStageLabel("PENDING_COMPLETION"),
+  WON: getUserFacingDealStageLabel("WON"),
+  LOST: getUserFacingDealStageLabel("LOST"),
+  DELETED: getUserFacingDealStageLabel("DELETED"),
   ARCHIVED: "Archived",
 };
 
@@ -1897,3 +1897,4 @@ export async function getCustomerUsageDashboardData(
     },
   };
 }
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils";

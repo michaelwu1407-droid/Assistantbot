@@ -125,7 +125,7 @@ const DIRECT_STAGE_LABELS: Record<string, string> = {
   new_request: "New request",
   quote_sent: "Quote sent",
   scheduled: "Scheduled",
-  ready_to_invoice: "Ready to invoice",
+  ready_to_invoice: "Awaiting payment",
   pending_approval: "Pending approval",
   completed: "Completed",
   lost: "Lost",
@@ -136,7 +136,7 @@ const DIRECT_STAGE_LABELS: Record<string, string> = {
   NEGOTIATION: "Scheduled",
   PIPELINE: "Quote sent",
   SCHEDULED: "Scheduled",
-  INVOICED: "Ready to invoice",
+  INVOICED: "Awaiting payment",
   PENDING_COMPLETION: "Pending approval",
   WON: "Completed",
   LOST: "Lost",
@@ -353,7 +353,7 @@ function shouldAttemptDirectPolicyResponse(content: string, classification: PreC
     /^create a reminder task to follow up /i.test(text) ||
     /^create a reminder task to call /i.test(text) ||
     /^create a new task called .+ due /i.test(text) ||
-    /^what jobs for .+ are ready to invoice or already invoiced[.?!]*$/i.test(text) ||
+    /^what jobs for .+ are (ready to invoice|awaiting payment) or already invoiced[.?!]*$/i.test(text) ||
     /^what jobs for .+ look incomplete or blocked[.?!]*$/i.test(text)
   );
 }
@@ -405,7 +405,10 @@ function formatDealList(
   return `${prefix}\n${deals
     .map((deal) => {
       const suffix: string[] = [];
-      if (deal.stage) suffix.push(deal.stage);
+      if (deal.stage) {
+        const stageLabel = DIRECT_STAGE_LABELS[deal.stage] ?? DIRECT_STAGE_LABELS[deal.stage.toUpperCase()] ?? deal.stage;
+        suffix.push(stageLabel);
+      }
       if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) suffix.push(`invoice $${deal.invoicedAmount}`);
       if (deal.signals?.length) suffix.push(deal.signals.join(", "));
       return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
@@ -437,7 +440,7 @@ function extractLikelyContactReference(content: string, classification: PreClass
 
 function extractLikelyDealQuery(content: string): string | null {
   const patterns = [
-    /what jobs for (.+?) are ready to invoice or already invoiced[.?!]*$/i,
+    /what jobs for (.+?) are (?:ready to invoice|awaiting payment) or already invoiced[.?!]*$/i,
     /what jobs for (.+?) look incomplete or blocked[.?!]*$/i,
     /do you know the latest note on (.+?)[.?!]*$/i,
     /what still needs to happen before (.+?) can be completed[.?!]*$/i,
@@ -903,7 +906,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     };
   }
 
-  match = text.match(/^what jobs for (.+?) are ready to invoice or already invoiced[.?!]*$/i);
+  match = text.match(/^what jobs for (.+?) are (?:ready to invoice|awaiting payment) or already invoiced[.?!]*$/i);
   if (match) {
     const deals = await getDeals(workspaceId, undefined, { unbounded: true });
     const matches = filterDealsByQuery(deals, match[1]).filter((deal) =>
@@ -912,8 +915,8 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     return {
       text: formatDealList(
         matches.length
-          ? `Jobs matching "${cleanDirectValue(match[1])}" that are ready to invoice or already invoiced:`
-          : `I couldn't find any jobs matching "${cleanDirectValue(match[1])}" that are ready to invoice or already invoiced.`,
+          ? `Jobs matching "${cleanDirectValue(match[1])}" that are awaiting payment or already invoiced:`
+          : `I couldn't find any jobs matching "${cleanDirectValue(match[1])}" that are awaiting payment or already invoiced.`,
         matches.map((deal) => ({
           title: deal.title,
           stage: deal.stage,

@@ -84,7 +84,6 @@ function AddressAutocompleteWithGoogle({
   const [isFocused, setIsFocused] = useState(false)
   const [isResolved, setIsResolved] = useState(false)
   const [hasMapsFailure, setHasMapsFailure] = useState(false)
-  const resolvingRef = useRef(false)
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
@@ -195,7 +194,6 @@ function AddressAutocompleteWithGoogle({
           fields: ["address_components", "formatted_address", "name", "geometry", "place_id"],
         },
         (details, status) => {
-          resolvingRef.current = false
           if (status !== google.maps.places.PlacesServiceStatus.OK || !details) {
             onChange(fallbackText)
             return
@@ -204,7 +202,6 @@ function AddressAutocompleteWithGoogle({
         },
       )
     } catch {
-      resolvingRef.current = false
       onChange(fallbackText)
     }
   }, [applyResolvedPlace, onChange, pickPlaceParts])
@@ -217,65 +214,12 @@ function AddressAutocompleteWithGoogle({
     if (!resolved?.region || !resolved?.postalCode || !resolved?.locality) {
       const placeId = place.place_id
       if (placeId) {
-        resolvingRef.current = true
         resolvePlaceById(placeId, resolved?.address ?? place.formatted_address ?? place.name ?? "")
         return
       }
     }
     applyResolvedPlace({ place, resolved })
   }, [applyResolvedPlace, pickPlaceParts, resolvePlaceById])
-
-  const attemptAutoSelectBestMatch = useCallback(() => {
-    if (!isLoaded || hasMapsFailure) return
-    const text = value.trim()
-    if (!text || isResolved || resolvingRef.current) return
-    // Only attempt when the user has typed something meaningful.
-    if (text.length < 8) return
-
-    try {
-      resolvingRef.current = true
-      const service = new google.maps.places.AutocompleteService()
-      service.getPlacePredictions(
-        {
-          input: text,
-          componentRestrictions: { country: "au" },
-          types: ["address"],
-        },
-        (predictions, status) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
-            resolvingRef.current = false
-            return
-          }
-          const top = predictions[0]
-          if (!top?.place_id) {
-            resolvingRef.current = false
-            return
-          }
-          resolvePlaceById(top.place_id, text)
-        },
-      )
-    } catch {
-      resolvingRef.current = false
-    }
-  }, [hasMapsFailure, isLoaded, isResolved, resolvePlaceById, value])
-
-  // If the value is programmatically filled (e.g. website scrape),
-  // resolve it in the background without requiring user blur/click.
-  useEffect(() => {
-    if (!isLoaded || hasMapsFailure) return
-    if (isFocused) return
-    if (isResolved) return
-    const text = value.trim()
-    if (text.length < 8) return
-
-    const t = window.setTimeout(() => {
-      attemptAutoSelectBestMatch()
-    }, 350)
-
-    return () => {
-      window.clearTimeout(t)
-    }
-  }, [attemptAutoSelectBestMatch, hasMapsFailure, isFocused, isLoaded, isResolved, value])
 
   useEffect(() => {
     if (!isLoaded || !inputRef.current || !apiKey || autocompleteRef.current) return
@@ -296,8 +240,15 @@ function AddressAutocompleteWithGoogle({
 
   // Reset the resolved indicator when the user types manually
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = e.target.value
     setIsResolved(false)
-    onChange(e.target.value)
+    onChange(nextValue)
+    onPlaceSelect?.({
+      address: nextValue,
+      latitude: null,
+      longitude: null,
+      placeId: null,
+    })
   }
 
   if (hasMapsFailure) {
@@ -337,10 +288,7 @@ function AddressAutocompleteWithGoogle({
         value={value}
         onChange={handleInputChange}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => {
-          setIsFocused(false)
-          attemptAutoSelectBestMatch()
-        }}
+        onBlur={() => setIsFocused(false)}
         className={cn("pl-9 pr-8 relative z-10", isResolved && "border-emerald-200")}
       />
       {isResolved && (

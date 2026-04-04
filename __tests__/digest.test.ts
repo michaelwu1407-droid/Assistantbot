@@ -207,9 +207,24 @@ describe("generateMorningDigest", () => {
 
 describe("generateEveningDigest", () => {
   it("returns the same structure as morning digest but with Evening greeting", async () => {
+    db.deal.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "hold-1",
+          title: "Far away blocked drain",
+          value: 650,
+          contactId: "contact-2",
+          contact: { name: "Taylor" },
+          agentFlags: ["Needs review: 48km away (near service limit)"],
+        },
+      ]);
+
     const digest = await generateEveningDigest("ws-1");
     expect(digest.greeting).toBe("Evening");
     expect(digest.items).toBeDefined();
     expect(digest.totalPipelineValue).toBeDefined();
+    expect(digest.items.some((item) => item.type === "triage_review")).toBe(true);
+    expect(digest.topActions[0]).toContain("waiting for your review");
   });
 });

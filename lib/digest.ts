@@ -11,7 +11,7 @@ import type { Prisma } from "@prisma/client";
  */
 
 export interface DigestItem {
-  type: "rotting_deal" | "stale_deal" | "overdue_task" | "follow_up";
+  type: "rotting_deal" | "stale_deal" | "overdue_task" | "follow_up" | "triage_review";
   priority: number; // 1 = highest
   title: string;
   description: string;
@@ -175,8 +175,39 @@ export async function generateEveningDigest(
   workspaceId: string
 ): Promise<DailyDigest> {
   const digest = await generateMorningDigest(workspaceId);
+  const heldReviewDeals = await db.deal.findMany({
+    where: {
+      workspaceId,
+      aiTriageRecommendation: "HOLD_REVIEW",
+      stage: { notIn: ["WON", "LOST", "DELETED", "ARCHIVED"] },
+    },
+    include: { contact: true },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
+  });
+
+  const triageItems: DigestItem[] = heldReviewDeals.map((deal) => {
+    const flags = Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : [];
+    return {
+      type: "triage_review",
+      priority: 1,
+      title: `${deal.title} is waiting for your review`,
+      description: `${deal.contact?.name ?? "Unknown customer"} — ${flags[0] ?? "Needs manual review before Tracey continues."}`,
+      dealId: deal.id,
+      contactId: deal.contactId ?? undefined,
+      value: Number(deal.value ?? 0),
+    };
+  });
+
+  const items = [...triageItems, ...digest.items].sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return (b.value ?? 0) - (a.value ?? 0);
+  });
+
   return {
     ...digest,
     greeting: "Evening",
+    items,
+    topActions: items.slice(0, 3).map((item) => item.title),
   };
 }

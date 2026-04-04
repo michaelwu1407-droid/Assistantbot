@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-export type TriageRecommendation = "ACCEPT" | "DECLINE" | "QUOTE" | "OUT_OF_AREA";
+export type TriageRecommendation = "ACCEPT" | "HOLD_REVIEW" | "QUOTE";
 
 export interface TriageResult {
   recommendation: TriageRecommendation;
@@ -16,6 +16,10 @@ export interface TriageResult {
  * 1. Service radius (if address is provided and geocoded)
  * 2. Negative scope rules (from BusinessKnowledge)
  * 3. Returns recommendation + flags for the agent to act on
+ *
+ * Policy:
+ * - Do not auto-decline leads.
+ * - Risky or unclear leads should be held for review with warning flags.
  */
 export async function triageIncomingLead(
   workspaceId: string,
@@ -62,13 +66,13 @@ export async function triageIncomingLead(
         .trim();
 
       if (leadText.includes(ruleWords)) {
-        flags.push(`Negative scope: ${rule.ruleContent}`);
+        flags.push(`Needs review: ${rule.ruleContent}`);
         matchedRule = rule.ruleContent;
       }
     }
 
     if (matchedRule) {
-      return { recommendation: "DECLINE", flags, matchedRule };
+      return { recommendation: "HOLD_REVIEW", flags, matchedRule };
     }
 
     // 4. Check service radius (simple distance estimation)
@@ -94,15 +98,19 @@ export async function triageIncomingLead(
 
         if (distance > (profile.serviceRadius || 20)) {
           flags.push(
-            `Out of area: ${Math.round(distance)}km away (limit: ${profile.serviceRadius}km)`
+            `Needs review: ${Math.round(distance)}km away (normal limit: ${profile.serviceRadius}km)`
           );
-          return { recommendation: "OUT_OF_AREA", flags };
+          return { recommendation: "HOLD_REVIEW", flags };
         }
 
         if (distance > (profile.serviceRadius || 20) * 0.8) {
-          flags.push(`Far away: ${Math.round(distance)}km (near limit)`);
+          flags.push(`Needs review: ${Math.round(distance)}km away (near service limit)`);
         }
       }
+    }
+
+    if (!leadData.address?.trim()) {
+      flags.push("Needs review: Missing address");
     }
 
     // 5. If we have services defined, check if the lead matches any known service
@@ -117,11 +125,11 @@ export async function triageIncomingLead(
       );
       if (hasMatch) {
         // Known service — can potentially quote
-        return { recommendation: "QUOTE", flags };
+        return { recommendation: flags.length > 0 ? "HOLD_REVIEW" : "QUOTE", flags };
       }
     }
 
-    return { recommendation: "ACCEPT", flags };
+    return { recommendation: flags.length > 0 ? "HOLD_REVIEW" : "ACCEPT", flags };
   } catch (err) {
     console.error("[Triage] Error:", err);
     return { recommendation: "ACCEPT", flags: ["Triage error — defaulting to accept"] };
@@ -136,13 +144,31 @@ export async function saveTriageRecommendation(
   result: TriageResult
 ): Promise<void> {
   try {
-    await db.deal.update({
+    const updatedDeal = await db.deal.update({
       where: { id: dealId },
       data: {
         aiTriageRecommendation: result.recommendation,
         agentFlags: result.flags.length > 0 ? result.flags : undefined,
       },
+      select: {
+        contactId: true,
+      },
     });
+
+    if (result.recommendation === "HOLD_REVIEW") {
+      await db.activity.create({
+        data: {
+          type: "NOTE",
+          title: "Lead held for review",
+          content:
+            result.flags.length > 0
+              ? result.flags.join("\n")
+              : "Lead needs manual review before Tracey continues.",
+          dealId,
+          contactId: updatedDeal.contactId ?? undefined,
+        },
+      });
+    }
   } catch (err) {
     console.error("[Triage] Failed to save recommendation:", err);
   }

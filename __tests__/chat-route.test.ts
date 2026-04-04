@@ -527,7 +527,7 @@ describe("POST /api/chat", () => {
     });
   });
 
-  it("answers ready-to-invoice aggregate queries directly from crm state", async () => {
+  it("answers awaiting-payment aggregate queries directly from crm state", async () => {
     hoisted.getDeals.mockResolvedValue([
       {
         id: "deal_1",
@@ -560,7 +560,7 @@ describe("POST /api/chat", () => {
 
     expect(hoisted.streamText).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
-      text: 'Jobs matching "ZZZ AUTO test" that are ready to invoice or already invoiced:\n- ZZZ AUTO test Blocked Drain (ready_to_invoice)\n- ZZZ AUTO test Hot Water Service (completed; invoice $2680)',
+      text: 'Jobs matching "ZZZ AUTO test" that are awaiting payment or already invoiced:\n- ZZZ AUTO test Blocked Drain (Awaiting payment)\n- ZZZ AUTO test Hot Water Service (Completed; invoice $2680)',
     });
   });
 
@@ -603,7 +603,7 @@ describe("POST /api/chat", () => {
 
     expect(hoisted.streamText).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
-      text: 'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
+      text: 'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (Scheduled; Stale)',
     });
   });
 

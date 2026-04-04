@@ -245,7 +245,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 <AddressAutocomplete
                                     id="address"
                                     value={address}
-                                    onChange={setAddress}
+                                    onChange={(nextAddress) => {
+                                        setAddress(nextAddress)
+                                        setLatitude(null)
+                                        setLongitude(null)
+                                    }}
                                     onPlaceSelect={(place) => {
                                         setAddress(place.address)
                                         setLatitude(place.latitude)
@@ -253,6 +257,9 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     }}
                                     placeholder="Start typing an address..."
                                 />
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Typed addresses are saved as written. Select a suggestion only if you want Tracey to lock in the map pin.
+                                </p>
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">

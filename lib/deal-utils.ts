@@ -130,7 +130,6 @@ export const STAGE_OPTIONS = [
   { value: "new_request", label: "New request" },
   { value: "quote_sent", label: "Quote sent" },
   { value: "scheduled", label: "Scheduled" },
-  { value: "pipeline", label: "Pipeline" },
   { value: "ready_to_invoice", label: "Awaiting payment" },
   { value: "completed", label: "Completed" },
   { value: "lost", label: "Lost" },
@@ -142,7 +141,7 @@ export const PRISMA_STAGE_TO_UI_STAGE: Record<string, string> = {
   CONTACTED: "quote_sent",
   NEGOTIATION: "scheduled",
   SCHEDULED: "scheduled",
-  PIPELINE: "pipeline",
+  PIPELINE: "quote_sent",
   INVOICED: "ready_to_invoice",
   PENDING_COMPLETION: "pending_approval",
   WON: "completed",
@@ -150,18 +149,46 @@ export const PRISMA_STAGE_TO_UI_STAGE: Record<string, string> = {
   DELETED: "deleted",
 };
 
-export const PRISMA_STAGE_LABELS: Record<string, string> = {
-  NEW: "New request",
-  CONTACTED: "Quote sent",
-  NEGOTIATION: "Negotiation",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Awaiting payment",
-  PENDING_COMPLETION: "Pending approval",
-  WON: "Completed",
-  LOST: "Lost",
-  DELETED: "Deleted",
+export const UI_STAGE_LABELS: Record<string, string> = {
+  new_request: "New request",
+  quote_sent: "Quote sent",
+  scheduled: "Scheduled",
+  ready_to_invoice: "Awaiting payment",
+  pending_approval: "Pending approval",
+  completed: "Completed",
+  lost: "Lost",
+  deleted: "Deleted",
 };
+
+export const PRISMA_STAGE_LABELS: Record<string, string> = {
+  NEW: UI_STAGE_LABELS.new_request,
+  CONTACTED: UI_STAGE_LABELS.quote_sent,
+  NEGOTIATION: UI_STAGE_LABELS.scheduled,
+  SCHEDULED: UI_STAGE_LABELS.scheduled,
+  PIPELINE: UI_STAGE_LABELS.quote_sent,
+  INVOICED: UI_STAGE_LABELS.ready_to_invoice,
+  PENDING_COMPLETION: UI_STAGE_LABELS.pending_approval,
+  WON: UI_STAGE_LABELS.completed,
+  LOST: UI_STAGE_LABELS.lost,
+  DELETED: UI_STAGE_LABELS.deleted,
+};
+
+export function getUserFacingDealStageLabel(stage: string): string {
+  const normalized = String(stage).trim();
+  if (!normalized) return normalized;
+
+  const lower = normalized.toLowerCase();
+  if (UI_STAGE_LABELS[lower]) {
+    return UI_STAGE_LABELS[lower];
+  }
+
+  const upper = normalized.toUpperCase();
+  if (PRISMA_STAGE_LABELS[upper]) {
+    return PRISMA_STAGE_LABELS[upper];
+  }
+
+  return normalized;
+}
 
 /** Kanban column ids + labels for the deal modal stage picker (same order as `kanban-board.tsx` columns + lost). */
 export const KANBAN_STAGE_PICKER_OPTIONS = [

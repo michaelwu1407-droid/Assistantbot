@@ -253,7 +253,11 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                             <AddressAutocomplete
                                 id="address"
                                 value={address}
-                                onChange={setAddress}
+                                onChange={(nextAddress) => {
+                                    setAddress(nextAddress)
+                                    setLatitude(null)
+                                    setLongitude(null)
+                                }}
                                 onPlaceSelect={(place) => {
                                     setAddress(place.address)
                                     setLatitude(place.latitude)
@@ -262,6 +266,9 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 className="h-11 shadow-none"
                                 placeholder="Search for address..."
                             />
+                            <p className="text-xs text-slate-500">
+                                Typed addresses are saved as written. Select a suggestion only if you want Tracey to lock in the map pin.
+                            </p>
                         </div>
                     </div>
 

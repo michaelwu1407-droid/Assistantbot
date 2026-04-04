@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { enrichFromEmail, type EnrichedCompany } from "@/lib/enrichment";
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
 import { fuzzySearch, type SearchableItem } from "@/lib/search";
 import { evaluateAutomations } from "./automation-actions";
 import { requireContactInCurrentWorkspace, requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
@@ -85,19 +86,6 @@ const UpdateContactSchema = z.object({
 /**
  * Fetch all contacts for a workspace.
  */
-const DEAL_STAGE_LABELS: Record<string, string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  NEGOTIATION: "Negotiation",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Invoiced",
-  WON: "Completed",
-  LOST: "Lost",
-  DELETED: "Deleted",
-  ARCHIVED: "Archived",
-};
-
 const DEFAULT_CONTACTS_PAGE_SIZE = 100;
 const MAX_CONTACTS_PAGE_SIZE = 500;
 
@@ -118,9 +106,7 @@ function toContactView(c: unknown): ContactView {
   };
   const deals = contactWithRelations.deals ?? [];
   const primaryDeal = deals[0];
-  const primaryDealStage = primaryDeal
-    ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
-    : null;
+  const primaryDealStage = primaryDeal ? getUserFacingDealStageLabel(primaryDeal.stage) : null;
   const primaryDealStageKey = primaryDeal?.stage ?? null;
   const primaryDealTitle = primaryDeal?.title ?? null;
   let owed = 0;
@@ -261,9 +247,7 @@ export async function getContact(contactId: string): Promise<ContactView | null>
   };
   const deals = contactWithRelations.deals ?? [];
   const primaryDeal = deals[0];
-  const primaryDealStage = primaryDeal
-    ? (DEAL_STAGE_LABELS[primaryDeal.stage] ?? primaryDeal.stage)
-    : null;
+  const primaryDealStage = primaryDeal ? getUserFacingDealStageLabel(primaryDeal.stage) : null;
   const primaryDealStageKey = primaryDeal?.stage ?? null;
   const primaryDealTitle = primaryDeal?.title ?? null;
   let owed = 0;

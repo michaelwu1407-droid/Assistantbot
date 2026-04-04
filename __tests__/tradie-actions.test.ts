@@ -190,6 +190,12 @@ describe("tradie-actions", () => {
         }),
       }),
     );
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm", "layout");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/dashboard");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals/deal_1");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/contacts");
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/contacts/contact_1");
   });
 
   it("scopes on-my-way SMS through the shared deal access guard before sending", async () => {

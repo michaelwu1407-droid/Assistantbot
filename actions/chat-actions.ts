@@ -197,7 +197,7 @@ const CHAT_STAGE_LABELS: Record<string, string> = {
   new_request: "New request",
   quote_sent: "Quote sent",
   scheduled: "Scheduled",
-  ready_to_invoice: "Ready to invoice",
+  ready_to_invoice: "Awaiting payment",
   pending_approval: "Pending approval",
   completed: "Completed",
   lost: "Lost",
@@ -495,16 +495,16 @@ export async function runListInvoiceReadyJobs(
   );
 
   if (!matches.length) {
-    return `No jobs matching "${params.query}" are ready to invoice or already invoiced.`;
+    return `No jobs matching "${params.query}" are awaiting payment or already invoiced.`;
   }
 
-  return `Jobs matching "${params.query}" that are ready to invoice or already invoiced:\n${matches
-    .map((deal) => {
-      const suffix: string[] = [];
-      if (deal.stage === "ready_to_invoice") suffix.push("ready to invoice");
-      if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) suffix.push(`invoice $${deal.invoicedAmount}`);
-      return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
-    })
+  return `Jobs matching "${params.query}" that are awaiting payment or already invoiced:\n${matches
+      .map((deal) => {
+        const suffix: string[] = [];
+        if (deal.stage === "ready_to_invoice") suffix.push("awaiting payment");
+        if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) suffix.push(`invoice $${deal.invoicedAmount}`);
+        return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
+      })
     .join("\n")}`;
 }
 
