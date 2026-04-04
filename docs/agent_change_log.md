@@ -1,3 +1,18 @@
+## 2026-04-05 03:30 (AEST) - Antigravity Agent
+
+- Files changed:
+  - `actions/contact-actions.ts`
+  - `app/crm/team/page.tsx`
+  - `components/map/map-view.tsx`
+  - `components/modals/new-deal-modal.tsx`
+- Summary:
+  - **Contact deletion safety**: Added trial-catch and error handling for `P2003` constraint errors when deleting contacts with existing jobs.
+  - **Team Page UX**: Fixed invite link button behavior to use `window.open` for better reliability.
+  - **Map View improvements**: Disabled "Route" button when no jobs are scheduled for today and added visual feedback.
+  - **Job creation UX**: `NewDealModal` now refetches team members if needed and displays both name and email for clearer assignment.
+- Why:
+  - Improving CRM robustness and UI predictability based on recent feedback.
+
 ## 2026-04-05 03:15 (AEST) - Antigravity Agent
 
 - Files changed:

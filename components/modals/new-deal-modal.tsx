@@ -12,6 +12,7 @@ import { getContacts, createContact, type ContactView } from "@/actions/contact-
 import { getWorkspaceSettings } from "@/actions/settings-actions"
 import { toast } from "sonner"
 import { NEW_JOB_STAGE_OPTIONS, isNewJobStage, type NewJobStage } from "@/lib/deal-utils"
+import { getTeamMembers } from "@/actions/invite-actions"
 import { User, Mail, Phone, AlertCircle, CalendarClock } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
@@ -44,7 +45,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
     const [assignedToId, setAssignedToId] = useState("")
     const [contactId, setContactId] = useState("")
     const [contacts, setContacts] = useState<ContactView[]>([])
+    const [fetchedTeamMembers, setFetchedTeamMembers] = useState<TeamMemberOption[]>([])
     const [workspaceTimezone, setWorkspaceTimezone] = useState(DEFAULT_WORKSPACE_TIMEZONE)
+    
+    const activeTeamMembers = teamMembers.length > 0 ? teamMembers : fetchedTeamMembers
 
     // New Contact Mode State
     const [mode, setMode] = useState<"select" | "create">("create")
@@ -61,14 +65,19 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
 
     const fetchContacts = useCallback(() => {
         setIsFetchingContacts(true)
-        Promise.allSettled([getContacts(workspaceId), getWorkspaceSettings()])
+        Promise.allSettled([getContacts(workspaceId), getWorkspaceSettings(), getTeamMembers()])
             .then((results) => {
                 const contactsResult = results[0]
                 const settingsResult = results[1]
+                const teamResult = results[2]
+                
                 const nextContacts = contactsResult.status === "fulfilled" ? contactsResult.value : []
                 const settings = settingsResult.status === "fulfilled" ? settingsResult.value : null
+                const members = teamResult.status === "fulfilled" ? teamResult.value : []
+                
                 setContacts(nextContacts)
                 setWorkspaceTimezone(resolveWorkspaceTimezone(settings?.workspaceTimezone))
+                setFetchedTeamMembers(members)
             })
             .catch(console.error)
             .finally(() => setIsFetchingContacts(false))
@@ -296,20 +305,25 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 </SelectContent>
                             </Select>
                         </div>
-                        {teamMembers.length > 0 && (
+                        {activeTeamMembers.length > 0 && (
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="assignedTo" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                     Assigned to {stage === "scheduled" ? <span className="text-red-500">*</span> : ""}
                                 </Label>
                                 <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
                                     <SelectTrigger id="assignedTo" className="col-span-3 h-11 rounded-xl border-slate-200 bg-white/90">
-                                        <SelectValue placeholder={stage === "scheduled" ? "Select team member (required)" : "Optional"} />
+                                        <SelectValue placeholder="Unassigned" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="__unassigned__">None</SelectItem>
-                                        {teamMembers.map((m) => (
-                                            <SelectItem key={m.id} value={m.id}>
-                                                {m.name || m.email}
+                                        <SelectItem value="__unassigned__">
+                                            <span className="text-slate-500">Unassigned</span>
+                                        </SelectItem>
+                                        {activeTeamMembers.map((member) => (
+                                            <SelectItem key={member.id} value={member.id}>
+                                                <div className="flex flex-col">
+                                                    <span>{member.name || member.email}</span>
+                                                    {member.name && <span className="text-xs text-muted-foreground">{member.email}</span>}
+                                                </div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

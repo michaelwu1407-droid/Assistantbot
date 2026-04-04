@@ -235,9 +235,11 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
               <button
                 type="button"
                 onClick={() => setIsRouteMode(!isRouteMode)}
+                disabled={jobsToday.length === 0}
                 className={cn(
                   "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                  isRouteMode ? "bg-slate-900 text-white hover:bg-slate-800" : "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  isRouteMode ? "bg-slate-900 text-white hover:bg-slate-800" : 
+                    (jobsToday.length === 0 ? "border border-slate-200 bg-slate-50 text-slate-400" : "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100")
                 )}
               >
                 <Route className="h-4 w-4" />

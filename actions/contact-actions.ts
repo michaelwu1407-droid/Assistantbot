@@ -579,11 +579,18 @@ export async function deleteContacts(contactIds: string[]) {
   if (actor.role === "TEAM_MEMBER") {
     return { success: false, error: "Only managers can delete contacts." };
   }
-  await db.contact.deleteMany({
-    where: {
-      id: { in: contactIds },
-      workspaceId: actor.workspaceId,
-    },
-  });
-  return { success: true };
+  try {
+    await db.contact.deleteMany({
+      where: {
+        id: { in: contactIds },
+        workspaceId: actor.workspaceId,
+      },
+    });
+    return { success: true };
+  } catch (error: any) {
+    if (error?.code === 'P2003') {
+      return { success: false, error: "Cannot delete contacts with existing jobs or activities. Please delete them first." };
+    }
+    return { success: false, error: "Failed to delete contacts." };
+  }
 }

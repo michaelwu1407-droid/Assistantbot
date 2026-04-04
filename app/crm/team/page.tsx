@@ -476,12 +476,10 @@ export default function TeamPage() {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    asChild
                                                     className="h-9"
+                                                    onClick={() => window.open(`/invite/join?token=${invite.token}`, '_blank')}
                                                 >
-                                                    <a href={`/invite/join?token=${invite.token}`} target="_blank" rel="noreferrer">
-                                                        Open invite link
-                                                    </a>
+                                                    Open invite link
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
