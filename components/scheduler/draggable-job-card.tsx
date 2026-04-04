@@ -7,6 +7,7 @@ import { GripVertical, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { useIndustry } from "@/components/providers/industry-provider";
+import { formatJobHeaderStatus } from "@/lib/job-portal-status-labels";
 
 export interface SchedulerJob {
     id: string;
@@ -112,8 +113,8 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
                         <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-slate-300 bg-white/50">
                             {job.duration}h
                         </Badge>
-                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">
-                            {job.status || job.stage}
+                        <span className="text-[9px] font-semibold text-slate-500 tracking-wide">
+                            {formatJobHeaderStatus(job.status || job.stage || "")}
                         </span>
                     </div>
                 </div>

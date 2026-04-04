@@ -11,6 +11,7 @@ import { MapPin, User, Calendar, DollarSign, Navigation, ArrowRight } from "luci
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { renderToStaticMarkup } from "react-dom/server"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 // Custom Marker Icon Generator
 const createCustomIcon = (stage: string) => {
@@ -117,7 +118,7 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
                         deal.stage === 'negotiation' ? 'bg-amber-500/10 text-amber-500' :
                           'bg-muted text-muted-foreground'
                         }`}>
-                        {deal.stage}
+                        {getUserFacingDealStageLabel(deal.stage)}
                       </span>
                     </div>
 

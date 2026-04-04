@@ -228,6 +228,8 @@ export default function IntegrationsPage() {
                                 className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-red-500/50 hover:bg-red-50/50 transition-all"
                                 onClick={() => handleConnectEmail("gmail")}
                                 disabled={!readiness.gmail.ready}
+                                title={readiness.gmail.ready ? "Connect Gmail for lead capture" : readiness.gmail.reason}
+                                aria-label={readiness.gmail.ready ? "Connect Gmail" : `Gmail unavailable: ${readiness.gmail.reason ?? "not configured"}`}
                             >
                                 <Mail className="h-8 w-8 text-red-500" />
                                 <div className="text-center">
@@ -241,6 +243,8 @@ export default function IntegrationsPage() {
                                 className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-blue-500/50 hover:bg-blue-50/50 transition-all"
                                 onClick={() => handleConnectEmail("outlook")}
                                 disabled={!readiness.outlook.ready}
+                                title={readiness.outlook.ready ? "Connect Outlook for lead capture" : readiness.outlook.reason}
+                                aria-label={readiness.outlook.ready ? "Connect Outlook" : `Outlook unavailable: ${readiness.outlook.reason ?? "not configured"}`}
                             >
                                 <Mail className="h-8 w-8 text-blue-500" />
                                 <div className="text-center">
@@ -335,7 +339,16 @@ export default function IntegrationsPage() {
                                 Disconnect
                             </Button>
                         ) : (
-                            <Button onClick={handleConnectGoogleCalendar} disabled={calendarLoading || !readiness.googleCalendar.ready}>
+                            <Button
+                                onClick={handleConnectGoogleCalendar}
+                                disabled={calendarLoading || !readiness.googleCalendar.ready}
+                                title={readiness.googleCalendar.ready ? "Start Google Calendar connection" : readiness.googleCalendar.reason}
+                                aria-label={
+                                    readiness.googleCalendar.ready
+                                        ? "Connect Google Calendar"
+                                        : `Google Calendar unavailable: ${readiness.googleCalendar.reason ?? "not configured"}`
+                                }
+                            >
                                 {calendarLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                                 Connect Google Calendar
                             </Button>
@@ -386,7 +399,16 @@ export default function IntegrationsPage() {
                         )}
 
                         {xeroStatus === "idle" && (
-                            <Button onClick={handleConnectXero} disabled={!readiness.xero.ready}>Connect Xero</Button>
+                            <Button
+                                onClick={handleConnectXero}
+                                disabled={!readiness.xero.ready}
+                                title={readiness.xero.ready ? "Start Xero connection" : readiness.xero.reason}
+                                aria-label={
+                                    readiness.xero.ready ? "Connect Xero" : `Xero unavailable: ${readiness.xero.reason ?? "not configured"}`
+                                }
+                            >
+                                Connect Xero
+                            </Button>
                         )}
                         {xeroStatus === "connecting" && (
                             <Button disabled>

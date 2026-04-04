@@ -27,9 +27,9 @@ import {
   getKanbanColumnSwatchClass,
   getKanbanStagePillClasses,
   getOverdueStyling,
+  getUserFacingDealStageLabel,
   KANBAN_STAGE_PICKER_OPTIONS,
   prismaStageToKanbanColumn,
-  PRISMA_STAGE_LABELS,
 } from "@/lib/deal-utils"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
@@ -470,7 +470,7 @@ function DealDetailContent({
                   disabled={stageChanging}
                 >
                   <span className="truncate text-left">
-                    {PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage}
+                    {getUserFacingDealStageLabel(deal.stage)}
                   </span>
                   <ChevronDown className="h-4 w-4 shrink-0 text-white/90" />
                 </Button>
@@ -860,7 +860,7 @@ function DealDetailContent({
                         <span className="font-medium text-slate-900">{d.title}</span>
                         {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
                         <span className="text-slate-400 text-xs block mt-0.5">
-                          {PRISMA_STAGE_LABELS[d.stage] ?? d.stage} •{" "}
+                          {getUserFacingDealStageLabel(d.stage)} •{" "}
                           {d.updatedAt ? format(new Date(d.updatedAt as string), "MMM d") : "—"}
                         </span>
                       </button>

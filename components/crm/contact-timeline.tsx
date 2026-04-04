@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, Calendar, CheckCircle2, FileText, MessageSquare, DollarSign } from "lucide-react"
 import type { ActivityView } from "@/actions/activity-actions"
 import type { DealView } from "@/actions/deal-actions"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 interface ContactTimelineProps {
   activities: ActivityView[]
@@ -42,7 +43,7 @@ export function ContactTimeline({ activities, deals }: ContactTimelineProps) {
                     </div>
                     <div>
                       <p className="font-medium text-slate-900">{deal.title}</p>
-                      <p className="text-xs text-slate-500">Stage: {deal.stage}</p>
+                      <p className="text-xs text-slate-500">Stage: {getUserFacingDealStageLabel(deal.stage)}</p>
                     </div>
                   </div>
                   <div className="text-right">

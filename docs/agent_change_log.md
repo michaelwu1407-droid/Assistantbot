@@ -1,3 +1,31 @@
+## 2026-04-05 20:15 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `components/crm/contact-profile.tsx`
+  - `components/crm/contact-timeline.tsx`
+  - `components/crm/deal-detail-modal.tsx`
+  - `components/crm/leaflet-map.tsx`
+  - `components/scheduler/draggable-job-card.tsx`
+  - `__tests__/job-portal-status-labels.test.ts`
+- Summary:
+  - **Contact profile** property rows, **contact timeline** active deals, **map popups**, **deal detail modal** stage pill and “other jobs” list, and **scheduler** job cards now show **shared user-facing stage labels** (`getUserFacingDealStageLabel` / `formatJobHeaderStatus`) instead of raw Prisma codes or lowercase map stage ids.
+  - Scheduler status line drops forced **all-caps** styling so labels read naturally (e.g. “Scheduled” vs `SCHEDULED`).
+- Why:
+  - Closes remaining checklist drift where internal stage strings still leaked in secondary CRM surfaces after the main kanban/deal-card cleanup.
+
+## 2026-04-05 19:45 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `app/crm/settings/integrations/page.tsx`
+  - `components/jobs/job-detail-view.tsx`
+  - `lib/job-portal-status-labels.ts`
+  - `__tests__/job-portal-status-labels.test.ts`
+- Summary:
+  - **Integrations**: Disabled Gmail, Outlook, Google Calendar, and Xero connect buttons expose **`title` + `aria-label`** with `getIntegrationConnectionReadiness` reasons so users see why OAuth is unavailable instead of a dead control with no explanation.
+  - **Tradie job portal**: Header badge and success toast use **human-readable job and deal-stage labels** (`formatJobHeaderStatus`); invoice rows use **Paid / Issued / Draft** etc. instead of raw status codes.
+- Why:
+  - Closes audit gaps on unexplained disabled integration CTAs and raw `WON` / `TRAVELING`-style strings on the job detail surface.
+
 ## 2026-04-05 19:00 (AEDT) - Cursor Agent
 
 - Files changed:

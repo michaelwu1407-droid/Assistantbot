@@ -7,6 +7,7 @@ import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home, MessageSquare, Bo
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import type { SVGProps } from "react"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 interface ContactProfileProps {
     contact: ContactView
@@ -182,7 +183,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                             <p className="text-xs text-muted-foreground truncate opacity-80">{prop.address}</p>
                                         </div>
                                         <Badge variant="outline" className="text-[10px] flex-shrink-0 bg-background/50">
-                                            {prop.stage}
+                                            {getUserFacingDealStageLabel(prop.stage)}
                                         </Badge>
                                     </div>
                                 ))}

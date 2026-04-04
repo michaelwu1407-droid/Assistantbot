@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { InvoiceGenerator } from "@/components/invoicing/invoice-generator"
 import { JobMedia } from "./job-media"
+import { formatInvoiceStatusLabel, formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
 
 // Define types locally or import (ideally import shared types)
 interface JobDetail {
@@ -51,7 +52,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
             const result = await updateJobStatus(job.id, newStatus)
             if (result.success) {
                 setStatus(result.status ?? newStatus)
-                toast.success(`Job updated to ${newStatus}`)
+                toast.success(`Job updated — ${formatJobHeaderStatus(newStatus)}`)
                 router.refresh()
             }
         } catch {
@@ -161,7 +162,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                                 <p className="font-medium flex items-center gap-2">
                                                     {inv.number}
                                                     <Badge variant={inv.status === 'PAID' ? 'default' : inv.status === 'ISSUED' ? 'secondary' : 'outline'} className="text-[10px] h-5">
-                                                        {inv.status}
+                                                        {formatInvoiceStatusLabel(inv.status)}
                                                     </Badge>
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">${Number(inv.total).toFixed(2)} • {new Date(inv.createdAt).toLocaleDateString()}</p>
