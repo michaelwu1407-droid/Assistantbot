@@ -166,6 +166,8 @@ import {
   runCreateDeal,
   runCreateJobNatural,
   runGetDealContext,
+  runListIncompleteOrBlockedJobs,
+  runListInvoiceReadyJobs,
   runMoveDeal,
 } from "@/actions/chat-actions";
 
@@ -282,6 +284,77 @@ describe("chat-actions", () => {
     expect(result).toContain("Latest invoice: INV-001 (DRAFT) $480");
     expect(result).toContain("Recent notes:");
     expect(result).toContain("Bring ladder.");
+  });
+
+  it("lists only matching jobs that are ready to invoice or already invoiced", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "ZZZ AUTO test Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "ready_to_invoice",
+        invoicedAmount: undefined,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO test Hot Water Service",
+        company: "",
+        contactName: "Brianna Cole",
+        stage: "completed",
+        invoicedAmount: 2680,
+      },
+      {
+        id: "deal_3",
+        title: "Other Workspace Job",
+        company: "",
+        contactName: "Charlie",
+        stage: "ready_to_invoice",
+        invoicedAmount: undefined,
+      },
+    ]);
+
+    const result = await runListInvoiceReadyJobs("ws_1", { query: "ZZZ AUTO test" });
+
+    expect(result).toBe(
+      'Jobs matching "ZZZ AUTO test" that are ready to invoice or already invoiced:\n- ZZZ AUTO test Blocked Drain (ready to invoice)\n- ZZZ AUTO test Hot Water Service (invoice $2680)',
+    );
+  });
+
+  it("lists only matching jobs that still look incomplete or blocked", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "ZZZ AUTO test Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "scheduled",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO test Completed Job",
+        company: "",
+        contactName: "Brianna Cole",
+        stage: "completed",
+        health: { status: "HEALTHY" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+    ]);
+    hoisted.getAttentionSignalsForDeal
+      .mockReturnValueOnce([{ key: "stale", label: "Stale" }])
+      .mockReturnValueOnce([]);
+
+    const result = await runListIncompleteOrBlockedJobs("ws_1", { query: "ZZZ AUTO test" });
+
+    expect(result).toBe(
+      'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
+    );
   });
 
   it("creates a contact on demand before creating a deal from chat", async () => {

@@ -443,6 +443,76 @@ export async function runListDeals(workspaceId: string): Promise<{ deals: { id: 
   };
 }
 
+function matchesDealQuery(
+  deal: { title?: string; company?: string; contactName?: string },
+  query: string,
+) {
+  const cleaned = query.trim().toLowerCase();
+  if (!cleaned) return true;
+  return [deal.title, deal.company, deal.contactName]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase())
+    .some((field) => field.includes(cleaned));
+}
+
+export async function runListInvoiceReadyJobs(
+  workspaceId: string,
+  params: { query: string },
+): Promise<string> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const matches = deals.filter((deal) =>
+    matchesDealQuery(deal, params.query) &&
+    (deal.stage === "ready_to_invoice" || (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0)),
+  );
+
+  if (!matches.length) {
+    return `No jobs matching "${params.query}" are ready to invoice or already invoiced.`;
+  }
+
+  return `Jobs matching "${params.query}" that are ready to invoice or already invoiced:\n${matches
+    .map((deal) => {
+      const suffix: string[] = [];
+      if (deal.stage === "ready_to_invoice") suffix.push("ready to invoice");
+      if (typeof deal.invoicedAmount === "number" && deal.invoicedAmount > 0) suffix.push(`invoice $${deal.invoicedAmount}`);
+      return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
+    })
+    .join("\n")}`;
+}
+
+export async function runListIncompleteOrBlockedJobs(
+  workspaceId: string,
+  params: { query: string },
+): Promise<string> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const matches = deals
+    .filter((deal) => matchesDealQuery(deal, params.query))
+    .map((deal) => ({
+      deal,
+      signals: getAttentionSignalsForDeal({
+        id: deal.id,
+        title: deal.title,
+        stage: deal.stage,
+        health: deal.health,
+        scheduledAt: deal.scheduledAt ?? null,
+        actualOutcome: deal.actualOutcome ?? null,
+        metadata: deal.metadata ?? null,
+      }),
+    }))
+    .filter(({ deal, signals }) => signals.length > 0 || !["completed", "lost", "deleted", "archived"].includes(deal.stage));
+
+  if (!matches.length) {
+    return `No jobs matching "${params.query}" look incomplete or blocked.`;
+  }
+
+  return `Jobs matching "${params.query}" that still look incomplete or blocked:\n${matches
+    .map(({ deal, signals }) => {
+      const suffix: string[] = [deal.stage];
+      if (signals.length) suffix.push(signals.map((signal) => signal.label).join(", "));
+      return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
+    })
+    .join("\n")}`;
+}
+
 export async function runGetAttentionRequired(workspaceId: string): Promise<{
   success: boolean;
   message: string;

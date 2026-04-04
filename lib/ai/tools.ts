@@ -9,6 +9,8 @@ import {
     runBulkCreateDealReminder,
     runListDeals,
     runGetAttentionRequired,
+    runListInvoiceReadyJobs,
+    runListIncompleteOrBlockedJobs,
     runCreateDeal,
     runUpdateDealFields,
     runCreateJobNatural,
@@ -87,6 +89,20 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             description: "Audit jobs that need attention (overdue, stale, rotting, rejected, parked) and return quick-action prompts.",
             inputSchema: z.object({}),
             execute: async () => runGetAttentionRequired(workspaceId),
+        }),
+        listInvoiceReadyJobs: tool({
+            description: "List jobs matching an exact query that are ready to invoice or already invoiced.",
+            inputSchema: z.object({
+                query: z.string().describe("Exact text filter for the jobs to include"),
+            }),
+            execute: async ({ query }) => runListInvoiceReadyJobs(workspaceId, { query }),
+        }),
+        listIncompleteOrBlockedJobs: tool({
+            description: "List jobs matching an exact query that still look incomplete, blocked, stale, overdue, or otherwise attention-needed.",
+            inputSchema: z.object({
+                query: z.string().describe("Exact text filter for the jobs to include"),
+            }),
+            execute: async ({ query }) => runListIncompleteOrBlockedJobs(workspaceId, { query }),
         }),
         moveDeal: tool({
             description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted).",
@@ -644,12 +660,12 @@ const INTENT_TOOL_GROUPS: Record<string, string[]> = {
     pricing: ['pricingLookup', 'pricingCalculator', 'createDraftInvoice', 'updateInvoiceAmount'],
     scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary'],
     communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification'],
-    reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue', 'getAttentionRequired'],
+    reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue', 'getAttentionRequired', 'listIncompleteOrBlockedJobs'],
     contact_lookup: ['getClientContext', 'createContact', 'updateContactFields'],
     invoice: [
         'createDraftInvoice', 'issueInvoice', 'markInvoicePaid', 'voidInvoice',
         'reverseInvoiceStatus', 'updateInvoiceFields', 'updateInvoiceAmount',
-        'sendInvoiceReminder', 'getInvoiceStatus', 'pricingLookup', 'pricingCalculator',
+        'sendInvoiceReminder', 'getInvoiceStatus', 'listInvoiceReadyJobs', 'pricingLookup', 'pricingCalculator',
     ],
     crm_action: ['createJobNatural', 'proposeReschedule', 'bulkMoveDeals', 'bulkAssignDeals', 'bulkUpdateDealDisposition', 'bulkCreateDealReminder'],
     support: ['appendTicketNote'],

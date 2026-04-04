@@ -167,7 +167,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
       return [
         "REPORT REQUEST: Use getFinancialReport or getTodaySummary to fetch real data. Never estimate revenue.",
         /\b(incomplete|blocked|attention)\b/i.test(text)
-          ? "For jobs that look incomplete, blocked, stale, or overdue, use getAttentionRequired or listDeals and describe the actual jobs. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
+          ? "For jobs that look incomplete, blocked, stale, or overdue, use listIncompleteOrBlockedJobs first, then getAttentionRequired or listDeals if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
           : null,
         /\b(search past job history|job history)\b/i.test(text)
           ? "For job-history lookups, use searchJobHistory with the user's query instead of asking unnecessary follow-up questions."
@@ -188,7 +188,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
         /\b(ready to invoice|already invoiced)\b/i.test(text)
-          ? "For aggregate invoice-ready or already-invoiced job queries, use listDeals and current invoice/deal state. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
+          ? "For aggregate invoice-ready or already-invoiced job queries, use listInvoiceReadyJobs first, then current invoice/deal state if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
           : null,
       ].filter(Boolean) as string[];
     case "support":
@@ -210,7 +210,9 @@ function getSuggestedTools(intent: IntentHint): string[] {
     case "communication":
       return ["sendSms", "sendEmail", "makeCall"];
     case "reporting":
-      return ["getFinancialReport", "getTodaySummary"];
+      return /\b(incomplete|blocked|attention)\b/i.test(text)
+        ? ["listIncompleteOrBlockedJobs", "getAttentionRequired", "listDeals"]
+        : ["getFinancialReport", "getTodaySummary"];
     case "contact_lookup":
       return ["searchContacts", "getClientContext"];
     case "crm_action":
@@ -227,7 +229,9 @@ function getSuggestedTools(intent: IntentHint): string[] {
         "getDealContext",
       ];
     case "invoice":
-      return ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
+      return /\b(ready to invoice|already invoiced)\b/i.test(text)
+        ? ["listInvoiceReadyJobs", "getInvoiceStatus", "listDeals"]
+        : ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
     case "support":
       return ["contactSupport"];
     default:
