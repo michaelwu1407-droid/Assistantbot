@@ -164,6 +164,7 @@ import {
   handleSupportRequest,
   runAddDealNote,
   runCreateDeal,
+  runCreateJobNatural,
   runGetDealContext,
   runMoveDeal,
 } from "@/actions/chat-actions";
@@ -311,6 +312,47 @@ describe("chat-actions", () => {
     });
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm", "layout");
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
+  });
+
+  it("reuses an existing contact when creating a job naturally", async () => {
+    hoisted.searchContacts.mockResolvedValue([
+      {
+        id: "contact_existing",
+        name: "Alex Harper",
+      },
+    ]);
+
+    const result = await runCreateJobNatural("ws_1", {
+      clientName: "Alex Harper",
+      workDescription: "Blocked Drain",
+      address: "12 Test Street Sydney",
+      price: 420,
+    });
+
+    expect(hoisted.createContact).not.toHaveBeenCalled();
+    expect(hoisted.createDeal).toHaveBeenCalledWith({
+      title: "Blocked Drain",
+      company: "Alex Harper",
+      value: 420,
+      stage: "new",
+      contactId: "contact_existing",
+      workspaceId: "ws_1",
+      address: "12 Test Street Sydney",
+      scheduledAt: undefined,
+      assignedToId: null,
+      metadata: {
+        address: "12 Test Street Sydney",
+        schedule: undefined,
+        scheduleDisplay: "",
+        workDescription: "Blocked Drain",
+        notes: undefined,
+      },
+    });
+    expect(result).toEqual({
+      success: true,
+      message: "Job created: Blocked Drain for Alex Harper, $420.",
+      dealId: "deal_1",
+    });
   });
 
   it("returns phone-support guidance and records a support ticket", async () => {

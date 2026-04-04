@@ -6,6 +6,7 @@ import { buildLiveChatbotWorkflows } from "./live-chatbot-workflows.mjs";
 const DEFAULT_DEBUG_URL = process.env.CHROME_DEBUG_URL || "http://127.0.0.1:9222";
 const DEFAULT_BASE_URL = process.env.LIVE_CHATBOT_BASE_URL || "https://www.earlymark.ai";
 const DEFAULT_LIMIT = Number(process.env.LIVE_CHATBOT_LIMIT || 100);
+const DEFAULT_DELAY_MS = Number(process.env.LIVE_CHATBOT_DELAY_MS || 2100);
 
 function formatRunId() {
   const now = new Date();
@@ -25,6 +26,7 @@ function parseArgs(argv) {
     debugUrl: DEFAULT_DEBUG_URL,
     baseUrl: DEFAULT_BASE_URL,
     limit: DEFAULT_LIMIT,
+    delayMs: DEFAULT_DELAY_MS,
     runId: formatRunId(),
   };
 
@@ -43,10 +45,17 @@ function parseArgs(argv) {
     } else if (arg === "--run-id" && next) {
       options.runId = next;
       i += 1;
+    } else if (arg === "--delay-ms" && next) {
+      options.delayMs = Number(next);
+      i += 1;
     }
   }
 
   return options;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function percentile(values, p) {
@@ -139,6 +148,7 @@ async function sendChatRequest({ baseUrl, workspaceId, cookieHeader, messages })
   });
 
   const serverTiming = response.headers.get("server-timing");
+  const retryAfterHeader = response.headers.get("retry-after");
   const contentType = response.headers.get("content-type");
   const reader = response.body?.getReader();
   if (!reader) {
@@ -177,6 +187,7 @@ async function sendChatRequest({ baseUrl, workspaceId, cookieHeader, messages })
 
   return {
     status: response.status,
+    retryAfterMs: retryAfterHeader ? Number(retryAfterHeader) * 1000 : null,
     contentType,
     serverTiming,
     serverTimingParsed: parseServerTiming(serverTiming),
@@ -255,12 +266,24 @@ async function main() {
 
   for (const workflow of workflows) {
     const userMessage = toUiMessage("user", workflow.prompt);
-    const response = await sendChatRequest({
+    let response = await sendChatRequest({
       baseUrl: options.baseUrl,
       workspaceId,
       cookieHeader,
       messages: [...conversation, userMessage],
     });
+
+    if (response.status === 429) {
+      const retryDelayMs = Math.max(options.delayMs, response.retryAfterMs ?? 5000);
+      process.stdout.write(`  rate-limited on ${workflow.id}; sleeping ${retryDelayMs}ms and retrying once\n`);
+      await sleep(retryDelayMs);
+      response = await sendChatRequest({
+        baseUrl: options.baseUrl,
+        workspaceId,
+        cookieHeader,
+        messages: [...conversation, userMessage],
+      });
+    }
 
     const assistantText = response.assistantText || "[no assistant text returned]";
     const assistantMessage = toUiMessage("assistant", assistantText);
@@ -292,6 +315,10 @@ async function main() {
     process.stdout.write(
       `[${workflow.id}/${String(workflows.length).padStart(3, "0")}] ${response.status} ${response.totalMs}ms ${response.firstTextDeltaMs ?? "n/a"}ms-first-text ${workflow.prompt.slice(0, 88)}\n`,
     );
+
+    if (workflow !== workflows[workflows.length - 1] && options.delayMs > 0) {
+      await sleep(options.delayMs);
+    }
   }
 
   const firstChunkValues = results.map((result) => result.metrics.firstChunkMs).filter((value) => Number.isFinite(value));

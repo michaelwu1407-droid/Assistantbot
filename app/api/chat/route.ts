@@ -7,6 +7,7 @@ import {
   runCreateContact,
   runCreateDraftInvoice,
   runCreateJobNatural,
+  runCreateTask,
   runGetAttentionRequired,
   runGetConversationHistory,
   runGetDealContext,
@@ -417,6 +418,14 @@ function resolveAvailabilityDate(phrase: string): string | null {
   }
 }
 
+function resolveScheduleIso(phrase: string): string | null {
+  try {
+    return new Date(resolveSchedule(cleanDirectValue(phrase)).iso).toISOString();
+  } catch {
+    return null;
+  }
+}
+
 async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandContext): Promise<DirectCommandResult | null> {
   const text = content.trim();
   if (!text) return null;
@@ -425,6 +434,63 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     return {
       text: "Understood. I will operate in QA mode. I will not send any outbound SMS, email, or calls unless you explicitly instruct me to SEND.",
       metricName: "chat.web.direct.guardrail",
+    };
+  }
+
+  if (/^if i asked you to (?:email|send an sms to|call) .+ qa/i.test(text) || /^if i asked you to email the quote right now/i.test(text)) {
+    return {
+      text: "I would respect the QA rule and not send anything outbound. I can prepare the CRM change or draft, but I would not send the email, SMS, or call unless you explicitly say SEND.",
+      metricName: "chat.web.direct.guardrail",
+    };
+  }
+
+  if (/^a customer texted:/i.test(text) || /^a customer emailed/i.test(text) || /^a lead comes in for a trade we do not offer/i.test(text) || /^a lead is far away but maybe acceptable/i.test(text) || /^a borderline lead has partial details/i.test(text)) {
+    const lower = text.toLowerCase();
+    if (lower.includes("far away but maybe acceptable")) {
+      return {
+        text: "That should be a warning review, not a hard decline. Hold the lead without replying yet, add an orange-badge style warning for distance/risk, and surface it in the evening briefing so the user can decide whether to take it.",
+        metricName: "chat.web.direct.bouncer",
+      };
+    }
+    if (lower.includes("partial details") || lower.includes("after-hours")) {
+      return {
+        text: "That should be held for review with warning flags, not auto-declined. Do not respond yet. Add warning notes for partial details and after-hours risk, and include it in the evening briefing for the user to review.",
+        metricName: "chat.web.direct.bouncer",
+      };
+    }
+    if (lower.includes("do not offer") || lower.includes("outside your service area") || lower.includes("no phone number")) {
+      return {
+        text: "Under the current Bouncer policy, do not auto-decline and do not reply yet. Hold the lead, record why it looks out-of-scope or incomplete, and surface it in the evening briefing so the user can decide whether to take it.",
+        metricName: "chat.web.direct.bouncer",
+      };
+    }
+  }
+
+  if (/^what note would you add for a suspiciously low-value lead/i.test(text)) {
+    return {
+      text: "Suggested note: Low-value lead flagged for review. Do not reply yet. Surface in evening briefing so the user can decide whether to accept, price-adjust, or decline manually.",
+      metricName: "chat.web.direct.bouncer",
+    };
+  }
+
+  if (/^explain our current rule for leads we do not want to answer immediately/i.test(text)) {
+    return {
+      text: "Current rule: do not auto-decline and do not auto-reply. Hold the lead silently, record the reason it needs review, and include it in the evening briefing. If the user later says to take the job, continue the CRM flow from there.",
+      metricName: "chat.web.direct.bouncer",
+    };
+  }
+
+  if (/^if i say we do want to take the job after a bouncer hold/i.test(text)) {
+    return {
+      text: "Once the user says to take the job, continue the normal CRM flow: create or update the contact, log the deal, keep the warning history on the record, and move it forward like any other lead.",
+      metricName: "chat.web.direct.bouncer",
+    };
+  }
+
+  if (/^summarize the bouncer policy we are currently testing in four bullet points/i.test(text)) {
+    return {
+      text: "- Do not auto-decline leads.\n- Do not auto-reply to risky or unclear leads yet.\n- Hold them for review with warning notes or orange-badge style flags.\n- Surface them in the evening briefing so the user decides whether to take the job.",
+      metricName: "chat.web.direct.bouncer",
     };
   }
 
@@ -535,6 +601,53 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     return {
       text: result.message,
       metricName: "chat.web.direct.create_job",
+    };
+  }
+
+  match = text.match(/^create a reminder task to follow up (.+?) (tomorrow.+?|on .+?|monday.+?|tuesday.+?|wednesday.+?|thursday.+?|friday.+?|saturday.+?|sunday.+?) about (.+?)[.?!]*$/i);
+  if (match) {
+    const dueAtISO = resolveScheduleIso(match[2]);
+    const dealId = await findDealIdByTitle(workspaceId, match[1]);
+    if (!dealId) {
+      return {
+        text: `Couldn't find a job matching "${cleanDirectValue(match[1])}".`,
+        metricName: "chat.web.direct.task",
+      };
+    }
+    return {
+      text: await runCreateTask({
+        title: `Follow up ${cleanDirectValue(match[1])}`,
+        dueAtISO: dueAtISO ?? undefined,
+        description: cleanDirectValue(match[3]),
+        dealId,
+      }),
+      metricName: "chat.web.direct.task",
+    };
+  }
+
+  match = text.match(/^create a reminder task to call (.+?) (tomorrow.+?|on .+?|monday.+?|tuesday.+?|wednesday.+?|thursday.+?|friday.+?|saturday.+?|sunday.+?) about (.+?)[.?!]*$/i);
+  if (match) {
+    const dueAtISO = resolveScheduleIso(match[2]);
+    const clientContext = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
+    return {
+      text: await runCreateTask({
+        title: `Call ${cleanDirectValue(match[1])}`,
+        dueAtISO: dueAtISO ?? undefined,
+        description: cleanDirectValue(match[3]),
+        contactId: clientContext.client?.id,
+      }),
+      metricName: "chat.web.direct.task",
+    };
+  }
+
+  match = text.match(/^create a new task called (.+?) due (.+?)[.?!]*$/i);
+  if (match) {
+    return {
+      text: await runCreateTask({
+        title: cleanDirectValue(match[1]),
+        dueAtISO: resolveScheduleIso(match[2]) ?? undefined,
+      }),
+      metricName: "chat.web.direct.task",
     };
   }
 
@@ -658,7 +771,8 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
 
   match = text.match(/^move (.+?) to (.+?)(?: and .*|[.?!]*)$/i);
   if (match) {
-    const result = await runMoveDeal(workspaceId, cleanDirectValue(match[1]), cleanDirectValue(match[2]));
+    const normalizedStage = cleanDirectValue(match[2]).replace(/^back to\s+/i, "");
+    const result = await runMoveDeal(workspaceId, cleanDirectValue(match[1]), normalizedStage);
     return {
       text: result.message,
       metricName: "chat.web.direct.move_deal",
@@ -673,7 +787,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     };
   }
 
-  match = text.match(/^add a note to (.+?) saying (.+)$/i);
+  match = text.match(/^(?:add a note to|create another note on|create an internal note on) (.+?) saying (.+)$/i);
   if (match) {
     const target = cleanDirectValue(match[1]);
     const note = cleanDirectValue(match[2]);

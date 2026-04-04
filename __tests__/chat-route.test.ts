@@ -14,6 +14,7 @@ const hoisted = vi.hoisted(() => ({
   runCreateContact: vi.fn(),
   runCreateDraftInvoice: vi.fn(),
   runCreateJobNatural: vi.fn(),
+  runCreateTask: vi.fn(),
   runGetAttentionRequired: vi.fn(),
   runGetConversationHistory: vi.fn(),
   runGetDealContext: vi.fn(),
@@ -70,6 +71,7 @@ vi.mock("@/actions/chat-actions", () => ({
   runCreateContact: hoisted.runCreateContact,
   runCreateDraftInvoice: hoisted.runCreateDraftInvoice,
   runCreateJobNatural: hoisted.runCreateJobNatural,
+  runCreateTask: hoisted.runCreateTask,
   runGetAttentionRequired: hoisted.runGetAttentionRequired,
   runGetConversationHistory: hoisted.runGetConversationHistory,
   runGetDealContext: hoisted.runGetDealContext,
@@ -97,6 +99,7 @@ vi.mock("@/actions/settings-actions", () => ({
 }));
 vi.mock("@/lib/chat-utils", () => ({
   buildJobDraftFromParams: hoisted.buildJobDraftFromParams,
+  resolveSchedule: vi.fn((value: string) => ({ iso: new Date("2026-04-05T09:00:00.000Z").toISOString(), display: value })),
 }));
 vi.mock("@/lib/ai/job-parser", () => ({
   parseJobWithAI: hoisted.parseJobWithAI,
@@ -371,6 +374,50 @@ describe("POST /api/chat", () => {
     expect(hoisted.streamText).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
       text: "Alex Harper\nPhone: 0400000101\nEmail: alex@example.com\nAddress: 12 Test Street Sydney",
+    });
+  });
+
+  it("handles alternate deal note phrasing without calling the model", async () => {
+    hoisted.runAddDealNote.mockResolvedValue({
+      success: true,
+      message: 'Added a note to "Blocked Drain".',
+      dealId: "deal_1",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create an internal note on Blocked Drain saying review this at evening briefing." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.runAddDealNote).toHaveBeenCalledWith("ws_1", {
+      dealTitle: "Blocked Drain",
+      note: "review this at evening briefing",
+    });
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ text: 'Added a note to "Blocked Drain".' });
+  });
+
+  it("answers bouncer policy prompts directly", async () => {
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "A lead is far away but maybe acceptable. Should that be a hard decline or a warning review?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: "That should be a warning review, not a hard decline. Hold the lead without replying yet, add an orange-badge style warning for distance/risk, and surface it in the evening briefing so the user can decide whether to take it.",
     });
   });
 });

@@ -31,8 +31,10 @@ npm run test:live:chatbot
 Optional overrides:
 
 ```bash
-node scripts/run-live-chatbot-regression.mjs --base-url https://www.earlymark.ai --debug-url http://127.0.0.1:9222 --limit 25 --run-id manualcheck01
+node scripts/run-live-chatbot-regression.mjs --base-url https://www.earlymark.ai --debug-url http://127.0.0.1:9222 --limit 25 --delay-ms 2100 --run-id manualcheck01
 ```
+
+The runner now self-throttles between prompts and will retry once on `429 Too Many Requests` using the server's `Retry-After` hint. The default pacing is `2100ms` between prompts so the full 100-case suite stays below the live chat API's `30 requests / minute` rate limit.
 
 ## Output
 

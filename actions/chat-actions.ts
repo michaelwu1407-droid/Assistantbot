@@ -743,15 +743,27 @@ export async function runCreateJobNatural(
   }
 ): Promise<{ success: boolean; message: string; dealId?: string }> {
   const clientName = params.clientName?.trim() || "Unknown";
-  const contactResult = await createContact({
-    name: clientName,
-    workspaceId,
-    phone: params.phone?.trim() || undefined,
-    email: params.email?.trim() || undefined,
-    contactType: params.contactType ?? "PERSON",
+  const existingContacts = await searchContacts(workspaceId, clientName);
+  const matchedExistingContact = existingContacts.find((contact) => {
+    const candidate = (contact.name ?? "").trim().toLowerCase();
+    const normalizedClientName = clientName.toLowerCase();
+    return candidate === normalizedClientName || candidate.includes(normalizedClientName) || normalizedClientName.includes(candidate);
   });
-  if (!contactResult.success) {
-    return { success: false, message: `Failed to create contact: ${contactResult.error}` };
+
+  let contactId = matchedExistingContact?.id;
+
+  if (!contactId) {
+    const contactResult = await createContact({
+      name: clientName,
+      workspaceId,
+      phone: params.phone?.trim() || undefined,
+      email: params.email?.trim() || undefined,
+      contactType: params.contactType ?? "PERSON",
+    });
+    if (!contactResult.success) {
+      return { success: false, message: `Failed to create contact: ${contactResult.error}` };
+    }
+    contactId = contactResult.contactId!;
   }
   const hasSchedule = Boolean(params.schedule?.trim());
   let scheduledAt: Date | undefined;
@@ -770,7 +782,7 @@ export async function runCreateJobNatural(
     company: clientName,
     value: params.price ?? 0,
     stage: hasSchedule ? "scheduled" : "new",
-    contactId: contactResult.contactId!,
+    contactId,
     workspaceId,
     address: params.address?.trim(),
     scheduledAt,
