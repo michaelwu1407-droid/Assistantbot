@@ -158,6 +158,35 @@ describe("POST /api/chat", () => {
       suggestedTools: [],
       requiresCalculator: false,
     });
+    hoisted.convertToModelMessages.mockImplementation(async (messages: Array<{ role?: string; content?: string; parts?: Array<{ text?: string }> }>) =>
+      messages.map((message) => ({
+        role: message.role ?? "user",
+        content: message.content ?? message.parts?.find((part) => typeof part.text === "string")?.text ?? "",
+      })),
+    );
+    hoisted.buildAgentContext.mockResolvedValue({
+      settings: { agentMode: "AUTO" },
+      userRole: "OWNER",
+      knowledgeBaseStr: "BUSINESS IDENTITY:\n- Business Name: Earlymark",
+      agentModeStr: "CONTACT MODE: Backup AI",
+      workingHoursStr: "WORKING HOURS: 8am to 5pm",
+      agentScriptStr: "AGENT SCRIPT: Keep it crisp",
+      allowedTimesStr: "ALLOWED TIMES: send between 8am and 6pm",
+      preferencesStr: "PREFERENCES:\n- Be helpful",
+      pricingRulesStr: "PRICING RULES:\n- Use approved prices",
+      bouncerStr: "LEAD QUALIFICATION:\n- Hold risky leads for review",
+      attachmentsStr: "BUSINESS DOCUMENTS:\n- Price book attached",
+    });
+    hoisted.getAgentToolsForIntent.mockReturnValue({});
+    hoisted.buildCrmChatSystemPrompt.mockReturnValue("system prompt");
+    hoisted.createGoogleGenerativeAI.mockReturnValue(() => ({ provider: "google-model" }));
+    hoisted.streamText.mockReturnValue({
+      toUIMessageStreamResponse: () =>
+        new Response(JSON.stringify({ text: "model response" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    });
     hoisted.saveUserMessage.mockResolvedValue(undefined);
     hoisted.createUIMessageStream.mockImplementation(({ execute }: { execute: ({ writer }: { writer: { write: (event: { type?: string; delta?: string }) => void } }) => void }) => {
       const chunks: string[] = [];
@@ -263,8 +292,14 @@ describe("POST /api/chat", () => {
     ).toBe(true);
   });
 
-  it("executes direct contact creation without calling the model", async () => {
-    hoisted.runCreateContact.mockResolvedValue('Successfully added contact "Alex Harper".');
+  it("routes common contact creation requests through the LLM/tool path with crm-action hints", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "crm_action",
+      confidence: 0.92,
+      contextHints: ["CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it."],
+      suggestedTools: ["createContact"],
+      requiresCalculator: false,
+    });
 
     const response = await POST(
       new Request("https://app.example.com/api/chat", {
@@ -276,25 +311,31 @@ describe("POST /api/chat", () => {
         }),
       }),
     );
-    const payload = await response.json();
-
-    expect(hoisted.runCreateContact).toHaveBeenCalledWith("ws_1", {
-      name: "Alex Harper",
-      phone: "0400000101",
-      email: "alex@example.com",
-    });
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(payload).toEqual({ text: 'Successfully added contact "Alex Harper".' });
+    expect(hoisted.runCreateContact).not.toHaveBeenCalled();
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intentHintBlock: expect.stringContaining("CRM ACTION REQUEST"),
+        workspaceContextBlocks: expect.arrayContaining([
+          "BUSINESS IDENTITY:\n- Business Name: Earlymark",
+          "WORKING HOURS: 8am to 5pm",
+          "PREFERENCES:\n- Be helpful",
+        ]),
+      }),
+    );
+    expect(await response.json()).toEqual({ text: "model response" });
   });
 
-  it("executes direct job creation without showing a draft loop", async () => {
-    hoisted.runCreateJobNatural.mockResolvedValue({
-      success: true,
-      message: "Job created: Blocked Drain for Alex Harper, $420.",
-      dealId: "deal_1",
+  it("routes common job creation requests through the LLM/tool path instead of direct regex execution", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "crm_action",
+      confidence: 0.92,
+      contextHints: ["CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it."],
+      suggestedTools: ["createJobNatural"],
+      requiresCalculator: false,
     });
-    hoisted.getWorkspaceSettingsById.mockResolvedValue({ agentMode: "AUTO" });
-    hoisted.normalizeAppAgentMode.mockReturnValue("AUTO");
+    hoisted.extractAllJobsFromParagraph.mockResolvedValue([]);
+    hoisted.parseJobWithAI.mockResolvedValue(null);
 
     const response = await POST(
       new Request("https://app.example.com/api/chat", {
@@ -307,44 +348,19 @@ describe("POST /api/chat", () => {
       }),
     );
 
-    expect(hoisted.runCreateJobNatural).toHaveBeenCalledWith("ws_1", {
-      workDescription: "Blocked Drain",
-      clientName: "Alex Harper",
-      address: "12 Test Street Sydney",
-      price: 420,
-    });
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(await response.json()).toEqual({ text: "Job created: Blocked Drain for Alex Harper, $420." });
+    expect(hoisted.runCreateJobNatural).not.toHaveBeenCalled();
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual({ text: "model response" });
   });
 
-  it("executes direct deal note mutations before the LLM", async () => {
-    hoisted.runAddDealNote.mockResolvedValue({
-      success: true,
-      message: 'Added a note to "Blocked Drain".',
-      dealId: "deal_1",
+  it("injects likely contact context for contact lookups while keeping the model in charge", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "contact_lookup",
+      confidence: 0.9,
+      contextHints: ["CONTACT QUERY: Use searchContacts or getClientContext to find the person first."],
+      suggestedTools: ["searchContacts", "getClientContext"],
+      requiresCalculator: false,
     });
-
-    const response = await POST(
-      new Request("https://app.example.com/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: "ws_1",
-          messages: [{ role: "user", parts: [{ type: "text", text: "Add a note to Blocked Drain saying customer requested a 30 minute heads-up before arrival." }] }],
-        }),
-      }),
-    );
-
-    expect(hoisted.runAddDealNote).toHaveBeenCalledWith("ws_1", {
-      dealTitle: "Blocked Drain",
-      note: "customer requested a 30 minute heads-up before arrival",
-    });
-    expect(hoisted.runAddContactNote).not.toHaveBeenCalled();
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(await response.json()).toEqual({ text: 'Added a note to "Blocked Drain".' });
-  });
-
-  it("executes direct contact context lookups before the LLM", async () => {
     hoisted.runGetClientContext.mockResolvedValue({
       client: {
         id: "contact_1",
@@ -356,7 +372,7 @@ describe("POST /api/chat", () => {
       },
       recentNotes: [],
       recentMessages: [],
-      recentJobs: [],
+      recentJobs: [{ id: "deal_1", title: "Blocked Drain", stage: "Scheduled", scheduledAt: null }],
     });
 
     const response = await POST(
@@ -370,19 +386,33 @@ describe("POST /api/chat", () => {
       }),
     );
 
-    expect(hoisted.runGetClientContext).toHaveBeenCalledWith("ws_1", { clientName: "Alex Harper" });
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(await response.json()).toEqual({
-      text: "Alex Harper\nPhone: 0400000101\nEmail: alex@example.com\nAddress: 12 Test Street Sydney",
-    });
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intentHintBlock: expect.stringContaining("CONTACT QUERY"),
+        resolvedEntitiesBlock: expect.stringContaining("Likely contact: Alex Harper"),
+        workspaceContextBlocks: expect.not.arrayContaining(["PRICING RULES:\n- Use approved prices"]),
+      }),
+    );
+    expect(await response.json()).toEqual({ text: "model response" });
   });
 
-  it("handles alternate deal note phrasing without calling the model", async () => {
-    hoisted.runAddDealNote.mockResolvedValue({
-      success: true,
-      message: 'Added a note to "Blocked Drain".',
-      dealId: "deal_1",
+  it("injects likely deal context for crm mutations without bypassing the LLM", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "crm_action",
+      confidence: 0.9,
+      contextHints: ["CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it."],
+      suggestedTools: ["moveDeal"],
+      requiresCalculator: false,
     });
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        stage: "SCHEDULED",
+        scheduledAt: new Date("2026-04-05T01:00:00.000Z"),
+      },
+    ]);
 
     const response = await POST(
       new Request("https://app.example.com/api/chat", {
@@ -390,17 +420,18 @@ describe("POST /api/chat", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           workspaceId: "ws_1",
-          messages: [{ role: "user", parts: [{ type: "text", text: "Create an internal note on Blocked Drain saying review this at evening briefing." }] }],
+          messages: [{ role: "user", parts: [{ type: "text", text: "Move Blocked Drain to scheduled tomorrow morning." }] }],
         }),
       }),
     );
 
-    expect(hoisted.runAddDealNote).toHaveBeenCalledWith("ws_1", {
-      dealTitle: "Blocked Drain",
-      note: "review this at evening briefing",
-    });
-    expect(hoisted.streamText).not.toHaveBeenCalled();
-    expect(await response.json()).toEqual({ text: 'Added a note to "Blocked Drain".' });
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolvedEntitiesBlock: expect.stringContaining("Likely jobs: Blocked Drain"),
+      }),
+    );
+    expect(await response.json()).toEqual({ text: "model response" });
   });
 
   it("answers bouncer policy prompts directly", async () => {

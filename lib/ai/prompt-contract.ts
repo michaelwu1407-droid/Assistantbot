@@ -53,6 +53,8 @@ type BuildCrmChatSystemPromptOptions = {
   userRole?: string | null;
   customerContactPolicyBlock?: string;
   workspaceContextBlocks?: Array<string | null | undefined>;
+  resolvedEntitiesBlock?: string | null;
+  intentHintBlock?: string | null;
   messagingRuleBlock?: string | null;
   pricingIntegrityBlock?: string | null;
   uncertaintyBlock?: string | null;
@@ -250,6 +252,8 @@ export function buildCrmChatSystemPrompt(
   options: BuildCrmChatSystemPromptOptions,
 ): string {
   const workspaceContext = joinContextBlocks(options.workspaceContextBlocks);
+  const resolvedEntities = (options.resolvedEntitiesBlock || "").trim();
+  const intentHintBlock = (options.intentHintBlock || "").trim();
   const policyBody = joinContextBlocks([
     "Internal CRM work is allowed. When you contact customers or draft customer-facing messages, follow the current Tracey for users policy below.",
     options.customerContactPolicyBlock || "",
@@ -274,6 +278,8 @@ export function buildCrmChatSystemPrompt(
       ],
     },
     { title: "LANGUAGE", lines: [...SHARED_LANGUAGE_LOCK_LINES] },
+    intentHintBlock ? { title: "TURN INTENT", body: intentHintBlock } : null,
+    resolvedEntities ? { title: "LIKELY CRM TARGETS", body: resolvedEntities } : null,
     {
       title: "TOOL-FIRST DATA RULES",
       lines: [

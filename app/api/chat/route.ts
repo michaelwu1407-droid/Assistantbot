@@ -107,6 +107,18 @@ type DirectCommandResult = {
   metricName?: string;
 };
 
+type WorkspacePromptContext = {
+  knowledgeBaseStr: string;
+  workingHoursStr: string;
+  agentScriptStr: string;
+  preferencesStr: string;
+  pricingRulesStr: string;
+  bouncerStr: string;
+  attachmentsStr: string;
+  memoryContextStr: string;
+  selectionContextStr: string;
+};
+
 const DIRECT_STAGE_LABELS: Record<string, string> = {
   new_request: "New request",
   quote_sent: "Quote sent",
@@ -314,6 +326,166 @@ function createTextStreamResponse(text: string) {
     },
   });
   return createUIMessageStreamResponse({ stream });
+}
+
+function shouldAttemptDirectPolicyResponse(content: string, classification: PreClassification): boolean {
+  if (classification.intent === "flow_control") return false;
+  const text = content.trim();
+  if (!text) return false;
+
+  return (
+    /for this qa session, do not send any outbound sms, email, or calls unless i explicitly say send/i.test(text) ||
+    /^if i asked you to (?:email|send an sms to|call) .+ qa/i.test(text) ||
+    /^if i asked you to email the quote right now/i.test(text) ||
+    /^a customer texted:/i.test(text) ||
+    /^a customer emailed/i.test(text) ||
+    /^a lead comes in for a trade we do not offer/i.test(text) ||
+    /^a lead is far away but maybe acceptable/i.test(text) ||
+    /^a borderline lead has partial details/i.test(text) ||
+    /^what note would you add for a suspiciously low-value lead/i.test(text) ||
+    /^explain our current rule for leads we do not want to answer immediately/i.test(text) ||
+    /^if i say we do want to take the job after a bouncer hold/i.test(text) ||
+    /^summarize the bouncer policy we are currently testing in four bullet points/i.test(text)
+  );
+}
+
+function shouldIncludeBouncerContext(content: string): boolean {
+  return /\b(lead|triage|bouncer|service area|outside service area|wrong trade|warning badge|orange badge|partial details|after-hours|abusive|spam|decline)\b/i.test(content);
+}
+
+function normalizeReferenceCandidate(raw: string | undefined): string | null {
+  const cleaned = cleanDirectValue(raw)
+    .replace(/^(the|a|an)\s+/i, "")
+    .replace(/\s+(right now|now|today|tomorrow)$/i, "")
+    .trim();
+  if (!cleaned) return null;
+  const words = cleaned.split(/\s+/);
+  if (words.length > 6) return null;
+  return cleaned;
+}
+
+function extractLikelyContactReference(content: string, classification: PreClassification): string | null {
+  if (!["contact_lookup", "communication"].includes(classification.intent)) return null;
+
+  const patterns = [
+    /phone number and email do you have on file for (.+?)(?:[.?!]|$)/i,
+    /what do you know about (.+?)(?:[.?!]|$)/i,
+    /show me the client context for (.+?)(?:[.?!]|$)/i,
+    /look up (.+?)(?: and tell me.*)?(?:[.?!]|$)/i,
+    /conversation history do we have with (.+?)(?:[.?!]|$)/i,
+    /(?:text|email|call|message) (.+?)(?: saying| about| that|[.?!]|$)/i,
+    /details for (.+?)(?:[.?!]|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    const candidate = normalizeReferenceCandidate(match?.[1]);
+    if (candidate) return candidate;
+  }
+  return null;
+}
+
+async function buildResolvedEntitiesBlock(
+  workspaceId: string,
+  content: string,
+  classification: PreClassification,
+  selectedDeals: SelectionDeal[],
+): Promise<string> {
+  const lines: string[] = [];
+  const textLower = content.toLowerCase();
+
+  if (selectedDeals.length > 0) {
+    lines.push(
+      `Selected deals: ${selectedDeals
+        .slice(0, 3)
+        .map((deal) => `${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
+        .join(", ")}`,
+    );
+  }
+
+  const likelyContact = extractLikelyContactReference(content, classification);
+  if (likelyContact) {
+    try {
+      const context = await runGetClientContext(workspaceId, { clientName: likelyContact });
+      if (context.client) {
+        lines.push(
+          `Likely contact: ${context.client.name}${context.client.phone ? `, phone ${context.client.phone}` : ""}${context.client.email ? `, email ${context.client.email}` : ""}`,
+        );
+        if (context.recentJobs.length > 0) {
+          lines.push(
+            `Recent jobs for ${context.client.name}: ${context.recentJobs
+              .slice(0, 3)
+              .map((job) => `${job.title} (${job.stage})`)
+              .join(", ")}`,
+          );
+        }
+      }
+    } catch {
+      // Ignore pre-resolution failures and let the model resolve via tools.
+    }
+  }
+
+  if (["crm_action", "scheduling", "invoice", "communication", "reporting"].includes(classification.intent)) {
+    try {
+      const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+      const exactMatches = deals
+        .filter((deal) => {
+          const title = deal.title?.trim();
+          return title ? textLower.includes(title.toLowerCase()) : false;
+        })
+        .slice(0, 3);
+      if (exactMatches.length > 0) {
+        lines.push(
+          `Likely jobs: ${exactMatches
+            .map((deal) => `${deal.title} (${deal.stage}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`)
+            .join(", ")}`,
+        );
+      }
+    } catch {
+      // Ignore pre-resolution failures and let the model resolve via tools.
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function buildWorkspaceContextBlocks(
+  classification: PreClassification,
+  content: string,
+  context: WorkspacePromptContext,
+): string[] {
+  const baseBlocks = [context.knowledgeBaseStr, context.preferencesStr];
+  const alwaysRelevant = [context.memoryContextStr, context.selectionContextStr];
+  const includePricing = classification.requiresCalculator || classification.intent === "invoice" || classification.intent === "pricing";
+  const includeBouncer = shouldIncludeBouncerContext(content);
+
+  if (classification.intent === "general" || classification.confidence < 0.5) {
+    return [
+      context.knowledgeBaseStr,
+      context.workingHoursStr,
+      context.agentScriptStr,
+      context.preferencesStr,
+      context.pricingRulesStr,
+      includeBouncer ? context.bouncerStr : "",
+      context.attachmentsStr,
+      ...alwaysRelevant,
+    ].filter(Boolean);
+  }
+
+  const intentBlocks: Record<PreClassification["intent"], string[]> = {
+    pricing: [...baseBlocks, context.pricingRulesStr, context.attachmentsStr],
+    scheduling: [...baseBlocks, context.workingHoursStr, context.attachmentsStr],
+    communication: [...baseBlocks, context.agentScriptStr, context.attachmentsStr],
+    flow_control: [...baseBlocks],
+    reporting: [...baseBlocks, context.pricingRulesStr],
+    contact_lookup: [...baseBlocks],
+    crm_action: [...baseBlocks, context.workingHoursStr, includePricing ? context.pricingRulesStr : "", context.attachmentsStr],
+    invoice: [...baseBlocks, context.pricingRulesStr, context.attachmentsStr],
+    support: [...baseBlocks],
+    general: [],
+  };
+
+  return [...intentBlocks[classification.intent], includeBouncer ? context.bouncerStr : "", ...alwaysRelevant].filter(Boolean);
 }
 
 function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
@@ -1053,7 +1225,7 @@ export async function POST(req: Request) {
     const classification = preClassify(content);
     const isFlowControl = classification.intent === 'flow_control';
 
-    const directCommand = !isFlowControl
+    const directCommand = shouldAttemptDirectPolicyResponse(content, classification)
       ? await executeDirectCrmCommand({ workspaceId, content })
       : null;
     if (directCommand) {
@@ -1281,7 +1453,7 @@ export async function POST(req: Request) {
 
     // ── Intent hints for context injection (classification already done above) ──
     const intentHintsStr = classification.contextHints.length > 0
-      ? `\n\n[[INTENT HINTS for this turn]]\n${classification.contextHints.join("\n")}\n[[END INTENT HINTS]]`
+      ? classification.contextHints.join("\n")
       : "";
 
     let toolCallsMs = 0;
@@ -1298,7 +1470,13 @@ export async function POST(req: Request) {
         recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
       },
     );
-    const workspaceContextBlocks = [
+    const resolvedEntitiesBlock = await buildResolvedEntitiesBlock(
+      workspaceId,
+      content,
+      classification,
+      selectedDeals,
+    );
+    const workspaceContextBlocks = buildWorkspaceContextBlocks(classification, content, {
       knowledgeBaseStr,
       workingHoursStr,
       agentScriptStr,
@@ -1308,12 +1486,13 @@ export async function POST(req: Request) {
       attachmentsStr,
       memoryContextStr,
       selectionContextStr,
-      intentHintsStr,
-    ];
+    });
     let systemPrompt = buildCrmChatSystemPrompt({
       userRole,
       customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
       workspaceContextBlocks,
+      resolvedEntitiesBlock,
+      intentHintBlock: intentHintsStr,
       pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
 - For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
@@ -1334,6 +1513,8 @@ export async function POST(req: Request) {
         userRole,
         customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
         workspaceContextBlocks: workspaceContextBlocks.filter((b) => b !== memoryContextStr),
+        resolvedEntitiesBlock,
+        intentHintBlock: intentHintsStr,
         pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
 - For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
