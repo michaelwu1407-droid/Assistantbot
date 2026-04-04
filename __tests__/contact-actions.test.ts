@@ -8,6 +8,12 @@ const hoisted = vi.hoisted(() => ({
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
+    deal: {
+      findFirst: vi.fn(),
+    },
+    activity: {
+      create: vi.fn(),
+    },
   },
   enrichFromEmail: vi.fn(),
   evaluateAutomations: vi.fn(),
@@ -27,7 +33,7 @@ vi.mock("@/lib/workspace-access", () => ({
   requireContactInCurrentWorkspace: hoisted.requireContactInCurrentWorkspace,
 }));
 
-import { createContact, deleteContacts, updateContact } from "@/actions/contact-actions";
+import { createContact, deleteContacts, updateContact, updateContactMetadata } from "@/actions/contact-actions";
 
 describe("contact-actions", () => {
   beforeEach(() => {
@@ -51,6 +57,7 @@ describe("contact-actions", () => {
       },
     });
     hoisted.enrichFromEmail.mockResolvedValue(null);
+    hoisted.db.deal.findFirst.mockResolvedValue({ id: "deal_1" });
   });
 
   it("merges into an existing matching-name contact instead of creating a duplicate", async () => {
@@ -220,5 +227,43 @@ describe("contact-actions", () => {
       error: "Only managers can delete contacts.",
     });
     expect(hoisted.db.contact.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("logs a visible activity entry when contact notes change", async () => {
+    hoisted.requireContactInCurrentWorkspace.mockResolvedValue({
+      actor: {
+        id: "user_1",
+        workspaceId: "ws_1",
+        role: "OWNER",
+      },
+      contact: {
+        id: "contact_1",
+        workspaceId: "ws_1",
+        metadata: { notes: "Old note" },
+      },
+    });
+
+    const result = await updateContactMetadata("contact_1", { notes: "Updated note" });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.contact.update).toHaveBeenCalledWith({
+      where: { id: "contact_1" },
+      data: { metadata: { notes: "Updated note" } },
+    });
+    expect(hoisted.db.deal.findFirst).toHaveBeenCalledWith({
+      where: { contactId: "contact_1", workspaceId: "ws_1" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
+      data: {
+        type: "NOTE",
+        title: "Contact note updated",
+        content: "Updated note",
+        contactId: "contact_1",
+        dealId: "deal_1",
+        userId: "user_1",
+      },
+    });
   });
 });

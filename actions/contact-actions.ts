@@ -462,13 +462,37 @@ export async function updateContactMetadata(
   contactId: string,
   metadata: Record<string, unknown>
 ) {
-  const { contact } = await requireContactInCurrentWorkspace(contactId);
+  const { actor, contact } = await requireContactInCurrentWorkspace(contactId);
   if (!contact) return { success: false as const, error: "Contact not found" };
   const existing = (contact.metadata as Record<string, unknown>) ?? {};
+  const mergedMetadata = { ...existing, ...metadata } as Prisma.InputJsonValue;
   await db.contact.update({
     where: { id: contactId },
-    data: { metadata: { ...existing, ...metadata } as Prisma.InputJsonValue },
+    data: { metadata: mergedMetadata },
   });
+
+  const previousNotes = typeof existing.notes === "string" ? existing.notes.trim() : "";
+  const nextNotes = typeof metadata.notes === "string" ? metadata.notes.trim() : null;
+
+  if (nextNotes !== null && nextNotes !== previousNotes) {
+    const latestDeal = await db.deal.findFirst({
+      where: { contactId, workspaceId: actor.workspaceId },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: previousNotes ? "Contact note updated" : "Contact note added",
+        content: nextNotes || "Notes cleared.",
+        contactId,
+        dealId: latestDeal?.id,
+        userId: actor.id,
+      },
+    });
+  }
+
   return { success: true as const };
 }
 
