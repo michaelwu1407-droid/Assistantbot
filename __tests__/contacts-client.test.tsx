@@ -163,7 +163,9 @@ describe("ContactsClient", () => {
 
     await user.type(screen.getByPlaceholderText("Search contacts..."), "drain");
 
-    expect(screen.getByText("Showing 1 of 8 contacts (page 1), filtered from 3 on this page")).toBeInTheDocument();
+    expect(
+      screen.getByText("Matches on this page: 1 of 3 loaded · 8 contacts in workspace · page 1"),
+    ).toBeInTheDocument();
   });
 
   it("surfaces backend delete failures instead of pretending success", async () => {

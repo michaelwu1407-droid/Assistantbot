@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { TrendingUp, TrendingDown, DollarSign, Users, Star, CheckCircle, LayoutList, Printer } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useShellStore } from "@/lib/store"
@@ -266,7 +266,7 @@ export default function AnalyticsPage() {
         </table>
       </section>
       <section>
-        <h2>Status</h2>
+        <h2>Jobs by stage</h2>
         <table class="compact">
           <thead><tr><th>Stage</th><th class="align-right">Jobs</th></tr></thead>
           <tbody>${stageRows}</tbody>
@@ -660,8 +660,11 @@ export default function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
             <CheckCircle className="h-4 w-4" />
-            Status
+            Jobs overview
           </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Completed, scheduled, and new requests in the selected date range.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">

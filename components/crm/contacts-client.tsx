@@ -136,6 +136,11 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     })
   }, [contacts, search, selectedStageIds, sortMode, typeFilter])
 
+  const hasActiveClientFilters =
+    search.trim().length > 0 ||
+    typeFilter !== "all" ||
+    selectedStageIds.size !== allStageIds.size
+
   const toggleStage = (stageId: string) => {
     setSelectedStageIds((prev) => {
       const next = new Set(prev)
@@ -491,8 +496,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
           {pagination && (
             <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {pagination.total} contacts (page {pagination.page})
-                {filtered.length !== contacts.length ? `, filtered from ${contacts.length} on this page` : ""}
+                {hasActiveClientFilters
+                  ? `Matches on this page: ${filtered.length} of ${contacts.length} loaded · ${pagination.total} contacts in workspace · page ${pagination.page}`
+                  : `Showing ${contacts.length} of ${pagination.total} contacts (page ${pagination.page})`}
               </p>
               <div className="flex items-center gap-2">
                 <Button

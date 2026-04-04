@@ -24,7 +24,8 @@ describe("Tracey prompt contract", () => {
     expect(prompt).toContain('Say "jobs" not "meetings".');
     expect(prompt).toContain("Reply in the same language as the customer or user.");
     expect(prompt).toContain("Treat the WORKSPACE CONTEXT current date/time as authoritative");
-    expect(prompt).toContain("After tool use, briefly confirm the result.");
+    expect(prompt).toContain("If a tool returns success=false or an error payload");
+    expect(prompt).toContain("After tool use, briefly confirm the outcome using the tool response");
   });
 
   it("adds the AI intro to the first SMS reply only", () => {

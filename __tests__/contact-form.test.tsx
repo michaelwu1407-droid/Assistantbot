@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { routerPush, routerRefresh, createContact, updateContact, toastSuccess, toastError } = vi.hoisted(() => ({
-  routerPush: vi.fn(),
+const { routerReplace, routerRefresh, createContact, updateContact, toastSuccess, toastError } = vi.hoisted(() => ({
+  routerReplace: vi.fn(),
   routerRefresh: vi.fn(),
   createContact: vi.fn(),
   updateContact: vi.fn(),
@@ -14,7 +14,7 @@ const { routerPush, routerRefresh, createContact, updateContact, toastSuccess, t
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: routerPush,
+    replace: routerReplace,
     refresh: routerRefresh,
   }),
 }));
@@ -125,7 +125,7 @@ describe("ContactForm", () => {
       ),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Contact created.");
-    expect(routerPush).toHaveBeenCalledWith("/crm/contacts/contact_1");
+    expect(routerReplace).toHaveBeenCalledWith("/crm/contacts/contact_1");
     expect(routerRefresh).toHaveBeenCalled();
   });
 
@@ -159,6 +159,6 @@ describe("ContactForm", () => {
       ),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Contact updated.");
-    expect(routerPush).toHaveBeenCalledWith("/crm/contacts/contact_9");
+    expect(routerReplace).toHaveBeenCalledWith("/crm/contacts/contact_9");
   });
 });

@@ -708,38 +708,56 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 )}
               </div>
 
-              {/* ─── Bottom: Ask Tracey / Direct Message ─────── */}
+              {/* ─── Bottom: Ask Tracey vs direct SMS (workspace Twilio) ─────── */}
               <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
-                {/* Mode toggle */}
-                <div className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-xs">
+                <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Who sends the next message?
+                </p>
+                <div
+                  className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-md"
+                  role="tablist"
+                  aria-labelledby="inbox-composer-mode-label"
+                >
                   <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageMode === "tracey"}
+                    id="inbox-tab-tracey"
                     onClick={() => setMessageMode("tracey")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
                       messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Sparkles className="h-3.5 w-3.5" /> Ask Tracey
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Ask Tracey
+                    <span className="sr-only">. AI assistant uses your workspace number.</span>
                   </button>
                   <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageMode === "direct"}
+                    id="inbox-tab-direct-sms"
                     onClick={() => setMessageMode("direct")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "direct" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      messageMode === "direct" ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <MessageSquare className="h-3.5 w-3.5" /> Send myself
+                    <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Direct SMS
+                    <span className="sr-only">. You send; not the AI.</span>
                   </button>
                 </div>
 
-                <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
+                <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2" role="region" aria-live="polite">
                   <p className="text-xs font-medium text-foreground">
                     {messageMode === "direct"
-                      ? "You are sending an SMS directly to the customer."
-                      : "Tracey can reply to the customer or update the CRM for you."}
+                      ? "Direct SMS: sends now from your workspace Twilio number as a normal outbound text."
+                      : "Ask Tracey: the AI reads your instruction and may reply to the customer or update the CRM."}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {messageMode === "direct"
-                      ? "Use this when you want to personally send the exact SMS now."
-                      : "Be explicit about whether you want Tracey to update the CRM, draft a reply, or contact the customer."}
+                      ? "Not AI—only the exact characters you type below are sent."
+                      : "Not a raw SMS—Tracey decides how to act (reply, tools, or both)."}
                   </p>
                 </div>
 

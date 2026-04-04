@@ -1,6 +1,7 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 let currentRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" = "OWNER";
 
@@ -87,6 +88,27 @@ describe("TeamPage", () => {
       "href",
       "/invite/join?token=token_1",
     );
+  });
+
+  it("shows link-only success copy when generating an invite link without email", async () => {
+    const user = userEvent.setup();
+    createInvite.mockResolvedValue({ success: true, token: "generated_token" });
+
+    render(<TeamPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /invite member/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /invite member/i }));
+    await user.click(screen.getByRole("button", { name: /generate invite link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Invite link ready")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/invite sent to !/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Invite sent to\s*!$/)).not.toBeInTheDocument();
   });
 
   it("hides invite controls and pending invites for team members", async () => {

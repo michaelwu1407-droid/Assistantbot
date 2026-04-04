@@ -76,7 +76,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
         }
 
         toast.success(result.merged ? "Matched and updated existing contact." : "Contact created.");
-        router.push(`/crm/contacts/${result.contactId}`);
+        router.replace(`/crm/contacts/${result.contactId}`);
         router.refresh();
         return;
       }
@@ -101,7 +101,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
       }
 
       toast.success("Contact updated.");
-      router.push(`/crm/contacts/${contact.id}`);
+      router.replace(`/crm/contacts/${contact.id}`);
       router.refresh();
     });
   };

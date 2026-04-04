@@ -287,6 +287,7 @@ export function buildCrmChatSystemPrompt(
         "Never guess pricing, availability, schedule, customer facts, or workflow status.",
         "Treat the WORKSPACE CONTEXT current date/time as authoritative for relative dates like today, tomorrow, this month, and next Monday.",
         "If a tool fails, say what failed and suggest the next correction or retry.",
+        "If a tool returns success=false or an error payload, say that plainly; do not claim the CRM change worked.",
         "If the user already gave enough concrete CRM details to execute the request, do the action instead of asking for confirmation again.",
         "Do not ask for information the user already provided.",
       ],
@@ -302,7 +303,13 @@ export function buildCrmChatSystemPrompt(
     options.multiJobBlock ? { title: 'MULTI-JOB "NEXT"', body: options.multiJobBlock } : null,
     options.jobDraftBlock ? { title: "JOB DRAFT CARDS", body: options.jobDraftBlock } : null,
     options.userRole ? { title: "ACTIVE USER ROLE", lines: [`User role: ${options.userRole}.`] } : null,
-    { title: "OUTPUT SHAPE", lines: ["After tool use, briefly confirm the result."] },
+    {
+      title: "OUTPUT SHAPE",
+      lines: [
+        "After tool use, briefly confirm the outcome using the tool response (success or failure).",
+        "Use user-facing stage and job language from context; do not echo raw internal stage codes.",
+      ],
+    },
   ]);
 }
 

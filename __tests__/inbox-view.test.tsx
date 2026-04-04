@@ -200,7 +200,7 @@ describe("InboxView", () => {
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: /Ask Tracey/i }));
+    await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
@@ -245,7 +245,7 @@ describe("InboxView", () => {
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: /Ask Tracey/i }));
+    await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
@@ -285,13 +285,50 @@ describe("InboxView", () => {
     await user.type(directInput, "Direct note");
     expect(screen.getByRole("button", { name: /Send SMS/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Ask Tracey/i }));
+    await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const traceyInput = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     expect(traceyInput).toHaveValue("");
     await user.type(traceyInput, "Tracey task");
     expect(traceyInput).toHaveValue("Tracey task");
 
-    await user.click(screen.getByRole("button", { name: /Send myself/i }));
+    await user.click(screen.getByRole("tab", { name: /Direct SMS/i }));
     expect(screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i)).toHaveValue("Direct note");
+  });
+
+  it("exposes composer modes as tabs with distinct helper copy for Direct SMS vs Ask Tracey", async () => {
+    const user = userEvent.setup();
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            content: "Hi",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    const traceyTab = screen.getByRole("tab", { name: /Ask Tracey/i });
+    const directTab = screen.getByRole("tab", { name: /Direct SMS/i });
+    expect(traceyTab).toHaveAttribute("aria-selected", "false");
+    expect(directTab).toHaveAttribute("aria-selected", "true");
+
+    expect(screen.getByText(/Direct SMS: sends now from your workspace Twilio number/i)).toBeInTheDocument();
+
+    await user.click(traceyTab);
+    expect(traceyTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/Ask Tracey: the AI reads your instruction/i)).toBeInTheDocument();
   });
 });

@@ -1,3 +1,47 @@
+## 2026-04-05 16:45 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+- Summary:
+  - Re-ran the handoff targeted Vitest bundle (`chat-route`, `chat-actions`, `triage`, `digest`, `deal-utils`, `contact-actions`, `deal-actions`, `tradie-actions`, `settings-layout`, `new-deal-modal*`) — all 80 tests passed.
+  - Inbox composer: renamed the ambiguous `Send myself` control to **`Direct SMS`**, added a **Who sends the next message?** label, `tablist`/`tab` roles with `aria-selected`, clearer contrast for the active direct tab, and explainer copy that contrasts **direct Twilio SMS now** vs **Ask Tracey (AI / CRM orchestration, not raw SMS)**.
+- Why:
+  - Addresses the live-audit confusion between direct messaging and Tracey; regression tests updated and extended.
+
+## 2026-04-05 16:00 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `components/layout/global-search.tsx`
+  - `components/crm/contact-form.tsx`
+  - `components/crm/deal-card.tsx`
+  - `lib/ai/prompt-contract.ts`
+  - `__tests__/global-search.test.tsx`
+  - `__tests__/contact-form.test.tsx`
+  - `__tests__/tracey-prompt-contract.test.ts`
+- Summary:
+  - Global search (header palette) now mirrors the command palette’s explicit click handler so mouse clicks on results navigate reliably, not only keyboard `onSelect`.
+  - Contact create/edit uses `router.replace` after a successful save so the browser back button does not return users to an already-submitted form.
+  - Kanban deal cards show scheduled date and time in the workspace timezone, with a full datetime tooltip aligned to the job detail page and schedule views.
+  - CRM chat system prompt: require honest reporting of tool failures and user-facing stage language in confirmations (still LLM-first, no new routing).
+- Why:
+  - Closes audit gaps on search click trust, form completion flow, cross-surface schedule readability, and Tracey truthfulness—without shortcutting architecture.
+
+## 2026-04-05 14:30 (AEDT) - Cursor Agent
+
+- Files changed:
+  - `app/crm/analytics/page.tsx`
+  - `app/crm/team/page.tsx`
+  - `components/crm/contacts-client.tsx`
+  - `__tests__/contacts-client.test.tsx`
+  - `__tests__/team-page.test.tsx`
+- Summary:
+  - Team invites now distinguish email-send success from link-only success using an explicit channel flag, so the modal cannot show empty `Invite sent to` copy after generating a shareable link.
+  - Contacts list footer copy separates workspace totals from client-side search/stage/type filters: when filters are active, it reports matches on the loaded page versus how many rows this page returned and the workspace total.
+  - Analytics renamed the ambiguous `Status` block to `Jobs overview`, added a short description, and aligned the printable report section title with `Jobs by stage`.
+- Why:
+  - Addresses live-audit trust issues (invite copy, contacts count confusion, analytics section labelling) with durable UI state and clearer semantics, plus regression tests.
+
 ## 2026-04-05 00:15 (AEDT) - Codex
 
 - Files changed:

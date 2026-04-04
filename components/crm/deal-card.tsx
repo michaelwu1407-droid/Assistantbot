@@ -29,7 +29,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { HoverScrollName } from "@/components/ui/hover-scroll-name"
-import { formatMonthDayInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
+import {
+  formatDateTimeInTimezone,
+  formatMonthDayInTimezone,
+  formatTimeInTimezone,
+  resolveWorkspaceTimezone,
+} from "@/lib/timezone"
 
 interface TeamMemberOption {
   id: string
@@ -87,13 +92,13 @@ function statusBannerOverlayClasses(label: string): string {
   }
 }
 
-/** Top-right: scheduled job date only; "-" when not scheduled. */
+/** Top-right: scheduled job date + time in workspace TZ (matches deal detail + schedule chips). */
 function cornerDateLabel(deal: DealView): { text: string; title: string } {
   if (deal.scheduledAt) {
     const workspaceTimezone = resolveWorkspaceTimezone(deal.workspaceTimezone)
     return {
-      text: formatMonthDayInTimezone(deal.scheduledAt, workspaceTimezone),
-      title: "Scheduled date",
+      text: `${formatMonthDayInTimezone(deal.scheduledAt, workspaceTimezone)} · ${formatTimeInTimezone(deal.scheduledAt, workspaceTimezone)}`,
+      title: formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone),
     }
   }
   return { text: "-", title: "No scheduled date" }

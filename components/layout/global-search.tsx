@@ -86,6 +86,14 @@ export function GlobalSearch({
         command()
     }, [setOpen])
 
+    /** cmdk does not always invoke `onSelect` on mouse click; mirror SearchDialog with an explicit click path. */
+    const goTo = React.useCallback(
+        (url: string) => {
+            runCommand(() => router.push(url))
+        },
+        [runCommand, router],
+    )
+
     const contactResults = results.filter(r => r.type === 'contact')
     const dealResults = results.filter(r => r.type === 'deal')
     const taskResults = results.filter(r => r.type === 'task')
@@ -170,7 +178,8 @@ export function GlobalSearch({
                                                 <CommandItem
                                                     key={deal.id}
                                                     value={deal.id}
-                                                    onSelect={() => runCommand(() => router.push(deal.url))}
+                                                    onSelect={() => goTo(deal.url)}
+                                                    onClick={() => goTo(deal.url)}
                                                 >
                                                     <FileText className="mr-2 h-4 w-4" />
                                                     <span>{deal.title}</span>
@@ -186,7 +195,8 @@ export function GlobalSearch({
                                                 <CommandItem
                                                     key={task.id}
                                                     value={task.id}
-                                                    onSelect={() => runCommand(() => router.push(task.url))}
+                                                    onSelect={() => goTo(task.url)}
+                                                    onClick={() => goTo(task.url)}
                                                 >
                                                     <Calendar className="mr-2 h-4 w-4" />
                                                     <span>{task.title}</span>
@@ -201,7 +211,8 @@ export function GlobalSearch({
                                                 <CommandItem
                                                     key={activity.id}
                                                     value={activity.id}
-                                                    onSelect={() => runCommand(() => router.push(activity.url))}
+                                                    onSelect={() => goTo(activity.url)}
+                                                    onClick={() => goTo(activity.url)}
                                                 >
                                                     <History className="mr-2 h-4 w-4" />
                                                     <span>{activity.title}</span>
@@ -217,7 +228,8 @@ export function GlobalSearch({
                                                 <CommandItem
                                                     key={call.id}
                                                     value={call.id}
-                                                    onSelect={() => runCommand(() => router.push(call.url))}
+                                                    onSelect={() => goTo(call.url)}
+                                                    onClick={() => goTo(call.url)}
                                                 >
                                                     <PhoneCall className="mr-2 h-4 w-4" />
                                                     <span>{call.title}</span>

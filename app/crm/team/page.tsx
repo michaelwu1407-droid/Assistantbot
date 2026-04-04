@@ -53,6 +53,11 @@ interface Invite {
     expiresAt: Date
 }
 
+type InviteSuccessView =
+    | null
+    | { channel: "email"; email: string }
+    | { channel: "link" }
+
 export default function TeamPage() {
     const userRole = useShellStore((state) => state.userRole)
     const isManager = userRole === "OWNER" || userRole === "MANAGER"
@@ -64,9 +69,8 @@ export default function TeamPage() {
     const [inviteEmail, setInviteEmail] = useState("")
     const [generatedLink, setGeneratedLink] = useState("")
     const [creating, setCreating] = useState(false)
-    const [inviteSuccess, setInviteSuccess] = useState(false)
+    const [inviteSuccessView, setInviteSuccessView] = useState<InviteSuccessView>(null)
     const [inviteError, setInviteError] = useState("")
-    const [sentEmail, setSentEmail] = useState("")
 
     useEffect(() => {
         Promise.all([getTeamMembers(), getWorkspaceInvites()])
@@ -98,9 +102,8 @@ export default function TeamPage() {
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
-            setSentEmail(inviteEmail)
-            setInviteSuccess(true)
-            toast.success(`Invite sent to ${inviteEmail}!`)
+            setInviteSuccessView({ channel: "email", email: inviteEmail.trim() })
+            toast.success(`Invite sent to ${inviteEmail.trim()}!`)
 
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
@@ -123,7 +126,7 @@ export default function TeamPage() {
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
-            setInviteSuccess(true)
+            setInviteSuccessView({ channel: "link" })
             toast.success("Invite link created!")
 
             const newInvites = await getWorkspaceInvites()
@@ -215,9 +218,8 @@ export default function TeamPage() {
                         setGeneratedLink("")
                         setInviteEmail("")
                         setInviteRole("TEAM_MEMBER")
-                        setInviteSuccess(false)
+                        setInviteSuccessView(null)
                         setInviteError("")
-                        setSentEmail("")
                     }
                 }}>
                     <DialogTrigger asChild>
@@ -257,7 +259,7 @@ export default function TeamPage() {
                                     placeholder="team@example.com"
                                     value={inviteEmail}
                                     onChange={(e) => setInviteEmail(e.target.value)}
-                                    disabled={inviteSuccess}
+                                    disabled={inviteSuccessView != null}
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     Required to send invitation email.
@@ -270,7 +272,7 @@ export default function TeamPage() {
                                 </div>
                             )}
 
-                            {!inviteSuccess ? (
+                            {inviteSuccessView == null ? (
                                 <div className="space-y-3">
                                     <Button
                                         onClick={handleCreateInvite}
@@ -304,10 +306,12 @@ export default function TeamPage() {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-semibold text-slate-900">
-                                                {sentEmail ? `Invite sent to ${sentEmail}!` : "Invite link ready"}
+                                                {inviteSuccessView?.channel === "email"
+                                                    ? `Invite sent to ${inviteSuccessView.email}!`
+                                                    : "Invite link ready"}
                                             </h3>
                                             <p className="text-sm text-slate-600 mt-1">
-                                                {sentEmail
+                                                {inviteSuccessView?.channel === "email"
                                                     ? "They can join your workspace using the link below."
                                                     : "Share this link with your teammate so they can join your workspace."}
                                             </p>
