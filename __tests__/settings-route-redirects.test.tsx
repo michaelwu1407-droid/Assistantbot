@@ -41,6 +41,7 @@ import BillingSettingsPage from "@/app/crm/settings/billing/page";
 import PhoneSettingsPage from "@/app/crm/settings/phone-settings/page";
 import SmsTemplatesPage from "@/app/crm/settings/sms-templates/page";
 import SupportPage from "@/app/crm/settings/support/page";
+import DataPrivacySettingsPage from "@/app/crm/settings/data-privacy/page";
 
 describe("settings route redirects", () => {
   beforeEach(() => {
@@ -57,6 +58,7 @@ describe("settings route redirects", () => {
   it("redirects legacy settings routes to their canonical destinations", () => {
     expect(() => PhoneSettingsPage()).toThrow("REDIRECT:/crm/settings");
     expect(() => SupportPage()).toThrow("REDIRECT:/crm/settings/help");
+    expect(() => DataPrivacySettingsPage()).toThrow("REDIRECT:/crm/settings/privacy");
     expect(() => SmsTemplatesPage()).toThrow("REDIRECT:/crm/settings/call-settings");
     expect(() => AIVoiceSettingsPage()).toThrow("REDIRECT:/crm/settings/call-settings");
     expect(() => AfterHoursSettingsPage()).toThrow("REDIRECT:/crm/settings/call-settings");

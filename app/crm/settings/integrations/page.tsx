@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Mail, Calendar, Check, Loader2, Zap, X, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationStatus } from "@/actions/integration-actions"
+import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationConnectionReadiness, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
 import { useShellStore } from "@/lib/store"
 
@@ -28,6 +28,13 @@ interface CalendarIntegrationView {
     calendarId?: string | null
 }
 
+interface IntegrationReadinessView {
+    gmail: { ready: boolean; reason?: string }
+    outlook: { ready: boolean; reason?: string }
+    googleCalendar: { ready: boolean; reason?: string }
+    xero: { ready: boolean; reason?: string }
+}
+
 export default function IntegrationsPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -43,6 +50,12 @@ export default function IntegrationsPage() {
     const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [emailIntegrations, setEmailIntegrations] = useState<EmailIntegrationView[]>([])
     const [loadingIntegrations, setLoadingIntegrations] = useState(true)
+    const [readiness, setReadiness] = useState<IntegrationReadinessView>({
+        gmail: { ready: false, reason: "Checking Gmail setup..." },
+        outlook: { ready: false, reason: "Checking Outlook setup..." },
+        googleCalendar: { ready: false, reason: "Checking Google Calendar setup..." },
+        xero: { ready: false, reason: "Checking Xero setup..." },
+    })
 
     // RBAC: Team members cannot access integrations
     useEffect(() => {
@@ -77,10 +90,14 @@ export default function IntegrationsPage() {
     const refreshIntegrationStatus = async () => {
         setLoadingIntegrations(true)
         try {
-            const status = await getIntegrationStatus()
+            const [status, nextReadiness] = await Promise.all([
+                getIntegrationStatus(),
+                getIntegrationConnectionReadiness(),
+            ])
             setEmailIntegrations(status.emailIntegrations)
             setXeroStatus(status.xeroConnected ? "connected" : "idle")
             setCalendarIntegration(status.calendarIntegration)
+            setReadiness(nextReadiness)
         } catch {
             toast.error("Failed to load integration status")
         } finally {
@@ -89,6 +106,10 @@ export default function IntegrationsPage() {
     }
 
     const handleConnectGoogleCalendar = async () => {
+        if (!readiness.googleCalendar.ready) {
+            toast.error(readiness.googleCalendar.reason || "Google Calendar is not configured yet.")
+            return
+        }
         setCalendarLoading(true)
         try {
             const result = await connectGoogleCalendar()
@@ -125,12 +146,17 @@ export default function IntegrationsPage() {
 
     const handleConnectEmail = async (provider: "gmail" | "outlook") => {
         try {
+            const providerReadiness = readiness[provider]
+            if (!providerReadiness.ready) {
+                toast.error(providerReadiness.reason || "This integration is not configured yet.")
+                return
+            }
             const response = await fetch(`/api/auth/email-provider?provider=${provider}`)
             const data = await response.json()
             if (data.authUrl) {
                 window.location.href = data.authUrl
             } else {
-                toast.error("Failed to generate authorization URL")
+                toast.error(data.error || "Failed to generate authorization URL")
             }
         } catch {
             toast.error("Failed to start email connection")
@@ -148,6 +174,10 @@ export default function IntegrationsPage() {
     }
 
     const handleConnectXero = async () => {
+        if (!readiness.xero.ready) {
+            toast.error(readiness.xero.reason || "Xero is not configured yet.")
+            return
+        }
         setXeroStatus("connecting")
         try {
             const result = await connectXero()
@@ -197,6 +227,7 @@ export default function IntegrationsPage() {
                                 variant="outline"
                                 className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-red-500/50 hover:bg-red-50/50 transition-all"
                                 onClick={() => handleConnectEmail("gmail")}
+                                disabled={!readiness.gmail.ready}
                             >
                                 <Mail className="h-8 w-8 text-red-500" />
                                 <div className="text-center">
@@ -209,6 +240,7 @@ export default function IntegrationsPage() {
                                 variant="outline"
                                 className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-blue-500/50 hover:bg-blue-50/50 transition-all"
                                 onClick={() => handleConnectEmail("outlook")}
+                                disabled={!readiness.outlook.ready}
                             >
                                 <Mail className="h-8 w-8 text-blue-500" />
                                 <div className="text-center">
@@ -217,6 +249,16 @@ export default function IntegrationsPage() {
                                 </div>
                             </Button>
                         </div>
+                        {(!readiness.gmail.ready || !readiness.outlook.ready) && (
+                            <div className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                {!readiness.gmail.ready && (
+                                    <p>Gmail: {readiness.gmail.reason}</p>
+                                )}
+                                {!readiness.outlook.ready && (
+                                    <p>Outlook: {readiness.outlook.reason}</p>
+                                )}
+                            </div>
+                        )}
 
                         {loadingIntegrations ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -293,12 +335,17 @@ export default function IntegrationsPage() {
                                 Disconnect
                             </Button>
                         ) : (
-                            <Button onClick={handleConnectGoogleCalendar} disabled={calendarLoading}>
+                            <Button onClick={handleConnectGoogleCalendar} disabled={calendarLoading || !readiness.googleCalendar.ready}>
                                 {calendarLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                                 Connect Google Calendar
                             </Button>
                         )}
                     </CardFooter>
+                    {!calendarIntegration.connected && !readiness.googleCalendar.ready && (
+                        <div className="px-6 pb-4 text-xs text-amber-700">
+                            {readiness.googleCalendar.reason}
+                        </div>
+                    )}
                 </Card>
 
                 <Card>
@@ -339,7 +386,7 @@ export default function IntegrationsPage() {
                         )}
 
                         {xeroStatus === "idle" && (
-                            <Button onClick={handleConnectXero}>Connect Xero</Button>
+                            <Button onClick={handleConnectXero} disabled={!readiness.xero.ready}>Connect Xero</Button>
                         )}
                         {xeroStatus === "connecting" && (
                             <Button disabled>
@@ -353,6 +400,11 @@ export default function IntegrationsPage() {
                             </Badge>
                         ) : null}
                     </CardFooter>
+                    {xeroStatus !== "connected" && !readiness.xero.ready && (
+                        <div className="px-6 pb-4 text-xs text-amber-700">
+                            {readiness.xero.reason}
+                        </div>
+                    )}
                 </Card>
 
             </div>

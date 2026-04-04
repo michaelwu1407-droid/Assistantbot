@@ -4,27 +4,31 @@ import { getAuthUser } from "@/lib/auth";
 
 // ─── OAuth Configuration ───────────────────────────────────────────────
 
-const GMAIL_CONFIG = {
-  clientId: process.env.GOOGLE_CLIENT_ID!,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-  redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/gmail/callback`,
-  scopes: [
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/userinfo.email"
-  ]
-};
+function getGmailConfig() {
+  return {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    redirectUri: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/auth/gmail/callback`,
+    scopes: [
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  };
+}
 
-const OUTLOOK_CONFIG = {
-  clientId: process.env.OUTLOOK_CLIENT_ID!,
-  clientSecret: process.env.OUTLOOK_CLIENT_SECRET!,
-  redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/outlook/callback`,
-  scopes: [
-    "https://graph.microsoft.com/Mail.Read",
-    "https://graph.microsoft.com/Mail.ReadWrite",
-    "https://graph.microsoft.com/User.Read"
-  ]
-};
+function getOutlookConfig() {
+  return {
+    clientId: process.env.OUTLOOK_CLIENT_ID ?? "",
+    clientSecret: process.env.OUTLOOK_CLIENT_SECRET ?? "",
+    redirectUri: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/auth/outlook/callback`,
+    scopes: [
+      "https://graph.microsoft.com/Mail.Read",
+      "https://graph.microsoft.com/Mail.ReadWrite",
+      "https://graph.microsoft.com/User.Read"
+    ]
+  };
+}
 
 // ─── Gmail OAuth Flow ───────────────────────────────────────────────────
 
@@ -53,12 +57,20 @@ export async function GET(req: NextRequest) {
 
   // Generate OAuth URL
   let authUrl: string;
+  const config = provider === "gmail" ? getGmailConfig() : getOutlookConfig();
+
+  if (!config.clientId || !config.clientSecret || !process.env.NEXT_PUBLIC_APP_URL) {
+    return NextResponse.json(
+      { error: `${provider === "gmail" ? "Gmail" : "Outlook"} integration is not configured` },
+      { status: 503 }
+    );
+  }
 
   if (provider === "gmail") {
     const params = new URLSearchParams({
-      client_id: GMAIL_CONFIG.clientId,
-      redirect_uri: GMAIL_CONFIG.redirectUri,
-      scope: GMAIL_CONFIG.scopes.join(" "),
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      scope: config.scopes.join(" "),
       response_type: "code",
       access_type: "offline", // Important for refresh token
       prompt: "consent", // Force consent to get refresh token
@@ -67,9 +79,9 @@ export async function GET(req: NextRequest) {
     authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   } else {
     const params = new URLSearchParams({
-      client_id: OUTLOOK_CONFIG.clientId,
-      redirect_uri: OUTLOOK_CONFIG.redirectUri,
-      scope: OUTLOOK_CONFIG.scopes.join(" "),
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      scope: config.scopes.join(" "),
       response_type: "code",
       response_mode: "query",
       state: JSON.stringify({ userId: user.id, provider: "outlook" })

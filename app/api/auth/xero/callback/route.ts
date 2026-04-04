@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { storeXeroTokens } from "@/lib/xero";
+import { getXeroOAuthRedirectUri, storeXeroTokens } from "@/lib/xero";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -23,8 +23,7 @@ export async function GET(req: NextRequest) {
 
   const clientId = process.env.XERO_CLIENT_ID ?? "";
   const clientSecret = process.env.XERO_CLIENT_SECRET ?? "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const redirectUri = `${baseUrl}/api/auth/xero/callback`;
+  const redirectUri = getXeroOAuthRedirectUri();
 
   try {
     // 1. Exchange authorization code for tokens

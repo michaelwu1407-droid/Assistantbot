@@ -2,14 +2,57 @@
 
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildXeroAuthUrl } from "@/lib/xero";
+import { buildXeroAuthUrl, getXeroOAuthRedirectUri } from "@/lib/xero";
 import { buildGoogleCalendarAuthUrl, disconnectGoogleCalendarIntegration, getWorkspaceCalendarStatus } from "@/lib/workspace-calendar";
+
+type IntegrationReadiness = {
+  gmail: { ready: boolean; reason?: string };
+  outlook: { ready: boolean; reason?: string };
+  googleCalendar: { ready: boolean; reason?: string };
+  xero: { ready: boolean; reason?: string };
+};
+
+function hasBaseAppUrl() {
+  return Boolean(process.env.NEXT_PUBLIC_APP_URL?.trim());
+}
+
+function configuredOrReason(
+  configured: boolean,
+  reason: string
+): { ready: boolean; reason?: string } {
+  return configured ? { ready: true } : { ready: false, reason };
+}
+
+export async function getIntegrationConnectionReadiness(): Promise<IntegrationReadiness> {
+  const hasAppUrl = hasBaseAppUrl();
+
+  return {
+    gmail: configuredOrReason(
+      Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && hasAppUrl),
+      "Gmail OAuth is not configured yet.",
+    ),
+    outlook: configuredOrReason(
+      Boolean(process.env.OUTLOOK_CLIENT_ID && process.env.OUTLOOK_CLIENT_SECRET && hasAppUrl),
+      "Outlook OAuth is not configured yet.",
+    ),
+    googleCalendar: configuredOrReason(
+      Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && hasAppUrl),
+      "Google Calendar is not configured yet.",
+    ),
+    xero: configuredOrReason(
+      Boolean(process.env.XERO_CLIENT_ID && process.env.XERO_CLIENT_SECRET && hasAppUrl && getXeroOAuthRedirectUri()),
+      "Xero OAuth is not configured yet.",
+    ),
+  };
+}
 
 /**
  * Initiates the Xero OAuth 2.0 flow by returning the authorization URL.
  */
 export async function connectXero(): Promise<{ url: string | null }> {
   try {
+    const readiness = await getIntegrationConnectionReadiness();
+    if (!readiness.xero.ready) return { url: null };
     const userId = await getAuthUserId();
     if (!userId) return { url: null };
     const workspace = await db.workspace.findFirst({
@@ -73,6 +116,8 @@ export async function getIntegrationStatus() {
 }
 
 export async function connectGoogleCalendar(): Promise<{ url: string | null }> {
+  const readiness = await getIntegrationConnectionReadiness();
+  if (!readiness.googleCalendar.ready) return { url: null };
   const userId = await getAuthUserId();
   if (!userId) return { url: null };
 

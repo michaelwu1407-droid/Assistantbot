@@ -18,17 +18,16 @@ import {
 
 export function SupportRequestPanel() {
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState("")
-  const [error, setError] = useState("")
+  const [submissionState, setSubmissionState] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [priority, setPriority] = useState("medium")
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget
     setLoading(true)
-    setError("")
-    setSuccess("")
+    setSubmissionState(null)
 
-    const formData = new FormData(e.currentTarget)
+    const formData = new FormData(form)
     const subject = formData.get("subject") as string
     const message = formData.get("message") as string
 
@@ -42,14 +41,23 @@ export function SupportRequestPanel() {
       const result = await response.json()
 
       if (result.success) {
-        setSuccess("Support request sent. We'll get back to you within 24 hours.")
+        setSubmissionState({
+          type: "success",
+          message: "Support request sent. We'll get back to you within 24 hours.",
+        })
         setPriority("medium")
-        e.currentTarget.reset()
+        form.reset()
       } else {
-        setError(result.error || "Failed to send support request")
+        setSubmissionState({
+          type: "error",
+          message: result.error || "Failed to send support request",
+        })
       }
     } catch {
-      setError("Failed to send support request. Please try again.")
+      setSubmissionState({
+        type: "error",
+        message: "Failed to send support request. Please try again.",
+      })
     } finally {
       setLoading(false)
     }
@@ -65,15 +73,15 @@ export function SupportRequestPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
+          {submissionState?.type === "error" && (
             <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{submissionState.message}</AlertDescription>
             </Alert>
           )}
-          {success && (
+          {submissionState?.type === "success" && (
             <Alert className="mb-4 border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">{success}</AlertDescription>
+              <AlertDescription className="text-green-800">{submissionState.message}</AlertDescription>
             </Alert>
           )}
 

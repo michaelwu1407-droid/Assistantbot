@@ -7,6 +7,14 @@ const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 const XERO_CONNECTIONS_URL = "https://api.xero.com/connections";
 const XERO_API_BASE = "https://api.xero.com/api.xro/2.0";
 
+function getCanonicalOAuthBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
+}
+
 // ─── Token Encryption ────────────────────────────────────────────────
 // Simple AES-256-CBC encryption for storing OAuth tokens at rest.
 // In production, consider using a KMS (AWS KMS, GCP KMS, etc.).
@@ -344,8 +352,7 @@ export async function createXeroDraftInvoice(jobId: string): Promise<XeroDraftRe
  */
 export function buildXeroAuthUrl(workspaceId: string): string {
   const clientId = process.env.XERO_CLIENT_ID ?? "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const redirectUri = `${baseUrl}/api/auth/xero/callback`;
+  const redirectUri = getXeroOAuthRedirectUri();
 
   const params = new URLSearchParams({
     response_type: "code",
@@ -356,4 +363,8 @@ export function buildXeroAuthUrl(workspaceId: string): string {
   });
 
   return `https://login.xero.com/identity/connect/authorize?${params.toString()}`;
+}
+
+export function getXeroOAuthRedirectUri(): string {
+  return `${getCanonicalOAuthBaseUrl()}/api/auth/xero/callback`;
 }
