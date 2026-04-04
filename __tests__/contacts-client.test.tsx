@@ -116,6 +116,7 @@ describe("ContactsClient", () => {
     expect(screen.getByRole("link", { name: "Acme Plumbing" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Sarah Jones" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Zen Electrical" })).not.toBeInTheDocument();
+    expect(screen.getByText("1 contact")).toBeInTheDocument();
 
     await user.clear(screen.getByPlaceholderText("Search contacts..."));
     await user.click(screen.getByRole("button", { name: /type: all/i }));
@@ -145,8 +146,43 @@ describe("ContactsClient", () => {
     await waitFor(() => {
       expect(deleteContacts).toHaveBeenCalledWith(["contact_1"]);
     });
-    expect(global.confirm).toHaveBeenCalledWith("Are you sure you want to delete 1 contacts? This cannot be undone.");
-    expect(toastSuccess).toHaveBeenCalledWith("Deleted 1 contacts");
+    expect(global.confirm).toHaveBeenCalledWith("Are you sure you want to delete 1 contact? This cannot be undone.");
+    expect(toastSuccess).toHaveBeenCalledWith("Deleted 1 contact");
     expect(routerRefresh).toHaveBeenCalled();
+  });
+
+  it("shows the visible filtered count in pagination copy", async () => {
+    const user = userEvent.setup();
+    render(
+      <ContactsClient
+        contacts={contacts}
+        pagination={{ page: 1, pageSize: 100, total: 8, hasNextPage: false, hasPrevPage: false }}
+      />,
+    );
+
+    expect(screen.getByText("Showing 3 of 8 contacts (page 1)")).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("Search contacts..."), "drain");
+
+    expect(screen.getByText("Showing 1 of 8 contacts (page 1), filtered from 3 on this page")).toBeInTheDocument();
+  });
+
+  it("surfaces backend delete failures instead of pretending success", async () => {
+    const user = userEvent.setup();
+    deleteContacts.mockResolvedValue({ success: false, error: "Delete blocked" });
+    const { container } = render(<ContactsClient contacts={contacts} />);
+
+    const table = container.querySelector("table");
+    expect(table).not.toBeNull();
+
+    const checkboxes = within(table as HTMLTableElement).getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(deleteContacts).toHaveBeenCalledWith(["contact_1"]);
+    });
+    expect(toastError).toHaveBeenCalledWith("Delete blocked");
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 });

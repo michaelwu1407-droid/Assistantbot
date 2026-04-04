@@ -153,18 +153,22 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
   }
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selected.size} contacts? This cannot be undone.`)) {
+    const selectedCount = selected.size
+    if (!confirm(`Are you sure you want to delete ${selectedCount} contact${selectedCount === 1 ? "" : "s"}? This cannot be undone.`)) {
       return
     }
 
     setSending(true)
     try {
-      await deleteContacts(Array.from(selected))
-      toast.success(`Deleted ${selected.size} contacts`)
+      const result = await deleteContacts(Array.from(selected))
+      if (result?.success === false) {
+        throw new Error(result.error || "Failed to delete contacts")
+      }
+      toast.success(`Deleted ${selectedCount} contact${selectedCount === 1 ? "" : "s"}`)
       setSelected(new Set())
       router.refresh()
-    } catch {
-      toast.error("Failed to delete contacts")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete contacts")
     } finally {
       setSending(false)
     }
@@ -479,7 +483,8 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
           {pagination && (
             <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
-                Showing {contacts.length} of {pagination.total} contacts (page {pagination.page})
+                Showing {filtered.length} of {pagination.total} contacts (page {pagination.page})
+                {filtered.length !== contacts.length ? `, filtered from ${contacts.length} on this page` : ""}
               </p>
               <div className="flex items-center gap-2">
                 <Button
