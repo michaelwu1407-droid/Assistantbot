@@ -572,6 +572,7 @@ export async function deleteContact(contactId: string) {
     return { success: false, error: "Only managers can delete contacts." };
   }
   await db.contact.delete({ where: { id: contactId } });
+  revalidatePath("/crm/contacts");
   return { success: true };
 }
 
