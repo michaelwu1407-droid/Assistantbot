@@ -10,6 +10,7 @@ import { DealNotes } from "@/components/crm/deal-notes"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { ActivityFeed } from "@/components/crm/activity-feed"
+import { getActivities } from "@/actions/activity-actions"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
@@ -61,7 +62,8 @@ export default async function DealDetailPage({ params }: PageProps) {
   const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone)
   const isRestrictedActor = actor.role === "TEAM_MEMBER"
 
-  const contactDeals = await db.deal.findMany({
+  const [contactDeals, initialActivities] = await Promise.all([
+    db.deal.findMany({
     where: {
       contactId: deal.contactId,
       workspaceId: actor.workspaceId,
@@ -71,7 +73,9 @@ export default async function DealDetailPage({ params }: PageProps) {
     orderBy: { updatedAt: "desc" },
     take: 10,
     include: { contact: true },
-  })
+  }),
+    getActivities({ contactId: deal.contactId ?? undefined, dealId: id, limit: 20 }),
+  ])
 
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
@@ -264,7 +268,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </TabsList>
               </div>
               <TabsContent value="communications" className="mt-0 flex-1 min-h-[16rem] p-0">
-                <ActivityFeed contactId={deal.contactId} compact className="h-full" />
+                <ActivityFeed contactId={deal.contactId ?? undefined} dealId={id} activities={initialActivities} compact className="h-full" />
               </TabsContent>
               <TabsContent value="jobs" className="mt-0 flex-1 min-h-[16rem] p-3">
                 <div className="space-y-2">

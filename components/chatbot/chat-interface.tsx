@@ -16,7 +16,7 @@ import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastActio
 import { getTeamMembers } from '@/actions/invite-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
 
 interface ChatInterfaceProps {
@@ -317,6 +317,7 @@ function ChatWithHistory({
   /** Track send time to measure client-perceived TTFT */
   const sendTimestampRef = useRef<number>(0);
   const pathname = usePathname();
+  const router = useRouter();
 
   const getContextualQuickActions = () => {
     const dealMatch = pathname?.match(/\/deals\/([^/?#]+)/);
@@ -384,6 +385,9 @@ function ChatWithHistory({
       if (!content.trim() && typeof (message as { content?: string }).content === 'string')
         content = (message as { content?: string }).content ?? "";
       if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => { });
+      // Refresh server component data so ActivityFeed and other server-fetched UI
+      // reflects any CRM mutations Tracey performed during this response.
+      router.refresh();
     },
     onError: async (err) => {
       console.error("Chat error:", err);
