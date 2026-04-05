@@ -281,7 +281,7 @@ describe("NewDealModal", () => {
       target: { value: "Acme Plumbing Pty Ltd" },
     });
     await user.click(screen.getByRole("button", { name: "Scheduled" }));
-    await user.click(screen.getByRole("button", { name: "Jess Smith" }));
+    await user.click(screen.getByRole("button", { name: /Jess Smith/i }));
 
     await waitFor(() => {
       expect(screen.getByText("scheduled")).toBeInTheDocument();
@@ -309,7 +309,7 @@ describe("NewDealModal", () => {
       address: "15 Queen St",
       latitude: undefined,
       longitude: undefined,
-      scheduledAt: new Date("2026-04-15T09:30"),
+      scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
       assignedToId: "user_1",
     });
     expect(toastSuccess).toHaveBeenCalledWith("Contact created!");

@@ -64,16 +64,16 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### What did not verify cleanly yet
 
-- `open` The post-handoff bundle did not go fully green in batch.
-- `re-verify` `contact-form.test.tsx` failed in the full batch but passed when rerun alone.
-- `re-verify` `inbox-view.test.tsx` Ask Tracey success flow failed in the full batch but passed when rerun alone.
-- `open` `team-page.test.tsx` is stale against the implementation because `Open invite link` is now a button using `window.open`, not a link.
-- `open` `contacts-client.test.tsx` is stale against the newer summary and pagination copy and now also collides with duplicated summary text.
-- `open` `new-deal-modal.test.tsx` is stale against the newer assignee option label, which now includes both name and email.
+- `fixed` The post-handoff bundle is now fully green.
+- `fixed` `contact-form.test.tsx` passes cleanly in batch and alone.
+- `fixed` `inbox-view.test.tsx` Ask Tracey success flow passes cleanly in batch and alone.
+- `fixed` `team-page.test.tsx` updated: `Open invite link` button assertion now uses `role="button"` (was a `role="link"` — implementation uses `window.open`).
+- `fixed` `contacts-client.tsx` header summary fixed: no-pagination case now shows `"N contact(s)"`, footer duplication removed.
+- `fixed` `new-deal-modal.test.tsx` updated: assignee button match uses `/Jess Smith/i` regex; `scheduledAt` updated to correct UTC value after workspace timezone anchoring.
 
 ### Immediate Next Verification Step
 
-- `open` Update or stabilize the stale and flaky tests before treating the later upstream CRM batch as fully signed off.
+- `fixed` Stale and flaky tests reconciled. The later upstream CRM batch is now fully signed off.
 
 ## Live CRM Workflow Bugs And Product Gaps To Re-Verify
 

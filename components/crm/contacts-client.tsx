@@ -359,11 +359,11 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {hasActiveClientFilters
-              ? `Matches on this page: ${filtered.length} of ${contacts.length} loaded · ${pagination?.total || 0} contacts in workspace · page ${pagination?.page || 1}`
-              : `Showing ${contacts.length} of ${pagination?.total || 0} contacts (page ${pagination?.page || 1})`}
-          </p>
+          {!pagination && (
+            <p className="text-xs text-muted-foreground">
+              {`${filtered.length} ${filtered.length === 1 ? "contact" : "contacts"}`}
+            </p>
+          )}
 
           <div className="overflow-hidden rounded-[18px] border border-border bg-card">
             <div className="overflow-x-auto">

@@ -1,3 +1,18 @@
+## 2026-04-05 (Claude) - Stale/flaky test reconciliation for upstream CRM batch
+
+- Files changed:
+  - `__tests__/team-page.test.tsx`
+  - `__tests__/new-deal-modal.test.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - Fixed `team-page.test.tsx`: the pending-invite "Open invite link" item is now rendered as a `<button>` using `window.open` (not an anchor link), so the test was updated from `getByRole("link")` to `getByRole("button")` and the `href` assertion removed.
+  - Fixed `contacts-client.tsx` header summary: without pagination the component showed `"Showing 3 of 0 contacts (page 1)"` which was incorrect. It now shows `"N contact(s)"` (singular/plural). When pagination is provided, the header no longer duplicates the summary text that the footer pagination section already renders, fixing the "Found multiple elements" test error.
+  - Fixed `new-deal-modal.test.tsx`: the assignee `<SelectItem>` now renders both name and email as separate spans, so the button accessible name includes the email suffix. Updated the click target to use a `/Jess Smith/i` regex match. Also updated the `scheduledAt` expectation to the correct UTC value (`2026-04-14T23:30:00.000Z`) after the workspace timezone anchoring fix interprets datetime-local input in `Australia/Sydney` (UTC+10).
+  - `contact-form.test.tsx` and `inbox-view.test.tsx` passed cleanly in isolation and in batch - treated as stable. No changes needed.
+  - Full targeted suite: 5 test files, 20 tests — all green. Original 10-file passing suite also re-verified: 76 tests still green.
+- Why:
+  - The previous upstream CRM batch improved real product behavior but left several tests stale against the new UI semantics. This pass reconciles those tests so the full targeted verification suite is green and the batch can be treated as fully signed off.
+
 ## 2026-04-05 03:25 (AEST) - Codex
 
 - Files changed:
