@@ -159,7 +159,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider font-medium">Last Activity</div>
                                     <div className="text-foreground font-medium">
                                         {contact.lastActivityDate
-                                            ? new Date(contact.lastActivityDate).toLocaleDateString()
+                                            ? new Date(contact.lastActivityDate).toLocaleDateString("en-AU")
                                             : "Never"}
                                     </div>
                                 </div>

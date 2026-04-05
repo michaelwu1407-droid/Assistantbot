@@ -165,7 +165,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                                         {formatInvoiceStatusLabel(inv.status)}
                                                     </Badge>
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">${Number(inv.total).toFixed(2)} • {new Date(inv.createdAt).toLocaleDateString()}</p>
+                                                <p className="text-xs text-muted-foreground">${Number(inv.total).toFixed(2)} • {new Date(inv.createdAt).toLocaleDateString("en-AU")}</p>
                                             </div>
                                             <InvoiceGenerator invoiceId={inv.id} invoiceNumber={inv.number} />
                                         </div>

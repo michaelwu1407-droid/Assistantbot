@@ -277,9 +277,9 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-500">
-                                            {new Date(inv.createdAt).toLocaleDateString()}
-                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString()}`}
-                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString()}`}
+                                            {new Date(inv.createdAt).toLocaleDateString("en-AU")}
+                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString("en-AU")}`}
+                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString("en-AU")}`}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">

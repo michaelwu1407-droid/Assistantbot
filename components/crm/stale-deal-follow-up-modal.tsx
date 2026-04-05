@@ -168,7 +168,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
               </Badge>
             </div>
             <div className="text-sm text-gray-600 mt-2">
-              Last activity: {deal.lastActivity.toLocaleDateString()} ({daysSinceLastActivity} days ago)
+              Last activity: {deal.lastActivity.toLocaleDateString("en-AU")} ({daysSinceLastActivity} days ago)
             </div>
           </div>
 
