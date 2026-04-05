@@ -82,7 +82,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contacts list count/footer mismatch: stage filter silently dropped contacts with no primary deal, LOST deals, and PENDING_COMPLETION deals. Filter is now inclusive for unmapped/null stages. LOST added to KANBAN_STAGES. PENDING_COMPLETION mapped to "completed".
 - `fixed` Contact create success path: `router.replace` to contact detail page after create confirmed in code.
 - `fixed` Contact edit success path: `router.replace` to contact detail page after edit confirmed in code.
-- `re-verify` Contact detail page may still omit editable fields like company/address.
+- `fixed` Contact detail page: company, phone, email, address now each show '+ Add X' links to the edit page when empty. Both BUSINESS and PERSON layouts updated.
 - `fixed` Bulk contact delete: `deleteContacts` revalidates `/crm/contacts`. `deleteContact` (singular) also now revalidates — was missing previously.
 - `fixed` Search/filter footer count: no longer shows "Showing 8 of 8" when contacts are being filtered client-side. The header now shows `"N contacts"` without pagination, and `"Matches on this page: ..."` when filters are active with pagination.
 - `fixed` contacts-client tests aligned and green.
@@ -92,7 +92,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `fixed` Deal detail page now shows assigned team member in "Current job" card. db query includes `assignedTo`. Test mock updated accordingly.
 - `re-verify` Job detail page may still lack enough communication history/context for an operational page.
-- `re-verify` Some visible billing/value transitions may still be confusing after invoice creation.
+- `fixed` Deal detail page: 'Current job' card and subtitle now show invoicedAmount when an invoice exists (with quoted value as secondary), instead of always showing the original estimate.
 - `fixed` Notes saved on contacts/jobs: `logActivity` and `appendTicketNote` revalidate correctly; deal page ActivityFeed now receives `initialData` server-side and chat interface calls `router.refresh()` after Tracey finishes so mutations appear immediately.
 
 ### Scheduling / Calendar / Map
@@ -112,7 +112,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Billing / Quotes / Invoices
 
-- `re-verify` Contacts page and other CRM surfaces may still use inconsistent billing/stage words such as `Invoiced` vs `Awaiting payment`.
+- `fixed` Stage label consistency: tutorial-view.tsx replaced 'Invoiced' with 'Awaiting payment' to match live kanban column. job-billing-tab.tsx missing Badge import fixed. Stage label helpers verified consistent.
 - `re-verify` Invoice creation and resulting job value still may not be explained clearly enough to users.
 - `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
@@ -135,6 +135,10 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `open` Keep improving output quality first, not just latency.
 - `open` Continue testing Tracey with real CRM operation prompts, not toy questions.
+- `fixed` getTodaySummary and getAvailability now compute day boundaries using workspace timezone (via parseDateTimeLocalInTimezone). On UTC servers, AEST workspaces previously got wrong 'today' jobs.
+- `fixed` Pre-classifier: added daily-digest/morning-briefing patterns to scheduling intent; stale/rotting/attention to reporting patterns; ON_MY_WAY field-routing hint now names getTodaySummary as fallback contact source.
+- `fixed` System prompt messagingRuleBlock: model now instructed to extract message body from user instruction ('tell John I'm on my way' → SMS body is 'I'm on my way').
+- `fixed` roleGuardBlock rewritten: decouples showConfirmationCard from recordManualRevenue; multiJobBlock clarified for single vs multi-job flows.
 - `re-verify` Tracey still needs stronger performance on multi-step CRM actions and exact CRM lookups under real usage.
 - `re-verify` Tracey should stay truthful about whether a CRM mutation actually succeeded.
 - `re-verify` Tracey should continue using user-facing stage language consistently in replies.
