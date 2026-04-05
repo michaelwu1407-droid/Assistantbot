@@ -1,3 +1,17 @@
+## 2026-04-05 (Claude) - CRM polish: analytics labels, contact notes revalidation, updateContact revalidation
+
+- Files changed:
+  - `actions/analytics-actions.ts`
+  - `actions/contact-actions.ts`
+  - `__tests__/contact-actions.test.ts`
+- Summary:
+  - **Analytics stage labels**: `NEGOTIATION` was labelled `"Negotiation"` and `PIPELINE` as `"Pipeline"` and `INVOICED` as `"Ready to invoice"` in the analytics stage-breakdown chart. All three are now aligned with the user-facing labels used across the rest of the app: `"Scheduled"`, `"Quote sent"`, and `"Awaiting payment"` respectively.
+  - **Contact notes revalidation**: `updateContactMetadata` now calls `revalidatePath` for the contact detail page after saving notes. Previously, saved notes would not appear when revisiting the contact page without a hard browser refresh, because the server component's cached render was not invalidated.
+  - **updateContact revalidation**: `updateContact` now revalidates the contact detail page and the contacts list after a successful edit. This ensures the contacts list and detail page reflect edits immediately on re-navigation.
+  - Added `next/cache` mock to `contact-actions.test.ts` so `revalidatePath` calls don't throw in the test environment.
+- Why:
+  - Analytics showing different stage names from the rest of the CRM made it harder to correlate numbers. Contact notes not persisting visually after save was a direct usability regression. The revalidation gaps were silent trust bugs.
+
 ## 2026-04-05 (Claude) - Live CRM workflow polish: inbox classification + contacts count trust
 
 - Files changed:
