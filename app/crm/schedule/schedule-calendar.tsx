@@ -37,13 +37,15 @@ interface ScheduleCalendarProps {
   deals: DealView[]
   teamMembers: TeamMember[]
   workspaceTimezone: string
+  /** Override the initial current date. Used in tests to avoid timezone-sensitive date matching. */
+  initialDate?: Date
 }
 
 const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
 
-export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone }: ScheduleCalendarProps) {
+export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initialDate }: ScheduleCalendarProps) {
   const router = useRouter()
-  const [current, setCurrent] = useState(new Date())
+  const [current, setCurrent] = useState(() => initialDate ?? new Date())
   const [view, setView] = useState<ViewMode>("month")
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null)

@@ -50,7 +50,7 @@ export default async function DealDetailPage({ params }: PageProps) {
   const [deal, workspace] = await Promise.all([
     db.deal.findFirst({
       where: { id, workspaceId: actor.workspaceId },
-      include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
+      include: { contact: true, assignedTo: { select: { id: true, name: true, email: true } }, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
     }),
     db.workspace.findUnique({
       where: { id: actor.workspaceId },
@@ -208,6 +208,12 @@ export default async function DealDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 text-xs">Scheduled</p>
                 <p className="font-medium text-slate-900">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 text-xs">Assigned to</p>
+                <p className="font-medium text-slate-900">
+                  {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
                 </p>
               </div>
               <div>
