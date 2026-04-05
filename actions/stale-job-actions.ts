@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { z } from "zod"
+import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { getAuthUserId } from "@/lib/auth"
 import { MonitoringService } from "@/lib/monitoring"
@@ -117,8 +118,12 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
       hasNotes: !!outcomeNotes,
     })
 
-    return { 
-      success: true, 
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
+
+    return {
+      success: true,
       data: {
         dealId: updatedDeal.id,
         actualOutcome: updatedDeal.actualOutcome,
@@ -128,8 +133,8 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
 
   } catch (error) {
     console.error("Error reconciling stale job:", error)
-    MonitoringService.logError(error as Error, { 
-      action: "reconcileStaleJob", 
+    MonitoringService.logError(error as Error, {
+      action: "reconcileStaleJob",
       dealId,
       actualOutcome 
     })
