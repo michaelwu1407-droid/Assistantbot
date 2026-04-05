@@ -54,12 +54,13 @@ const SCHEDULING_PATTERNS = [
   /\b(next week|this week|next month|this month)\b/i,
   /\b\d{1,2}\s*(am|pm)\b/i,
   /\b(what('s| is) my day|what am i doing|morning|afternoon)\b/i,
+  /\b(what('s| is) on my (plate|schedule|agenda)|daily (briefing|digest|summary|rundown)|morning briefing)\b/i,
 ];
 
 const COMMUNICATION_PATTERNS = [
   /\b(text|sms|message|msg|send|email|call|ring|phone)\b/i,
   /\b(tell|let .+ know|notify|remind|follow.?up)\b/i,
-  /\b(on my way|running late|otw|eta)\b/i,
+  /\b(on my way|running late|otw|eta|arrived|just arrived|finishing up|running early)\b/i,
 ];
 
 const FLOW_CONTROL_PATTERNS = [
@@ -70,6 +71,7 @@ const REPORTING_PATTERNS = [
   /\b(revenue|earnings|income|profit|how much .*(earn|made|make))\b/i,
   /\b(report|summary|stats|statistics|dashboard|pipeline|overview)\b/i,
   /\b(this week|this month|last month|this quarter|year to date|ytd)\b/i,
+  /\b(stale|overdue|rotting|attention|needs attention|at risk|stuck|blocked deal)\b/i,
 ];
 
 const CONTACT_PATTERNS = [
@@ -200,16 +202,26 @@ function getContextHints(intent: IntentHint, text: string): string[] {
       return [
         "SCHEDULING QUERY: Use getSchedule or getAvailability before answering. Never guess availability.",
         "Treat the workspace's current date/time as authoritative for relative dates like today, tomorrow, this month, or next Monday.",
-      ];
+        /\b(what('s| is) on my (plate|schedule|agenda)|daily (briefing|digest|summary|rundown)|morning briefing|what am i doing today|what('s| is) my day)\b/i.test(text)
+          ? "DAILY BRIEFING: Use getTodaySummary first to get today's jobs and readiness alerts. Lead with any preparation alerts (missing address, no phone, unassigned) before the job list. Then mention overdue tasks if any."
+          : null,
+      ].filter(Boolean) as string[];
     case "communication":
       return [
-        "COMMUNICATION REQUEST: Identify the contact and use sendSms/sendEmail/makeCall. Send the user's exact words.",
-      ];
+        "COMMUNICATION REQUEST: Identify the contact and use sendSms/sendEmail/makeCall immediately.",
+        "Extract the message content from what the user said. If the user says 'tell John I'm on my way', the SMS body is 'I'm on my way' — not the full instruction.",
+        /\b(on my way|otw|running late|arrived|just arrived|finishing up|running early|eta)\b/i.test(text)
+          ? "FIELD ROUTING: This looks like an on-the-road status update. Use sendSms with the status message. If no contact is named, look at today's next job and text that client."
+          : null,
+      ].filter(Boolean) as string[];
     case "reporting":
       return [
         "REPORT REQUEST: Use getFinancialReport or getTodaySummary to fetch real data. Never estimate revenue.",
         /\b(incomplete|blocked|attention)\b/i.test(text)
           ? "For jobs that look incomplete, blocked, stale, or overdue, use listIncompleteOrBlockedJobs first, then getAttentionRequired or listDeals if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
+          : null,
+        /\b(stale|rotting|at risk|stuck|needs attention|overdue deal)\b/i.test(text)
+          ? "STALE DEAL TRIAGE: Use getAttentionRequired to surface overdue, stale, and rotting deals. List them with their stage and suggested next action. Offer to move, assign, or add a follow-up note for each."
           : null,
         /\b(search past job history|job history)\b/i.test(text)
           ? "For job-history lookups, use searchJobHistory with the user's query instead of asking unnecessary follow-up questions."

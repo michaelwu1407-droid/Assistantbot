@@ -583,7 +583,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
         getTodaySummary: tool({
             description: "Today's jobs with readiness checks (missing address/phone, unassigned, etc.). Lead with alerts.",
             inputSchema: z.object({}),
-            execute: async () => runGetTodaySummary(workspaceId),
+            execute: async () => runGetTodaySummary(workspaceId, settings?.workspaceTimezone ?? undefined),
         }),
         getAvailability: tool({
             description: "Check available time slots on a specific date.",
