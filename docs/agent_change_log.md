@@ -1,3 +1,16 @@
+## 2026-04-05 (Claude) - CRM polish: revalidation gaps + global search click fix
+
+- Files changed:
+  - `actions/activity-actions.ts`
+  - `actions/contact-actions.ts`
+  - `components/layout/global-search.tsx`
+- Summary:
+  - **`logActivity` and `appendTicketNote` revalidation**: Both functions now call `revalidatePath` for the relevant deal and/or contact page after writing an activity record. Previously, notes logged via Tracey or the UI would not appear on the deal/contact detail page until a hard browser refresh because the server component's cache was never invalidated.
+  - **`deleteContacts` revalidation**: Added `revalidatePath("/crm/contacts")` after bulk delete so the contacts list updates immediately without a hard refresh.
+  - **Global search contacts mouse-click**: The `contacts` `CommandItem` was missing an `onClick` handler while all other result types (deals, tasks, activity, calls) had both `onSelect` and `onClick`. The cmdk library does not always fire `onSelect` on mouse click. Fixed by adding `onClick={() => goTo(contact.url)}` and switching `onSelect` to use `goTo` for consistency.
+- Why:
+  - Activity revalidation is foundational — without it, every note Tracey saves appears to users as a no-op until they hard-refresh. The contacts delete no-op was flagged in live auditing. The global search click fix ensures contacts are navigable by mouse (keyboard-only was working via cmdk `onSelect`; mouse clicks were silently dropped).
+
 ## 2026-04-05 (Claude) - Fix flaky tests + deal revalidation gaps + Tracey contextual quick actions
 
 - Files changed:

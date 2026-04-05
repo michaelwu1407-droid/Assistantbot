@@ -590,6 +590,7 @@ export async function deleteContacts(contactIds: string[]) {
         workspaceId: actor.workspaceId,
       },
     });
+    revalidatePath("/crm/contacts");
     return { success: true };
   } catch (error: any) {
     if (error?.code === 'P2003') {
