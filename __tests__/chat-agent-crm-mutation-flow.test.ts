@@ -427,7 +427,7 @@ describe("integration: chat agent CRM mutation flow", () => {
     hoisted.getAttentionSignalsForDeal.mockReturnValue([]);
     hoisted.rateLimit.mockResolvedValue({ allowed: true, retryAfterMs: 0 });
     hoisted.preClassify.mockReturnValue({
-      intent: "job_management",
+      intent: "crm_action",
       confidence: 0.95,
       contextHints: [],
       suggestedTools: ["createDeal"],
@@ -680,7 +680,7 @@ describe("integration: chat agent CRM mutation flow", () => {
       expect.objectContaining({ agentMode: "EXECUTE" }),
       "user_1",
       expect.objectContaining({
-        intent: "job_management",
+        intent: "crm_action",
         suggestedTools: ["createDeal"],
       }),
     );

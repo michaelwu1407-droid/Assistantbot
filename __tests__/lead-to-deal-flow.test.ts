@@ -187,6 +187,7 @@ vi.mock("@/lib/kanban-columns", () => ({
 vi.mock("@/lib/auth", () => ({
   getAuthUser: vi.fn().mockResolvedValue({ id: "user_1", name: "Owner", email: "owner@example.com" }),
 }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { createContact } from "@/actions/contact-actions";
 import { createDeal, getDeals } from "@/actions/deal-actions";

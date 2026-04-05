@@ -319,11 +319,28 @@ function ChatWithHistory({
   const pathname = usePathname();
 
   const getContextualQuickActions = () => {
+    const dealMatch = pathname?.match(/\/deals\/([^/?#]+)/);
+    const dealId = dealMatch?.[1];
+    if (dealId) {
+      return [
+        { icon: Calendar, label: "Schedule job", prompt: `Schedule a job for deal ID ${dealId}` },
+        { icon: FileText, label: "Create quote", prompt: `Create a draft invoice for deal ID ${dealId}` },
+        { icon: Sparkles, label: "Move deal", prompt: `Move deal ID ${dealId} to the next stage` },
+      ];
+    }
     if (pathname?.includes('/deals')) {
       return [
-        { icon: Calendar, label: "Schedule job", prompt: "Schedule a job for this deal" },
-        { icon: FileText, label: "Create quote", prompt: "Create a quote for this deal" },
-        { icon: Sparkles, label: "Move deal", prompt: "Can you move this deal to the next stage?" },
+        { icon: Calendar, label: "Schedule job", prompt: "Schedule a job for the current deal" },
+        { icon: FileText, label: "Create quote", prompt: "Create a draft invoice for the current deal" },
+        { icon: Sparkles, label: "Move deal", prompt: "Move the current deal to the next stage" },
+      ];
+    }
+    const contactMatch = pathname?.match(/\/contacts\/([^/?#]+)/);
+    const contactId = contactMatch?.[1];
+    if (contactId) {
+      return [
+        { icon: Phone, label: "Call prep", prompt: `Help me prepare for a follow-up call with contact ID ${contactId}` },
+        { icon: Sparkles, label: "Draft email", prompt: `Draft an email to contact ID ${contactId}` },
       ];
     }
     if (pathname?.includes('/contacts')) {
@@ -332,7 +349,7 @@ function ChatWithHistory({
         { icon: Sparkles, label: "Draft email", prompt: "Draft an email to this contact" },
       ];
     }
-return QUICK_ACTIONS;
+    return QUICK_ACTIONS;
   };
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();

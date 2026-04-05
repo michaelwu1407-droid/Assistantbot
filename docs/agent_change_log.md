@@ -1,3 +1,20 @@
+## 2026-04-05 (Claude) - Fix flaky tests + deal revalidation gaps + Tracey contextual quick actions
+
+- Files changed:
+  - `__tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `__tests__/lead-to-deal-flow.test.ts`
+  - `actions/deal-actions.ts`
+  - `actions/kanban-automation-actions.ts`
+  - `components/chatbot/chat-interface.tsx`
+- Summary:
+  - **`chat-agent-crm-mutation-flow.test.ts`**: The `preClassify` mock used `intent: "job_management"` which is not a valid `IntentHint`. `buildWorkspaceContextBlocks` has no key for it and throws `"intentBlocks[classification.intent] is not iterable"`, causing the route to return 500. Fixed by using `"crm_action"` in both the mock and the assertion.
+  - **`lead-to-deal-flow.test.ts`**: The test imports `createDeal` from `deal-actions.ts` which now calls `revalidatePath`. Missing `vi.mock("next/cache", ...)` caused "Invariant: static generation store missing" at runtime. Fixed by adding the mock.
+  - **`kanban-automation-actions.ts`**: `toLocaleDateString()` without a locale argument produces locale-dependent output (`"4/5/2026"` on this Linux CI box vs the expected `"05/04/2026"` Australian format). Fixed by specifying `"en-AU"` locale in both call sites.
+  - **`deal-actions.ts` revalidation gaps**: `approveDraft` and `rejectDraft` were missing `revalidatePath(\`/crm/deals/${dealId}\`)`. After either action, the deal detail page would still show the old draft state until a hard refresh. Fixed consistently with `approveCompletion`/`rejectCompletion`.
+  - **`chat-interface.tsx` contextual quick actions**: Quick actions like "Create quote" previously sent bare prompts ("Create a quote for this deal") with no deal ID, so Tracey had no context. Fixed by extracting deal/contact IDs from the URL pathname and embedding them directly in the prompt strings.
+- Why:
+  - The pre-existing test failures blocked clean CI. The revalidation gaps were silent trust bugs affecting live deal detail pages after draft approval/rejection. The Tracey quick action context fix ensures prompts carry enough info for the LLM to act without needing a second round-trip.
+
 ## 2026-04-05 (Claude) - CRM polish: analytics labels, contact notes revalidation, updateContact revalidation
 
 - Files changed:
