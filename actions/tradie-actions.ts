@@ -575,6 +575,8 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
     }
   });
 
+  revalidateInvoiceSurfaces(jobId, deal.contactId);
+
   return {
     success: true,
     total: total.toNumber(),
