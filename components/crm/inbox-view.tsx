@@ -96,8 +96,29 @@ type MessageMode = "tracey" | "direct"
 type DateFilter = "latest" | "oldest" | "custom"
 
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
-  const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way", "deal created"]
-  return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
+  const sysPatterns = [
+    // stage / status
+    "moved to", "stage changed", "status updated",
+    // deal lifecycle
+    "deal created", "created deal", "deal updated", "deal restored", "deal escalated",
+    // assignee / scheduling
+    "assigned team member", "job rescheduled", "reassigned",
+    // approval / completion workflow
+    "completion approved", "completion rejected", "completion request", "draft approved", "draft rejected",
+    // invoicing
+    "invoice issued", "invoice paid", "invoice updated", "invoice voided", "invoice emailed", "draft invoice",
+    // ai / safety
+    "safety check", "ai note", "ai learning",
+    // sent comms (outbound automations)
+    "sent job complete", "sent on my way", "confirmation sms", "booking reminder", "feedback request",
+    // portal
+    "job portal",
+    // notes
+    "contact note",
+    // post-job
+    "post-job follow-up",
+  ]
+  return sysPatterns.some(p => a.title?.toLowerCase().includes(p))
 }
 
 /** Most recent activity first (for list row + preview). */

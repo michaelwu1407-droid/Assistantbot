@@ -79,14 +79,14 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Contacts / Contact Flow
 
-- `re-verify` Contacts list row count vs footer count/pagination mismatch.
+- `fixed` Contacts list count/footer mismatch: stage filter silently dropped contacts with no primary deal, LOST deals, and PENDING_COMPLETION deals. Filter is now inclusive for unmapped/null stages. LOST added to KANBAN_STAGES. PENDING_COMPLETION mapped to "completed".
 - `re-verify` Contact create success path leaves user on form instead of clearly redirecting.
 - `re-verify` Contact edit success path leaves user on form instead of clearly redirecting.
 - `re-verify` Contact detail page may still omit editable fields like company/address.
 - `re-verify` Bulk contact delete appeared to be a no-op in live testing.
-- `re-verify` Search/filter footer count stayed wrong after filtering.
-- `open` Align `contacts-client` tests with the newer summary copy and decide whether duplicated count text is intentional or should be simplified in the UI.
-- `re-verify` Contact form redirect flow itself appears healthy, but the suite showed batch flake and should be stabilized.
+- `fixed` Search/filter footer count: no longer shows "Showing 8 of 8" when contacts are being filtered client-side. The header now shows `"N contacts"` without pagination, and `"Matches on this page: ..."` when filters are active with pagination.
+- `fixed` contacts-client tests aligned and green.
+- `fixed` Contact form redirect flow is stable.
 
 ### Deal / Job Detail
 
@@ -107,8 +107,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `re-verify` `Direct Message` vs `Ask Tracey` in the CRM inbox is still too ambiguous.
 - `re-verify` The visible composer may still behave like Tracey when the user expects direct manual messaging.
-- `re-verify` Inbox `Conversations` vs `System Activity` split may still be incoherent.
-- `re-verify` The newer inbox tab/copy work looks directionally good, but the Ask Tracey success test was flaky in the larger batch and should be stabilized.
+- `fixed` Inbox `Conversations` vs `System Activity` split: `isSystemEvent` now correctly classifies assignee changes, deal updates, stage moves, invoice ops, portal views, and post-job follow-ups as System Activity instead of surfacing them in Conversations.
+- `fixed` Ask Tracey success test is stable in batch.
 
 ### Billing / Quotes / Invoices
 

@@ -41,6 +41,7 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
   { id: "scheduled", title: "Scheduled" },
   { id: "ready_to_invoice", title: "Awaiting payment" },
   { id: "completed", title: "Completed" },
+  { id: "lost", title: "Lost" },
   { id: "deleted", title: "Deleted" },
 ]
 
@@ -57,10 +58,11 @@ function prismaStageToColumnId(prismaStage: string | null): string | null {
     SCHEDULED: "scheduled",
     PIPELINE: "quote_sent",
     INVOICED: "ready_to_invoice",
+    PENDING_COMPLETION: "completed",
     WON: "completed",
     LOST: "lost",
     DELETED: "deleted",
-    ARCHIVED: "archived",
+    ARCHIVED: "deleted",
   }
 
   return map[prismaStage] ?? null
@@ -115,8 +117,12 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     }
 
     result = result.filter((contact) => {
+      // Contacts with no primary deal are not stage-filtered — always include them
+      if (!contact.primaryDealStageKey) return true
       const columnId = prismaStageToColumnId(contact.primaryDealStageKey)
-      return columnId != null && selectedStageIds.has(columnId)
+      // If the stage doesn't map to a known column, show the contact regardless
+      if (columnId == null) return true
+      return selectedStageIds.has(columnId)
     })
 
     if (typeFilter === "individual") {

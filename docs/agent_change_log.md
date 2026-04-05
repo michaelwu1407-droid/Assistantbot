@@ -1,3 +1,14 @@
+## 2026-04-05 (Claude) - Live CRM workflow polish: inbox classification + contacts count trust
+
+- Files changed:
+  - `components/crm/inbox-view.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - **Inbox `isSystemEvent` fix**: the previous pattern list only matched 8 narrow titles, causing activities like `"Assigned team member updated"`, `"Deal updated"`, `"Stage updated"`, `"Job rescheduled"`, invoice operations, portal views, and other CRM system events to show up in the **Conversations** tab instead of **System Activity**. Expanded the pattern set to cover all known system activity title prefixes. Now only genuine customer-facing communications (inbound/outbound SMS, email, calls) show in Conversations.
+  - **Contacts list count trust fix (high-trust bug)**: the stage filter silently excluded contacts in three ways — contacts with no primary deal at all (`primaryDealStageKey = null`), contacts whose primary deal was LOST (`columnId = "lost"` was not in the initial stage set), and contacts in `PENDING_COMPLETION` (unmapped, returned null). This caused the footer to say `"Showing 8 of 8 contacts"` while only 4 rows were visible, with no indication that filtering was active. Fixes: (1) Added "Lost" to `KANBAN_STAGES` so lost contacts are visible and filterable. (2) Mapped `PENDING_COMPLETION → completed` and `ARCHIVED → deleted` in `prismaStageToColumnId`. (3) Changed the filter logic so contacts with null/unmapped primary deal stage are always included, not silently dropped.
+- Why:
+  - The inbox classification made it impossible to distinguish customer conversations from internal CRM events. The contacts count mismatch was a high-trust product bug that made the CRM feel broken or untrustworthy when the list showed different numbers than the footer. Both are directly observable product-level failures in the live app.
+
 ## 2026-04-05 (Claude) - Stale/flaky test reconciliation for upstream CRM batch
 
 - Files changed:
