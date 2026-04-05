@@ -1,3 +1,25 @@
+## 2026-04-05 (Claude) - CRM polish: locale dates, revalidation sweep, activity feed refresh
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `components/jobs/job-detail-view.tsx`
+  - `components/crm/contact-profile.tsx`
+  - `components/crm/feedback-widget.tsx`
+  - `components/crm/kanban-automation-modal.tsx`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `actions/contact-actions.ts` (deleteContact revalidatePath)
+  - `actions/tradie-actions.ts` (updateJobSchedule, updateJobStatus, completeJob, createQuoteVariation)
+  - `app/crm/deals/[id]/page.tsx` (pre-fetch initialActivities)
+  - `components/chatbot/chat-interface.tsx` (router.refresh on Tracey finish)
+- Summary:
+  - **Locale-less date formatting sweep**: `toLocaleDateString()` without a locale argument produces US-format dates (M/D/YYYY) on Linux CI instead of Australian DD/MM/YYYY. Fixed across all six remaining call sites by specifying `"en-AU"`. Eliminates any locale-sensitive test assertions in these components.
+  - **`deleteContact` revalidation**: `deleteContact` (singular) was missing `revalidatePath("/crm/contacts")` even though the bulk version had it. Contacts list now updates immediately after a single deletion.
+  - **Tradie job status/schedule revalidation**: `updateJobSchedule`, `updateJobStatus`, and `completeJob` only revalidated tradie-specific routes. Completing or rescheduling a job from the field left `/crm/dashboard`, `/crm/deals`, and the individual deal page stale — the root of the "cross-page schedule time mismatch" complaint. All three functions now call the full set of revalidation paths.
+  - **`createQuoteVariation` revalidation**: Adding a variation to a job was not calling `revalidateInvoiceSurfaces`, so the billing tab remained stale after a variation was added. Now consistent with `generateQuote`.
+  - **Activity feed refresh after Tracey responds**: `ActivityFeed` on the deal page was a client component that fetched its own data on mount and never re-fetched. After Tracey performed a mutation, the feed stayed stale. Fixed by: (1) pre-fetching `initialActivities` server-side and passing as `initialData` so `router.refresh()` propagates fresh data, and (2) calling `router.refresh()` in `chat-interface` `onFinish` so any CRM mutation Tracey performed is reflected in server components immediately after her response.
+- Why:
+  - Locale-less dates were causing cross-environment test failures. The revalidation gaps were silent live bugs causing data staleness across the CRM after field operations. The activity feed fix closes the loop on "notes don't appear after Tracey writes them".
+
 ## 2026-04-05 (Claude) - CRM polish: revalidation gaps + global search click fix
 
 - Files changed:

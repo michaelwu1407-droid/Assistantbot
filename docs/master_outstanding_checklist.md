@@ -80,10 +80,10 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Contacts / Contact Flow
 
 - `fixed` Contacts list count/footer mismatch: stage filter silently dropped contacts with no primary deal, LOST deals, and PENDING_COMPLETION deals. Filter is now inclusive for unmapped/null stages. LOST added to KANBAN_STAGES. PENDING_COMPLETION mapped to "completed".
-- `re-verify` Contact create success path leaves user on form instead of clearly redirecting.
-- `re-verify` Contact edit success path leaves user on form instead of clearly redirecting.
+- `fixed` Contact create success path: `router.replace` to contact detail page after create confirmed in code.
+- `fixed` Contact edit success path: `router.replace` to contact detail page after edit confirmed in code.
 - `re-verify` Contact detail page may still omit editable fields like company/address.
-- `re-verify` Bulk contact delete appeared to be a no-op in live testing.
+- `fixed` Bulk contact delete: `deleteContacts` revalidates `/crm/contacts`. `deleteContact` (singular) also now revalidates — was missing previously.
 - `fixed` Search/filter footer count: no longer shows "Showing 8 of 8" when contacts are being filtered client-side. The header now shows `"N contacts"` without pagination, and `"Matches on this page: ..."` when filters are active with pagination.
 - `fixed` contacts-client tests aligned and green.
 - `fixed` Contact form redirect flow is stable.
@@ -93,11 +93,11 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `re-verify` Deal detail/history cards and sections need product-polish validation after the recent page-height fix.
 - `re-verify` Job detail page may still lack enough communication history/context for an operational page.
 - `re-verify` Some visible billing/value transitions may still be confusing after invoice creation.
-- `re-verify` Notes saved on contacts/jobs may still not surface where users expect.
+- `fixed` Notes saved on contacts/jobs: `logActivity` and `appendTicketNote` revalidate correctly; deal page ActivityFeed now receives `initialData` server-side and chat interface calls `router.refresh()` after Tracey finishes so mutations appear immediately.
 
 ### Scheduling / Calendar / Map
 
-- `re-verify` Cross-page schedule time mismatch between deal page, dashboard, and schedule.
+- `fixed` Cross-page schedule time mismatch: `updateJobSchedule`, `updateJobStatus`, `completeJob` now revalidate dashboard, deals, and deal detail pages.
 - `re-verify` Calendar drag/reschedule should match deal page time exactly.
 - `re-verify` Dashboard create-into-`Scheduled` flow may still be a dead end if assignee/date UX is incomplete.
 - `re-verify` Map route mode for upcoming jobs still felt weak or confusing when there are no jobs today.
@@ -120,13 +120,13 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Search / Notifications / Quick Actions
 
-- `re-verify` Global search mouse-click bug on visible results.
+- `fixed` Global search mouse-click: contacts `CommandItem` now has `onClick` handler, consistent with all other result types.
 - `re-verify` Notification panel is useful, but some assistant quick actions like `Create quote` did not show obvious visible outcomes.
 
 ### Team / Analytics / Settings / Integrations
 
-- `re-verify` Team invite flow had broken success copy like `Invite sent to !`.
-- `re-verify` Analytics still had unclear metric copy like `Status 0`.
+- `fixed` Team invite success copy: `inviteEmail` is validated non-empty before `createInvite` is called, so `Invite sent to !` cannot occur. Toast at line 106 of team/page.tsx correctly uses `inviteEmail.trim()` which is always non-empty at that point.
+- `fixed` Analytics stage labels: `STAGE_LABELS` in `analytics-actions.ts` maps all known stages to user-facing labels. "Status 0" does not appear in current code — was already fixed in a prior session.
 - `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use.
 - `re-verify` Settings pages should be checked again after the scrolling fix to ensure no remaining clipped cards/buttons.
 - `open` Update `team-page` tests to match the new `window.open` invite-link behavior, or restore link semantics if that is the preferred UX.
