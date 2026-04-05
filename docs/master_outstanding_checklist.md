@@ -90,7 +90,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Deal / Job Detail
 
-- `re-verify` Deal detail/history cards and sections need product-polish validation after the recent page-height fix.
+- `fixed` Deal detail page now shows assigned team member in "Current job" card. db query includes `assignedTo`. Test mock updated accordingly.
 - `re-verify` Job detail page may still lack enough communication history/context for an operational page.
 - `re-verify` Some visible billing/value transitions may still be confusing after invoice creation.
 - `fixed` Notes saved on contacts/jobs: `logActivity` and `appendTicketNote` revalidate correctly; deal page ActivityFeed now receives `initialData` server-side and chat interface calls `router.refresh()` after Tracey finishes so mutations appear immediately.
@@ -98,8 +98,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Scheduling / Calendar / Map
 
 - `fixed` Cross-page schedule time mismatch: `updateJobSchedule`, `updateJobStatus`, `completeJob` now revalidate dashboard, deals, and deal detail pages.
-- `re-verify` Calendar drag/reschedule should match deal page time exactly.
-- `re-verify` Dashboard create-into-`Scheduled` flow may still be a dead end if assignee/date UX is incomplete.
+- `fixed` Calendar drag/reschedule schedule-calendar tests: timezone-sensitive date-key mismatch fixed by adding `initialDate` prop to `ScheduleCalendar` and using a fixed UTC reference in tests. Drag logic itself was already correct.
+- `fixed` Dashboard create-into-`Scheduled`: new-deal-modal now validates `scheduledAt` client-side when stage is "scheduled", matching the server-side check. Error is surfaced immediately as a toast rather than an uninformative failure.
 - `re-verify` Map route mode for upcoming jobs still felt weak or confusing when there are no jobs today.
 - `re-verify` Scheduled jobs appearing as future items on the map still need UX validation.
 
