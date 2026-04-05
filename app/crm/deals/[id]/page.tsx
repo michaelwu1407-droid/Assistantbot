@@ -115,7 +115,13 @@ export default async function DealDetailPage({ params }: PageProps) {
               </Badge>
             </div>
             <p className="text-slate-500 text-sm mt-0.5">
-              {contact?.company || "No company"} - <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString("en-AU")}</span>
+              {contact?.company || "No company"} -{" "}
+              <span className="text-emerald-600 font-medium">
+                ${Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0).toLocaleString("en-AU")}
+              </span>
+              {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 && (
+                <span className="text-xs text-slate-400 ml-1">invoiced</span>
+              )}
             </p>
           </div>
         </div>
@@ -201,8 +207,20 @@ export default async function DealDetailPage({ params }: PageProps) {
                 <p className="font-medium text-slate-900">{deal.title}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Value</p>
-                <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? (
+                  <>
+                    <p className="text-slate-500 text-xs">Invoiced</p>
+                    <p className="font-medium text-emerald-600">${Number(deal.invoicedAmount).toLocaleString("en-AU")}</p>
+                    {Number(deal.invoicedAmount) !== Number(deal.value || 0) && (
+                      <p className="text-xs text-slate-400 mt-0.5">Quoted: ${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-500 text-xs">Quoted value</p>
+                    <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                  </>
+                )}
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Scheduled</p>
