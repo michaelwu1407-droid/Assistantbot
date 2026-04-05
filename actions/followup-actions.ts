@@ -62,7 +62,7 @@ export async function scheduleFollowUp(
       });
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm/dashboard");
     return { success: true };
   } catch (error) {
     console.error("[followup-actions] scheduleFollowUp failed:", error);
@@ -103,7 +103,7 @@ export async function completeFollowUp(
       },
     });
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm/dashboard");
     return { success: true };
   } catch (error) {
     console.error("[followup-actions] completeFollowUp failed:", error);
@@ -125,7 +125,7 @@ export async function cancelFollowUp(dealId: string): Promise<FollowUpResult> {
       },
     });
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm/dashboard");
     return { success: true };
   } catch (error) {
     console.error("[followup-actions] cancelFollowUp failed:", error);
@@ -211,7 +211,7 @@ export async function sendFollowUpMessage(
       },
     });
 
-    revalidatePath("/dashboard");
+    revalidatePath("/crm/dashboard");
     return { success: true };
   } catch (error) {
     console.error("[followup-actions] sendFollowUpMessage failed:", error);
