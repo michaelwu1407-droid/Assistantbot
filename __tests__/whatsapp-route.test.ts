@@ -8,6 +8,9 @@ const hoisted = vi.hoisted(() => ({
     activity: {
       create: vi.fn(),
     },
+    webhookEvent: {
+      create: vi.fn().mockResolvedValue({}),
+    },
   },
   findUserByPhone: vi.fn(),
   twilioMessagesCreate: vi.fn(),
