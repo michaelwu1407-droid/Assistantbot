@@ -162,7 +162,7 @@ export async function runGetFinancialReport(
       ? Number(aggregate._sum.invoicedAmount)
       : 0,
     breakdown: byStage.map((s) => ({
-      stage: s.stage,
+      stage: AGENT_STAGE_LABELS[s.stage] ?? AGENT_STAGE_LABELS[String(s.stage).toUpperCase()] ?? s.stage,
       count: s._count,
       value: s._sum.value ? Number(s._sum.value) : 0,
     })),

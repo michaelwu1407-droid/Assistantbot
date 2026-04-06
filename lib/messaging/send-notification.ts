@@ -80,11 +80,34 @@ export async function sendNotification(
       return { channel, sent: false, error: "No usable Twilio client" }
     }
 
-    await client.messages.create({
-      to: contact.phone,
-      from: workspace.twilioPhoneNumber,
-      body,
-    })
+    let smsSid: string | undefined
+    try {
+      const msg = await client.messages.create({
+        to: contact.phone,
+        from: workspace.twilioPhoneNumber,
+        body,
+      })
+      smsSid = msg.sid
+    } catch (err) {
+      db.webhookEvent.create({
+        data: {
+          provider: "twilio",
+          eventType: `sms.${scenario}`,
+          status: "error",
+          payload: { scenario, error: err instanceof Error ? err.message : String(err) },
+        },
+      }).catch(() => {})
+      throw err
+    }
+
+    db.webhookEvent.create({
+      data: {
+        provider: "twilio",
+        eventType: `sms.${scenario}`,
+        status: "success",
+        payload: { sid: smsSid, scenario },
+      },
+    }).catch(() => {})
 
     await db.activity.create({
       data: {
@@ -124,8 +147,25 @@ export async function sendNotification(
   })
 
   if (error) {
+    db.webhookEvent.create({
+      data: {
+        provider: "resend",
+        eventType: `email.${scenario}`,
+        status: "error",
+        payload: { scenario, error: error.message },
+      },
+    }).catch(() => {})
     return { channel, sent: false, error: `Email failed: ${error.message}` }
   }
+
+  db.webhookEvent.create({
+    data: {
+      provider: "resend",
+      eventType: `email.${scenario}`,
+      status: "success",
+      payload: { scenario, to: contact.email },
+    },
+  }).catch(() => {})
 
   await db.activity.create({
     data: {
