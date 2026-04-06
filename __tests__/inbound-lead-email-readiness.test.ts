@@ -123,6 +123,7 @@ describe("getInboundLeadEmailReadiness", () => {
 
     expect(result.ready).toBe(true);
     expect(result.issues).toEqual([]);
+    expect(result.resendDomainStatus).toBe("verified");
     expect(result.resendReceivingEnabled).toBe(true);
     expect(result.resendReceivingRecordStatus).toBe("verified");
     expect(result.dnsReady).toBe(true);
@@ -132,5 +133,56 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.recentInboundEmailSuccessCount).toBe(1);
     expect(result.recentInboundEmailFailureCount).toBe(1);
     expect(result.lastInboundEmailSuccessAt).toBe("2026-03-17T01:00:00.000Z");
+  });
+
+  it("requires a recent successful inbound webhook before marking inbound email ready", async () => {
+    resolveMx.mockResolvedValue([
+      {
+        exchange: "inbound-smtp.ap-northeast-1.amazonaws.com",
+        priority: 10,
+      },
+    ]);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: "domain_1",
+                name: "inbound.earlymark.ai",
+                status: "not_started",
+                capabilities: { sending: "disabled", receiving: "enabled" },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "domain_1",
+            name: "inbound.earlymark.ai",
+            status: "not_started",
+            capabilities: { sending: "disabled", receiving: "enabled" },
+            records: [
+              {
+                record: "Receiving",
+                type: "MX",
+                value: "inbound-smtp.ap-northeast-1.amazonaws.com",
+                status: "verified",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const result = await getInboundLeadEmailReadiness("inbound.earlymark.ai");
+
+    expect(result.ready).toBe(false);
+    expect(result.resendDomainStatus).toBe("not_started");
+    expect(result.providerVerified).toBe(true);
+    expect(result.issues.some((issue) => issue.includes("has not been confirmed by a successful email.received webhook event"))).toBe(true);
   });
 });

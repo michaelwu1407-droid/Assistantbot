@@ -4,20 +4,22 @@ import { NextRequest } from "next/server";
 const {
   db,
   processIncomingEmailWithGemini,
+  triageIncomingLead,
   createGoogleGenerativeAI,
   generateObject,
   captureException,
 } = vi.hoisted(() => ({
   db: {
     webhookEvent: { create: vi.fn() },
-    workspace: { findFirst: vi.fn() },
+    workspace: { findFirst: vi.fn(), findUnique: vi.fn() },
     contact: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     deal: { create: vi.fn() },
-    activity: { create: vi.fn(), count: vi.fn() },
+    activity: { create: vi.fn(), count: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     notification: { create: vi.fn() },
     chatMessage: { create: vi.fn(), updateMany: vi.fn() },
   },
   processIncomingEmailWithGemini: vi.fn(),
+  triageIncomingLead: vi.fn(),
   createGoogleGenerativeAI: vi.fn(),
   generateObject: vi.fn(),
   captureException: vi.fn(),
@@ -25,6 +27,7 @@ const {
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/ai/email-agent", () => ({ processIncomingEmailWithGemini }));
+vi.mock("@/lib/ai/triage", () => ({ triageIncomingLead }));
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 vi.mock("@ai-sdk/google", () => ({ createGoogleGenerativeAI }));
 vi.mock("ai", () => ({ generateObject }));
@@ -40,6 +43,8 @@ describe("POST /api/webhooks/inbound-email", () => {
     db.activity.count.mockResolvedValue(0);
     db.chatMessage.create.mockResolvedValue({ id: "chat_1" });
     db.chatMessage.updateMany.mockResolvedValue({ count: 1 });
+    db.workspace.findUnique.mockResolvedValue({ ownerId: "owner_1" });
+    triageIncomingLead.mockResolvedValue(null);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });
@@ -83,6 +88,55 @@ describe("POST /api/webhooks/inbound-email", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Missing 'to' or 'from' in payload" });
+  });
+
+  it("processes delivery tracking events on the shared inbound-email webhook", async () => {
+    db.contact.findFirst.mockResolvedValue({
+      id: "contact_delivery_1",
+      name: "Alex",
+      workspaceId: "ws_delivery_1",
+    });
+    db.activity.findFirst.mockResolvedValue({ id: "activity_delivery_1" });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.delivered",
+          data: {
+            to: ["alex@example.com"],
+            email_id: "email_123",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      event: "email.delivered",
+      status: "Delivered",
+      contactId: "contact_delivery_1",
+    });
+    expect(db.activity.update).toHaveBeenCalledWith({
+      where: { id: "activity_delivery_1" },
+      data: {
+        description: expect.stringContaining("Delivered at "),
+      },
+    });
+    expect(db.webhookEvent.create).toHaveBeenCalledWith({
+      data: {
+        provider: "resend",
+        eventType: "email.delivered",
+        status: "success",
+        payload: {
+          to: "alex@example.com",
+          contactId: "contact_delivery_1",
+          emailId: "email_123",
+        },
+      },
+    });
   });
 
   it("creates lead-capture records for recognised provider emails", async () => {

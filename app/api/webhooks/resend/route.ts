@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
 import crypto from "crypto";
+import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Reuses the same Svix-based verification as the inbound-email webhook.
@@ -83,111 +84,16 @@ export async function POST(req: NextRequest) {
     const eventType: string = payload.type ?? "";
     const data = payload.data ?? {};
 
-    // Only process delivery tracking events
-    const trackableEvents = [
-      "email.delivered",
-      "email.opened",
-      "email.bounced",
-      "email.complained",
-    ];
-
-    if (!trackableEvents.includes(eventType)) {
+    if (!isTrackableResendEvent(eventType)) {
       return NextResponse.json({ ok: true, skipped: eventType });
     }
-
-    // Extract recipient email to find the associated contact
-    const recipientEmail: string = Array.isArray(data.to)
-      ? data.to[0]
-      : data.to ?? data.email ?? "";
-
-    if (!recipientEmail) {
-      return NextResponse.json({ ok: true, message: "No recipient found" });
-    }
-
-    // Map Resend event types to human-readable statuses
-    const statusMap: Record<string, string> = {
-      "email.delivered": "Delivered",
-      "email.opened": "Opened",
-      "email.bounced": "Bounced",
-      "email.complained": "Spam Report",
-    };
-
-    const statusLabel = statusMap[eventType] ?? eventType;
-
-    // Find the contact by email and update the most recent EMAIL activity
-    const contact = await db.contact.findFirst({
-      where: { email: { equals: recipientEmail, mode: "insensitive" } },
-      select: { id: true, name: true, workspaceId: true },
-    });
-
-    if (contact) {
-      // Find the most recent outbound EMAIL activity for this contact
-      const recentActivity = await db.activity.findFirst({
-        where: {
-          contactId: contact.id,
-          type: "EMAIL",
-          title: { startsWith: "Email to" },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (recentActivity) {
-        // Update the activity description with the tracking status
-        const timestamp = new Date().toLocaleString("en-AU", {
-          timeZone: "Australia/Sydney",
-        });
-
-        await db.activity.update({
-          where: { id: recentActivity.id },
-          data: {
-            description: `${statusLabel} at ${timestamp}`,
-          },
-        });
-      }
-
-      // For opened events, also create a notification (read receipt)
-      if (eventType === "email.opened") {
-        // Find workspace owner for notification
-        const workspace = await db.workspace.findUnique({
-          where: { id: contact.workspaceId },
-          select: { ownerId: true },
-        });
-
-        if (workspace?.ownerId) {
-          await db.notification.create({
-            data: {
-              userId: workspace.ownerId,
-              title: "Email Read Receipt",
-              message: `${contact.name} opened your email`,
-              type: "INFO",
-              link: "/crm/dashboard",
-            },
-          });
-        }
-      }
-    }
-
-    // Log the webhook event for diagnostics
-    await db.webhookEvent.create({
-      data: {
-        provider: "resend",
-        eventType,
-        status: "success",
-        payload: JSON.parse(
-          JSON.stringify({
-            to: recipientEmail,
-            contactId: contact?.id,
-            emailId: data.email_id ?? data.id,
-          })
-        ),
-      },
-    }).catch(() => {});
+    const statusResult = await processResendStatusEvent(payload);
 
     return NextResponse.json({
       success: true,
       event: eventType,
-      status: statusLabel,
-      contactId: contact?.id ?? null,
+      status: statusResult.handled ? statusResult.statusLabel : eventType,
+      contactId: statusResult.handled ? statusResult.contactId : null,
     });
   } catch (err) {
     Sentry.captureException(err, {

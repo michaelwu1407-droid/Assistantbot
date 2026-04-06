@@ -143,4 +143,26 @@ describe("runVoiceSpokenPstnCanary", () => {
     expect(result.status).toBe("healthy");
     expect(result.verification?.callId).toBe("voice_call_delayed");
   });
+
+  it("treats punctuation and Tracey/Tracy variants as a healthy probe phrase match", async () => {
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "voice_call_variant",
+        createdAt: new Date("2026-03-17T06:00:05.000Z"),
+        startedAt: new Date("2026-03-17T06:00:01.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
+        transcriptText: "Caller: Hello, Tracy.\nCaller: Monitor probe.\nTracey: Hi, this is Tracey from Earlymark AI. How can I help?",
+      },
+    ]);
+
+    const result = await runVoiceSpokenPstnCanary({
+      probeCaller: "+61434955958",
+      targetNumber: "+61485010634",
+      checkedAt: new Date("2026-03-17T06:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("healthy");
+    expect(result.verification?.heardProbePhrase).toBe(true);
+  });
 });

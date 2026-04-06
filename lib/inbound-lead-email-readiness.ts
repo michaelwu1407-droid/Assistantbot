@@ -37,6 +37,7 @@ export type InboundLeadEmailReadiness = {
   issues: string[];
   dnsMxHosts: string[];
   dnsReady: boolean;
+  resendDomainStatus: string | null;
   resendReceivingEnabled: boolean | null;
   resendReceivingRecordStatus: string | null;
   providerVerified: boolean;
@@ -106,6 +107,7 @@ export async function getInboundLeadEmailReadiness(
   const issues: string[] = [];
   let dnsMxHosts: string[] = [];
   let dnsReady = false;
+  let resendDomainStatus: string | null = null;
   let resendReceivingEnabled: boolean | null = null;
   let resendReceivingRecordStatus: string | null = null;
   let providerVerified = false;
@@ -174,6 +176,7 @@ export async function getInboundLeadEmailReadiness(
       issues: Array.from(new Set(issues)),
       dnsMxHosts,
       dnsReady,
+      resendDomainStatus,
       resendReceivingEnabled,
       resendReceivingRecordStatus,
       providerVerified,
@@ -194,6 +197,7 @@ export async function getInboundLeadEmailReadiness(
     if (!exactDomain) {
       issues.push(`Configured inbound domain ${domain} is not configured in Resend.`);
     } else {
+      resendDomainStatus = exactDomain.status || null;
       resendReceivingEnabled = exactDomain.capabilities?.receiving === "enabled";
       if (!resendReceivingEnabled) {
         issues.push(`Resend receiving is not enabled for ${domain}.`);
@@ -205,7 +209,9 @@ export async function getInboundLeadEmailReadiness(
         detail.records?.find((record) => isInboundMxHost(record.value || ""));
 
       resendReceivingRecordStatus = receivingRecord?.status || null;
-      providerVerified = resendReceivingEnabled === true && (receivingRecord?.status || "").toLowerCase() === "verified";
+      providerVerified =
+        resendReceivingEnabled === true &&
+        (receivingRecord?.status || "").toLowerCase() === "verified";
       if (!providerVerified) {
         issues.push(`Resend inbound receiving record for ${domain} is not verified.`);
       }
@@ -216,6 +222,11 @@ export async function getInboundLeadEmailReadiness(
   }
 
   const receivingConfirmed = recentInboundEmailSuccessCount > 0;
+  if (providerVerified && !receivingConfirmed) {
+    issues.push(
+      `Inbound email has not been confirmed by a successful email.received webhook event in the last ${RECEIVING_CONFIRMATION_LOOKBACK_DAYS} days.`,
+    );
+  }
 
   return {
     ready: issues.length === 0,
@@ -223,6 +234,7 @@ export async function getInboundLeadEmailReadiness(
     issues: Array.from(new Set(issues)),
     dnsMxHosts,
     dnsReady,
+    resendDomainStatus,
     resendReceivingEnabled,
     resendReceivingRecordStatus,
     providerVerified,

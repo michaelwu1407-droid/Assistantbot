@@ -80,6 +80,29 @@ function buildProbeTwiml(phrase: string) {
 </Response>`;
 }
 
+function normalizeTranscriptText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/tracey/g, "tracy")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function transcriptHeardProbePhrase(transcript: string) {
+  const normalizedTranscript = normalizeTranscriptText(transcript);
+  if (normalizedTranscript.includes(PROBE_TRANSCRIPT_PHRASE)) {
+    return true;
+  }
+
+  const hasGreeting = normalizedTranscript.includes("hello tracy");
+  const hasMonitorProbe =
+    normalizedTranscript.includes("monitor probe") ||
+    (normalizedTranscript.includes("voice monitor") && normalizedTranscript.includes("probe"));
+
+  return hasGreeting && hasMonitorProbe;
+}
+
 function parseDurationSeconds(value?: string | null) {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
@@ -147,12 +170,11 @@ async function findVoiceCallVerification(params: {
   }
 
   const transcript = matchedCall.transcriptText || "";
-  const normalizedTranscript = transcript.toLowerCase();
 
   return {
     callId: matchedCall.callId,
     createdAt: matchedCall.createdAt.toISOString(),
-    heardProbePhrase: normalizedTranscript.includes(PROBE_TRANSCRIPT_PHRASE),
+    heardProbePhrase: transcriptHeardProbePhrase(transcript),
     capturedCallerSpeech: /Caller:/i.test(transcript),
     capturedAssistantSpeech: /Tracey:/i.test(transcript),
     heardGreeting: /Tracey/i.test(transcript),

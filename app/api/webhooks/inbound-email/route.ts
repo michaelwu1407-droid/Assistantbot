@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
 import { triageIncomingLead } from "@/lib/ai/triage";
 import * as Sentry from "@sentry/nextjs";
+import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Resend signs webhook payloads using a shared secret (configured in
@@ -213,11 +214,21 @@ export async function POST(req: NextRequest) {
 
     const payload = JSON.parse(rawBody);
 
-    // Resend wraps inbound emails in a `data` envelope for webhook events.
-    // The relevant event type is "email.received".
+    // Resend wraps webhook events in a `data` envelope.
+    // This route intentionally accepts both inbound email and delivery-tracking events
+    // so production can run from a single signed Resend webhook endpoint.
     const eventType = payload.type;
+    if (eventType && isTrackableResendEvent(eventType)) {
+      const statusResult = await processResendStatusEvent(payload);
+      return NextResponse.json({
+        success: true,
+        event: eventType,
+        status: statusResult.handled ? statusResult.statusLabel : eventType,
+        contactId: statusResult.handled ? statusResult.contactId : null,
+      });
+    }
+
     if (eventType && eventType !== "email.received") {
-      // Acknowledge non-email events (e.g., email.sent, email.bounced)
       return NextResponse.json({ ok: true, skipped: eventType });
     }
 

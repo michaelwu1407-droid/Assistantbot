@@ -1,3 +1,26 @@
+## 2026-04-07 (Codex) - Inbound email webhook fix and voice canary truthfulness
+
+- Files changed:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/voice-spoken-canary.ts`
+  - `lib/resend-status-events.ts`
+  - `app/api/webhooks/inbound-email/route.ts`
+  - `app/api/webhooks/resend/route.ts`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/voice-spoken-canary.test.ts`
+  - `__tests__/inbound-email-route.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Inbound email root cause fixed**: production Resend had a single enabled webhook still pointing at `https://assistantbot-zeta.vercel.app/api/webhooks/inbound-email` and it was not subscribed to `email.received`. I updated the live Resend webhook to `https://www.earlymark.ai/api/webhooks/inbound-email` with events `email.received`, `email.delivered`, `email.opened`, `email.bounced`, and `email.complained`.
+  - **Live inbound proof after fix**: after the webhook correction, a fresh QA probe to `alexandria-automotive-services-2@inbound.earlymark.ai` created a real production `webhookEvent(provider="resend", eventType="email.received", status="success")` at `2026-04-06T15:07:03.660Z`. That proves inbound email is now landing in the app.
+  - **Shared Resend webhook handling**: consolidated delivery/open/bounce/complaint handling into a reusable helper and taught `/api/webhooks/inbound-email` to process those status events too. This lets production run from one signed Resend webhook endpoint without needing multiple webhook secrets.
+  - **Inbound readiness truthfulness**: `getInboundLeadEmailReadiness()` now records `resendDomainStatus` for diagnostics, but no longer blocks on the provider’s domain summary status alone. Instead, it requires a recent successful `email.received` webhook before the feature is marked truly ready, which matches the actual product goal better than trusting static provider metadata.
+  - **Voice canary matcher fixed in repo**: the spoken PSTN canary now accepts punctuation and `Tracey/Tracy` transcript variants such as `Hello, Tracy` and `Monitor probe`, rather than degrading only because the transcript failed an overly exact phrase match.
+  - **Tests**: passed targeted suites for inbound readiness, inbound-email route, resend route, health/readiness routes, customer-agent readiness, and voice-spoken canary.
+- Why:
+  - This closes the biggest proven provider failure from the live verification pass and makes the app’s readiness signal match real observed inbound-email behavior rather than stale or misleading provider metadata.
+
 ## 2026-04-07 (Codex) - Real provider verification on production
 
 - Files changed:
