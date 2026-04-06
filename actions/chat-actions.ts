@@ -347,7 +347,7 @@ export async function runMoveDeal(
   dealTitle: string,
   stageAlias: string,
   assignedTo?: string
-): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
+): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean; requiresSchedule?: boolean }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, dealTitle);
   if (!deal) {
@@ -363,12 +363,21 @@ export async function runMoveDeal(
     return { success: false, message: `Unknown stage "${stageAlias}". Try: ${validStages}` };
   }
 
-  // Check if moving to Scheduled and needs team member assignment
+  // Check if moving to Scheduled — requires both an assignee AND a scheduled date.
   if (resolvedStage === "scheduled" && !deal.assignedToId && !assignedTo) {
     return {
       success: false,
       message: `"${dealTitle}" needs a team member assigned to move to Scheduled. Who should I assign this job to?`,
       requiresAssignment: true,
+      dealId: deal.id,
+    };
+  }
+
+  if (resolvedStage === "scheduled" && !deal.scheduledAt) {
+    return {
+      success: false,
+      message: `"${dealTitle}" needs a scheduled date before it can be moved to Scheduled. What date and time should this job be booked for?`,
+      requiresSchedule: true,
       dealId: deal.id,
     };
   }

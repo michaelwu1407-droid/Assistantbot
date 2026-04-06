@@ -198,6 +198,7 @@ describe("chat-actions", () => {
         title: "Hot Water Fix",
         assignedToId: "user_2",
         contactId: "contact_1",
+        scheduledAt: new Date("2026-04-10T10:00:00.000Z"),
       },
     ]);
 
@@ -228,6 +229,25 @@ describe("chat-actions", () => {
     expect(result.success).toBe(false);
     expect(result.requiresAssignment).toBe(true);
     expect(result.message).toContain("needs a team member");
+    expect(hoisted.updateDealStage).not.toHaveBeenCalled();
+  });
+
+  it("returns requiresSchedule and a helpful message when moving deal with no scheduled date to Scheduled", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        assignedToId: "user_2",   // has assignee
+        contactId: "contact_1",
+        scheduledAt: null,         // but no date
+      },
+    ]);
+
+    const result = await runMoveDeal("ws_1", "Hot Water Fix", "scheduled");
+
+    expect(result.success).toBe(false);
+    expect(result.requiresSchedule).toBe(true);
+    expect(result.message).toContain("needs a scheduled date");
     expect(hoisted.updateDealStage).not.toHaveBeenCalled();
   });
 
