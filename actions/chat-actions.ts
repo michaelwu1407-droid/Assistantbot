@@ -582,7 +582,9 @@ export async function runGetAttentionRequired(workspaceId: string): Promise<{
 
   const lines = flagged.map(({ deal, signals }) => {
     const signalText = signals.map((s) => s.label).join(", ");
-    return `- ${deal.title} (${signalText})`;
+    const rawStage = String(deal.stage ?? "");
+    const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+    return `- ${deal.title} [${stageLabel}] — ${signalText}`;
   });
 
   return {

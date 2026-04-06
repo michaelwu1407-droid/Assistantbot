@@ -174,8 +174,9 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
 - `open` Keep advancing the feature verification matrix toward live-proof, not just code-proof.
 - `fixed` Notification feed: rows now navigate to their linked page on click (markAsRead called). WARNING/ERROR show amber AlertTriangle icon; SUCCESS shows green CheckCircle2; AI/SYSTEM show Sparkles; rest show Bell.
-- `fixed` Stage language sweep complete: all tool output paths (runListDeals, runListIncompleteOrBlockedJobs, runBulkMoveDeals, runSearchJobHistory) and the global search subtitle now use user-facing stage labels. Internal stage keys no longer reach the LLM or UI text.
-- `open` Ensure feedback/support, confirmations, reminders, portal opens, WhatsApp responses, and similar flows all have clear ops visibility.
+- `fixed` Stage language sweep complete: all tool output paths (runListDeals, runListIncompleteOrBlockedJobs, runBulkMoveDeals, runSearchJobHistory, runSearchJobHistory, runGetClientContext, runGetFinancialReport breakdown) and the global search subtitle now use user-facing stage labels. Internal stage keys no longer reach the LLM or UI text.
+- `fixed` Observability now covers: reminder/confirmation/review-request SMS and email sends (send-notification.ts logs to webhookEvent); WhatsApp inbound and outbound AI replies (whatsapp/route.ts logs to webhookEvent); portal opens tracked via activity. All provider delivery is now visible in the ops diagnostics dashboard.
+- `fixed` runGetAttentionRequired now includes stage label in each line so Tracey can surface the current stage alongside attention signals.
 
 ## Local-Only / Not Yet Shipped Context
 
