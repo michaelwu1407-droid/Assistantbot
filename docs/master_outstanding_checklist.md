@@ -116,7 +116,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `re-verify` Invoice creation and resulting job value still may not be explained clearly enough to users.
 - `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
-- `open` Post-job review-request flow still needs deeper live testing.
+- `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
 ### Search / Notifications / Quick Actions
 
@@ -147,12 +147,12 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Specific Tracey Use Cases Still To Prove Well
 
 - `open` Inbound lead capture and AI triage end to end.
-- `open` Job approval and kanban progression from AI-generated draft/job-card flows.
-- `open` Field routing and customer communication flows such as `ON_MY_WAY`.
-- `open` Quoting, invoicing, and sign-off workflows from the user’s operational perspective.
-- `open` Stale deals, approvals, and rejection flows.
-- `open` Daily digest and task triage morning routine.
-- `open` AI-assisted manual tasks like `create a quote for John Smith for $500` with confirmation/undo style UX.
+- `fixed` Job approval and kanban progression: approveDraft, approveCompletion, rejectCompletion tools wired to existing deal-actions. Tracey can now "approve/reject the completion for X" with structured feedback and quickActions.
+- `fixed` Field routing ON_MY_WAY: pre-classifier injects a FIELD ROUTING hint with fallback to getTodaySummary when no contact is named. messagingRuleBlock now instructs model to extract message body (‘tell John I’m on my way’ → body is ‘I’m on my way’).
+- `fixed` Quoting workflows: ‘create a quote’ now routes to invoice intent via INVOICE_PATTERNS. Context hint: ‘QUOTE = DRAFT INVOICE, use createDraftInvoice’. All invoice actions return structured quickActions guiding the user through the full quote → issue → paid → complete sequence.
+- `fixed` Stale deals, approvals, and rejection flows: approveCompletion, rejectCompletion tools added. getAttentionRequired returns structured quickActions. Pre-classifier stale/rotting/attention pattern added to reporting intent.
+- `fixed` Daily digest and task triage: scheduling intent now calls getTodaySummary + getAttentionRequired, leads with preparation alerts then overdue tasks then stale deals. Pattern expanded to match ‘what’s on my plate’, ‘morning briefing’, ‘daily digest’.
+- `fixed` AI-assisted tasks like ‘create a quote for John Smith for $500’: routed to invoice intent, QUOTE=DRAFT INVOICE hint, updateInvoiceAmount as follow-up quickAction. Confirmation shown via structured green card with quickActions.
 
 ## Voice / LiveKit / SMS / Email / WhatsApp Outstanding Work
 
