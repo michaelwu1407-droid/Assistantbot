@@ -169,6 +169,8 @@ import {
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
   runMoveDeal,
+  runSearchContacts,
+  runUndoLastAction,
 } from "@/actions/chat-actions";
 
 describe("chat-actions", () => {
@@ -571,5 +573,46 @@ describe("chat-actions", () => {
     hoisted.db.chatMessage.findMany.mockRejectedValue(new Error("db down"));
 
     await expect(getChatHistory("ws_1")).resolves.toEqual([]);
+  });
+
+  it("searchContacts includes email in output", async () => {
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "c1", name: "Alex Harper", company: null, phone: "0400000101", email: "alex@example.com" },
+      { id: "c2", name: "Delta Cafe", company: "Delta Cafe Group", phone: null, email: null },
+    ]);
+
+    const result = await runSearchContacts("ws_1", "alex");
+
+    expect(result).toContain("Alex Harper");
+    expect(result).toContain("Ph: 0400000101");
+    expect(result).toContain("Email: alex@example.com");
+    expect(result).toContain("Delta Cafe");
+    expect(result).not.toContain("Email: null");
+  });
+
+  it("undoLastAction detects stage moves by activity title not description field", async () => {
+    hoisted.db.activity.findFirst.mockResolvedValue({
+      id: "activity_1",
+      title: "Moved to Quote sent",
+      description: "— Sam",   // actor stored in description, NOT the action keyword
+      content: "Stage changed to Quote sent.",
+      deal: {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        metadata: { previousStage: "NEW" },
+      },
+    });
+    hoisted.db.deal.update.mockResolvedValue({});
+    hoisted.db.activity.delete.mockResolvedValue({});
+
+    const result = await runUndoLastAction("ws_1");
+
+    expect(result).toContain("Undone");
+    expect(result).toContain("Hot Water Fix");
+    expect(result).toContain("New request");  // user-facing label for NEW
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: { stage: "NEW" },
+    });
   });
 });
