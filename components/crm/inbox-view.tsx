@@ -742,20 +742,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <button
                     type="button"
                     role="tab"
-                    aria-selected={messageMode === "tracey"}
-                    id="inbox-tab-tracey"
-                    onClick={() => setMessageMode("tracey")}
-                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    Ask Tracey
-                    <span className="sr-only">. AI assistant uses your workspace number.</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
                     aria-selected={messageMode === "direct"}
                     id="inbox-tab-direct-sms"
                     onClick={() => setMessageMode("direct")}
@@ -766,6 +752,20 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     Direct SMS
                     <span className="sr-only">. You send; not the AI.</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageMode === "tracey"}
+                    id="inbox-tab-tracey"
+                    onClick={() => setMessageMode("tracey")}
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                      messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Ask Tracey
+                    <span className="sr-only">. AI assistant uses your workspace number.</span>
                   </button>
                 </div>
 
