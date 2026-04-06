@@ -2991,6 +2991,40 @@ export async function runRejectCompletion(
 }
 
 /**
+ * Send a post-job review/feedback request SMS to the client.
+ */
+export async function runRequestReview(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { sendReviewRequestSMS } = await import("./messaging-actions");
+  const result = await sendReviewRequestSMS(deal.id);
+  if (!result.success) {
+    return {
+      success: false,
+      message: result.error ?? `Couldn't send review request for "${deal.title}". Check the contact has a phone number.`,
+      quickActions: [
+        { label: "Add phone number", prompt: `Show me the contact for "${deal.title}" so I can add their phone number` },
+      ],
+    };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Review request sent to the client for "${deal.title}". They'll receive a text with a feedback link.`,
+    quickActions: [
+      { label: "View responses", prompt: `Show customer feedback for "${deal.title}"` },
+    ],
+  };
+}
+
+/**
  * Handle support requests from chatbot
  */
 export async function handleSupportRequest(

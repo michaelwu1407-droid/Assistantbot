@@ -49,6 +49,7 @@ import {
     runApproveDraft,
     runApproveCompletion,
     runRejectCompletion,
+    runRequestReview,
     handleSupportRequest,
     runAppendTicketNote,
     recordManualRevenue,
@@ -517,6 +518,13 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ dealTitle, teamMemberName }) =>
                 runAssignTeamMember(workspaceId, { dealTitle, teamMemberName }),
         }),
+        requestReview: tool({
+            description: "Send a post-job customer review/feedback request SMS to the client for a completed job.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Completed job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runRequestReview(workspaceId, { dealTitle }),
+        }),
         contactSupport: tool({
             description: "Create a support ticket for user issues or help requests.",
             inputSchema: z.object({
@@ -675,6 +683,7 @@ const CRM_CORE_TOOLS = [
     'approveDraft',
     'approveCompletion',
     'rejectCompletion',
+    'requestReview',
     'revertDealStageMove',
     'createContact',
     'updateContactFields',
@@ -693,8 +702,8 @@ const CRM_CORE_TOOLS = [
 // Intent-specific tool groups that supplement core tools
 const INTENT_TOOL_GROUPS: Record<string, string[]> = {
     pricing: ['pricingLookup', 'pricingCalculator', 'createDraftInvoice', 'updateInvoiceAmount'],
-    scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary'],
-    communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification'],
+    scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary', 'getAttentionRequired'],
+    communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification', 'requestReview'],
     reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue', 'getAttentionRequired', 'listIncompleteOrBlockedJobs'],
     contact_lookup: ['getClientContext', 'createContact', 'updateContactFields'],
     invoice: [

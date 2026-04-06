@@ -205,7 +205,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         "SCHEDULING QUERY: Use getSchedule or getAvailability before answering. Never guess availability.",
         "Treat the workspace's current date/time as authoritative for relative dates like today, tomorrow, this month, or next Monday.",
         /\b(what('s| is) on my (plate|schedule|agenda)|daily (briefing|digest|summary|rundown)|morning briefing|what am i doing today|what('s| is) my day)\b/i.test(text)
-          ? "DAILY BRIEFING: Use getTodaySummary first to get today's jobs and readiness alerts. Lead with any preparation alerts (missing address, no phone, unassigned) before the job list. Then mention overdue tasks if any."
+          ? "DAILY BRIEFING: Call getTodaySummary for today's jobs and readiness alerts. Then call getAttentionRequired to surface stale/overdue deals. Lead with preparation alerts (missing address, no phone, unassigned) before the schedule, then overdue tasks, then stale deals needing action."
           : null,
       ].filter(Boolean) as string[];
     case "communication":
