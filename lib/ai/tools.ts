@@ -116,7 +116,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ query }) => runListIncompleteOrBlockedJobs(workspaceId, { query }),
         }),
         moveDeal: tool({
-            description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted).",
+            description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted). IMPORTANT: Moving to 'scheduled' requires (1) an assigned team member and (2) a scheduled date — if either is missing the tool returns success:false; surface that error honestly and offer to set the missing field before retrying.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Name/title of the deal or job to move"),
                 newStage: z.string().describe("Target stage name"),
@@ -169,7 +169,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runCreateDeal(workspaceId, { title, company, value }),
         }),
         updateDealFields: tool({
-            description: "Update job/deal fields like title, value, address, schedule, or stage.",
+            description: "Update job/deal fields like title, value, address, or schedule. For stage changes, prefer moveDeal (it enforces all stage-transition rules). Only pass newStage here when updating it alongside other fields in a single operation.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Current job/deal title"),
                 newTitle: z.string().optional().describe("New title"),

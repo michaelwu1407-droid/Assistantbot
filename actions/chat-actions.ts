@@ -2868,11 +2868,13 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return "No recent actions found to undo.";
     }
 
-    const description = lastActivity.description ?? lastActivity.title ?? "";
-    const descLower = description.toLowerCase();
+    // Check title (the action keyword) and content/description separately so we
+    // don't accidentally use the actor suffix stored in activity.description.
+    const titleLower = (lastActivity.title ?? "").toLowerCase();
+    const contentLower = (lastActivity.content ?? "").toLowerCase();
 
     // Undo a deal stage move (restore from metadata)
-    if (descLower.includes("moved to") || descLower.includes("stage changed")) {
+    if (titleLower.startsWith("moved to") || titleLower.includes("stage changed") || contentLower.includes("stage changed to")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the associated deal to undo.";
 
@@ -2888,14 +2890,16 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
         revalidatePath("/crm", "layout");
-        return `Undone: "${deal.title}" moved back to "${previousStage}" stage.`;
+        const prevChatStage = PRISMA_STAGE_TO_CHAT_STAGE[previousStage] ?? previousStage.toLowerCase();
+        const prevLabel = CHAT_STAGE_LABELS[prevChatStage] ?? previousStage;
+        return `Undone: "${deal.title}" moved back to ${prevLabel}.`;
       }
 
       return `Cannot undo: no previous stage recorded for "${deal.title}".`;
     }
 
     // Undo deal creation (delete the deal)
-    if (descLower.includes("created deal") || descLower.includes("new deal") || descLower.includes("new job")) {
+    if (titleLower.includes("created deal") || titleLower.includes("deal created") || titleLower.includes("new deal") || titleLower.includes("new job")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the deal to undo.";
 
@@ -2905,7 +2909,7 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return `Undone: Deal "${deal.title}" has been deleted.`;
     }
 
-    return `The last action ("${description}") cannot be automatically undone. You may need to reverse it manually.`;
+    return `The last action ("${lastActivity.title}") cannot be automatically undone. You may need to reverse it manually.`;
   } catch (err) {
     return `Error undoing action: ${err instanceof Error ? err.message : String(err)}`;
   }

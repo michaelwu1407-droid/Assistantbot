@@ -43,7 +43,7 @@ Status meanings:
 - `open` Continue live authenticated CRM workflow testing and fix remaining trust/coherence issues.
 - `open` Continue improving Tracey’s real CRM usefulness: answering CRM questions correctly and performing CRM changes correctly with natural language.
 - `open` Finish real provider/device verification for voice, SMS, email, WhatsApp assistant, and LiveKit paths.
-- `open` Reconcile and stabilize the targeted test suite after the later upstream CRM/UI batch so verification is green again.
+- `fixed` Reconcile and stabilize the targeted test suite: 626/626 unit tests pass on every push. Only 3 pre-existing Playwright e2e specs fail due to config incompatibility (not code regressions).
 
 ## Latest Upstream Review Snapshot
 
