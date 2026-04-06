@@ -104,7 +104,8 @@ type DirectCommandContext = {
 };
 
 type DirectCommandResult = {
-  text: string;
+  // text may be a plain string or a structured action result — extract .message when needed
+  text: string | { success: boolean; message: string; quickActions?: unknown[] };
   metricName?: string;
 };
 
@@ -494,7 +495,7 @@ async function buildResolvedEntitiesBlock(
           lines.push(
             `Recent jobs for ${context.client.name}: ${context.recentJobs
               .slice(0, 3)
-              .map((job) => `${job.title} (${job.stage})`)
+              .map((job) => `${job.title} (${DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage})`)
               .join(", ")}`,
           );
         }
@@ -518,7 +519,7 @@ async function buildResolvedEntitiesBlock(
       if (exactMatches.length > 0) {
         lines.push(
           `Likely jobs: ${exactMatches
-            .map((deal) => `${deal.title} (${deal.stage}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`)
+            .map((deal) => { const s = String(deal.stage ?? ""); return `${deal.title} (${DIRECT_STAGE_LABELS[s] ?? DIRECT_STAGE_LABELS[s.toUpperCase()] ?? s}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`; })
             .join(", ")}`,
         );
       } else if (likelyDealQuery) {
@@ -587,7 +588,8 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
   if (result.recentJobs.length) {
     lines.push("Recent jobs:");
     for (const job of result.recentJobs) {
-      lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+      const stageLabel = DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage;
+      lines.push(`- ${job.title} (${stageLabel}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
     }
   }
 
@@ -1368,7 +1370,10 @@ export async function POST(req: Request) {
       const elapsed = nowMs() - requestStartedAt;
       recordLatencyMetric(directCommand.metricName ?? "chat.web.direct", elapsed);
       recordLatencyMetric("chat.web.total_ms", elapsed);
-      return createTextStreamResponse(directCommand.text);
+      const directText = typeof directCommand.text === "string"
+        ? directCommand.text
+        : directCommand.text.message;
+      return createTextStreamResponse(directText);
     }
 
     const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);

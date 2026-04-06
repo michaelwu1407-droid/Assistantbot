@@ -5,7 +5,7 @@ import { GeocodedDeal, batchGeocode } from "@/actions/geo-actions";
 import { MapPin, Navigation, RefreshCw, Calendar, Filter, CheckCircle2, CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { isToday, isValid, format } from "date-fns";
+import { isToday, isTomorrow, isYesterday, isValid, format, isPast } from "date-fns";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 import type { Job } from "@/components/map/map-view";
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
@@ -29,6 +29,17 @@ export interface JobMapViewProps {
   pendingCount: number;
 }
 
+function relativeDateLabel(scheduledAt: string | Date | null | undefined): { text: string; isPast: boolean } | null {
+  if (!scheduledAt) return null;
+  const date = new Date(scheduledAt);
+  if (!isValid(date)) return null;
+  if (isToday(date)) return { text: "Today", isPast: false };
+  if (isTomorrow(date)) return { text: "Tomorrow", isPast: false };
+  if (isYesterday(date)) return { text: "Yesterday", isPast: true };
+  const past = isPast(date);
+  return { text: format(date, "EEE d MMM"), isPast: past };
+}
+
 export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapViewProps) {
   const router = useRouter();
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -37,11 +48,23 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
   const [completionDeal, setCompletionDeal] = useState<GeocodedDeal | null>(null);
 
   const filteredDeals = useMemo(() => {
-    if (filter === 'all') return initialDeals;
-    return initialDeals.filter(deal => {
-      if (!deal.scheduledAt) return false;
-      const date = new Date(deal.scheduledAt);
-      return isValid(date) && isToday(date);
+    const base = filter === 'all'
+      ? initialDeals
+      : initialDeals.filter(deal => {
+          if (!deal.scheduledAt) return false;
+          const date = new Date(deal.scheduledAt);
+          return isValid(date) && isToday(date);
+        });
+    // Sort: upcoming jobs first (soonest first), then past jobs most-recent-first at bottom
+    return [...base].sort((a, b) => {
+      const now = Date.now();
+      const aMs = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+      const bMs = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+      const aFuture = aMs >= now;
+      const bFuture = bMs >= now;
+      if (aFuture && bFuture) return aMs - bMs; // soonest first
+      if (!aFuture && !bFuture) return bMs - aMs; // most recent past first
+      return aFuture ? -1 : 1; // future before past
     });
   }, [initialDeals, filter]);
 
@@ -167,7 +190,9 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
             </div>
           ) : (
             <div className="divide-y divide-border/50">
-              {filteredDeals.map((deal) => (
+              {filteredDeals.map((deal) => {
+                const dateLabel = relativeDateLabel(deal.scheduledAt);
+                return (
                 <div key={deal.id} className="p-4 hover:bg-muted/50 transition-colors group">
                   <div className="flex justify-between items-start mb-1">
                     <h3
@@ -185,6 +210,15 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                   </div>
 
                   <p className="text-sm font-medium text-muted-foreground">{deal.contactName}</p>
+
+                  {dateLabel && (
+                    <p className={`text-[10px] font-medium mb-1 ${dateLabel.isPast ? 'text-muted-foreground/60' : dateLabel.text === 'Today' ? 'text-primary' : 'text-foreground/70'}`}>
+                      <Calendar className="h-2.5 w-2.5 inline-block mr-0.5 -mt-0.5" />
+                      {dateLabel.text}
+                      {deal.scheduledAt && ` · ${format(new Date(deal.scheduledAt), 'h:mm a')}`}
+                      {dateLabel.isPast && ' (past)'}
+                    </p>
+                  )}
 
                   <div className="flex items-start gap-2 text-xs text-muted-foreground/80 mb-3">
                     <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -215,7 +249,8 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                     )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>
