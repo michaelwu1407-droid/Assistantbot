@@ -225,7 +225,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
           ? "For jobs that look incomplete, blocked, stale, or overdue, use listIncompleteOrBlockedJobs first, then getAttentionRequired or listDeals if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
           : null,
         /\b(stale|rotting|at risk|stuck|needs attention|overdue deal)\b/i.test(text)
-          ? "STALE DEAL TRIAGE: Use getAttentionRequired to surface overdue, stale, and rotting deals. List them with their stage and suggested next action. Offer to move, assign, or add a follow-up note for each."
+          ? /\bfor\b|\bmatching\b|\bof the\b/i.test(text)
+            ? "FILTERED STALE QUERY: Use listIncompleteOrBlockedJobs with the specific filter term from the user's message (e.g. 'ZZZ AUTO', a client name). getAttentionRequired has no filter — use listIncompleteOrBlockedJobs when the user is asking about a subset."
+            : "STALE DEAL TRIAGE: Use getAttentionRequired to surface overdue, stale, and rotting deals. List them with their stage and suggested next action. Offer to move, assign, or add a follow-up note for each."
           : null,
         /\b(search past job history|job history)\b/i.test(text)
           ? "For job-history lookups, use searchJobHistory with the user's query instead of asking unnecessary follow-up questions."

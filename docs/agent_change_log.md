@@ -1,3 +1,17 @@
+## 2026-04-06 Session 3 (Claude) - Tool output formatting and multi-step CRM accuracy
+
+- Files changed:
+  - `actions/chat-actions.ts` (runMoveDeal requiresSchedule guard; update message detail)
+  - `lib/ai/tools.ts` (getClientContext, getTodaySummary, searchJobHistory, getFinancialReport format as strings)
+  - `lib/ai/pre-classifier.ts` (filtered stale query routing; stale-with-filter uses listIncompleteOrBlockedJobs)
+  - `__tests__/chat-actions.test.ts` (requiresSchedule test; updated happy-path mock)
+- Summary:
+  - **runMoveDeal requiresSchedule guard**: Pre-check for missing scheduledAt returns `requiresSchedule:true` with a targeted message ("needs a scheduled date — what date and time?"), parallel to the existing `requiresAssignment:true` guard. Tool description updated with retry hint; updateDealFields description says to retry moveDeal after setting schedule.
+  - **Tool output formatting sweep**: getClientContext, getTodaySummary, searchJobHistory, getFinancialReport now all format their results as readable strings at the tool boundary rather than returning raw JSON structs. This eliminates a whole class of LLM formatting errors and makes Tracey's output consistent regardless of which tool call path is taken.
+  - **Filtered stale query routing**: Pre-classifier now distinguishes "which ZZZ AUTO jobs look stale?" (filter query → listIncompleteOrBlockedJobs) from "which jobs need attention?" (workspace-wide → getAttentionRequired). getAttentionRequired has no filter; using it for filtered queries returned unrelated results.
+  - **Tests**: 642/642 unit tests pass.
+- Why: Continuing systematic quality improvement so every tool call returns the right data in the right format for Tracey to present accurately.
+
 ## 2026-04-06 Session 2 (Claude) - Tracey tool completeness and pre-classifier routing
 
 - Files changed:
