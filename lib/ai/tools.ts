@@ -614,8 +614,32 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             inputSchema: z.object({
                 clientName: z.string().describe("Client name (fuzzy matched)"),
             }),
-            execute: async ({ clientName }) =>
-                runGetClientContext(workspaceId, { clientName }),
+            execute: async ({ clientName }) => {
+                const result = await runGetClientContext(workspaceId, { clientName });
+                if (!result.client) {
+                    return `No contact found matching "${clientName}".`;
+                }
+                const lines: string[] = [
+                    result.client.name,
+                    result.client.company ? `Company: ${result.client.company}` : null,
+                    result.client.phone ? `Phone: ${result.client.phone}` : "Phone: not on file",
+                    result.client.email ? `Email: ${result.client.email}` : "Email: not on file",
+                    result.client.address ? `Address: ${result.client.address}` : null,
+                ].filter(Boolean) as string[];
+                if (result.recentJobs.length) {
+                    lines.push("Recent jobs:");
+                    for (const job of result.recentJobs) {
+                        lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+                    }
+                }
+                if (result.recentNotes.length) {
+                    lines.push("Recent notes:");
+                    for (const note of result.recentNotes.slice(0, 3)) {
+                        lines.push(`- ${note.title}: ${(note.content ?? "").trim() || "No details"}`);
+                    }
+                }
+                return lines.join("\n");
+            },
         }),
         getTodaySummary: tool({
             description: "Today's jobs with readiness checks (missing address/phone, unassigned, etc.). Lead with alerts.",
