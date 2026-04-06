@@ -209,6 +209,24 @@ describe("chat-actions", () => {
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
   });
 
+  it("returns requiresAssignment and a helpful message when moving unassigned deal to Scheduled", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        assignedToId: null,
+        contactId: "contact_1",
+      },
+    ]);
+
+    const result = await runMoveDeal("ws_1", "Hot Water Fix", "scheduled");
+
+    expect(result.success).toBe(false);
+    expect(result.requiresAssignment).toBe(true);
+    expect(result.message).toContain("needs a team member");
+    expect(hoisted.updateDealStage).not.toHaveBeenCalled();
+  });
+
   it("adds a note to a deal by fuzzy title match", async () => {
     hoisted.getDeals.mockResolvedValue([
       {
