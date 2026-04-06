@@ -5,6 +5,15 @@ import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
 import { getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
+const AGENT_STAGE_LABELS: Record<string, string> = {
+  NEW: "New request", CONTACTED: "Quote sent", NEGOTIATION: "Scheduled",
+  PIPELINE: "Quote sent", SCHEDULED: "Scheduled", INVOICED: "Awaiting payment",
+  PENDING_COMPLETION: "Pending approval", WON: "Completed", LOST: "Lost",
+  new_request: "New request", quote_sent: "Quote sent", scheduled: "Scheduled",
+  ready_to_invoice: "Awaiting payment", pending_approval: "Pending approval",
+  completed: "Completed", lost: "Lost",
+};
+
 /**
  * Tool: get_schedule
  * Fetches scheduled jobs for a specific date range.
@@ -99,7 +108,7 @@ export async function runSearchJobHistory(
       clientName: j.contact?.name || "Unknown",
       address: j.address,
       scheduledAt: j.scheduledAt?.toISOString() || null,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       jobStatus: j.jobStatus,
       value: j.value ? Number(j.value) : 0,
       createdAt: j.createdAt.toISOString(),

@@ -2608,6 +2608,8 @@ export async function runBulkMoveDeals(
     return "No matching jobs were found for the selected IDs.";
   }
 
+  const stageDisplayLabel = CHAT_STAGE_LABELS[resolvedStage] ?? resolvedStage;
+
   const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
   for (const deal of deals) {
     const currentStage = PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? "new";
@@ -2624,7 +2626,7 @@ export async function runBulkMoveDeals(
 
     await logActivity({
       type: "NOTE",
-      title: `Bulk moved to ${resolvedStage}`,
+      title: `Bulk moved to ${stageDisplayLabel}`,
       content: `Bulk stage change applied by CRM chatbot.`,
       dealId: deal.id,
       contactId: deal.contactId ?? undefined,
@@ -2634,7 +2636,7 @@ export async function runBulkMoveDeals(
 
   revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
-  return formatBulkOperationSummary(`Bulk move to ${resolvedStage}`, results);
+  return formatBulkOperationSummary(`Bulk move to ${stageDisplayLabel}`, results);
 }
 
 export async function runBulkAssignDeals(
