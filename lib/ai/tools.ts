@@ -510,7 +510,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ dealTitle, reason }) => runRejectCompletion(workspaceId, { dealTitle, reason }),
         }),
         assignTeamMember: tool({
-            description: "Assign a team member to a job. Fuzzy-matches job title and member name.",
+            description: "Assign a team member to a job. Fuzzy-matches job title and member name. After a successful assignment, if the previous moveDeal call failed due to a missing assignee, retry moveDeal immediately.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
                 teamMemberName: z.string().describe("Team member name or email"),
