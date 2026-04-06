@@ -464,12 +464,15 @@ export async function runProposeReschedule(
 export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   return {
-    deals: deals.map((d) => ({
-      id: d.id,
-      title: d.title,
-      stage: d.stage,
-      value: d.value,
-    })),
+    deals: deals.map((d) => {
+      const rawStage = String(d.stage ?? "");
+      return {
+        id: d.id,
+        title: d.title,
+        stage: CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage,
+        value: d.value,
+      };
+    }),
   };
 }
 
@@ -536,7 +539,9 @@ export async function runListIncompleteOrBlockedJobs(
 
   return `Jobs matching "${params.query}" that still look incomplete or blocked:\n${matches
     .map(({ deal, signals }) => {
-      const suffix: string[] = [deal.stage];
+      const rawStage = String(deal.stage ?? "");
+      const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+      const suffix: string[] = [stageLabel];
       if (signals.length) suffix.push(signals.map((signal) => signal.label).join(", "));
       return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
     })

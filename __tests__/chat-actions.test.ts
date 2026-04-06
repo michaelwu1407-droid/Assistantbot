@@ -387,7 +387,7 @@ describe("chat-actions", () => {
     const result = await runListIncompleteOrBlockedJobs("ws_1", { query: "ZZZ AUTO test" });
 
     expect(result).toBe(
-      'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
+      'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (Scheduled; Stale)',
     );
   });
 
