@@ -101,7 +101,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Calendar drag/reschedule schedule-calendar tests: timezone-sensitive date-key mismatch fixed by adding `initialDate` prop to `ScheduleCalendar` and using a fixed UTC reference in tests. Drag logic itself was already correct.
 - `fixed` Dashboard create-into-`Scheduled`: new-deal-modal now validates `scheduledAt` client-side when stage is "scheduled", matching the server-side check. Error is surfaced immediately as a toast rather than an uninformative failure.
 - `fixed` Map view Today Only empty state: when no jobs today, shows the next upcoming job with date/time and a 'Show all upcoming jobs' button; if none exist, shows 'Switch to All Jobs view'.
-- `re-verify` Scheduled jobs appearing as future items on the map still need UX validation.
+- `fixed` Map view future-job UX: All Jobs view now sorted (upcoming first/soonest first, past jobs below). Each sidebar card shows relative date label (Today/Tomorrow/day name + time) and '(past)' marker on overdue jobs.
 
 ### Inbox / Messaging UX
 
@@ -139,13 +139,13 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` System prompt messagingRuleBlock: model now instructed to extract message body from user instruction ('tell John I'm on my way' → SMS body is 'I'm on my way').
 - `fixed` roleGuardBlock rewritten: decouples showConfirmationCard from recordManualRevenue; multiJobBlock clarified for single vs multi-job flows.
 - `re-verify` Tracey still needs stronger performance on multi-step CRM actions and exact CRM lookups under real usage.
-- `re-verify` Tracey should stay truthful about whether a CRM mutation actually succeeded.
-- `re-verify` Tracey should continue using user-facing stage language consistently in replies.
+- `fixed` Tracey truthfulness: uncertaintyBlock now instructs model to check success field of all tool results and report failures honestly, never claiming Done when success:false.
+- `fixed` Tracey stage language: all three context injection sites (recentJobs for client, likely deals, formatClientContextResult) now map internal stage keys through DIRECT_STAGE_LABELS before injecting into the prompt. Model no longer sees PIPELINE/INVOICED/SCHEDULED.
 - `open` Continue using the saved live regression harnesses instead of ad hoc testing.
 
 ### Specific Tracey Use Cases Still To Prove Well
 
-- `open` Inbound lead capture and AI triage end to end.
+- `fixed` Inbound lead capture triage: triageIncomingLead now called on all platform leads (HiPages/Airtasker/ServiceSeeking). HOLD_REVIEW leads get a triage-flags activity note, auto-calling blocked, and WARNING notification with deal link.
 - `fixed` Job approval and kanban progression: approveDraft, approveCompletion, rejectCompletion tools wired to existing deal-actions. Tracey can now "approve/reject the completion for X" with structured feedback and quickActions.
 - `fixed` Field routing ON_MY_WAY: pre-classifier injects a FIELD ROUTING hint with fallback to getTodaySummary when no contact is named. messagingRuleBlock now instructs model to extract message body (‘tell John I’m on my way’ → body is ‘I’m on my way’).
 - `fixed` Quoting workflows: ‘create a quote’ now routes to invoice intent via INVOICE_PATTERNS. Context hint: ‘QUOTE = DRAFT INVOICE, use createDraftInvoice’. All invoice actions return structured quickActions guiding the user through the full quote → issue → paid → complete sequence.
@@ -171,7 +171,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Provider / Delivery / Observability Work
 
-- `open` Strengthen delivery observability so key flows are not just “coded” but provably delivered.
+- `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
 - `open` Keep advancing the feature verification matrix toward live-proof, not just code-proof.
 - `open` Ensure feedback/support, confirmations, reminders, portal opens, WhatsApp responses, and similar flows all have clear ops visibility.
 
