@@ -227,7 +227,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runProposeReschedule(workspaceId, { dealTitle, proposedSchedule }),
         }),
         updateInvoiceAmount: tool({
-            description: "Update the final invoiced amount for a job.",
+            description: "Update the tracked invoiced amount on a job/deal. Use this when the user says 'update the invoice amount to $X' or 'the final amount is $X'. To edit the actual invoice document (line items, number, date), use updateInvoiceFields instead.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title to invoice"),
                 amount: z.number().describe("Final invoiced amount"),
