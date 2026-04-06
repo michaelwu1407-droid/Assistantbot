@@ -1,3 +1,28 @@
+## 2026-04-07 (Codex) - Real provider verification on production
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Production env + live verifier**: Pulled the production Vercel env into a clean worktree and ran `scripts/verify-real-integrations.ts` against `https://www.earlymark.ai`. Twilio, Resend, LiveKit, and auth env readiness are present; Stripe is still missing `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the pulled env. Public `/api/health` and `/api/check-env` returned `404`, while protected `/api/internal/launch-readiness` was reachable with ops auth.
+  - **Launch-readiness truth**: production app release is `e18f44b8`, but worker release truth still reports `4379d219...`. Launch-readiness is currently unhealthy because `voice-agent-health` and `passive-communications-health` monitor freshness are stale, not because Twilio or LiveKit routing is broken.
+  - **Voice canary rerun**: Triggered the real spoken PSTN canary via `/api/cron/voice-synthetic-probe`. Gateway routing passed, the Twilio call completed, and the app persisted a matching voice call with both caller and Tracey speech. The canary still reports `degraded` because transcript phrase matching is too strict: the excerpt contained `Hello, Tracy` and `Monitor probe`, but did not satisfy the exact expected phrase matcher.
+  - **Twilio SMS probes**:
+    - Outbound probe from `+12624390786` to `+61434955958` delivered successfully (`SM58fab173c516ac10aee29cee763b502a`).
+    - Self-contained inbound probe from `+12624390786` to workspace number `+61468167497` delivered and was ingested by the app. A fresh `webhookEvent` with `provider=twilio`, `eventType=sms.received`, status `success` was created, and passive SMS health for the active workspace updated to healthy with a fresh success timestamp.
+  - **Resend probes**:
+    - Outbound email probe to `miguel.w1407@gmail.com` was accepted by Resend and the provider reports `last_event: delivered` (`54b3aa05-edc4-438b-b4c4-458f5dea231e`).
+    - Inbound email probe sent to `alexandria-automotive-services-2@inbound.earlymark.ai` was accepted for send by Resend, but after repeated polling there was still no `webhookEvent` with `provider=resend`, `eventType=email.received`, and no contact/deal was created. This is a real inbound-email integration failure.
+    - Resend domain API currently reports `inbound.earlymark.ai` as `status: not_started` with `receiving: enabled`, which conflicts with the app's internal readiness summary claiming inbound email is provider-verified/ready.
+  - **Current provider truth**:
+    - Voice routing and LiveKit SIP: working, but canary health is still degraded by transcript-match strictness and stale monitor freshness.
+    - SMS outbound and inbound: proven working in production.
+    - Email outbound: proven working at provider level.
+    - Email inbound: not proven; active probe indicates it is not landing in the app.
+    - Provisioning: launch-readiness still reports one failed workspace phone-provisioning record.
+- Why:
+  - This is the first production-backed verification pass that proves which integrations are truly working today and which ones only appear healthy from code or config alone.
+
 ## 2026-04-06 Session 3 (Claude) - Tool output formatting and multi-step CRM accuracy
 
 - Files changed:

@@ -164,9 +164,12 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `deferred` Real provider/device verification for the 3 Tracey call-handling modes.
 - `deferred` Real device verification that the mode-specific next steps actually work on phones/carriers.
-- `deferred` Real Twilio SMS inbound/outbound verification.
-- `deferred` Real email inbound/outbound verification with actual provider delivery.
-- `deferred` Real LiveKit/Twilio voice path verification in production-like conditions.
+- `fixed` Real Twilio SMS outbound delivery verified in production on 2026-04-07 via direct provider probe to `+61434955958`.
+- `fixed` Real Twilio SMS inbound ingestion verified in production on 2026-04-07 via self-contained probe from spare Twilio number `+12624390786` into workspace number `+61468167497`.
+- `re-verify` Real email outbound is provider-delivered in production, but the app is not recording Resend webhook events from the probe, so delivery-event ingestion is still suspect.
+- `open` Real email inbound verification is currently failing: a QA probe to `alexandria-automotive-services-2@inbound.earlymark.ai` did not create a resend `email.received` webhookEvent or any CRM record.
+- `fixed` Real LiveKit/Twilio voice path was actively exercised again on 2026-04-07 through the spoken PSTN canary: Twilio call completed, routing hit the canonical voice gateway, and the app persisted a matching VoiceCall with both caller and Tracey speech.
+- `open` Voice canary still reports `degraded` because transcript phrase matching is too strict (`Hello, Tracy` / `Monitor probe` did not satisfy the exact probe-phrase matcher).
 - `deferred` Real WhatsApp assistant verification for internal users on the live number.
 
 ### Product Truth Already Established
@@ -178,6 +181,9 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Provider / Delivery / Observability Work
 
+- `open` Launch-readiness is currently unhealthy in production because monitor freshness is stale (`voice-agent-health`, `passive-communications-health`) and worker release truth still reports old SHA `4379d219...` while the app is on `e18f44b8`.
+- `open` Inbound email readiness truth is currently misleading. Production app readiness says inbound email is provider-verified/ready, but a real inbound QA probe did not land and Resend's domain API reports `inbound.earlymark.ai` as `status: not_started`.
+- `re-verify` Public `/api/health` and `/api/check-env` return `404` in production while protected internal readiness works. Confirm whether that is intentional long-term or an observability gap.
 - `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
 - `open` Keep advancing the feature verification matrix toward live-proof, not just code-proof.
 - `fixed` Notification feed: rows now navigate to their linked page on click (markAsRead called). WARNING/ERROR show amber AlertTriangle icon; SUCCESS shows green CheckCircle2; AI/SYSTEM show Sparkles; rest show Bell.
