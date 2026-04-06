@@ -644,7 +644,32 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
         getTodaySummary: tool({
             description: "Today's jobs with readiness checks (missing address/phone, unassigned, etc.). Lead with alerts.",
             inputSchema: z.object({}),
-            execute: async () => runGetTodaySummary(workspaceId, settings?.workspaceTimezone ?? undefined),
+            execute: async () => {
+                const summary = await runGetTodaySummary(workspaceId, settings?.workspaceTimezone ?? undefined);
+                const lines: string[] = ["Today's CRM summary:"];
+                if (summary.preparationAlerts.length) {
+                    lines.push("Readiness alerts:");
+                    for (const alert of summary.preparationAlerts) lines.push(`- ${alert}`);
+                } else {
+                    lines.push("Readiness alerts: none right now.");
+                }
+                if (summary.todayJobs.length) {
+                    lines.push("Today's jobs:");
+                    for (const job of summary.todayJobs) {
+                        const time = job.scheduledAt ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }) : "";
+                        const prep = job.preparations.length ? ` ⚠ ${job.preparations.join("; ")}` : "";
+                        lines.push(`- ${time}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}${prep}`);
+                    }
+                } else {
+                    lines.push("Today's jobs: none scheduled.");
+                }
+                if (summary.overdueTasks.length) {
+                    lines.push("Overdue tasks:");
+                    for (const task of summary.overdueTasks) lines.push(`- ${task.title} (was due ${task.dueAt})`);
+                }
+                lines.push(`Messages received today: ${summary.recentMessages}`);
+                return lines.join("\n");
+            },
         }),
         getAvailability: tool({
             description: "Check available time slots on a specific date.",
