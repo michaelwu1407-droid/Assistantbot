@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { GeocodedDeal, batchGeocode } from "@/actions/geo-actions";
-import { MapPin, Navigation, RefreshCw, Calendar, Filter, CheckCircle2 } from "lucide-react";
+import { MapPin, Navigation, RefreshCw, Calendar, Filter, CheckCircle2, CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { isToday, isValid } from "date-fns";
+import { isToday, isValid, format } from "date-fns";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 import type { Job } from "@/components/map/map-view";
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
@@ -44,6 +44,15 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
       return isValid(date) && isToday(date);
     });
   }, [initialDeals, filter]);
+
+  // Next upcoming job after today — used in the "today" empty state
+  const nextUpcomingJob = useMemo(() => {
+    if (filter !== 'today' || filteredDeals.length > 0) return null;
+    const now = new Date();
+    return initialDeals
+      .filter(d => d.scheduledAt && isValid(new Date(d.scheduledAt)) && new Date(d.scheduledAt) > now)
+      .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())[0] ?? null;
+  }, [filter, filteredDeals.length, initialDeals]);
 
   const handleBatchGeocode = async () => {
     setIsGeocoding(true);
@@ -121,9 +130,35 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
               <h3 className="text-sm font-medium text-foreground mb-1">No jobs found</h3>
               <p className="text-xs text-muted-foreground/80 max-w-xs mx-auto">
                 {filter === 'today'
-                  ? "No mapped jobs for today. Use All Jobs to see upcoming dates, or confirm jobs are scheduled and geocoded."
+                  ? "Nothing scheduled for today."
                   : "No mapped jobs in your workspace yet. Scheduled jobs need an address; use Update Locations when addresses are missing."}
               </p>
+              {filter === 'today' && nextUpcomingJob && (
+                <div className="mt-4 rounded-lg border border-border/50 bg-muted/30 p-3 text-left">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
+                    <CalendarClock className="h-3 w-3" /> Next up
+                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{nextUpcomingJob.title}</p>
+                  <p className="text-xs text-muted-foreground">{nextUpcomingJob.contactName}</p>
+                  <p className="text-xs text-primary mt-1 font-medium">
+                    {format(new Date(nextUpcomingJob.scheduledAt!), "EEE MMM d 'at' h:mm a")}
+                  </p>
+                  <button
+                    onClick={() => setFilter('all')}
+                    className="mt-2 w-full text-[10px] font-medium text-primary hover:underline"
+                  >
+                    Show all upcoming jobs →
+                  </button>
+                </div>
+              )}
+              {filter === 'today' && !nextUpcomingJob && (
+                <button
+                  onClick={() => setFilter('all')}
+                  className="mt-3 text-xs text-primary hover:underline"
+                >
+                  Switch to All Jobs view
+                </button>
+              )}
               {pendingCount > 0 && (
                 <p className="text-xs mt-4 text-primary">
                   You have {pendingCount} jobs waiting to be mapped.

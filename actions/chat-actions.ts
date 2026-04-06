@@ -1502,11 +1502,15 @@ async function findInvoiceInWorkspace(
 export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
   if (!deal) {
-    return `Couldn't find a job matching "${params.dealTitle}".`;
+    return {
+      success: false,
+      message: `Couldn't find a job matching "${params.dealTitle}".`,
+      quickActions: [],
+    };
   }
 
   const existingDraft = await db.invoice.findFirst({
@@ -1514,14 +1518,21 @@ export async function runCreateDraftInvoice(
     orderBy: { createdAt: "desc" },
   });
   if (existingDraft) {
-    return `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`;
+    return {
+      success: false,
+      message: `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`,
+      quickActions: [
+        { label: "Issue to client", prompt: `Issue invoice ${existingDraft.number} for "${deal.title}"` },
+        { label: "Invoice status", prompt: `Show invoice status for "${deal.title}"` },
+      ],
+    };
   }
 
   const fullDeal = await db.deal.findUnique({
     where: { id: deal.id },
     select: { id: true, title: true, value: true, contactId: true },
   });
-  if (!fullDeal) return "Deal not found.";
+  if (!fullDeal) return { success: false, message: "Deal not found.", quickActions: [] };
 
   const invoiceNumber = await allocateWorkspaceInvoiceNumber(workspaceId);
   const total = Number(fullDeal.value || 0);
@@ -1560,22 +1571,29 @@ export async function runCreateDraftInvoice(
     },
   });
   revalidatePath("/crm", "layout");
-  return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
+  return {
+    success: true,
+    message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total $${total.toLocaleString("en-AU")}. Open the Billing tab to review.`,
+    quickActions: [
+      { label: "Issue to client", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
+    ],
+  };
 }
 
 export async function runIssueInvoiceAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { issueInvoice } = await import("./tradie-actions");
   const result = await issueInvoice(invoice.id);
   if (!result.success) {
-    return `Failed to issue invoice ${invoice.number}.`;
+    return { success: false, message: `Failed to issue invoice ${invoice.number}.`, quickActions: [] };
   }
   await db.activity.create({
     data: {
@@ -1586,24 +1604,41 @@ export async function runIssueInvoiceAction(
       contactId: invoice.deal.contactId,
     },
   });
-  return `Issued invoice ${invoice.number} for "${invoice.deal.title}".`;
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} issued for "${invoice.deal.title}". The client can now be sent the payment link.`,
+    quickActions: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid for "${invoice.deal.title}"` },
+      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 export async function runMarkInvoicePaidAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { markInvoicePaid } = await import("./tradie-actions");
   const result = await markInvoicePaid(invoice.id);
   if (!result.success) {
-    return `Failed to mark invoice ${invoice.number} as paid.`;
+    return { success: false, message: `Failed to mark invoice ${invoice.number} as paid.`, quickActions: [] };
   }
-  return `Marked invoice ${invoice.number} as paid.`;
+  revalidatePath("/crm", "layout");
+  const dealTitle = invoice.deal.title;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} marked as paid for "${dealTitle}". Job is complete.`,
+    quickActions: [
+      { label: "Move to Completed", prompt: `Move deal "${dealTitle}" to Completed stage` },
+      { label: "Request review", prompt: `Send a review request to the client for "${dealTitle}"` },
+    ],
+  };
 }
 
 export async function runReverseInvoiceStatus(

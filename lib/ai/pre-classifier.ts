@@ -88,6 +88,8 @@ const CRM_ACTION_PATTERNS = [
 const INVOICE_PATTERNS = [
   /\b(invoice|invoiced|create invoice|send invoice|draft invoice|mark.*paid|void)\b/i,
   /\b(payment|paid|unpaid|outstanding|overdue)\b/i,
+  /\b(create|send|draft|generate|write|give|prepare)\b.{0,20}\b(quote|estimate|proposal)\b/i,
+  /\b(quote|estimate|proposal)\b.{0,20}\b(for|to)\b/i,
 ];
 
 const SUPPORT_PATTERNS = [
@@ -252,6 +254,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
     case "invoice":
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        /\b(quote|estimate|proposal)\b/i.test(text)
+          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, set it via updateInvoiceAmount after creation. If the client has no existing job, ask whether to create one first."
+          : null,
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
         "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month.",
         /\b(ready to invoice|already invoiced)\b/i.test(text)
