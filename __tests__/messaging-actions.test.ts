@@ -16,6 +16,9 @@ const hoisted = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    webhookEvent: {
+      create: vi.fn().mockResolvedValue({}),
+    },
   },
   buildPublicFeedbackUrl: vi.fn(),
 }));
