@@ -783,15 +783,19 @@ export async function runUpdateDealFields(
   }
 
   const changes: string[] = [];
-  if (payload.title) changes.push(`title`);
-  if (typeof payload.value === "number") changes.push(`value`);
-  if (payload.address !== undefined) changes.push(`address`);
-  if (payload.scheduledAt !== undefined) changes.push(`schedule`);
-  if (payload.stage) changes.push(`stage`);
+  if (payload.title) changes.push(`title → "${payload.title}"`);
+  if (typeof payload.value === "number") changes.push(`value → $${payload.value.toLocaleString()}`);
+  if (payload.address !== undefined) changes.push(payload.address ? `address → "${payload.address}"` : "address cleared");
+  if (payload.scheduledAt !== undefined) changes.push(`schedule updated`);
+  if (payload.stage) {
+    const stageLabel = CHAT_STAGE_LABELS[payload.stage] ?? payload.stage;
+    changes.push(`stage → ${stageLabel}`);
+  }
 
+  const jobTitle = payload.title ?? deal.title;
   return {
     success: true,
-    message: `Updated "${deal.title}" (${changes.join(", ")}).`,
+    message: `Updated "${jobTitle}" (${changes.join(", ")}).`,
     dealId: deal.id,
   };
 }
@@ -2054,7 +2058,14 @@ export async function runUpdateContactFields(
       return `Failed to update ${contact.name}: ${result.error ?? "Unknown error."}`;
     }
 
-    return `Updated ${contact.name}.`;
+    const changedFields: string[] = [];
+    if (params.newName?.trim()) changedFields.push(`name to "${params.newName.trim()}"`);
+    if (params.phone !== undefined) changedFields.push(`phone to "${params.phone.trim()}"`);
+    if (params.email !== undefined) changedFields.push(`email to "${params.email.trim()}"`);
+    if (params.company !== undefined) changedFields.push(`company to "${params.company.trim()}"`);
+    if (params.address !== undefined) changedFields.push(`address to "${params.address.trim()}"`);
+    const changeSummary = changedFields.length ? ` (${changedFields.join(", ")})` : "";
+    return `Updated ${contact.name}${changeSummary}.`;
   } catch (err) {
     return `Error updating contact: ${err instanceof Error ? err.message : String(err)}`;
   }

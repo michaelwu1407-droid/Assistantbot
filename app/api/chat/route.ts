@@ -450,6 +450,10 @@ function extractLikelyDealQuery(content: string): string | null {
     /show me the full job context for (.+?)(?: including.*)?[.?!]*$/i,
     /summarize the current state of (.+?)(?: in one tight paragraph)?[.?!]*$/i,
     /search past job history for (.+?)[.?!]*$/i,
+    /what is the (?:exact )?current stage of (.+?)(?: now)?[.?!]*$/i,
+    /what(?:'s| is) the (?:current )?stage (?:of|for) (.+?)[.?!]*$/i,
+    /what recent (?:notes?|updates?|changes?) (?:exist |are there )?for (.+?)[.?!]*$/i,
+    /what are the most important facts (?:you have )?about (.+?)(?: without guessing)?[.?!]*$/i,
   ];
 
   for (const pattern of patterns) {
