@@ -1348,7 +1348,13 @@ export async function runSearchContacts(workspaceId: string, query: string) {
     const contacts = await searchContacts(workspaceId, query);
     if (!contacts.length) return `No contacts found matching "${query}".`;
 
-    return `Found ${contacts.length} matches:\n` + contacts.map(c => `- ${c.name} ${c.company ? `(${c.company})` : ''} ${c.phone ? `Ph: ${c.phone}` : ''}`).join("\n");
+    return `Found ${contacts.length} matches:\n` + contacts.map(c => {
+      const parts = [c.name];
+      if (c.company) parts.push(`(${c.company})`);
+      if (c.phone) parts.push(`Ph: ${c.phone}`);
+      if (c.email) parts.push(`Email: ${c.email}`);
+      return `- ${parts.join(" ")}`;
+    }).join("\n");
   } catch (err) {
     return `Error searching contacts: ${err instanceof Error ? err.message : String(err)}`;
   }
