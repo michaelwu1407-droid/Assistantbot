@@ -301,6 +301,26 @@
   - **Dashboard step updated**: Now highlights RHS chat panel availability in advanced mode.
   - **Condensed**: Settings + Handbook merged into 1 step; Feedback + Finish merged into 1 step.
   - **New TutorialStep interface fields**: `features?: string[]` (dot-list of feature bullets) and `tip?: string` (highlighted callout box).
+  - **Card redesign**: Chat examples now render as speech bubble mockups (user right-aligned, bot left-aligned). Feature lists use dot-prefixed rows. Tip shown in a mint callout box. Fixed `text-black` -> `text-foreground/80` for dark mode.
+  - **Overlay cleanup**: Consolidated 8 identical bottom-card rendering blocks into a single `BOTTOM_CARD_IDS.has()` check. Consolidated 8 separate route `useEffect` hooks into one routes map. Removed hardcoded schedule/preferences bullet logic (now data-driven via `features` field). Extracted `parseBold()` as a named function.
+- Why:
+  - Tutorial was referencing renamed/removed pages and settings, missing new features (Analytics, Quoting, Automations), and had poor card formatting (flat text dump, hardcoded `text-black`, boring bullet lists for chat examples).
+## 2026-04-03 (AEDT) - Claude (sonnet-4-6)
+
+- Files changed:
+  - `components/tutorial/tutorial-steps.ts`
+  - `components/tutorial/tutorial-overlay.tsx`
+  - `APP_FEATURES.md`
+  - `CHANGELOG.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Tutorial revamp**: Rewrote all 15 tutorial steps (reduced from 16) with accurate, up-to-date feature names and content.
+  - **New step**: Added Analytics page step (`nav-analytics`, targeting `reports-link` sidebar element, routes to `/crm/analytics`).
+  - **New step**: Added "More Than Just Chat" step showcasing quoting/invoicing, analytics, scheduling, and contact lookup via chat.
+  - **Settings step corrected**: Replaced outdated setting names (One-Tap Messages, Repair Glossary, AI Voice Agent, Phone & Support, Workspace & Display) with current structure (Calls & Texting, My Business, AI Assistant, Automations, AI Attachment Library).
+  - **Dashboard step updated**: Now highlights RHS chat panel availability in advanced mode.
+  - **Condensed**: Settings + Handbook merged into 1 step; Feedback + Finish merged into 1 step.
+  - **New TutorialStep interface fields**: `features?: string[]` (dot-list of feature bullets) and `tip?: string` (highlighted callout box).
   - **Card redesign**: Chat examples now render as speech bubble mockups (user right-aligned, bot left-aligned). Feature lists use dot-prefixed rows. Tip shown in a mint callout box. Fixed `text-black` → `text-foreground/80` for dark mode.
   - **Overlay cleanup**: Consolidated 8 identical bottom-card rendering blocks into a single `BOTTOM_CARD_IDS.has()` check. Consolidated 8 separate route `useEffect` hooks into one routes map. Removed hardcoded schedule/preferences bullet logic (now data-driven via `features` field). Extracted `parseBold()` as a named function.
 - Why:
