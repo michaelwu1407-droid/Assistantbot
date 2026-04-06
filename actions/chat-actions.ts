@@ -1737,22 +1737,43 @@ export async function runSendInvoiceReminder(
 export async function runGetInvoiceStatusAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { getInvoiceSyncStatus } = await import("./accounting-actions");
   const syncStatus = await getInvoiceSyncStatus(invoice.id);
-  return [
+  const total = Number(invoice.total || 0);
+  const summary = [
     `Invoice ${invoice.number}`,
     `Status: ${invoice.status}`,
     `Deal: ${invoice.deal.title}`,
     `Contact: ${invoice.deal.contact.name}`,
-    `Total: $${Number(invoice.total || 0).toFixed(2)}`,
+    `Total: $${total.toFixed(2)}`,
     `Accounting sync: ${syncStatus?.synced ? `synced via ${syncStatus.provider}` : "not synced / accounting not connected"}`,
   ].join("\n");
+
+  const followUpByStatus: Record<string, { label: string; prompt: string }[]> = {
+    DRAFT: [
+      { label: "Issue to client", prompt: `Issue invoice ${invoice.number} for "${invoice.deal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${invoice.deal.title}"` },
+    ],
+    ISSUED: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid` },
+      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.contact.name}"` },
+    ],
+    PAID: [
+      { label: "Move to Completed", prompt: `Move deal "${invoice.deal.title}" to Completed` },
+    ],
+  };
+
+  return {
+    success: true,
+    message: summary,
+    quickActions: followUpByStatus[invoice.status] ?? [],
+  };
 }
 
 export async function runUpdateInvoiceFields(
@@ -1855,18 +1876,22 @@ export async function runUpdateInvoiceFields(
 export async function runVoidInvoice(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   if (invoice.status === "VOID") {
-    return `Invoice ${invoice.number} is already void.`;
+    return { success: false, message: `Invoice ${invoice.number} is already void.`, quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+    ]};
   }
 
   if (invoice.status === "PAID") {
-    return `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding it.`;
+    return { success: false, message: `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding.`, quickActions: [
+      { label: "Reverse to Draft", prompt: `Reverse invoice ${invoice.number} to Draft status` },
+    ]};
   }
 
   await db.invoice.update({
@@ -1907,7 +1932,14 @@ export async function runVoidInvoice(
   });
 
   revalidatePath("/crm", "layout");
-  return `Voided invoice ${invoice.number} for "${invoice.deal.title}".`;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} voided for "${invoice.deal.title}". The job was moved back to Quote sent stage.`,
+    quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+      { label: "View job", prompt: `Show me the deal "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 function findTaskByTitle(

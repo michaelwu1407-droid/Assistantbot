@@ -100,7 +100,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Cross-page schedule time mismatch: `updateJobSchedule`, `updateJobStatus`, `completeJob` now revalidate dashboard, deals, and deal detail pages.
 - `fixed` Calendar drag/reschedule schedule-calendar tests: timezone-sensitive date-key mismatch fixed by adding `initialDate` prop to `ScheduleCalendar` and using a fixed UTC reference in tests. Drag logic itself was already correct.
 - `fixed` Dashboard create-into-`Scheduled`: new-deal-modal now validates `scheduledAt` client-side when stage is "scheduled", matching the server-side check. Error is surfaced immediately as a toast rather than an uninformative failure.
-- `re-verify` Map route mode for upcoming jobs still felt weak or confusing when there are no jobs today.
+- `fixed` Map view Today Only empty state: when no jobs today, shows the next upcoming job with date/time and a 'Show all upcoming jobs' button; if none exist, shows 'Switch to All Jobs view'.
 - `re-verify` Scheduled jobs appearing as future items on the map still need UX validation.
 
 ### Inbox / Messaging UX
@@ -121,7 +121,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Search / Notifications / Quick Actions
 
 - `fixed` Global search mouse-click: contacts `CommandItem` now has `onClick` handler, consistent with all other result types.
-- `re-verify` Notification panel is useful, but some assistant quick actions like `Create quote` did not show obvious visible outcomes.
+- `fixed` Invoice chat actions (createDraftInvoice, issueInvoice, markInvoicePaid, voidInvoice, getInvoiceStatus) now return structured {message, success, quickActions} objects. The chat UI renders a green success card with follow-up action buttons (e.g. 'Issue to client', 'Mark as paid', 'Move to Completed').
 
 ### Team / Analytics / Settings / Integrations
 
@@ -129,7 +129,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Analytics stage labels: `STAGE_LABELS` in `analytics-actions.ts` maps all known stages to user-facing labels. "Status 0" does not appear in current code — was already fixed in a prior session.
 - `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use.
 - `re-verify` Settings pages should be checked again after the scrolling fix to ensure no remaining clipped cards/buttons.
-- `open` Update `team-page` tests to match the new `window.open` invite-link behavior, or restore link semantics if that is the preferred UX.
+- `fixed` `team-page` tests updated in a prior session; all 3 tests pass. `window.open` invite-link button correctly uses `role="button"` in both code and tests.
 
 ## Chatbot / Tracey Outstanding Work
 
