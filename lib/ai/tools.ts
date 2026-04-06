@@ -580,8 +580,13 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 query: z.string().describe("Search keywords"),
                 limit: z.number().optional().describe("Max results (default 5)"),
             }),
-            execute: async ({ query, limit }) =>
-                runSearchJobHistory(workspaceId, { query, limit }),
+            execute: async ({ query, limit }) => {
+                const result = await runSearchJobHistory(workspaceId, { query, limit });
+                if (!result.jobs.length) return `No past jobs found matching "${query}".`;
+                return `Found ${result.jobs.length} job(s) matching "${query}":\n` + result.jobs.map(j =>
+                    `- ${j.title} for ${j.clientName}${j.address ? ` at ${j.address}` : ""} (${j.stage}${j.scheduledAt ? `, ${new Date(j.scheduledAt).toLocaleDateString("en-AU")}` : ""}) — $${j.value.toLocaleString()}`
+                ).join("\n");
+            },
         }),
         getFinancialReport: tool({
             description: "Revenue, job counts, and completion rates for a date range.",
@@ -589,8 +594,20 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 startDate: z.string().describe("Range start (ISO string)"),
                 endDate: z.string().describe("Range end (ISO string)"),
             }),
-            execute: async ({ startDate, endDate }) =>
-                runGetFinancialReport(workspaceId, { startDate, endDate }),
+            execute: async ({ startDate, endDate }) => {
+                const r = await runGetFinancialReport(workspaceId, { startDate, endDate });
+                const lines = [
+                    `Financial report (${new Date(startDate).toLocaleDateString("en-AU")} – ${new Date(endDate).toLocaleDateString("en-AU")}):`,
+                    `Total revenue: $${r.totalRevenue.toLocaleString()}`,
+                    `Invoiced total: $${r.invoicedTotal.toLocaleString()}`,
+                    `Jobs: ${r.jobCount} (avg $${r.averageJobValue.toLocaleString()})`,
+                ];
+                if (r.breakdown.length) {
+                    lines.push("By stage:");
+                    for (const b of r.breakdown) lines.push(`- ${b.stage}: ${b.count} job(s), $${b.value.toLocaleString()}`);
+                }
+                return lines.join("\n");
+            },
         }),
         showConfirmationCard: tool({
             description: "Show Confirm/Cancel button for a data change. Pass a short summary.",
