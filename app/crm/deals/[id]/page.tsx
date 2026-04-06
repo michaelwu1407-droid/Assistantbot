@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle, Navigation, Phone } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -197,10 +197,17 @@ export default async function DealDetailPage({ params }: PageProps) {
 
           {/* Current / upcoming job details */}
           <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <Briefcase className="w-4 h-4" />
-              Current job
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Current job
+              </h3>
+              {deal.jobStatus && (
+                <Badge variant="outline" className="text-[10px] font-medium capitalize">
+                  {deal.jobStatus.toLowerCase().replace(/_/g, " ")}
+                </Badge>
+              )}
+            </div>
             <div className="space-y-2.5 text-sm">
               <div>
                 <p className="text-slate-500 text-xs">Job</p>
@@ -228,12 +235,49 @@ export default async function DealDetailPage({ params }: PageProps) {
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
               </div>
+              {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
+                <div>
+                  <p className="text-slate-500 text-xs">Job address</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900 flex-1">
+                      {deal.address || (metadata.address as string)}
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deal.address || (metadata.address as string))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-slate-200 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                      title="Open in Google Maps"
+                    >
+                      <Navigation className="w-3 h-3" /> Navigate
+                    </a>
+                  </div>
+                </div>
+              )}
               <div>
                 <p className="text-slate-500 text-xs">Assigned to</p>
                 <p className="font-medium text-slate-900">
                   {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
                 </p>
               </div>
+              {contact?.phone && (
+                <div className="flex gap-2 pt-1">
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-border/50 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Phone className="h-3 w-3" />
+                    Call client
+                  </a>
+                  <a
+                    href={`sms:${contact.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-border/50 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Text client
+                  </a>
+                </div>
+              )}
               <div>
                 <p className="text-slate-500 text-xs">Created</p>
                 <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
