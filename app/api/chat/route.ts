@@ -872,7 +872,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       };
     }
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Follow up ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -887,7 +887,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     const dueAtISO = resolveScheduleIso(match[2]);
     const clientContext = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Call ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -900,7 +900,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
   match = text.match(/^create a new task called (.+?) due (.+?)[.?!]*$/i);
   if (match) {
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: cleanDirectValue(match[1]),
         dueAtISO: resolveScheduleIso(match[2]) ?? undefined,
       }),

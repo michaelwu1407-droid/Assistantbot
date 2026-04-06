@@ -223,6 +223,10 @@ function getDealNextStepGuidance(input: {
       return input.hasInvoice
         ? "Issue the invoice or update its status, then follow through to payment."
         : "Generate the invoice and send or review it before closing out payment.";
+    case "awaiting_payment":
+      return input.hasInvoice
+        ? "The invoice has been issued. Follow up with the customer on payment and mark it paid when received."
+        : "Generate and issue the invoice so the customer can pay.";
     case "pending_approval":
       return "Review the completion details, then approve it to move to completed or reject it with a reason.";
     case "completed":
@@ -461,7 +465,7 @@ export async function runProposeReschedule(
 /**
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
-export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
+export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   return {
     deals: deals.map((d) => {
@@ -471,6 +475,7 @@ export async function runListDeals(workspaceId: string): Promise<{ deals: { id: 
         title: d.title,
         stage: CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage,
         value: d.value,
+        contactName: d.contactName ?? "",
       };
     }),
   };
@@ -1309,12 +1314,10 @@ export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: 
 /**
  * AI Tool Action: Create a Task/Reminder
  */
-export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
-  // 🎯 AI AGENT COMMUNICATION - IMPORTANT:
-  // This function creates a task/reminder in the CRM system
-  // It does not initiate any external communication (calls, emails, etc.)
-  // For manual communication, user clicks Call/Text buttons on contact cards
-  // DO NOT confuse AI agent with manual communication methods
+export async function runCreateTask(
+  workspaceId: string,
+  params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string, dealTitle?: string, contactName?: string }
+) {
   try {
     // Default due tomorrow 9AM if nothing specified
     let dueAt = new Date();
@@ -1325,16 +1328,37 @@ export async function runCreateTask(params: { title: string, dueAtISO?: string, 
       dueAt = new Date(params.dueAtISO);
     }
 
+    let dealId = params.dealId;
+    let contactId = params.contactId;
+
+    // Resolve dealTitle → dealId if not already provided
+    if (!dealId && params.dealTitle) {
+      const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+      const matched = findDealByTitle(deals, params.dealTitle.trim());
+      if (matched) dealId = matched.id;
+    }
+
+    // Resolve contactName → contactId if not already provided
+    if (!contactId && params.contactName) {
+      const contacts = await searchContacts(workspaceId, params.contactName.trim());
+      if (contacts.length) contactId = contacts[0].id;
+    }
+
     const result = await createTask({
       title: params.title,
       description: params.description,
       dueAt,
-      dealId: params.dealId,
-      contactId: params.contactId
+      dealId,
+      contactId,
     });
 
     if (!result.success) throw new Error(result.error);
-    return `Successfully created task: "${params.title}" due at ${dueAt.toLocaleString()}`;
+
+    const linkParts: string[] = [];
+    if (dealId) linkParts.push(`linked to job`);
+    if (contactId) linkParts.push(`linked to contact`);
+    const linkNote = linkParts.length ? ` (${linkParts.join(", ")})` : "";
+    return `Task created: "${params.title}" due ${dueAt.toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })} at ${dueAt.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}${linkNote}.`;
   } catch (err) {
     return `Error creating task: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1383,6 +1407,9 @@ export async function runGetDealContext(
           address: true,
         },
       },
+      assignedTo: {
+        select: { name: true },
+      },
       invoices: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -1420,6 +1447,7 @@ export async function runGetDealContext(
     `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
     fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
+    fullDeal.assignedTo ? `Assigned to: ${fullDeal.assignedTo.name}` : "Assigned to: (unassigned)",
     fullDeal.contact
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
       : null,
@@ -2796,12 +2824,24 @@ export async function runRevertDealStageMove(
 
 export async function runUnassignDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, assignedToId: true, contactId: true },
-  });
+  let deal: { id: string; title: string; assignedToId: string | null; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, assignedToId: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, assignedToId: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
   if (!deal.assignedToId) return `"${deal.title}" is not currently assigned.`;
 
@@ -2822,12 +2862,24 @@ export async function runUnassignDeal(
 
 export async function runRestoreDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, stage: true, metadata: true, contactId: true },
-  });
+  let deal: { id: string; title: string; stage: string; metadata: unknown; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
 
   if (!["LOST", "DELETED", "ARCHIVED"].includes(deal.stage)) {

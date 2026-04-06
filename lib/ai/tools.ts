@@ -349,13 +349,15 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runAddContactNote(workspaceId, params),
         }),
         createTask: tool({
-            description: "Create a reminder or to-do task.",
+            description: "Create a reminder or to-do task. Optionally link it to a job by dealTitle or a contact by contactName so it appears in the right CRM context.",
             inputSchema: z.object({
                 title: z.string().describe("Task title"),
                 dueAtISO: z.string().optional().describe("ISO due date. Default: tomorrow 9am."),
                 description: z.string().optional().describe("Extra details"),
+                dealTitle: z.string().optional().describe("Job/deal title to link this task to"),
+                contactName: z.string().optional().describe("Contact name to link this task to"),
             }),
-            execute: async (params) => runCreateTask(params),
+            execute: async (params) => runCreateTask(workspaceId, params),
         }),
         completeTask: tool({
             description: "Mark a task as complete by its title.",
@@ -474,18 +476,20 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ dealId }) => runRevertDealStageMove(workspaceId, { dealId }),
         }),
         unassignDeal: tool({
-            description: "Remove the current team-member assignment from a specific deal by explicit deal ID.",
+            description: "Remove the current team-member assignment from a specific deal. Prefer dealTitle over dealId.",
             inputSchema: z.object({
-                dealId: z.string().describe("Deal ID"),
+                dealTitle: z.string().optional().describe("Job/deal title (fuzzy matched)"),
+                dealId: z.string().optional().describe("Deal ID (use only if you already have it)"),
             }),
-            execute: async ({ dealId }) => runUnassignDeal(workspaceId, { dealId }),
+            execute: async (params) => runUnassignDeal(workspaceId, params),
         }),
         restoreDeal: tool({
-            description: "Restore a deal from lost, deleted, or archived back to its prior active stage.",
+            description: "Restore a deal from lost, deleted, or archived back to its prior active stage. Prefer dealTitle over dealId.",
             inputSchema: z.object({
-                dealId: z.string().describe("Deal ID"),
+                dealTitle: z.string().optional().describe("Job/deal title (fuzzy matched)"),
+                dealId: z.string().optional().describe("Deal ID (use only if you already have it)"),
             }),
-            execute: async ({ dealId }) => runRestoreDeal(workspaceId, { dealId }),
+            execute: async (params) => runRestoreDeal(workspaceId, params),
         }),
         approveDraft: tool({
             description: "Approve a job draft, moving it from draft/new status into the active pipeline. Use when a manager approves a pending draft job.",
