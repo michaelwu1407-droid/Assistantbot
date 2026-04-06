@@ -271,7 +271,7 @@ export async function runGetClientContext(
     })),
     recentJobs: jobs.map((j) => ({
       title: j.title,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       scheduledAt: j.scheduledAt?.toISOString() || null,
       value: j.value ? Number(j.value) : 0,
     })),
