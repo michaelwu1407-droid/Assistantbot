@@ -162,7 +162,8 @@ export function GlobalSearch({
                                                 <CommandItem
                                                     key={contact.id}
                                                     value={contact.id}
-                                                    onSelect={() => runCommand(() => router.push(contact.url))}
+                                                    onSelect={() => goTo(contact.url)}
+                                                    onClick={() => goTo(contact.url)}
                                                 >
                                                     <User className="mr-2 h-4 w-4" />
                                                     <span>{contact.title}</span>

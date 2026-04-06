@@ -104,7 +104,8 @@ type DirectCommandContext = {
 };
 
 type DirectCommandResult = {
-  text: string;
+  // text may be a plain string or a structured action result — extract .message when needed
+  text: string | { success: boolean; message: string; quickActions?: unknown[] };
   metricName?: string;
 };
 
@@ -449,6 +450,10 @@ function extractLikelyDealQuery(content: string): string | null {
     /show me the full job context for (.+?)(?: including.*)?[.?!]*$/i,
     /summarize the current state of (.+?)(?: in one tight paragraph)?[.?!]*$/i,
     /search past job history for (.+?)[.?!]*$/i,
+    /what is the (?:exact )?current stage of (.+?)(?: now)?[.?!]*$/i,
+    /what(?:'s| is) the (?:current )?stage (?:of|for) (.+?)[.?!]*$/i,
+    /what recent (?:notes?|updates?|changes?) (?:exist |are there )?for (.+?)[.?!]*$/i,
+    /what are the most important facts (?:you have )?about (.+?)(?: without guessing)?[.?!]*$/i,
   ];
 
   for (const pattern of patterns) {
@@ -494,7 +499,7 @@ async function buildResolvedEntitiesBlock(
           lines.push(
             `Recent jobs for ${context.client.name}: ${context.recentJobs
               .slice(0, 3)
-              .map((job) => `${job.title} (${job.stage})`)
+              .map((job) => `${job.title} (${DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage})`)
               .join(", ")}`,
           );
         }
@@ -518,7 +523,7 @@ async function buildResolvedEntitiesBlock(
       if (exactMatches.length > 0) {
         lines.push(
           `Likely jobs: ${exactMatches
-            .map((deal) => `${deal.title} (${deal.stage}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`)
+            .map((deal) => { const s = String(deal.stage ?? ""); return `${deal.title} (${DIRECT_STAGE_LABELS[s] ?? DIRECT_STAGE_LABELS[s.toUpperCase()] ?? s}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`; })
             .join(", ")}`,
         );
       } else if (likelyDealQuery) {
@@ -587,7 +592,8 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
   if (result.recentJobs.length) {
     lines.push("Recent jobs:");
     for (const job of result.recentJobs) {
-      lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+      const stageLabel = DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage;
+      lines.push(`- ${job.title} (${stageLabel}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
     }
   }
 
@@ -870,7 +876,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       };
     }
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Follow up ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -885,7 +891,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     const dueAtISO = resolveScheduleIso(match[2]);
     const clientContext = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Call ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -898,7 +904,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
   match = text.match(/^create a new task called (.+?) due (.+?)[.?!]*$/i);
   if (match) {
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: cleanDirectValue(match[1]),
         dueAtISO: resolveScheduleIso(match[2]) ?? undefined,
       }),
@@ -1368,7 +1374,10 @@ export async function POST(req: Request) {
       const elapsed = nowMs() - requestStartedAt;
       recordLatencyMetric(directCommand.metricName ?? "chat.web.direct", elapsed);
       recordLatencyMetric("chat.web.total_ms", elapsed);
-      return createTextStreamResponse(directCommand.text);
+      const directText = typeof directCommand.text === "string"
+        ? directCommand.text
+        : directCommand.text.message;
+      return createTextStreamResponse(directText);
     }
 
     const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
@@ -1644,10 +1653,10 @@ export async function POST(req: Request) {
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
 - If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
 - When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-      roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-      multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Extract the message body from the instruction — if the user says "tell John I’m on my way", the SMS body is "I’m on my way". Never send the full instruction as the message. Never rewrite or refuse the message content. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. TOOL RESULT TRUTHFULNESS: Always check the success field of tool results. If success is false, report the failure honestly — never say 'Done' or imply success when the tool returned success:false. Quote the message field from the tool result as the error reason. If a tool fails, explain what went wrong and suggest how to resolve it. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+      roleGuardBlock: `recordManualRevenue always requires showConfirmationCard first — do not call it until the user confirms with "confirm", "ok", or "yes". Use showConfirmationCard for other high-risk mutations too (bulk stage moves, bulk deletes). TEAM_MEMBER users cannot perform restricted data changes and should be told to ask their manager.`,
+      multiJobBlock: `For multi-job entry flows, use showJobDraftForConfirmation to handle one job at a time. Do not call createJobNatural until the user confirms. If the user gave a single, complete job request with client, work, price, and schedule all in one message and asked to create it now, use createJobNatural directly.`,
       jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
     });
 
@@ -1666,10 +1675,10 @@ export async function POST(req: Request) {
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
 - If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
 - When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-        roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-        multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Extract the message body from the instruction — if the user says "tell John I’m on my way", the SMS body is "I’m on my way". Never send the full instruction as the message. Never rewrite or refuse the message content. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. TOOL RESULT TRUTHFULNESS: Always check the success field of tool results. If success is false, report the failure honestly — never say 'Done' or imply success when the tool returned success:false. Quote the message field from the tool result as the error reason. If a tool fails, explain what went wrong and suggest how to resolve it. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+        roleGuardBlock: `recordManualRevenue always requires showConfirmationCard first — do not call it until the user confirms with "confirm", "ok", or "yes". Use showConfirmationCard for other high-risk mutations too (bulk stage moves, bulk deletes). TEAM_MEMBER users cannot perform restricted data changes and should be told to ask their manager.`,
+        multiJobBlock: `For multi-job entry flows, use showJobDraftForConfirmation to handle one job at a time. Do not call createJobNatural until the user confirms. If the user gave a single, complete job request with client, work, price, and schedule all in one message and asked to create it now, use createJobNatural directly.`,
         jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
       });
       systemPrompt = reducedPrompt;

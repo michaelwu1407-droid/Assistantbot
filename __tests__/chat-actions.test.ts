@@ -165,10 +165,16 @@ import {
   runAddDealNote,
   runCreateDeal,
   runCreateJobNatural,
+  runCreateTask,
   runGetDealContext,
+  runListDeals,
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
   runMoveDeal,
+  runRestoreDeal,
+  runSearchContacts,
+  runUnassignDeal,
+  runUndoLastAction,
 } from "@/actions/chat-actions";
 
 describe("chat-actions", () => {
@@ -192,6 +198,7 @@ describe("chat-actions", () => {
         title: "Hot Water Fix",
         assignedToId: "user_2",
         contactId: "contact_1",
+        scheduledAt: new Date("2026-04-10T10:00:00.000Z"),
       },
     ]);
 
@@ -205,6 +212,43 @@ describe("chat-actions", () => {
     expect(hoisted.updateDealStage).toHaveBeenCalledWith("deal_1", "scheduled");
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm", "layout");
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
+  });
+
+  it("returns requiresAssignment and a helpful message when moving unassigned deal to Scheduled", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        assignedToId: null,
+        contactId: "contact_1",
+      },
+    ]);
+
+    const result = await runMoveDeal("ws_1", "Hot Water Fix", "scheduled");
+
+    expect(result.success).toBe(false);
+    expect(result.requiresAssignment).toBe(true);
+    expect(result.message).toContain("needs a team member");
+    expect(hoisted.updateDealStage).not.toHaveBeenCalled();
+  });
+
+  it("returns requiresSchedule and a helpful message when moving deal with no scheduled date to Scheduled", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        assignedToId: "user_2",   // has assignee
+        contactId: "contact_1",
+        scheduledAt: null,         // but no date
+      },
+    ]);
+
+    const result = await runMoveDeal("ws_1", "Hot Water Fix", "scheduled");
+
+    expect(result.success).toBe(false);
+    expect(result.requiresSchedule).toBe(true);
+    expect(result.message).toContain("needs a scheduled date");
+    expect(hoisted.updateDealStage).not.toHaveBeenCalled();
   });
 
   it("adds a note to a deal by fuzzy title match", async () => {
@@ -253,6 +297,7 @@ describe("chat-actions", () => {
       value: 480,
       address: "12 Test St",
       scheduledAt: new Date("2026-04-05T01:30:00.000Z"),
+      assignedTo: { name: "Sam Chen" },
       contact: {
         name: "Alex Jones",
         phone: "0400000000",
@@ -281,6 +326,7 @@ describe("chat-actions", () => {
 
     expect(result).toContain("Job: Blocked Drain");
     expect(result).toContain("Stage: Scheduled");
+    expect(result).toContain("Assigned to: Sam Chen");
     expect(result).toContain("Latest invoice: INV-001 (DRAFT) $480");
     expect(result).toContain("Next steps:");
     expect(result).toContain("Recent notes:");
@@ -303,6 +349,7 @@ describe("chat-actions", () => {
       value: 650,
       address: "8 Harbour Road Manly",
       scheduledAt: null,
+      assignedTo: null,
       contact: {
         name: "Delta Cafe",
         phone: "0290011002",
@@ -387,7 +434,7 @@ describe("chat-actions", () => {
     const result = await runListIncompleteOrBlockedJobs("ws_1", { query: "ZZZ AUTO test" });
 
     expect(result).toBe(
-      'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (scheduled; Stale)',
+      'Jobs matching "ZZZ AUTO test" that still look incomplete or blocked:\n- ZZZ AUTO test Blocked Drain (Scheduled; Stale)',
     );
   });
 
@@ -571,5 +618,215 @@ describe("chat-actions", () => {
     hoisted.db.chatMessage.findMany.mockRejectedValue(new Error("db down"));
 
     await expect(getChatHistory("ws_1")).resolves.toEqual([]);
+  });
+
+  it("searchContacts includes email in output", async () => {
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "c1", name: "Alex Harper", company: null, phone: "0400000101", email: "alex@example.com" },
+      { id: "c2", name: "Delta Cafe", company: "Delta Cafe Group", phone: null, email: null },
+    ]);
+
+    const result = await runSearchContacts("ws_1", "alex");
+
+    expect(result).toContain("Alex Harper");
+    expect(result).toContain("Ph: 0400000101");
+    expect(result).toContain("Email: alex@example.com");
+    expect(result).toContain("Delta Cafe");
+    expect(result).not.toContain("Email: null");
+  });
+
+  it("getDealContext shows (unassigned) when no team member is assigned", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Gutter Repair", assignedToId: null, contactId: "contact_1" },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      title: "Gutter Repair",
+      stage: "NEW",
+      value: 650,
+      address: null,
+      scheduledAt: null,
+      assignedTo: null,
+      contact: { name: "Delta Cafe", phone: null, email: null, company: null, address: null },
+      invoices: [],
+    });
+    hoisted.db.activity.findMany.mockResolvedValue([]);
+
+    const result = await runGetDealContext("ws_1", { dealTitle: "Gutter Repair" });
+
+    expect(result).toContain("Assigned to: (unassigned)");
+  });
+
+  it("createTask resolves dealTitle to dealId and links the task", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_99", title: "Hot Water Service", assignedToId: null, contactId: "contact_1" },
+    ]);
+    hoisted.searchContacts.mockResolvedValue([]);
+    hoisted.createTask.mockResolvedValue({ success: true, taskId: "task_1" });
+
+    const result = await runCreateTask("ws_1", {
+      title: "Follow up about access",
+      dueAtISO: "2026-04-07T09:00:00.000Z",
+      dealTitle: "Hot Water Service",
+    });
+
+    expect(hoisted.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Follow up about access", dealId: "deal_99" })
+    );
+    expect(result).toContain("Task created:");
+    expect(result).toContain("Follow up about access");
+    expect(result).toContain("linked to job");
+  });
+
+  it("createTask resolves contactName to contactId and links the task", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: null, company: null },
+    ]);
+    hoisted.createTask.mockResolvedValue({ success: true, taskId: "task_2" });
+
+    const result = await runCreateTask("ws_1", {
+      title: "Call Alex about quote",
+      dueAtISO: "2026-04-08T08:00:00.000Z",
+      contactName: "Alex Harper",
+    });
+
+    expect(hoisted.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Call Alex about quote", contactId: "contact_42" })
+    );
+    expect(result).toContain("linked to contact");
+  });
+
+  it("createTask works without dealTitle or contactName (standalone task)", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts.mockResolvedValue([]);
+    hoisted.createTask.mockResolvedValue({ success: true, taskId: "task_3" });
+
+    const result = await runCreateTask("ws_1", {
+      title: "Order supplies",
+      dueAtISO: "2026-04-09T09:00:00.000Z",
+    });
+
+    expect(hoisted.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Order supplies", dealId: undefined, contactId: undefined })
+    );
+    expect(result).toContain("Task created:");
+    expect(result).not.toContain("linked to");
+  });
+
+  it("unassignDeal resolves by dealTitle and removes assignee", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Hot Water Service", assignedToId: "user_2", contactId: "contact_1" },
+    ]);
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      title: "Hot Water Service",
+      assignedToId: "user_2",
+      contactId: "contact_1",
+    });
+    hoisted.updateDealAssignedTo.mockResolvedValue({ success: true });
+    hoisted.logActivity.mockResolvedValue({});
+
+    const result = await runUnassignDeal("ws_1", { dealTitle: "Hot Water Service" });
+
+    expect(hoisted.updateDealAssignedTo).toHaveBeenCalledWith("deal_1", null);
+    expect(result).toContain("Unassigned");
+    expect(result).toContain("Hot Water Service");
+  });
+
+  it("unassignDeal returns helpful message when deal is not currently assigned", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Gutter Repair", assignedToId: null, contactId: "contact_1" },
+    ]);
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      title: "Gutter Repair",
+      assignedToId: null,
+      contactId: "contact_1",
+    });
+
+    const result = await runUnassignDeal("ws_1", { dealTitle: "Gutter Repair" });
+
+    expect(hoisted.updateDealAssignedTo).not.toHaveBeenCalled();
+    expect(result).toContain("not currently assigned");
+  });
+
+  it("restoreDeal resolves by dealTitle and restores to previous stage", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Blocked Drain", assignedToId: null, contactId: "contact_1" },
+    ]);
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      title: "Blocked Drain",
+      stage: "DELETED",
+      metadata: { previousStage: "PIPELINE" },  // PIPELINE → quote_sent in PRISMA_STAGE_TO_CHAT_STAGE
+      contactId: "contact_1",
+    });
+    hoisted.updateDealStage.mockResolvedValue({ success: true });
+    hoisted.logActivity.mockResolvedValue({});
+
+    const result = await runRestoreDeal("ws_1", { dealTitle: "Blocked Drain" });
+
+    expect(hoisted.updateDealStage).toHaveBeenCalledWith("deal_1", "quote_sent");
+    expect(result).toContain("Restored");
+    expect(result).toContain("Blocked Drain");
+  });
+
+  it("listDeals includes contactName in each deal entry", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        stage: "new_request",
+        value: 420,
+        contactName: "Alex Harper",
+      },
+      {
+        id: "deal_2",
+        title: "Office Fitout",
+        stage: "quote_sent",
+        value: 2400,
+        contactName: "Charlie Dental",
+      },
+    ]);
+
+    const result = await runListDeals("ws_1");
+
+    expect(result.deals).toHaveLength(2);
+    expect(result.deals[0]).toMatchObject({
+      title: "Blocked Drain",
+      contactName: "Alex Harper",
+      stage: expect.any(String),
+    });
+    expect(result.deals[1]).toMatchObject({
+      title: "Office Fitout",
+      contactName: "Charlie Dental",
+    });
+  });
+
+  it("undoLastAction detects stage moves by activity title not description field", async () => {
+    hoisted.db.activity.findFirst.mockResolvedValue({
+      id: "activity_1",
+      title: "Moved to Quote sent",
+      description: "— Sam",   // actor stored in description, NOT the action keyword
+      content: "Stage changed to Quote sent.",
+      deal: {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        metadata: { previousStage: "NEW" },
+      },
+    });
+    hoisted.db.deal.update.mockResolvedValue({});
+    hoisted.db.activity.delete.mockResolvedValue({});
+
+    const result = await runUndoLastAction("ws_1");
+
+    expect(result).toContain("Undone");
+    expect(result).toContain("Hot Water Fix");
+    expect(result).toContain("New request");  // user-facing label for NEW
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
+      where: { id: "deal_1" },
+      data: { stage: "NEW" },
+    });
   });
 });

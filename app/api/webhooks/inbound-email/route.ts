@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
+import { triageIncomingLead } from "@/lib/ai/triage";
 import * as Sentry from "@sentry/nextjs";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
@@ -389,9 +390,27 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Run triage to check service area and negative scope rules
+      const triage = await triageIncomingLead(workspace!.id, {
+        title: deal.title,
+        description: textBody.substring(0, 500),
+      }).catch(() => null);
+
+      if (triage && (triage.recommendation === "HOLD_REVIEW" || triage.flags.length > 0)) {
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "Triage flags",
+            content: triage.flags.join("; "),
+            contactId: contact.id,
+            dealId: deal.id,
+          },
+        }).catch(() => {});
+      }
+
       const urgentLead = isUrgentLead(subject, textBody);
       const withinCallWindow = isWithinAllowedCallWindow(workspace!.settings);
-      const blockAutoCall = urgentLead || !withinCallWindow;
+      const blockAutoCall = urgentLead || !withinCallWindow || (triage?.recommendation === "HOLD_REVIEW");
       const blockReason = urgentLead
         ? "urgent"
         : !withinCallWindow
@@ -403,13 +422,17 @@ export async function POST(req: NextRequest) {
       const callTriggered = false;
 
       if (workspace!.ownerId && blockAutoCall) {
+        const triageTitle = triage?.recommendation === "HOLD_REVIEW" && triage.flags.length > 0
+          ? "Lead flagged for review"
+          : urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up";
+        const triageDetail = triage?.flags.length ? ` Flags: ${triage.flags.join("; ")}.` : "";
         await db.notification.create({
           data: {
             userId: workspace!.ownerId,
-            title: urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up",
-            message: `${leadName} from ${platform}. Review details and contact the lead directly.`,
-            type: "INFO",
-            link: `/crm/inbox?contact=${contact.id}`,
+            title: triageTitle,
+            message: `${leadName} from ${platform}. Review details and contact the lead directly.${triageDetail}`,
+            type: triage?.recommendation === "HOLD_REVIEW" ? "WARNING" : "INFO",
+            link: `/crm/deals/${deal.id}`,
           },
         }).catch(() => {});
 

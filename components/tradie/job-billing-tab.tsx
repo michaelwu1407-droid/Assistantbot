@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
     Plus, FileText, CreditCard, Loader2, RefreshCw, Send, Ban,
@@ -232,6 +233,9 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Invoice
                     </Button>
+                    <p className="text-xs text-slate-400 text-center">
+                        Creates a draft — click <strong>Issue</strong> on the invoice below to send it to the client.
+                    </p>
                 </CardContent>
             </Card>
 
@@ -277,9 +281,9 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-500">
-                                            {new Date(inv.createdAt).toLocaleDateString()}
-                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString()}`}
-                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString()}`}
+                                            {new Date(inv.createdAt).toLocaleDateString("en-AU")}
+                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString("en-AU")}`}
+                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString("en-AU")}`}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">

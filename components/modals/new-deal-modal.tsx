@@ -111,6 +111,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
             toast.error("Assign a team member when creating a job in Scheduled stage.")
             return
         }
+        if (stage === "scheduled" && !scheduledAt) {
+            toast.error("Set a scheduled date when creating a job in Scheduled stage.")
+            return
+        }
         if (mode === "create") {
             if (!newContactName) return
             // Require at least email or phone

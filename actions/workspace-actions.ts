@@ -1,6 +1,7 @@
 "use server";
 
 import { cache } from "react";
+import { revalidatePath } from "next/cache";
 import { Prisma, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logging";
@@ -423,6 +424,8 @@ export async function updateWorkspace(
     });
   }
 
+  revalidatePath("/crm/settings");
+  revalidatePath("/crm/settings/my-business");
   return { success: true };
 }
 

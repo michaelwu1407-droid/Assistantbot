@@ -119,7 +119,7 @@ export async function executeKanbanAction(
 
         await logActivity({
           type: "CALL",
-          title: `Call scheduled for ${callDate.toLocaleDateString()}`,
+          title: `Call scheduled for ${callDate.toLocaleDateString("en-AU")}`,
           content: data.message || `Follow-up call with ${deal.contact?.name || "contact"}`,
           dealId: data.dealId,
           contactId: deal.contact?.id,
@@ -130,7 +130,7 @@ export async function executeKanbanAction(
           await createNotification({
             userId: user.id,
             title: "Call Scheduled",
-            message: `${deal.title}: call on ${callDate.toLocaleDateString()}`,
+            message: `${deal.title}: call on ${callDate.toLocaleDateString("en-AU")}`,
             type: "SYSTEM",
             link: `/crm?dealId=${data.dealId}`,
           });

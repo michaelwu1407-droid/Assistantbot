@@ -141,7 +141,7 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
                 )}
 
                 {/* Timestamp */}
-                <p className="text-[11px] text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</p>
+                <p className="text-[11px] text-muted-foreground">{new Date(item.createdAt).toLocaleDateString("en-AU")}</p>
             </CardContent>
         </Card>
     );

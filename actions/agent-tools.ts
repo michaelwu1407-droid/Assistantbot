@@ -3,6 +3,16 @@
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
+import { getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+
+const AGENT_STAGE_LABELS: Record<string, string> = {
+  NEW: "New request", CONTACTED: "Quote sent", NEGOTIATION: "Scheduled",
+  PIPELINE: "Quote sent", SCHEDULED: "Scheduled", INVOICED: "Awaiting payment",
+  PENDING_COMPLETION: "Pending approval", WON: "Completed", LOST: "Lost",
+  new_request: "New request", quote_sent: "Quote sent", scheduled: "Scheduled",
+  ready_to_invoice: "Awaiting payment", pending_approval: "Pending approval",
+  completed: "Completed", lost: "Lost",
+};
 
 /**
  * Tool: get_schedule
@@ -98,7 +108,7 @@ export async function runSearchJobHistory(
       clientName: j.contact?.name || "Unknown",
       address: j.address,
       scheduledAt: j.scheduledAt?.toISOString() || null,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       jobStatus: j.jobStatus,
       value: j.value ? Number(j.value) : 0,
       createdAt: j.createdAt.toISOString(),
@@ -152,7 +162,7 @@ export async function runGetFinancialReport(
       ? Number(aggregate._sum.invoicedAmount)
       : 0,
     breakdown: byStage.map((s) => ({
-      stage: s.stage,
+      stage: AGENT_STAGE_LABELS[s.stage] ?? AGENT_STAGE_LABELS[String(s.stage).toUpperCase()] ?? s.stage,
       count: s._count,
       value: s._sum.value ? Number(s._sum.value) : 0,
     })),
@@ -261,7 +271,7 @@ export async function runGetClientContext(
     })),
     recentJobs: jobs.map((j) => ({
       title: j.title,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       scheduledAt: j.scheduledAt?.toISOString() || null,
       value: j.value ? Number(j.value) : 0,
     })),
@@ -273,17 +283,20 @@ export async function runGetClientContext(
  * Quick snapshot of today's scheduled jobs, overdue tasks, and unread messages.
  */
 export async function runGetTodaySummary(
-  workspaceId: string
+  workspaceId: string,
+  workspaceTimezone?: string,
 ): Promise<{
   todayJobs: { title: string; clientName: string; scheduledAt: string; address: string | null; phone: string | null; assignedTo: string | null; preparations: string[] }[];
   overdueTasks: { title: string; dueAt: string }[];
   recentMessages: number;
   preparationAlerts: string[];
 }> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const tz = resolveWorkspaceTimezone(workspaceTimezone);
+  const now = new Date();
+  const parts = getZonedDateParts(now, tz);
+  const todayDateStr = `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+  const todayStart = parseDateTimeLocalInTimezone(`${todayDateStr}T00:00`, tz) ?? (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const todayJobs = await db.deal.findMany({
     where: {
@@ -389,11 +402,14 @@ export async function runGetAvailability(
   scheduledJobs: { title: string; startTime: string; clientName: string }[];
   availableSlots: string[];
 }> {
+  const tz = resolveWorkspaceTimezone(params.workspaceTimezone);
   const targetDate = new Date(params.date);
-  const dayStart = new Date(targetDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(targetDate);
-  dayEnd.setHours(23, 59, 59, 999);
+  // Compute day boundaries in the workspace timezone so that "today" means the
+  // correct calendar day for the workspace, not the UTC server's local midnight.
+  const targetParts = getZonedDateParts(targetDate, tz);
+  const targetDateStr = `${String(targetParts.year).padStart(4, "0")}-${String(targetParts.month).padStart(2, "0")}-${String(targetParts.day).padStart(2, "0")}`;
+  const dayStart = parseDateTimeLocalInTimezone(`${targetDateStr}T00:00`, tz) ?? (() => { const d = new Date(targetDate); d.setHours(0, 0, 0, 0); return d; })();
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const jobs = await db.deal.findMany({
     where: {
@@ -424,11 +440,11 @@ export async function runGetAvailability(
   const [startH, startM] = whStart.split(":").map(Number);
   const [endH] = whEnd.split(":").map(Number);
 
-  // Generate 1-hour slots
+  // Compute booked hours in workspace timezone so slot generation is timezone-aware.
   const bookedHours = new Set(
     [
-      ...jobs.map((j) => j.scheduledAt ? new Date(j.scheduledAt).getHours() : -1),
-      ...calendarEvents.map((event) => new Date(event.start).getHours()),
+      ...jobs.map((j) => j.scheduledAt ? getHourInTimezone(j.scheduledAt, tz) : -1),
+      ...calendarEvents.map((event) => getHourInTimezone(new Date(event.start), tz)),
     ].filter((h) => h >= 0)
   );
 

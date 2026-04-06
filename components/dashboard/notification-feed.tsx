@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Bell, X, Sparkles } from "lucide-react"
+import { Bell, X, Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react"
+import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -97,18 +98,45 @@ export function NotificationFeed() {
                         </div>
                     ) : (
                         <div className="divide-y">
-                            {notifications.map((notification) => (
-                                <div
-                                    key={notification.id}
-                                    className={cn(
-                                        "p-4 hover:bg-muted/50 transition-colors relative group",
+                            {notifications.map((notification) => {
+                              const Wrapper = notification.link
+                                ? ({ children }: { children: React.ReactNode }) => (
+                                    <Link
+                                      href={notification.link!}
+                                      onClick={() => { if (!notification.read) markAsRead(notification.id) }}
+                                      className={cn(
+                                        "block p-4 hover:bg-muted/50 transition-colors relative group",
                                         !notification.read && "bg-muted/30"
-                                    )}
-                                >
+                                      )}
+                                    >
+                                      {children}
+                                    </Link>
+                                  )
+                                : ({ children }: { children: React.ReactNode }) => (
+                                    <div className={cn(
+                                      "p-4 hover:bg-muted/50 transition-colors relative group",
+                                      !notification.read && "bg-muted/30"
+                                    )}>
+                                      {children}
+                                    </div>
+                                  );
+                              return (
+                                <div key={notification.id}>
+                                  <Wrapper>
                                     <div className="flex justify-between items-start gap-3">
-                                        <div className={cn("mt-1 shrink-0", !notification.read ? "text-primary" : "text-muted-foreground opacity-50")}>
+                                        <div className={cn("mt-1 shrink-0",
+                                          notification.type === "WARNING" || notification.type === "ERROR"
+                                            ? (notification.read ? "text-amber-400 opacity-50" : "text-amber-500")
+                                            : notification.type === "SUCCESS"
+                                              ? (notification.read ? "text-emerald-400 opacity-50" : "text-emerald-500")
+                                              : !notification.read ? "text-primary" : "text-muted-foreground opacity-50"
+                                        )}>
                                             {notification.type === "AI" || notification.type === "SYSTEM" ? (
                                                 <Sparkles className="w-4 h-4" />
+                                            ) : notification.type === "WARNING" || notification.type === "ERROR" ? (
+                                                <AlertTriangle className="w-4 h-4" />
+                                            ) : notification.type === "SUCCESS" ? (
+                                                <CheckCircle2 className="w-4 h-4" />
                                             ) : (
                                                 <Bell className="w-4 h-4" />
                                             )}
@@ -134,8 +162,10 @@ export function NotificationFeed() {
                                     >
                                         <X className="w-3 h-3" />
                                     </button>
+                                  </Wrapper>
                                 </div>
-                            ))}
+                              );
+                            })}
                         </div>
                     )}
                 </ScrollArea>

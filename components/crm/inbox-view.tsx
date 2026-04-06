@@ -96,8 +96,29 @@ type MessageMode = "tracey" | "direct"
 type DateFilter = "latest" | "oldest" | "custom"
 
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
-  const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way", "deal created"]
-  return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
+  const sysPatterns = [
+    // stage / status
+    "moved to", "stage changed", "status updated",
+    // deal lifecycle
+    "deal created", "created deal", "deal updated", "deal restored", "deal escalated",
+    // assignee / scheduling
+    "assigned team member", "job rescheduled", "reassigned",
+    // approval / completion workflow
+    "completion approved", "completion rejected", "completion request", "draft approved", "draft rejected",
+    // invoicing
+    "invoice issued", "invoice paid", "invoice updated", "invoice voided", "invoice emailed", "draft invoice",
+    // ai / safety
+    "safety check", "ai note", "ai learning",
+    // sent comms (outbound automations)
+    "sent job complete", "sent on my way", "confirmation sms", "booking reminder", "feedback request",
+    // portal
+    "job portal",
+    // notes
+    "contact note",
+    // post-job
+    "post-job follow-up",
+  ]
+  return sysPatterns.some(p => a.title?.toLowerCase().includes(p))
 }
 
 /** Most recent activity first (for list row + preview). */
@@ -721,20 +742,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <button
                     type="button"
                     role="tab"
-                    aria-selected={messageMode === "tracey"}
-                    id="inbox-tab-tracey"
-                    onClick={() => setMessageMode("tracey")}
-                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    Ask Tracey
-                    <span className="sr-only">. AI assistant uses your workspace number.</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
                     aria-selected={messageMode === "direct"}
                     id="inbox-tab-direct-sms"
                     onClick={() => setMessageMode("direct")}
@@ -745,6 +752,20 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     Direct SMS
                     <span className="sr-only">. You send; not the AI.</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageMode === "tracey"}
+                    id="inbox-tab-tracey"
+                    onClick={() => setMessageMode("tracey")}
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                      messageMode === "tracey" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Ask Tracey
+                    <span className="sr-only">. AI assistant uses your workspace number.</span>
                   </button>
                 </div>
 

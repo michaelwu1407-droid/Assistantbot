@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { runIdempotent } from "@/lib/idempotency";
+import { revalidatePath } from "next/cache";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -341,6 +342,9 @@ export async function logActivity(
     return { success: false, error: "Idempotent activity logging returned no result" };
   }
 
+  if (parsed.data.dealId) revalidatePath(`/crm/deals/${parsed.data.dealId}`);
+  if (parsed.data.contactId) revalidatePath(`/crm/contacts/${parsed.data.contactId}`);
+
   return { success: true, activityId: res.result.activityId };
 }
 
@@ -454,6 +458,9 @@ export async function appendTicketNote(ticketId: string, noteContent: string) {
       contactId: ticket.contactId ?? undefined,
     },
   });
+
+  revalidatePath(`/crm/deals/${ticket.id}`);
+  if (ticket.contactId) revalidatePath(`/crm/contacts/${ticket.contactId}`);
 
   return `Note added to ticket #${ticket.id}.`;
 }

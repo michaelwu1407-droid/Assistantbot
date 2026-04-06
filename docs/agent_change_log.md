@@ -1,3 +1,151 @@
+## 2026-04-06 Session 3 (Claude) - Tool output formatting and multi-step CRM accuracy
+
+- Files changed:
+  - `actions/chat-actions.ts` (runMoveDeal requiresSchedule guard; update message detail)
+  - `lib/ai/tools.ts` (getClientContext, getTodaySummary, searchJobHistory, getFinancialReport format as strings)
+  - `lib/ai/pre-classifier.ts` (filtered stale query routing; stale-with-filter uses listIncompleteOrBlockedJobs)
+  - `__tests__/chat-actions.test.ts` (requiresSchedule test; updated happy-path mock)
+- Summary:
+  - **runMoveDeal requiresSchedule guard**: Pre-check for missing scheduledAt returns `requiresSchedule:true` with a targeted message ("needs a scheduled date — what date and time?"), parallel to the existing `requiresAssignment:true` guard. Tool description updated with retry hint; updateDealFields description says to retry moveDeal after setting schedule.
+  - **Tool output formatting sweep**: getClientContext, getTodaySummary, searchJobHistory, getFinancialReport now all format their results as readable strings at the tool boundary rather than returning raw JSON structs. This eliminates a whole class of LLM formatting errors and makes Tracey's output consistent regardless of which tool call path is taken.
+  - **Filtered stale query routing**: Pre-classifier now distinguishes "which ZZZ AUTO jobs look stale?" (filter query → listIncompleteOrBlockedJobs) from "which jobs need attention?" (workspace-wide → getAttentionRequired). getAttentionRequired has no filter; using it for filtered queries returned unrelated results.
+  - **Tests**: 642/642 unit tests pass.
+- Why: Continuing systematic quality improvement so every tool call returns the right data in the right format for Tracey to present accurately.
+
+## 2026-04-06 Session 2 (Claude) - Tracey tool completeness and pre-classifier routing
+
+- Files changed:
+  - `actions/chat-actions.ts` (getDealContext assignee; createTask name resolution; unassign/restore by title; listDeals contactName; update messages; awaiting_payment alias; dead code removal)
+  - `lib/ai/tools.ts` (createTask schema adds dealTitle/contactName; unassignDeal/restoreDeal accept dealTitle)
+  - `lib/ai/pre-classifier.ts` (conversation history and job history patterns; searchJobHistory and getConversationHistory suggestions; unassignDeal/restoreDeal in crm_action tools)
+  - `app/api/chat/route.ts` (extractLikelyDealQuery patterns for stage lookup, recent notes, important facts; createTask workspaceId fix)
+  - `__tests__/chat-actions.test.ts` (8 new tests; 2 updated with assignedTo)
+  - `__tests__/pre-classifier.test.ts` (4 new tests for new routing cases)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Tool completeness**: `getDealContext` now returns assigned team member ("Assigned to: Sam" / "(unassigned)"); `createTask` resolves `dealTitle` and `contactName` to IDs and passes `workspaceId`; `unassignDeal` and `restoreDeal` now accept `dealTitle` for one-step use; `listDeals` now includes `contactName`; update success messages list field→value changes.
+  - **Pre-classifier routing fixes**: "conversation history" queries now route to `contact_lookup` with `getConversationHistory` suggested; "past job history" queries route to `reporting` with `searchJobHistory` first; `unassignDeal`/`restoreDeal` added to `crm_action` suggested tools; job history pattern added to `REPORTING_PATTERNS` so it outscores `contact_lookup`.
+  - **Entity pre-resolution**: `extractLikelyDealQuery` extended with patterns for stage lookups, recent notes, and "most important facts" queries — pre-loads the matching deal into LIKELY CRM TARGETS.
+  - **Stage alias**: "awaiting payment" → `ready_to_invoice` added to `STAGE_ALIASES`; dead `awaiting_payment` case removed from `getDealNextStepGuidance`.
+  - **Tests**: 641/641 unit tests pass; 12 new/updated tests.
+- Why: Continued systematic improvement of Tracey's tool output quality and pre-classifier routing accuracy so common CRM questions can be answered in fewer tool round-trips.
+
+## 2026-04-06 (Claude) - Tracey accuracy, observability, and booking confirmation
+
+- Files changed:
+  - `actions/agent-tools.ts` (stage labels in financial report breakdown)
+  - `lib/messaging/send-notification.ts` (webhookEvent logging for reminders/emails)
+  - `app/api/webhooks/whatsapp/route.ts` (webhookEvent for WhatsApp inbound/outbound)
+  - `actions/chat-actions.ts` (getAttentionRequired stage label; searchContacts email; undo fix)
+  - `actions/deal-actions.ts` (no change — reverted erroneous check)
+  - `lib/ai/tools.ts` (moveDeal description; updateDealFields stage routing)
+  - `app/api/twilio/webhook/route.ts` (CONFIRM fast-path for customer SMS)
+  - `__tests__/whatsapp-route.test.ts` (webhookEvent mock)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Stage language sweep (final)**: `runGetFinancialReport` breakdown now maps through `AGENT_STAGE_LABELS`. All tool output paths (Tracey agent + chat tools + search + financial report) use user-facing labels.
+  - **Observability completeness**: `send-notification.ts` now logs Twilio SMS and Resend email sends to `webhookEvent` on success and failure. WhatsApp inbound messages and outbound AI replies now log to `webhookEvent`. Admin ops diagnostics dashboard now covers all provider delivery paths.
+  - **Tracey multi-step accuracy**:
+    - `moveDeal` tool description now explicitly states both requirements for Scheduled stage (assignee + date)
+    - `updateDealFields` description steers Tracey to prefer `moveDeal` for stage changes
+    - `runGetAttentionRequired` now includes stage label per deal (e.g. `[Scheduled] — Stale`)
+    - `runUndoLastAction` fixed to check `title` field (not `description` which stores actor) for action detection; restored stage label is now user-facing
+    - `runSearchContacts` now includes email in output
+  - **Customer booking confirmation fast-path**: Twilio inbound SMS webhook now detects "CONFIRM/YES/OK" replies, finds the most recent pending-confirmation deal for that contact, updates `confirmationStatus` to "confirmed", and logs an activity — before passing to AI for reply generation.
+- Why: Continued systematic improvement of Tracey's tool output accuracy, ops dashboard visibility for all delivery channels, and the customer-facing booking confirmation flow.
+
+## 2026-04-05 (Claude) - CRM polish: locale dates, revalidation sweep, activity feed refresh
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `components/jobs/job-detail-view.tsx`
+  - `components/crm/contact-profile.tsx`
+  - `components/crm/feedback-widget.tsx`
+  - `components/crm/kanban-automation-modal.tsx`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `actions/contact-actions.ts` (deleteContact revalidatePath)
+  - `actions/tradie-actions.ts` (updateJobSchedule, updateJobStatus, completeJob, createQuoteVariation)
+  - `app/crm/deals/[id]/page.tsx` (pre-fetch initialActivities)
+  - `components/chatbot/chat-interface.tsx` (router.refresh on Tracey finish)
+- Summary:
+  - **Locale-less date formatting sweep**: `toLocaleDateString()` without a locale argument produces US-format dates (M/D/YYYY) on Linux CI instead of Australian DD/MM/YYYY. Fixed across all six remaining call sites by specifying `"en-AU"`. Eliminates any locale-sensitive test assertions in these components.
+  - **`deleteContact` revalidation**: `deleteContact` (singular) was missing `revalidatePath("/crm/contacts")` even though the bulk version had it. Contacts list now updates immediately after a single deletion.
+  - **Tradie job status/schedule revalidation**: `updateJobSchedule`, `updateJobStatus`, and `completeJob` only revalidated tradie-specific routes. Completing or rescheduling a job from the field left `/crm/dashboard`, `/crm/deals`, and the individual deal page stale — the root of the "cross-page schedule time mismatch" complaint. All three functions now call the full set of revalidation paths.
+  - **`createQuoteVariation` revalidation**: Adding a variation to a job was not calling `revalidateInvoiceSurfaces`, so the billing tab remained stale after a variation was added. Now consistent with `generateQuote`.
+  - **Activity feed refresh after Tracey responds**: `ActivityFeed` on the deal page was a client component that fetched its own data on mount and never re-fetched. After Tracey performed a mutation, the feed stayed stale. Fixed by: (1) pre-fetching `initialActivities` server-side and passing as `initialData` so `router.refresh()` propagates fresh data, and (2) calling `router.refresh()` in `chat-interface` `onFinish` so any CRM mutation Tracey performed is reflected in server components immediately after her response.
+- Why:
+  - Locale-less dates were causing cross-environment test failures. The revalidation gaps were silent live bugs causing data staleness across the CRM after field operations. The activity feed fix closes the loop on "notes don't appear after Tracey writes them".
+
+## 2026-04-05 (Claude) - CRM polish: revalidation gaps + global search click fix
+
+- Files changed:
+  - `actions/activity-actions.ts`
+  - `actions/contact-actions.ts`
+  - `components/layout/global-search.tsx`
+- Summary:
+  - **`logActivity` and `appendTicketNote` revalidation**: Both functions now call `revalidatePath` for the relevant deal and/or contact page after writing an activity record. Previously, notes logged via Tracey or the UI would not appear on the deal/contact detail page until a hard browser refresh because the server component's cache was never invalidated.
+  - **`deleteContacts` revalidation**: Added `revalidatePath("/crm/contacts")` after bulk delete so the contacts list updates immediately without a hard refresh.
+  - **Global search contacts mouse-click**: The `contacts` `CommandItem` was missing an `onClick` handler while all other result types (deals, tasks, activity, calls) had both `onSelect` and `onClick`. The cmdk library does not always fire `onSelect` on mouse click. Fixed by adding `onClick={() => goTo(contact.url)}` and switching `onSelect` to use `goTo` for consistency.
+- Why:
+  - Activity revalidation is foundational — without it, every note Tracey saves appears to users as a no-op until they hard-refresh. The contacts delete no-op was flagged in live auditing. The global search click fix ensures contacts are navigable by mouse (keyboard-only was working via cmdk `onSelect`; mouse clicks were silently dropped).
+
+## 2026-04-05 (Claude) - Fix flaky tests + deal revalidation gaps + Tracey contextual quick actions
+
+- Files changed:
+  - `__tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `__tests__/lead-to-deal-flow.test.ts`
+  - `actions/deal-actions.ts`
+  - `actions/kanban-automation-actions.ts`
+  - `components/chatbot/chat-interface.tsx`
+- Summary:
+  - **`chat-agent-crm-mutation-flow.test.ts`**: The `preClassify` mock used `intent: "job_management"` which is not a valid `IntentHint`. `buildWorkspaceContextBlocks` has no key for it and throws `"intentBlocks[classification.intent] is not iterable"`, causing the route to return 500. Fixed by using `"crm_action"` in both the mock and the assertion.
+  - **`lead-to-deal-flow.test.ts`**: The test imports `createDeal` from `deal-actions.ts` which now calls `revalidatePath`. Missing `vi.mock("next/cache", ...)` caused "Invariant: static generation store missing" at runtime. Fixed by adding the mock.
+  - **`kanban-automation-actions.ts`**: `toLocaleDateString()` without a locale argument produces locale-dependent output (`"4/5/2026"` on this Linux CI box vs the expected `"05/04/2026"` Australian format). Fixed by specifying `"en-AU"` locale in both call sites.
+  - **`deal-actions.ts` revalidation gaps**: `approveDraft` and `rejectDraft` were missing `revalidatePath(\`/crm/deals/${dealId}\`)`. After either action, the deal detail page would still show the old draft state until a hard refresh. Fixed consistently with `approveCompletion`/`rejectCompletion`.
+  - **`chat-interface.tsx` contextual quick actions**: Quick actions like "Create quote" previously sent bare prompts ("Create a quote for this deal") with no deal ID, so Tracey had no context. Fixed by extracting deal/contact IDs from the URL pathname and embedding them directly in the prompt strings.
+- Why:
+  - The pre-existing test failures blocked clean CI. The revalidation gaps were silent trust bugs affecting live deal detail pages after draft approval/rejection. The Tracey quick action context fix ensures prompts carry enough info for the LLM to act without needing a second round-trip.
+
+## 2026-04-05 (Claude) - CRM polish: analytics labels, contact notes revalidation, updateContact revalidation
+
+- Files changed:
+  - `actions/analytics-actions.ts`
+  - `actions/contact-actions.ts`
+  - `__tests__/contact-actions.test.ts`
+- Summary:
+  - **Analytics stage labels**: `NEGOTIATION` was labelled `"Negotiation"` and `PIPELINE` as `"Pipeline"` and `INVOICED` as `"Ready to invoice"` in the analytics stage-breakdown chart. All three are now aligned with the user-facing labels used across the rest of the app: `"Scheduled"`, `"Quote sent"`, and `"Awaiting payment"` respectively.
+  - **Contact notes revalidation**: `updateContactMetadata` now calls `revalidatePath` for the contact detail page after saving notes. Previously, saved notes would not appear when revisiting the contact page without a hard browser refresh, because the server component's cached render was not invalidated.
+  - **updateContact revalidation**: `updateContact` now revalidates the contact detail page and the contacts list after a successful edit. This ensures the contacts list and detail page reflect edits immediately on re-navigation.
+  - Added `next/cache` mock to `contact-actions.test.ts` so `revalidatePath` calls don't throw in the test environment.
+- Why:
+  - Analytics showing different stage names from the rest of the CRM made it harder to correlate numbers. Contact notes not persisting visually after save was a direct usability regression. The revalidation gaps were silent trust bugs.
+
+## 2026-04-05 (Claude) - Live CRM workflow polish: inbox classification + contacts count trust
+
+- Files changed:
+  - `components/crm/inbox-view.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - **Inbox `isSystemEvent` fix**: the previous pattern list only matched 8 narrow titles, causing activities like `"Assigned team member updated"`, `"Deal updated"`, `"Stage updated"`, `"Job rescheduled"`, invoice operations, portal views, and other CRM system events to show up in the **Conversations** tab instead of **System Activity**. Expanded the pattern set to cover all known system activity title prefixes. Now only genuine customer-facing communications (inbound/outbound SMS, email, calls) show in Conversations.
+  - **Contacts list count trust fix (high-trust bug)**: the stage filter silently excluded contacts in three ways — contacts with no primary deal at all (`primaryDealStageKey = null`), contacts whose primary deal was LOST (`columnId = "lost"` was not in the initial stage set), and contacts in `PENDING_COMPLETION` (unmapped, returned null). This caused the footer to say `"Showing 8 of 8 contacts"` while only 4 rows were visible, with no indication that filtering was active. Fixes: (1) Added "Lost" to `KANBAN_STAGES` so lost contacts are visible and filterable. (2) Mapped `PENDING_COMPLETION → completed` and `ARCHIVED → deleted` in `prismaStageToColumnId`. (3) Changed the filter logic so contacts with null/unmapped primary deal stage are always included, not silently dropped.
+- Why:
+  - The inbox classification made it impossible to distinguish customer conversations from internal CRM events. The contacts count mismatch was a high-trust product bug that made the CRM feel broken or untrustworthy when the list showed different numbers than the footer. Both are directly observable product-level failures in the live app.
+
+## 2026-04-05 (Claude) - Stale/flaky test reconciliation for upstream CRM batch
+
+- Files changed:
+  - `__tests__/team-page.test.tsx`
+  - `__tests__/new-deal-modal.test.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - Fixed `team-page.test.tsx`: the pending-invite "Open invite link" item is now rendered as a `<button>` using `window.open` (not an anchor link), so the test was updated from `getByRole("link")` to `getByRole("button")` and the `href` assertion removed.
+  - Fixed `contacts-client.tsx` header summary: without pagination the component showed `"Showing 3 of 0 contacts (page 1)"` which was incorrect. It now shows `"N contact(s)"` (singular/plural). When pagination is provided, the header no longer duplicates the summary text that the footer pagination section already renders, fixing the "Found multiple elements" test error.
+  - Fixed `new-deal-modal.test.tsx`: the assignee `<SelectItem>` now renders both name and email as separate spans, so the button accessible name includes the email suffix. Updated the click target to use a `/Jess Smith/i` regex match. Also updated the `scheduledAt` expectation to the correct UTC value (`2026-04-14T23:30:00.000Z`) after the workspace timezone anchoring fix interprets datetime-local input in `Australia/Sydney` (UTC+10).
+  - `contact-form.test.tsx` and `inbox-view.test.tsx` passed cleanly in isolation and in batch - treated as stable. No changes needed.
+  - Full targeted suite: 5 test files, 20 tests — all green. Original 10-file passing suite also re-verified: 76 tests still green.
+- Why:
+  - The previous upstream CRM batch improved real product behavior but left several tests stale against the new UI semantics. This pass reconciles those tests so the full targeted verification suite is green and the batch can be treated as fully signed off.
+
 ## 2026-04-05 03:25 (AEST) - Codex
 
 - Files changed:

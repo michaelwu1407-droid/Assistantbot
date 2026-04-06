@@ -91,8 +91,10 @@ describe("ScheduleCalendar", () => {
 
   it("shows the backend error instead of a false success when rescheduling fails", async () => {
     const user = userEvent.setup();
-    const scheduledAt = new Date();
-    scheduledAt.setHours(9, 0, 0, 0);
+    // Fixed reference: 2026-04-05T02:00:00Z = noon AEST (hour 12 in the day view).
+    // Using a fixed UTC timestamp avoids timezone-sensitive date-key mismatches between
+    // the deal's scheduledAt date key and the calendar's "current" day key.
+    const fixedUTC = new Date("2026-04-05T02:00:00.000Z");
     const dataTransfer = {
       store: new Map<string, string>(),
       setData(type: string, value: string) {
@@ -111,6 +113,7 @@ describe("ScheduleCalendar", () => {
     const { container } = render(
       <ScheduleCalendar
         workspaceTimezone="Australia/Sydney"
+        initialDate={fixedUTC}
         teamMembers={[{ id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" }]}
         deals={[
           {
@@ -119,7 +122,7 @@ describe("ScheduleCalendar", () => {
             address: "12 King St",
             contactName: "Alice",
             assignedToId: "user_1",
-            scheduledAt,
+            scheduledAt: fixedUTC,
           } as never,
         ]}
       />,
@@ -145,8 +148,8 @@ describe("ScheduleCalendar", () => {
 
   it("uses a single reschedule action when moving across team lanes", async () => {
     const user = userEvent.setup();
-    const scheduledAt = new Date();
-    scheduledAt.setHours(9, 0, 0, 0);
+    // Fixed reference: 2026-04-05T02:00:00Z = noon AEST (hour 12 in the day view).
+    const fixedUTC = new Date("2026-04-05T02:00:00.000Z");
     const dataTransfer = {
       store: new Map<string, string>(),
       setData(type: string, value: string) {
@@ -160,6 +163,7 @@ describe("ScheduleCalendar", () => {
     const { container } = render(
       <ScheduleCalendar
         workspaceTimezone="Australia/Sydney"
+        initialDate={fixedUTC}
         teamMembers={[
           { id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" },
           { id: "user_2", name: "Michael", email: "michael@example.com", role: "OWNER" },
@@ -171,7 +175,7 @@ describe("ScheduleCalendar", () => {
             address: "12 King St",
             contactName: "Alice",
             assignedToId: "user_1",
-            scheduledAt,
+            scheduledAt: fixedUTC,
           } as never,
         ]}
       />,

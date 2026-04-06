@@ -122,14 +122,42 @@ async function sendViaTwilio(
     const data = await res.json();
 
     if (!res.ok) {
-      return { success: false, error: data.message ?? "Twilio API error" };
+      const errMsg = data.message ?? "Twilio API error";
+      db.webhookEvent.create({
+        data: {
+          provider: "twilio",
+          eventType: `sms.${channel}`,
+          status: "error",
+          error: errMsg,
+          payload: { to: to.slice(0, 6) + "***", channel },
+        },
+      }).catch(() => {});
+      return { success: false, error: errMsg };
     }
 
+    db.webhookEvent.create({
+      data: {
+        provider: "twilio",
+        eventType: `sms.${channel}`,
+        status: "success",
+        payload: { sid: data.sid, channel },
+      },
+    }).catch(() => {});
     return { success: true, sid: data.sid };
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Network error";
+    db.webhookEvent.create({
+      data: {
+        provider: "twilio",
+        eventType: `sms.${channel}`,
+        status: "error",
+        error: errMsg,
+        payload: { channel },
+      },
+    }).catch(() => {});
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Network error",
+      error: errMsg,
     };
   }
 }

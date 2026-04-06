@@ -3,6 +3,7 @@
 import { db } from "@/lib/db"
 import { fuzzySearch, type SearchableItem } from "@/lib/search"
 import type { SearchResultItem } from "@/lib/search-types"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 type SearchCandidate = SearchableItem & {
   result: Omit<SearchResultItem, "score">
@@ -149,7 +150,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         id: deal.id,
         type: "deal",
         title: deal.title,
-        subtitle: `${deal.stage} • $${value.toLocaleString("en-AU")}`,
+        subtitle: `${getUserFacingDealStageLabel(deal.stage)} • $${value.toLocaleString("en-AU")}`,
         url: `/crm/deals/${deal.id}`,
       },
     })

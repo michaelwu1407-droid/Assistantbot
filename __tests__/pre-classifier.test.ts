@@ -59,4 +59,34 @@ describe("pre-classifier", () => {
     expect(result.suggestedTools[0]).toBe("getDealContext");
     expect(result.contextHints.join(" ")).toContain("explain what is still missing");
   });
+
+  it("routes conversation history queries to contact_lookup with getConversationHistory suggested", () => {
+    const result = preClassify("What conversation history do we have with Delta Cafe?");
+
+    expect(result.intent).toBe("contact_lookup");
+    expect(result.suggestedTools).toContain("getConversationHistory");
+    expect(result.contextHints.join(" ")).toContain("getConversationHistory");
+  });
+
+  it("routes job history search queries to reporting with searchJobHistory as first tool", () => {
+    const result = preClassify("Search past job history for Test Street.");
+
+    expect(result.intent).toBe("reporting");
+    expect(result.suggestedTools[0]).toBe("searchJobHistory");
+    expect(result.contextHints.join(" ")).toContain("searchJobHistory");
+  });
+
+  it("includes unassignDeal in crm_action suggested tools for unassign requests", () => {
+    const result = preClassify("Unassign Hot Water Service if it currently has an assignee.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools).toContain("unassignDeal");
+  });
+
+  it("includes restoreDeal in crm_action suggested tools for restore requests", () => {
+    const result = preClassify("Restore any deleted job if one exists.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools).toContain("restoreDeal");
+  });
 });

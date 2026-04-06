@@ -46,6 +46,10 @@ import {
     runUnassignDeal,
     runRestoreDeal,
     runAssignTeamMember,
+    runApproveDraft,
+    runApproveCompletion,
+    runRejectCompletion,
+    runRequestReview,
     handleSupportRequest,
     runAppendTicketNote,
     recordManualRevenue,
@@ -112,7 +116,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ query }) => runListIncompleteOrBlockedJobs(workspaceId, { query }),
         }),
         moveDeal: tool({
-            description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted).",
+            description: "Move a job to a different stage (completed, quoted, scheduled, in progress, new request, pipeline, ready to invoice, deleted). IMPORTANT: Moving to 'scheduled' requires (1) an assigned team member and (2) a scheduled date. If the assignee is missing the result has requiresAssignment:true; if the date is missing it has requiresSchedule:true. Surface these errors honestly and offer to set the missing field before retrying.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Name/title of the deal or job to move"),
                 newStage: z.string().describe("Target stage name"),
@@ -165,7 +169,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runCreateDeal(workspaceId, { title, company, value }),
         }),
         updateDealFields: tool({
-            description: "Update job/deal fields like title, value, address, schedule, or stage.",
+            description: "Update job/deal fields like title, value, address, or schedule. For stage changes, prefer moveDeal (it enforces all stage-transition rules). Only pass newStage here when updating it alongside other fields in a single operation. After setting a schedule here, if a previous moveDeal call failed with requiresSchedule:true, retry moveDeal immediately.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Current job/deal title"),
                 newTitle: z.string().optional().describe("New title"),
@@ -223,7 +227,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runProposeReschedule(workspaceId, { dealTitle, proposedSchedule }),
         }),
         updateInvoiceAmount: tool({
-            description: "Update the final invoiced amount for a job.",
+            description: "Update the tracked invoiced amount on a job/deal. Use this when the user says 'update the invoice amount to $X' or 'the final amount is $X'. To edit the actual invoice document (line items, number, date), use updateInvoiceFields instead.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title to invoice"),
                 amount: z.number().describe("Final invoiced amount"),
@@ -345,13 +349,15 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async (params) => runAddContactNote(workspaceId, params),
         }),
         createTask: tool({
-            description: "Create a reminder or to-do task.",
+            description: "Create a reminder or to-do task. Optionally link it to a job by dealTitle or a contact by contactName so it appears in the right CRM context.",
             inputSchema: z.object({
                 title: z.string().describe("Task title"),
                 dueAtISO: z.string().optional().describe("ISO due date. Default: tomorrow 9am."),
                 description: z.string().optional().describe("Extra details"),
+                dealTitle: z.string().optional().describe("Job/deal title to link this task to"),
+                contactName: z.string().optional().describe("Contact name to link this task to"),
             }),
-            execute: async (params) => runCreateTask(params),
+            execute: async (params) => runCreateTask(workspaceId, params),
         }),
         completeTask: tool({
             description: "Mark a task as complete by its title.",
@@ -470,27 +476,58 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             execute: async ({ dealId }) => runRevertDealStageMove(workspaceId, { dealId }),
         }),
         unassignDeal: tool({
-            description: "Remove the current team-member assignment from a specific deal by explicit deal ID.",
+            description: "Remove the current team-member assignment from a specific deal. Prefer dealTitle over dealId.",
             inputSchema: z.object({
-                dealId: z.string().describe("Deal ID"),
+                dealTitle: z.string().optional().describe("Job/deal title (fuzzy matched)"),
+                dealId: z.string().optional().describe("Deal ID (use only if you already have it)"),
             }),
-            execute: async ({ dealId }) => runUnassignDeal(workspaceId, { dealId }),
+            execute: async (params) => runUnassignDeal(workspaceId, params),
         }),
         restoreDeal: tool({
-            description: "Restore a deal from lost, deleted, or archived back to its prior active stage.",
+            description: "Restore a deal from lost, deleted, or archived back to its prior active stage. Prefer dealTitle over dealId.",
             inputSchema: z.object({
-                dealId: z.string().describe("Deal ID"),
+                dealTitle: z.string().optional().describe("Job/deal title (fuzzy matched)"),
+                dealId: z.string().optional().describe("Deal ID (use only if you already have it)"),
             }),
-            execute: async ({ dealId }) => runRestoreDeal(workspaceId, { dealId }),
+            execute: async (params) => runRestoreDeal(workspaceId, params),
+        }),
+        approveDraft: tool({
+            description: "Approve a job draft, moving it from draft/new status into the active pipeline. Use when a manager approves a pending draft job.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Draft job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runApproveDraft(workspaceId, { dealTitle }),
+        }),
+        approveCompletion: tool({
+            description: "Approve a job completion request (PENDING_COMPLETION), marking the job as fully completed. Use when a manager approves a team member's completion request.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runApproveCompletion(workspaceId, { dealTitle }),
+        }),
+        rejectCompletion: tool({
+            description: "Reject a job completion request, notifying the team member and reverting the job stage. Use when a manager rejects a completion request.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job title (fuzzy matched)"),
+                reason: z.string().optional().describe("Short reason for rejection"),
+            }),
+            execute: async ({ dealTitle, reason }) => runRejectCompletion(workspaceId, { dealTitle, reason }),
         }),
         assignTeamMember: tool({
-            description: "Assign a team member to a job. Fuzzy-matches job title and member name.",
+            description: "Assign a team member to a job. Fuzzy-matches job title and member name. After a successful assignment, if the previous moveDeal call failed due to a missing assignee, retry moveDeal immediately.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
                 teamMemberName: z.string().describe("Team member name or email"),
             }),
             execute: async ({ dealTitle, teamMemberName }) =>
                 runAssignTeamMember(workspaceId, { dealTitle, teamMemberName }),
+        }),
+        requestReview: tool({
+            description: "Send a post-job customer review/feedback request SMS to the client for a completed job.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Completed job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runRequestReview(workspaceId, { dealTitle }),
         }),
         contactSupport: tool({
             description: "Create a support ticket for user issues or help requests.",
@@ -543,8 +580,13 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 query: z.string().describe("Search keywords"),
                 limit: z.number().optional().describe("Max results (default 5)"),
             }),
-            execute: async ({ query, limit }) =>
-                runSearchJobHistory(workspaceId, { query, limit }),
+            execute: async ({ query, limit }) => {
+                const result = await runSearchJobHistory(workspaceId, { query, limit });
+                if (!result.jobs.length) return `No past jobs found matching "${query}".`;
+                return `Found ${result.jobs.length} job(s) matching "${query}":\n` + result.jobs.map(j =>
+                    `- ${j.title} for ${j.clientName}${j.address ? ` at ${j.address}` : ""} (${j.stage}${j.scheduledAt ? `, ${new Date(j.scheduledAt).toLocaleDateString("en-AU")}` : ""}) — $${j.value.toLocaleString()}`
+                ).join("\n");
+            },
         }),
         getFinancialReport: tool({
             description: "Revenue, job counts, and completion rates for a date range.",
@@ -552,8 +594,20 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 startDate: z.string().describe("Range start (ISO string)"),
                 endDate: z.string().describe("Range end (ISO string)"),
             }),
-            execute: async ({ startDate, endDate }) =>
-                runGetFinancialReport(workspaceId, { startDate, endDate }),
+            execute: async ({ startDate, endDate }) => {
+                const r = await runGetFinancialReport(workspaceId, { startDate, endDate });
+                const lines = [
+                    `Financial report (${new Date(startDate).toLocaleDateString("en-AU")} – ${new Date(endDate).toLocaleDateString("en-AU")}):`,
+                    `Total revenue: $${r.totalRevenue.toLocaleString()}`,
+                    `Invoiced total: $${r.invoicedTotal.toLocaleString()}`,
+                    `Jobs: ${r.jobCount} (avg $${r.averageJobValue.toLocaleString()})`,
+                ];
+                if (r.breakdown.length) {
+                    lines.push("By stage:");
+                    for (const b of r.breakdown) lines.push(`- ${b.stage}: ${b.count} job(s), $${b.value.toLocaleString()}`);
+                }
+                return lines.join("\n");
+            },
         }),
         showConfirmationCard: tool({
             description: "Show Confirm/Cancel button for a data change. Pass a short summary.",
@@ -577,13 +631,62 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             inputSchema: z.object({
                 clientName: z.string().describe("Client name (fuzzy matched)"),
             }),
-            execute: async ({ clientName }) =>
-                runGetClientContext(workspaceId, { clientName }),
+            execute: async ({ clientName }) => {
+                const result = await runGetClientContext(workspaceId, { clientName });
+                if (!result.client) {
+                    return `No contact found matching "${clientName}".`;
+                }
+                const lines: string[] = [
+                    result.client.name,
+                    result.client.company ? `Company: ${result.client.company}` : null,
+                    result.client.phone ? `Phone: ${result.client.phone}` : "Phone: not on file",
+                    result.client.email ? `Email: ${result.client.email}` : "Email: not on file",
+                    result.client.address ? `Address: ${result.client.address}` : null,
+                ].filter(Boolean) as string[];
+                if (result.recentJobs.length) {
+                    lines.push("Recent jobs:");
+                    for (const job of result.recentJobs) {
+                        lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+                    }
+                }
+                if (result.recentNotes.length) {
+                    lines.push("Recent notes:");
+                    for (const note of result.recentNotes.slice(0, 3)) {
+                        lines.push(`- ${note.title}: ${(note.content ?? "").trim() || "No details"}`);
+                    }
+                }
+                return lines.join("\n");
+            },
         }),
         getTodaySummary: tool({
             description: "Today's jobs with readiness checks (missing address/phone, unassigned, etc.). Lead with alerts.",
             inputSchema: z.object({}),
-            execute: async () => runGetTodaySummary(workspaceId),
+            execute: async () => {
+                const summary = await runGetTodaySummary(workspaceId, settings?.workspaceTimezone ?? undefined);
+                const lines: string[] = ["Today's CRM summary:"];
+                if (summary.preparationAlerts.length) {
+                    lines.push("Readiness alerts:");
+                    for (const alert of summary.preparationAlerts) lines.push(`- ${alert}`);
+                } else {
+                    lines.push("Readiness alerts: none right now.");
+                }
+                if (summary.todayJobs.length) {
+                    lines.push("Today's jobs:");
+                    for (const job of summary.todayJobs) {
+                        const time = job.scheduledAt ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }) : "";
+                        const prep = job.preparations.length ? ` ⚠ ${job.preparations.join("; ")}` : "";
+                        lines.push(`- ${time}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}${prep}`);
+                    }
+                } else {
+                    lines.push("Today's jobs: none scheduled.");
+                }
+                if (summary.overdueTasks.length) {
+                    lines.push("Overdue tasks:");
+                    for (const task of summary.overdueTasks) lines.push(`- ${task.title} (was due ${task.dueAt})`);
+                }
+                lines.push(`Messages received today: ${summary.recentMessages}`);
+                return lines.join("\n");
+            },
         }),
         getAvailability: tool({
             description: "Check available time slots on a specific date.",
@@ -647,6 +750,10 @@ const CRM_CORE_TOOLS = [
     'assignTeamMember',
     'unassignDeal',
     'restoreDeal',
+    'approveDraft',
+    'approveCompletion',
+    'rejectCompletion',
+    'requestReview',
     'revertDealStageMove',
     'createContact',
     'updateContactFields',
@@ -665,8 +772,8 @@ const CRM_CORE_TOOLS = [
 // Intent-specific tool groups that supplement core tools
 const INTENT_TOOL_GROUPS: Record<string, string[]> = {
     pricing: ['pricingLookup', 'pricingCalculator', 'createDraftInvoice', 'updateInvoiceAmount'],
-    scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary'],
-    communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification'],
+    scheduling: ['getSchedule', 'getAvailability', 'createJobNatural', 'proposeReschedule', 'getTodaySummary', 'getAttentionRequired'],
+    communication: ['sendSms', 'sendEmail', 'makeCall', 'getConversationHistory', 'createNotification', 'requestReview'],
     reporting: ['getFinancialReport', 'getTodaySummary', 'searchJobHistory', 'recordManualRevenue', 'getAttentionRequired', 'listIncompleteOrBlockedJobs'],
     contact_lookup: ['getClientContext', 'createContact', 'updateContactFields'],
     invoice: [

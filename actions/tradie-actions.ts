@@ -431,6 +431,9 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
 
   revalidatePath('/crm/tradie');
   revalidatePath(`/crm/jobs/${jobId}`);
+  revalidatePath('/crm/dashboard');
+  revalidatePath('/crm/deals');
+  revalidatePath(`/crm/deals/${jobId}`);
   return { success: true, status };
 }
 
@@ -493,6 +496,10 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
     await syncGoogleCalendarEventForDeal(jobId).catch(() => {});
 
     revalidatePath('/crm/tradie/schedule');
+    revalidatePath('/crm/dashboard');
+    revalidatePath('/crm/schedule');
+    revalidatePath('/crm/deals');
+    revalidatePath(`/crm/deals/${jobId}`);
     return { success: true, scheduledAt: deal.scheduledAt };
   } catch (error) {
     logger.error("Failed to update schedule", { component: "tradie-actions", action: "updateJobSchedule", jobId }, error as Error);
@@ -567,6 +574,8 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
       contactId: deal.contactId
     }
   });
+
+  revalidateInvoiceSurfaces(jobId, deal.contactId);
 
   return {
     success: true,
@@ -1181,6 +1190,9 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
     }
 
     revalidatePath(`/crm/tradie/jobs/${dealId}`);
+    revalidatePath('/crm/dashboard');
+    revalidatePath('/crm/deals');
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (error) {
     logger.error("Error completing job", { component: "tradie-actions", action: "completeJob", dealId }, error as Error);

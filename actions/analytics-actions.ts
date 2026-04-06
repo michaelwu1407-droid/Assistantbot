@@ -16,10 +16,10 @@ import {
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New request",
   CONTACTED: "Quote sent",
-  NEGOTIATION: "Negotiation",
+  NEGOTIATION: "Scheduled",
   SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Ready to invoice",
+  PIPELINE: "Quote sent",
+  INVOICED: "Awaiting payment",
   PENDING_COMPLETION: "Pending approval",
   WON: "Completed",
   LOST: "Lost",

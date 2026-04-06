@@ -54,12 +54,13 @@ const SCHEDULING_PATTERNS = [
   /\b(next week|this week|next month|this month)\b/i,
   /\b\d{1,2}\s*(am|pm)\b/i,
   /\b(what('s| is) my day|what am i doing|morning|afternoon)\b/i,
+  /\b(what('s| is) on my (plate|schedule|agenda)|daily (briefing|digest|summary|rundown)|morning briefing)\b/i,
 ];
 
 const COMMUNICATION_PATTERNS = [
   /\b(text|sms|message|msg|send|email|call|ring|phone)\b/i,
   /\b(tell|let .+ know|notify|remind|follow.?up)\b/i,
-  /\b(on my way|running late|otw|eta)\b/i,
+  /\b(on my way|running late|otw|eta|arrived|just arrived|finishing up|running early)\b/i,
 ];
 
 const FLOW_CONTROL_PATTERNS = [
@@ -70,22 +71,27 @@ const REPORTING_PATTERNS = [
   /\b(revenue|earnings|income|profit|how much .*(earn|made|make))\b/i,
   /\b(report|summary|stats|statistics|dashboard|pipeline|overview)\b/i,
   /\b(this week|this month|last month|this quarter|year to date|ytd)\b/i,
+  /\b(stale|overdue|rotting|attention|needs attention|at risk|stuck|blocked deal)\b/i,
+  /\b(job history|past job|previous job|search.{1,20}job)\b/i,
 ];
 
 const CONTACT_PATTERNS = [
   /\b(find|search|look up|lookup|who is|contact info|details for)\b/i,
   /\b(customer|client|their number|their email|their address)\b/i,
   /\b(latest note|recent note|last note)\b/i,
+  /\b(conversation history|message history|sms history|chat history|what have we sent|what did we send)\b/i,
 ];
 
 const CRM_ACTION_PATTERNS = [
-  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo)\b/i,
-  /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage)\b/i,
+  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo|approve|reject|decline)\b/i,
+  /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage|draft|completion|approval)\b/i,
 ];
 
 const INVOICE_PATTERNS = [
   /\b(invoice|invoiced|create invoice|send invoice|draft invoice|mark.*paid|void)\b/i,
   /\b(payment|paid|unpaid|outstanding|overdue)\b/i,
+  /\b(create|send|draft|generate|write|give|prepare)\b.{0,20}\b(quote|estimate|proposal)\b/i,
+  /\b(quote|estimate|proposal)\b.{0,20}\b(for|to)\b/i,
 ];
 
 const SUPPORT_PATTERNS = [
@@ -200,16 +206,28 @@ function getContextHints(intent: IntentHint, text: string): string[] {
       return [
         "SCHEDULING QUERY: Use getSchedule or getAvailability before answering. Never guess availability.",
         "Treat the workspace's current date/time as authoritative for relative dates like today, tomorrow, this month, or next Monday.",
-      ];
+        /\b(what('s| is) on my (plate|schedule|agenda)|daily (briefing|digest|summary|rundown)|morning briefing|what am i doing today|what('s| is) my day)\b/i.test(text)
+          ? "DAILY BRIEFING: Call getTodaySummary for today's jobs and readiness alerts. Then call getAttentionRequired to surface stale/overdue deals. Lead with preparation alerts (missing address, no phone, unassigned) before the schedule, then overdue tasks, then stale deals needing action."
+          : null,
+      ].filter(Boolean) as string[];
     case "communication":
       return [
-        "COMMUNICATION REQUEST: Identify the contact and use sendSms/sendEmail/makeCall. Send the user's exact words.",
-      ];
+        "COMMUNICATION REQUEST: Identify the contact and use sendSms/sendEmail/makeCall immediately.",
+        "Extract the message content from what the user said. If the user says 'tell John I'm on my way', the SMS body is 'I'm on my way' — not the full instruction.",
+        /\b(on my way|otw|running late|arrived|just arrived|finishing up|running early|eta)\b/i.test(text)
+          ? "FIELD ROUTING: This looks like an on-the-road status update. Use sendSms with the status message. If no contact is named, look at today's next job and text that client."
+          : null,
+      ].filter(Boolean) as string[];
     case "reporting":
       return [
         "REPORT REQUEST: Use getFinancialReport or getTodaySummary to fetch real data. Never estimate revenue.",
         /\b(incomplete|blocked|attention)\b/i.test(text)
           ? "For jobs that look incomplete, blocked, stale, or overdue, use listIncompleteOrBlockedJobs first, then getAttentionRequired or listDeals if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
+          : null,
+        /\b(stale|rotting|at risk|stuck|needs attention|overdue deal)\b/i.test(text)
+          ? /\bfor\b|\bmatching\b|\bof the\b/i.test(text)
+            ? "FILTERED STALE QUERY: Use listIncompleteOrBlockedJobs with the specific filter term from the user's message (e.g. 'ZZZ AUTO', a client name). getAttentionRequired has no filter — use listIncompleteOrBlockedJobs when the user is asking about a subset."
+            : "STALE DEAL TRIAGE: Use getAttentionRequired to surface overdue, stale, and rotting deals. List them with their stage and suggested next action. Offer to move, assign, or add a follow-up note for each."
           : null,
         /\b(search past job history|job history)\b/i.test(text)
           ? "For job-history lookups, use searchJobHistory with the user's query instead of asking unnecessary follow-up questions."
@@ -221,12 +239,18 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         /\b(latest note|recent note|last note)\b/i.test(text)
           ? "For latest-note questions about a contact, use getClientContext and answer from the most recent CRM note instead of asking unnecessary follow-up questions."
           : null,
+        /\b(conversation history|message history|sms history|chat history|what have we sent|what did we send)\b/i.test(text)
+          ? "For conversation or message history queries, use getConversationHistory with the contact name. It returns calls, emails, notes, and SMS in chronological order."
+          : null,
       ].filter(Boolean) as string[];
     case "crm_action":
       return [
         "CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it.",
         "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
         "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
+        /\b(approve|reject|decline)\b/i.test(text) && /\b(completion|done|finished|complete|draft|job|booking)\b/i.test(text)
+          ? "APPROVAL/REJECTION: Use approveCompletion or rejectCompletion for job completion requests. Use approveDraft for draft job approvals. Include a reason if the user provided one."
+          : null,
         /\b(what still needs to happen before .+ can be completed)\b/i.test(text)
           ? "For blockers or next-step questions, use getDealContext first, then explain what is still missing instead of asking the user what action they want to take."
           : null,
@@ -240,6 +264,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
     case "invoice":
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        /\b(quote|estimate|proposal)\b/i.test(text)
+          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, set it via updateInvoiceAmount after creation. If the client has no existing job, ask whether to create one first."
+          : null,
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
         "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month.",
         /\b(ready to invoice|already invoiced)\b/i.test(text)
@@ -265,11 +292,15 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
     case "communication":
       return ["sendSms", "sendEmail", "makeCall"];
     case "reporting":
-      return /\b(incomplete|blocked|attention)\b/i.test(text)
-        ? ["listIncompleteOrBlockedJobs", "getAttentionRequired", "listDeals"]
-        : ["getFinancialReport", "getTodaySummary"];
+      if (/\b(incomplete|blocked|attention)\b/i.test(text)) {
+        return ["listIncompleteOrBlockedJobs", "getAttentionRequired", "listDeals"];
+      }
+      if (/\b(search past job history|job history|past job|previous job)\b/i.test(text)) {
+        return ["searchJobHistory", "listDeals"];
+      }
+      return ["getFinancialReport", "getTodaySummary"];
     case "contact_lookup":
-      return ["searchContacts", "getClientContext"];
+      return ["searchContacts", "getClientContext", "getConversationHistory"];
     case "crm_action":
       if (/^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)) {
         return ["createJobNatural", "createDeal", "createContact"];
@@ -278,6 +309,8 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         "moveDeal",
         "updateDealFields",
         "assignTeamMember",
+        "unassignDeal",
+        "restoreDeal",
         "createDeal",
         "createContact",
         "updateContactFields",

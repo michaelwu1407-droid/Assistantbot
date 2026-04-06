@@ -15,6 +15,12 @@ const { notFound, requireDealInCurrentWorkspace, db } = vi.hoisted(() => ({
     workspace: {
       findUnique: vi.fn(),
     },
+    activity: {
+      findMany: vi.fn(),
+    },
+    voiceCall: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -101,6 +107,7 @@ describe("deal page access", () => {
       metadata: {},
       contactId: "contact_1",
       assignedToId: "user_1",
+      assignedTo: { id: "user_1", name: "Jess Smith", email: "jess@example.com" },
       contact: {
         id: "contact_1",
         name: "Acme Plumbing",
@@ -113,6 +120,8 @@ describe("deal page access", () => {
     });
     db.deal.findMany.mockResolvedValue([]);
     db.workspace.findUnique.mockResolvedValue({ workspaceTimezone: "Australia/Sydney" });
+    db.activity.findMany.mockResolvedValue([]);
+    db.voiceCall.findMany.mockResolvedValue([]);
   });
 
   it("renders the deal detail page when access is allowed", async () => {

@@ -133,6 +133,8 @@ const STAGE_ALIASES: Record<string, string> = {
   "quoting": "quote_sent",
   "scheduled": "scheduled",
   "ready to invoice": "ready_to_invoice",
+  "awaiting payment": "ready_to_invoice",
+  "awaiting_payment": "ready_to_invoice",
   "pending approval": "pending_approval",
   "completed": "completed",
   "lost": "lost",
@@ -221,8 +223,8 @@ function getDealNextStepGuidance(input: {
         : "Complete the work, record any field notes or materials, and generate the invoice when the job is finished.";
     case "ready_to_invoice":
       return input.hasInvoice
-        ? "Issue the invoice or update its status, then follow through to payment."
-        : "Generate the invoice and send or review it before closing out payment.";
+        ? "The invoice has been issued. Follow up with the customer on payment and mark it paid when received."
+        : "Generate the invoice and send it to the customer so they can pay.";
     case "pending_approval":
       return "Review the completion details, then approve it to move to completed or reject it with a reason.";
     case "completed":
@@ -345,7 +347,7 @@ export async function runMoveDeal(
   dealTitle: string,
   stageAlias: string,
   assignedTo?: string
-): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
+): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean; requiresSchedule?: boolean }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, dealTitle);
   if (!deal) {
@@ -361,12 +363,21 @@ export async function runMoveDeal(
     return { success: false, message: `Unknown stage "${stageAlias}". Try: ${validStages}` };
   }
 
-  // Check if moving to Scheduled and needs team member assignment
+  // Check if moving to Scheduled — requires both an assignee AND a scheduled date.
   if (resolvedStage === "scheduled" && !deal.assignedToId && !assignedTo) {
     return {
       success: false,
       message: `"${dealTitle}" needs a team member assigned to move to Scheduled. Who should I assign this job to?`,
       requiresAssignment: true,
+      dealId: deal.id,
+    };
+  }
+
+  if (resolvedStage === "scheduled" && !deal.scheduledAt) {
+    return {
+      success: false,
+      message: `"${dealTitle}" needs a scheduled date before it can be moved to Scheduled. What date and time should this job be booked for?`,
+      requiresSchedule: true,
       dealId: deal.id,
     };
   }
@@ -461,15 +472,19 @@ export async function runProposeReschedule(
 /**
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
-export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
+export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   return {
-    deals: deals.map((d) => ({
-      id: d.id,
-      title: d.title,
-      stage: d.stage,
-      value: d.value,
-    })),
+    deals: deals.map((d) => {
+      const rawStage = String(d.stage ?? "");
+      return {
+        id: d.id,
+        title: d.title,
+        stage: CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage,
+        value: d.value,
+        contactName: d.contactName ?? "",
+      };
+    }),
   };
 }
 
@@ -536,7 +551,9 @@ export async function runListIncompleteOrBlockedJobs(
 
   return `Jobs matching "${params.query}" that still look incomplete or blocked:\n${matches
     .map(({ deal, signals }) => {
-      const suffix: string[] = [deal.stage];
+      const rawStage = String(deal.stage ?? "");
+      const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+      const suffix: string[] = [stageLabel];
       if (signals.length) suffix.push(signals.map((signal) => signal.label).join(", "));
       return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
     })
@@ -577,7 +594,9 @@ export async function runGetAttentionRequired(workspaceId: string): Promise<{
 
   const lines = flagged.map(({ deal, signals }) => {
     const signalText = signals.map((s) => s.label).join(", ");
-    return `- ${deal.title} (${signalText})`;
+    const rawStage = String(deal.stage ?? "");
+    const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+    return `- ${deal.title} [${stageLabel}] — ${signalText}`;
   });
 
   return {
@@ -771,15 +790,19 @@ export async function runUpdateDealFields(
   }
 
   const changes: string[] = [];
-  if (payload.title) changes.push(`title`);
-  if (typeof payload.value === "number") changes.push(`value`);
-  if (payload.address !== undefined) changes.push(`address`);
-  if (payload.scheduledAt !== undefined) changes.push(`schedule`);
-  if (payload.stage) changes.push(`stage`);
+  if (payload.title) changes.push(`title → "${payload.title}"`);
+  if (typeof payload.value === "number") changes.push(`value → $${payload.value.toLocaleString()}`);
+  if (payload.address !== undefined) changes.push(payload.address ? `address → "${payload.address}"` : "address cleared");
+  if (payload.scheduledAt !== undefined) changes.push(`schedule updated`);
+  if (payload.stage) {
+    const stageLabel = CHAT_STAGE_LABELS[payload.stage] ?? payload.stage;
+    changes.push(`stage → ${stageLabel}`);
+  }
 
+  const jobTitle = payload.title ?? deal.title;
   return {
     success: true,
-    message: `Updated "${deal.title}" (${changes.join(", ")}).`,
+    message: `Updated "${jobTitle}" (${changes.join(", ")}).`,
     dealId: deal.id,
   };
 }
@@ -1302,12 +1325,10 @@ export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: 
 /**
  * AI Tool Action: Create a Task/Reminder
  */
-export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
-  // 🎯 AI AGENT COMMUNICATION - IMPORTANT:
-  // This function creates a task/reminder in the CRM system
-  // It does not initiate any external communication (calls, emails, etc.)
-  // For manual communication, user clicks Call/Text buttons on contact cards
-  // DO NOT confuse AI agent with manual communication methods
+export async function runCreateTask(
+  workspaceId: string,
+  params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string, dealTitle?: string, contactName?: string }
+) {
   try {
     // Default due tomorrow 9AM if nothing specified
     let dueAt = new Date();
@@ -1318,16 +1339,37 @@ export async function runCreateTask(params: { title: string, dueAtISO?: string, 
       dueAt = new Date(params.dueAtISO);
     }
 
+    let dealId = params.dealId;
+    let contactId = params.contactId;
+
+    // Resolve dealTitle → dealId if not already provided
+    if (!dealId && params.dealTitle) {
+      const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+      const matched = findDealByTitle(deals, params.dealTitle.trim());
+      if (matched) dealId = matched.id;
+    }
+
+    // Resolve contactName → contactId if not already provided
+    if (!contactId && params.contactName) {
+      const contacts = await searchContacts(workspaceId, params.contactName.trim());
+      if (contacts.length) contactId = contacts[0].id;
+    }
+
     const result = await createTask({
       title: params.title,
       description: params.description,
       dueAt,
-      dealId: params.dealId,
-      contactId: params.contactId
+      dealId,
+      contactId,
     });
 
     if (!result.success) throw new Error(result.error);
-    return `Successfully created task: "${params.title}" due at ${dueAt.toLocaleString()}`;
+
+    const linkParts: string[] = [];
+    if (dealId) linkParts.push(`linked to job`);
+    if (contactId) linkParts.push(`linked to contact`);
+    const linkNote = linkParts.length ? ` (${linkParts.join(", ")})` : "";
+    return `Task created: "${params.title}" due ${dueAt.toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })} at ${dueAt.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}${linkNote}.`;
   } catch (err) {
     return `Error creating task: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1341,7 +1383,13 @@ export async function runSearchContacts(workspaceId: string, query: string) {
     const contacts = await searchContacts(workspaceId, query);
     if (!contacts.length) return `No contacts found matching "${query}".`;
 
-    return `Found ${contacts.length} matches:\n` + contacts.map(c => `- ${c.name} ${c.company ? `(${c.company})` : ''} ${c.phone ? `Ph: ${c.phone}` : ''}`).join("\n");
+    return `Found ${contacts.length} matches:\n` + contacts.map(c => {
+      const parts = [c.name];
+      if (c.company) parts.push(`(${c.company})`);
+      if (c.phone) parts.push(`Ph: ${c.phone}`);
+      if (c.email) parts.push(`Email: ${c.email}`);
+      return `- ${parts.join(" ")}`;
+    }).join("\n");
   } catch (err) {
     return `Error searching contacts: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1369,6 +1417,9 @@ export async function runGetDealContext(
           company: true,
           address: true,
         },
+      },
+      assignedTo: {
+        select: { name: true },
       },
       invoices: {
         orderBy: { createdAt: "desc" },
@@ -1407,6 +1458,7 @@ export async function runGetDealContext(
     `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
     fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
+    fullDeal.assignedTo ? `Assigned to: ${fullDeal.assignedTo.name}` : "Assigned to: (unassigned)",
     fullDeal.contact
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
       : null,
@@ -1502,11 +1554,15 @@ async function findInvoiceInWorkspace(
 export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
   if (!deal) {
-    return `Couldn't find a job matching "${params.dealTitle}".`;
+    return {
+      success: false,
+      message: `Couldn't find a job matching "${params.dealTitle}".`,
+      quickActions: [],
+    };
   }
 
   const existingDraft = await db.invoice.findFirst({
@@ -1514,14 +1570,21 @@ export async function runCreateDraftInvoice(
     orderBy: { createdAt: "desc" },
   });
   if (existingDraft) {
-    return `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`;
+    return {
+      success: false,
+      message: `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`,
+      quickActions: [
+        { label: "Issue to client", prompt: `Issue invoice ${existingDraft.number} for "${deal.title}"` },
+        { label: "Invoice status", prompt: `Show invoice status for "${deal.title}"` },
+      ],
+    };
   }
 
   const fullDeal = await db.deal.findUnique({
     where: { id: deal.id },
     select: { id: true, title: true, value: true, contactId: true },
   });
-  if (!fullDeal) return "Deal not found.";
+  if (!fullDeal) return { success: false, message: "Deal not found.", quickActions: [] };
 
   const invoiceNumber = await allocateWorkspaceInvoiceNumber(workspaceId);
   const total = Number(fullDeal.value || 0);
@@ -1560,22 +1623,29 @@ export async function runCreateDraftInvoice(
     },
   });
   revalidatePath("/crm", "layout");
-  return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
+  return {
+    success: true,
+    message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total $${total.toLocaleString("en-AU")}. Open the Billing tab to review.`,
+    quickActions: [
+      { label: "Issue to client", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
+    ],
+  };
 }
 
 export async function runIssueInvoiceAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { issueInvoice } = await import("./tradie-actions");
   const result = await issueInvoice(invoice.id);
   if (!result.success) {
-    return `Failed to issue invoice ${invoice.number}.`;
+    return { success: false, message: `Failed to issue invoice ${invoice.number}.`, quickActions: [] };
   }
   await db.activity.create({
     data: {
@@ -1586,24 +1656,41 @@ export async function runIssueInvoiceAction(
       contactId: invoice.deal.contactId,
     },
   });
-  return `Issued invoice ${invoice.number} for "${invoice.deal.title}".`;
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} issued for "${invoice.deal.title}". The client can now be sent the payment link.`,
+    quickActions: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid for "${invoice.deal.title}"` },
+      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 export async function runMarkInvoicePaidAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { markInvoicePaid } = await import("./tradie-actions");
   const result = await markInvoicePaid(invoice.id);
   if (!result.success) {
-    return `Failed to mark invoice ${invoice.number} as paid.`;
+    return { success: false, message: `Failed to mark invoice ${invoice.number} as paid.`, quickActions: [] };
   }
-  return `Marked invoice ${invoice.number} as paid.`;
+  revalidatePath("/crm", "layout");
+  const dealTitle = invoice.deal.title;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} marked as paid for "${dealTitle}". Job is complete.`,
+    quickActions: [
+      { label: "Move to Completed", prompt: `Move deal "${dealTitle}" to Completed stage` },
+      { label: "Request review", prompt: `Send a review request to the client for "${dealTitle}"` },
+    ],
+  };
 }
 
 export async function runReverseInvoiceStatus(
@@ -1702,22 +1789,43 @@ export async function runSendInvoiceReminder(
 export async function runGetInvoiceStatusAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   const { getInvoiceSyncStatus } = await import("./accounting-actions");
   const syncStatus = await getInvoiceSyncStatus(invoice.id);
-  return [
+  const total = Number(invoice.total || 0);
+  const summary = [
     `Invoice ${invoice.number}`,
     `Status: ${invoice.status}`,
     `Deal: ${invoice.deal.title}`,
     `Contact: ${invoice.deal.contact.name}`,
-    `Total: $${Number(invoice.total || 0).toFixed(2)}`,
+    `Total: $${total.toFixed(2)}`,
     `Accounting sync: ${syncStatus?.synced ? `synced via ${syncStatus.provider}` : "not synced / accounting not connected"}`,
   ].join("\n");
+
+  const followUpByStatus: Record<string, { label: string; prompt: string }[]> = {
+    DRAFT: [
+      { label: "Issue to client", prompt: `Issue invoice ${invoice.number} for "${invoice.deal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${invoice.deal.title}"` },
+    ],
+    ISSUED: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid` },
+      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.contact.name}"` },
+    ],
+    PAID: [
+      { label: "Move to Completed", prompt: `Move deal "${invoice.deal.title}" to Completed` },
+    ],
+  };
+
+  return {
+    success: true,
+    message: summary,
+    quickActions: followUpByStatus[invoice.status] ?? [],
+  };
 }
 
 export async function runUpdateInvoiceFields(
@@ -1820,18 +1928,22 @@ export async function runUpdateInvoiceFields(
 export async function runVoidInvoice(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
   if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
 
   if (invoice.status === "VOID") {
-    return `Invoice ${invoice.number} is already void.`;
+    return { success: false, message: `Invoice ${invoice.number} is already void.`, quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+    ]};
   }
 
   if (invoice.status === "PAID") {
-    return `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding it.`;
+    return { success: false, message: `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding.`, quickActions: [
+      { label: "Reverse to Draft", prompt: `Reverse invoice ${invoice.number} to Draft status` },
+    ]};
   }
 
   await db.invoice.update({
@@ -1872,7 +1984,14 @@ export async function runVoidInvoice(
   });
 
   revalidatePath("/crm", "layout");
-  return `Voided invoice ${invoice.number} for "${invoice.deal.title}".`;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} voided for "${invoice.deal.title}". The job was moved back to Quote sent stage.`,
+    quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+      { label: "View job", prompt: `Show me the deal "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 function findTaskByTitle(
@@ -1946,7 +2065,14 @@ export async function runUpdateContactFields(
       return `Failed to update ${contact.name}: ${result.error ?? "Unknown error."}`;
     }
 
-    return `Updated ${contact.name}.`;
+    const changedFields: string[] = [];
+    if (params.newName?.trim()) changedFields.push(`name to "${params.newName.trim()}"`);
+    if (params.phone !== undefined) changedFields.push(`phone to "${params.phone.trim()}"`);
+    if (params.email !== undefined) changedFields.push(`email to "${params.email.trim()}"`);
+    if (params.company !== undefined) changedFields.push(`company to "${params.company.trim()}"`);
+    if (params.address !== undefined) changedFields.push(`address to "${params.address.trim()}"`);
+    const changeSummary = changedFields.length ? ` (${changedFields.join(", ")})` : "";
+    return `Updated ${contact.name}${changeSummary}.`;
   } catch (err) {
     return `Error updating contact: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -2536,6 +2662,8 @@ export async function runBulkMoveDeals(
     return "No matching jobs were found for the selected IDs.";
   }
 
+  const stageDisplayLabel = CHAT_STAGE_LABELS[resolvedStage] ?? resolvedStage;
+
   const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
   for (const deal of deals) {
     const currentStage = PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? "new";
@@ -2552,7 +2680,7 @@ export async function runBulkMoveDeals(
 
     await logActivity({
       type: "NOTE",
-      title: `Bulk moved to ${resolvedStage}`,
+      title: `Bulk moved to ${stageDisplayLabel}`,
       content: `Bulk stage change applied by CRM chatbot.`,
       dealId: deal.id,
       contactId: deal.contactId ?? undefined,
@@ -2562,7 +2690,7 @@ export async function runBulkMoveDeals(
 
   revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
-  return formatBulkOperationSummary(`Bulk move to ${resolvedStage}`, results);
+  return formatBulkOperationSummary(`Bulk move to ${stageDisplayLabel}`, results);
 }
 
 export async function runBulkAssignDeals(
@@ -2714,12 +2842,24 @@ export async function runRevertDealStageMove(
 
 export async function runUnassignDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, assignedToId: true, contactId: true },
-  });
+  let deal: { id: string; title: string; assignedToId: string | null; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, assignedToId: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, assignedToId: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
   if (!deal.assignedToId) return `"${deal.title}" is not currently assigned.`;
 
@@ -2740,12 +2880,24 @@ export async function runUnassignDeal(
 
 export async function runRestoreDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, stage: true, metadata: true, contactId: true },
-  });
+  let deal: { id: string; title: string; stage: string; metadata: unknown; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
 
   if (!["LOST", "DELETED", "ARCHIVED"].includes(deal.stage)) {
@@ -2792,11 +2944,13 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return "No recent actions found to undo.";
     }
 
-    const description = lastActivity.description ?? lastActivity.title ?? "";
-    const descLower = description.toLowerCase();
+    // Check title (the action keyword) and content/description separately so we
+    // don't accidentally use the actor suffix stored in activity.description.
+    const titleLower = (lastActivity.title ?? "").toLowerCase();
+    const contentLower = (lastActivity.content ?? "").toLowerCase();
 
     // Undo a deal stage move (restore from metadata)
-    if (descLower.includes("moved to") || descLower.includes("stage changed")) {
+    if (titleLower.startsWith("moved to") || titleLower.includes("stage changed") || contentLower.includes("stage changed to")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the associated deal to undo.";
 
@@ -2812,14 +2966,16 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
         revalidatePath("/crm", "layout");
-        return `Undone: "${deal.title}" moved back to "${previousStage}" stage.`;
+        const prevChatStage = PRISMA_STAGE_TO_CHAT_STAGE[previousStage] ?? previousStage.toLowerCase();
+        const prevLabel = CHAT_STAGE_LABELS[prevChatStage] ?? previousStage;
+        return `Undone: "${deal.title}" moved back to ${prevLabel}.`;
       }
 
       return `Cannot undo: no previous stage recorded for "${deal.title}".`;
     }
 
     // Undo deal creation (delete the deal)
-    if (descLower.includes("created deal") || descLower.includes("new deal") || descLower.includes("new job")) {
+    if (titleLower.includes("created deal") || titleLower.includes("deal created") || titleLower.includes("new deal") || titleLower.includes("new job")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the deal to undo.";
 
@@ -2829,10 +2985,132 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return `Undone: Deal "${deal.title}" has been deleted.`;
     }
 
-    return `The last action ("${description}") cannot be automatically undone. You may need to reverse it manually.`;
+    return `The last action ("${lastActivity.title}") cannot be automatically undone. You may need to reverse it manually.`;
   } catch (err) {
     return `Error undoing action: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+/**
+ * Approve a job draft (moves it from draft/new to active pipeline).
+ */
+export async function runApproveDraft(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job draft matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveDraft } = await import("./deal-actions");
+  const result = await approveDraft(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve draft for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Draft "${deal.title}" approved and moved to active pipeline.`,
+    quickActions: [
+      { label: "Schedule this job", prompt: `Schedule a time for "${deal.title}"` },
+      { label: "Assign team member", prompt: `Assign a team member to "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Approve a completion request (moves PENDING_COMPLETION deal to WON).
+ */
+export async function runApproveCompletion(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveCompletion } = await import("./deal-actions");
+  const result = await approveCompletion(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `"${deal.title}" completion approved — job is now Completed.`,
+    quickActions: [
+      { label: "Create invoice", prompt: `Create a draft invoice for "${deal.title}"` },
+      { label: "Request review", prompt: `Send a review request to the client for "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Reject a completion request (reverts PENDING_COMPLETION deal and notifies team member).
+ */
+export async function runRejectCompletion(
+  workspaceId: string,
+  params: { dealTitle: string; reason?: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { rejectCompletion } = await import("./deal-actions");
+  const result = await rejectCompletion(deal.id, params.reason?.trim());
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't reject completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  const reasonSuffix = params.reason?.trim() ? ` Reason: "${params.reason.trim()}"` : "";
+  return {
+    success: true,
+    message: `Completion request for "${deal.title}" rejected.${reasonSuffix} The team member has been notified and the job has been reverted.`,
+    quickActions: [
+      { label: "Add note", prompt: `Add a note to "${deal.title}" explaining what needs to be fixed` },
+      { label: "View job", prompt: `Show me the deal "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Send a post-job review/feedback request SMS to the client.
+ */
+export async function runRequestReview(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { sendReviewRequestSMS } = await import("./messaging-actions");
+  const result = await sendReviewRequestSMS(deal.id);
+  if (!result.success) {
+    return {
+      success: false,
+      message: result.error ?? `Couldn't send review request for "${deal.title}". Check the contact has a phone number.`,
+      quickActions: [
+        { label: "Add phone number", prompt: `Show me the contact for "${deal.title}" so I can add their phone number` },
+      ],
+    };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Review request sent to the client for "${deal.title}". They'll receive a text with a feedback link.`,
+    quickActions: [
+      { label: "View responses", prompt: `Show customer feedback for "${deal.title}"` },
+    ],
+  };
 }
 
 /**

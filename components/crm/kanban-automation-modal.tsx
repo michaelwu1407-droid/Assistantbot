@@ -178,7 +178,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
               </Badge>
             </div>
             <div className="text-sm text-gray-600 mt-2">
-              Last activity: {deal.lastActivity.toLocaleDateString()} ({daysSinceLastActivity} days ago)
+              Last activity: {deal.lastActivity.toLocaleDateString("en-AU")} ({daysSinceLastActivity} days ago)
             </div>
           </div>
 

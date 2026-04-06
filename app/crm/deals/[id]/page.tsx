@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle, Navigation, Phone } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,6 +10,7 @@ import { DealNotes } from "@/components/crm/deal-notes"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { ActivityFeed } from "@/components/crm/activity-feed"
+import { getActivities } from "@/actions/activity-actions"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
@@ -49,7 +50,7 @@ export default async function DealDetailPage({ params }: PageProps) {
   const [deal, workspace] = await Promise.all([
     db.deal.findFirst({
       where: { id, workspaceId: actor.workspaceId },
-      include: { contact: true, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
+      include: { contact: true, assignedTo: { select: { id: true, name: true, email: true } }, jobPhotos: { orderBy: { createdAt: "desc" } }, syncIssues: { where: { resolved: false }, orderBy: { createdAt: "desc" }, take: 10 } },
     }),
     db.workspace.findUnique({
       where: { id: actor.workspaceId },
@@ -61,7 +62,8 @@ export default async function DealDetailPage({ params }: PageProps) {
   const workspaceTimezone = resolveWorkspaceTimezone(workspace?.workspaceTimezone)
   const isRestrictedActor = actor.role === "TEAM_MEMBER"
 
-  const contactDeals = await db.deal.findMany({
+  const [contactDeals, initialActivities] = await Promise.all([
+    db.deal.findMany({
     where: {
       contactId: deal.contactId,
       workspaceId: actor.workspaceId,
@@ -71,7 +73,9 @@ export default async function DealDetailPage({ params }: PageProps) {
     orderBy: { updatedAt: "desc" },
     take: 10,
     include: { contact: true },
-  })
+  }),
+    getActivities({ contactId: deal.contactId ?? undefined, dealId: id, limit: 20 }),
+  ])
 
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
@@ -111,7 +115,13 @@ export default async function DealDetailPage({ params }: PageProps) {
               </Badge>
             </div>
             <p className="text-slate-500 text-sm mt-0.5">
-              {contact?.company || "No company"} - <span className="text-emerald-600 font-medium">${Number(deal.value || 0).toLocaleString("en-AU")}</span>
+              {contact?.company || "No company"} -{" "}
+              <span className="text-emerald-600 font-medium">
+                ${Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0).toLocaleString("en-AU")}
+              </span>
+              {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 && (
+                <span className="text-xs text-slate-400 ml-1">invoiced</span>
+              )}
             </p>
           </div>
         </div>
@@ -187,18 +197,49 @@ export default async function DealDetailPage({ params }: PageProps) {
 
           {/* Current / upcoming job details */}
           <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <Briefcase className="w-4 h-4" />
-              Current job
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Current job
+              </h3>
+              <div className="flex items-center gap-1.5">
+                {deal.jobStatus && (
+                  <Badge variant="outline" className="text-[10px] font-medium capitalize">
+                    {deal.jobStatus.toLowerCase().replace(/_/g, " ")}
+                  </Badge>
+                )}
+                {metadata.confirmationStatus === "confirmed" && (
+                  <Badge variant="outline" className="text-[10px] font-medium text-emerald-700 border-emerald-300 bg-emerald-50">
+                    Customer confirmed
+                  </Badge>
+                )}
+                {metadata.confirmationStatus === "pending" && !metadata.confirmedAt && (
+                  <Badge variant="outline" className="text-[10px] font-medium text-amber-700 border-amber-300 bg-amber-50">
+                    Awaiting confirmation
+                  </Badge>
+                )}
+              </div>
+            </div>
             <div className="space-y-2.5 text-sm">
               <div>
                 <p className="text-slate-500 text-xs">Job</p>
                 <p className="font-medium text-slate-900">{deal.title}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Value</p>
-                <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? (
+                  <>
+                    <p className="text-slate-500 text-xs">Invoiced</p>
+                    <p className="font-medium text-emerald-600">${Number(deal.invoicedAmount).toLocaleString("en-AU")}</p>
+                    {Number(deal.invoicedAmount) !== Number(deal.value || 0) && (
+                      <p className="text-xs text-slate-400 mt-0.5">Quoted: ${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-500 text-xs">Quoted value</p>
+                    <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                  </>
+                )}
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Scheduled</p>
@@ -206,6 +247,49 @@ export default async function DealDetailPage({ params }: PageProps) {
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
               </div>
+              {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
+                <div>
+                  <p className="text-slate-500 text-xs">Job address</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900 flex-1">
+                      {deal.address || (metadata.address as string)}
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deal.address || (metadata.address as string))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-slate-200 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                      title="Open in Google Maps"
+                    >
+                      <Navigation className="w-3 h-3" /> Navigate
+                    </a>
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-slate-500 text-xs">Assigned to</p>
+                <p className="font-medium text-slate-900">
+                  {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
+                </p>
+              </div>
+              {contact?.phone && (
+                <div className="flex gap-2 pt-1">
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-border/50 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Phone className="h-3 w-3" />
+                    Call client
+                  </a>
+                  <a
+                    href={`sms:${contact.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 border border-border/50 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Text client
+                  </a>
+                </div>
+              )}
               <div>
                 <p className="text-slate-500 text-xs">Created</p>
                 <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
@@ -264,7 +348,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </TabsList>
               </div>
               <TabsContent value="communications" className="mt-0 flex-1 min-h-[16rem] p-0">
-                <ActivityFeed contactId={deal.contactId} compact className="h-full" />
+                <ActivityFeed contactId={deal.contactId ?? undefined} dealId={id} activities={initialActivities} compact className="h-full" />
               </TabsContent>
               <TabsContent value="jobs" className="mt-0 flex-1 min-h-[16rem] p-3">
                 <div className="space-y-2">

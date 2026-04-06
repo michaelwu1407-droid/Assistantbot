@@ -160,6 +160,47 @@ export async function POST(req: NextRequest) {
 
         const processPromise = (async () => {
             try {
+                // ─── Booking Confirmation Fast-Path ──────────────────────
+                // If the customer replies "CONFIRM" (or "YES"), find the most
+                // recent pending-confirmation deal and mark it confirmed.
+                if (/^(confirm|confirmed|yes|yep|yeah|yup|ok|okay|sounds good)\b/i.test(Body.trim())) {
+                    try {
+                        const pendingDeal = await prisma.deal.findFirst({
+                            where: {
+                                workspaceId,
+                                contactId: contact.id,
+                                metadata: { path: ["confirmationStatus"], equals: "pending" },
+                            },
+                            orderBy: { scheduledAt: "asc" },
+                            select: { id: true, title: true, contactId: true, metadata: true },
+                        });
+                        if (pendingDeal) {
+                            const existingMeta = (pendingDeal.metadata as Record<string, unknown>) ?? {};
+                            await prisma.deal.update({
+                                where: { id: pendingDeal.id },
+                                data: {
+                                    metadata: JSON.parse(JSON.stringify({
+                                        ...existingMeta,
+                                        confirmationStatus: "confirmed",
+                                        confirmedAt: new Date().toISOString(),
+                                    })),
+                                },
+                            });
+                            await prisma.activity.create({
+                                data: {
+                                    type: "NOTE",
+                                    title: "Booking confirmed by customer",
+                                    content: `Customer replied "${Body.trim()}" to confirm the booking.`,
+                                    dealId: pendingDeal.id,
+                                    contactId: pendingDeal.contactId ?? undefined,
+                                },
+                            });
+                        }
+                    } catch {
+                        // Non-blocking — confirmation update failure must not stop the AI reply
+                    }
+                }
+
                 // ─── Spam Check ─────────────────────────────────────────
                 const spamResult = await classifyMessage(workspaceId, Body, From);
 

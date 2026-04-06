@@ -72,15 +72,46 @@ export async function POST(req: Request) {
                 }
 
                 // ─── Real Message Processing ────────────────────────────────────
+                db.webhookEvent.create({
+                    data: {
+                        provider: "twilio",
+                        eventType: "whatsapp.inbound",
+                        status: "received",
+                        payload: { userId: user.id, workspaceId: user.workspaceId ?? undefined, from: cleanNumber, bodyLength: body.length },
+                    },
+                }).catch(() => {});
+
                 const aiResponse = await processAgentCommand(user.id, body);
 
                 // Reply to user
                 if (twilioClient && twilioWhatsAppNumber) {
-                    await twilioClient.messages.create({
-                        from: `whatsapp:${twilioWhatsAppNumber}`,
-                        to: `whatsapp:${cleanNumber}`,
-                        body: aiResponse
-                    });
+                    let sid: string | undefined;
+                    try {
+                        const msg = await twilioClient.messages.create({
+                            from: `whatsapp:${twilioWhatsAppNumber}`,
+                            to: `whatsapp:${cleanNumber}`,
+                            body: aiResponse
+                        });
+                        sid = msg.sid;
+                    } catch (sendErr) {
+                        db.webhookEvent.create({
+                            data: {
+                                provider: "twilio",
+                                eventType: "whatsapp.outbound",
+                                status: "error",
+                                payload: { userId: user.id, error: sendErr instanceof Error ? sendErr.message : String(sendErr) },
+                            },
+                        }).catch(() => {});
+                        throw sendErr;
+                    }
+                    db.webhookEvent.create({
+                        data: {
+                            provider: "twilio",
+                            eventType: "whatsapp.outbound",
+                            status: "success",
+                            payload: { sid, userId: user.id, workspaceId: user.workspaceId ?? undefined },
+                        },
+                    }).catch(() => {});
                 }
             } catch (aiErr) {
                 console.error("[WhatsApp Webhook] Error processing AI command:", aiErr);

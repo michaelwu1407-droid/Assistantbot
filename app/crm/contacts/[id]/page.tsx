@@ -131,33 +131,33 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   <p className="text-slate-500 text-xs">Name</p>
                   <p className="font-medium text-slate-900 dark:text-foreground">{contact.name}</p>
                 </div>
-                {contact.company && (
+                <div>
+                  <p className="text-slate-500 text-xs">Company</p>
+                  {contact.company
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.company}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add company</Link>}
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs">Phone</p>
+                  {contact.phone
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.phone}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add phone</Link>}
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs">Email</p>
+                  {contact.email
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.email}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add email</Link>}
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-slate-500 text-xs">Company</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.company}</p>
+                    <p className="text-slate-500 text-xs">Address</p>
+                    {contact.address
+                      ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.address}</p>
+                      : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add address</Link>}
                   </div>
-                )}
-                {contact.phone && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Phone</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.phone}</p>
-                  </div>
-                )}
-                {contact.email && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Email</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.email}</p>
-                  </div>
-                )}
-                {contact.address && (
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-slate-500 text-xs">Address</p>
-                      <p className="font-medium text-slate-900 dark:text-foreground">{contact.address}</p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           ) : (
@@ -171,33 +171,33 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   <p className="text-slate-500 text-xs">Name</p>
                   <p className="font-medium text-slate-900 dark:text-foreground">{contact.name}</p>
                 </div>
-                {contact.company && (
+                <div>
+                  <p className="text-slate-500 text-xs">Company</p>
+                  {contact.company
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.company}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add company</Link>}
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs">Phone</p>
+                  {contact.phone
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.phone}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add phone</Link>}
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs">Email</p>
+                  {contact.email
+                    ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.email}</p>
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add email</Link>}
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-slate-500 text-xs">Company</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.company}</p>
+                    <p className="text-slate-500 text-xs">Address</p>
+                    {contact.address
+                      ? <p className="font-medium text-slate-900 dark:text-foreground">{contact.address}</p>
+                      : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add address</Link>}
                   </div>
-                )}
-                {contact.phone && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Phone</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.phone}</p>
-                  </div>
-                )}
-                {contact.email && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Email</p>
-                    <p className="font-medium text-slate-900 dark:text-foreground">{contact.email}</p>
-                  </div>
-                )}
-                {contact.address && (
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-slate-500 text-xs">Address</p>
-                      <p className="font-medium text-slate-900 dark:text-foreground">{contact.address}</p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           )}

@@ -933,6 +933,8 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath("/crm/schedule");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("approveCompletion failed", { component: "deal-actions", action: "approveCompletion", dealId }, err as Error);
@@ -1013,6 +1015,7 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("rejectCompletion failed", { component: "deal-actions", action: "rejectCompletion", dealId }, err as Error);
@@ -1065,6 +1068,7 @@ export async function approveDraft(dealId: string): Promise<{ success: boolean; 
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("approveDraft failed", { component: "deal-actions", action: "approveDraft", dealId }, err as Error);
@@ -1129,6 +1133,7 @@ export async function rejectDraft(dealId: string, reason?: string): Promise<{ su
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("rejectDraft failed", { component: "deal-actions", action: "rejectDraft", dealId }, err as Error);
