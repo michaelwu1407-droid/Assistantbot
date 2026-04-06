@@ -233,6 +233,9 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Invoice
                     </Button>
+                    <p className="text-xs text-slate-400 text-center">
+                        Creates a draft — click <strong>Issue</strong> on the invoice below to send it to the client.
+                    </p>
                 </CardContent>
             </Card>
 
