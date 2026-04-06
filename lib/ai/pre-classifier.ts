@@ -72,12 +72,14 @@ const REPORTING_PATTERNS = [
   /\b(report|summary|stats|statistics|dashboard|pipeline|overview)\b/i,
   /\b(this week|this month|last month|this quarter|year to date|ytd)\b/i,
   /\b(stale|overdue|rotting|attention|needs attention|at risk|stuck|blocked deal)\b/i,
+  /\b(job history|past job|previous job|search.{1,20}job)\b/i,
 ];
 
 const CONTACT_PATTERNS = [
   /\b(find|search|look up|lookup|who is|contact info|details for)\b/i,
   /\b(customer|client|their number|their email|their address)\b/i,
   /\b(latest note|recent note|last note)\b/i,
+  /\b(conversation history|message history|sms history|chat history|what have we sent|what did we send)\b/i,
 ];
 
 const CRM_ACTION_PATTERNS = [
@@ -235,6 +237,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         /\b(latest note|recent note|last note)\b/i.test(text)
           ? "For latest-note questions about a contact, use getClientContext and answer from the most recent CRM note instead of asking unnecessary follow-up questions."
           : null,
+        /\b(conversation history|message history|sms history|chat history|what have we sent|what did we send)\b/i.test(text)
+          ? "For conversation or message history queries, use getConversationHistory with the contact name. It returns calls, emails, notes, and SMS in chronological order."
+          : null,
       ].filter(Boolean) as string[];
     case "crm_action":
       return [
@@ -285,11 +290,15 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
     case "communication":
       return ["sendSms", "sendEmail", "makeCall"];
     case "reporting":
-      return /\b(incomplete|blocked|attention)\b/i.test(text)
-        ? ["listIncompleteOrBlockedJobs", "getAttentionRequired", "listDeals"]
-        : ["getFinancialReport", "getTodaySummary"];
+      if (/\b(incomplete|blocked|attention)\b/i.test(text)) {
+        return ["listIncompleteOrBlockedJobs", "getAttentionRequired", "listDeals"];
+      }
+      if (/\b(search past job history|job history|past job|previous job)\b/i.test(text)) {
+        return ["searchJobHistory", "listDeals"];
+      }
+      return ["getFinancialReport", "getTodaySummary"];
     case "contact_lookup":
-      return ["searchContacts", "getClientContext"];
+      return ["searchContacts", "getClientContext", "getConversationHistory"];
     case "crm_action":
       if (/^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)) {
         return ["createJobNatural", "createDeal", "createContact"];
@@ -298,6 +307,8 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         "moveDeal",
         "updateDealFields",
         "assignTeamMember",
+        "unassignDeal",
+        "restoreDeal",
         "createDeal",
         "createContact",
         "updateContactFields",
