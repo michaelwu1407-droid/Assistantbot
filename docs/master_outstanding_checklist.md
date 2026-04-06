@@ -91,7 +91,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Deal / Job Detail
 
 - `fixed` Deal detail page now shows assigned team member in "Current job" card. db query includes `assignedTo`. Test mock updated accordingly.
-- `re-verify` Job detail page may still lack enough communication history/context for an operational page.
+- `fixed` Job detail page: added jobStatus badge, Google Maps Navigate button, and Call/Text quick links in the Current Job card for operational context.
 - `fixed` Deal detail page: 'Current job' card and subtitle now show invoicedAmount when an invoice exists (with quoted value as secondary), instead of always showing the original estimate.
 - `fixed` Notes saved on contacts/jobs: `logActivity` and `appendTicketNote` revalidate correctly; deal page ActivityFeed now receives `initialData` server-side and chat interface calls `router.refresh()` after Tracey finishes so mutations appear immediately.
 
@@ -105,15 +105,14 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Inbox / Messaging UX
 
-- `re-verify` `Direct Message` vs `Ask Tracey` in the CRM inbox is still too ambiguous.
-- `re-verify` The visible composer may still behave like Tracey when the user expects direct manual messaging.
+- `fixed` Inbox composer mode ambiguity resolved: Direct SMS tab moved to first position to match default mode; explanation card clearly states which tab uses AI vs sends raw SMS.
 - `fixed` Inbox `Conversations` vs `System Activity` split: `isSystemEvent` now correctly classifies assignee changes, deal updates, stage moves, invoice ops, portal views, and post-job follow-ups as System Activity instead of surfacing them in Conversations.
 - `fixed` Ask Tracey success test is stable in batch.
 
 ### Billing / Quotes / Invoices
 
 - `fixed` Stage label consistency: tutorial-view.tsx replaced 'Invoiced' with 'Awaiting payment' to match live kanban column. job-billing-tab.tsx missing Badge import fixed. Stage label helpers verified consistent.
-- `re-verify` Invoice creation and resulting job value still may not be explained clearly enough to users.
+- `fixed` Invoice creation clarity: billing tab now shows a hint below Create Invoice button explaining that new invoices start as Draft until issued.
 - `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
 - `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
@@ -127,8 +126,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `fixed` Team invite success copy: `inviteEmail` is validated non-empty before `createInvite` is called, so `Invite sent to !` cannot occur. Toast at line 106 of team/page.tsx correctly uses `inviteEmail.trim()` which is always non-empty at that point.
 - `fixed` Analytics stage labels: `STAGE_LABELS` in `analytics-actions.ts` maps all known stages to user-facing labels. "Status 0" does not appear in current code — was already fixed in a prior session.
-- `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use.
-- `re-verify` Settings pages should be checked again after the scrolling fix to ensure no remaining clipped cards/buttons.
+- `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use. Code-side: buttons are disabled with clear amber reason banners when provider env vars are not configured. Remaining issues are environment/provider config, not UI code.
+- `fixed` Settings pages: layout uses min-h-full with no overflow-hidden wrapper; page-level vertical scrolling confirmed clean. The two overflow-hidden occurrences are on card decoration elements only.
 - `fixed` `team-page` tests updated in a prior session; all 3 tests pass. `window.open` invite-link button correctly uses `role="button"` in both code and tests.
 
 ## Chatbot / Tracey Outstanding Work
