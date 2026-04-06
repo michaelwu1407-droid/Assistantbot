@@ -1,3 +1,27 @@
+## 2026-04-06 (Claude) - Tracey accuracy, observability, and booking confirmation
+
+- Files changed:
+  - `actions/agent-tools.ts` (stage labels in financial report breakdown)
+  - `lib/messaging/send-notification.ts` (webhookEvent logging for reminders/emails)
+  - `app/api/webhooks/whatsapp/route.ts` (webhookEvent for WhatsApp inbound/outbound)
+  - `actions/chat-actions.ts` (getAttentionRequired stage label; searchContacts email; undo fix)
+  - `actions/deal-actions.ts` (no change — reverted erroneous check)
+  - `lib/ai/tools.ts` (moveDeal description; updateDealFields stage routing)
+  - `app/api/twilio/webhook/route.ts` (CONFIRM fast-path for customer SMS)
+  - `__tests__/whatsapp-route.test.ts` (webhookEvent mock)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Stage language sweep (final)**: `runGetFinancialReport` breakdown now maps through `AGENT_STAGE_LABELS`. All tool output paths (Tracey agent + chat tools + search + financial report) use user-facing labels.
+  - **Observability completeness**: `send-notification.ts` now logs Twilio SMS and Resend email sends to `webhookEvent` on success and failure. WhatsApp inbound messages and outbound AI replies now log to `webhookEvent`. Admin ops diagnostics dashboard now covers all provider delivery paths.
+  - **Tracey multi-step accuracy**:
+    - `moveDeal` tool description now explicitly states both requirements for Scheduled stage (assignee + date)
+    - `updateDealFields` description steers Tracey to prefer `moveDeal` for stage changes
+    - `runGetAttentionRequired` now includes stage label per deal (e.g. `[Scheduled] — Stale`)
+    - `runUndoLastAction` fixed to check `title` field (not `description` which stores actor) for action detection; restored stage label is now user-facing
+    - `runSearchContacts` now includes email in output
+  - **Customer booking confirmation fast-path**: Twilio inbound SMS webhook now detects "CONFIRM/YES/OK" replies, finds the most recent pending-confirmation deal for that contact, updates `confirmationStatus` to "confirmed", and logs an activity — before passing to AI for reply generation.
+- Why: Continued systematic improvement of Tracey's tool output accuracy, ops dashboard visibility for all delivery channels, and the customer-facing booking confirmation flow.
+
 ## 2026-04-05 (Claude) - CRM polish: locale dates, revalidation sweep, activity feed refresh
 
 - Files changed:
