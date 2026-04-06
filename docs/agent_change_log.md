@@ -1,3 +1,21 @@
+## 2026-04-06 Session 2 (Claude) - Tracey tool completeness and pre-classifier routing
+
+- Files changed:
+  - `actions/chat-actions.ts` (getDealContext assignee; createTask name resolution; unassign/restore by title; listDeals contactName; update messages; awaiting_payment alias; dead code removal)
+  - `lib/ai/tools.ts` (createTask schema adds dealTitle/contactName; unassignDeal/restoreDeal accept dealTitle)
+  - `lib/ai/pre-classifier.ts` (conversation history and job history patterns; searchJobHistory and getConversationHistory suggestions; unassignDeal/restoreDeal in crm_action tools)
+  - `app/api/chat/route.ts` (extractLikelyDealQuery patterns for stage lookup, recent notes, important facts; createTask workspaceId fix)
+  - `__tests__/chat-actions.test.ts` (8 new tests; 2 updated with assignedTo)
+  - `__tests__/pre-classifier.test.ts` (4 new tests for new routing cases)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Tool completeness**: `getDealContext` now returns assigned team member ("Assigned to: Sam" / "(unassigned)"); `createTask` resolves `dealTitle` and `contactName` to IDs and passes `workspaceId`; `unassignDeal` and `restoreDeal` now accept `dealTitle` for one-step use; `listDeals` now includes `contactName`; update success messages list field→value changes.
+  - **Pre-classifier routing fixes**: "conversation history" queries now route to `contact_lookup` with `getConversationHistory` suggested; "past job history" queries route to `reporting` with `searchJobHistory` first; `unassignDeal`/`restoreDeal` added to `crm_action` suggested tools; job history pattern added to `REPORTING_PATTERNS` so it outscores `contact_lookup`.
+  - **Entity pre-resolution**: `extractLikelyDealQuery` extended with patterns for stage lookups, recent notes, and "most important facts" queries — pre-loads the matching deal into LIKELY CRM TARGETS.
+  - **Stage alias**: "awaiting payment" → `ready_to_invoice` added to `STAGE_ALIASES`; dead `awaiting_payment` case removed from `getDealNextStepGuidance`.
+  - **Tests**: 641/641 unit tests pass; 12 new/updated tests.
+- Why: Continued systematic improvement of Tracey's tool output quality and pre-classifier routing accuracy so common CRM questions can be answered in fewer tool round-trips.
+
 ## 2026-04-06 (Claude) - Tracey accuracy, observability, and booking confirmation
 
 - Files changed:

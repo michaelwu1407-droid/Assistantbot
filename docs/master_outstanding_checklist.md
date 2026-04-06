@@ -132,6 +132,10 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Chatbot / Tracey Outstanding Work
 
+- `fixed` Tool output completeness pass: getDealContext now includes assigned team member; createTask resolves dealTitle/contactName to IDs and links the task; unassignDeal and restoreDeal accept dealTitle instead of requiring raw deal IDs; listDeals includes contactName; updateContactFields and updateDealFields success messages now list each changed field with new value.
+- `fixed` Stage alias coverage: "awaiting payment" and "awaiting_payment" added to STAGE_ALIASES so Tracey can move deals to that stage by user-facing name.
+- `fixed` Pre-classifier routing: conversation history queries now route to contact_lookup with getConversationHistory suggested; job history searches route to reporting with searchJobHistory first; unassignDeal/restoreDeal added to crm_action suggested tools.
+- `fixed` Deal query extraction: extractLikelyDealQuery now recognises "what is the exact current stage of X", "what recent notes exist for X", and "what are the most important facts about X" patterns, pre-loading the deal into LIKELY CRM TARGETS before the LLM responds.
 - `open` Keep improving output quality first, not just latency.
 - `open` Continue testing Tracey with real CRM operation prompts, not toy questions.
 - `fixed` getTodaySummary and getAvailability now compute day boundaries using workspace timezone (via parseDateTimeLocalInTimezone). On UTC servers, AEST workspaces previously got wrong 'today' jobs.

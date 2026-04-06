@@ -133,6 +133,8 @@ const STAGE_ALIASES: Record<string, string> = {
   "quoting": "quote_sent",
   "scheduled": "scheduled",
   "ready to invoice": "ready_to_invoice",
+  "awaiting payment": "ready_to_invoice",
+  "awaiting_payment": "ready_to_invoice",
   "pending approval": "pending_approval",
   "completed": "completed",
   "lost": "lost",
@@ -221,12 +223,8 @@ function getDealNextStepGuidance(input: {
         : "Complete the work, record any field notes or materials, and generate the invoice when the job is finished.";
     case "ready_to_invoice":
       return input.hasInvoice
-        ? "Issue the invoice or update its status, then follow through to payment."
-        : "Generate the invoice and send or review it before closing out payment.";
-    case "awaiting_payment":
-      return input.hasInvoice
         ? "The invoice has been issued. Follow up with the customer on payment and mark it paid when received."
-        : "Generate and issue the invoice so the customer can pay.";
+        : "Generate the invoice and send it to the customer so they can pay.";
     case "pending_approval":
       return "Review the completion details, then approve it to move to completed or reject it with a reason.";
     case "completed":
