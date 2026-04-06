@@ -202,11 +202,23 @@ export default async function DealDetailPage({ params }: PageProps) {
                 <Briefcase className="w-4 h-4" />
                 Current job
               </h3>
-              {deal.jobStatus && (
-                <Badge variant="outline" className="text-[10px] font-medium capitalize">
-                  {deal.jobStatus.toLowerCase().replace(/_/g, " ")}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1.5">
+                {deal.jobStatus && (
+                  <Badge variant="outline" className="text-[10px] font-medium capitalize">
+                    {deal.jobStatus.toLowerCase().replace(/_/g, " ")}
+                  </Badge>
+                )}
+                {metadata.confirmationStatus === "confirmed" && (
+                  <Badge variant="outline" className="text-[10px] font-medium text-emerald-700 border-emerald-300 bg-emerald-50">
+                    Customer confirmed
+                  </Badge>
+                )}
+                {metadata.confirmationStatus === "pending" && !metadata.confirmedAt && (
+                  <Badge variant="outline" className="text-[10px] font-medium text-amber-700 border-amber-300 bg-amber-50">
+                    Awaiting confirmation
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="space-y-2.5 text-sm">
               <div>
