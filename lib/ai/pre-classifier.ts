@@ -81,8 +81,8 @@ const CONTACT_PATTERNS = [
 ];
 
 const CRM_ACTION_PATTERNS = [
-  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo)\b/i,
-  /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage)\b/i,
+  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo|approve|reject|decline)\b/i,
+  /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage|draft|completion|approval)\b/i,
 ];
 
 const INVOICE_PATTERNS = [
@@ -241,6 +241,9 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         "CRM ACTION REQUEST: Prefer using CRM mutation tools directly instead of saying you cannot do it.",
         "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
         "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
+        /\b(approve|reject|decline)\b/i.test(text) && /\b(completion|done|finished|complete|draft|job|booking)\b/i.test(text)
+          ? "APPROVAL/REJECTION: Use approveCompletion or rejectCompletion for job completion requests. Use approveDraft for draft job approvals. Include a reason if the user provided one."
+          : null,
         /\b(what still needs to happen before .+ can be completed)\b/i.test(text)
           ? "For blockers or next-step questions, use getDealContext first, then explain what is still missing instead of asking the user what action they want to take."
           : null,

@@ -2903,6 +2903,94 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
 }
 
 /**
+ * Approve a job draft (moves it from draft/new to active pipeline).
+ */
+export async function runApproveDraft(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job draft matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveDraft } = await import("./deal-actions");
+  const result = await approveDraft(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve draft for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Draft "${deal.title}" approved and moved to active pipeline.`,
+    quickActions: [
+      { label: "Schedule this job", prompt: `Schedule a time for "${deal.title}"` },
+      { label: "Assign team member", prompt: `Assign a team member to "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Approve a completion request (moves PENDING_COMPLETION deal to WON).
+ */
+export async function runApproveCompletion(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveCompletion } = await import("./deal-actions");
+  const result = await approveCompletion(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `"${deal.title}" completion approved — job is now Completed.`,
+    quickActions: [
+      { label: "Create invoice", prompt: `Create a draft invoice for "${deal.title}"` },
+      { label: "Request review", prompt: `Send a review request to the client for "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Reject a completion request (reverts PENDING_COMPLETION deal and notifies team member).
+ */
+export async function runRejectCompletion(
+  workspaceId: string,
+  params: { dealTitle: string; reason?: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { rejectCompletion } = await import("./deal-actions");
+  const result = await rejectCompletion(deal.id, params.reason?.trim());
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't reject completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  const reasonSuffix = params.reason?.trim() ? ` Reason: "${params.reason.trim()}"` : "";
+  return {
+    success: true,
+    message: `Completion request for "${deal.title}" rejected.${reasonSuffix} The team member has been notified and the job has been reverted.`,
+    quickActions: [
+      { label: "Add note", prompt: `Add a note to "${deal.title}" explaining what needs to be fixed` },
+      { label: "View job", prompt: `Show me the deal "${deal.title}"` },
+    ],
+  };
+}
+
+/**
  * Handle support requests from chatbot
  */
 export async function handleSupportRequest(

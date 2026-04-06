@@ -46,6 +46,9 @@ import {
     runUnassignDeal,
     runRestoreDeal,
     runAssignTeamMember,
+    runApproveDraft,
+    runApproveCompletion,
+    runRejectCompletion,
     handleSupportRequest,
     runAppendTicketNote,
     recordManualRevenue,
@@ -483,6 +486,28 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             }),
             execute: async ({ dealId }) => runRestoreDeal(workspaceId, { dealId }),
         }),
+        approveDraft: tool({
+            description: "Approve a job draft, moving it from draft/new status into the active pipeline. Use when a manager approves a pending draft job.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Draft job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runApproveDraft(workspaceId, { dealTitle }),
+        }),
+        approveCompletion: tool({
+            description: "Approve a job completion request (PENDING_COMPLETION), marking the job as fully completed. Use when a manager approves a team member's completion request.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job title (fuzzy matched)"),
+            }),
+            execute: async ({ dealTitle }) => runApproveCompletion(workspaceId, { dealTitle }),
+        }),
+        rejectCompletion: tool({
+            description: "Reject a job completion request, notifying the team member and reverting the job stage. Use when a manager rejects a completion request.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Job title (fuzzy matched)"),
+                reason: z.string().optional().describe("Short reason for rejection"),
+            }),
+            execute: async ({ dealTitle, reason }) => runRejectCompletion(workspaceId, { dealTitle, reason }),
+        }),
         assignTeamMember: tool({
             description: "Assign a team member to a job. Fuzzy-matches job title and member name.",
             inputSchema: z.object({
@@ -647,6 +672,9 @@ const CRM_CORE_TOOLS = [
     'assignTeamMember',
     'unassignDeal',
     'restoreDeal',
+    'approveDraft',
+    'approveCompletion',
+    'rejectCompletion',
     'revertDealStageMove',
     'createContact',
     'updateContactFields',
