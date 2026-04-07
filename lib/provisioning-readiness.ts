@@ -11,6 +11,24 @@ type WorkspaceProvisioningStatus =
   | "already_provisioned"
   | "untracked";
 
+type ProvisioningWorkspaceRow = {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  twilioPhoneNumber: string | null;
+  inboundEmail: string | null;
+  ownerId: string | null;
+  settings: unknown;
+  owner: {
+    workspaceId: string;
+  } | null;
+  _count: {
+    contacts: number;
+    deals: number;
+    chatMessages: number;
+  };
+};
+
 export type ProvisioningReadinessIssue = {
   workspaceId: string;
   workspaceName: string;
@@ -52,10 +70,26 @@ function readNumber(value: unknown) {
 }
 
 function deriveProvisioningStatus(
-  settings: Record<string, unknown>,
-  twilioPhoneNumber: string | null,
+  row: ProvisioningWorkspaceRow,
 ): WorkspaceProvisioningStatus {
+  const settings = asObject(row.settings);
   const rawStatus = readString(settings.onboardingProvisioningStatus);
+  const ownerWorkspaceId = row.owner?.workspaceId || null;
+  const noProvisionedChannels = !row.twilioPhoneNumber && !row.inboundEmail;
+  const noWorkspaceData =
+    row._count.contacts === 0 &&
+    row._count.deals === 0 &&
+    row._count.chatMessages === 0;
+  const orphanedOwner = ownerWorkspaceId !== null && ownerWorkspaceId !== row.id;
+  const staleFailedAttempt =
+    rawStatus === "failed" &&
+    orphanedOwner &&
+    noProvisionedChannels &&
+    noWorkspaceData;
+
+  if (staleFailedAttempt) {
+    return "untracked";
+  }
 
   if (
     rawStatus === "not_requested" ||
@@ -69,20 +103,14 @@ function deriveProvisioningStatus(
     return rawStatus;
   }
 
-  if (twilioPhoneNumber) return "provisioned";
+  if (row.twilioPhoneNumber) return "provisioned";
   if (settings.provisionPhoneNumberRequested === true) return "requested";
   return "untracked";
 }
 
-function buildIssue(row: {
-  id: string;
-  name: string;
-  updatedAt: Date;
-  twilioPhoneNumber: string | null;
-  settings: unknown;
-}): ProvisioningReadinessIssue | null {
+function buildIssue(row: ProvisioningWorkspaceRow): ProvisioningReadinessIssue | null {
   const settings = asObject(row.settings);
-  const provisioningStatus = deriveProvisioningStatus(settings, row.twilioPhoneNumber);
+  const provisioningStatus = deriveProvisioningStatus(row);
   if (!["requested", "provisioning", "failed", "blocked_duplicate"].includes(provisioningStatus)) {
     return null;
   }
@@ -109,9 +137,23 @@ export async function getProvisioningReadinessSummary(options?: {
     select: {
       id: true,
       name: true,
+      ownerId: true,
+      inboundEmail: true,
       twilioPhoneNumber: true,
       updatedAt: true,
       settings: true,
+      owner: {
+        select: {
+          workspaceId: true,
+        },
+      },
+      _count: {
+        select: {
+          contacts: true,
+          deals: true,
+          chatMessages: true,
+        },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -129,8 +171,7 @@ export async function getProvisioningReadinessSummary(options?: {
 
   const issues = workspaces
     .map((workspace) => {
-      const settings = asObject(workspace.settings);
-      const provisioningStatus = deriveProvisioningStatus(settings, workspace.twilioPhoneNumber);
+      const provisioningStatus = deriveProvisioningStatus(workspace);
       counts[provisioningStatus] += 1;
       return buildIssue(workspace);
     })
