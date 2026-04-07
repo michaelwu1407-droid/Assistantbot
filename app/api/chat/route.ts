@@ -1027,16 +1027,18 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
 
   match = text.match(/^create a draft invoice for (.+?)[.?!]*$/i);
   if (match) {
+    const result = await runCreateDraftInvoice(workspaceId, { dealTitle: cleanDirectValue(match[1]) });
     return {
-      text: await runCreateDraftInvoice(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      text: result.message,
       metricName: "chat.web.direct.invoice",
     };
   }
 
   match = text.match(/^(?:what is the latest invoice status for|show me the invoice status for) (.+?)[.?!]*$/i);
   if (match) {
+    const result = await runGetInvoiceStatusAction(workspaceId, { dealTitle: cleanDirectValue(match[1]) });
     return {
-      text: await runGetInvoiceStatusAction(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      text: result.message,
       metricName: "chat.web.direct.invoice",
     };
   }

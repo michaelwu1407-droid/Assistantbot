@@ -24,6 +24,11 @@ const hoisted = vi.hoisted(() => ({
       delete: vi.fn(),
       findUnique: vi.fn(),
     },
+    invoice: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
     chatMessage: {
       findMany: vi.fn(),
     },
@@ -55,6 +60,7 @@ const hoisted = vi.hoisted(() => ({
   fuzzyScore: vi.fn(),
   recordWorkspaceAuditEventForCurrentActor: vi.fn(),
   allocateWorkspaceInvoiceNumber: vi.fn(),
+  getInvoiceSyncStatus: vi.fn(),
   titleCase: vi.fn((value: string) => value),
   categoriseWork: vi.fn(),
   resolveSchedule: vi.fn(),
@@ -128,6 +134,9 @@ vi.mock("@/lib/workspace-audit", () => ({
 vi.mock("@/lib/invoice-number", () => ({
   allocateWorkspaceInvoiceNumber: hoisted.allocateWorkspaceInvoiceNumber,
 }));
+vi.mock("@/actions/accounting-actions", () => ({
+  getInvoiceSyncStatus: hoisted.getInvoiceSyncStatus,
+}));
 vi.mock("@/lib/chat-utils", () => ({
   titleCase: hoisted.titleCase,
   categoriseWork: hoisted.categoriseWork,
@@ -164,9 +173,11 @@ import {
   handleSupportRequest,
   runAddDealNote,
   runCreateDeal,
+  runCreateDraftInvoice,
   runCreateJobNatural,
   runCreateTask,
   runGetDealContext,
+  runGetInvoiceStatusAction,
   runListDeals,
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
@@ -189,6 +200,12 @@ describe("chat-actions", () => {
     hoisted.createContact.mockResolvedValue({ success: true, contactId: "contact_1" });
     hoisted.searchContacts.mockResolvedValue([]);
     hoisted.resendSend.mockResolvedValue({ data: { id: "email_1" }, error: null });
+    hoisted.db.invoice.findFirst.mockResolvedValue(null);
+    hoisted.db.invoice.create.mockResolvedValue({});
+    hoisted.db.invoice.update.mockResolvedValue({});
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+    hoisted.allocateWorkspaceInvoiceNumber.mockResolvedValue("INV-1001");
+    hoisted.getInvoiceSyncStatus.mockResolvedValue({ synced: false, provider: null });
   });
 
   it("moves a deal to the resolved stage label and revalidates CRM views", async () => {
@@ -712,6 +729,114 @@ describe("chat-actions", () => {
     );
     expect(result).toContain("Task created:");
     expect(result).not.toContain("linked to");
+  });
+
+  it("creates a draft invoice when the prompt target is a contact with one active job", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: null, company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_99",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_99",
+      title: "Blocked Drain",
+      value: 350,
+      contactId: "contact_42",
+    });
+
+    const result = await runCreateDraftInvoice("ws_1", { dealTitle: "Alex Harper" });
+
+    expect(hoisted.db.invoice.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dealId: "deal_99",
+          total: 350,
+        }),
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
+  });
+
+  it("asks for clarification when a contact has multiple active jobs for invoice creation", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: null, company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+      {
+        id: "deal_2",
+        title: "Hot Water Service",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+
+    const result = await runCreateDraftInvoice("ws_1", { dealTitle: "Alex Harper" });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('I found multiple jobs for "Alex Harper"');
+    expect(result.message).toContain('"Blocked Drain"');
+    expect(result.message).toContain('"Hot Water Service"');
+    expect(hoisted.db.invoice.create).not.toHaveBeenCalled();
+  });
+
+  it("gets invoice status when the target text is a contact name rather than a deal title", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: "alex@example.com", company: null },
+    ]);
+    hoisted.db.invoice.findFirst.mockResolvedValue({
+      id: "inv_1",
+      number: "INV-1002",
+      status: "ISSUED",
+      total: 350,
+      dealId: "deal_99",
+      deal: {
+        title: "Blocked Drain",
+        contact: {
+          id: "contact_42",
+          name: "Alex Harper",
+        },
+      },
+    });
+    hoisted.getInvoiceSyncStatus.mockResolvedValue({ synced: true, provider: "xero" });
+
+    const result = await runGetInvoiceStatusAction("ws_1", { dealTitle: "Alex Harper" });
+
+    expect(hoisted.db.invoice.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          deal: expect.objectContaining({
+            contactId: "contact_42",
+          }),
+        }),
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Invoice INV-1002");
+    expect(result.message).toContain("Deal: Blocked Drain");
+    expect(result.message).toContain("Contact: Alex Harper");
+    expect(result.message).toContain("Accounting sync: synced via xero");
   });
 
   it("unassignDeal resolves by dealTitle and removes assignee", async () => {

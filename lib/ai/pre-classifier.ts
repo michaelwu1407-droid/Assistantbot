@@ -129,6 +129,16 @@ export function preClassify(text: string): PreClassification {
     };
   }
 
+  if (/\b(status|what.{0,10}invoice|invoice.{0,10}status)\b/i.test(trimmed) && /\binvoice\b/i.test(trimmed)) {
+    return {
+      intent: "invoice",
+      confidence: 0.94,
+      contextHints: getContextHints("invoice", trimmed),
+      suggestedTools: getSuggestedTools("invoice", trimmed),
+      requiresCalculator: false,
+    };
+  }
+
   // Fast-path: explicit invoice/quote creation, issue, or payment marking
   // These have a clear primary action verb + invoice/quote noun that should always win over "pricing".
   if (
@@ -354,6 +364,9 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         "getDealContext",
       ];
     case "invoice":
+      if (/\b(status|what.{0,10}invoice|invoice.{0,10}status)\b/i.test(text)) {
+        return ["getInvoiceStatus", "issueInvoice", "markInvoicePaid"];
+      }
       if (/\b(ready to invoice|already invoiced)\b/i.test(text)) {
         return ["listInvoiceReadyJobs", "getInvoiceStatus", "listDeals"];
       }

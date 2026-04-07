@@ -272,6 +272,93 @@ function findDealByTitle<T extends { id: string; title: string }>(deals: T[], qu
   return bestDeal;
 }
 
+type InvoiceTargetDeal = {
+  id: string;
+  title: string;
+  stage?: string | null;
+  updatedAt?: Date;
+  createdAt?: Date;
+  contactId?: string | null;
+};
+
+const CLOSED_OR_REMOVED_DEAL_STAGES = new Set(["DELETED", "LOST"]);
+const PREFERRED_INVOICE_DEAL_STAGES = ["NEW", "PIPELINE", "CONTACTED", "QUOTE_SENT", "SCHEDULED", "INVOICED", "READY_TO_INVOICE", "COMPLETED"];
+
+function getDealStageRank(stage?: string | null): number {
+  const normalized = (stage ?? "").toUpperCase();
+  const index = PREFERRED_INVOICE_DEAL_STAGES.indexOf(normalized);
+  return index === -1 ? PREFERRED_INVOICE_DEAL_STAGES.length : index;
+}
+
+function formatDealChoicesForPrompt(deals: Array<Pick<InvoiceTargetDeal, "title" | "stage">>): string {
+  return deals
+    .slice(0, 3)
+    .map((deal) => `"${deal.title}"${deal.stage ? ` (${CHAT_STAGE_LABELS[PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? deal.stage.toLowerCase()] ?? deal.stage})` : ""}`)
+    .join(", ");
+}
+
+async function resolveDealForInvoiceTarget(
+  workspaceId: string,
+  rawTarget: string,
+): Promise<{ deal: InvoiceTargetDeal | null; ambiguityMessage?: string }> {
+  const target = rawTarget.trim();
+  if (!target) return { deal: null };
+
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const directDealMatch = findDealByTitle(deals, target);
+  if (directDealMatch) {
+    return { deal: directDealMatch };
+  }
+
+  const contacts = await searchContacts(workspaceId, target);
+  const contact = contacts[0];
+  if (!contact) {
+    return { deal: null };
+  }
+
+  const candidateDeals = await db.deal.findMany({
+    where: {
+      workspaceId,
+      contactId: contact.id,
+      stage: { notIn: Array.from(CLOSED_OR_REMOVED_DEAL_STAGES) },
+    },
+    select: {
+      id: true,
+      title: true,
+      stage: true,
+      updatedAt: true,
+      createdAt: true,
+      contactId: true,
+    },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+  });
+
+  if (candidateDeals.length === 0) {
+    return { deal: null };
+  }
+
+  if (candidateDeals.length === 1) {
+    return { deal: candidateDeals[0] };
+  }
+
+  const rankedDeals = [...candidateDeals].sort((a, b) => {
+    const stageDelta = getDealStageRank(a.stage) - getDealStageRank(b.stage);
+    if (stageDelta !== 0) return stageDelta;
+    return (b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0);
+  });
+
+  const best = rankedDeals[0];
+  const second = rankedDeals[1];
+  if (best && second && getDealStageRank(best.stage) < getDealStageRank(second.stage)) {
+    return { deal: best };
+  }
+
+  return {
+    deal: null,
+    ambiguityMessage: `I found multiple jobs for "${contact.name ?? target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I’ll handle the invoice from there.`,
+  };
+}
+
 export interface IndustryContext {
   dealLabel: string;
   dealsLabel: string;
@@ -1514,9 +1601,30 @@ async function findInvoiceInWorkspace(
   }
 
   if (params.dealTitle?.trim()) {
-    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-    const target = findDealByTitle(deals, params.dealTitle.trim());
-    if (!target) return null;
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+    const target = resolution.deal;
+    if (!target) {
+      if (resolution.ambiguityMessage) {
+        return { __kind: "ambiguous", message: resolution.ambiguityMessage } as const;
+      }
+      const contacts = await searchContacts(workspaceId, params.dealTitle.trim());
+      const contact = contacts[0];
+      if (!contact) return null;
+      return db.invoice.findFirst({
+        where: {
+          deal: {
+            workspaceId,
+            contactId: contact.id,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          deal: {
+            include: { contact: true },
+          },
+        },
+      });
+    }
     return db.invoice.findFirst({
       where: { dealId: target.id },
       orderBy: { createdAt: "desc" },
@@ -1555,12 +1663,12 @@ export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
-  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+  const deal = resolution.deal;
   if (!deal) {
     return {
       success: false,
-      message: `Couldn't find a job matching "${params.dealTitle}".`,
+      message: resolution.ambiguityMessage ?? `Couldn't find a job matching "${params.dealTitle}".`,
       quickActions: [],
     };
   }
@@ -1638,6 +1746,9 @@ export async function runIssueInvoiceAction(
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return { success: false, message: invoice.message, quickActions: [] };
+  }
   if (!invoice) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
@@ -1672,6 +1783,9 @@ export async function runMarkInvoicePaidAction(
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return { success: false, message: invoice.message, quickActions: [] };
+  }
   if (!invoice) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
@@ -1698,6 +1812,9 @@ export async function runReverseInvoiceStatus(
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; targetStatus: "DRAFT" | "ISSUED" }
 ) {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return invoice.message;
+  }
   if (!invoice) {
     return "Couldn't find an invoice for that deal/contact.";
   }
@@ -1756,6 +1873,9 @@ export async function runSendInvoiceReminder(
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; channel?: "auto" | "email" | "sms" }
 ) {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return invoice.message;
+  }
   if (!invoice) {
     return "Couldn't find an invoice for that deal/contact.";
   }
@@ -1791,6 +1911,9 @@ export async function runGetInvoiceStatusAction(
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return { success: false, message: invoice.message, quickActions: [] };
+  }
   if (!invoice) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
@@ -1843,6 +1966,9 @@ export async function runUpdateInvoiceFields(
   }
 ) {
   const invoice = await findInvoiceInWorkspace(workspaceId, params);
+  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
+    return invoice.message;
+  }
   if (!invoice) {
     return "Couldn't find an invoice for that deal/contact.";
   }

@@ -99,6 +99,13 @@ describe("pre-classifier", () => {
     expect(result.contextHints.join(" ")).toContain("updateInvoiceAmount");
   });
 
+  it("puts getInvoiceStatus first for explicit invoice status questions", () => {
+    const result = preClassify("What is the latest invoice status for Alex Harper?");
+
+    expect(result.intent).toBe("invoice");
+    expect(result.suggestedTools[0]).toBe("getInvoiceStatus");
+  });
+
   it("hints at STAGE ADVANCE when user says advance or move forward", () => {
     const result = preClassify("Advance the Hot Water Fix job to the next stage.");
 
