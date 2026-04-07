@@ -3624,3 +3624,20 @@ Rule: every agent change commit must include an entry in this file.
   - continue live CRM workflow testing
   - continue Tracey output-quality work on real CRM operations
   - finish remaining real provider/device verification
+## 2026-04-07 - Claude invoice/quote branch merged and production healthy
+
+- Merged Claude branch `origin/claude/deploy-main-vercel-fnJCO` via cherry-pick:
+  - `4c57c86c` `fix: improve Tracey quote/invoice classifier and multi-step flow budget`
+  - `7f1e502c` `fix: tighten invoice/quote multi-step flow and tool descriptions`
+- Verified locally with:
+  - `npx vitest run __tests__/pre-classifier.test.ts __tests__/chat-route.test.ts __tests__/chat-actions.test.ts __tests__/tracey-prompt-contract.test.ts`
+- Production deploy completed successfully on Vercel:
+  - deploy `dpl_83f5ZJCGWpxdXCVisnsnj62AScxy`
+  - `https://www.earlymark.ai` now reports app SHA `594ce5a8`
+- Refreshed production monitor routes:
+  - `/api/cron/voice-agent-health`
+  - `/api/cron/voice-monitor-watchdog`
+  - `/api/cron/passive-communications-health`
+- Live protected launch-readiness now returns `200` and `status: healthy` with summary:
+  - `Launch-critical web, voice, communications, and provisioning signals are healthy.`
+- This closes the previous production deploy/readiness blocker. The next outstanding work is now product-level: live CRM workflow trust/polish, Tracey quality on real CRM operations, and remaining real provider/device verification (especially WhatsApp assistant and the 3 Tracey call modes).
