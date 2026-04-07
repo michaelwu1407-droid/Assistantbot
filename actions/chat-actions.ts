@@ -1,5 +1,6 @@
 "use server";
 
+import type { DealStage, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
@@ -281,7 +282,22 @@ type InvoiceTargetDeal = {
   contactId?: string | null;
 };
 
-const CLOSED_OR_REMOVED_DEAL_STAGES = new Set(["DELETED", "LOST"]);
+type AmbiguousInvoiceLookup = {
+  __kind: "ambiguous";
+  message: string;
+};
+
+type InvoiceLookupRecord = Prisma.InvoiceGetPayload<{
+  include: {
+    deal: {
+      include: {
+        contact: true;
+      };
+    };
+  };
+}> | null;
+
+const CLOSED_OR_REMOVED_DEAL_STAGES: DealStage[] = ["DELETED", "LOST"];
 const PREFERRED_INVOICE_DEAL_STAGES = ["NEW", "PIPELINE", "CONTACTED", "QUOTE_SENT", "SCHEDULED", "INVOICED", "READY_TO_INVOICE", "COMPLETED"];
 
 function getDealStageRank(stage?: string | null): number {
@@ -320,7 +336,7 @@ async function resolveDealForInvoiceTarget(
     where: {
       workspaceId,
       contactId: contact.id,
-      stage: { notIn: Array.from(CLOSED_OR_REMOVED_DEAL_STAGES) },
+      stage: { notIn: CLOSED_OR_REMOVED_DEAL_STAGES },
     },
     select: {
       id: true,
@@ -357,6 +373,16 @@ async function resolveDealForInvoiceTarget(
     deal: null,
     ambiguityMessage: `I found multiple jobs for "${contact.name ?? target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I’ll handle the invoice from there.`,
   };
+}
+
+function isAmbiguousInvoiceLookup(value: unknown): value is AmbiguousInvoiceLookup {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "__kind" in value &&
+    (value as { __kind?: unknown }).__kind === "ambiguous" &&
+    "message" in value
+  );
 }
 
 export interface IndustryContext {
@@ -1585,7 +1611,7 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
 async function findInvoiceInWorkspace(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<InvoiceLookupRecord | AmbiguousInvoiceLookup> {
   if (params.invoiceId?.trim()) {
     return db.invoice.findFirst({
       where: {
@@ -1745,12 +1771,16 @@ export async function runIssueInvoiceAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return { success: false, message: invoice.message, quickActions: [] };
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
+  if (isAmbiguousInvoiceLookup(invoice)) {
+    return { success: false, message: invoice.message, quickActions: [] };
   }
 
   const { issueInvoice } = await import("./tradie-actions");
@@ -1782,12 +1812,16 @@ export async function runMarkInvoicePaidAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return { success: false, message: invoice.message, quickActions: [] };
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
+  if (isAmbiguousInvoiceLookup(invoice)) {
+    return { success: false, message: invoice.message, quickActions: [] };
   }
 
   const { markInvoicePaid } = await import("./tradie-actions");
@@ -1811,13 +1845,14 @@ export async function runReverseInvoiceStatus(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; targetStatus: "DRAFT" | "ISSUED" }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return invoice.message;
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   if (invoice.status === params.targetStatus) {
     return `Invoice ${invoice.number} is already ${params.targetStatus}.`;
@@ -1872,13 +1907,14 @@ export async function runSendInvoiceReminder(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; channel?: "auto" | "email" | "sms" }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return invoice.message;
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   const contact = invoice.deal.contact;
   const amount = Number(invoice.total || 0).toFixed(2);
@@ -1910,13 +1946,14 @@ export async function runGetInvoiceStatusAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return { success: false, message: invoice.message, quickActions: [] };
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
+  const invoice = invoiceLookup;
 
   const { getInvoiceSyncStatus } = await import("./accounting-actions");
   const syncStatus = await getInvoiceSyncStatus(invoice.id);
@@ -1965,13 +2002,14 @@ export async function runUpdateInvoiceFields(
     issuedAtISO?: string | null;
   }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (invoice && "__kind" in invoice && invoice.__kind === "ambiguous") {
-    return invoice.message;
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
   }
-  if (!invoice) {
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   if (invoice.status === "VOID") {
     return `Invoice ${invoice.number} is void and can't be edited.`;
@@ -2055,10 +2093,14 @@ export async function runVoidInvoice(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
 ): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
+  }
+  if (!invoiceLookup) {
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
+  const invoice = invoiceLookup;
 
   if (invoice.status === "VOID") {
     return { success: false, message: `Invoice ${invoice.number} is already void.`, quickActions: [
