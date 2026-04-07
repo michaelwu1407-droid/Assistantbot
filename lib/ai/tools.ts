@@ -236,7 +236,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runUpdateInvoiceAmount(workspaceId, { dealTitle, amount }),
         }),
         createDraftInvoice: tool({
-            description: "Create a draft invoice for a job/deal using its current value when no draft exists yet. After creating, if a different amount was requested use updateInvoiceFields to set the correct total, then moveDeal to 'Quote Sent' if the job is still in 'New Request'.",
+            description: "Create a draft invoice for a job/deal using its current value when no draft exists yet. dealTitle may be the exact job title or a customer name when that customer only has one active job. After creating, if a different amount was requested use updateInvoiceFields to set the correct total, then moveDeal to 'Quote Sent' if the job is still in 'New Request'.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
             }),

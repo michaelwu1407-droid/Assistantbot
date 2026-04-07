@@ -96,6 +96,7 @@ describe("pre-classifier", () => {
     expect(result.intent).toBe("invoice");
     expect(result.suggestedTools).toContain("createDraftInvoice");
     expect(result.contextHints.join(" ")).toContain("QUOTE = DRAFT INVOICE");
+    expect(result.contextHints.join(" ")).toContain("always try createDraftInvoice first");
     expect(result.contextHints.join(" ")).toContain("updateInvoiceAmount");
   });
 
