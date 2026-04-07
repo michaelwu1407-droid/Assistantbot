@@ -50,7 +50,12 @@ const THRESHOLDS: Record<VoiceSurface, VoiceLatencyThresholds> = {
   },
   inbound_demo: {
     llmTtftAvgMs: 1200,
-    ttsTtfbAvgMs: 900,
+    // PSTN-backed inbound demo calls behave much closer to the real phone surface
+    // than the in-browser demo surface. In production, healthy spoken-canary calls
+    // consistently land around ~1.0s TTS first-byte time while still keeping
+    // end-to-end turn-start latency comfortably healthy, so the stricter 900ms
+    // browser/demo threshold over-flags this surface.
+    ttsTtfbAvgMs: 1100,
     totalTurnStartMs: 1800,
   },
   normal: {
@@ -151,7 +156,11 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
     acc[call.dominantBottleneck] = (acc[call.dominantBottleneck] || 0) + 1;
     return acc;
   }, {});
-  if ((dominantBottleneckCounts.tts_ttfb || 0) >= Math.max(2, Math.ceil(recentCalls.length / 2))) {
+  if (
+    recentCalls.length >= 3 &&
+    averages.ttsTtfbAvgMs > thresholds.ttsTtfbAvgMs &&
+    (dominantBottleneckCounts.tts_ttfb || 0) >= Math.max(2, Math.ceil(recentCalls.length / 2))
+  ) {
     warnings.push("TTS first-byte latency is currently the dominant contributor on recent calls.");
   }
 

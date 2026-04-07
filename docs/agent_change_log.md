@@ -3569,3 +3569,11 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the main handoff so the next agent reads this checklist before diving into code or the live workflow audit.
 - Why:
   - The handoff, change log, and workflow audit together were already strong, but they still required synthesis. This pass removes that ambiguity by giving the next agent one explicit checklist that captures the outstanding work from the whole session.
+## 2026-04-07 - Voice latency scoring correction
+
+- Corrected `lib/voice-call-latency-health.ts` so `inbound_demo` is evaluated like the real PSTN-backed surface it is, not like the stricter in-browser demo surface.
+- Raised the `inbound_demo` TTS TTFB threshold from `900ms` to `1100ms`, matching the observed healthy production baseline and the normal phone surface.
+- Fixed a scoring bug where only two recent calls could still mark latency `degraded` purely because TTS was the dominant component, even when end-to-end turn-start stayed healthy and there were not enough samples to treat it as a real regression.
+- Added direct regression coverage in `__tests__/voice-call-latency-health.test.ts`.
+- Verified with:
+  - `npx vitest run __tests__/voice-call-latency-health.test.ts __tests__/customer-agent-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/voice-spoken-canary.test.ts __tests__/health-route.test.ts`

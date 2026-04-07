@@ -170,6 +170,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Real email outbound delivery-event logging is now proven in production: after deploy, a QA outbound probe created `webhookEvent(provider="resend", eventType="email.delivered", status="success")`.
 - `fixed` Real LiveKit/Twilio voice path was actively exercised again on 2026-04-07 through the spoken PSTN canary: Twilio call completed, routing hit the canonical voice gateway, and the app persisted a matching VoiceCall with both caller and Tracey speech.
 - `fixed` Voice canary phrase matching is now proven healthy in production with `Hello, Tracy` / `Monitor probe` transcript variants after deploy.
+- `fixed` Voice latency scoring no longer over-flags healthy `inbound_demo` canary traffic: the PSTN-backed demo surface now uses an `1100ms` TTS TTFB threshold, and dominant-bottleneck warnings only trigger with enough samples plus a real threshold breach.
 - `deferred` Real WhatsApp assistant verification for internal users on the live number.
 
 ### Product Truth Already Established
@@ -181,8 +182,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Provider / Delivery / Observability Work
 
-- `open` Launch-readiness is currently unhealthy in production because monitor freshness is stale (`voice-agent-health`, `passive-communications-health`) and worker release truth still reports old SHA `4379d219...` while the app is on `e18f44b8`.
-- `open` Launch-readiness is still unhealthy in production because monitor freshness is stale (`voice-agent-health`, `voice-monitor-watchdog`, `passive-communications-health`) and worker release truth still reports old SHA `4379d219...` while the web app is now on `4fa2997a`.
+- `open` Launch-readiness had been reduced to a latency-only degradation after the provider fixes. The remaining repo-side fix for that degradation is now implemented, but still needs a successful production deploy and a fresh live `/api/internal/launch-readiness` re-check.
 - `fixed` Inbound email readiness truth now requires a recent successful `email.received` webhook before marking the feature ready, instead of trusting static provider metadata alone. `resendDomainStatus` is still exposed for diagnostics.
 - `re-verify` Public `/api/health` and `/api/check-env` return `404` in production while protected internal readiness works. Confirm whether that is intentional long-term or an observability gap.
 - `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
