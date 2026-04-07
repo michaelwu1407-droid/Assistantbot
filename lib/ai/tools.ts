@@ -227,7 +227,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runProposeReschedule(workspaceId, { dealTitle, proposedSchedule }),
         }),
         updateInvoiceAmount: tool({
-            description: "Update the tracked invoiced amount on a job/deal. Use this when the user says 'update the invoice amount to $X' or 'the final amount is $X'. To edit the actual invoice document (line items, number, date), use updateInvoiceFields instead.",
+            description: "Update the tracked invoiced amount on a job/deal (the deal-level amount field). Use this alongside updateInvoiceFields when keeping the deal amount in sync. To edit the actual invoice document total (line items, subtotal, tax, total), use updateInvoiceFields instead — that is the correct tool when the user says 'update the invoice amount to $X'.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title to invoice"),
                 amount: z.number().describe("Final invoiced amount"),
@@ -236,7 +236,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 runUpdateInvoiceAmount(workspaceId, { dealTitle, amount }),
         }),
         createDraftInvoice: tool({
-            description: "Create a draft invoice for a job/deal using its current value when no draft exists yet.",
+            description: "Create a draft invoice for a job/deal using its current value when no draft exists yet. After creating, if a different amount was requested use updateInvoiceFields to set the correct total, then moveDeal to 'Quote Sent' if the job is still in 'New Request'.",
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
             }),
