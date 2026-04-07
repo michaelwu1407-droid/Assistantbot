@@ -3577,3 +3577,9 @@ Rule: every agent change commit must include an entry in this file.
 - Added direct regression coverage in `__tests__/voice-call-latency-health.test.ts`.
 - Verified with:
   - `npx vitest run __tests__/voice-call-latency-health.test.ts __tests__/customer-agent-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/voice-spoken-canary.test.ts __tests__/health-route.test.ts`
+- Pushed to `main` as `7eedf797`.
+- Production verification is currently blocked by Vercel deployment failures before build start:
+  - auto deploy for `7eedf797`: `dpl_BudT14vAyqJmwEz7V9rThCj3Tjnn`
+  - manual retry: `dpl_Fwiziy6vg84DmSYeDbcp4uB2e8wu`
+  - both fail with `Unexpected error. Please try again later.` and `Builds: . [0ms]`
+- Until Vercel accepts a new production deploy, `https://www.earlymark.ai/api/internal/launch-readiness` will continue to report the older app SHA `8347566f` and the pre-fix inbound-demo latency thresholds.

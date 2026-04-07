@@ -182,7 +182,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Provider / Delivery / Observability Work
 
-- `open` Launch-readiness had been reduced to a latency-only degradation after the provider fixes. The remaining repo-side fix for that degradation is now implemented, but still needs a successful production deploy and a fresh live `/api/internal/launch-readiness` re-check.
+- `open` Launch-readiness had been reduced to a latency-only degradation after the provider fixes. The remaining repo-side fix for that degradation is implemented in `7eedf797`, but production verification is blocked until Vercel accepts a new production deploy.
+- `open` Current Vercel blocker: recent production deploy attempts for `7eedf797` fail before build start with a generic platform error (`Unexpected error. Please try again later.` / `Builds: . [0ms]`). Re-attempt deployment, then rerun `/api/internal/launch-readiness` and refresh monitors if needed.
 - `fixed` Inbound email readiness truth now requires a recent successful `email.received` webhook before marking the feature ready, instead of trusting static provider metadata alone. `resendDomainStatus` is still exposed for diagnostics.
 - `re-verify` Public `/api/health` and `/api/check-env` return `404` in production while protected internal readiness works. Confirm whether that is intentional long-term or an observability gap.
 - `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
