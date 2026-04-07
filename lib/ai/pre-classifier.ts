@@ -290,7 +290,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
         /\b(quote|estimate|proposal)\b/i.test(text)
-          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, set it via updateInvoiceAmount after creation. After creating the draft and setting the amount, move the deal to 'Quote Sent' if it is still in 'New Request'. If the client has no existing job, ask whether to create one first."
+          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, update the actual invoice total via updateInvoiceFields (with total: amount) after creation — this correctly updates the invoice document. Also update the deal's tracked amount via updateInvoiceAmount. After creating the draft and setting the amount, move the deal to 'Quote Sent' if it is still in 'New Request'. If the client has no existing job, ask whether to create one first."
           : null,
         /\b(send|issue)\b/i.test(text) && /\b(invoice|quote)\b/i.test(text)
           ? "SEND/ISSUE: Use issueInvoice to send a draft invoice to the customer. If no invoice exists yet, create the draft first with createDraftInvoice, set the amount, then issue it."
@@ -363,7 +363,10 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
       if (/\b(send|issue).{0,15}\b(invoice|quote)\b/i.test(text)) {
         return ["issueInvoice", "createDraftInvoice", "getInvoiceStatus"];
       }
-      return ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
+      if (/\b(update|change|set).{0,15}\b(invoice|quote).{0,15}(amount|total|price|value|\$)/i.test(text)) {
+        return ["updateInvoiceFields", "updateInvoiceAmount", "getInvoiceStatus"];
+      }
+      return ["createDraftInvoice", "issueInvoice", "updateInvoiceFields", "getInvoiceStatus", "pricingCalculator"];
     case "support":
       return ["contactSupport"];
     default:
