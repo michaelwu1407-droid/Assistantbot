@@ -45,6 +45,17 @@ Status meanings:
 - `open` Finish real provider/device verification for voice, SMS, email, WhatsApp assistant, and LiveKit paths.
 - `fixed` Reconcile and stabilize the targeted test suite: 626/626 unit tests pass on every push. Only 3 pre-existing Playwright e2e specs fail due to config incompatibility (not code regressions).
 
+## Current Outstanding Summary
+
+This is the shortest truthful summary of what remains outstanding from the full session:
+
+- `open` Confirm the latest `main` commit deploys cleanly to production on Vercel. Repo-side deploy blockers were fixed, but production verification is still blocked until Vercel accepts a fresh deploy and `www.earlymark.ai` reports the new app SHA.
+- `open` After a healthy deploy, rerun protected launch-readiness and monitor checks to confirm the remaining degraded/unhealthy state is truly cleared in production, not just fixed in repo code.
+- `open` Continue live authenticated CRM workflow testing focused on real trust/coherence issues across contacts, deal/job detail, schedule/reschedule, inbox/direct message vs Ask Tracey, quote/invoice/payment, and map/route mode.
+- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly.
+- `open` Real provider/device verification still remains for WhatsApp assistant and the 3 Tracey call-handling modes on real phones/carriers.
+- `open` Recheck worker/app release alignment and monitor freshness after the next successful deploy so ops truth matches actual runtime truth.
+
 ## Latest Upstream Review Snapshot
 
 The repo was later advanced beyond the original handoff and then reviewed against `origin/main` up to commit `6a0eae53`.

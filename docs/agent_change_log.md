@@ -3595,3 +3595,13 @@ Rule: every agent change commit must include an entry in this file.
 - Updated `__tests__/provisioning-readiness.test.ts` to mock both `db.workspace.findMany()` and `db.user.findMany()`.
 - Verified with:
   - `npx vitest run __tests__/provisioning-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts`
+
+## 2026-04-07 - Outstanding work summary refreshed
+
+- Added a concise current-outstanding summary to `docs/master_outstanding_checklist.md` so the next AI agent can resume from the real remaining work without re-deriving it from the full session log.
+- The short version remains:
+  - get the latest `main` deployed successfully on Vercel
+  - rerun launch-readiness/monitors after deploy
+  - continue live CRM workflow testing
+  - continue Tracey output-quality work on real CRM operations
+  - finish remaining real provider/device verification
