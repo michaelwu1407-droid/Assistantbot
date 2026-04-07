@@ -488,6 +488,70 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({ text: "model response" });
   });
 
+  it("gives invoice flows a larger adaptive step budget", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "invoice",
+      confidence: 0.93,
+      contextHints: [
+        "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice.",
+      ],
+      suggestedTools: ["createDraftInvoice", "updateInvoiceFields", "updateInvoiceAmount"],
+      requiresCalculator: true,
+    });
+    hoisted.stepCountIs.mockImplementation((count: number) => count);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a quote for Alex Harper for $350." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.stepCountIs).toHaveBeenCalledWith(5);
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual({ text: "model response" });
+  });
+
+  it("includes multi-step execution guidance for combined invoice workflows", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "invoice",
+      confidence: 0.93,
+      contextHints: [
+        "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, update the actual invoice total via updateInvoiceFields (with total: amount) after creation — this correctly updates the invoice document. Also update the deal's tracked amount via updateInvoiceAmount. After creating the draft and setting the amount, move the deal to 'Quote Sent' if it is still in 'New Request'.",
+      ],
+      suggestedTools: ["createDraftInvoice", "updateInvoiceFields", "updateInvoiceAmount", "issueInvoice"],
+      requiresCalculator: true,
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{
+            role: "user",
+            parts: [{ type: "text", text: "Create a quote for Alex Harper for $350 and then send it to him." }],
+          }],
+        }),
+      }),
+    );
+
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intentHintBlock: expect.stringContaining("QUOTE = DRAFT INVOICE"),
+        roleGuardBlock: expect.stringContaining("MULTI-STEP EXECUTION"),
+      }),
+    );
+    expect(await response.json()).toEqual({ text: "model response" });
+  });
+
   it("answers bouncer policy prompts directly", async () => {
     const response = await POST(
       new Request("https://app.example.com/api/chat", {

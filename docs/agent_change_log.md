@@ -3640,4 +3640,7 @@ Rule: every agent change commit must include an entry in this file.
   - `/api/cron/passive-communications-health`
 - Live protected launch-readiness now returns `200` and `status: healthy` with summary:
   - `Launch-critical web, voice, communications, and provisioning signals are healthy.`
+- Added route-level verification for the new invoice/quote behavior in `__tests__/chat-route.test.ts`:
+  - invoice intent gets a larger adaptive step budget
+  - combined quote/create/send requests carry the expected multi-step execution guidance through the actual chat route
 - This closes the previous production deploy/readiness blocker. The next outstanding work is now product-level: live CRM workflow trust/polish, Tracey quality on real CRM operations, and remaining real provider/device verification (especially WhatsApp assistant and the 3 Tracey call modes).
