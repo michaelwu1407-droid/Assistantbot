@@ -19,9 +19,6 @@ type ProvisioningWorkspaceRow = {
   inboundEmail: string | null;
   ownerId: string | null;
   settings: unknown;
-  owner: {
-    workspaceId: string;
-  } | null;
   _count: {
     contacts: number;
     deals: number;
@@ -71,10 +68,10 @@ function readNumber(value: unknown) {
 
 function deriveProvisioningStatus(
   row: ProvisioningWorkspaceRow,
+  ownerWorkspaceId: string | null,
 ): WorkspaceProvisioningStatus {
   const settings = asObject(row.settings);
   const rawStatus = readString(settings.onboardingProvisioningStatus);
-  const ownerWorkspaceId = row.owner?.workspaceId || null;
   const noProvisionedChannels = !row.twilioPhoneNumber && !row.inboundEmail;
   const noWorkspaceData =
     row._count.contacts === 0 &&
@@ -108,9 +105,11 @@ function deriveProvisioningStatus(
   return "untracked";
 }
 
-function buildIssue(row: ProvisioningWorkspaceRow): ProvisioningReadinessIssue | null {
+function buildIssue(
+  row: ProvisioningWorkspaceRow,
+  provisioningStatus: WorkspaceProvisioningStatus,
+): ProvisioningReadinessIssue | null {
   const settings = asObject(row.settings);
-  const provisioningStatus = deriveProvisioningStatus(row);
   if (!["requested", "provisioning", "failed", "blocked_duplicate"].includes(provisioningStatus)) {
     return null;
   }
@@ -142,11 +141,6 @@ export async function getProvisioningReadinessSummary(options?: {
       twilioPhoneNumber: true,
       updatedAt: true,
       settings: true,
-      owner: {
-        select: {
-          workspaceId: true,
-        },
-      },
       _count: {
         select: {
           contacts: true,
@@ -157,6 +151,23 @@ export async function getProvisioningReadinessSummary(options?: {
     },
     orderBy: { updatedAt: "desc" },
   });
+
+  const ownerIds = Array.from(
+    new Set(workspaces.map((workspace) => workspace.ownerId).filter((ownerId): ownerId is string => Boolean(ownerId))),
+  );
+
+  const owners =
+    ownerIds.length === 0
+      ? []
+      : await db.user.findMany({
+          where: { id: { in: ownerIds } },
+          select: {
+            id: true,
+            workspaceId: true,
+          },
+        });
+
+  const ownerWorkspaceById = new Map(owners.map((owner) => [owner.id, owner.workspaceId ?? null]));
 
   const counts: ProvisioningReadiness["counts"] = {
     not_requested: 0,
@@ -171,9 +182,10 @@ export async function getProvisioningReadinessSummary(options?: {
 
   const issues = workspaces
     .map((workspace) => {
-      const provisioningStatus = deriveProvisioningStatus(workspace);
+      const ownerWorkspaceId = workspace.ownerId ? ownerWorkspaceById.get(workspace.ownerId) ?? null : null;
+      const provisioningStatus = deriveProvisioningStatus(workspace, ownerWorkspaceId);
       counts[provisioningStatus] += 1;
-      return buildIssue(workspace);
+      return buildIssue(workspace, provisioningStatus);
     })
     .filter((issue): issue is ProvisioningReadinessIssue => Boolean(issue))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));

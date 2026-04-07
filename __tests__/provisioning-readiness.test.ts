@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
-  findMany: vi.fn(),
+  workspaceFindMany: vi.fn(),
+  userFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     workspace: {
-      findMany: hoisted.findMany,
+      findMany: hoisted.workspaceFindMany,
+    },
+    user: {
+      findMany: hoisted.userFindMany,
     },
   },
 }));
@@ -17,10 +21,11 @@ import { getProvisioningReadinessSummary } from "@/lib/provisioning-readiness";
 describe("getProvisioningReadinessSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.userFindMany.mockResolvedValue([]);
   });
 
   it("ignores stale orphaned failed provisioning rows with no workspace data", async () => {
-    hoisted.findMany.mockResolvedValue([
+    hoisted.workspaceFindMany.mockResolvedValue([
       {
         id: "ws_orphan",
         name: "My Workspace",
@@ -33,14 +38,17 @@ describe("getProvisioningReadinessSummary", () => {
           onboardingProvisioningError: "Old beta failure",
           provisionPhoneNumberRequested: true,
         },
-        owner: {
-          workspaceId: "another_workspace",
-        },
         _count: {
           contacts: 0,
           deals: 0,
           chatMessages: 0,
         },
+      },
+    ]);
+    hoisted.userFindMany.mockResolvedValue([
+      {
+        id: "owner_1",
+        workspaceId: "another_workspace",
       },
     ]);
 
@@ -53,7 +61,7 @@ describe("getProvisioningReadinessSummary", () => {
   });
 
   it("keeps a real failed provisioning workspace visible when it still owns data", async () => {
-    hoisted.findMany.mockResolvedValue([
+    hoisted.workspaceFindMany.mockResolvedValue([
       {
         id: "ws_real",
         name: "Active Workspace",
@@ -67,14 +75,17 @@ describe("getProvisioningReadinessSummary", () => {
           onboardingProvisioningStageReached: "bundle-clone",
           onboardingProvisioningUpdatedAt: "2026-04-07T08:00:00.000Z",
         },
-        owner: {
-          workspaceId: "ws_real",
-        },
         _count: {
           contacts: 2,
           deals: 1,
           chatMessages: 3,
         },
+      },
+    ]);
+    hoisted.userFindMany.mockResolvedValue([
+      {
+        id: "owner_2",
+        workspaceId: "ws_real",
       },
     ]);
 

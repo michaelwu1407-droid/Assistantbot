@@ -3583,3 +3583,15 @@ Rule: every agent change commit must include an entry in this file.
   - manual retry: `dpl_Fwiziy6vg84DmSYeDbcp4uB2e8wu`
   - both fail with `Unexpected error. Please try again later.` and `Builds: . [0ms]`
 - Until Vercel accepts a new production deploy, `https://www.earlymark.ai/api/internal/launch-readiness` will continue to report the older app SHA `8347566f` and the pre-fix inbound-demo latency thresholds.
+
+## 2026-04-07 - Provisioning readiness schema correction
+
+- Fixed a deploy-blocking Prisma type error in `lib/provisioning-readiness.ts`.
+- Root cause: the Prisma schema has `Workspace.ownerId` but no `workspace.owner` relation, so selecting `owner` on `db.workspace.findMany()` was invalid.
+- Updated the implementation to:
+  - fetch workspaces with `ownerId`
+  - fetch matching users separately via `db.user.findMany()`
+  - derive orphaned-owner provisioning status from the referenced users' `workspaceId`
+- Updated `__tests__/provisioning-readiness.test.ts` to mock both `db.workspace.findMany()` and `db.user.findMany()`.
+- Verified with:
+  - `npx vitest run __tests__/provisioning-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts`
