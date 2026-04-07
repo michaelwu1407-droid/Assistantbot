@@ -1,3 +1,16 @@
+## 2026-04-07 (Codex) - Post-deploy provider re-verification
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **App deploy confirmed**: protected `/api/internal/launch-readiness` now reports web release `4fa2997a7755070198613ad588f851ac51e746fd`, confirming the inbound-email/webhook fix is live.
+  - **Voice spoken canary fully healthy in production**: reran `/api/cron/voice-synthetic-probe` after deploy. The canary now returns `status: healthy` with a completed Twilio call (`CAab631c480eaad0e25540df944759e169`) and transcript matching the relaxed probe-phrase logic even with `Hello, Tracy` / `Monitor probe` wording.
+  - **Outbound email webhook logging proven**: sent a fresh outbound QA email probe to `miguel.w1407@gmail.com` (`emailId: 8a0dcf4d-64ce-4c63-8f7c-12d3f87133ce`). Production created a fresh `webhookEvent(provider="resend", eventType="email.delivered", status="success")` at `2026-04-07T08:27:55.121Z`, proving the corrected shared Resend webhook path now logs delivery events in the live app.
+  - **Remaining launch-readiness gap**: the protected launch-readiness route still returns overall unhealthy because monitor freshness is stale (`voice-agent-health`, `voice-monitor-watchdog`, `passive-communications-health`) and worker release truth is still pinned to old worker SHA `4379d219...`, not because voice, SMS, or email paths are failing.
+- Why:
+  - This closes the live proof loop on the app changes: both inbound and outbound email webhook handling now work in production, and the spoken canary no longer stays degraded for transcript punctuation/wording variance.
+
 ## 2026-04-07 (Codex) - Inbound email webhook fix and voice canary truthfulness
 
 - Files changed:
