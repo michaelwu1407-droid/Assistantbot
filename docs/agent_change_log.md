@@ -1,3 +1,22 @@
+## 2026-04-07 (Claude) - Pre-classifier and multi-step flow improvements
+
+- Files changed:
+  - `lib/ai/pre-classifier.ts` (fast-path invoice/quote creation; advance/approved-quote/payment/send-issue hints; intent-specific suggested tools)
+  - `app/api/chat/route.ts` (getAdaptiveMaxSteps intent-aware; invoice intent gets 5 steps; and/then/also gets 6 steps; new extractLikelyDealQuery patterns for quote/invoice/advance flows)
+  - `__tests__/pre-classifier.test.ts` (5 new tests for quote creation, stage advance, quote accepted, send/issue, and payment)
+- Summary:
+  - **Fast-path invoice routing**: Added explicit fast-path for `create/draft/generate quote`, `send/issue invoice`, `mark invoice paid`, and `void invoice` so these always route to `invoice` intent instead of scoring a tie with `pricing`. Eliminates misrouting when a user says "Create a quote for X for $Y".
+  - **Quote flow multi-step context hint**: After creating a draft invoice and setting the amount, Tracey is now instructed to also move the deal to "Quote Sent" if it is still in "New Request" — completing the full quote flow in one turn.
+  - **Send/issue and payment hints**: Added dedicated context hints for `send/issue invoice` (→ issueInvoice) and `mark paid` (→ markInvoicePaid then moveDeal to Completed) so Tracey surfaces the right next action automatically.
+  - **Stage advance hints**: `advance`, `move forward`, `next stage` patterns now route to `crm_action` with a `STAGE ADVANCE` hint that tells Tracey to use getDealContext first, then moveDeal to the logical next stage.
+  - **Quote accepted hints**: `customer approved/accepted the quote` patterns now surface a `QUOTE ACCEPTED` hint instructing Tracey to move the deal to Scheduled and assign a team member.
+  - **Intent-aware max steps**: `getAdaptiveMaxSteps` now accepts the intent and gives invoice flows 5 steps (was 3 for short messages). Multi-step messages with `and/then/also/plus` now get 6 steps instead of 5.
+  - **extractLikelyDealQuery patterns**: Added patterns for `create quote for X`, `invoice status for X`, `advance X`, `customer approved X`, and `mark X invoice paid` so the right deal is pre-loaded into LIKELY CRM TARGETS before the LLM responds.
+  - **Intent-specific suggested tools for invoice**: `markInvoicePaid` queries now get `[markInvoicePaid, getInvoiceStatus, moveDeal]`; `send/issue` queries get `[issueInvoice, createDraftInvoice, getInvoiceStatus]`; default remains `[createDraftInvoice, issueInvoice, getInvoiceStatus, pricingCalculator]`.
+  - **Tests**: 654/654 unit tests pass (5 new pre-classifier tests). 3 pre-existing Playwright e2e failures unchanged.
+- Why:
+  - Quote/invoice flows are a key daily workflow for tradies. The old classifier frequently misrouted short quote-creation requests to `pricing` intent, leaving Tracey without the right tool hints and limiting step count. These changes let Tracey complete the full create→set amount→move stage sequence in one turn without needing extra prompting from the user.
+
 ## 2026-04-07 (Codex) - Post-deploy provider re-verification
 
 - Files changed:

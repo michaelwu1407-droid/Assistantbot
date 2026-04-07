@@ -89,4 +89,45 @@ describe("pre-classifier", () => {
     expect(result.intent).toBe("crm_action");
     expect(result.suggestedTools).toContain("restoreDeal");
   });
+
+  it("routes quote creation to invoice intent with QUOTE=DRAFT INVOICE hint", () => {
+    const result = preClassify("Create a quote for Alex Harper for $350.");
+
+    expect(result.intent).toBe("invoice");
+    expect(result.suggestedTools).toContain("createDraftInvoice");
+    expect(result.contextHints.join(" ")).toContain("QUOTE = DRAFT INVOICE");
+    expect(result.contextHints.join(" ")).toContain("updateInvoiceAmount");
+  });
+
+  it("hints at STAGE ADVANCE when user says advance or move forward", () => {
+    const result = preClassify("Advance the Hot Water Fix job to the next stage.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.contextHints.join(" ")).toContain("STAGE ADVANCE");
+    expect(result.contextHints.join(" ")).toContain("getDealContext");
+  });
+
+  it("hints at QUOTE ACCEPTED when customer approved the quote", () => {
+    const result = preClassify("The customer approved the quote for the bathroom reno — move it forward.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.contextHints.join(" ")).toContain("QUOTE ACCEPTED");
+    expect(result.contextHints.join(" ")).toContain("moveDeal");
+  });
+
+  it("includes SEND/ISSUE hint when issuing an invoice", () => {
+    const result = preClassify("Send the invoice to John Smith for the plumbing job.");
+
+    expect(result.intent).toBe("invoice");
+    expect(result.contextHints.join(" ")).toContain("SEND/ISSUE");
+    expect(result.suggestedTools).toContain("issueInvoice");
+  });
+
+  it("includes PAYMENT hint when marking invoice paid", () => {
+    const result = preClassify("Mark the invoice paid for the Hot Water Service.");
+
+    expect(result.intent).toBe("invoice");
+    expect(result.contextHints.join(" ")).toContain("PAYMENT");
+    expect(result.suggestedTools).toContain("markInvoicePaid");
+  });
 });

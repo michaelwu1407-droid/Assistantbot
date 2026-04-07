@@ -83,8 +83,10 @@ const CONTACT_PATTERNS = [
 ];
 
 const CRM_ACTION_PATTERNS = [
-  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo|approve|reject|decline)\b/i,
+  /\b(create|add|log|book|schedule|reschedule|move|assign|unassign|update|change|edit|rename|set|mark|complete|delete|restore|reopen|undo|approve|reject|decline|advance|push|next stage)\b/i,
   /\b(job|deal|contact|client|customer|note|task|reminder|invoice|quote|stage|draft|completion|approval)\b/i,
+  /\b(advance|move forward|next step|push forward|progress)\b.{0,30}\b(job|deal|quote|stage)\b/i,
+  /\b(customer|client|they|he|she).{0,20}\b(approved|accepted|said yes|confirmed|agreed|gave the go-ahead)\b/i,
 ];
 
 const INVOICE_PATTERNS = [
@@ -121,6 +123,23 @@ export function preClassify(text: string): PreClassification {
     return {
       intent: "invoice",
       confidence: 0.95,
+      contextHints: getContextHints("invoice", trimmed),
+      suggestedTools: getSuggestedTools("invoice", trimmed),
+      requiresCalculator: true,
+    };
+  }
+
+  // Fast-path: explicit invoice/quote creation, issue, or payment marking
+  // These have a clear primary action verb + invoice/quote noun that should always win over "pricing".
+  if (
+    /\b(create|draft|generate|write|prepare|make).{0,20}\b(quote|estimate|proposal|invoice)\b/i.test(trimmed) ||
+    /\b(send|issue).{0,15}\b(invoice|quote)\b/i.test(trimmed) ||
+    /\b(mark|set|record).{0,15}\b(invoice|payment).{0,15}\b(paid|as paid)\b/i.test(trimmed) ||
+    /\b(void|cancel|reverse)\b.{0,10}\b(invoice)\b/i.test(trimmed)
+  ) {
+    return {
+      intent: "invoice",
+      confidence: 0.93,
       contextHints: getContextHints("invoice", trimmed),
       suggestedTools: getSuggestedTools("invoice", trimmed),
       requiresCalculator: true,
@@ -260,17 +279,32 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         /^create a new job called .+? for .+? at .+? with (?:a quoted value of|value) \$?[\d,]+(?:\.\d+)?[.?!]*$/i.test(text)
           ? 'The user already gave enough information to create the job now. Use createJobNatural, not createDeal or showJobDraftForConfirmation. Do not ask for phone or email unless the tool truly requires it.'
           : null,
+        /\b(customer|client|they|he|she).{0,20}\b(approved|accepted|said yes|confirmed|agreed|gave the go-ahead)\b/i.test(text)
+          ? "QUOTE ACCEPTED: The customer has approved. Use moveDeal to move the job to 'scheduled' and assign a team member if one is not already set. Log a note about the acceptance."
+          : null,
+        /\b(advance|move forward|push forward|next stage)\b/i.test(text)
+          ? "STAGE ADVANCE: Use getDealContext to find the current stage, then moveDeal to the logical next stage. New request → Quote sent → Scheduled → Awaiting payment → Completed."
+          : null,
       ].filter(Boolean) as string[];
     case "invoice":
       return [
         "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
         /\b(quote|estimate|proposal)\b/i.test(text)
-          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, set it via updateInvoiceAmount after creation. If the client has no existing job, ask whether to create one first."
+          ? "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, set it via updateInvoiceAmount after creation. After creating the draft and setting the amount, move the deal to 'Quote Sent' if it is still in 'New Request'. If the client has no existing job, ask whether to create one first."
+          : null,
+        /\b(send|issue)\b/i.test(text) && /\b(invoice|quote)\b/i.test(text)
+          ? "SEND/ISSUE: Use issueInvoice to send a draft invoice to the customer. If no invoice exists yet, create the draft first with createDraftInvoice, set the amount, then issue it."
+          : null,
+        /\b(mark.*paid|payment received|paid)\b/i.test(text)
+          ? "PAYMENT: Use markInvoicePaid to record payment. After marking paid, move the deal to 'Completed' if it is not already there."
           : null,
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
         "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month.",
         /\b(ready to invoice|already invoiced)\b/i.test(text)
           ? "For aggregate invoice-ready or already-invoiced job queries, use listInvoiceReadyJobs first, then current invoice/deal state if needed. Do not say you cannot check. If nothing matches the user's filter, say that clearly instead of substituting similar names."
+          : null,
+        /\b(status|what.{0,10}invoice|invoice.{0,10}status)\b/i.test(text)
+          ? "INVOICE STATUS: Use getInvoiceStatus to check the current invoice state. Report: draft/issued/paid/void, amount, due date, and suggest the logical next action."
           : null,
       ].filter(Boolean) as string[];
     case "support":
@@ -320,9 +354,16 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         "getDealContext",
       ];
     case "invoice":
-      return /\b(ready to invoice|already invoiced)\b/i.test(text)
-        ? ["listInvoiceReadyJobs", "getInvoiceStatus", "listDeals"]
-        : ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
+      if (/\b(ready to invoice|already invoiced)\b/i.test(text)) {
+        return ["listInvoiceReadyJobs", "getInvoiceStatus", "listDeals"];
+      }
+      if (/\b(mark|set|record).{0,15}\b(invoice|payment).{0,15}\b(paid|as paid)\b/i.test(text) || /\b(payment received|paid)\b/i.test(text)) {
+        return ["markInvoicePaid", "getInvoiceStatus", "moveDeal"];
+      }
+      if (/\b(send|issue).{0,15}\b(invoice|quote)\b/i.test(text)) {
+        return ["issueInvoice", "createDraftInvoice", "getInvoiceStatus"];
+      }
+      return ["createDraftInvoice", "issueInvoice", "getInvoiceStatus", "pricingCalculator"];
     case "support":
       return ["contactSupport"];
     default:
