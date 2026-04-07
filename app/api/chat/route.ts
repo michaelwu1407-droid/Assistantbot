@@ -239,11 +239,14 @@ function shouldFetchMemory(text: string): boolean {
   return true;
 }
 
-function getAdaptiveMaxSteps(text: string): number {
+function getAdaptiveMaxSteps(text: string, intent?: string): number {
   const trimmed = text.trim().toLowerCase();
   if (/^(next|confirm|cancel|ok|okay|yes|no|done|undo)\b/.test(trimmed)) return 2;
+  // Invoice/quote flows need extra steps: find deal → create invoice → set amount → move stage → respond
+  if (intent === "invoice") return 5;
+  // Multi-step CRM actions with conjunctions need more room
+  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 6;
   if (trimmed.length < 80) return 3;
-  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 5;
   return 4;
 }
 
@@ -454,6 +457,12 @@ function extractLikelyDealQuery(content: string): string | null {
     /what(?:'s| is) the (?:current )?stage (?:of|for) (.+?)[.?!]*$/i,
     /what recent (?:notes?|updates?|changes?) (?:exist |are there )?for (.+?)[.?!]*$/i,
     /what are the most important facts (?:you have )?about (.+?)(?: without guessing)?[.?!]*$/i,
+    // Invoice/quote patterns
+    /(?:create|make|generate|send|draft|give me)(?: a)? (?:quote|estimate|invoice) for (.+?)(?:\s+for\s+\$[\d,]+)?[.?!]*$/i,
+    /what(?:'s| is) the (?:invoice|quote) (?:status |)(?:for|on) (.+?)[.?!]*$/i,
+    /(?:advance|move forward|push forward|next stage)(?: for)? (.+?)[.?!]*$/i,
+    /(?:customer|client|they).{0,20}(?:approved|accepted|said yes|confirmed).{0,20}(?:quote|estimate|job|work)(?: for)? (.+?)[.?!]*$/i,
+    /(?:mark|update)(?: the)? (.+?) (?:invoice|payment) (?:as )?paid[.?!]*$/i,
   ];
 
   for (const pattern of patterns) {
@@ -1699,7 +1708,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: modelMessages as any,
       tools,
-      stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
+      stopWhen: stepCountIs(getAdaptiveMaxSteps(content, classification.intent)),
       onChunk: ({ chunk }) => {
         if (!ttftRecorded && chunk.type === 'text-delta') {
           ttftRecorded = true;

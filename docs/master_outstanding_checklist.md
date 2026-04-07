@@ -52,7 +52,7 @@ This is the shortest truthful summary of what remains outstanding from the full 
 - `open` Confirm the latest `main` commit deploys cleanly to production on Vercel. Repo-side deploy blockers were fixed, but production verification is still blocked until Vercel accepts a fresh deploy and `www.earlymark.ai` reports the new app SHA.
 - `open` After a healthy deploy, rerun protected launch-readiness and monitor checks to confirm the remaining degraded/unhealthy state is truly cleared in production, not just fixed in repo code.
 - `open` Continue live authenticated CRM workflow testing focused on real trust/coherence issues across contacts, deal/job detail, schedule/reschedule, inbox/direct message vs Ask Tracey, quote/invoice/payment, and map/route mode.
-- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly.
+- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly. Quote/invoice classifier improved: short quote-creation and send/mark-paid requests now route correctly with right step budget and tool hints.
 - `open` Real provider/device verification still remains for WhatsApp assistant and the 3 Tracey call-handling modes on real phones/carriers.
 - `open` Recheck worker/app release alignment and monitor freshness after the next successful deploy so ops truth matches actual runtime truth.
 
@@ -124,7 +124,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `fixed` Stage label consistency: tutorial-view.tsx replaced 'Invoiced' with 'Awaiting payment' to match live kanban column. job-billing-tab.tsx missing Badge import fixed. Stage label helpers verified consistent.
 - `fixed` Invoice creation clarity: billing tab now shows a hint below Create Invoice button explaining that new invoices start as Draft until issued.
-- `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
+- `fixed` Pre-classifier now fast-paths quote/invoice creation, send/issue, and mark-paid to the correct intent with the right tool suggestions and step budget. Quote creation (create→set amount→move to Quote Sent) can now complete in one turn.
+- `re-verify` Full end-to-end quote→issue→paid flow on live CRM still needs usability validation to confirm the multi-step sequence works correctly in production.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
 - `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
