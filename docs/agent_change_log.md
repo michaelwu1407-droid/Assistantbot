@@ -4091,3 +4091,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Workspace API POST now uses the real update action
+
+- Files:
+  - `app/api/workspace/route.ts`
+  - `__tests__/workspace-route.test.ts`
+- What changed:
+  - Wired `POST /api/workspace` to the real `updateWorkspace()` action instead of returning a placeholder `501`.
+  - The route now resolves the authenticated user's current workspace, updates it, and returns the refreshed workspace payload.
+  - Added focused route-level coverage for both `GET` and `POST`.
+- Why:
+  - This was another backend trust gap: the route existed as part of the public app surface, but POST still advertised itself as unimplemented even though the server-side update path already existed.
+- Verified with:
+  - `npx vitest run __tests__/workspace-route.test.ts`
+  - `npx next build`
