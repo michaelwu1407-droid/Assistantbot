@@ -61,6 +61,10 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
     const neonGreen = "text-[#ccff00]"
     const neonBorder = "border-[#ccff00]"
     const neonBg = "bg-[#ccff00]"
+    const scheduledTimeLabel = job.scheduledAt
+        ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+        : "No time set"
+    const secondaryHeaderLabel = job.company ? `${scheduledTimeLabel} • ${job.company}` : scheduledTimeLabel
 
     return (
         <>
@@ -92,7 +96,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                             <h2 className="text-xl font-black text-white leading-tight">{job.title}</h2>
                             <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
                                 <span className={cn("w-2 h-2 rounded-full", job.health?.status === 'ROTTING' ? 'bg-red-500' : 'bg-[#ccff00]')}></span>
-                                8:00 AM • {job.company || "Company"}
+                                {secondaryHeaderLabel}
                             </p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-black border border-[#ccff00]/20">

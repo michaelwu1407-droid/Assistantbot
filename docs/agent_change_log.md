@@ -112,6 +112,20 @@
 - Why:
   - Older secondary surfaces are where trust often quietly breaks. This keeps the alternate tradie detail path aligned with the newer, more truthful CRM patterns instead of leaving outdated placeholders behind.
 
+## 2026-04-08 (Codex) - Tradie bottom-sheet header now reflects real job data
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a hard-coded lie**: the collapsed tradie bottom-sheet header no longer shows `8:00 AM • Company` for every job.
+  - **Now uses real scheduling data**: it renders the actual scheduled time and only appends the company label when one exists.
+  - **Verification**: expanded `job-bottom-sheet.test.tsx` to assert the real time/company label, then reran the build.
+- Why:
+  - Operational headers need to be trustworthy at a glance. A hard-coded time on a field-work screen undermines confidence even if the rest of the data is correct.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:

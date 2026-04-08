@@ -75,6 +75,34 @@ describe("JobBottomSheet", () => {
     expect(screen.getByRole("button", { name: /search material database/i })).toBeInTheDocument();
   });
 
+  it("shows the actual scheduled time in the collapsed header instead of a hard-coded placeholder", () => {
+    const setIsOpen = vi.fn();
+    const scheduledAt = new Date("2026-04-08T09:30:00+10:00");
+
+    render(
+      <JobBottomSheet
+        job={{
+          id: "deal_3",
+          title: "Blocked Drain",
+          clientName: "Alex Harper",
+          address: "1 Test St, Sydney",
+          status: "SCHEDULED",
+          value: 320,
+          scheduledAt,
+          description: "Drain blockage",
+          company: "Harper Plumbing",
+          contactPhone: "0400000000",
+        }}
+        isOpen={false}
+        setIsOpen={setIsOpen}
+        onAddVariation={vi.fn()}
+        safetyCheckCompleted={false}
+      />,
+    );
+
+    expect(screen.getByText(/9:30 AM • Harper Plumbing/i)).toBeInTheDocument();
+  });
+
   it("disables call and text quick actions when the job has no customer phone", () => {
     const setIsOpen = vi.fn();
 
