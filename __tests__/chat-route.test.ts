@@ -682,4 +682,47 @@ describe("POST /api/chat", () => {
       }),
     ).toBe(false);
   });
+
+  it("keeps direct blocked-job aggregate filters strict on whole-word query matches", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Office Fitout Quote",
+        company: "",
+        contactName: "ZZZ AUTO livefull_after_fastpath Charlie Dental",
+        stage: "quote_sent",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO LIVE Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "scheduled",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+    ]);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What jobs for ZZZ AUTO LIVE look incomplete or blocked?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: 'Jobs matching "ZZZ AUTO LIVE" that still look incomplete or blocked:\n- ZZZ AUTO LIVE Blocked Drain (Scheduled; Stale)',
+    });
+  });
 });

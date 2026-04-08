@@ -392,13 +392,33 @@ function filterDealsByQuery(
   }>,
   query: string,
 ) {
-  const cleaned = cleanDirectValue(query).toLowerCase();
+  const cleaned = normalizeRouteSearchPhrase(query);
+  const queryTokens = cleaned.split(" ").filter(Boolean);
   return deals.filter((deal) => {
     const fields = [deal.title, deal.company, deal.contactName]
       .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-    return fields.some((field) => field.includes(cleaned) || cleaned.includes(field));
+      .map((value) => normalizeRouteSearchPhrase(String(value)));
+    return fields.some((field) => {
+      if (
+        field === cleaned ||
+        field.startsWith(`${cleaned} `) ||
+        field.endsWith(` ${cleaned}`) ||
+        field.includes(` ${cleaned} `)
+      ) {
+        return true;
+      }
+      const fieldTokens = field.split(" ").filter(Boolean);
+      return queryTokens.every((token) => fieldTokens.includes(token));
+    });
   });
+}
+
+function normalizeRouteSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function formatDealList(
@@ -424,6 +444,8 @@ function extractLikelyContactReference(content: string, classification: PreClass
   if (!["contact_lookup", "communication"].includes(classification.intent)) return null;
 
   const patterns = [
+    /^(?:find|show|open) contact (.+?)[.?!]*$/i,
+    /^(?:find|show|open) client (.+?)[.?!]*$/i,
     /phone number and email do you have on file for (.+?)(?:[.?!]|$)/i,
     /what do you know about (.+?)(?:[.?!]|$)/i,
     /show me the client context for (.+?)(?:[.?!]|$)/i,
