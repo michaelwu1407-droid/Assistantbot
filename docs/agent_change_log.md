@@ -3881,3 +3881,22 @@ Rule: every agent change commit must include an entry in this file.
   - This was no longer a code bug. The routes exist and are tested, but the docs still described them as public production probes, which created false uncertainty during live ops checks.
 - Verified with:
   - existing middleware coverage in `__tests__/middleware.test.ts`
+
+## 2026-04-08 - Estimator quote UX and coverage pass
+
+- Files:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+- What changed:
+  - The estimator now surfaces real user-facing errors when quote generation fails instead of only logging to the console.
+  - Added clearer follow-through copy in both states:
+    - before generation: explains that it creates a GST-inclusive draft invoice linked to the selected job
+    - after success: explains that the next step is issuing the draft invoice from the billing panel
+  - Added focused UI coverage for:
+    - baseline helper copy
+    - returned quote-generation errors
+    - successful quote next-step guidance
+- Why:
+  - Quote/invoice core logic was already strong, but the estimator surface still felt under-explained and under-tested compared with Tracey and the billing tab. This closes a real trust gap in the manual quoting flow.
+- Verified with:
+  - `npx vitest run __tests__/estimator-form.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-actions.test.ts`

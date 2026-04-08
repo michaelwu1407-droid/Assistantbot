@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateQuote, type LineItem } from "@/actions/tradie-actions"
 import { DealView } from "@/actions/deal-actions"
 import { MaterialPicker } from "./material-picker"
+import { toast } from "sonner"
 
 interface EstimatorFormProps {
     deals?: DealView[] // Optional now as we might fetch inside or pass from page
@@ -47,7 +48,10 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
     }
 
     const handleGenerate = async () => {
-        if (!selectedDealId) return
+        if (!selectedDealId) {
+            toast.error("Choose a deal before generating a quote")
+            return
+        }
 
         setLoading(true)
         try {
@@ -58,11 +62,11 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     invoiceNumber: result.invoiceNumber
                 })
             } else {
-                // Determine how to handle error - toast?
-                console.error(result.error)
+                toast.error(result.error || "Failed to generate quote")
             }
         } catch (error) {
             console.error("Failed to generate quote", error)
+            toast.error("Failed to generate quote")
         } finally {
             setLoading(false)
         }
@@ -84,6 +88,9 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     </div>
                     <p className="text-sm text-slate-500">
                         Quote has been attached to the deal and invoice created in Draft status.
+                    </p>
+                    <p className="text-xs text-slate-400">
+                        Next step: issue the draft invoice from the job billing panel when you&apos;re ready to send it.
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
@@ -200,6 +207,9 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                         <span>Total</span>
                         <span>${total.toFixed(2)}</span>
                     </div>
+                    <p className="text-xs text-slate-400">
+                        Generates a draft invoice with GST included, then links it back to the selected job.
+                    </p>
                 </div>
             </CardContent>
             <CardFooter>
