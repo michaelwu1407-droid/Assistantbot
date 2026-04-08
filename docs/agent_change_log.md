@@ -4271,3 +4271,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/crm-agent-page.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - `/crm/deals/new` now opens a real create-job workflow
+
+- Files:
+  - `app/crm/deals/new/page.tsx`
+  - `__tests__/new-deal-page.test.tsx`
+- What changed:
+  - Replaced the old `/crm/deals/new` redirect with a real standalone job-creation page using `NewDealModalStandalone`.
+  - The route now resolves the authenticated workspace and renders the actual form instead of dumping the user back onto the dashboard.
+- Why:
+  - This was another clear workflow gap: the route existed, but clicking into it gave the user no way to complete the action they came for.
+- Verified with:
+  - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/new-deal-modal-standalone.test.tsx`
+  - `npx next build`
