@@ -4258,3 +4258,16 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/crm-estimator-page.test.tsx __tests__/tradie-estimator-page.test.tsx __tests__/estimator-form.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Legacy `/crm/agent` now lands on the real AI Assistant page
+
+- Files:
+  - `app/crm/agent/page.tsx`
+  - `__tests__/crm-agent-page.test.tsx`
+- What changed:
+  - Updated the old `/crm/agent` alias to redirect to `/crm/settings/agent` instead of the generic CRM dashboard.
+- Why:
+  - This is a product-coherence fix. Anyone opening an older AI Assistant bookmark should land on the real AI Assistant settings page, not a page that forces them to hunt for it again.
+- Verified with:
+  - `npx vitest run __tests__/crm-agent-page.test.tsx`
+  - `npx next build`

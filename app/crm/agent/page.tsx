@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function LegacyAgentPage() {
-  redirect("/crm/dashboard");
+  redirect("/crm/settings/agent");
 }
 

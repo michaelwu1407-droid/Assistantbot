@@ -137,6 +137,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie empty-state and back-navigation links now stay inside the tradie flow (`/tradie`, `/tradie/map`) instead of bouncing users into `/crm/tradie`, which redirected to the main CRM dashboard.
 - `fixed` The legacy `/crm/tradie` route now redirects into `/tradie`, so stale links degrade into the correct tradie surface instead of the manager dashboard.
 - `fixed` The legacy estimator routes are now real workflows. `/tradie/estimator` and `/crm/estimator` render the estimator form with active accessible deals instead of redirecting users to the dashboard.
+- `fixed` The legacy `/crm/agent` route now degrades into `/crm/settings/agent`, so old AI-assistant links land on the real AI Assistant page instead of the generic dashboard.
 
 ### Inbox / Messaging UX
 
