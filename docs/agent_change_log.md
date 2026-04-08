@@ -4043,3 +4043,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-bottom-sheet.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Tradie completion modal file uploads made honest
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+- What changed:
+  - Removed the fake local `Upload photos or files` picker from the tradie completion modal.
+  - Replaced it with clear guidance that files and photos need to be added from the full CRM job so they persist to the customer timeline and invoice record.
+  - Added a real `Open Full CRM Job` link back to `/crm/deals/[id]`.
+- Why:
+  - The old upload UI only stored `File[]` in local component state and never persisted anything, which made the completion flow look more complete than it really was.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
