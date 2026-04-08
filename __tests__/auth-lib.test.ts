@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createClient, authError } = vi.hoisted(() => ({
+const { createClient, authError, cookiesMock, headersMock, dbUserFindUnique } = vi.hoisted(() => ({
   createClient: vi.fn(),
   authError: vi.fn(),
+  cookiesMock: vi.fn(),
+  headersMock: vi.fn(),
+  dbUserFindUnique: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -15,10 +18,26 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: cookiesMock,
+  headers: headersMock,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: {
+      findUnique: dbUserFindUnique,
+    },
+  },
+}));
+
 describe("lib/auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    cookiesMock.mockResolvedValue({ get: vi.fn(() => undefined) });
+    headersMock.mockResolvedValue({ get: vi.fn(() => null) });
+    dbUserFindUnique.mockResolvedValue(null);
   });
 
   async function loadModule() {
@@ -54,6 +73,33 @@ describe("lib/auth", () => {
     const { getAuthUserId } = await loadModule();
 
     await expect(getAuthUserId()).resolves.toBe("user_123");
+  });
+
+  it("accepts a cron-authenticated internal probe user override", async () => {
+    vi.stubEnv("CRON_SECRET", "probe-secret");
+    headersMock.mockResolvedValue({
+      get: vi.fn((key: string) => {
+        if (key === "authorization") return "Bearer probe-secret";
+        if (key === "x-user-id") return "user_probe";
+        return null;
+      }),
+    });
+    dbUserFindUnique.mockResolvedValue({
+      id: "user_probe",
+      name: "Probe Owner",
+      email: "probe@example.com",
+      bio: "Ops",
+    });
+
+    const { getAuthUserId, getAuthUser } = await loadModule();
+
+    await expect(getAuthUserId()).resolves.toBe("user_probe");
+    await expect(getAuthUser()).resolves.toEqual({
+      id: "user_probe",
+      name: "Probe Owner",
+      email: "probe@example.com",
+      bio: "Ops",
+    });
   });
 
   it("builds a display name from Supabase metadata", async () => {
