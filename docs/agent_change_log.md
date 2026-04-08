@@ -4121,3 +4121,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Team page no longer carries fake-member product logic
+
+- Files:
+  - `app/crm/team/page.tsx`
+  - `__tests__/team-page.test.tsx`
+- What changed:
+  - Removed the `member.id.startsWith("fake-")` special-casing from the real team page UI.
+  - Managers now see role-management and removal affordances based only on actual product rules: current user, owner protection, and manager permissions.
+- Why:
+  - That `fake-` branch was test/demo leakage in the real product surface. Even if harmless most of the time, it encoded fixture knowledge into production UI logic and made the behavior less trustworthy.
+- Verified with:
+  - `npx vitest run __tests__/team-page.test.tsx`
+  - `npx next build`

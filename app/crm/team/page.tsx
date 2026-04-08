@@ -380,7 +380,7 @@ export default function TeamPage() {
 
                                     <div className="space-y-1">
                                         <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
-                                        {(!isManager || member.isCurrentUser || member.role === "OWNER" || member.id.startsWith("fake-")) ? (
+                                        {(!isManager || member.isCurrentUser || member.role === "OWNER") ? (
                                             <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
                                                 {member.role === "OWNER" && <Shield className="mr-1 h-3 w-3" />}
                                                 {getRoleLabel(member.role)}
@@ -402,7 +402,7 @@ export default function TeamPage() {
                                     </div>
 
                                     <div className="flex items-center justify-end gap-2">
-                                        {isManager && !member.isCurrentUser && member.role !== "OWNER" && !member.id.startsWith("fake-") && (
+                                        {isManager && !member.isCurrentUser && member.role !== "OWNER" && (
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button

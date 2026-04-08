@@ -195,6 +195,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie job-detail handover no longer shows static fake resources. The tab now gives honest status and routes users to the full CRM job for real handover docs and attachments.
 - `fixed` `/api/workspace` POST no longer returns a placeholder `501`. It now updates the authenticated user's workspace through the real server action and returns the refreshed workspace payload.
 - `fixed` Tradie post-job completion flow now uses clearer next-step copy when offering the feedback request, making the final review/send step more obvious in the field workflow.
+- `fixed` Team page no longer contains `fake-` fixture logic in real role-management UI. Permissions now reflect only actual product rules.
 
 ### Specific Tracey Use Cases Still To Prove Well
 
